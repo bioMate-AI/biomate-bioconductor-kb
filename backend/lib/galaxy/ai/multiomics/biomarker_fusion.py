@@ -57,6 +57,17 @@ def _f_statistic_per_feature(
     layer. Continuous omics with real within-group noise never hit this path. (A
     variance/``ss_between``-scaled floor was considered and rejected: it collapses all
     perfectly-separable features to one constant F — worse than the current ordering.)
+
+    Third-pass committee (confirmed): true scale-invariance AND effect-size ordering
+    are mathematically jointly impossible here (the only scale-invariant ANOVA effect
+    size is η²=ss_between/ss_total, which =1 for every perfectly-separable feature, so
+    they must tie). The current ``(|grand|+1)²`` factor is the one that sacrifices
+    *offset*-invariance; a pure constant floor would restore it at the cost of
+    scale-awareness (tiny-magnitude features would rank low). We keep the magnitude
+    heuristic and do not swap, because the choice is practically moot: the downstream
+    EvidenceGate robust-z CLIPS to Z_CAP, so all perfectly-separable features saturate
+    at the cap and tie there regardless of the floor — the offset distortion never
+    reaches the gate. The principled fix remains per-layer standardization upstream.
     """
     import numpy as np
 
@@ -258,17 +269,28 @@ def drivers_from_run(
         if uri.startswith("s3://"):
             # Backend-native read (boto3 is present in the Galaxy backend); fall back
             # to the AWS-CLI staging helper (present in the ml-training image).
+            # Use the centralised client factory so on-prem MinIO (S3_ENDPOINT_URL)
+            # and a non-default region are honoured — a bare boto3.client("s3")
+            # points only at AWS us-east-1 and would 301/NoSuchBucket on MinIO.
             try:
-                import boto3  # type: ignore
+                from galaxy.ai.s3_utils import make_s3_client
                 _, _, rest = uri.partition("s3://")
                 bucket, _, key = rest.partition("/")
-                obj = boto3.client("s3").get_object(Bucket=bucket, Key=key)
+                obj = make_s3_client().get_object(Bucket=bucket, Key=key)
                 return obj["Body"].read().decode("utf-8", "replace")
-            except Exception:
-                from galaxy.ai.ml_training.datasets import stage_s3_to_local
-                local = stage_s3_to_local(uri)
-                with open(local) as fh:
-                    return fh.read()
+            except Exception as boto_exc:
+                # Don't let the staging fallback's generic "AWS CLI not available"
+                # mask the real boto3 cause (bad creds, wrong region/endpoint, 403).
+                try:
+                    from galaxy.ai.ml_training.datasets import stage_s3_to_local
+                    local = stage_s3_to_local(uri)
+                    with open(local) as fh:
+                        return fh.read()
+                except Exception as stage_exc:
+                    raise RuntimeError(
+                        f"could not read {uri}: boto3 read failed ({boto_exc!r}); "
+                        f"AWS-CLI staging fallback also failed ({stage_exc!r})"
+                    ) from boto_exc
         with open(uri) as fh:
             return fh.read()
 
