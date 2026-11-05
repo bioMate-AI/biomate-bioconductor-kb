@@ -42,8 +42,21 @@ def _f_statistic_per_feature(
     """One-way ANOVA F per feature across the subtype labels of the given samples.
 
     ``values`` is features x samples (same column order as ``sample_names``).
-    Features with no within-group spread or a single populated group get F=0
-    (uninformative), never NaN/inf — so a flat/ID column contributes no evidence.
+    NaN-aware: each group is summarized over its present (finite) values, so one
+    missing cell does not zero a feature. A single populated group → F=0.
+
+    LIMITATION (perfectly-separable features, ``ss_within≈0``): the F-statistic is
+    then formally +∞ regardless of effect size, so there is no canonical finite
+    ordering among such features. We regularize the denominator with a small floor
+    (``1e-9·(|grand mean|+1)²``) to keep F finite and give SOME ordering — but for
+    equal-separation features of different offset, a mean-centered feature (grand≈0)
+    scores higher than an offset one, which is a heuristic, not a true effect-size
+    ranking. Mitigation: standardize features per layer upstream (so magnitudes are
+    comparable and ``ss_within`` is rarely exactly 0); the EvidenceGate also
+    robust-z-scores each layer's F distribution downstream, which normalizes within a
+    layer. Continuous omics with real within-group noise never hit this path. (A
+    variance/``ss_between``-scaled floor was considered and rejected: it collapses all
+    perfectly-separable features to one constant F — worse than the current ordering.)
     """
     import numpy as np
 

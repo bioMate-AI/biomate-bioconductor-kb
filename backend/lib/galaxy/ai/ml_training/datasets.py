@@ -312,9 +312,22 @@ def load_tabular_dataset(path: str, target_col: str,
         except (TypeError, ValueError):
             return None
     _col_mean: dict = {}
+    _all_missing: list = []
     for c in feature_names:
         _present = [x for x in (_val(r.get(c)) for r in rows_raw) if x is not None]
-        _col_mean[c] = (sum(_present) / len(_present)) if _present else 0.0
+        if not _present:
+            _all_missing.append(c)          # every cell missing → not a feature; drop it
+            continue
+        _col_mean[c] = sum(_present) / len(_present)
+    if _all_missing:
+        # A column that is missing in EVERY row would otherwise become a useless
+        # constant-0 feature (second-pass review); drop it (partially-missing columns
+        # are still kept + mean-imputed above).
+        log.info("[ml_training] dropping %d all-missing feature column(s): %s",
+                 len(_all_missing), ", ".join(_all_missing))
+        feature_names = [c for c in feature_names if c not in set(_all_missing)]
+        if not feature_names:
+            raise ConfigError("no feature columns with any present (non-missing) value")
     X = []
     for r in rows_raw:
         row = []

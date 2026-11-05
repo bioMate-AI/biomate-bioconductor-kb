@@ -158,3 +158,15 @@ def test_tabular_keeps_gene_column_with_NA_and_imputes(tmp_path):
     gi = ds.feature_names.index("GENE1")
     assert all(x == x for x in (row[gi] for row in ds.X))  # no NaN survived
     assert abs(ds.X[1][gi] - (1.0 + 1.2 + 7.9) / 3) < 1e-6  # imputed with column mean
+
+
+def test_tabular_drops_all_missing_column(tmp_path):
+    # A column missing in EVERY row is dropped (not kept as a constant-0 feature);
+    # a PARTIALLY-missing column is still kept + imputed (second-pass review).
+    from galaxy.ai.ml_training.datasets import load_tabular_dataset
+    csv_p = tmp_path / "expr.csv"
+    csv_p.write_text(
+        "sample_id,GENE0,ALLNA,label\n"
+        "S0,8.0,NA,A\nS1,1.0,NA,B\nS2,8.1,NA,A\nS3,0.9,NA,B\n")
+    ds = load_tabular_dataset(str(csv_p), "label")
+    assert ds.feature_names == ["GENE0"]          # ALLNA dropped, GENE0 kept
