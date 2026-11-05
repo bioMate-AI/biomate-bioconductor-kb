@@ -1,6 +1,6 @@
 import { normalizeQcEvents } from "../shared/qc-assessment";
 import { matchDescriptor } from "../shared/findings-descriptors";
-import { buildFindingsDocument, reconcileFindingsDocument } from "../shared/findings-extract";
+import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } from "../shared/findings-extract";
 import { registerVoiceRoutes } from "./voice-routes";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -15990,6 +15990,25 @@ Rules:
           if (preprocessed?.findings) {
             console.log(`[Findings] deterministic parse succeeded for "${workflowName}" — skipping LLM`);
             const _reconciledDoc = _findingsDoc ? reconcileFindingsDocument(preprocessed.findings, _findingsDoc) : null;
+            // SHADOW — document-as-truth migration, step 2 (logs only, NO behavior change; see
+            // docs/20261105_FINDINGS_QC_SIMPLIFICATION_DESIGN.md). Compare the document→flat
+            // projection (documentToLegacy) against today's parser flat so the later cutover to
+            // the document as the single verdict source (deleting the reconciler) is decidable
+            // from real-run divergence instead of guessed. The returned flat is unchanged.
+            if (_findingsDoc) {
+              try {
+                const _proj = documentToLegacy(_findingsDoc);
+                const _flatKeys = new Set<string>((preprocessed.findings.key_results || []).map((k: any) => String(k.metric)));
+                const _projKeys = new Set<string>(_proj.key_results.map(k => String(k.metric)));
+                const _parserOnly = [..._flatKeys].filter(k => !_projKeys.has(k));
+                const _docOnly = [..._projKeys].filter(k => !_flatKeys.has(k));
+                if (_parserOnly.length || _docOnly.length) {
+                  console.warn(`[Findings][shadow] documentToLegacy vs parser flat for "${workflowName}": parser-only=[${_parserOnly.join(', ')}] doc-only=[${_docOnly.join(', ')}] — cutover pending`);
+                } else {
+                  console.log(`[Findings][shadow] documentToLegacy matches parser-flat key set for "${workflowName}" (${_projKeys.size} metrics) — cutover-ready`);
+                }
+              } catch (e) { console.warn(`[Findings][shadow] projection compare failed: ${(e as Error).message}`); }
+            }
             const _det = _reconciledDoc ? { ...preprocessed.findings, findings_document: _reconciledDoc } : preprocessed.findings;
             _findingsCache.set(runId, _det);
             void persistFindingsSidecar(_det);
