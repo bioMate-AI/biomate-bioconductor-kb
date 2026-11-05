@@ -73,11 +73,17 @@ real `enrichGO` against `org.Hs.eg.db`). **Input:** a 30-gene canonical cell-cyc
 `ERROR ~ Illegal character in scheme name at index 0: %5B%22s3://…/gene_list.txt%22%5D` — decoded,
 `["s3://…/gene_list.txt"]`. The `gene_list` input reached Nextflow as a **list-wrapped S3 URI string**
 instead of being staged as a local `gene_list.txt` the R body reads (`read_input_file("gene_list")`).
-So the executor's **single-named bioc-input staging path leaked the input as a `--param`** (and
-list-wrapped it) rather than binding it into the entry-wrapper channel — a bug specific to the
-one-declared-name shape (`// Input: gene_list.txt`); the two-name DESeq2 case (UC-3) staged correctly.
-The workflow, container, gene list, and `org.Hs.eg.db` are all fine — the defect is in
-`nextflow_executor.py`'s bioc entry-wrapper param/staging path.
+**Pinned cause** (from the launch log `entry: BIOC_CLUSTERPROFILER_OVER_REPRESENTATION_ANALYSIS_WORKFLOW`):
+clusterprofiler exposes a **named `*_WORKFLOW` block with a `take:` channel**, so the executor ran
+`-entry <WORKFLOW>` and passed `gene_list` as a `--param` — it did **not** generate the staging
+entry-wrapper that UC-3's DESeq2 used (DESeq2 is process-only, so it got the staging wrapper that
+binds inputs as local `file('…')`). On the `-entry` path the `gene_list` S3 URI was **list-wrapped**
+(`["s3://…"]`) and Nextflow tried to resolve that literal as a file URI → the illegal-scheme error.
+The workflow, container, gene list, and `org.Hs.eg.db` are all fine — the defect is the executor
+choosing the named-`-entry` path for a bioc subworkflow whose `take` input is a file, then passing a
+list-wrapped URI param instead of staging the file. (Fix direction: for bioc subworkflows with a file
+`take` input, prefer the staging entry-wrapper, or pass the staged local path — not a list-wrapped
+remote URI — to the named workflow.)
 
 **Status:** honest negative result. Not fixed in this pass — the entry-wrapper param path is on the
 hot execution route and a change risks other bioc workflows, so it warrants a dedicated, carefully-
