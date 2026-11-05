@@ -1,0 +1,32 @@
+name: Create Demo Accounts (one-off)
+on:
+  workflow_dispatch:
+
+jobs:
+  create-accounts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ECS_IP: 101.201.107.126
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Insert demo users into Postgres
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+          PW_HASH: '$2b$12$lyeREmSsPiOf/FxdZOnBxOlY5F3JjrQHa6MJZjU5UxiuHEy6v3TLW'
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 root@${{ env.ECS_IP }} \
+            "docker exec biomate-postgres psql -U biomate biomate -c \"
+INSERT INTO users (email, password, full_name, subscription_status, subscription_tier, email_verified)
+VALUES
+  ('demo2@biomate-demo.com',  '$PW_HASH', 'Demo User 2',  'trialing', 'professional', true),
+  ('demo3@biomate-demo.com',  '$PW_HASH', 'Demo User 3',  'trialing', 'professional', true),
+  ('demo4@biomate-demo.com',  '$PW_HASH', 'Demo User 4',  'trialing', 'professional', true),
+  ('demo5@biomate-demo.com',  '$PW_HASH', 'Demo User 5',  'trialing', 'professional', true),
+  ('guest1@biomate-demo.com', '$PW_HASH', 'Guest User 1', 'trialing', 'professional', true),
+  ('guest2@biomate-demo.com', '$PW_HASH', 'Guest User 2', 'trialing', 'professional', true)
+ON CONFLICT (email) DO NOTHING;
+SELECT email, full_name, subscription_tier, email_verified FROM users WHERE email LIKE '%@biomate-demo.com' ORDER BY email;\""
