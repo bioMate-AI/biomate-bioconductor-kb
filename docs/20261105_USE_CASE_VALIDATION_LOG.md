@@ -37,6 +37,32 @@ chemistry input (SMILES), a model-backed prediction (`admet_ai`), and the QC-gat
 endpoints (hERG/DILI/Ames) rather than clustering quality. Note this uses the **pre-existing hardcoded
 ADMET gate**, not the generalized declared-gate engine (UC-1); both QC paths are now live-verified.
 
+## UC-3 — Transcriptomics: bulk RNA-seq differential expression (DESeq2)
+**Workflow:** `subworkflows/bioconductor/deseq2/main.nf` (container
+`bioc-domain-transcriptomics:3.20-slim`, CPU). **Input:** a simulated 12-sample (6 control / 6
+treated) × 2000-gene integer count matrix (`cts.csv`) + sample metadata (`coldata.csv`, a `condition`
+column), with **100 planted DE genes** (50 up 3×, 50 down ⅓×). **Run
+`b8cd8747-6527-4f80-b1ec-8b2d2ad62e3b`** — succeeded on CPU Batch.
+
+**Result — statistically honest (not upper-bound):**
+- 2000 genes → 1720 after low-count filtering; **80 called DE at padj<0.05**.
+- **Planted-DE recovery: 77/100** at padj<0.05, **direction 77/77 correct** (every recovered gene has
+  the right up/down sign). Top hits are planted up genes (e.g. GENE0019 log2FC 1.61, padj 4.7e-273).
+- **False positives: 3/1620 non-planted → empirical FDR ≈ 0.037**, right at the BH padj<0.05 control.
+- Emitted `qc_metrics.json` (process `BIOC_DESEQ2_STANDARD_DE_FROM_MATRIX`, the Bioconductor QC-harness
+  gates: diagnostic MA/PCA, low-count filtering).
+
+The 77% recall (not 100%) is the honest outcome — low-fold / low-expression planted genes don't reach
+significance at n=6/group — and the FDR lands on the nominal 5%. A third independent domain
+(transcriptomics) validated end-to-end, with a proper statistical result rather than a near-perfect
+simulation artifact.
+
+**Gotcha (recorded for reuse):** bioconductor subworkflows with a `// Input: a, b` header read their
+inputs by **named params** (`params["cts"]`, `params["coldata"]`), staged under those basenames — NOT
+the `omics` list used by the collect-all multi-omics shape (SNF). Passing `omics` here failed with
+`Required input file for cts not found`; passing `cts`/`coldata` params fixed it. (Executor logic:
+`nextflow_executor.py` Style-A bioc entry wrapper, ~line 2235.)
+
 ---
 
 ### Method notes / honesty
