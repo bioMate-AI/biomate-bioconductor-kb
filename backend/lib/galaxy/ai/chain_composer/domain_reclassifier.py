@@ -235,6 +235,7 @@ def reclassify(
     all_domains: bool = False,
     llm: Optional[Callable[[str], str]] = None,
     workers: int = 1,
+    canonical: bool = False,
 ) -> List[Dict[str, Any]]:
     db_path = db_path or _DEFAULT_DB
     conn = sqlite3.connect(str(db_path))
@@ -252,6 +253,12 @@ def reclassify(
         taxonomy = (sorted(set(_DOMAIN_TAXONOMY) | {d for (d,) in conn.execute(
             "SELECT DISTINCT domain FROM workflows WHERE executable=1 AND domain IS NOT NULL AND domain != 'other'")})
             if all_domains else None)
+        if canonical:
+            # The router's preferred_domains come only from CANONICAL_DOMAINS, so a tag earns the
+            # domain match only if it is canonical. Per row: canonical + 'general' + the current tag
+            # (so "keep the current tag" stays expressible for routing-only tags).
+            from galaxy.ai.domain_registry import CANONICAL_DOMAINS
+            taxonomy = list(CANONICAL_DOMAINS) + ["general"]
     finally:
         conn.close()
 
@@ -267,9 +274,10 @@ def reclassify(
 
     def _one(r: Tuple[str, str, str, str, str]) -> Dict[str, Any]:
         name, source, desc, anno, domain = r
+        row_tax = (taxonomy + [domain]) if (canonical and domain not in taxonomy) else taxonomy
         return _classify_one({"name": name, "source": source, "description": desc,
                               "annotation": anno, "current_domain": domain}, llm,
-                             taxonomy=taxonomy, keep_on_failure=all_domains)
+                             taxonomy=row_tax, keep_on_failure=all_domains)
 
     out: List[Dict[str, Any]] = []
     from concurrent.futures import ThreadPoolExecutor
@@ -377,12 +385,13 @@ def _cli(argv=None) -> int:
     p.add_argument("--all-domains", action="store_true", help="audit every executable workflow, not only domain='general'")
     p.add_argument("--openrouter-model", default=None, help="classify via this OpenRouter model (key in ~/.config/biomate/openrouter.key)")
     p.add_argument("--workers", type=int, default=1, help="parallel LLM calls")
+    p.add_argument("--canonical", action="store_true", help="closed list = router's CANONICAL_DOMAINS + general + current tag")
     args = p.parse_args(argv)
 
     t0 = time.time()
     proposals = reclassify(limit=args.limit, offline=args.offline, all_domains=args.all_domains,
                            llm=openrouter_llm(args.openrouter_model) if args.openrouter_model else None,
-                           workers=args.workers)
+                           workers=args.workers, canonical=args.canonical)
     dt = time.time() - t0
 
     sys.stderr.write(f"\nClassified {len(proposals)} workflows in {dt:.1f}s.\n")
