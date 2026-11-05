@@ -102,9 +102,14 @@ a dev run is the follow-up).
 ## 6. Deploy status
 - All of §1–4 are committed, in PR #295, and **deployed to dev at `001f735e6`** (sync healthy,
   gunicorn fresh module load, smoke `PASS workflow=bulk_rnaseq_de_analysis`, db-search OK).
-- **Not yet active in chat:** `ML_TRAINING_ROUTING` and `MULTIOMICS_ROUTING` are env flags (default
-  off) set on the dev container, NOT synced by the script. Until flipped, chat requests fall through
-  to normal workflow search — the generalized code is deployed and loads, but dormant.
+- **ACTIVE in chat (2026-11-04, later same day):** `ML_TRAINING_ROUTING=1` + `MULTIOMICS_ROUTING=1`
+  are now set on `biomate-galaxy-dev` via `scripts/enable_generalized_routing_on_dev.sh on` (a
+  `docker commit` snapshot recreate — see the runbook doc for why not reimage). **Verified live** with
+  `EXPECT_FLAGS_ON=1 scripts/smoke_generalized_routing.sh`: **3 pass / 0 fail / 0 flag-off** — a chat
+  request on an expression matrix routes to `sklearn_tabular`, and a zh 整合空间转录组+蛋白质组+代谢组
+  request routes to the SNF multi-omics integration plan. Revert with the script's `off`.
+- **QC-gate engine now WIRED** into `jobs/qc_trace_monitor.py` (commit `a26e61fcd`) — §4 follow-up
+  closed; a declared-gate run on dev is the remaining execution validation (§8 item 4).
 
 ## 7. Test coverage — honest assessment (see §8 of this doc for the plan)
 What IS covered: **unit/logic level, thoroughly** — splits, loaders, trainers, routing parsers,
