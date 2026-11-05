@@ -1685,6 +1685,11 @@ export interface DecomposedIntent {
    *  conversation; 'pipeline' = launch a workflow. Set by the classifier from what the request
    *  needs, in any language. */
   execution?: 'pipeline' | 'direct_compute' | null;
+  /** LLM-written routing specification for a workflow intent: method + data type + input format +
+   *  expected output, no experimental-design labels. The catalog search for this branch uses it. */
+  taskSpec?: string;
+  /** LLM-assigned scientific domain of this branch (e.g. proteomics), preferred when routing it. */
+  domain?: string;
 }
 
 export interface IntentDecomposition {
@@ -6503,7 +6508,13 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       if (actions.needsWorkflowGeneration || actions.needsWorkflowModification) {
         // Route this branch's scientific task. Catalog/domain context is supplied separately;
         // reusing the full request here makes every branch select the same primary workflow.
-        const effectiveIntent = workflowIntent(intent.subQuery, originalMessage);
+        // The LLM's task_spec (method + data type + input format, no design labels) when present: the
+        // free-text sub-query's "WT vs KO / lysate / triplicates" matched a CLIP-seq workflow whose
+        // inputs are named wt_/ko_ (dev, 2026-11-04).
+        const effectiveIntent = workflowIntent(intent.taskSpec || intent.subQuery, originalMessage);
+        if (intent.domain) {
+          preferredDomains = [intent.domain, ...(preferredDomains || []).filter(d => d !== intent.domain)];
+        }
         const _subUploadedParams = extractUploadedFileParams(originalMessage || intent.subQuery);
         const _subMergedInline: Record<string, string> = {
           ...(intent.inlineParameters || {}),
@@ -6975,6 +6986,19 @@ Rules for multi-intent:
 - Set dependsOn when one intent's output feeds into another (e.g., research findings used for workflow design)
 - IMPORTANT: When in doubt between single-intent and multi-intent, prefer multi-intent if the user is asking for 2+ distinct outcomes (e.g., run an analysis AND compare tools AND search literature)
 
+## Workflow intent fields: "task_spec" and "domain" (every workflow_generation intent in a multi-intent reply)
+
+BioMate routes each workflow intent to ONE catalog workflow by searching with its "task_spec". Write it as a precise analysis specification:
+- the analysis METHOD (what computation), the DATA TYPE / assay, the INPUT FORMAT the user actually has (raw reads, a processed matrix, a results table, structures, SMILES…), and the EXPECTED OUTPUT;
+- NO experimental-design labels: sample/cell-line names, genotypes or arms ("WT vs KO", "SCC9", "treated"), replicate counts, cohort names. Those are parameters — keep them in subQuery / inlineParameters / facts. They do not identify the method, and searching with them matches unrelated workflows that happen to use the same words.
+"domain" is the branch's scientific domain: one of transcriptomics, proteomics, genomics, variant_calling, epigenomics, single_cell, metabolomics, multi_omics, systems_biology, drug_discovery, pharmacology, structural_biology, cryo_em, metagenomics, immunology, imaging.
+
+Good vs bad task_spec:
+- Request "duplicates of SCC9 WT vs KO lysates, DIA-NN report.pg_matrix.tsv": GOOD "differential protein abundance testing on a processed DIA-NN protein-group intensity matrix (log2 intensities, missing-value imputation), two-group comparison → per-protein log2 fold change and adjusted p-values", domain "proteomics". BAD "Differential abundance analysis of SCC9 WT vs KO lysate proteomics (duplicates)".
+- Request "triplicates of WT and KO, counts and CPM in ko vs wt.csv": GOOD "differential gene expression on a bulk RNA-seq gene count matrix (DESeq2/edgeR-style negative-binomial model), two-group comparison → per-gene log2 fold change and adjusted p-values", domain "transcriptomics".
+- Request "integrate the RNA and protein results": GOOD "integration of two quantitative omics layers (transcript and protein differential results or matrices) — multi-omics concordance / sparse PLS or co-inertia analysis → shared features, layer agreement, joint pathway enrichment", domain "multi_omics". BAD "Integrate bulk RNA-seq, lysate proteomics, and secretome proteomics differential results across SCC9 WT vs KO".
+- Request "call variants on my WGS FASTQ pair, GRCh38": GOOD "germline short-variant calling from paired-end whole-genome FASTQ (alignment, duplicate marking, base recalibration, HaplotypeCaller) → annotated VCF", domain "variant_calling".
+
 ## Branch-and-integrate (fork/join) Detection
 
 When a request analyses SEVERAL data layers or datasets independently and then COMBINES them — "integrate bulk RNA-seq and proteomics", "compare lysate and secretome proteomics with RNA-seq", "run DE in each cohort, then meta-analyse" — emit:
@@ -6982,7 +7006,19 @@ When a request analyses SEVERAL data layers or datasets independently and then C
 - one **workflow_generation** integration intent whose subQuery names the integration analysis, with "dependsOn" listing ALL the layer intents' ids;
 - "is_sequential": false (the layers run in parallel; only the integration waits for them).
 A single interpretation request about the combined result may follow as a separate (non-workflow) intent.
-Example: "Integrate my bulk RNA-seq (KO vs WT) with DIA proteomics of lysates and secretome" → intent_1 RNA-seq differential expression KO vs WT (dependsOn []), intent_2 lysate proteomics differential abundance (dependsOn []), intent_3 secretome proteomics differential abundance (dependsOn []), intent_4 integrate RNA and protein differential results (dependsOn ["intent_1","intent_2","intent_3"]).
+Worked example — "Integrate my bulk RNA-seq (KO vs WT triplicates, ko vs wt.csv with counts) with DIA proteomics of lysates (duplicates) and conditioned-media secretome (triplicates), report.pg_matrix.tsv from DIA-NN, and give a biological interpretation":
+{"is_sequential": false, "preferred_domains": ["multi_omics","transcriptomics","proteomics"], "intents": [
+ {"id":"intent_1","type":"workflow_generation","execution":"pipeline","subQuery":"Bulk RNA-seq differential expression, KO vs WT lysates (triplicates)","task_spec":"differential gene expression on a bulk RNA-seq gene count matrix, two-group comparison → per-gene log2 fold change and adjusted p-values","domain":"transcriptomics","dependsOn":[]},
+ {"id":"intent_2","type":"workflow_generation","execution":"pipeline","subQuery":"Lysate proteomics differential abundance, KO vs WT (duplicates)","task_spec":"differential protein abundance on a processed DIA-NN protein-group intensity matrix (log2, imputation), two-group comparison → per-protein log2 fold change and adjusted p-values","domain":"proteomics","dependsOn":[]},
+ {"id":"intent_3","type":"workflow_generation","execution":"pipeline","subQuery":"Secretome (conditioned media) proteomics differential abundance, KO vs WT (triplicates)","task_spec":"differential protein abundance on a processed DIA-NN protein-group intensity matrix of secreted proteins, two-group comparison → per-protein log2 fold change and adjusted p-values","domain":"proteomics","dependsOn":[]},
+ {"id":"intent_4","type":"workflow_generation","execution":"pipeline","subQuery":"Integrate the RNA and protein differential results","task_spec":"integration of transcript and protein differential results — concordance and sparse PLS / co-inertia multi-omics integration → shared features and joint pathway enrichment","domain":"multi_omics","dependsOn":["intent_1","intent_2","intent_3"]},
+ {"id":"intent_5","type":"data_interpretation","subQuery":"Biological interpretation of the integrated results","dependsOn":["intent_4"]}]}
+(Abbreviated: real replies also carry keywords, actions, facts, confidence.)
+
+Other shapes:
+- Independent analyses, no combining step — "call variants on my WGS FASTQs and, separately, run RNA-seq DE on my counts" → two workflow intents, both "dependsOn": [], is_sequential false.
+- Screening fan-out — "dock these 200 SMILES against EGFR and also predict their ADMET" → two parallel workflow intents over the same input (docking; ADMET prediction), both "dependsOn": []; a third "rank by docking score and ADMET" intent depends on both.
+- Strict chain — "QC, then align, then call peaks" → the Sequential Pipeline format below, not this one.
 
 ## Sequential Pipeline Detection
 
@@ -7284,6 +7320,8 @@ For MULTI-intent messages (parallel), respond with an "intents" array:
       "id": "intent_1",
       "type": "workflow_generation",
       "subQuery": "Run DE analysis on my RNA-seq data",
+      "task_spec": "differential gene expression on bulk RNA-seq data, two-group comparison → per-gene log2 fold change and adjusted p-values",
+      "domain": "transcriptomics",
       "keywords": ["differential expression"],
       "inlineParameters": {},
       "needsToolSearch": true,
@@ -8161,6 +8199,8 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         dependsOn: Array.isArray(intent.dependsOn) ? intent.dependsOn : [],
         actions: parseActions(intent.actions, intent.type || 'general_question'),
         execution: parseExecutionMode(intent.execution),
+        taskSpec: typeof intent.task_spec === 'string' && intent.task_spec.trim() ? intent.task_spec.trim() : undefined,
+        domain: typeof intent.domain === 'string' && intent.domain.trim() ? intent.domain.trim() : undefined,
         // Sequential pipeline metadata
         inputFromDescription: intent.input_from_description ?? undefined,
         outputDescription: intent.output_description ?? undefined,

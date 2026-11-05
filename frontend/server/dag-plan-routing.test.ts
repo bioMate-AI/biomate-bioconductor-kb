@@ -92,3 +92,31 @@ it('explains an order-only fan-in (no typed wiring) without implying data is pas
   const res = await assistantWith(post)._tryDagPlan(FORK_JOIN, 'x', () => {});
   expect(res.message).toMatch(/Step 4 runs after steps 1, 2, 3, but their result files are not connected/);
 });
+
+// Branch routing uses the LLM's task_spec (method + data type + input format, no design labels) and
+// the branch's own domain: the sub-query "… SCC9 WT vs KO lysate proteomics (duplicates)" matched a
+// CLIP-seq workflow whose inputs are named wt_/ko_ (dev, 2026-11-04).
+describe('processSubIntent routing query', () => {
+  const run = async (extra: any) => {
+    const a = Object.create(GalaxyAssistant.prototype) as any;
+    a.generateWorkflow = vi.fn(async () => ({ success: true }));
+    await a.processSubIntent(
+      intent('intent_2', 'Lysate proteomics differential abundance, KO vs WT (duplicates)', [], extra),
+      'original message', {}, [], [], ['transcriptomics', 'proteomics'], [], []);
+    return a.generateWorkflow.mock.calls[0];
+  };
+  it('searches with task_spec and puts the branch domain first', async () => {
+    const [query, , , , domains] = await run({
+      taskSpec: 'differential protein abundance on a processed DIA-NN protein-group matrix → log2FC, adjusted p',
+      domain: 'proteomics',
+    });
+    expect(query).toContain('DIA-NN protein-group matrix');
+    expect(query).not.toContain('KO vs WT');
+    expect(domains).toEqual(['proteomics', 'transcriptomics']);
+  });
+  it('falls back to the sub-query when the LLM gave no task_spec', async () => {
+    const [query, , , , domains] = await run({});
+    expect(query).toContain('KO vs WT');
+    expect(domains).toEqual(['transcriptomics', 'proteomics']);
+  });
+});
