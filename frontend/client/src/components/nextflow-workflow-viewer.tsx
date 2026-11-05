@@ -1658,10 +1658,22 @@ export function NextflowWorkflowViewer({
   const nfProcessByName = React.useMemo<Record<string, any>>(() => {
     const procs: any[] = Array.isArray(nextflowStatus?.processes) ? nextflowStatus.processes : [];
     const map: Record<string, any> = {};
+    const addKey = (raw: any, proc: any) => {
+      if (!raw) return;
+      const s = String(raw).toLowerCase();
+      map[s] = proc;
+      // audit S4#4: nf-core emits fully-qualified process names
+      // (NFCORE_RNASEQ:RNASEQ:FASTQC) while phases are keyed by the short name (fastqc).
+      // Also index the trailing segment so phase.id/phase.name lookups match — otherwise
+      // procStatus is null and the live pills fall back to a workflow-%% heuristic that
+      // cannot show per-phase running state. Additive + non-clobbering (exact names win).
+      const tail = s.split(':').pop();
+      if (tail && tail !== s && !(tail in map)) map[tail] = proc;
+    };
     for (const proc of procs) {
-      if (proc?.name) map[String(proc.name).toLowerCase()] = proc;
-      if (proc?.process) map[String(proc.process).toLowerCase()] = proc;
-      if (proc?.id) map[String(proc.id).toLowerCase()] = proc;
+      addKey(proc?.name, proc);
+      addKey(proc?.process, proc);
+      addKey(proc?.id, proc);
     }
     return map;
   }, [nextflowStatus?.processes]);
