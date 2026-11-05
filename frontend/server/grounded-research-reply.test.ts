@@ -35,3 +35,24 @@ it('rejects inferred bibliography entries even if the number happens to be in ra
   expect(result.usedBackendAnswer).toBe(true);
   expect(result.message).toContain('Grounded finding [1].');
 });
+
+// The research agent marks its retrieved papers as not answering the question (evidence_answers_question
+// = false). An uncited draft is then kept — no "the provided literature does not contain" replacement,
+// no off-topic bibliography. Cited or reference-listing drafts keep the strict behaviour above.
+const offTopic={success:true,evidence_answers_question:false,answer:'The provided literature does not contain troubleshooting steps [1].',citations:[{title:'Die-attach failure in microelectronics',year:2019,pmid:'1'}]};
+it('keeps an uncited draft when the research agent says the evidence does not address the question',()=>{
+  const result=groundedResearchReply('Uploads over ~2 GB fail in the browser. Use **Data → Import from URL** with a direct link instead.',offTopic);
+  expect(result.usedBackendAnswer).toBe(false);
+  expect(result.message).toContain('Import from URL');
+  expect(result.message).toContain('not drawn from retrieved sources');
+  expect(result.message).not.toContain('microelectronics');
+  expect(result.message).not.toContain('provided literature');
+});
+it('still enforces citations when the off-topic draft cites or lists references',()=>{
+  expect(groundedResearchReply('Claim [1].',offTopic).message).toContain('## References');
+  expect(groundedResearchReply('Claim.\n\n## References\n\n[1] Invented',offTopic).usedBackendAnswer).toBe(true);
+});
+it('does not change behaviour when the evidence addresses the question or the verdict is absent',()=>{
+  expect(groundedResearchReply('Uncited essay.',{...research,evidence_answers_question:true}).usedBackendAnswer).toBe(true);
+  expect(groundedResearchReply('Uncited essay.',research).usedBackendAnswer).toBe(true);
+});

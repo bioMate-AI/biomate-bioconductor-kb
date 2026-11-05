@@ -2207,6 +2207,29 @@ export function isAdhocAnalysisOfAttachedData(message: string): boolean {
   return adhoc.test(task) && !PIPELINE_REQUEST_RE.test(task);
 }
 
+/** The user asks about one of their runs failing / not starting / stuck (EN + ZH). */
+export function asksAboutRunProblem(message: string): boolean {
+  const t = message || '';
+  return /\b(run|job|workflow|pipeline|analysis)s?\b[^.?!\n]{0,60}\b(fail\w*|error\w*|stuck|crash\w*|not (?:working|starting|running|finishing)|hang\w*)\b/i.test(t)
+    || /\bwhy\b[^.?!\n]{0,40}\b(fail\w*|error\w*)\b/i.test(t)
+    || /\bwhat does (?:this|the|that) error\b/i.test(t)
+    || /(运行|任务|流程|工作流|分析)[^。？！\n]{0,20}(失败|报错|出错|卡住)|为什么.{0,10}(失败|报错)/.test(t);
+}
+
+/** One line for a failed run's recorded error: the Nextflow process that failed and the most
+ *  specific message, never a bare "Caused by:" (what external users were shown). */
+export function runErrorSummary(execution: any, errorMessage?: string | null): string {
+  const e = execution || {};
+  const raw = [e.error, errorMessage, ...(Array.isArray(e.nextflowLog) ? e.nextflowLog : []), ...(Array.isArray(e.errorLines) ? e.errorLines : [])]
+    .filter((x: any) => typeof x === 'string' && x.trim()).join('\n');
+  const proc = /Error executing process > '([^']+)'/.exec(raw)?.[1];
+  const failed = Array.isArray(e.processes) ? e.processes.find((p: any) => /fail/i.test(String(p?.status))) : null;
+  const specific = raw.split('\n').map(l => l.trim())
+    .find(l => l && !/^Caused by:?$/i.test(l) && !/DEBUG|WARN\s|RetryConfig|FileHelper|Error executing process >/.test(l)) || '';
+  const parts = [proc || failed?.name ? `process ${proc || failed?.name} failed` : '', specific.slice(0, 300)].filter(Boolean);
+  return parts.join(' — ') || 'failed with no recorded error message (task logs not captured)';
+}
+
 export function parseExecutionMode(v: unknown): 'pipeline' | 'direct_compute' | null {
   return v === 'direct_compute' || v === 'pipeline' ? v : null;
 }
@@ -4419,6 +4442,15 @@ Rules:
     // Also injects P1 episode memory and P2 correction constraints.
     // All injections are non-fatal — failures are silently ignored.
     const isFirstMessage = !context.previousMessages || context.previousMessages.length === 0;
+    const _runProblem = asksAboutRunProblem(message);
+    if (_runProblem && !isFirstMessage && context.userId) {
+      // Any turn asking why a run fails gets the runs WITH their recorded errors (this chat first).
+      const block = await this._buildRecentRunsBlock(String(context.userId), { withErrors: true, chatSessionId: context.sessionId }).catch(() => '');
+      if (block) {
+        context = { ...context, ltmContextBlock: block + (context.ltmContextBlock || '') };
+        log('C2 recent runs (with errors) injected for a run-problem question');
+      }
+    }
     if (isFirstMessage && context.userId) {
       const uid = String(context.userId);
       try {
@@ -4427,7 +4459,7 @@ Rules:
             this._buildCrossSessionContextBlock(message, uid),
             this._buildEpisodeMemoryBlock(message, uid),          // P1
             this._buildCorrectionContextBlock(uid),               // P2
-            this._buildRecentRunsBlock(uid),                      // C2 (Galaxy History handoff)
+            this._buildRecentRunsBlock(uid, _runProblem ? { withErrors: true, chatSessionId: context.sessionId } : {}), // C2 (Galaxy History handoff)
           ]);
 
         let prefix = '';
@@ -10800,25 +10832,40 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     }
   }
 
-  /** C2 — recent-runs prompt block. Injected alongside P1/P2 memory blocks. */
-  private async _buildRecentRunsBlock(userId: string): Promise<string> {
+  /** C2 — recent-runs prompt block. Injected alongside P1/P2 memory blocks, and on any turn that
+   *  asks about a failing/stuck run (withErrors: this chat's runs first, each failed run with its
+   *  recorded error) — external users asked "why is the run failing?" three times and were answered
+   *  from literature; the block carried neither the error nor appeared after the first message. */
+  private async _buildRecentRunsBlock(userId: string, opts: { withErrors?: boolean; chatSessionId?: string } = {}): Promise<string> {
     try {
       const { storage } = await import('./storage');
-      const runs = await storage
+      const sessionRuns = opts.chatSessionId
+        ? await storage.getExecutionRuns(userId, undefined, undefined, 5, opts.chatSessionId).catch(() => [])
+        : [];
+      const recent = await storage
         .getExecutionRuns(userId, undefined, undefined, 5)
         .catch(() => []);
+      const seen = new Set<string>();
+      const runs = [...(sessionRuns || []), ...(recent || [])].filter(r => !seen.has(r.id) && seen.add(r.id)).slice(0, 6);
       if (!runs?.length) return '';
       const lines = runs.map(r => {
         const e: any = r.execution || {};
-        const status = e.status || 'unknown';
+        const status = e.status || (r as any).status || 'unknown';
         const date = (e.startedAt || r.createdAt)
           ? new Date(e.startedAt || r.createdAt).toISOString().slice(0, 10)
           : 'recent';
         const outs = Object.keys((e.outputs as any) || {}).length;
-        return `  • ${r.id.slice(0, 8)} · ${r.workflowName || 'unnamed'} · ${status} · ${date} · ${outs} outputs`;
+        const here = opts.chatSessionId && (r as any).chatSessionId === opts.chatSessionId ? ' · this chat' : '';
+        let line = `  • ${r.id.slice(0, 8)} · ${r.workflowName || 'unnamed'} · ${status} · ${date} · ${outs} outputs${here}`;
+        if (opts.withErrors && /fail|error/i.test(String(status))) {
+          line += `\n      error: ${runErrorSummary(e, (r as any).errorMessage)}`;
+        }
+        return line;
       });
       return [
-        '[Your recent workflow runs — refer by 8-char id when the user wants to reuse params or outputs]',
+        opts.withErrors
+          ? '[The user\'s recent workflow runs, with the recorded error of each failed run — answer questions about a failing run from these errors (state the cause and the fix), not from literature]'
+          : '[Your recent workflow runs — refer by 8-char id when the user wants to reuse params or outputs]',
         ...lines,
         '(call list_history for filtered/expanded details)',
         '',

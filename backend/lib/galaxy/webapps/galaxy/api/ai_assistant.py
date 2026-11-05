@@ -5659,7 +5659,8 @@ def answer_research_query(
             "confidence": response.confidence,
             "follow_up_questions": response.follow_up_questions,
             "methods_used": response.methods_used,
-            "source": "research_agent"
+            "source": "research_agent",
+            "evidence_answers_question": getattr(response, "evidence_answers_question", None),
         }
 
         # Retrieval transparency + source conflicts. These come from REAL

@@ -85,6 +85,9 @@ export function scientificToolResult(data: unknown, kind: 'targets' | 'review', 
     follow_up_questions: data.follow_up_questions, source: data.source,
     retrieval: data.retrieval, conflicts: data.conflicts, methods_used: data.methods_used,
     benchmark_evidence: data.benchmark_evidence,
+    // The synthesis model's verdict on whether the retrieved papers answer the question; the chat
+    // guard keeps an uncited answer instead of a "literature does not contain" reply when false.
+    evidence_answers_question: data.evidence_answers_question ?? null,
     note: data.citations.length
       ? 'Preserve the answer/reference numbering and source disagreements. Cite only returned references; do not invent DOI/PMID. Low confidence and retrieval limitations must be stated.'
       : 'No literature citations were returned. This is not a literature-backed review; disclose the source/fallback and do not invent references.',

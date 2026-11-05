@@ -1220,6 +1220,11 @@ class ResearchResponse:
     # list each citation's PMID/DOI verdict, including ones dropped as non-existent.
     evidence_status: Optional[str] = None
     citation_verification: List[Dict[str, Any]] = field(default_factory=list)
+    # The synthesis model's own verdict on whether the retrieved papers answer the question
+    # (True / False; None = not stated). Lets the chat keep a useful non-literature answer instead
+    # of replacing it with "the provided literature does not contain …" when retrieval missed
+    # (external-user replay 2026-11-04: support questions, dataset searches, imatinib ADMET).
+    evidence_answers_question: Optional[bool] = None
 
 
 class ResearchAgent:
@@ -2212,6 +2217,7 @@ class ResearchAgent:
             # Parse the response
             parsed = self._parse_llm_response(response)
             answer_text = parsed.get('answer', response)
+            answer_text, evidence_verdict = self._split_evidence_verdict(answer_text)
 
             # ── Conflict extraction ───────────────────────────────────────────
             # Pull the optional machine-parseable conflicts block BEFORE citation
@@ -2306,6 +2312,7 @@ class ResearchAgent:
                 conflicts=conflicts,
                 evidence_status=ev_status,
                 citation_verification=ev_rows,
+                evidence_answers_question=evidence_verdict,
             )
 
         except Exception as e:
@@ -2761,7 +2768,10 @@ class ResearchAgent:
                    "here, and never invent a DOI, PMID, or PDB ID. Cite only papers whose "
                    "content actually supports the sentence; do not pad with irrelevant [N]. "
                    "End your answer with a one-line '**Evidence boundary:**' stating what "
-                   "the evidence does and does not establish and any scope limits."]
+                   "the evidence does and does not establish and any scope limits.",
+                   "Begin your reply with exactly one line, before anything else: "
+                   "'EVIDENCE: addresses' if the papers below directly support an answer to the "
+                   "question, or 'EVIDENCE: insufficient' if they do not (off-topic or silent on it)."]
             for i, c in enumerate(cites, 1):
                 authors = ", ".join((getattr(c, 'authors', None) or [])[:6])
                 meta = []
@@ -2888,6 +2898,16 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
             )
 
         return response
+
+    @staticmethod
+    def _split_evidence_verdict(answer: str):
+        """Strip the leading 'EVIDENCE: addresses|insufficient' line the synthesis prompt asks
+        for; return (answer, True/False/None). Tolerates bold/heading markup around it."""
+        import re as _re_ev
+        m = _re_ev.match(r'\s*[#*_\s]*EVIDENCE\s*:\s*\**\s*(addresses|insufficient)\b[^\n]*\n?', answer or '', _re_ev.I)
+        if not m:
+            return answer, None
+        return answer[m.end():].lstrip(), m.group(1).lower() == 'addresses'
 
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """Parse the LLM response to extract structured data."""
