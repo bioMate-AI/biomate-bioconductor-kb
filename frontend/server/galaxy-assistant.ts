@@ -8186,6 +8186,10 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
     // Multi-intent format: { intents: [...] }
     if (Array.isArray(result.intents) && result.intents.length > 0) {
       const isSequential = result.is_sequential === true;
+      // One line per intent — the RAW log above is cut at 1,500 chars, which hid branches 2..N of a
+      // fork/join decomposition (2026-11-04); decomposition quality must be observable per branch.
+      (result.intents as any[]).forEach((it: any, i: number) => console.log(
+        `[Intent Decomposition] ${it?.id || `intent_${i + 1}`} type=${it?.type} domain=${it?.domain ?? '-'} dependsOn=${JSON.stringify(it?.dependsOn ?? [])} task_spec=${JSON.stringify(String(it?.task_spec ?? '')).slice(0, 220)}`));
       const intents: DecomposedIntent[] = result.intents.map((intent: any, i: number) => ({
         id: intent.id || `intent_${i + 1}`,
         type: intent.type || 'general_question',
