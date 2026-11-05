@@ -4455,6 +4455,11 @@ class NextflowQCGateHandler:
         """
         if not qc_metrics:
             return None, []
+        # Capture any workflow-DECLARED gates + the raw measured values BEFORE the
+        # dict is wrapped, so the general data-driven fallback at the end of this
+        # method can evaluate domains that have no hardcoded branch below.
+        _raw_metrics = dict(qc_metrics)
+        _declared_gates = _raw_metrics.get("gates") or _raw_metrics.get("declared_gates")
         qc_metrics = _ObservedMetrics(qc_metrics)
         failures = []
         process_upper = process_name.upper()
@@ -6216,9 +6221,34 @@ class NextflowQCGateHandler:
                     ),
                 })
 
+        # GENERAL FALLBACK (data-driven): evaluate any workflow-DECLARED gates via the
+        # general engine, so a domain with no hardcoded branch above still gets real
+        # gates from its own declared data. Additive — never alters a hardcoded branch.
+        if _declared_gates:
+            try:
+                from galaxy.ai.qc_gate_engine import evaluate_gates
+                _measured = {k: v for k, v in _raw_metrics.items()
+                             if k not in ("gates", "declared_gates")}
+                _rep = evaluate_gates(_declared_gates, _measured)
+                _seen = {(f.get("metric"), f.get("threshold")) for f in failures}
+                for r in _rep.results:
+                    if r.action in ("advisory", "halt") and (r.metric, r.threshold) not in _seen:
+                        failures.append({
+                            "metric": r.metric,
+                            "value": r.measured,
+                            "threshold": r.threshold,
+                            "operator": r.op,
+                            "message": f"{r.name}: {r.measured} {r.op} {r.threshold} (declared gate)",
+                            "advisory": (r.action == "advisory"),
+                            "evidence": r.evidence,
+                            "provenance": r.provenance,
+                        })
+            except Exception:
+                pass  # declared-gate evaluation is best-effort; never break the hardcoded path
+
         # Advisory items (advisory=True) are informational only — they do not block the workflow.
         # qc_passed is determined solely by hard (non-advisory) failures.
-        if not qc_metrics.observed:
+        if not qc_metrics.observed and not failures:
             return None, []
         blocking_failures = [f for f in failures if not f.get("advisory", False)]
         return (len(blocking_failures) == 0, failures)
