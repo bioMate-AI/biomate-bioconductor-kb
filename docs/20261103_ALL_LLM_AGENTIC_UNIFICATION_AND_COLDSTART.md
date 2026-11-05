@@ -445,3 +445,20 @@ Row-level: the label-free protein-table query (row 3) moved from `nf-core/proteo
 **Dev A/B** (`armG_swap_guard.jsonl`; `ddd8dcd7` backend + frontend verified in the containers; no restart during the run): pre-registered target 10/12, strict 5/8, controls 25/28. MaxQuant proteinGroups → `dep` / `deqms_maxquant_lfq` (both table methods); label-free protein table → `deqms_maxquant_lfq` ×2. Row 4 (MWAS on EPIC **beta values**, continuous phenotype): rep 1 asked for the data without a card; rep 2 → `perform_mwas_cyp2c19_metabolizer_status` — input-compatible (beta values + phenotype file + covariates) but specific to a categorical CYP2C19 phenotype; the better catalog fit is `coMethDMR` (beta values, continuous phenotypes; offline top-1). Earlier arms routed this to nf-core/methylarray, which needs IDAT files.
 
 **Open:** (1) row-4 specificity — a generic beta-value EWAS is out-ranked by a phenotype-specific one on the "MWAS" token; (2) the pre-registered regexes of this set under-credit correct names (anchored `^deqms$`; scdownstream, coMethDMR) — publish a v2 set before reuse; (3) items from §13.3.
+
+## 14. External review by an LLM committee (2026-11-05)
+
+Work since §5 packaged for review with a test manual: `docs/20261105_ROUTING_ORCHESTRATION_CATALOG_REVIEW_PACKET.md`. Reviewed independently by
+Claude Opus 5.5, GPT-5.6 Terra, Gemini 4 Argon, Kimi K3 and DeepSeek V4 Pro (same packet + 15 commits' code diffs; `scripts/review/llm_committee_review.py`;
+$2.31). 58 findings; every one checked against the code or data before acting: **29 adopted, 9 partial, 13 deferred, 7 rejected** —
+`docs/reviews/20261105_committee/TRIAGE.md` (per-finding verdict and evidence; raw outputs alongside).
+
+Most consequential, confirmed: (1) a **data bug on dev** — the claim-audit cleaner removed "sam" from inside "samtools" in two nf-core annotations
+(repaired with a token-bounded cleaner + guarded repair); (2) DAG plans **discarded** the non-workflow parts of a request; (3) a combining step
+emitted before its branches **lost its dependencies**; (4) the unexecuted-code guard **kept possibly fabricated pre-execution text** in the final
+message. Fixed in `ffe84a8d3` with tests. Seven rejections were contradicted by code the reviewers had not been shown (call sites outside the
+diff, a later commit) — the next packet should include call sites of changed functions.
+
+Deferred, as proposals: LLM-extracted user data kinds in place of the regex (T-LLMKINDS); which "other" kinds count as processed (T-REGIMES);
+a v2 evaluation set with pre-fixed acceptable-workflow lists and ≥3 reps (T-EVALV2) — the committee is right that, on the pre-registered criteria,
+the deployed arm is not better than baseline on loose/controls; re-benchmark decomposition incl. the deployed gemini-3.5-flash (T-DECOMP, ≈$7).

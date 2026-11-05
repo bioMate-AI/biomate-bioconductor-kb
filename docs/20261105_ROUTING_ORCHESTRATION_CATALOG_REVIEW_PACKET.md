@@ -5,6 +5,9 @@ Branch `cursor/tutorial-live-recording-and-report-editing-4ea7`, PR #295 → `in
 Running log of the same work, with every intermediate number: `docs/20261103_ALL_LLM_AGENTIC_UNIFICATION_AND_COLDSTART.md`
 §5–§13.4. This packet is the self-contained version for reviewers and testers.
 
+> **Reviewed 2026-11-05** by a five-model committee — triage of all 58 findings (verdict + evidence per finding) and the fixes:
+> `docs/reviews/20261105_committee/TRIAGE.md`. §3.1's "by substance" reading is corrected there (§4 of the triage).
+
 ---
 
 ## 0. For reviewers — what we ask and how
