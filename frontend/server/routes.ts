@@ -15431,19 +15431,26 @@ Rules:
     if (!f) return null;
     const lines = f.content.split('\n').filter(l => l.trim());
     if (lines.length < 2) return null;
-    const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-    const geneIdx = header.findIndex(h => /^(gene|gene_id|geneid|gene\.name|name|symbol)$/i.test(h));
+    // autodelim (audit S3#2): BioMate's own de_results.tsv is TAB; nf-core *_DESeq2_results.csv is
+    // comma. The comma-only split returned null on a parseable TSV → EMPTY findings on a successful
+    // DE run. Detect the delimiter from the header.
+    const delim = lines[0].includes('\t') ? '\t' : ',';
+    const header = lines[0].split(delim).map(h => h.replace(/"/g, '').trim());
+    let geneIdx = header.findIndex(h => /^(gene|gene_id|geneid|gene\.name|name|symbol)$/i.test(h));
+    // (audit S3#3) nf-core write.csv(row.names=TRUE) puts gene IDs in the unlabeled first column
+    // (header ""). Fall back to column 0 — the row-name column — rather than synthetic gene_N names.
+    if (geneIdx === -1) geneIdx = 0;
     const lfcIdx = header.findIndex(h => /log2fold/i.test(h) && !/se$/i.test(h));
     const padjIdx = header.findIndex(h => /^(padj|p\.adj|fdr|bh|q\.value)$/i.test(h));
     if (lfcIdx === -1 || padjIdx === -1) return null;
     type Gene = {gene: string; lfc: number; padj: number};
     const genes: Gene[] = [];
     for (const line of lines.slice(1)) {
-      const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
+      const cols = line.split(delim).map(c => c.replace(/"/g, '').trim());
       const lfc = parseFloat(cols[lfcIdx]);
       const padj = parseFloat(cols[padjIdx]);
       if (isNaN(lfc) || isNaN(padj)) continue;
-      genes.push({ gene: geneIdx >= 0 ? cols[geneIdx] : `gene_${genes.length + 1}`, lfc, padj });
+      genes.push({ gene: (cols[geneIdx] || `gene_${genes.length + 1}`), lfc, padj });
     }
     const sig = genes.filter(g => g.padj < 0.05);
     const topUp = [...sig].sort((a, b) => b.lfc - a.lfc).slice(0, 8);
@@ -15524,21 +15531,31 @@ Rules:
     const funcIdx = header.findIndex(h => /func|consequence|exonicfunc/i.test(h));
     if (geneIdx === -1 && impactIdx === -1) return null;
     type Variant = {gene: string; impact: string; func: string};
-    const variants: Variant[] = lines.slice(1, 201).map(line => {
+    // (audit S3#5) Parse ALL rows and count by impact over the full set. The old
+    // `slice(1,201)` with no impact-sort hid HIGH-impact (candidate causal) variants beyond
+    // row 200 and undercounted — in a position-sorted table the diagnostic variant can be lost.
+    const variants: Variant[] = lines.slice(1).map(line => {
       const cols = line.split(sep);
       return { gene: geneIdx >= 0 ? cols[geneIdx] : '', impact: impactIdx >= 0 ? cols[impactIdx] : '', func: funcIdx >= 0 ? cols[funcIdx] : '' };
     });
-    const high = variants.filter(v => /high/i.test(v.impact));
-    const mod = variants.filter(v => /moderate|mod/i.test(v.impact));
+    // (audit S3#4) MODIFIER must NOT be counted as MODERATE — `/mod/` is a substring of
+    // "MODIFIER" (usually the majority of variants). Match each category exactly.
+    const high = variants.filter(v => /^high$/i.test(v.impact.trim()));
+    const mod = variants.filter(v => /^moderate$/i.test(v.impact.trim()));
+    const low = variants.filter(v => /^low$/i.test(v.impact.trim()));
+    const modifier = variants.filter(v => /^modifier$/i.test(v.impact.trim()));
     const contextLines = [
       `### Rare Disease Variant Analysis`,
+      `Variants analyzed: ${variants.length}`,
       `HIGH impact variants: ${high.length}`,
       `MODERATE impact variants: ${mod.length}`,
+      `LOW impact variants: ${low.length}`,
+      `MODIFIER variants: ${modifier.length}`,
       ...(high.length > 0 ? [``, `HIGH impact:`, ...high.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
       ...(mod.length > 0 ? [``, `MODERATE impact (top 5):`, ...mod.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
       ``, `Source file: ${f.name}`,
     ];
-    const numbers = new Set<string>([String(high.length), String(mod.length)]);
+    const numbers = new Set<string>([String(variants.length), String(high.length), String(mod.length), String(low.length), String(modifier.length)]);
     return { context: contextLines.join('\n'), numbers };
   }
 
