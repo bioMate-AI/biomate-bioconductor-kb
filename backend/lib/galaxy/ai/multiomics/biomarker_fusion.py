@@ -57,23 +57,28 @@ def _f_statistic_per_feature(
     n_total = int(sum(int(m.sum()) for m in masks))
     out: List[float] = []
     for row in X:
-        present = [row[m] for m in masks if m.sum() > 0]
+        # NaN-aware: use each group's PRESENT (finite) values. A single missing/
+        # non-numeric cell must not zero the whole feature — real omics matrices are
+        # sparse, and the SNF .nf mean-imputes, so dropping-on-NaN also disagreed with it.
+        present = [g[np.isfinite(g)] for g in (row[m] for m in masks)]
+        present = [g for g in present if g.size > 0]
         k = len(present)
-        if k < 2 or n_total <= k:
+        n_tot = int(sum(g.size for g in present))
+        if k < 2 or n_tot <= k:
             out.append(0.0)
             continue
         grand = float(np.concatenate(present).mean())
-        ss_between = sum(len(g) * (float(g.mean()) - grand) ** 2 for g in present)
+        ss_between = sum(g.size * (float(g.mean()) - grand) ** 2 for g in present)
         ss_within = sum(float(((g - g.mean()) ** 2).sum()) for g in present)
         df_between = k - 1
-        df_within = n_total - k
-        if ss_within <= 0 or df_within <= 0:
-            # No within-group variance → perfectly separable; cap to a large but
-            # finite F so it ranks high without poisoning the null with inf.
-            out.append(1e6 if ss_between > 0 else 0.0)
-            continue
-        f = (ss_between / df_between) / (ss_within / df_within)
-        out.append(float(f) if f == f and f != float("inf") else 0.0)  # NaN/inf guard
+        df_within = n_tot - k
+        # Regularize the within-group variance with a tiny magnitude-scaled floor so a
+        # PERFECTLY separable feature (ss_within≈0 — e.g. binarized methylation / a
+        # label re-encoding) still orders by EFFECT SIZE (ss_between) instead of every
+        # such feature saturating one flat cap (which erased effect size — Reviewer F2).
+        denom = max(ss_within / df_within, 1e-9 * (abs(grand) + 1.0) ** 2)
+        f = (ss_between / df_between) / denom
+        out.append(float(f) if np.isfinite(f) else 0.0)
     return out
 
 
@@ -134,7 +139,6 @@ def rank_cross_omics_drivers(
              len(layer_matrices or {}), n_perm)
     if n_perm and n_perm > 0:
         import random as _random
-        import math as _math
         base = list(cluster_labels.keys())
         vals = [cluster_labels[s] for s in base]
         rng = _random.Random(perm_seed)
@@ -145,14 +149,16 @@ def rank_cross_omics_drivers(
             prs = _score_and_fuse(layer_matrices, dict(zip(base, shuf)),
                                   method, weights, None)
             null_max.append(max((float(r.get("score", 0.0)) for r in prs), default=0.0))
-        null_max.sort()
-        qi = min(len(null_max) - 1, int(_math.ceil((1 - alpha) * len(null_max)) - 1))
-        thr = null_max[qi] if null_max else 0.0
         for r in results:
             sc = float(r.get("score", 0.0))
             ge = sum(1 for m in null_max if m >= sc)
-            r["perm_p"] = (ge + 1) / (int(n_perm) + 1)      # +1 smoothing (never 0)
-            r["significant"] = sc > thr
+            p = (ge + 1) / (int(n_perm) + 1)                 # +1 smoothing (never 0)
+            r["perm_p"] = p
+            # Significance = the smoothed empirical p clears alpha. This is the
+            # Westfall-Young maxT decision and is consistent with the reported
+            # perm_p (a separate quantile threshold could disagree at small n_perm
+            # where min achievable p = 1/(n_perm+1) > alpha — Reviewer F6).
+            r["significant"] = p <= alpha
     return results
 
 
@@ -246,7 +252,7 @@ def drivers_from_run(
                 obj = boto3.client("s3").get_object(Bucket=bucket, Key=key)
                 return obj["Body"].read().decode("utf-8", "replace")
             except Exception:
-                from .datasets import stage_s3_to_local
+                from galaxy.ai.ml_training.datasets import stage_s3_to_local
                 local = stage_s3_to_local(uri)
                 with open(local) as fh:
                     return fh.read()

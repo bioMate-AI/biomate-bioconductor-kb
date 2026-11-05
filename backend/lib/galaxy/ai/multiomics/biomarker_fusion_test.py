@@ -4,39 +4,50 @@ fuse_channels engine usable end-to-end for multi-omics stratification.
 Builds synthetic layer matrices with a KNOWN cross-layer driver and confirms the
 F-statistic scoring + fusion surfaces it as the top, corroborated biomarker.
 """
+import random
 import unittest
 
 from galaxy.ai.multiomics.biomarker_fusion import (
     rank_cross_omics_drivers,
+    drivers_from_run,
     _f_statistic_per_feature,
 )
 
 
-def _layer(features, samples, label_of, hi_feature, sep=5.0):
-    """A features x samples matrix where `hi_feature` separates the two subtypes
-    and every other feature is flat noise-free baseline (F≈0)."""
+def _layer(features, samples, label_of, hi_feature, sep=5.0, seed=0):
+    """features x samples matrix: `hi_feature` separates the two subtypes (mean shift
+    `sep`) over Gaussian WITHIN-group noise (sd=1); every other feature is pure noise
+    with NO separation. The within-group noise is essential — a zero-within-variance
+    fixture makes the F-statistic degenerate (every feature saturates), which is the
+    bug a prior version of this test had (it never actually discriminated)."""
+    rng = random.Random((hash(hi_feature) ^ seed) & 0xFFFFFFFF)
     values = []
     for f in features:
         row = []
         for s in samples:
-            if f == hi_feature:
-                row.append(sep if label_of[s] == "A" else 0.0)
-            else:
-                row.append(1.0 + (0.01 if label_of[s] == "A" else -0.01))  # near-flat
+            mean = (sep if label_of[s] == "A" else 0.0) if f == hi_feature else 0.0
+            row.append(round(mean + rng.gauss(0.0, 1.0), 4))
         values.append(row)
     return {"features": features, "samples": samples, "values": values}
 
 
 class CrossOmicsDriverTest(unittest.TestCase):
     def setUp(self):
-        self.samples = [f"P{i}" for i in range(20)]
+        # 60 samples (30/group): enough power that the label-permutation null-max is
+        # well below a true driver's score (a 20-sample fixture is underpowered — the
+        # max-statistic null is reached by chance, as the live 139-sample SYSUCC run is not).
+        self.samples = [f"P{i}" for i in range(60)]
         self.label = {s: ("A" if i % 2 == 0 else "B") for i, s in enumerate(self.samples)}
         # DRV is the strong separating feature in BOTH rna and protein (corroborated);
         # SOLO separates only in methyl (nominated, single layer).
+        # Each layer: the separating feature + 10 UNIQUE-per-layer noise features.
+        # Enough features that the EvidenceGate per-layer robust-z null (median/MAD
+        # over features) is estimable; unique names so noise can't chance-corroborate.
+        _n = lambda pfx: [f"{pfx}{j}" for j in range(10)]
         self.layers = {
-            "rna":     _layer(["DRV", "r1", "r2"], self.samples, self.label, "DRV"),
-            "protein": _layer(["DRV", "p1", "p2"], self.samples, self.label, "DRV"),
-            "methyl":  _layer(["SOLO", "m1", "m2"], self.samples, self.label, "SOLO"),
+            "rna":     _layer(["DRV"] + _n("r"), self.samples, self.label, "DRV", seed=1),
+            "protein": _layer(["DRV"] + _n("p"), self.samples, self.label, "DRV", seed=2),
+            "methyl":  _layer(["SOLO"] + _n("m"), self.samples, self.label, "SOLO", seed=3),
         }
 
     def test_corroborated_driver_ranks_first(self):
@@ -78,7 +89,7 @@ class CrossOmicsDriverTest(unittest.TestCase):
         # the negative control the plain `corroborated` tier fails (it over-calls
         # each layer's relative top tail even on noise). Max-statistic FWER control.
         import random
-        true = rank_cross_omics_drivers(self.layers, self.label, n_perm=40, alpha=0.05)
+        true = rank_cross_omics_drivers(self.layers, self.label, n_perm=100, alpha=0.05)
         drv = next((r for r in true if r["entity"] == "DRV"), None)
         self.assertIsNotNone(drv)
         self.assertTrue(drv.get("significant"))
@@ -86,7 +97,7 @@ class CrossOmicsDriverTest(unittest.TestCase):
         vals = list(self.label.values()); keys = list(self.label.keys())
         random.Random(0).shuffle(vals)
         rnd = rank_cross_omics_drivers(self.layers, dict(zip(keys, vals)),
-                                       n_perm=40, alpha=0.05)
+                                       n_perm=100, alpha=0.05)
         self.assertLessEqual(sum(1 for r in rnd if r.get("significant")), 1)
 
 
@@ -100,23 +111,22 @@ class DriversFromRunTest(unittest.TestCase):
         self.cluster_csv = '"sample","cluster"\n' + "\n".join(
             f'"{s}",{self.label[s]}' for s in self.samples)
 
-        def _matrix_csv(features, hi):
+        def _matrix_csv(features, hi, seed=0):
+            rng = random.Random((hash(hi) ^ seed) & 0xFFFFFFFF)
             head = "feature," + ",".join(self.samples)
             lines = [head]
             for f in features:
                 vals = []
                 for s in self.samples:
-                    if f == hi:
-                        vals.append("5.0" if self.label[s] == "1" else "0.0")
-                    else:
-                        vals.append("1.01" if self.label[s] == "1" else "0.99")
+                    mean = (5.0 if self.label[s] == "1" else 0.0) if f == hi else 0.0
+                    vals.append(str(round(mean + rng.gauss(0.0, 1.0), 4)))  # within-group noise
                 lines.append(f + "," + ",".join(vals))
             return "\n".join(lines)
 
         self._store = {
-            "s3://b/rna.csv":     _matrix_csv(["DRV", "r1"], "DRV"),
-            "s3://b/protein.csv": _matrix_csv(["DRV", "p1"], "DRV"),
-            "s3://b/methyl.csv":  _matrix_csv(["SOLO", "m1"], "SOLO"),
+            "s3://b/rna.csv":     _matrix_csv(["DRV", "r1"], "DRV", seed=1),
+            "s3://b/protein.csv": _matrix_csv(["DRV", "p1"], "DRV", seed=2),
+            "s3://b/methyl.csv":  _matrix_csv(["SOLO", "m1"], "SOLO", seed=3),
         }
 
     def _fetch(self, uri):
