@@ -190,7 +190,13 @@ def _load_csv(spec: DatasetSpec, path: str) -> LoadedDataset:
             # None/"" — otherwise float("NA") below crashes the whole load.
             if _is_missing(smi) or _is_missing(raw):
                 continue
-            rows.append((str(smi), float(raw)))
+            try:
+                val = float(raw)
+            except (TypeError, ValueError):
+                continue  # non-numeric property label (e.g. "inf"/"high") → skip row
+            if not math.isfinite(val):
+                continue  # inf/-inf target would poison a regression fit
+            rows.append((str(smi), val))
     if not rows:
         raise ConfigError(f"no usable rows parsed from {path}")
     return LoadedDataset(rows, spec.smiles_col, spec.target_col, source=f"csv:{path}")
@@ -234,6 +240,15 @@ def _is_missing(v) -> bool:
     return v is None or (isinstance(v, str) and v.strip().lower() in _MISSING_TOKENS)
 
 
+def _is_blank(v) -> bool:
+    """Truly-absent cell: None or empty/whitespace string. Distinct from
+    _is_missing, which also treats semantic tokens (NA/none/./-) as missing.
+    A classification LABEL of "None"/"NA"/"-" may be a legitimate class, so the
+    label row-skip uses _is_blank (never a real value), and only the regression
+    path (where float("NA") would crash) drops the semantic-missing labels."""
+    return v is None or (isinstance(v, str) and v.strip() == "")
+
+
 def _looks_numeric(values) -> bool:
     """A column is numeric if every NON-MISSING value parses as a float. Common
     missing tokens (NA/N/A/NaN/NULL/./-) are treated as missing, NOT as evidence the
@@ -274,13 +289,13 @@ def load_tabular_dataset(path: str, target_col: str,
         if not feature_names:
             raise ConfigError("no feature columns found (all columns are target/id)")
         for row in reader:
-            # Skip rows whose LABEL is missing, using the same broad token set
-            # as the feature path (_is_missing: ""/NA/N/A/nan/null/none/./-).
-            # A textual missing token in an outcome/subtype column otherwise
-            # reaches float()/str() below: for an auto-inferred regression task
-            # float("NA") raises ValueError (whole load crashes); for
-            # classification it mints a spurious "NA"/"." class.
-            if _is_missing(row.get(target_col)):
+            # Skip rows whose LABEL is TRULY absent (None/empty/whitespace) only.
+            # Semantic missing tokens ("NA"/"none"/"-"/".") are NOT dropped here:
+            # for classification they may be a legitimate class (e.g. a "no-subtype"
+            # category), and dropping them would silently change class balance
+            # (round-4 committee). The regression path below (where float("NA")
+            # would crash) drops them explicitly instead.
+            if _is_blank(row.get(target_col)):
                 continue
             rows_raw.append(row)
     if not rows_raw:
@@ -307,6 +322,29 @@ def load_tabular_dataset(path: str, target_col: str,
         task = ("classification"
                 if (not _looks_numeric(raw_labels) or len(uniq) <= max(2, len(raw_labels) // 10))
                 else "regression")
+    if task == "regression":
+        # A regression target must be a finite number. Drop rows whose label is a
+        # missing token ("NA"/nan/…) or otherwise non-finite/non-numeric, together
+        # with their feature rows, so X and y stay aligned (float("NA") would
+        # otherwise crash the whole load). Classification keeps such labels as
+        # legitimate string classes (round-4 committee).
+        def _flabel(v):
+            if _is_missing(v):
+                return None
+            try:
+                f = float(v)
+            except (TypeError, ValueError):
+                return None
+            return f if math.isfinite(f) else None
+        _kept = [r for r in rows_raw if _flabel(r[target_col]) is not None]
+        _dropped = len(rows_raw) - len(_kept)
+        if _dropped:
+            log.info("[ml_training] tabular loader dropping %d row(s) with a "
+                     "missing/non-numeric label under regression", _dropped)
+        rows_raw = _kept
+        if not rows_raw:
+            raise ConfigError("no rows with a finite numeric label for regression")
+        raw_labels = [r[target_col] for r in rows_raw]
     y: list = ([str(v) for v in raw_labels] if task == "classification"
                else [float(v) for v in raw_labels])
 

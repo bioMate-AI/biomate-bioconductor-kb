@@ -188,6 +188,32 @@ def test_tabular_skips_rows_with_textual_missing_label(tmp_path):
     assert all(isinstance(v, float) for v in ds.y)
 
 
+def test_tabular_keeps_categorical_label_named_none(tmp_path):
+    # A classification class whose literal value is "none"/"-"/"." is a LEGITIMATE
+    # category (e.g. a "no-subtype" arm) and must NOT be dropped — only truly-blank
+    # labels are skipped (round-4 committee: the broad missing-token set must not
+    # apply to the label under classification).
+    from galaxy.ai.ml_training.datasets import load_tabular_dataset
+    csv_p = tmp_path / "arm.csv"
+    csv_p.write_text(
+        "sample_id,GENE0,GENE1,arm\n"
+        "S0,8.0,1.0,drugA\nS1,1.0,2.0,none\nS2,8.1,1.2,drugA\nS3,0.9,7.9,none\n")
+    ds = load_tabular_dataset(str(csv_p), "arm", task="classification")
+    assert len(ds.y) == 4                      # no row dropped
+    assert set(ds.y) == {"drugA", "none"}      # "none" survives as its own class
+
+
+def test_tabular_blank_label_row_still_skipped(tmp_path):
+    # A truly-absent label (empty cell) is still skipped under classification.
+    from galaxy.ai.ml_training.datasets import load_tabular_dataset
+    csv_p = tmp_path / "blank.csv"
+    csv_p.write_text(
+        "sample_id,GENE0,GENE1,arm\n"
+        "S0,8.0,1.0,drugA\nS1,1.0,2.0,\nS2,8.1,1.2,drugB\n")
+    ds = load_tabular_dataset(str(csv_p), "arm", task="classification")
+    assert len(ds.y) == 2 and set(ds.y) == {"drugA", "drugB"}
+
+
 def test_tabular_non_finite_feature_cell_treated_as_missing(tmp_path):
     # A feature cell of "inf"/"nan" parses as a non-finite float that would poison
     # the column mean and reach sklearn as inf/NaN; it must be imputed like any
