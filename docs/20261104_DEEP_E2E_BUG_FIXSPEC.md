@@ -56,3 +56,8 @@ Projects page shows fabricated demo projects as the user's real ones; Starred Wo
 - **Human-applied (production `.nf`/workflow logic):** #1 ADMET DILI, #2 BOIN dose, #3 GEO contrast. These change executed workflow reduce/selection logic and must be verified with live runs.
 - **In progress (agents, frontend-safe):** #4 findings contradiction, #7 dead/mock UI.
 - **To implement next (Node-side, frontend-safe):** #5 inline_findings population, #6 run.metrics population — after the running agents land and worktree disk frees. Both are "wire the real data the run already produced into the run record."
+
+## 9. Failed/metadata-only runs present pipeline bookkeeping as results; HTML reports render blank — ✍️
+- **Outputs on a failed run are Nextflow `pipeline_info`, not results.** A partially-failed run still writes `dag.html`/`report.html`/`timeline.html`/`trace.txt` (execution metadata) while the real result files are absent (e.g. ADMET failed before `toxicity_report.json`). The after-run Outputs tab shows "Download all (N) as ZIP" over these → misleading (implies results). Fix: filter/label `pipeline_info` (dag/report/timeline/trace) out of the scientific Outputs list, or mark it "run metadata".
+- **Report tab shown on failed runs** with no scientific report. Fix: on failure show "no report — run did not complete" / hide the tab.
+- **HTML outputs render as a blank box.** `step-output-preview.tsx:834` uses `<iframe src=… sandbox="allow-scripts">` (no `allow-same-origin`) at `h-64` (256px). Nextflow's `dag.html`/`report.html` are JS-driven and can't render in that sandbox → blank. Fix: for trusted pipeline HTML allow same-origin + a taller pane, or offer "open full report in a new tab" instead of a blank inline iframe.
