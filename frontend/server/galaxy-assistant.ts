@@ -2247,6 +2247,16 @@ export function replyLanguageNote(message: string): string {
     : "[Reply language: the language of the user's own words above, not of attached file names, tool output or retrieved papers]";
 }
 
+/** Name for a DAG plan card: the integration step's task when there is one (it names the goal),
+ *  else the first branch; never a generic placeholder. */
+export function dagPlanName(tasks: Array<{ description: string; depends_on: number[] }>): string {
+  const sink = [...tasks].reverse().find(t => t.depends_on.length > 1) || tasks[tasks.length - 1] || tasks[0];
+  const text = (sink?.description || 'Multi-step analysis').replace(/\s+/g, ' ').trim();
+  const clause = text.split(/(?<=[.;:。；])\s*/)[0].replace(/[.;:。；]$/, '');
+  const name = clause.length <= 60 ? clause : clause.slice(0, 57).replace(/\s+\S*$/, '') + '…';
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 export function parseExecutionMode(v: unknown): 'pipeline' | 'direct_compute' | null {
   return v === 'direct_compute' || v === 'pipeline' ? v : null;
 }
@@ -6120,6 +6130,57 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     };
   }
 
+  /** Non-sequential multi-intent request with >=2 workflow intents (parallel branches and/or a fan-in
+   *  integration step) → POST /api/ai_assistant/plan_dag → one DAG pipeline card the chain executor
+   *  runs (depends_on / connections / max_parallel). Before this, such requests produced separate
+   *  single-workflow cards and the dependency structure was dropped (bulk RNA-seq + proteomics
+   *  integration, external user 2026-11-03; docs/20261019 Part A "A-live"). Returns null — and the
+   *  existing path continues — when there is nothing to plan or the backend refuses (with a reason). */
+  private async _tryDagPlan(decomposition: IntentDecomposition, message: string, log: (s: string) => void): Promise<GalaxyAssistantResponse | null> {
+    const wf = decomposition.intents.filter(i =>
+      (i.type === 'workflow_generation' || i.actions?.needsWorkflowGeneration) && i.execution !== 'direct_compute');
+    if (wf.length < 2) return null;
+    const idx = new Map(wf.map((i, k) => [i.id, k + 1]));
+    const tasks = wf.map((i, k) => ({
+      id: i.id,
+      description: i.subQuery || message,
+      depends_on: (i.dependsOn || []).map(d => idx.get(d)).filter((n): n is number => typeof n === 'number' && n <= k),
+    }));
+    const { data } = await this._api().client.post('/api/ai_assistant/plan_dag', { tasks, name: dagPlanName(tasks) }, { timeout: 60000 });
+    if (!data?.success || !data.workflow) {
+      log(`DAG plan not assembled (${data?.reason || 'no response'}) — per-intent cards`);
+      return null;
+    }
+    const card = data.workflow;
+    const steps: any[] = card.pipeline_steps || [];
+    log(`DAG plan assembled: ${steps.length} steps, max_parallel=${card.max_parallel}`);
+    const lines = steps.map((s, k) => {
+      const deps = (s.depends_on || []) as number[];
+      return `  ${k + 1}. **${s.description || s.workflow_name}** — \`${s.nextflow_path}\`` +
+        (deps.length ? ` (uses the results of step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})` : ' (runs in parallel)');
+    });
+    const unwired: Array<{ from_step: number; to_step: number }> = data.unwired_dependencies || [];
+    const message_ = [
+      `I've planned this as **one ${steps.length}-step analysis**: the independent branches run in parallel and the combining step waits for them.`,
+      '',
+      ...lines,
+      '',
+      unwired.length
+        ? `Before running, map the inputs of step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} in the plan: the outputs of step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')} are not connected to it automatically.`
+        : '',
+      'Fill in each branch\'s input files in the plan, then click **Confirm & Run**.',
+    ].filter(Boolean).join('\n');
+    return {
+      message: message_,
+      intentType: 'workflow_generation',
+      intentConfidence: 0.9,
+      isMultiIntent: true,
+      generatedWorkflow: { success: true, step_count: steps.length, source: 'biomate_dag', ...card },
+      suggestions: ['Change the analysis for one branch', 'Run only one branch first', 'Explain the integration step'],
+      sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: true, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false },
+    } as GalaxyAssistantResponse;
+  }
+
   /**
    * Process a multi-intent message by fanning out to processSubIntent for each intent.
    * Results are collected and synthesized into a single response.
@@ -6141,6 +6202,13 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     // Sequential pipeline path: process each step, then assemble pipeline_steps response
     if (decomposition.isSequential) {
       return this.processSequentialPipeline(decomposition, message, context, startTime, onResponseDelta, domainProfileContext);
+    }
+
+    // Fork/join (independent branches and/or fan-in): one executable DAG over catalog workflows.
+    const dagResponse = await this._tryDagPlan(decomposition, message, log).catch(() => null);
+    if (dagResponse) {
+      onResponseDelta?.(dagResponse.message);
+      return dagResponse;
     }
 
     // Step 2-3: Parallel tool/dataset search using union of all keywords
@@ -6890,6 +6958,15 @@ Rules for multi-intent:
 - Each intent must have its own subQuery (the portion of the message relevant to that intent)
 - Set dependsOn when one intent's output feeds into another (e.g., research findings used for workflow design)
 - IMPORTANT: When in doubt between single-intent and multi-intent, prefer multi-intent if the user is asking for 2+ distinct outcomes (e.g., run an analysis AND compare tools AND search literature)
+
+## Branch-and-integrate (fork/join) Detection
+
+When a request analyses SEVERAL data layers or datasets independently and then COMBINES them — "integrate bulk RNA-seq and proteomics", "compare lysate and secretome proteomics with RNA-seq", "run DE in each cohort, then meta-analyse" — emit:
+- one **workflow_generation** intent PER independent layer/dataset (its own subQuery naming that layer's data and analysis), with "dependsOn": [];
+- one **workflow_generation** integration intent whose subQuery names the integration analysis, with "dependsOn" listing ALL the layer intents' ids;
+- "is_sequential": false (the layers run in parallel; only the integration waits for them).
+A single interpretation request about the combined result may follow as a separate (non-workflow) intent.
+Example: "Integrate my bulk RNA-seq (KO vs WT) with DIA proteomics of lysates and secretome" → intent_1 RNA-seq differential expression KO vs WT (dependsOn []), intent_2 lysate proteomics differential abundance (dependsOn []), intent_3 secretome proteomics differential abundance (dependsOn []), intent_4 integrate RNA and protein differential results (dependsOn ["intent_1","intent_2","intent_3"]).
 
 ## Sequential Pipeline Detection
 

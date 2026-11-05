@@ -6818,6 +6818,45 @@ def delete_skill(skill_id: str, trans: ProvidesUserContext = DependsOnTrans) -> 
         raise HTTPException(status_code=404, detail="Private skill not found")
 
 
+class PlanDagTask(BaseModel):
+    id: str = ""
+    description: str
+    # 1-based indices of earlier tasks this one consumes; [] = an independent branch (root).
+    depends_on: List[int] = Field(default_factory=list)
+
+
+class PlanDagRequest(BaseModel):
+    tasks: List[PlanDagTask]
+    name: Optional[str] = None
+    max_parallel: Optional[int] = None
+
+
+@router.post(
+    "/api/ai_assistant/plan_dag",
+    summary="Assemble decomposed sub-tasks into one executable DAG pipeline card (or say why not).",
+)
+def plan_dag(request: PlanDagRequest, trans: ProvidesUserContext = DependsOnTrans) -> Dict[str, Any]:
+    """Live caller for decomposed_dag.build_dag_plan (built 2026-10-11, never wired).
+
+    The chat sends the classifier's sub-tasks with their dependency edges (independent branches
+    + fan-in). Each task resolves to a catalog workflow (confidence-gated top match); dependent
+    steps are wired only by type-compatible outputs → inputs. Any unresolvable task or untypeable
+    handoff → no plan, with the reason, and the chat keeps its existing behaviour (never a
+    half-built or guessed DAG). Returns the frontend pipeline-card shape (workflow_type
+    'pipeline', execution_mode 'dag', depends_on, connections, max_parallel)."""
+    try:
+        sa = get_ai_assistant(trans)
+        if sa is None:
+            return {"success": False, "reason": "assistant_unavailable"}
+        from galaxy.ai.decomposed_dag import plan_dag_from_tasks
+        return plan_dag_from_tasks(sa, [t.dict() for t in request.tasks], request.name, request.max_parallel)
+    except Exception as exc:  # noqa: BLE001 — planning is best-effort; the chat falls back
+        log.warning("[plan_dag] failed: %s", exc)
+        return {"success": False, "reason": f"error: {exc}"}
+
+
+
+
 @router.get(
     "/api/ai_assistant/workflow_by_name",
     summary="Direct workflow lookup by exact name for LLM reselection"

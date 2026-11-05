@@ -259,3 +259,41 @@ def build_dag_plan(
     max_parallel = max(1, min(16, int(max_parallel)))
 
     return {"execution_mode": "dag", "steps": steps, "connections": connections, "max_parallel": max_parallel}
+
+
+def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str] = None,
+                        max_parallel: Optional[int] = None) -> Dict[str, Any]:
+    """Pure core of /plan_dag (``sa`` supplies _resolve_task_to_workflow / _workflow_io_types)."""
+    tasks = [dict(t) for t in tasks]
+    # build_dag_plan reads an EMPTY depends_on as "sequential after the previous step" unless
+    # the task is marked parallel_with; here [] means an independent branch (a root).
+    for t in tasks:
+        if not t.get("depends_on"):
+            t["parallel_with"] = True
+    if len(tasks) < 2:
+        return {"success": False, "reason": "fewer_than_two_tasks"}
+    resolved, per_task = {}, []
+    for i, t in enumerate(tasks):
+        r = sa._resolve_task_to_workflow(t)
+        resolved[i] = r
+        per_task.append({"task": t.get("id") or f"task_{i + 1}", "description": t.get("description", ""),
+                         "nextflow_path": (r or {}).get("nextflow_path"), "resolved": bool(r)})
+    if not all(resolved.values()):
+        return {"success": False, "reason": "unresolved_task", "tasks": per_task}
+    _idx = {id(t): i for i, t in enumerate(tasks)}
+    plan = build_dag_plan(tasks, lambda t: resolved.get(_idx.get(id(t))),
+                          type_provider=sa._workflow_io_types, max_parallel=max_parallel)
+    if not plan:
+        return {"success": False, "reason": "no_type_compatible_handoff", "tasks": per_task}
+    card = to_pipeline_card(plan, name=(name or "Multi-step analysis plan"))
+    for step, t in zip(card.get("pipeline_steps", []), per_task):
+        step["description"] = t["description"]
+    # A fan-in step depends on several branches but build_dag_plan wires one typed connection per
+    # destination input: dependencies with no data connection run in the right order but do not
+    # hand their outputs over. Say so (the plan card asks the user to map them) — never imply they do.
+    wired = {(c["from_step"], c["to_step"]) for c in plan.get("connections", [])}
+    unwired = [{"from_step": d, "to_step": i + 1}
+               for i, st in enumerate(plan["steps"]) for d in st.get("depends_on", []) if (d, i + 1) not in wired]
+    if unwired:
+        card["unwired_dependencies"] = unwired
+    return {"success": True, "workflow": card, "tasks": per_task, "unwired_dependencies": unwired}
