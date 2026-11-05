@@ -848,6 +848,8 @@ export class GalaxyAPIProxy {
         ...(request.preferred_domains?.length ? { preferred_domains: request.preferred_domains } : {}),
         ...(request.penalized_domains?.length ? { penalized_domains: request.penalized_domains } : {}),
         ...(request.key_terms?.length ? { key_terms: request.key_terms } : {}),
+        // [] is meaningful ("the user states no input data" — suppresses text detection), so pass it through.
+        ...(Array.isArray(request.user_input_kinds) ? { user_input_kinds: request.user_input_kinds } : {}),
         ...(request.session_datasets?.length ? { session_datasets: request.session_datasets } : {}),
         ...(request.credential_map ? { credential_map: request.credential_map } : {}),
       };

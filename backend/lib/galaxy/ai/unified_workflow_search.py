@@ -925,7 +925,8 @@ class UnifiedWorkflowSearch:
                user_profile: Optional[Dict[str, Any]] = None,
                preferred_domains: Optional[List[str]] = None,
                penalized_domains: Optional[List[str]] = None,
-               key_terms: Optional[List[str]] = None) -> List[WorkflowMatch]:
+               key_terms: Optional[List[str]] = None,
+               user_input_kinds: Optional[List[str]] = None) -> List[WorkflowMatch]:
         """
         Search for workflows matching the query.
 
@@ -1020,7 +1021,8 @@ class UnifiedWorkflowSearch:
             results = []
             for row in rows:
                 match = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
-                                           preferred_domains=preferred_domains, penalized_domains=penalized_domains)
+                                           preferred_domains=preferred_domains, penalized_domains=penalized_domains,
+                                           user_input_kinds=user_input_kinds)
                 bonus = 0.0
                 # ── Pass-0 boost: workflows the LLM ranked get a graded bonus ──
                 # rank 0 → +3.0, rank 1 → +2.7, ..., rank 9 → +0.3
@@ -1083,7 +1085,8 @@ class UnifiedWorkflowSearch:
                         rescue_conn.close()
                         for row in rescued_rows:
                             m = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
-                                                   preferred_domains=preferred_domains, penalized_domains=penalized_domains)
+                                                   preferred_domains=preferred_domains, penalized_domains=penalized_domains,
+                                                   user_input_kinds=user_input_kinds)
                             rank = llm_rank_map.get(row[0], len(llm_ranked_ids))
                             # Synthetic score: 2.8 − 0.3*rank (one notch below top FTS+LLM hits)
                             m = WorkflowMatch(
@@ -1723,7 +1726,8 @@ class UnifiedWorkflowSearch:
     def _create_match(self, row: tuple, query: str, include_json: bool,
                       user_profile: Optional[Dict[str, Any]] = None,
                       preferred_domains: Optional[List[str]] = None,
-                      penalized_domains: Optional[List[str]] = None) -> WorkflowMatch:
+                      penalized_domains: Optional[List[str]] = None,
+                      user_input_kinds: Optional[List[str]] = None) -> WorkflowMatch:
         """Create WorkflowMatch from database row."""
         # Unpack length-tolerantly: the first 14 fields are always present; the
         # trailing execution-quality columns (real_exec_status,
@@ -1767,6 +1771,7 @@ class UnifiedWorkflowSearch:
                                       penalized_domains=penalized_domains,
                                       input_types=input_types,
                                       input_kinds=input_kinds,
+                                      user_input_kinds=user_input_kinds,
                                       is_subworkflow=is_subworkflow,
                                       real_exec_status=real_exec_status,
                                       workflow_correctness_verdict=workflow_correctness_verdict,
@@ -1832,6 +1837,7 @@ class UnifiedWorkflowSearch:
                          penalized_domains: Optional[List[str]] = None,
                          input_types: Optional[List[str]] = None,
                          input_kinds: Optional[frozenset] = None,
+                         user_input_kinds: Optional[List[str]] = None,
                          is_subworkflow: bool = False,
                          real_exec_status: Optional[str] = None,
                          workflow_correctness_verdict: Optional[str] = None,
@@ -1948,7 +1954,11 @@ class UnifiedWorkflowSearch:
         # so a raw-spectra pipeline was never penalised for a processed protein table (2026-11-05).
         # A workflow that accepts both raw and processed kinds is never penalised.
         if input_kinds:
-            user_kinds = self._query_input_kinds(query)
+            # The intent classifier's input_kinds (what the user HAS — not outputs wanted, not data said to be
+            # missing) when supplied; [] means "states no input data". The text regex only as a fallback: it
+            # cannot tell mentions from possession or handle negation (committee review 2026-11-05).
+            user_kinds = (self._valid_kinds(user_input_kinds) if user_input_kinds is not None
+                          else self._query_input_kinds(query))
             if user_kinds:
                 if user_kinds & input_kinds:
                     score += 3.0  # user has exactly the right input kind
@@ -2697,11 +2707,23 @@ class UnifiedWorkflowSearch:
         return bool((user_proc and not user_raw and wf_raw and not wf_proc)
                     or (user_raw and not user_proc and wf_proc and not wf_raw))
 
-    def input_compatible(self, query: str, workflow_id: int) -> Optional[bool]:
-        """False when the request's explicit data kind cannot feed the workflow; None when either side is
-        unknown (no explicit data kind in the request, or no input_kinds for the workflow)."""
+    _ALL_KINDS: frozenset = frozenset({
+        "fastq", "bam", "raw_spectra", "idat", "bcl", "nanopore_signal", "raw_images", "counts_matrix", "h5ad",
+        "cellranger_output", "protein_table", "peptide_table", "metabolite_table", "beta_values", "vcf", "peaks",
+        "gene_list", "fasta", "annotation", "structure", "molecules", "tabular",
+    })
+
+    @classmethod
+    def _valid_kinds(cls, kinds: Optional[List[str]]) -> frozenset:
+        return frozenset(str(k).strip().lower() for k in (kinds or []) if str(k).strip().lower() in cls._ALL_KINDS)
+
+    def input_compatible(self, query: str, workflow_id: int,
+                         user_input_kinds: Optional[List[str]] = None) -> Optional[bool]:
+        """False when the request's data kind cannot feed the workflow; None when either side is unknown.
+        The classifier's `user_input_kinds` take precedence over detecting the kind from the text."""
         wf_kinds = self._input_kinds_map().get(int(workflow_id))
-        user_kinds = self._query_input_kinds(query or "")
+        user_kinds = (self._valid_kinds(user_input_kinds) if user_input_kinds is not None
+                      else self._query_input_kinds(query or ""))
         if not wf_kinds or not user_kinds:
             return None
         return not self._kinds_mismatch(user_kinds, wf_kinds)

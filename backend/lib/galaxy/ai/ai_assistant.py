@@ -4735,6 +4735,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         preferred_domains: Optional[List[str]] = None,
         penalized_domains: Optional[List[str]] = None,
         credential_map: Optional[Dict[str, bool]] = None,
+        user_input_kinds: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
@@ -5103,6 +5104,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     preferred_domains=preferred_domains or None,
                     penalized_domains=penalized_domains or None,
                     key_terms=key_terms or None,
+                    user_input_kinds=user_input_kinds,
                 )
                 if not trial_results:
                     continue

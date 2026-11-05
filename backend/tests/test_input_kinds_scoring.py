@@ -120,3 +120,30 @@ def test_kinds_load_error_is_not_cached(tmp_path):
     finally:
         _sq.connect = orig
     assert getattr(s, "_input_kinds_cache", None) is None  # retried next time, not stuck empty
+
+
+def _score_k(s, query, wf_kinds, user_kinds):
+    return s._calculate_score(query, "wf", "", [], [], "bioconductor", "proteomics", 0.0,
+                              input_types=["input"], input_kinds=wf_kinds, user_input_kinds=user_kinds)
+
+
+def test_classifier_kinds_override_text_detection(tmp_path):
+    s = _search(tmp_path)
+    raw = frozenset({"raw_spectra"})
+    neg = "I don't have the raw .raw files any more, only the MaxQuant proteinGroups.txt."
+    # The text regex ignores negation: it detects raw_spectra in "I don't have the raw files" and gives the
+    # raw-spectra pipeline the +3 match bonus — the committee's finding. The classifier's kinds penalise it.
+    assert _score_k(s, neg, raw, None) == _score_k(s, neg, None, None) + 3.0
+    assert _score_k(s, neg, raw, ["protein_table"]) == _score_k(s, neg, None, None) - _PEN
+    # [] = the user states no input data: the regex is not consulted (no false mismatch)
+    assert _score_k(s, Q_TABLE, raw, []) == _score_k(s, Q_TABLE, None, [])
+    # out-of-vocabulary values are ignored
+    assert _score_k(s, Q_TABLE, raw, ["mzml"]) == _score_k(s, Q_TABLE, None, [])
+
+
+def test_input_compatible_prefers_classifier_kinds(tmp_path):
+    s = _search(tmp_path)
+    s._input_kinds_map = lambda: {1: frozenset({"raw_spectra"})}
+    assert s.input_compatible("I have Thermo .raw files", 1) is True
+    assert s.input_compatible("I have Thermo .raw files", 1, user_input_kinds=["protein_table"]) is False
+    assert s.input_compatible(Q_TABLE, 1, user_input_kinds=[]) is None

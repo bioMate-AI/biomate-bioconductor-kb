@@ -15,7 +15,7 @@ describe('_cardForNamedWorkflow input guard', () => {
   it('refuses a workflow the backend marks input-incompatible, and passes the request to the lookup', async () => {
     const a = assistant({ success: true, workflow_name: 'nf-core/proteomicslfq', input_compatible: false });
     expect(await a._cardForNamedWorkflow('nf-core/proteomicslfq', 'MaxQuant proteinGroups.txt KO vs WT', regenerate)).toBeNull();
-    expect(a._lookupWorkflowByName).toHaveBeenCalledWith('nf-core/proteomicslfq', 'MaxQuant proteinGroups.txt KO vs WT');
+    expect(a._lookupWorkflowByName).toHaveBeenCalledWith('nf-core/proteomicslfq', 'MaxQuant proteinGroups.txt KO vs WT', undefined);
     expect(regenerate).not.toHaveBeenCalled();
   });
 

@@ -1688,6 +1688,8 @@ export interface DecomposedIntent {
   /** LLM-written routing specification for a workflow intent: method + data type + input format +
    *  expected output, no experimental-design labels. The catalog search for this branch uses it. */
   taskSpec?: string;
+  /** Kinds of data the user has for this intent (closed vocabulary); undefined = not stated by the classifier. */
+  inputKinds?: string[];
   /** LLM-assigned scientific domain of this branch (e.g. proteomics), preferred when routing it. */
   domain?: string;
 }
@@ -1704,6 +1706,8 @@ export interface IntentDecomposition {
   penalizedDomains?: string[];
   /** LLM-extracted technical terms to boost in FTS (replaces ABBREVIATION_MAP expansion) */
   keyTerms?: string[];
+  /** Kinds of data the user has (closed vocabulary), for the backend's input-compatibility term. */
+  inputKinds?: string[];
   /** True when the query benefits from extended thinking (replaces shouldEnableThinking regex) */
   needsThinking?: boolean;
   /** Name of a known workflow chain if the query maps to one, else null */
@@ -2264,6 +2268,21 @@ export function dagPlanName(tasks: Array<{ description: string; depends_on: numb
   const clause = text.split(/(?<=[.;:。；])\s*/)[0].replace(/[.;:。；]$/, '');
   const name = clause.length <= 60 ? clause : clause.slice(0, 57).replace(/\s+\S*$/, '') + '…';
   return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/** Closed input-kind vocabulary — kept equal to backend chain_composer/input_kinds_classifier.INPUT_KINDS. */
+export const INPUT_KIND_VOCAB = [
+  'fastq', 'bam', 'raw_spectra', 'idat', 'bcl', 'nanopore_signal', 'raw_images',
+  'counts_matrix', 'h5ad', 'cellranger_output', 'protein_table', 'peptide_table', 'metabolite_table', 'beta_values',
+  'vcf', 'peaks', 'gene_list', 'fasta', 'annotation', 'structure', 'molecules', 'tabular',
+] as const;
+
+/** The classifier's input_kinds, restricted to the vocabulary; undefined when the field is absent
+ *  (the backend then falls back to detecting the data kind from the text). [] = "states no input data". */
+export function parseInputKinds(v: unknown): string[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const ok = new Set<string>(INPUT_KIND_VOCAB);
+  return Array.from(new Set(v.map(x => String(x).trim().toLowerCase()).filter(x => ok.has(x))));
 }
 
 /** Intents in dependency order (stable; unknown dependency ids ignored). null on a cycle. */
@@ -5140,6 +5159,7 @@ Rules:
     // lead with one of these instead of the card, and Step 6c-2 only follows the text to one
     // of these: the response model re-ranks retrieved candidates, it does not retrieve.
     let searchCandidateNames: string[] = [];
+    let userInputKinds: string[] | undefined;  // classifier's input_kinds for this turn (guards card swaps)
     if (needsGeneration) {
       try {
         onProgress?.('search');
@@ -5166,6 +5186,7 @@ Rules:
           log(`Step 4: Injecting uploaded file params: ${JSON.stringify(_uploadedFileParams)}`);
         }
 
+        userInputKinds = intent.inputKinds ?? decomposition.inputKinds;
         regenerateWorkflowFor = (intentText: string) => this.generateWorkflow(
           intentText,
           recommendedDatasets.map(d => d.dataset),
@@ -5174,7 +5195,8 @@ Rules:
           decomposition.preferredDomains,
           decomposition.keyTerms,
           context.sessionDatasets?.length ? context.sessionDatasets : undefined,
-          decomposition.penalizedDomains
+          decomposition.penalizedDomains,
+          userInputKinds
         );
         generatedWorkflow = await regenerateWorkflowFor(workflowUserIntent);
         searchCandidateNames = (generatedWorkflow?.candidate_workflows || [])
@@ -5376,7 +5398,7 @@ Rules:
           log(`Step 6b: LLM reselected workflow "${reselectedName}" (was "${generatedWorkflow.workflow_name}")`);
           // The reselected workflow's own card (its parameters, prefilled from this request),
           // not the previous card's parameters under a new name.
-          const reselected = await this._cardForNamedWorkflow(reselectedName, message, regenerateWorkflowFor);
+          const reselected = await this._cardForNamedWorkflow(reselectedName, message, regenerateWorkflowFor, userInputKinds);
           if (reselected) {
             generatedWorkflow = { ...reselected, source: 'llm_reselection' };
             workflowGenerated = true;
@@ -5439,7 +5461,7 @@ Rules:
           !_textWorkflow.includes(_cardName)
         ) {
           log(`Step 6c: text mentions "${_textWorkflow}" but card shows "${_cardName}" — correcting via lookup`);
-          const corrected = await this._lookupWorkflowByName(_textWorkflow, message);
+          const corrected = await this._lookupWorkflowByName(_textWorkflow, message, userInputKinds);
           if (corrected?.input_compatible === false) {
             // 2026-11-05: the reply recommended nf-core/proteomicslfq "for MaxQuant proteinGroups.txt" and
             // this step moved the correct dep card onto a raw-spectra pipeline.
@@ -5496,7 +5518,7 @@ Rules:
             log(`Step 6c-2: text presents "${_named}", not a search candidate for this request — keeping "${_card}"`);
           } else {
             log(`Step 6c-2: text presents candidate "${_candidate}" but card shows "${_card}"`);
-            const corrected = await this._cardForNamedWorkflow(_candidate, message, regenerateWorkflowFor);
+            const corrected = await this._cardForNamedWorkflow(_candidate, message, regenerateWorkflowFor, userInputKinds);
             if (corrected) {
               generatedWorkflow = { ...corrected, source: 'text_guardrail' };
               workflowGenerated = true;
@@ -6646,7 +6668,8 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           preferredDomains,
           keyTerms,
           context.sessionDatasets?.length ? context.sessionDatasets : undefined,
-          penalizedDomains
+          penalizedDomains,
+          intent.inputKinds  // this branch's own data, not the whole message's
         );
         baseResult.generatedWorkflow = workflow;
       }
@@ -7378,6 +7401,7 @@ Contrast with a Nextflow pipeline case where data is an accession or file path:
   "workflowAmbiguity": null,
   "preferred_domains": ["transcriptomics"],
   "key_terms": ["RNA-seq", "differential expression", "nf-core/rnaseq"],
+  "input_kinds": ["fastq"],
   "needs_thinking": false,
   "chain_hint": null,
   "rationale": "User supplied SRA accessions plus an explicit RNA-seq differential-expression goal, so this routes to a Nextflow transcriptomics pipeline (nf-core/rnaseq) rather than a direct inline computation."
@@ -7393,6 +7417,19 @@ Key rule: needsWorkflowGeneration: true when the user provides a file path, SRA/
 preferred_domains: list of 0–3 domain strings most relevant to this query, chosen from:
   [${PREFERRED_DOMAINS_PROMPT_LIST}]
   Leave empty [] when the query is domain-agnostic or unclear.
+
+input_kinds: the kinds of data the user HAS and wants analysed (the workflow's input), chosen ONLY from:
+  [${INPUT_KIND_VOCAB.join(', ')}]
+  Raw instrument data: fastq (reads, SRA runs), bam (aligned reads/CRAM), raw_spectra (.raw/.mzML/.d/.wiff), idat,
+  bcl, nanopore_signal, raw_images. Processed: counts_matrix, h5ad (AnnData/Seurat/SCE objects), cellranger_output,
+  protein_table (MaxQuant proteinGroups, DIA-NN pg_matrix, protein intensities), peptide_table (peptides.txt,
+  precursor/PSM reports), metabolite_table, beta_values, vcf, peaks, gene_list; other: fasta, annotation, structure,
+  molecules, tabular. Rules: list what the user says they have or attached — NOT the outputs they want ("get beta
+  values" from IDATs → ["idat"]), NOT data they say they lack ("I don't have the raw files, only proteinGroups.txt"
+  → ["protein_table"]), NOT reference files the workflow downloads. When the user has several kinds but asks to use
+  one ("I have FASTQ but only want DE on my count matrix"), list the one to be analysed (["counts_matrix"]).
+  [] when the user states no input data. In a multi-intent response, give "input_kinds" on EACH intent (that
+  branch's own input).
 
 key_terms: up to 8 specific technical terms that boost workflow search recall. Prioritise:
   1. The ASSAY TYPE / SEQUENCING TECHNOLOGY — e.g. "ATAC-seq", "ChIP-seq", "16S amplicon",
@@ -8363,6 +8400,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         execution: parseExecutionMode(intent.execution),
         taskSpec: typeof intent.task_spec === 'string' && intent.task_spec.trim() ? intent.task_spec.trim() : undefined,
         domain: typeof intent.domain === 'string' && intent.domain.trim() ? intent.domain.trim() : undefined,
+        inputKinds: parseInputKinds(intent.input_kinds) ?? parseInputKinds(result.input_kinds),
         // Sequential pipeline metadata
         inputFromDescription: intent.input_from_description ?? undefined,
         outputDescription: intent.output_description ?? undefined,
@@ -8388,6 +8426,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         preferredDomains,
         penalizedDomains,
         keyTerms,
+        inputKinds: parseInputKinds(result.input_kinds),
         needsThinking,
         chainHint,
         rationale: typeof result.rationale === 'string' ? result.rationale : undefined,
@@ -8417,6 +8456,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       actions: parseActions(result.actions, intentType),
       workflowAmbiguity: typeof result.workflowAmbiguity === 'string' ? result.workflowAmbiguity : null,
       execution: parseExecutionMode(result.execution),
+      inputKinds: parseInputKinds(result.input_kinds),
     };
 
     return {
@@ -8426,6 +8466,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       preferredDomains,
       penalizedDomains,
       keyTerms,
+      inputKinds: parseInputKinds(result.input_kinds),
       needsThinking,
       chainHint,
       rationale: intentRationale,
@@ -8853,9 +8894,10 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     name: string,
     message: string,
     regenerate: ((intentText: string) => Promise<any>) | null,
+    userInputKinds?: string[],
   ): Promise<any | null> {
     if (!regenerate) return null;
-    const ident = await this._lookupWorkflowByName(name, message);
+    const ident = await this._lookupWorkflowByName(name, message, userInputKinds);
     if (!ident?.success || !ident.workflow_name) return null;
     // The backend judged this workflow unable to run on the request's explicit data (e.g. a raw-spectra
     // pipeline for a MaxQuant protein table): a text-driven swap must not move the card there.
@@ -8866,7 +8908,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     return card?.success && !card?.error && built === target ? card : null;
   }
 
-  private async _lookupWorkflowByName(name: string, query?: string): Promise<any> {
+  private async _lookupWorkflowByName(name: string, query?: string, inputKinds?: string[]): Promise<any> {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       // POST: the request text (used for the input-compatibility check) does not belong in a URL —
@@ -8877,7 +8919,8 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
           'content-type': 'application/json',
           'x-api-key': process.env.GALAXY_MASTER_API_KEY || process.env.GALAXY_API_KEY || '',
         },
-        body: JSON.stringify({ name, ...(query ? { query: query.slice(0, 20000) } : {}) }),
+        body: JSON.stringify({ name, ...(query ? { query: query.slice(0, 20000) } : {}),
+          ...(inputKinds ? { input_kinds: inputKinds } : {}) }),
       });
       if (!resp.ok) return null;
       return await resp.json();
@@ -8933,7 +8976,8 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     preferredDomains?: string[],
     keyTerms?: string[],
     sessionDatasets?: Array<{ id: string; name: string; type: string }>,
-    penalizedDomains?: string[]
+    penalizedDomains?: string[],
+    userInputKinds?: string[]
   ): Promise<any> {
     // Build context text for domain inference (active workflow + recent turns)
     const currentWorkflowText = String(
@@ -9005,6 +9049,8 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       preferred_domains: preferredDomains?.length ? preferredDomains : undefined,
       penalized_domains: penalizedDomains?.length ? penalizedDomains : undefined,
       key_terms: keyTerms?.length ? keyTerms : undefined,
+      // undefined = classifier did not say → backend detects from the text; [] = user states no input data
+      user_input_kinds: userInputKinds,
       session_datasets: sessionDatasets?.length ? sessionDatasets : undefined,
       credential_map: context?.credentialMap ?? undefined,
     });

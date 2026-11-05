@@ -3134,6 +3134,7 @@ class AIRequestModel(BaseModel):
     preferred_domains: Optional[List[str]] = Field(None, description="LLM-inferred domain preferences for search ranking")
     penalized_domains: Optional[List[str]] = Field(None, description="LLM-inferred domains to penalize in search ranking")
     key_terms: Optional[List[str]] = Field(None, description="LLM-extracted technical terms to boost FTS recall")
+    user_input_kinds: Optional[List[str]] = Field(None, description="Kinds of data the user has (closed vocabulary), from the intent classifier; None = detect from the text")
     credential_map: Optional[Dict[str, bool]] = Field(None, description="Per-tool credential availability (True=available, False=not). When provided, takes precedence over server-side vault lookup.")
     inline_parameters: Optional[Dict[str, Any]] = Field(None, description="Inline parameters extracted from the user message (file paths, accessions, etc.) by the Node.js layer.")
 
@@ -4147,6 +4148,7 @@ def generate_workflow_unified(
                 preferred_domains=request.preferred_domains or None,
                 penalized_domains=request.penalized_domains or None,
                 credential_map=credential_map or None,
+                user_input_kinds=request.user_input_kinds,
             )
 
         # Clarification requests from chain verifier — pass through with a clear error key
@@ -6868,6 +6870,7 @@ def plan_dag(request: PlanDagRequest, trans: ProvidesUserContext = DependsOnTran
 def workflow_by_name(
     name: str,
     query: Optional[str] = None,
+    input_kinds: Optional[List[str]] = None,
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
     """Return full workflow object for a given workflow name.
@@ -6915,7 +6918,7 @@ def workflow_by_name(
         input_compatible = None
         if query:
             try:
-                input_compatible = _engine.input_compatible(query, wf_id)
+                input_compatible = _engine.input_compatible(query, wf_id, user_input_kinds=input_kinds)
             except Exception as _ic_exc:  # unknown, not incompatible
                 log.debug("[workflow_by_name] input_compatible failed: %s", _ic_exc)
         return {
@@ -6947,6 +6950,7 @@ def workflow_by_name(
 class WorkflowByNameRequest(BaseModel):
     name: str
     query: Optional[str] = None
+    input_kinds: Optional[List[str]] = None
 
 
 @router.post(
@@ -6956,7 +6960,7 @@ class WorkflowByNameRequest(BaseModel):
 def workflow_by_name_post(request: WorkflowByNameRequest, trans: ProvidesUserContext = DependsOnTrans) -> Dict[str, Any]:
     """POST form of workflow_by_name: the user's request text goes in the body, not the URL (long or CJK
     messages exceed request-line limits when percent-encoded, and URLs are access-logged)."""
-    return workflow_by_name(name=request.name, query=request.query, trans=trans)
+    return workflow_by_name(name=request.name, query=request.query, input_kinds=request.input_kinds, trans=trans)
 
 
 def _get_workflow_search_engine():
