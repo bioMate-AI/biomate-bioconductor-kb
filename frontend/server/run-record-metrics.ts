@@ -105,6 +105,22 @@ function normalizeStepKey(value: unknown): string {
   return String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
+// Fix #8 (output half): derive a producing-step key from an output file's S3/key
+// path when the file carries no step_name/process_name tag — which is the case on
+// the current /output_files listing (those fields are null; verified live on dev).
+// Nextflow publishes each process's outputs under a `NN_<process>/<file>`
+// directory (e.g. .../80e1a0b5/02_predict_admet_properties/toxicity_report.json),
+// so the directory above the filename names the producing process. Drop the
+// numeric phase prefix and normalize. The aggregate `output/` dir (findings_data,
+// qc_events) is not a process → returns "" (left unattributed, correctly).
+function stepKeyFromUri(uri: string): string {
+  const parts = String(uri).split("/").filter(Boolean);
+  if (parts.length < 2) return "";
+  const dir = parts[parts.length - 2]; // directory immediately above the filename
+  if (!dir || dir.toLowerCase() === "output") return "";
+  return normalizeStepKey(dir.replace(/^\d+[_-]/, "")); // strip leading NN_ phase prefix
+}
+
 /**
  * Fix #8: finalize a terminal run's per-step records so the step-detail panel
  * stops showing a finished run's steps as "pending" with no outputs.
@@ -169,11 +185,15 @@ export function finalizeRunSteps(
       : []) || [];
   const outputsByStepKey = new Map<string, StepOutput[]>();
   for (const f of files) {
-    const key = normalizeStepKey(f?.step_name ?? f?.process_name);
-    if (!key) continue; // a file with no producing-step tag can't be attributed
     const uri = String(f?.s3_uri ?? f?.path ?? "");
     const name = String(f?.filename ?? f?.name ?? uri.split("/").pop() ?? "");
     if (!name && !uri) continue;
+    // Prefer an explicit producing-step tag; fall back to the S3 key path (the
+    // NN_<process>/ publish dir). Without the fallback, no Nextflow output is ever
+    // attributed to a step, because step_name/process_name are null on the live
+    // /output_files listing — the #8 "status fixed but outputs still empty" gap.
+    const key = normalizeStepKey(f?.step_name ?? f?.process_name) || stepKeyFromUri(uri);
+    if (!key) continue; // genuinely unattributable (e.g. the aggregate output/ dir)
     const extension = extensionOf(name || uri);
     const rawSize = Number(f?.size ?? f?.sizeBytes ?? f?.bytes ?? 0);
     const sizeBytes = Number.isFinite(rawSize) && rawSize > 0 ? rawSize : 0;

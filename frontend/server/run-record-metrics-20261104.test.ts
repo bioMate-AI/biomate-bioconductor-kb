@@ -189,6 +189,29 @@ describe("Fix #8 — finalizeRunSteps finalizes a terminal run's per-step record
     expect(byId["salmon_quant"].outputs.map((o) => o.name)).toEqual(["quant.sf"]);
   });
 
+  it("attaches outputs via the S3 NN_<process>/ path when step_name/process_name are null (live /output_files shape)", () => {
+    const next = finalizeRunSteps(
+      { execution: { status: "completed" }, steps: seededSteps() } as any,
+      {
+        // No step_name/process_name — exactly what the live /output_files listing returns.
+        s3_output_files: [
+          { name: "sample_fastqc.html", size: 2048, s3_uri: "s3://b/outputs/run/01_fastqc/sample_fastqc.html" },
+          { name: "Aligned.bam", size: 500000, s3_uri: "s3://b/outputs/run/02_star/Aligned.bam" },
+          { name: "quant.sf", size: 1024, s3_uri: "s3://b/outputs/run/03_salmon/quant.sf" },
+          // aggregate output/ dir is not a process → must stay unattributed
+          { name: "findings_data.json", size: 10, s3_uri: "s3://b/outputs/run/output/findings_data.json" },
+        ],
+      },
+    );
+    expect(next).not.toBeNull();
+    const byId = Object.fromEntries(next!.map((s) => [s.stepId, s]));
+    expect(byId["fastqc"].outputs.map((o) => o.name)).toEqual(["sample_fastqc.html"]);
+    expect(byId["star_align"].outputs.map((o) => o.name)).toEqual(["Aligned.bam"]);
+    expect(byId["salmon_quant"].outputs.map((o) => o.name)).toEqual(["quant.sf"]);
+    // the output/ aggregate file is attributed to no step
+    expect(next!.every((s) => !s.outputs.some((o) => o.name === "findings_data.json"))).toBe(true);
+  });
+
   it("drives per-step status from nextflowStatus.processes when present (failed process → failed)", () => {
     const next = finalizeRunSteps(
       { execution: { status: "failed" }, steps: seededSteps() } as any,
