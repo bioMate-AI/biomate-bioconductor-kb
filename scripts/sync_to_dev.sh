@@ -516,16 +516,15 @@ set -e
 GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
 GC="${GC:-biomate-galaxy-dev}"
 if [ ! -d "$NFCORE_SRC" ]; then echo "[nfcore] WARNING: host copy $NFCORE_SRC missing — cannot restore pipelines"; exit 0; fi
-# A pipeline is INCOMPLETE when its nextflow.config includes a conf/ file that does not exist. ~150 of the
-# host copies held only top-level files (main.nf, nextflow.config, README — no conf/, modules/, workflows/),
-# so every run of them failed at config parse ("Config file does not exist: …/conf/base.config", 2026-11-05).
+# A pipeline is INCOMPLETE when its nextflow.config includes conf/base.config (the unconditional include every
+# nf-core pipeline loads) and that file does not exist. 125 of 137 host copies held only top-level files
+# (main.nf, nextflow.config, README — no conf/, modules/, workflows/), so every run failed at config parse
+# ("Config file does not exist: …/conf/base.config", 2026-11-05). Only base.config is checked: profile-scoped
+# includes may legitimately be absent upstream (eager test_bam, viralrecon test_full_sispa, …).
 incomplete() {  # $1 = pipeline dir
-  local c="$1/nextflow.config" f
+  local c="$1/nextflow.config"
   [ -f "$c" ] || return 1
-  for f in $(grep -oE "includeConfig +['\"]conf/[A-Za-z0-9_./-]+['\"]" "$c" | grep -oE "conf/[A-Za-z0-9_./-]+"); do
-    [ -f "$1/$f" ] || return 0
-  done
-  return 1
+  grep -qE "includeConfig +['\"]conf/base\.config['\"]" "$c" && [ ! -f "$1/conf/base.config" ]
 }
 # 1) complete the host source from nf-core's own repositories (default branch = latest release)
 refetched=0; refetch_failed=""
@@ -544,7 +543,7 @@ done
 [ -n "$refetch_failed" ] && echo "[nfcore] WARNING: could not complete:$refetch_failed"
 host_n=$(ls "$NFCORE_SRC"/*/main.nf 2>/dev/null | wc -l)
 # 2) restore into the container every pipeline that is missing there OR incomplete there
-container_state=$(docker exec "$GC" sh -c 'for d in /app/nf-core-workflows/*/; do [ -f "$d/main.nf" ] || continue; n=$(basename "$d"); bad=0; for f in $(grep -oE "includeConfig +.conf/[A-Za-z0-9_./-]+" "$d/nextflow.config" 2>/dev/null | grep -oE "conf/[A-Za-z0-9_./-]+"); do [ -f "$d/$f" ] || bad=1; done; [ $bad = 0 ] && echo "$n"; done' | tr '\n' ' ')
+container_state=$(docker exec "$GC" sh -c 'for d in /app/nf-core-workflows/*/; do [ -f "$d/main.nf" ] || continue; n=$(basename "$d"); if grep -qE "includeConfig +.conf/base.config" "$d/nextflow.config" 2>/dev/null && [ ! -f "$d/conf/base.config" ]; then continue; fi; echo "$n"; done' | tr '\n' ' ')
 present=" $container_state "   # complete pipelines only
 missing=""
 for d in "$NFCORE_SRC"/*/; do
