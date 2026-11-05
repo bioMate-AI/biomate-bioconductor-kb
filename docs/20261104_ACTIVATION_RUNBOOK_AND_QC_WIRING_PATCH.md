@@ -1,9 +1,21 @@
 # Activation runbook + QC-engine wiring patch (2026-11-04)
 
 Two next-cycle items for the generalization work (`20261104_GENERALIZATION_SESSION_IMPLEMENTATION.md`):
-(A) flip the two routing flags on dev and verify with the smoke harness; (B) a **reviewed,
-NOT-applied** patch wiring the general QC-gate engine into the live QC path. Both need a human on
-the dev host (ops) / a dev-validated cycle — they are deliberately not auto-applied.
+(A) flip the two routing flags on dev and verify with the smoke harness; (B) a patch wiring the
+general QC-gate engine into the live QC path.
+
+> **STATUS UPDATE (2026-11-04, later same day) — both items executed:**
+> - **(A) is now automated** by `scripts/enable_generalized_routing_on_dev.sh`
+>   (`on`/`off`/`status`). The manual SSM steps below are retained for reference, but the script is
+>   the supported path. **Important correction to the original manual plan:** do **NOT** recreate the
+>   container from the `biomate-galaxy-dev:rollback` image — verified on 2026-11-04 that the running
+>   container's code (docker-cp'd by sync into the writable layer) is **newer than that image**, so
+>   recreate-from-image would silently revert dev's backend. The script instead `docker commit`s the
+>   live container to a fresh snapshot image and recreates from that, preserving all deployed code
+>   with no re-sync / clean-tree / lock required, and verifies a code canary survived.
+> - **(B) is APPLIED** — commit `a26e61fcd`, with `backend/tests/test_qc_declared_gates.py` (7 cases).
+>   Engine + fallback mapping validated locally (7/7); the handler itself imports only in the dev
+>   runtime (pulsar/boltons/scipy), so the test runs on dev, not the laptop.
 
 ---
 
@@ -60,7 +72,13 @@ dormant again (fall through to normal workflow search).
 
 ---
 
-## B. QC-engine wiring patch — REVIEWED, NOT APPLIED
+## B. QC-engine wiring patch — APPLIED (commit `a26e61fcd`)
+
+> Applied 2026-11-04 exactly as drafted below, plus `backend/tests/test_qc_declared_gates.py`
+> (7 cases: halt blocks, advisory non-blocking, pass → no failure, list- and dict-form declared
+> gates, malformed-spec never breaks the path). `py_compile` clean under Python 3.9. The handler
+> is only importable inside the Galaxy runtime, so the test is dev-run; the engine + the exact
+> fallback-mapping logic were validated in isolation locally (7/7).
 
 Wires `galaxy.ai.qc_gate_engine.evaluate_gates` into `jobs/qc_trace_monitor.py` as a **general
 fallback**: when a workflow DECLARES gates in its `qc_metrics.json` (a `gates` / `declared_gates`
