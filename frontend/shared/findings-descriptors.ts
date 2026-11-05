@@ -150,7 +150,11 @@ const ENRICHGO: PatternDescriptor = {
 // ── Rare-disease / annotated variants (variant entity; categorical IMPACT verdict) ──
 const VARIANT: PatternDescriptor = {
   id: 'variant',
-  match: { fileRegex: /variant|annotated|vep|snpeff|filtered/i },
+  // audit S3#7: dropped the generic tokens `annotated`/`filtered` — matchDescriptor matches on
+  // filename alone, so they cross-fired on non-variant outputs (scRNA `filtered_feature_bc_matrix`,
+  // annotated cell tables) and attached a spurious impact document. Keep variant-specific tokens;
+  // real variant tables carry variant/vep/snpeff/.vcf.
+  match: { fileRegex: /variant|vep|snpeff|\.vcf(\.|$)/i },
   parse: 'autodelim',
   entity: { type: 'variant', column: /gene|gene\.refgene|symbol/i, scheme: 'symbol' },
   metrics: [

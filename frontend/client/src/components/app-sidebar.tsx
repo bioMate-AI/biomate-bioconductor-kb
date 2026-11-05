@@ -8,9 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SettingsDialog } from "./settings-dialog"
 import { WorkflowHistoryDialog } from "./workflow-history-dialog"
 import { RecentToolsDialog } from "./recent-tools-dialog"
-import { ConnectorsDialog } from "./connectors-dialog"
 import { StarredWorkflowsDialog } from "./starred-workflows-dialog"
-import { projectService } from "@/lib/projects"
 import type { Project } from "@shared/schema"
 import {
   MessageCircle,
@@ -130,7 +128,6 @@ export function AppSidebar({
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
-  const [showConnectorsDialog, setShowConnectorsDialog] = useState(false);
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
@@ -172,7 +169,6 @@ export function AppSidebar({
     window.addEventListener('biomate:projects-updated', refreshProjects);
     return () => window.removeEventListener('biomate:projects-updated', refreshProjects);
   }, []);
-  const recentProjects = projectService.getAllProjects().slice(0, 5);
 
   function getRelativeTime(date: Date): string {
     const now = new Date()
@@ -489,7 +485,6 @@ export function AppSidebar({
       <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
       <StarredWorkflowsDialog open={showWorkflowsDialog} onOpenChange={setShowWorkflowsDialog} />
       <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} importOnly onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { window.location.assign(`/?reuseWorkflow=${encodeURIComponent(row.runId)}`); }} />
-      <ConnectorsDialog open={showConnectorsDialog} onOpenChange={setShowConnectorsDialog} />
 <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
         onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}
       />

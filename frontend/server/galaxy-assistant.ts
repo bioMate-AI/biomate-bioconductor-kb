@@ -9044,15 +9044,19 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
               if (_p?.name) _schemaNames.add(String(_p.name));
             }
           }
-          if (_schemaNames.size > 0) {
-            for (const _host of [_wfGaN, (response as any)]) {
-              const _inlineObj = _host?.inline_parameters;
-              if (_inlineObj && typeof _inlineObj === 'object' && !Array.isArray(_inlineObj)) {
-                for (const _k of Object.keys(_inlineObj)) {
-                  if (!_schemaNames.has(_k) && _k !== 'domain_hint') {
-                    console.log(`[GalaxyAssistant] Dropping non-schema inline param "${_k}" (not in ${_wfGaN?.name || 'workflow'} schema) — prevents phantom param row`);
-                    delete _inlineObj[_k];
-                  }
+          for (const _host of [_wfGaN, (response as any)]) {
+            const _inlineObj = _host?.inline_parameters;
+            if (_inlineObj && typeof _inlineObj === 'object' && !Array.isArray(_inlineObj)) {
+              for (const _k of Object.keys(_inlineObj)) {
+                if (_k === 'domain_hint') continue;
+                // Drop any inline key the schema doesn't declare. audit S4#3: when the schema
+                // isn't available yet (_schemaNames empty — lazily-fetched / fresh workflow),
+                // we cannot tell a real param from a hallucinated one, so drop ALL of them
+                // rather than surface an unvalidated/phantom "Recommended" row. Real params
+                // re-prefill once the schema hydrates.
+                if (_schemaNames.size === 0 || !_schemaNames.has(_k)) {
+                  console.log(`[GalaxyAssistant] Dropping inline param "${_k}" (${_schemaNames.size === 0 ? 'schema not yet available' : `not in ${_wfGaN?.name || 'workflow'} schema`}) — prevents phantom param row`);
+                  delete _inlineObj[_k];
                 }
               }
             }
