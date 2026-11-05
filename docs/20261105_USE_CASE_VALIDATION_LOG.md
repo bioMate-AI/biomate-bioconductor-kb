@@ -63,7 +63,16 @@ the `omics` list used by the collect-all multi-omics shape (SNF). Passing `omics
 `Required input file for cts not found`; passing `cts`/`coldata` params fixed it. (Executor logic:
 `nextflow_executor.py` Style-A bioc entry wrapper, ~line 2235.)
 
-## UC-4 — Functional enrichment (clusterProfiler `enrichGO`) — ATTEMPTED, surfaced an executor bug
+## UC-4 — Functional enrichment (clusterProfiler `enrichGO`) — ✅ PASS (after fixing the bug it surfaced)
+
+> **RESOLVED 2026-11-05 (fix `145c6a75b`).** Re-run `c01c7973` after the fix: exit 0, **91 enriched
+> GO:BP terms, top 8 all cell-cycle/mitotic** — *mitotic cell cycle phase transition* (padj 8.0e-25),
+> *nuclear chromosome segregation*, *nuclear division*, *chromosome segregation*, *cell cycle G2/M
+> phase transition*, *mitotic nuclear division*, … (19/91 terms cell-cycle/mitotic). Exactly the
+> known answer for the 30 planted cell-cycle genes. The executor bug below is fixed (file-ref `*_list`
+> params are no longer JSON-array-wrapped); both the found-bug record and the fix are kept for history.
+
+### Original failure + root cause (kept for history)
 **Workflow:** `subworkflows/bioconductor/clusterprofiler/main.nf` (container `bioc-domain-genomics:3.20-slim`,
 real `enrichGO` against `org.Hs.eg.db`). **Input:** a 30-gene canonical cell-cycle/mitotic SYMBOL list
 (CCNB1, CDK1, AURKA, PLK1, …) → known answer = cell-cycle / mitotic / nuclear-division GO:BP terms.
@@ -98,10 +107,13 @@ found bug (config/param-serialization class, cf. `project_workflow_config_bug_cl
 | 1 | Multi-omics stratification | `ab67ad23`/`27ba372e` | ✅ ARI 0.978; 24/24 drivers; model CV 0.950 |
 | 2 | Drug discovery (ADMET) | `a4fe422e` | ✅ terfenadine hERG flagged; gate fires |
 | 3 | Transcriptomics (DESeq2 DE) | `b8cd8747` | ✅ 77/100 DE, dir 77/77, FDR 0.037 |
-| 4 | Functional enrichment (enrichGO) | `bd4fe2dc` | ⚠️ executor single-named-input staging bug (diagnosed) |
+| 4 | Functional enrichment (enrichGO) | `bd4fe2dc`→`c01c7973` | ✅ after fix `145c6a75b`: top-8 GO all cell-cycle/mitotic |
 
-Three domains validated end-to-end with known-answer checks; the fourth surfaced a real executor bug
-(the value of expanding use cases). All runs are a few cents of CPU Batch.
+**Four domains validated end-to-end** with known-answer checks. UC-4 is the benchmark-driven loop in
+miniature: expanding use cases *found* a real executor param-serialization bug (a file-path `*_list`
+param was JSON-array-wrapped → illegal URI), it was root-caused and fixed (`_looks_like_single_file_ref`
+guard, 2 tests), and the same use case then passed with the correct biology. All runs are a few cents
+of CPU Batch.
 
 ---
 
