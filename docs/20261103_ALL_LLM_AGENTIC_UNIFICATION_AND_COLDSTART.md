@@ -462,3 +462,36 @@ diff, a later commit) — the next packet should include call sites of changed f
 Deferred, as proposals: LLM-extracted user data kinds in place of the regex (T-LLMKINDS); which "other" kinds count as processed (T-REGIMES);
 a v2 evaluation set with pre-fixed acceptable-workflow lists and ≥3 reps (T-EVALV2) — the committee is right that, on the pre-registered criteria,
 the deployed arm is not better than baseline on loose/controls; re-benchmark the decomposition models with the fixed harness (T-DECOMP; 3.8 Flash, GLM-5.2, Kimi K3 × 3 runs). The deployed model is gemini-3.8-flash — the §13.3/§14 statement that dev runs 3.5 Flash was wrong (owner correction).
+
+## 15. Committee follow-ups: T-DECOMP, T-REGIMES, T-EVALV2, T-LLMKINDS (2026-11-05)
+
+**Correction (owner):** the deployed intent model is `gemini-3.8-flash`. `BIOMATE_INTENT_MODEL=gemini-3.5-flash` is set in the
+containers, but `pickGeminiIntentModel` resolves it; every logged intent call on dev uses 3.8 Flash. My §13.3/§14 and the
+review packet said 3.5 — wrong, corrected in all three documents (`cb16c9c2d`).
+
+**T-DECOMP — decomposition models, fixed harness** (real curated-chain names; 23 held-out rows × 3 runs; `runs/decomp_models_v2_rep*`):
+Gemini 3.8 Flash 0.322 ± 0.025; **GLM-5.2 0.430 ± 0.023**, paired Δ **+0.108 [+0.004, +0.227]** (rows 8 better / 5 worse / 10 tied),
+≈40% of Flash's cost per call, fewer failed calls; Kimi K3 0.370 ± 0.049, Δ +0.047 [−0.030, +0.142]. Direction matches the earlier
+(defective-harness) stability run. **Not switched:** the bound is near zero, n = 23, and the metric is decomposition structure, not
+routing outcome. Proposed: a routing A/B of GLM-5.2 vs Flash on input_regime_v2 (needs the dev frontend's BIOMATE_INTENT_MODEL +
+a dedicated OpenRouter key — owner decision).
+
+**T-REGIMES — count vcf / peaks / gene_list as processed:** offline (`offline_regimes_{base,vcf}.json`) **no prediction changed** on any
+of the three gold sets (the regex detects only vcf among the three). Null result → not changed; revisit with T-LLMKINDS kinds.
+
+**T-EVALV2 — new evaluation set** (`evaluation/routing_eval/input_regime_v2/`): 40 queries in 19 input-regime groups (processed vs raw
+for the same task, negation, both-regime, controls). Per query a list of acceptable workflows — must perform the task AND accept the
+stated input — chosen from broad keyword pools of the catalog (not from input_kinds) and **fixed before any run** (`6cbde4ea3`).
+Independent check of the lists by GPT-5.6 Terra (`acceptable_review_gpt56terra.txt`): 42 flags, each judged — accepted when our
+wrapper's description is narrower than the task (e.g. minfi/enmix/watermelon/sesame for differential methylation), rejected when the
+declared input is a known catalog placeholder (methylarray `fasta`, mhcquant empty, sesame `count_data`); four queries reworded so a
+qualifying workflow exists. Scorer compares slugs (`score.py`). Catalog issue found: `nf-core/chipseq` and `nf-core/atacseq` are
+`executable=0` although deployed and routed to (open; to investigate catalog-wide, not patched).
+**Baseline on dev** (`v2_baseline.jsonl`, dev `2e7b0b33`, 3 reps, no restart, no connection errors): **91/120 = 0.758**. Weakest
+groups: proteomics processed 6/15, methylation processed 0/6, metabolomics raw 0/3, docking from SDF 0/3, somatic from BAM 0/3.
+
+**T-LLMKINDS — the classifier states the user's input kinds** (`b0fc95fb9`): new `input_kinds` field (closed vocabulary = data the user
+HAS; not outputs wanted; not data said to be missing; per intent in multi-intent turns), threaded Node → proxy → `generate_workflow_unified`
+→ `search` → score step 8a and `workflow_by_name(input_kinds)`. Absent → the text regex as fallback; `[]` → no input data stated (regex not
+consulted). A unit test showed the regex flaw concretely: "I don't have the raw files, only proteinGroups.txt" gave the raw-spectra
+pipeline **+3**; with the classifier's kinds it takes −25. Dev arm on input_regime_v2: pending (§15.1).
