@@ -101,6 +101,23 @@ found bug (config/param-serialization class, cf. `project_workflow_config_bug_cl
 
 ---
 
+## UC-5 — Pharmacology: PK non-compartmental analysis (PKNCA)
+**Workflow:** `drug_discovery/nca_pknca/main.nf` (R/PKNCA). **Input:** a simulated concentration-time
+CSV (`subject_id,time,conc,dose,route`) — a clean **1-compartment IV-bolus** profile, C(t)=100·e^(−0.2t),
+3 subjects, so the answer is computable: **Cmax≈100, AUCinf=C₀/k=500, t½=ln2/k=3.47 h, Tmax=0**.
+**Run `89766f00`** — succeeded on CPU Batch (validation → analysis → report).
+
+**Result — matches the computed PK exactly:**
+- Per subject: Cmax 98.3–102.5, **AUCinf 494.8–501.6**, **t½ 3.41–3.49 h**, Tmax 0 (IV) — all on the
+  known values. Population AUCinf mean 498.7 (CV 0.7%).
+- `qc_metrics.json` (process `NCA_PKNCA_ANALYSIS`): `auc_extrap_pct_max=0.86%` → within the ≤20% GOLD
+  gate (`auc_extrap_within_20pct=true`), terminal-slope coverage 100% → gate passes. PKNCA 0.12.1,
+  linear-up/log-down trapezoidal; evidence `GOLD-auc_extrap` (FDA 2003 BA/BE).
+
+A fifth domain (pharmacology) validated with a *computable* known answer. (Input gotcha: the R
+validator requires `conc,dose,route` as **columns**, not a `concentration` column + dose/route params —
+caught cheaply on the first attempt, 10 s / $0.0005.)
+
 ## Scorecard
 | UC | Domain | Run | Outcome |
 |----|--------|-----|---------|
@@ -108,8 +125,9 @@ found bug (config/param-serialization class, cf. `project_workflow_config_bug_cl
 | 2 | Drug discovery (ADMET) | `a4fe422e` | ✅ terfenadine hERG flagged; gate fires |
 | 3 | Transcriptomics (DESeq2 DE) | `b8cd8747` | ✅ 77/100 DE, dir 77/77, FDR 0.037 |
 | 4 | Functional enrichment (enrichGO) | `bd4fe2dc`→`c01c7973` | ✅ after fix `145c6a75b`: top-8 GO all cell-cycle/mitotic |
+| 5 | Pharmacology PK (PKNCA) | `89766f00` | ✅ Cmax≈100, AUCinf≈500, t½≈3.47h (matches computed); AUC-extrap gate passes |
 
-**Four domains validated end-to-end** with known-answer checks. UC-4 is the benchmark-driven loop in
+**Five domains validated end-to-end** with known-answer checks. UC-4 is the benchmark-driven loop in
 miniature: expanding use cases *found* a real executor param-serialization bug (a file-path `*_list`
 param was JSON-array-wrapped → illegal URI), it was root-caused and fixed (`_looks_like_single_file_ref`
 guard, 2 tests), and the same use case then passed with the correct biology. All runs are a few cents
