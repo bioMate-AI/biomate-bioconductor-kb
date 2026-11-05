@@ -10835,10 +10835,14 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           paramCount: paramKeys.length,
           paramKeys: paramKeys.slice(0, 6),
           outputCount: Object.keys((e.outputs as any) || {}).length,
+          // The recorded failure reason (process + specific line), so "why did it fail?" is answered
+          // from the run itself, not guessed.
+          ...(/fail|error/i.test(String(e.status || '')) ? { error: runErrorSummary(e, (r as any).errorMessage) } : {}),
         };
       });
       return {
         userId,
+        note: 'For a failed run, report its recorded `error`. When it says no error was recorded, say so and point the user to the run\'s task log (workflow panel → failed step → log); do not guess causes.',
         count: formatted.length,
         filter: { workflow_filter: wfFilter || null, status_filter: statusFilter || null },
         runs: formatted,
@@ -10882,7 +10886,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       });
       return [
         opts.withErrors
-          ? '[The user\'s recent workflow runs, with the recorded error of each failed run — answer questions about a failing run from these errors (state the cause and the fix), not from literature]'
+          ? '[The user\'s recent workflow runs, with the recorded error of each failed run — answer questions about a failing run from these errors (state the cause and the fix), not from literature. When a run has no recorded error, say exactly that and tell the user where to see its task log (the run\'s card in the workflow panel → failed step → log); do not guess causes]'
           : '[Your recent workflow runs — refer by 8-char id when the user wants to reuse params or outputs]',
         ...lines,
         '(call list_history for filtered/expanded details)',

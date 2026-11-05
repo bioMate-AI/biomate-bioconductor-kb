@@ -19,3 +19,9 @@ def test_placeholder_or_missing_name_uses_the_description():
 def test_nothing_to_go_on():
     assert name({}) == "Custom workflow"
     assert name(None) == "Custom workflow"
+
+
+def test_steps_name_a_workflow_without_description():
+    wf = {"steps": [{"name": "geo_data_connector"}, {"tool_id": "scrnaseq_qc_pipeline"}, {"name": "annotate_celltype_scRNA"}, {"name": "x"}]}
+    assert name(wf).startswith("geo data connector → scrnaseq qc pipeline")
+    assert name({"steps": {"0": {"name": "fastqc"}, "1": {"name": "multiqc"}}}) == "fastqc → multiqc"

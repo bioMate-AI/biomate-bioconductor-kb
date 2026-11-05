@@ -218,6 +218,19 @@ def _composed_workflow_name(data: Dict) -> str:
     clause = _re_nm.split(r'(?<=[.;:])\s|\s[—–-]\s', desc)[0].strip().rstrip('.;:') if desc else ''
     if clause:
         return clause if len(clause) <= 60 else clause[:57].rsplit(' ', 1)[0] + '…'
+    # No description (composed from catalog steps): name it after its own steps.
+    steps = (data or {}).get('steps') or []
+    if isinstance(steps, dict):
+        steps = list(steps.values())
+    labels = []
+    for st in steps if isinstance(steps, list) else []:
+        lab = str((st or {}).get('name') or (st or {}).get('tool_id') or (st or {}).get('label') or '').strip() if isinstance(st, dict) else ''
+        lab = _re_nm.sub(r'[_]+', ' ', lab).strip()
+        if lab and lab.lower() not in (l.lower() for l in labels):
+            labels.append(lab)
+    if labels:
+        joined = ' → '.join(labels[:3])
+        return joined if len(joined) <= 60 else joined[:57].rsplit(' ', 1)[0] + '…'
     return 'Custom workflow'
 
 
