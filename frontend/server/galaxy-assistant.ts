@@ -1681,6 +1681,10 @@ export interface DecomposedIntent {
   actions: ActionCategories; // Which backend agents to invoke
   /** Ambiguity fork point requiring clarification, or null when intent is unambiguous */
   workflowAmbiguity?: string | null;
+  /** For execution intents: 'direct_compute' = compute now (run_code) on data already in the
+   *  conversation; 'pipeline' = launch a workflow. Set by the classifier from what the request
+   *  needs, in any language. */
+  execution?: 'pipeline' | 'direct_compute' | null;
 }
 
 export interface IntentDecomposition {
@@ -2201,6 +2205,31 @@ export function isAdhocAnalysisOfAttachedData(message: string): boolean {
   const task = text.split(/\n\s*\n|\n\s*\[(?:Attached files?|Uploaded datasets?)/i)[0];
   const adhoc = /\b(summari[sz]e|summary\s+of|plot|chart|graph|visuali[sz]e|correlat\w*|regress\w*|reshape|pivot|melt|tabulate|cross-?tab\w*|histogram|scatter|describe\s+(the|this)\s+(data|table|file)|compute|calculate)\b/i;
   return adhoc.test(task) && !PIPELINE_REQUEST_RE.test(task);
+}
+
+export function parseExecutionMode(v: unknown): 'pipeline' | 'direct_compute' | null {
+  return v === 'direct_compute' || v === 'pipeline' ? v : null;
+}
+
+/** Data the user put in the conversation that run_code can compute on: an attached / project /
+ *  Galaxy dataset block, or a pasted table (>=3 delimited rows, e.g. a CSV or VCF excerpt). */
+export function hasComputableData(message: string): boolean {
+  const text = message || '';
+  if (/\[(?:Uploaded datasets?|BioMate dataset|Galaxy dataset)\s*:/i.test(text)) return true;
+  const rows = text.match(/[^\s,;|]+(?:[,\t][^\s,;\t]*){2,}/g) || [];
+  return rows.length >= 3;
+}
+
+/** The user asked for code itself ("write a script", "give me the R code", 写代码/脚本). */
+export function wantsCodeItself(message: string): boolean {
+  return /\b(write|give|show|generate|provide)\b[^.\n]{0,40}\b(scripts?|code|snippets?|functions?)\b|代码|脚本/i.test(message || '');
+}
+
+/** A reply that presents analysis code (a fenced Python/R block) — used to catch replies that
+ *  describe running code that was never executed (external-user replay 2026-11-04: "Running
+ *  analysis on qa_new_account_counts.csv…" with a pandas block and no run_code call). */
+export function presentsUnexecutedCode(text: string): boolean {
+  return /```\s*(?:python|py|r)\s*\n[\s\S]{60,}?```/i.test(text || '');
 }
 
 /** Datasets attached to a message by the chat composer: the "[Uploaded datasets: name: dataset_id=<uuid>,
@@ -4571,7 +4600,11 @@ Rules:
     // actually executing. Flip to the direct-compute path so run_code stays
     // enabled and really runs in the sandbox. Conservative guard (explicit ask
     // + no pipeline keyword) so genuine workflow requests are untouched.
-    if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message))) {
+    // The classifier's execution decision (any language) counts too, but only with data present —
+    // without it, the July protection (no-workflow → empty reply) stays in force.
+    const _directCompute = (intent as any).execution === 'direct_compute' && hasComputableData(message);
+    if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message) || _directCompute)) {
+      if (_directCompute) log('Direct-compute override: classifier execution=direct_compute with data in the conversation');
       log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
       actions.needsWorkflowGeneration = false;
       actions.needsLLMReasoning = true;
@@ -6534,6 +6567,13 @@ Describe the user's information need with a descriptive label. You may use these
 
 You may also create a novel label if none of the above fit (e.g., "cost_estimation", "regulatory_compliance", "multi_step_procedure").
 
+## Execution mode (every workflow_generation intent) — "execution": "direct_compute" | "pipeline"
+
+Decide from what the request NEEDS, whatever language it is written in:
+- **direct_compute** — the data is ALREADY in the conversation (an attached/uploaded file, a project dataset, or a table/list pasted in the message) and the task is an ad-hoc computation on it: summary statistics, means/fold changes, a statistical test, reshaping/merging tables, a plot, a correlation, a small differential-expression or clustering run on that table. BioMate computes it now with run_code and returns the numbers/figures.
+- **pipeline** — the input must be fetched or processed by a workflow: raw reads/FASTQ/BAM, accessions (GSE/SRR/PDB…), SMILES for ADMET/docking models, structures, long-running or GPU tools, or the user asks for a workflow/pipeline.
+Examples: "计算每个基因 treated/control 的 fold change 并按降序输出" + attached CSV → direct_compute. "Compare the two groups' cell viability and plot each sample" + attached table → direct_compute. "Cluster these pasted single-cell counts and draw a UMAP" (counts pasted) → direct_compute. "Run nf-core/rnaseq on SRR1234567" → pipeline. "Screen these SMILES for ADMET" → pipeline.
+
 ## HIGHEST PRIORITY RULE — Knowledge Reasoning vs Pipeline Execution
 
 Ask a single question: **"Does completing this task require running a computational pipeline or tool on user-provided data — files, accession IDs, or molecular inputs?"**
@@ -6987,6 +7027,7 @@ Return null if the user already specifies enough to unambiguously select one pip
 For SINGLE-intent messages (the common case), respond with a single JSON object:
 {
   "type": "workflow_generation",
+  "execution": "direct_compute",
   "keywords": ["reverse complement"],
   "inlineParameters": {"sequence": "ATGCGATCG"},
   "needsToolSearch": false,
@@ -7977,6 +8018,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         facts: parseFacts(intent.facts),
         dependsOn: Array.isArray(intent.dependsOn) ? intent.dependsOn : [],
         actions: parseActions(intent.actions, intent.type || 'general_question'),
+        execution: parseExecutionMode(intent.execution),
         // Sequential pipeline metadata
         inputFromDescription: intent.input_from_description ?? undefined,
         outputDescription: intent.output_description ?? undefined,
@@ -8030,6 +8072,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       dependsOn: [],
       actions: parseActions(result.actions, intentType),
       workflowAmbiguity: typeof result.workflowAmbiguity === 'string' ? result.workflowAmbiguity : null,
+      execution: parseExecutionMode(result.execution),
     };
 
     return {
@@ -9602,6 +9645,21 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       }
       // ── End non-Claude backbone (falls through to Claude agentic loop) ─────────
 
+      // Unexecuted-code guard: a reply that presents analysis code as if it ran, on data that is in
+      // the conversation, while run_code never ran, is sent back once with an instruction to execute
+      // it (external-user replay 2026-11-04: a fold-change request answered "Running analysis…" +
+      // a pandas block, no run_code call). The text already shown is kept (_shownBeforeNudge).
+      let _ranRunCode = false;
+      let _codeNudged = false;
+      let _shownBeforeNudge = '';
+      const _runCodeOffered = Array.isArray(agentTools) && (agentTools as any[]).some((t: any) => t?.name === 'run_code');
+      const _shouldNudgeUnexecutedCode = (text: string) =>
+        _runCodeOffered && !_ranRunCode && !_codeNudged && presentsUnexecutedCode(text)
+        && hasComputableData(message) && !wantsCodeItself(message);
+      const _unexecutedCodeNudge = 'You presented analysis code but did not execute it, so no result has been '
+        + 'computed. The user\'s data is already staged (see the run_code inputs). Call run_code now with that '
+        + 'code (fix it if needed), then report only the actual output. Do not state results that were not computed.';
+
       for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
         const isFirstTurn = turn === 0;
         const requestOptions: any = {
@@ -9662,10 +9720,20 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
               .filter(b => b.type === 'text' || b.type === 'tool_use')
               .map(b => b.type === 'text' ? { type: 'text', text: b.text || '' } : { type: 'tool_use', id: b.id, name: b.name, input: b.input });
             agentMessages.push({ role: 'assistant', content: assistantContent as any });
+            if (toolUseBlocks.some((b: any) => b.name === 'run_code')) _ranRunCode = true;
             const toolResults = await this._executeTools(toolUseBlocks, context, onToolEvent);
             agentMessages.push({ role: 'user', content: toolResults as any });
             rawResponse = ''; // Reset — final text comes in a later turn
             continue; // next iteration
+          }
+          if (_shouldNudgeUnexecutedCode(rawResponse)) {
+            console.warn('[GalaxyAssistant] reply presented code without running it — asking the model to run_code');
+            _codeNudged = true;
+            _shownBeforeNudge = stripNarratedToolCalls(rawResponse);
+            agentMessages.push({ role: 'assistant', content: [{ type: 'text', text: rawResponse || ' ' }] as any });
+            agentMessages.push({ role: 'user', content: _unexecutedCodeNudge });
+            rawResponse = '';
+            continue;
           }
           // No tool_use — stream complete
           console.log('[GalaxyAssistant] Response stream complete:', {
@@ -9689,6 +9757,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         const toolUseBlocks = completion.content.filter((b: any) => b.type === 'tool_use');
         if (completion.stop_reason === 'tool_use' && toolUseBlocks.length > 0) {
           agentMessages.push({ role: 'assistant', content: completion.content as any });
+          if (toolUseBlocks.some((b: any) => b.name === 'run_code')) _ranRunCode = true;
           const toolResults = await this._executeTools(toolUseBlocks, context, onToolEvent);
           agentMessages.push({ role: 'user', content: toolResults as any });
           continue;
@@ -9697,11 +9766,21 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         // End turn — extract text and emit as a single delta (non-incremental but correct)
         const textContent = completion.content.find((c: any) => c.type === 'text');
         rawResponse = textContent && textContent.type === 'text' ? (textContent as any).text : '';
+        if (_shouldNudgeUnexecutedCode(rawResponse)) {
+          console.warn('[GalaxyAssistant] reply presented code without running it — asking the model to run_code');
+          _codeNudged = true;
+          agentMessages.push({ role: 'assistant', content: completion.content as any });
+          agentMessages.push({ role: 'user', content: _unexecutedCodeNudge });
+          rawResponse = '';
+          continue;
+        }
         if (onResponseDelta && rawResponse) {
-          onResponseDelta(stripNarratedToolCalls(rawResponse));
+          onResponseDelta((_shownBeforeNudge ? '\n\n' : '') + stripNarratedToolCalls(rawResponse));
         }
         break;
       }
+      // Keep what the user already saw before the guard sent the reply back (persisted = displayed).
+      if (_shownBeforeNudge && rawResponse.trim()) rawResponse = `${_shownBeforeNudge}\n\n${rawResponse}`;
 
       // Guard: if loop exhausted or tool-only response with no final text, provide fallback.
       // When a workflow was generated, produce a meaningful workflow-ready message.
