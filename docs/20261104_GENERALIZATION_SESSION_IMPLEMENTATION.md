@@ -108,8 +108,12 @@ a dev run is the follow-up).
   `EXPECT_FLAGS_ON=1 scripts/smoke_generalized_routing.sh`: **3 pass / 0 fail / 0 flag-off** — a chat
   request on an expression matrix routes to `sklearn_tabular`, and a zh 整合空间转录组+蛋白质组+代谢组
   request routes to the SNF multi-omics integration plan. Revert with the script's `off`.
-- **QC-gate engine now WIRED** into `jobs/qc_trace_monitor.py` (commit `a26e61fcd`) — §4 follow-up
-  closed; a declared-gate run on dev is the remaining execution validation (§8 item 4).
+- **QC-gate engine WIRED + live-verified** on dev (`jobs/qc_trace_monitor.py`, commits `a26e61fcd`
+  + fix `3a8adcbe5`; deployed in `67fecf42`). Running `test_qc_declared_gates.py` against the live
+  handler is **7/7**. The live run caught a real gap the laptop could not (no `pulsar`/`boltons`): a
+  passing declared-only gate returned `(None, [])` ("no QC") instead of `(True, [])`; fixed by
+  tracking `_declared_evaluated` so a clean declared-gate pass is a real pass while a gate skipped
+  for a missing metric still yields no verdict. §4 + §8-item-4 follow-ups closed.
 
 ## 7. Test coverage — honest assessment (see §8 of this doc for the plan)
 What IS covered: **unit/logic level, thoroughly** — splits, loaders, trainers, routing parsers,
