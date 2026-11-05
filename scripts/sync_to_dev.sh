@@ -1740,6 +1740,22 @@ postsync_health_ok() {
   # Probe the dev host's mapped ports; retry to ride out HUP / cold start.
   # $1 = number of 5s retries (default 24 = 120s).
   # Prints which port is failing so we can distinguish Galaxy vs Frontend issues.
+  # Returns 0 healthy, 1 unhealthy (probes ran and failed), 2 UNVERIFIED (could not reach the host).
+  # ec2_ssh exits 255 on a transport failure (SSM "TargetNotConnected", dropped SSH): that is not a
+  # health verdict. On 2026-11-04 a healthy deploy was rolled back because the first probe's SSM
+  # session failed ("i-06696b0d91f4346e0 is not connected"); transport failures are now retried.
+  local attempt rc
+  for attempt in 1 2 3 4 5; do
+    _postsync_probe "$@"; rc=$?
+    [[ $rc -ne 255 ]] && return $rc
+    log "[health] cannot reach the dev host (ssh/SSM exit 255) — retrying in $((attempt * 15))s; not a health verdict"
+    sleep $((attempt * 15))
+  done
+  log "[health] dev host unreachable after 5 attempts — health UNVERIFIED"
+  return 2
+}
+
+_postsync_probe() {
   local tries="${1:-24}"
   ec2_ssh "
     for i in \$(seq 1 $tries); do
@@ -1992,7 +2008,13 @@ do_sync() {
   # covers the frontend container's cold-start (Node.js + DB migrations).
   if [[ "$ROLLBACK_READY" == 1 ]]; then
     log "[health] Verifying dev health after sync..."
-    if postsync_health_ok 120; then
+    postsync_health_ok 120; _health_rc=$?
+    if [[ $_health_rc -eq 2 ]]; then
+      # Could not reach the host at all: rolling back needs that same connection and would undo a
+      # deploy nobody could check. Report it; a human verifies dev and decides.
+      log "[health] ⚠ dev health UNVERIFIED (host unreachable) — NOT rolling back; verify https://dev-public.biomate.ai before relying on this deploy"
+      SYNC_RESULT=unverified
+    elif [[ $_health_rc -eq 0 ]]; then
       if smoke_test_workflow; then
         log "[health] ✓ dev healthy + smoke test passed"
         SYNC_RESULT=healthy
