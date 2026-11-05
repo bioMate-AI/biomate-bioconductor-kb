@@ -495,3 +495,18 @@ HAS; not outputs wanted; not data said to be missing; per intent in multi-intent
 → `search` → score step 8a and `workflow_by_name(input_kinds)`. Absent → the text regex as fallback; `[]` → no input data stated (regex not
 consulted). A unit test showed the regex flaw concretely: "I don't have the raw files, only proteinGroups.txt" gave the raw-spectra
 pipeline **+3**; with the classifier's kinds it takes −25. Dev arm on input_regime_v2: pending (§15.1).
+
+### 15.1 T-LLMKINDS result on input_regime_v2 (dev `b0fc95fb`, 3 reps)
+First run: 37/120 rows failed client-side (`http -1`, network between this machine and dev; no container restart) — re-run
+those rows only (`v2_llmkinds_rerun.jsonl`, no restart, none still failing) and merged with `rerun_reason`
+(`v2_llmkinds_merged.jsonl`). **93/120 = 0.775 vs baseline 91/120 = 0.758 — neutral** (within run-to-run noise). My prediction
+(gains on processed proteomics and methylation) **did not hold**: proteomics processed 6/15 → 6/15, methylation processed 0/6 → 1/6.
+
+**Why:** the remaining misses are not raw-vs-processed mismatches — they are choices *within* the right regime at a finer grain:
+DIA-NN protein matrix → a precursor-level workflow; peptide/Spectronaut tables → PSM-level TMT tools; array beta values → the
+bisulfite-sequencing DMRcate variant; SDF ligands → a SMILES-only docking workflow; raw LC-MS → a joint proteomics+metabolomics
+workflow; beta values + continuous phenotype → no catalog match (composed "Custom workflow"); and a **catalog contradiction**:
+`Detect And Annotate Somatic Mutations` declares tumour/normal BAM inputs but its description says it starts from a VCF.
+**Decision:** keep T-LLMKINDS (principled, tested, fixes the demonstrated negation flaw, neutral on this set). The next lever is
+finer-grained input matching (sub-formats: protein vs precursor vs PSM tables, array vs sequencing methylation, SMILES vs SDF) and
+catalog metadata consistency (declared inputs vs description) — not more weight on the raw/processed term.
