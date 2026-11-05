@@ -101,9 +101,16 @@ this branch (`sha-83234a2194b0`, carrying the id-column fix `904bb6b83` + the s3
   hygiene fix, **verified live on Batch** (prior to the fix it would have leaked in as a junk feature).
   `n_rows = 139`, `stratified = true`.
 
-With this, all four generalized capabilities — routing, multi-omics integration, data-driven QC
-gates, cross-omics driver fusion, and model training — are live-verified end-to-end on one
-ground-truth cohort.
+With this, **four** capabilities are live-verified end-to-end on this one ground-truth cohort:
+multi-omics integration, data-driven QC gates (plumbing — see the note below), cross-omics driver
+fusion, and model training. (Routing is NOT exercised on this cohort — every run here goes through
+`POST /api/nextflow/execute` directly; routing was verified separately by
+`scripts/smoke_generalized_routing.sh`, see the generalization doc.) **QC-gate caveat:** the SNF
+workflow's gates validate the emit→read→evaluate *plumbing*, not discrimination — the halt gate
+(`n_clusters_found≥2`) cannot fail because spectral clustering always returns the requested k, and
+the silhouette advisory fires even on the ARI-0.978 cohort (it is not a real-vs-null discriminator;
+the driver permutation-significance count is). A gate that carries information for this domain is
+future work.
 
 ## 8. Stress testing — a negative control (and the fix it forced)
 A clean simulation that scores near-perfect is only trustworthy if the pipeline also finds **nothing

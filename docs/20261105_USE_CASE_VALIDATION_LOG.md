@@ -29,8 +29,11 @@ cardiotoxicity), caffeine (safe). `qc_profile=admet_standard`.
 - `qc_metrics.json` (process `PREDICT_ADMET_PROPERTIES`, domain pharmacology): `herg_ic50_uM=0.0124`,
   **`herg_safe_above_10uM=false`**, `dili_risk=high`, `admet_dili_probability_passes=false`,
   `ames_positive=false`; `evidence_tier = GOLD-Redfern2003 / SILVER-Kazius2005 / SILVER-Mulliner2016`.
-  The hardcoded ADMET QC branch consumes this (hERG ≥10 µM GOLD gate), so the cohort's hERG
-  cardiotoxicity liability is surfaced as a failing gate.
+  So the **gate-ready hERG/DILI liability metrics were emitted** (`herg_safe_above_10uM=false`),
+  which the hardcoded ADMET QC branch (hERG ≥10 µM GOLD gate) consumes. **Honesty note:** a QC-gate
+  *event* (SSE / `[QC-S3]`) was NOT captured for this run — the claim here is that the gate-ready
+  metrics were emitted and are correct, not an observed gate-fire log line (ADMET gates land at
+  completion, so a dedicated monitor check would be needed to show the fire).
 
 **What this adds beyond UC-1:** a second, independent domain (drug discovery) exercised end-to-end —
 chemistry input (SMILES), a model-backed prediction (`admet_ai`), and the QC-gate path on toxicology
@@ -121,8 +124,8 @@ caught cheaply on the first attempt, 10 s / $0.0005.)
 ## Scorecard
 | UC | Domain | Run | Outcome |
 |----|--------|-----|---------|
-| 1 | Multi-omics stratification | `ab67ad23`/`27ba372e` | ✅ ARI 0.978; 24/24 drivers; model CV 0.950 |
-| 2 | Drug discovery (ADMET) | `a4fe422e` | ✅ terfenadine hERG flagged; gate fires |
+| 1 | Multi-omics stratification | `ab67ad23`/`27ba372e` | ✅ ARI 0.978; 24/24 drivers; model CV 0.950 — **synthetic cohort, near an upper bound by construction** (see SYSUCC doc §1/§8; weak-signal + null controls bound the other end). QC gates validated the plumbing only — the SNF halt gate can't fail and the silhouette advisory always fires (non-discriminating). |
+| 2 | Drug discovery (ADMET) | `a4fe422e` | ✅ terfenadine hERG flagged; gate-ready liability metrics emitted (gate-fire not log-captured) |
 | 3 | Transcriptomics (DESeq2 DE) | `b8cd8747` | ✅ 77/100 DE, dir 77/77, FDR 0.037 |
 | 4 | Functional enrichment (enrichGO) | `bd4fe2dc`→`c01c7973` | ✅ after fix `145c6a75b`: top-8 GO all cell-cycle/mitotic |
 | 5 | Pharmacology PK (PKNCA) | `89766f00` | ✅ Cmax≈100, AUCinf≈500, t½≈3.47h (matches computed); AUC-extrap gate passes |
