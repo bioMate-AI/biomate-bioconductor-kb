@@ -7072,6 +7072,29 @@ def _normalize_smiles_list_param(params: dict, run_id: str = "") -> None:
     params["smiles_list"] = new_val
 
 
+_FILE_REF_EXT_RE = re.compile(
+    r'\.(csv|tsv|txt|json|rds|rdata|h5ad|h5|loom|mtx|gmt|gmx|list|tab|parquet|'
+    r'vcf|bed|gff|gtf|fa|fasta|fastq|bam|cram|maf|xlsx?)(\.(gz|bz2|zip))?$',
+    re.IGNORECASE,
+)
+_URI_SCHEME_RE = re.compile(r'^[a-z][a-z0-9+.-]*://')
+
+
+def _looks_like_single_file_ref(value: str) -> bool:
+    """True if a string is a SINGLE file reference (a URI like s3://…/x.csv or a path
+    ending in a data-file extension) rather than a list of values.
+
+    Used to stop the ``*_list`` JSON-array wrapping (meant for value lists like
+    ``smiles_list='["CC...","..."]'``) from mangling a FILE-PATH param whose name
+    merely ends in ``_list`` (e.g. ``gene_list=s3://…/gene_list.txt``, which
+    clusterProfiler reads via ``Channel.fromPath(params.gene_list)``). Wrapping that
+    into ``["s3://…"]`` made Nextflow fail with 'Illegal character in scheme name'."""
+    s = (value or "").strip()
+    if not s or s.startswith("[") or "," in s or "\n" in s:
+        return False  # JSON array / multi-value list → not a single file
+    return bool(_URI_SCHEME_RE.match(s) or _FILE_REF_EXT_RE.search(s))
+
+
 def _execute_nextflow_impl(
     request: NextflowExecuteRequest,
     _run_id: Optional[str] = None,
@@ -7563,10 +7586,14 @@ def _execute_nextflow_impl(
                 # SMILES → 0 valid molecules → admet-ai crash). json.dumps yields
                 # valid JSON that json.loads round-trips. Fixes ~272 workflows.
                 _params_for_json[key] = _ml_json.dumps(value)
-            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")) \
+                    and not _looks_like_single_file_ref(value):
                 # Workflow expects a JSON array string (e.g. smiles_list). If Galaxy AI
                 # extracted a single value as a bare string, wrap it so JsonSlurper
-                # in the .nf doesn't throw JsonException on a non-JSON scalar.
+                # in the .nf doesn't throw JsonException on a non-JSON scalar. BUT NOT
+                # when the value is a single file reference (e.g. gene_list=s3://…/x.txt,
+                # read via Channel.fromPath) — wrapping that → "Illegal character in
+                # scheme name". _looks_like_single_file_ref guards that.
                 _stripped = value.strip()
                 try:
                     _pl = _ml_json.loads(_stripped)
@@ -7607,8 +7634,12 @@ def _execute_nextflow_impl(
                 # can't parse, so a list param was consumed as one string value.
                 import json as _cli_json
                 cmd += [f"--{key}", _cli_json.dumps(value)]
-            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")) \
+                    and not _looks_like_single_file_ref(value):
                 # Same *_list wrapping for CLI flag path (single-SMILES bare string case).
+                # Skip when the value is a single file ref (e.g. gene_list=s3://…/x.txt
+                # read via Channel.fromPath) — wrapping it → "Illegal character in scheme
+                # name" (clusterProfiler enrichGO, 2026-11-05).
                 import json as _cli_json
                 _stripped = value.strip()
                 try:
