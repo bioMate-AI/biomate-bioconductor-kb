@@ -19,7 +19,7 @@ import { createServer, request as httpRequest, type Server } from "http";
 import { execSync as _execSync } from "node:child_process";
 import { WebSocket as _WSClient, WebSocketServer } from "ws";
 import { storage } from "./storage";
-import { deriveRunMetricsPatch, resolveInlineFindings } from "./run-record-metrics";
+import { deriveRunMetricsPatch, resolveInlineFindings, finalizeRunSteps } from "./run-record-metrics";
 import OpenAI from "openai";
 import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys, featureFlags } from "../shared/schema";
 import { generateApiKey, listApiKeys } from "./api-key-service";
@@ -342,6 +342,30 @@ async function populateCompletionMetrics(
     }
   } catch (e: any) {
     console.warn("[ExecutionRun] metrics population failed:", e?.message || e);
+  }
+  return run;
+}
+
+/**
+ * Fix #8: finalize a terminal run's per-step records (status away from the
+ * creation-time "pending", outputs grouped by producing step) so the
+ * step-detail panel is informative. Pure derivation lives in
+ * `finalizeRunSteps`; this wrapper persists the rewritten steps when they
+ * changed. Idempotent — `finalizeRunSteps` returns null once steps are final,
+ * so re-reads do not re-write. See run-record-metrics.ts for the derivation
+ * boundary (timing/tool_version left omitted; no per-task trace Node-side).
+ */
+async function finalizeCompletionSteps(
+  run: ExecutionRun,
+  nextflowStatus: any,
+): Promise<ExecutionRun> {
+  try {
+    const steps = finalizeRunSteps(run, nextflowStatus);
+    if (steps) {
+      return (await storage.updateExecutionRun(run.id, { steps })) || run;
+    }
+  } catch (e: any) {
+    console.warn("[ExecutionRun] step finalization failed:", e?.message || e);
   }
   return run;
 }
@@ -12502,6 +12526,31 @@ ${paramLines || '(none recorded)'}`;
         run = await populateCompletionMetrics(run, run.execution?.nextflowStatus);
       }
 
+      // ── Fix #8: backfill run.steps for terminal runs whose steps are stale ──
+      // storage.ts seeds every step as status:'pending', outputs:[]; the Nextflow
+      // terminal path never rewrote them, so a completed run's step-detail panel
+      // showed "pending"/empty. Finalize status + outputs here too, so EVERY
+      // reader of the run record (get_run, MCP, reproducibility) — not just
+      // /status pollers — sees real per-step state. Idempotent: finalizeRunSteps
+      // returns null once steps are final, so this writes at most once. Guarded
+      // to a terminal run that still has a non-terminal step OR a step missing
+      // outputs while output files exist, to avoid recomputing on every read.
+      if (['completed', 'failed', 'cancelled'].includes(String(run.execution?.status))) {
+        const nsSteps = (run.execution?.nextflowStatus as any) || {};
+        const hasOutputFiles =
+          (Array.isArray(nsSteps.s3_output_files) && nsSteps.s3_output_files.length > 0) ||
+          (Array.isArray(nsSteps.output_files) && nsSteps.output_files.length > 0);
+        const stepsNeedFinalize = Array.isArray(run.steps) && run.steps.some((s: any) => {
+          const st = String(s?.status ?? '').toLowerCase();
+          const nonTerminal = !['completed', 'failed', 'skipped'].includes(st);
+          const missingOutputs = !Array.isArray(s?.outputs) || s.outputs.length === 0;
+          return nonTerminal || (hasOutputFiles && missingOutputs);
+        });
+        if (stepsNeedFinalize) {
+          run = await finalizeCompletionSteps(run, run.execution?.nextflowStatus);
+        }
+      }
+
       // ── Inline convenience fields for MCP / headless consumers ────────────
       // MCP tools/get_run clients should not need a second round-trip to
       // /output_files or /status to get findings and files. Surface them here.
@@ -12726,6 +12775,14 @@ ${paramLines || '(none recorded)'}`;
             // effort; resources.* left at 0 (no per-task trace Node-side).
             run = await populateCompletionMetrics(run, nextflowStatus);
 
+            // Fix #8: finalize run.steps at the terminal transition so the
+            // step-detail panel stops showing a finished run's steps as
+            // "pending" with no outputs. Nothing else rewrites run.steps on the
+            // Nextflow path (the Galaxy workflow_completed handler does, but it
+            // never fires for Nextflow direct runs). Best-effort; per-step
+            // timing/tool_version left omitted (no per-task trace Node-side).
+            run = await finalizeCompletionSteps(run, nextflowStatus);
+
             // D2: Emit workflow_completed so the notification service fires for Nextflow runs.
             // Galaxy poller doesn't poll Nextflow direct runs; we emit manually on terminal state.
             const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
@@ -12804,6 +12861,9 @@ ${paramLines || '(none recorded)'}`;
               // Fix #6: outputs grew after the terminal flip — recompute metrics
               // so outputs.fileCount/totalSizeBytes reflect the late-arriving files.
               run = await populateCompletionMetrics(run, nextflowStatus);
+              // Fix #8: late-arriving outputs now attributable to their producing
+              // step — attach them to steps that still have none.
+              run = await finalizeCompletionSteps(run, nextflowStatus);
             }
           }
         } catch (statusError: any) {

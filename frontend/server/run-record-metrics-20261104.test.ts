@@ -6,7 +6,7 @@
 // the server reads from.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdir, writeFile, rm } from "fs/promises";
-import { deriveRunMetricsPatch, resolveInlineFindings } from "./run-record-metrics";
+import { deriveRunMetricsPatch, resolveInlineFindings, finalizeRunSteps } from "./run-record-metrics";
 
 describe("Fix #6 — deriveRunMetricsPatch populates metrics from completed-run data", () => {
   it("derives outputs.fileCount / totalSizeBytes / byType / bySize from an output_files list", () => {
@@ -146,5 +146,111 @@ describe("Fix #5b — resolveInlineFindings populates inline_findings", () => {
       { key_results: KEY_RESULTS },
     );
     expect(findings).toEqual(KEY_RESULTS);
+  });
+});
+
+describe("Fix #8 — finalizeRunSteps finalizes a terminal run's per-step records", () => {
+  // Steps as storage.ts seeds them: status 'pending', outputs [].
+  const seededSteps = () => [
+    { stepId: "fastqc", stepIndex: 0, stepName: "FastQC", toolId: "fastqc", toolName: "FastQC", status: "pending", outputs: [] },
+    { stepId: "star_align", stepIndex: 1, stepName: "STAR alignment", toolId: "star", toolName: "STAR", status: "running", outputs: [] },
+    { stepId: "salmon_quant", stepIndex: 2, stepName: "Salmon quant", toolId: "salmon", toolName: "salmon", status: "pending", outputs: [] },
+  ];
+
+  it("on a COMPLETED run, moves every non-terminal step away from 'pending' → 'completed'", () => {
+    const next = finalizeRunSteps(
+      { execution: { status: "completed" }, steps: seededSteps() } as any,
+      {},
+    );
+    expect(next).not.toBeNull();
+    expect(next!.map((s) => s.status)).toEqual(["completed", "completed", "completed"]);
+    // No step should still read 'pending' on a finished run.
+    expect(next!.some((s) => s.status === "pending")).toBe(false);
+  });
+
+  it("attaches outputs to their producing step via f.step_name / f.process_name", () => {
+    const next = finalizeRunSteps(
+      { execution: { status: "completed" }, steps: seededSteps() } as any,
+      {
+        s3_output_files: [
+          { filename: "sample_fastqc.html", size: 2048, s3_uri: "s3://b/qc/sample_fastqc.html", step_name: "FastQC" },
+          { filename: "Aligned.sortedByCoord.out.bam", size: 500000, s3_uri: "s3://b/star/Aligned.bam", process_name: "STAR" },
+          { filename: "quant.sf", size: 1024, s3_uri: "s3://b/salmon/quant.sf", step_name: "salmon" },
+        ],
+      },
+    );
+    expect(next).not.toBeNull();
+    const byId = Object.fromEntries(next!.map((s) => [s.stepId, s]));
+    expect(byId["fastqc"].outputs.map((o) => o.name)).toEqual(["sample_fastqc.html"]);
+    expect(byId["fastqc"].outputs[0].extension).toBe("html");
+    expect(byId["fastqc"].outputs[0].isVisualizable).toBe(true);
+    expect(byId["fastqc"].outputs[0].sizeBytes).toBe(2048);
+    expect(byId["star_align"].outputs.map((o) => o.name)).toEqual(["Aligned.sortedByCoord.out.bam"]);
+    expect(byId["salmon_quant"].outputs.map((o) => o.name)).toEqual(["quant.sf"]);
+  });
+
+  it("drives per-step status from nextflowStatus.processes when present (failed process → failed)", () => {
+    const next = finalizeRunSteps(
+      { execution: { status: "failed" }, steps: seededSteps() } as any,
+      {
+        processes: [
+          { name: "FastQC", status: "completed" },
+          { name: "STAR", state: "failed" },
+        ],
+        s3_output_files: [
+          { filename: "sample_fastqc.html", size: 10, s3_uri: "s3://b/sample_fastqc.html", step_name: "FastQC" },
+        ],
+      },
+    );
+    expect(next).not.toBeNull();
+    const byId = Object.fromEntries(next!.map((s) => [s.stepId, s]));
+    expect(byId["fastqc"].status).toBe("completed");
+    expect(byId["star_align"].status).toBe("failed");
+    // No process info + no outputs on a failed run → honest: left as seeded.
+    expect(byId["salmon_quant"].status).toBe("pending");
+  });
+
+  it("on a FAILED run with no per-process state, marks only output-producing steps completed (no fabricated failure)", () => {
+    const next = finalizeRunSteps(
+      { execution: { status: "failed" }, steps: seededSteps() } as any,
+      { s3_output_files: [{ filename: "a.html", size: 5, s3_uri: "s3://b/a.html", step_name: "FastQC" }] },
+    );
+    const byId = Object.fromEntries(next!.map((s) => [s.stepId, s]));
+    expect(byId["fastqc"].status).toBe("completed"); // produced output → ran
+    expect(byId["star_align"].status).toBe("running"); // unknown — left as-is, not guessed 'failed'
+    expect(byId["salmon_quant"].status).toBe("pending");
+    expect(next!.some((s) => s.status === "failed")).toBe(false);
+  });
+
+  it("never clobbers an already-populated step's outputs (Galaxy-path record)", () => {
+    const steps = [
+      { stepId: "s1", stepIndex: 0, stepName: "Step One", toolId: "t1", toolName: "T1", status: "completed",
+        outputs: [{ datasetId: "existing", name: "existing.txt", extension: "txt", sizeBytes: 9, isVisualizable: true }] },
+    ];
+    const next = finalizeRunSteps(
+      { execution: { status: "completed" }, steps } as any,
+      { s3_output_files: [{ filename: "new.txt", size: 1, s3_uri: "s3://b/new.txt", step_name: "Step One" }] },
+    );
+    // Nothing changed — already completed and already has outputs → null.
+    expect(next).toBeNull();
+  });
+
+  it("returns null for a non-terminal (still running) run — never finalizes a live run", () => {
+    expect(finalizeRunSteps({ execution: { status: "running" }, steps: seededSteps() } as any, {})).toBeNull();
+    expect(finalizeRunSteps({ execution: { status: "paused" }, steps: seededSteps() } as any, {})).toBeNull();
+  });
+
+  it("returns null when there are no steps to finalize", () => {
+    expect(finalizeRunSteps({ execution: { status: "completed" }, steps: [] } as any, {})).toBeNull();
+  });
+
+  it("does not attribute an output file that carries no producing-step tag", () => {
+    const next = finalizeRunSteps(
+      { execution: { status: "completed" }, steps: seededSteps() } as any,
+      { s3_output_files: [{ filename: "orphan.txt", size: 3, s3_uri: "s3://b/orphan.txt" }] },
+    );
+    // Status still finalized (completed), but no step gets the untagged file.
+    expect(next).not.toBeNull();
+    expect(next!.every((s) => s.outputs.length === 0)).toBe(true);
   });
 });

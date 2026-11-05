@@ -2,7 +2,7 @@
 // so it can be unit-tested without booting the whole server (routes.ts transitively
 // imports the OpenAI SDK + browser-coupled modules). These functions never throw and
 // never touch the network; the wiring/persistence lives in routes.ts.
-import type { ExecutionRun, ExecutionMetrics } from "../shared/schema";
+import type { ExecutionRun, ExecutionMetrics, StepExecution, StepOutput } from "../shared/schema";
 
 /**
  * Derive a `run.metrics` patch from a COMPLETED run's data that is already in hand:
@@ -78,6 +78,179 @@ export function deriveRunMetricsPatch(
   }
 
   return patch.outputs || patch.runtime ? patch : null;
+}
+
+// Extensions the UI can render inline — used to tag a step output's
+// `isVisualizable`. Mirrors the extension class the status endpoint's
+// artifact-readiness check and StepOutputPreview already treat as viewable.
+const VISUALIZABLE_EXT = new Set([
+  "html", "htm", "png", "jpg", "jpeg", "svg", "pdf", "gif", "webp", "tif", "tiff",
+  "csv", "tsv", "json", "txt", "bed", "vcf", "fasta", "fa", "nwk",
+]);
+
+// Run-level terminal states this finalizer acts on (never a live/paused run).
+const TERMINAL_RUN_STATUSES = new Set(["completed", "failed", "cancelled"]);
+
+function extensionOf(name: string): string {
+  const base = name.split("/").pop() || name;
+  const dot = base.lastIndexOf(".");
+  return dot > 0 && dot < base.length - 1 ? base.slice(dot + 1).toLowerCase() : "";
+}
+
+// Normalize a name for cross-source matching (Nextflow process names vs. the
+// run record's stepName/toolName/toolId/stepId): lowercase, drop every
+// non-alphanumeric char so `FASTQC`, `fastqc`, `NFCORE_RNASEQ:FASTQC` and
+// `fast-qc` all collapse to a comparable token. Returns "" when unusable.
+function normalizeStepKey(value: unknown): string {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+/**
+ * Fix #8: finalize a terminal run's per-step records so the step-detail panel
+ * stops showing a finished run's steps as "pending" with no outputs.
+ *
+ * Why this exists: `storage.ts` seeds every step as `status:'pending', outputs:[]`
+ * at run creation, and — for Nextflow / AWS Batch runs — NOTHING ever rewrote
+ * `run.steps[]` afterward. The Galaxy-poller `workflow_completed` path finalizes
+ * steps (routes.ts), and the `step_state` SSE handler only bumps aggregate
+ * progress counts (never the individual step records), so a completed Nextflow
+ * run's stored `steps[]` kept its creation-time pending/empty values. The root
+ * cause is therefore "no step finalization on the Nextflow terminal path at
+ * all", not "SSE wrote memory but not the store".
+ *
+ * What this derives from data already in hand (`run.execution.status` +
+ * `nextflowStatus`):
+ *   - status: driven by the per-process state in `nextflowStatus.processes`
+ *     when present; otherwise, on a `completed` run every not-yet-terminal step
+ *     ran and completed, and on a `failed`/`cancelled` run a step that produced
+ *     output clearly ran → `completed`. We never fabricate a `failed` status on
+ *     an arbitrary step we cannot attribute the failure to (honest empty state).
+ *   - outputs: grouped from the run's output-file list by producing step
+ *     (`f.step_name` / `f.process_name` → step), matched against the step's
+ *     stepName/toolName/toolId/stepId. Only attached when a step currently has
+ *     none, so an already-populated (e.g. Galaxy-path) record is never clobbered.
+ *
+ * Best-effort boundary — timing/metrics/logs/tool_version are NOT populated:
+ * the Galaxy status payload surfaced to Node (`getNextflowStatus`) carries no
+ * per-task trace (duration, %cpu, peak_rss) and no per-step tool version. Those
+ * stay omitted (StepDetail renders its honest "duration n/a" / "version n/a").
+ *
+ * Returns the rewritten `steps[]` when at least one step changed, else `null`
+ * (so callers skip the write and the function is idempotent across re-reads).
+ */
+export function finalizeRunSteps(
+  run: Pick<ExecutionRun, "execution" | "steps">,
+  nextflowStatus: any,
+): StepExecution[] | null {
+  const steps: StepExecution[] = Array.isArray(run.steps) ? run.steps : [];
+  if (steps.length === 0) return null;
+
+  const runStatus = String(run.execution?.status ?? "").toLowerCase();
+  if (!TERMINAL_RUN_STATUSES.has(runStatus)) return null;
+
+  // 1. Per-process terminal status, when the backend reports it.
+  const procStatusByKey = new Map<string, string>();
+  const procs: any[] = Array.isArray(nextflowStatus?.processes) ? nextflowStatus.processes : [];
+  for (const p of procs) {
+    const raw = String(p?.status ?? p?.state ?? "").toLowerCase();
+    if (!raw) continue;
+    for (const candidate of [p?.name, p?.process, p?.id]) {
+      const key = normalizeStepKey(candidate);
+      if (key) procStatusByKey.set(key, raw);
+    }
+  }
+
+  // 2. Output files grouped by their producing step (step_name / process_name).
+  const files: any[] =
+    (Array.isArray(nextflowStatus?.s3_output_files) && nextflowStatus.s3_output_files.length
+      ? nextflowStatus.s3_output_files
+      : Array.isArray(nextflowStatus?.output_files)
+      ? nextflowStatus.output_files
+      : []) || [];
+  const outputsByStepKey = new Map<string, StepOutput[]>();
+  for (const f of files) {
+    const key = normalizeStepKey(f?.step_name ?? f?.process_name);
+    if (!key) continue; // a file with no producing-step tag can't be attributed
+    const uri = String(f?.s3_uri ?? f?.path ?? "");
+    const name = String(f?.filename ?? f?.name ?? uri.split("/").pop() ?? "");
+    if (!name && !uri) continue;
+    const extension = extensionOf(name || uri);
+    const rawSize = Number(f?.size ?? f?.sizeBytes ?? f?.bytes ?? 0);
+    const sizeBytes = Number.isFinite(rawSize) && rawSize > 0 ? rawSize : 0;
+    const out: StepOutput = {
+      datasetId: uri || name,
+      name: name || uri.split("/").pop() || "file",
+      extension,
+      sizeBytes,
+      isVisualizable: VISUALIZABLE_EXT.has(extension),
+      previewUrl: uri || undefined,
+    };
+    const bucket = outputsByStepKey.get(key) || [];
+    bucket.push(out);
+    outputsByStepKey.set(key, bucket);
+  }
+
+  const keysFor = (s: StepExecution): string[] =>
+    [s.stepName, s.toolName, s.toolId, s.stepId].map(normalizeStepKey).filter(Boolean);
+
+  let changed = false;
+  const next = steps.map((s): StepExecution => {
+    const keys = keysFor(s);
+
+    // Process status reported for this step, if any.
+    let procStatus: string | undefined;
+    for (const k of keys) {
+      const v = procStatusByKey.get(k);
+      if (v) { procStatus = v; break; }
+    }
+
+    // Outputs attributable to this step (deduped by datasetId).
+    let outs: StepOutput[] = [];
+    for (const k of keys) {
+      const bucket = outputsByStepKey.get(k);
+      if (bucket && bucket.length) outs = outs.concat(bucket);
+    }
+    if (outs.length > 1) {
+      const seen = new Set<string>();
+      outs = outs.filter((o) => (seen.has(o.datasetId) ? false : (seen.add(o.datasetId), true)));
+    }
+
+    const current = String(s.status ?? "").toLowerCase();
+    const alreadyTerminalStep = current === "completed" || current === "failed" || current === "skipped";
+
+    const procFailed =
+      !!procStatus && (procStatus.includes("fail") || procStatus.includes("error") || procStatus.includes("cancel"));
+    const procCompleted =
+      !!procStatus && (procStatus.includes("complet") || procStatus === "succeeded" || procStatus === "ok");
+
+    let status: StepExecution["status"] = s.status;
+    if (procFailed) {
+      status = "failed";
+    } else if (procCompleted) {
+      status = "completed";
+    } else if (runStatus === "completed") {
+      // The run finished OK → any step not already terminal ran and completed.
+      if (!alreadyTerminalStep) status = "completed";
+    } else if (runStatus === "failed" || runStatus === "cancelled") {
+      // Best-effort: a step that produced output clearly ran → completed.
+      // Steps with no attributable evidence keep their stored status — we do
+      // NOT guess which step failed when no per-process state tells us.
+      if (outs.length > 0 && !alreadyTerminalStep) status = "completed";
+    }
+
+    // Attach outputs only when the step currently has none (never clobber an
+    // already-populated record, e.g. one finalized by the Galaxy path).
+    const hasOutputs = Array.isArray(s.outputs) && s.outputs.length > 0;
+    const nextOutputs = !hasOutputs && outs.length > 0 ? outs : s.outputs ?? [];
+
+    if (status !== s.status || nextOutputs !== s.outputs) {
+      changed = true;
+      return { ...s, status, outputs: nextOutputs };
+    }
+    return s;
+  });
+
+  return changed ? next : null;
 }
 
 /**
