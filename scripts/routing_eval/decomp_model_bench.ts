@@ -11,8 +11,13 @@
 // Needs ~/.config/biomate/openrouter.key. Run from frontend/ (module resolution).
 import fs from 'fs';
 import path from 'path';
-import { GalaxyAssistant } from '../../frontend/server/galaxy-assistant';
 import { openaiCompatMessagesClient } from '../../frontend/server/local-llm';
+// DECOMP_ASSISTANT_MODULE: an alternative copy of galaxy-assistant (e.g. the previous prompt) to compare.
+const ASSISTANT_MODULE = process.env.DECOMP_ASSISTANT_MODULE || '../../frontend/server/galaxy-assistant';
+// Production gives the classifier the live curated-chain names (GET /api/workflow-chains?intent_hint=true:
+// source != 'bioc_reactive'); an empty list made every model invent a curated chain's structure.
+const CHAIN_NAMES: string[] = process.env.DECOMP_CHAIN_NAMES_FILE
+  ? JSON.parse(fs.readFileSync(process.env.DECOMP_CHAIN_NAMES_FILE, 'utf8')) : [];
 
 const KEY = fs.readFileSync(`${process.env.HOME}/.config/biomate/openrouter.key`, 'utf8').trim();
 const DEFAULT_MODELS = [
@@ -21,14 +26,19 @@ const DEFAULT_MODELS = [
   'z-ai/glm-5.2', 'z-ai/glm-5.3-prime', 'deepseek/deepseek-v4-pro', 'qwen/qwen3.8-27b', 'moonshotai/kimi-k3',
 ];
 const GOLD = path.resolve(__dirname, '../../evaluation/datasets/decomposition_real/decomposition_real.jsonl');
+// Benchmark design errors, excluded with the reason (the gold row is not a valid request):
+const EXCLUDED: Record<string, string> = {
+  decreal_sequential_66: 'query is the catalog placeholder "Retired workflow. No longer functional…" — zero nodes is correct',
+};
 const rows = fs.readFileSync(GOLD, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l))
-  .filter(r => r.source === 'real_workflow_chain' || r.source === 'real_nfcore_subworkflow');
+  .filter(r => (r.source === 'real_workflow_chain' || r.source === 'real_nfcore_subworkflow') && !EXCLUDED[r.id]);
 
 async function decompose(model: string, query: string) {
+  const { GalaxyAssistant } = await import(ASSISTANT_MODULE);
   const a = Object.create(GalaxyAssistant.prototype) as any;
   a.modelConfig = { intentModel: model, responseModel: model, toolRankingModel: model };
   a.gemini = null;
-  a._chainHintNamesCache = { names: [], fetchedAt: Date.now() };
+  a._chainHintNamesCache = { names: CHAIN_NAMES, fetchedAt: Date.now() };
   let usage: any = null;
   const shim = openaiCompatMessagesClient({ url: 'https://openrouter.ai/api/v1', model, key: KEY }) as any;
   const create = shim.messages.create.bind(shim.messages);
@@ -53,7 +63,8 @@ async function decompose(model: string, query: string) {
     order: k + 1,
     depends_on: (i.dependsOn || []).map((d: string) => order.get(d)).filter((n: any) => typeof n === 'number' && n !== k + 1),
   }));
-  return { secs: (Date.now() - t0) / 1000, nodes, usage, sequential: !!dec?.isSequential, last_error: lastErr };
+  return { secs: (Date.now() - t0) / 1000, nodes, usage, sequential: !!dec?.isSequential, last_error: lastErr,
+           chain_hint: dec?.chainHint ?? null, n_chain_names: CHAIN_NAMES.length };
 }
 
 async function pool<T>(items: T[], n: number, fn: (x: T) => Promise<void>) {

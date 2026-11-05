@@ -141,7 +141,11 @@ def main():
             ptxt = "\n".join(f'{x["order"]}. {x["text"]}' for x in r["nodes"])
             out, ju = chat(a.judge, PROMPT.format(query=g["query"][:1500], gold=gtxt, pred=ptxt))
             mapping = parse_mapping(out)
+        unit = g.get("unit") or ""
+        gold_chain = unit[len("chain:"):] if unit.startswith("chain:") else None
         res = {"model": r["model"], "id": r["id"], "error": r["error"], "secs": r["secs"], "usage": r.get("usage"),
+               "chain_hint": r.get("chain_hint"), "gold_chain": gold_chain,
+               "chain_hint_ok": (r.get("chain_hint") == gold_chain) if gold_chain else None,
                "mapping": {str(k): v for k, v in mapping.items()}, "judge_usage": ju, **score(r, g, mapping)}
         with open(a.judged, "a") as f:
             f.write(json.dumps(res) + "\n")
@@ -166,11 +170,14 @@ def main():
             "structure": statistics.mean(1.0 if j["structure_ok"] else 0.0 for j in js),
             "usd_per_call": statistics.mean(costs) if costs else 0.0,
             "median_secs": statistics.median([j["secs"] for j in ok]) if ok else 0.0,
+            "chain_hint_acc": (statistics.mean(1.0 if j["chain_hint_ok"] else 0.0 for j in js if j.get("chain_hint_ok") is not None)
+                               if any(j.get("chain_hint_ok") is not None for j in js) else None),
         })
     table.sort(key=lambda t: (-(t["edge_f1"] + t["node_f1"] + t["structure"]), t["usd_per_call"]))
-    print(f'{"model":32s} {"n":>3} {"fail":>4} {"node_F1":>7} {"edge_F1":>7} {"struct":>6} {"$/call":>8} {"med_s":>6}')
+    print(f'{"model":32s} {"n":>3} {"fail":>4} {"node_F1":>7} {"edge_F1":>7} {"struct":>6} {"$/call":>8} {"med_s":>6} {"chainhint":>9}')
     for t in table:
-        print(f'{t["model"]:32s} {t["n"]:3d} {t["failed"]:4d} {t["node_f1"]:7.3f} {t["edge_f1"]:7.3f} {t["structure"]:6.2f} {t["usd_per_call"]:8.4f} {t["median_secs"]:6.1f}')
+        ch = t.get("chain_hint_acc")
+        print(f'{t["model"]:32s} {t["n"]:3d} {t["failed"]:4d} {t["node_f1"]:7.3f} {t["edge_f1"]:7.3f} {t["structure"]:6.2f} {t["usd_per_call"]:8.4f} {t["median_secs"]:6.1f} {(f"{ch:.2f}" if ch is not None else "-"):>9}')
     json.dump(table, open(a.judged.replace(".jsonl", "_table.json"), "w"), indent=1)
 
 

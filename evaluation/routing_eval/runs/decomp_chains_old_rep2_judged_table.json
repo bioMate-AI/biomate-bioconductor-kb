@@ -1,0 +1,13 @@
+[
+ {
+  "model": "google/gemini-3.8-flash",
+  "n": 24,
+  "failed": 2,
+  "node_f1": 0.5308531746031746,
+  "edge_f1": 0.27033730158730157,
+  "structure": 0.25,
+  "usd_per_call": 0.026251950000000003,
+  "median_secs": 11.5835,
+  "chain_hint_acc": 0.6470588235294118
+ }
+]
