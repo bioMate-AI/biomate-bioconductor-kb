@@ -69,7 +69,7 @@ def post(path, body, bearer=None, timeout=180, deadline=240):
 
 def parse(text):
     state = wf = None
-    tools, reply = [], ""
+    tools, reply, final_response = [], "", ""
     for blk in re.split(r"\nevent:\s*|^event:\s*", text):
         name, _, rest = blk.partition("\n")
         m = re.search(r"data:\s*(\{.*)", rest)
@@ -81,6 +81,7 @@ def parse(text):
             continue
         if name == "final":
             state = j.get("state", state)
+            final_response = j.get("response") or ""
         elif name == "workflow_ready":
             wf = j.get("workflow_name") or "+".join(j.get("chain_steps", []) or []) or wf
         elif name in ("tool", "tool_event"):
@@ -89,6 +90,8 @@ def parse(text):
                 tools.append(t)
         elif name == "delta":
             reply += j.get("text", "")
+    # A reply sent without deltas (e.g. a curated-chain card) arrives only in final.response — the UI renders it.
+    reply = reply if reply.strip() else final_response
     return state, wf, tools, reply[:240].replace("\n", " ")
 
 

@@ -7403,7 +7403,8 @@ ${paramLines || '(none recorded)'}`;
         // For chain results workflow_ga is empty; surface chain_display_name + step names
         // so consumers (routing eval, UI) can identify constituent workflows.
         const chainStepNames: string[] = (workflowPayload.chain_steps || [])
-          .map((s: any) => s.workflow_name || s.name || "")
+          // Curated chains send step names as strings; composed chains send step objects.
+          .map((s: any) => (typeof s === "string" ? s : s?.workflow_name || s?.name || ""))
           .filter(Boolean);
         safeSend("workflow_ready", {
           // workflow_name resolution order:

@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GalaxyAssistant } from './galaxy-assistant';
 
-// A named end-to-end pipeline ("run the full target-to-lead pipeline") is often decomposed as ONE
-// intent with chain_hint set; the curated chain was looked up only on the sequential multi-intent
-// path, so the hint was ignored (2026-11-05). _curatedChainResponse now serves both paths.
+// TIER 2 of the sequential pipeline. The card must carry the chain's display name: routes.ts names the
+// workflow_ready card from chain_display_name, and curated chains reached the client unnamed (2026-11-05).
 const CHAIN = {
   name: 'target_to_lead', display_name: 'Target to Lead',
   steps: [{ workflow_name: 'target identification', role: 'targets' }, { workflow_name: 'docking screen', role: 'hits' }],
@@ -18,11 +17,12 @@ const assistant = (chain: any) => {
 const dec = (chainHint: string | null) => ({ isMultiIntent: false, chainHint, intents: [], preferredDomains: [], keyTerms: [], penalizedDomains: [] } as any);
 
 describe('_curatedChainResponse', () => {
-  it('builds the curated chain card for a single-intent request that names the pipeline', async () => {
+  it('builds the curated chain card, named after the chain', async () => {
     const a = assistant(CHAIN);
     const res = await a._curatedChainResponse(dec('target_to_lead'), 'run the full target-to-lead pipeline for KRAS', {}, () => {});
     expect(a._fetchCuratedChain).toHaveBeenCalledWith('target_to_lead');
     expect(res.generatedWorkflow.source).toBe('biomate_curated_chain');
+    expect(res.generatedWorkflow.chain_display_name).toBe('Target to Lead');
     expect(res.generatedWorkflow.pipeline_steps.map((s: any) => s.nextflow_path)).toEqual(['wf/target.nf', 'wf/docking.nf']);
     expect(res.generatedWorkflow.pipeline_steps[1].input_from).toBe('chain_step_1');
   });

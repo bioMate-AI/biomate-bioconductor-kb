@@ -4613,12 +4613,6 @@ Rules:
       }
     }
 
-    // Single-intent request naming a curated chain: build the chain (same guard as the sequential path).
-    if (!decomposition.isMultiIntent && decomposition.chainHint && intent.type === 'workflow_generation') {
-      const chainResponse = await this._curatedChainResponse(decomposition, message, context, log);
-      if (chainResponse) return chainResponse;
-    }
-
     // Multi-intent path: fan out to processSubIntent for each intent
     if (decomposition.isMultiIntent) {
       return this.processMultiIntent(decomposition, message, context, startTime, onResponseDelta, domainProfileContext, sessionMemoryBlock, onToolEvent);
@@ -5760,10 +5754,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
   }
 
   /**
-   * Curated-chain response for a classifier chain_hint (TIER 2). Used by the sequential pipeline and by
-   * single-intent requests — a named end-to-end pipeline ("run the full target-to-lead pipeline") is often
-   * decomposed as ONE intent, and the hint was then ignored. Returns null when the hint is dropped or the
-   * chain cannot be built, so the caller continues with its normal path.
+   * Curated-chain response for a classifier chain_hint (TIER 2 of the sequential pipeline, after TIER 1
+   * found no single covering workflow). Not used for single-intent turns: one intent means the classifier
+   * judged one workflow covers the request, and honouring the hint there replaced correct single-pipeline
+   * cards (nf-core/mag, nf-core/methylarray) with chains on dev (2026-11-05, domain_retag arm R).
+   * Returns null when the hint is dropped or the chain cannot be built.
    */
   private async _curatedChainResponse(
     decomposition: IntentDecomposition,
@@ -5886,6 +5881,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
               step_count: chainPipelineSteps.length,
               source: 'biomate_curated_chain',
               chain_name: chain.name,
+              chain_display_name: chain.display_name || chain.name,
               chain_connections: chain.connections || [],
               chain_steps: chainPipelineSteps.map((s: any) => s.workflow_name).filter(Boolean),
             },
