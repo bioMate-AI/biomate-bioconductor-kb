@@ -15645,6 +15645,15 @@ Rules:
         return false;
       };
 
+      // Read-only observability hook (?regen=1): force recomputation from the EXISTING outputs
+      // (no new workflow run) by bypassing the three cached-"ready" gates and dropping the in-memory
+      // cache. Used to capture the document-as-truth SHADOW line on an already-finished run without
+      // waiting for a fresh run (findings are otherwise cached in the S3 sidecar + _findingsCache and
+      // never re-emit the shadow). It recomputes from the same output files, so the result is
+      // identical content; it rewrites the sidecar. Does NOT bypass the failed-run early return above.
+      const forceRegen = req.query.regen === '1' || req.query.regen === 'true';
+      if (forceRegen) _findingsCache.delete(runId);
+
       // Determine local output dir (local runs only; S3 runs not supported for disk check)
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
       const localOutputDir = `/tmp/nextflow_runs/${nextflowRunId}/output`;
@@ -15658,7 +15667,7 @@ Rules:
         reportExists = true;
       } catch { /* file not found — will trigger analysis */ }
 
-      if (reportExists) {
+      if (reportExists && !forceRegen) {
         // Load structured sidecar (findings_data.json) if available, fall back to raw markdown
         try {
           const { readFile } = await import('fs/promises');
@@ -15695,7 +15704,7 @@ Rules:
       }
 
       // 2b. For AWS Batch runs: check S3 for findings_data.json sidecar
-      if (!reportExists) {
+      if (!reportExists && !forceRegen) {
         try {
           const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
           const nfRunId: string = (run as any).execution?.nextflowRunId || runId;
@@ -15725,7 +15734,7 @@ Rules:
       }
 
       // 3. Check in-memory cache (populated by background Claude analysis for AWS runs)
-      const cached = _findingsCache.get(runId);
+      const cached = forceRegen ? undefined : _findingsCache.get(runId);
       if (cached) {
         if (cached._generating) {
           return res.json({ status: 'pending', message: 'Analysis in progress…' });
