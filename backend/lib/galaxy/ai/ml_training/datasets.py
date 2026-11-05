@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import logging
+import math
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -185,7 +186,9 @@ def _load_csv(spec: DatasetSpec, path: str) -> LoadedDataset:
         for row in reader:
             smi = row[spec.smiles_col]
             raw = row[spec.target_col]
-            if smi is None or raw in (None, ""):
+            # _is_missing matches the broad token set (NA/nan/./…), not just
+            # None/"" — otherwise float("NA") below crashes the whole load.
+            if _is_missing(smi) or _is_missing(raw):
                 continue
             rows.append((str(smi), float(raw)))
     if not rows:
@@ -271,7 +274,13 @@ def load_tabular_dataset(path: str, target_col: str,
         if not feature_names:
             raise ConfigError("no feature columns found (all columns are target/id)")
         for row in reader:
-            if row.get(target_col) in (None, ""):
+            # Skip rows whose LABEL is missing, using the same broad token set
+            # as the feature path (_is_missing: ""/NA/N/A/nan/null/none/./-).
+            # A textual missing token in an outcome/subtype column otherwise
+            # reaches float()/str() below: for an auto-inferred regression task
+            # float("NA") raises ValueError (whole load crashes); for
+            # classification it mints a spurious "NA"/"." class.
+            if _is_missing(row.get(target_col)):
                 continue
             rows_raw.append(row)
     if not rows_raw:
@@ -308,9 +317,13 @@ def load_tabular_dataset(path: str, target_col: str,
         if _is_missing(v):
             return None
         try:
-            return float(v)
+            f = float(v)
         except (TypeError, ValueError):
             return None
+        # A cell like "inf"/"-inf"/"nan" parses as a non-finite float that would
+        # survive into _present, poison the column mean (mean of [1, 2, inf] = inf),
+        # and then reach sklearn as inf/NaN. Treat non-finite as missing.
+        return f if math.isfinite(f) else None
     _col_mean: dict = {}
     _all_missing: list = []
     for c in feature_names:

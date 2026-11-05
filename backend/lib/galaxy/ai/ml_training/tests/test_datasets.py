@@ -170,3 +170,35 @@ def test_tabular_drops_all_missing_column(tmp_path):
         "S0,8.0,NA,A\nS1,1.0,NA,B\nS2,8.1,NA,A\nS3,0.9,NA,B\n")
     ds = load_tabular_dataset(str(csv_p), "label")
     assert ds.feature_names == ["GENE0"]          # ALLNA dropped, GENE0 kept
+
+
+def test_tabular_skips_rows_with_textual_missing_label(tmp_path):
+    # A textual missing token in the LABEL column (NA/./…) must skip the row, not
+    # reach float()/str() below — otherwise an auto-inferred regression crashes on
+    # float("NA") (third-pass committee A1, reproduced). Here the numeric labels
+    # auto-infer regression; the "NA" row must drop rather than crash.
+    from galaxy.ai.ml_training.datasets import load_tabular_dataset
+    csv_p = tmp_path / "reg.csv"
+    csv_p.write_text(
+        "sample_id,GENE0,GENE1,y\n"
+        "S0,8.0,1.0,1.2\nS1,1.0,2.0,NA\nS2,8.1,1.2,3.4\nS3,0.9,7.9,5.6\n")
+    ds = load_tabular_dataset(str(csv_p), "y")
+    assert ds.task == "regression"
+    assert len(ds.y) == 3                         # the NA-label row dropped
+    assert all(isinstance(v, float) for v in ds.y)
+
+
+def test_tabular_non_finite_feature_cell_treated_as_missing(tmp_path):
+    # A feature cell of "inf"/"nan" parses as a non-finite float that would poison
+    # the column mean and reach sklearn as inf/NaN; it must be imputed like any
+    # other missing cell (third-pass committee L1).
+    from galaxy.ai.ml_training.datasets import load_tabular_dataset
+    csv_p = tmp_path / "inf.csv"
+    csv_p.write_text(
+        "sample_id,GENE0,GENE1,label\n"
+        "S0,8.0,1.0,A\nS1,1.0,inf,B\nS2,8.1,1.2,A\nS3,0.9,7.9,B\n")
+    ds = load_tabular_dataset(str(csv_p), "label")
+    gi = ds.feature_names.index("GENE1")
+    import math as _m
+    assert all(_m.isfinite(row[gi]) for row in ds.X)   # no inf/NaN survived
+    assert abs(ds.X[1][gi] - (1.0 + 1.2 + 7.9) / 3) < 1e-6  # imputed with column mean
