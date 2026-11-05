@@ -15809,11 +15809,29 @@ Rules:
                 region: 'us-east-1', followRegionRedirects: true,
                 ...(_nfKey2 && _nfSec2 ? { credentials: { accessKeyId: _nfKey2, secretAccessKey: _nfSec2 } } : {}),
               });
-              const readableOutputs = outputs.slice(0, 30).filter(out => {
-                const filePath: string = out.s3_uri || out.file_path || out.path || '';
-                const fileName: string = out.filename || out.name || out.file_name || filePath.split('/').pop() || 'output';
+              // #5a bug C — sampling coverage: the result-bearing file must be among
+              // the few we actually read. Rank candidates so report/summary/result/
+              // structured files come first and Nextflow bookkeeping sinks, THEN cap —
+              // instead of a raw slice that could sample logs and miss the results.
+              // Cap 8 (was 6) so the proven ADMET/DE deterministic-parser path — which
+              // reads the same outputSamples — can never lose its target file.
+              const _nameOf = (out: any): string => {
+                const fp: string = out.s3_uri || out.file_path || out.path || '';
+                return out.filename || out.name || out.file_name || fp.split('/').pop() || 'output';
+              };
+              const _resultScore = (name: string): number => {
+                const n = name.toLowerCase();
+                let s = 0;
+                if (/(report|summary|result|finding|final|metric|stat|score|predict|analysis|toxic|qc)/.test(n)) s += 3;
+                if (/\.(json|tsv|csv)$/.test(n)) s += 2;          // structured > free text
+                if (/\.(txt|md)$/.test(n)) s += 1;
+                if (/(\.nextflow\.log|_trace|_timeline|_report|\bdag\b|execution_)/.test(n)) s -= 5; // bookkeeping
+                return s;
+              };
+              const readableOutputs = outputs.slice(0, 40).filter(out => {
+                const fileName = _nameOf(out);
                 return fileName && TEXT_EXTS.test(fileName);
-              }).slice(0, 6);
+              }).sort((a, b) => _resultScore(_nameOf(b)) - _resultScore(_nameOf(a))).slice(0, 8);
               const readResults = await Promise.all(readableOutputs.map(async (out) => {
                 const filePath: string = out.s3_uri || out.file_path || out.path || '';
                 const fileName: string = out.filename || out.name || out.file_name || filePath.split('/').pop() || 'output';
@@ -16087,6 +16105,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
             // Guardrail: cross-check each key_result value against numbers in output files.
             // Drop any key_result whose value contains a number not found in the actual output.
             if (Array.isArray(parsed.key_results) && outputNumbers.size > 0) {
+              const _beforeCount = parsed.key_results.length;
               parsed.key_results = (parsed.key_results as Array<{metric: string; value: string; interpretation: string}>).filter(kr => {
                 const valueStr = String(kr.value || '');
                 const numbersInValue = [...valueStr.matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)].map(m => m[1]);
@@ -16094,6 +16113,18 @@ Respond ONLY with valid JSON (no markdown wrapper):
                 if (numbersInValue.length === 0) return true; // no numbers — textual label, keep it
                 return numbersInValue.some(n => outputNumbers.has(n));
               });
+              // Transparency (#5a bug C): if the grounding guardrail removed results,
+              // say so in a caveat rather than silently showing fewer/no results — a run
+              // whose result numbers the sampler didn't capture otherwise looks like it
+              // produced nothing. We NEVER re-admit the dropped (unverified) numbers; the
+              // caveat only explains the gap and points at the raw Outputs tab.
+              const _dropped = _beforeCount - parsed.key_results.length;
+              if (_dropped > 0) {
+                const _caveat = parsed.key_results.length === 0
+                  ? `All ${_beforeCount} candidate result value(s) were withheld because they could not be verified against the sampled output files — open the Outputs tab for the raw results.`
+                  : `${_dropped} candidate result value(s) were withheld because they could not be verified against the sampled output files.`;
+                parsed.caveats = [...(Array.isArray(parsed.caveats) ? parsed.caveats : []), _caveat];
+              }
             }
             // Provenance guardrail: source_file must name a file we actually sampled.
             // Keep grounded provenance, drop any hallucinated filename (so a finding is

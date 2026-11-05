@@ -132,7 +132,30 @@ Gate: `tsc` clean; full `vitest run` 2177 passed / 42 skipped / 0 failed.
 Live check: reopen CAR-T `dc9f3235` on dev after sync — it must stop returning the filename-keyed
 samples map as `ready` and instead regenerate (real summary, or a non-empty "unavailable" note).
 
-## Remaining (unchanged priority)
-- **B** — done (90s race, commit 3995fc1b2).
-- **C** — guardrail all-or-nothing emptying + sampling coverage. Only reachable now that A and B
-  are past; next item if long-tail findings still come back thin after A+B land on dev.
+## Fix C — SHIPPED (guardrail transparency + sampling coverage)
+Two changes in `runAsync` (`routes.ts`):
+- **C-1 guardrail transparency** — when the numeric grounding guardrail drops key_results
+  (values whose numbers aren't verbatim in the sampled files), add a caveat stating how many
+  were withheld (and, when it empties the list, that all were withheld — "open the Outputs
+  tab"). **Never re-admits the dropped unverified numbers** — grounding is unchanged; only the
+  silent-empty failure mode is fixed, so a run whose result numbers the sampler missed no longer
+  looks like it produced nothing.
+- **C-2 sampling coverage** — the few files actually read are now **ranked** (report/summary/
+  result/structured/`toxic`/`qc` first; Nextflow bookkeeping sunk) before the cap, instead of a
+  raw slice that could sample logs and miss the results. Cap raised 6→8 so the proven ADMET/DE
+  **deterministic-parser** path (which reads the same `outputSamples`) can never lose its target
+  file; initial scan widened 30→40 candidates. Read budget stays bounded (8 files × 8000 chars).
+
+Gate: `tsc` clean; full `vitest run` 2177 passed / 42 skipped / 0 failed.
+
+## Status: A, B, C all shipped on the branch
+All three long-tail findings failure modes are addressed in code:
+- **A** — sidecar/cache shape validation (commit c3096f51a).
+- **B** — 90s bound on the generic LLM call (commit 3995fc1b2).
+- **C** — guardrail transparency + sampling ranking (this commit).
+
+Remaining is **live verification after sync to dev**, not more code: reopen non-parser runs
+(CAR-T `dc9f3235`, clinical, QSAR) and confirm findings resolve to a real summary — or a
+non-empty, self-explaining caveat — instead of hanging, echoing samples, or silently emptying.
+If findings still come back thin, the next lever is prompt/schema tuning per domain, NOT
+per-domain parsers (the #5a decision holds).
