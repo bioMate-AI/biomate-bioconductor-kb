@@ -164,3 +164,43 @@ projection are CORRECT; the document-as-truth projection works for ADMET at the 
 before the actual cutover (wire `documentToLegacy` as the flat source + delete the reconciler): one
 CLEAN dev shadow confirmation on a freshly-regenerating ADMET run (should log `cutover-ready`), and
 the per-domain shadow checks for DESeq2 / enrichGO / raredisease. Then steps 3–5 of the migration.
+
+## PER-DOMAIN PARITY — COMPLETE for all 4 parser domains (2026-11-05, local repro on real output)
+Ran the DEPLOYED descriptor code (`matchDescriptor` → `buildFindingsDocument` → `documentToLegacy`)
+on real/representative output for every parser domain. Harnesses:
+`scratchpad/parity.mts` (enrichGO on dev `enrich_results.csv`), `parity_var2.mts` (variant, snpeff-
+shaped), plus the earlier ADMET (`toxicity_report.json`) and DESeq2 (`de_results.tsv`/`.csv`) repros.
+
+| Domain | Parser today | documentToLegacy result | Parity verdict |
+|---|---|---|---|
+| **ADMET** | deterministic flat (`_parseAdmetOutput`, 9–16 key_results) | 16 metrics incl. every liability (hERG, DILI, CYP2D6) | **= parser** (code-proven) |
+| **DESeq2** | deterministic flat (`_parseDeseq2Output`) | TSV→32 real ENSG ids; CSV→real ENSG ids (post autodelim+col-0 fix `84577b8e1`) | **= parser** (code-proven) |
+| **enrichGO** | **LLM context only** (`_parseEnrichGoOutput` returns `{context,numbers}`, no flat) | 12 GO terms, real p.adjust/GeneRatio/Count, term names as entities | **upgrade** (deterministic vs LLM prose) |
+| **variant/raredisease** | **LLM context only** (`_parseRarediseaseOutput`, no flat) | exact IMPACT buckets: HIGH→liability, MODERATE→neutral, LOW/MODIFIER→pass (S3#4 MODIFIER≠MODERATE holds) | **upgrade** (deterministic vs LLM prose) |
+
+### Key structural finding (refines the cutover plan)
+The SHADOW comparison (`routes.ts:16008`) only runs inside `if (preprocessed?.findings)` — i.e. ONLY
+for ADMET + DESeq2 (the domains with a deterministic flat). enrichGO + raredisease have **no parser
+flat at all** (their parsers feed the LLM a context string); today's UI flat for them is LLM-derived.
+So the cutover splits into two risk classes:
+- **enrichGO + raredisease — LOW RISK:** wiring `documentToLegacy` as the flat is a pure UPGRADE
+  (deterministic structured records replace LLM prose). Nothing to regress against; no shadow needed.
+  Code-proven correct above.
+- **ADMET + DESeq2 — GATED:** these render a deterministic parser flat today. The cutover must match
+  it. Code-level repro shows parity, but the live shadow is the project's gate and it only re-fires on
+  a FRESH run (findings are cached in the S3 sidecar + in-memory `_findingsCache`; there is no
+  `?regen` hook, so cached runs never re-emit the shadow line). The one dev shadow line captured so
+  far was a deploy-boundary artifact (see correction above).
+
+### Remaining before the destructive cutover (reconciler deletion + rewire) — NOT done here
+1. Capture a clean `cutover-ready` shadow line for ADMET and for DESeq2 on a FRESH run each (or add a
+   tiny read-only `?regen=1` cache-invalidation hook purely for this observability — a reviewable 1-
+   line change, not the behavioral cutover itself).
+2. Only then: wire `documentToLegacy` as the flat source and delete `reconcileFindingsDocument` +
+   `flatLiabilities`. This is the committee-worthy behavioral change the design reserves for a focused
+   session — it is deliberately NOT applied at the tail of the audit work.
+
+**Status:** per-domain parity gate = **CLEARED (code-proven, all 4)**. Cutover gate = **one clean live
+shadow for ADMET + DESeq2** (structurally blocked on a fresh run / a regen hook), then the focused
+reconciler-deletion session. The reconciler remains a useful safety net until then (no-op when the
+sets agree, which parity now makes the steady state).
