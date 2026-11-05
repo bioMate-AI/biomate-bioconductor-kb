@@ -12503,26 +12503,37 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
                 with open(_cpath) as _fh:
                     _ctext = _fh.read()
             if _ctext:
+                import asyncio as _asyncio
                 from galaxy.ai.multiomics.biomarker_fusion import drivers_from_run
-                _drivers = drivers_from_run(_ctext, _omics, top_k=15)
-                _corrob = [d for d in _drivers if d.get("n_fired", 0) >= 2]
+                # Run OFF the event loop (boto3 + numpy F-stats are blocking) and WITH a
+                # label-permutation significance pass (n_perm) so the Findings surface
+                # permutation-SIGNIFICANT drivers — not the relative-tail "corroborated"
+                # tier, which over-calls on null data (committee: the tier reported
+                # 42–56 false "corroborated" on random labels). FWER (max-statistic) p.
+                _drivers = await _asyncio.to_thread(
+                    drivers_from_run, _ctext, _omics, top_k=25, n_perm=50)
+                _sig = [d for d in _drivers if d.get("significant")]
                 if _drivers:
-                    for d in _drivers[:10]:
+                    for d in (_sig or _drivers)[:10]:
+                        _p = d.get("perm_p")
+                        _plabel = f"perm_p={_p:.3f}" if isinstance(_p, (int, float)) else "not sig-tested"
                         analysis.key_results.append({
                             "metric": f"driver:{d.get('entity')}",
                             "value": round(float(d.get("score", 0.0)), 3),
                             "interpretation": (
-                                f"{d.get('tier', '')} across {d.get('n_fired', 0)} layer(s): "
+                                f"{'significant' if d.get('significant') else 'candidate'} "
+                                f"({_plabel}) across {d.get('n_fired', 0)} layer(s): "
                                 f"{', '.join(d.get('fired_channels') or [])}"),
                         })
                     analysis.summary += (
-                        f" Cross-omics biomarker fusion ranked {len(_drivers)} subtype "
-                        f"drivers ({len(_corrob)} corroborated across ≥2 layers).")
-                    analysis.next_steps.append(
-                        "Validate the top corroborated cross-omics drivers "
-                        "(e.g. targeted assay or survival association).")
+                        f" Cross-omics biomarker fusion: {len(_sig)} subtype driver(s) "
+                        f"permutation-significant (FWER p≤0.05) of {len(_drivers)} ranked.")
+                    if _sig:
+                        analysis.next_steps.append(
+                            "Validate the permutation-significant cross-omics drivers "
+                            "(e.g. targeted assay or survival association).")
                     log.info("[analyze-outputs] cross-omics drivers for run %s: "
-                             "%d (%d corroborated)", run_id, len(_drivers), len(_corrob))
+                             "%d ranked, %d significant", run_id, len(_drivers), len(_sig))
     except Exception as _bm_exc:
         log.warning("[analyze-outputs] cross-omics biomarker fusion skipped for run %s: %s",
                     run_id, _bm_exc)
