@@ -31,7 +31,7 @@ The questions we most want answered are in §6.
 BioMate is a chat front end over a workflow catalog executed on AWS Batch.
 
 1. **Node chat server** (`frontend/server/galaxy-assistant.ts`, ~9k lines). Each user turn:
-   - `analyzeIntent` — an LLM classifier (dev: `gemini-3.5-flash`; production prompt ≈80k chars) returns one or more
+   - `analyzeIntent` — an LLM classifier (dev: `gemini-3.8-flash`; production prompt ≈80k chars) returns one or more
      intents with `type`, `execution` (pipeline / direct_compute), `task_spec`, `domain`, `dependsOn`, `key_terms`,
      `preferred_domains`, `chain_hint`.
    - Single intent → `generateResponse`; several → `processMultiIntent` (parallel, or `processSequentialPipeline`
@@ -94,8 +94,7 @@ Each item: problem → evidence → change → tests → measured effect → kno
   `decreal_sequential_66`, whose query is the catalog text "Retired workflow. No longer functional…"). Real
   `analyzeIntent` via OpenRouter; Claude Sonnet 5.5 judge aligns predicted ↔ gold nodes; node/edge F1 + structure.
 - 12 models, then 3-run stability: GLM-5.2 0.401±0.037, Kimi K3 0.406±0.028, Gemini 3.8 Flash 0.327±0.009 (paired
-  Δ GLM +0.074 [−0.026, +0.194]). **Decision:** keep Flash. **Caveat found later:** dev actually runs
-  `gemini-3.5-flash` (`BIOMATE_INTENT_MODEL`), not 3.8 — the benchmark did not measure the deployed model.
+  Δ GLM +0.074 [−0.026, +0.194]). **Decision:** keep Flash. (An earlier note here said dev runs 3.5 Flash — wrong: **Corrected 2026-11-05:** the deployed intent model is `gemini-3.8-flash` — `BIOMATE_INTENT_MODEL=gemini-3.5-flash` is set in both containers, but `pickGeminiIntentModel` resolves it and every logged intent call on dev uses `gemini-3.8-flash` (owner correction; verified in the frontend log). The decomposition benchmark did measure the deployed model.)
 - Harness defect fixed: the classifier had been given an empty curated-chain list (production passes 64 names).
   Re-measured with names: production prompt 0.355±0.009 vs "split per stage" prompt v2 0.352±0.005, Δ −0.003
   [−0.034, +0.029] → **v2 not shipped**.
@@ -271,7 +270,7 @@ grep for the new code inside the containers, then 4.3.
    share one label.
 6. **Audit scope**: Bioconductor annotations excluded; 3 rows failed the audit; only `annotation` audited, not
    `description` / `annotation_v2`; the number of earlier per-row catalog patches is unknown.
-7. **Decomposition benchmark measured Gemini 3.8 Flash**; dev runs 3.5 Flash.
+7. ~~Decomposition benchmark measured Gemini 3.8 Flash; dev runs 3.5 Flash.~~ Wrong — **Corrected 2026-11-05:** the deployed intent model is `gemini-3.8-flash` — `BIOMATE_INTENT_MODEL=gemini-3.5-flash` is set in both containers, but `pickGeminiIntentModel` resolves it and every logged intent call on dev uses `gemini-3.8-flash` (owner correction; verified in the frontend log). The decomposition benchmark did measure the deployed model.
 8. **cross_domain_routing gold errors** (epi_011, epi_012) reported, not fixed (RealBio-owned).
 9. **Executability**: 3 stub-only nf-core entries; the webapps copy of the check does not read files.
 10. **Concurrency**: another session commits and syncs from the same worktree; three dev arms needed re-runs.
