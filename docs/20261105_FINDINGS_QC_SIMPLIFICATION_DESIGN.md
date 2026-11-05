@@ -204,3 +204,41 @@ So the cutover splits into two risk classes:
 shadow for ADMET + DESeq2** (structurally blocked on a fresh run / a regen hook), then the focused
 reconciler-deletion session. The reconciler remains a useful safety net until then (no-op when the
 sets agree, which parity now makes the steady state).
+
+## ⚠️⚠️ CORRECTION #2 (2026-11-05, later) — the ADMET parity gap was REAL, not an artifact
+The earlier correction above (lines ~145-166) was WRONG on two counts, now disproven by a clean live
+shadow + full-output repro:
+1. The dev `doc-only=[logP]` line was **NOT a deploy-boundary artifact.** After adding the read-only
+   `?regen=1` hook (commit `5a8bf2184`) I forced a clean, post-settle regen of ADMET run `331245f4`
+   and the shadow re-logged **exactly** `parser-only=[hERG inhibition, DILI probability, …(9)] doc-only=[logP]`.
+   Reproducible, not a race.
+2. "Code-proven safe for ADMET (16 metrics)" was an **artifact of my repro feeding only
+   toxicity_report.json.** A real ADMET run emits SEVEN files. Reproducing matchDescriptor on the full
+   set showed it selected **pk_summary.json** (a PK sibling that also has a `per_compound` array with
+   RDKit logP) — NOT toxicity_report.json — because ADMET_REPORT's `contentIncludes:['per_compound']`
+   was too generic and matchDescriptor returned the FIRST file hitting any signal. → the ADMET
+   document collapsed to a single `logP`, losing every liability.
+
+**Root-cause fix shipped (commit `466893371`):**
+- ADMET_REPORT.contentIncludes → `['per_compound_admet_ai']` (the AI block is the toxicity report's
+  distinctive marker; a legacy per_compound-only report still matches via FILENAME).
+- matchDescriptor now SCORES candidates (filename+content=4 > content=3 > filename=2 > wf-name=1) and
+  picks the best per descriptor — a data-carrying file beats a name-only wrapper or a generic sibling.
+- +3 regression tests (multi-file selection). Re-ran the full-output repro: now matches
+  toxicity_report.json → **16 metrics incl. hERG/DILI/CYP2D6** (true parser parity). tsc + vitest green.
+
+### Lessons
+- **The shadow was RIGHT the whole time.** I twice talked myself out of believing it (first "8KB
+  truncation", then "deploy artifact"). A repro that doesn't feed the descriptor the SAME multi-file
+  input the server sees is not a repro. Always reproduce on the full `outputSamples` set.
+- This is a second independent benefit of document-as-truth shadowing: it surfaced a live bug in the
+  entity-aware `findings_document` (wrong file → logP-only) that the parser flat masked on the main
+  card. That document bug existed in production and is now fixed regardless of the cutover.
+
+### Revised cutover status (supersedes the "code-proven safe" line above)
+- **ADMET descriptor parity:** now genuinely fixed at the code level AND must be re-confirmed by a
+  CLEAN live shadow (`?regen=1` on `331245f4` after deploying `466893371`) showing `cutover-ready`.
+- Until that clean `cutover-ready` line is observed on dev, the ADMET cutover stays BLOCKED. The other
+  domains: DESeq2 needs a completed run on dev (only failed ones exist now) to live-shadow; enrichGO +
+  raredisease have no parser flat (pure upgrade, no shadow needed).
+- The destructive reconciler-deletion cutover remains reserved for its own committee-reviewed session.
