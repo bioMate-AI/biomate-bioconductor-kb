@@ -483,12 +483,15 @@ export function AfterRunReport({
                 executionStatus={executionStatus}
                 onOpenOutput={handleOpenOutput}
               />
-              {qcEvents.some(e => e.status === 'fail' || e.status === 'advisory') && (
+              {/* audit S2#5: surface non-pass QC — including the degraded sentinels the backend
+                  deliberately writes (unavailable/unknown/not_evaluated). Showing only fail/advisory
+                  made a run whose QC could NOT be evaluated render as all-clear, erasing the signal. */}
+              {qcEvents.some(e => /^(fail|advisory|unavailable|unknown|not_evaluated)$/i.test(e.status || '')) && (
                 <section data-testid="completed-qc-findings" style={{ marginTop: 12 }}>
                   <h3 style={{ fontSize: 13, fontWeight: 600 }}>{tOr('afterrun.qc_findings', 'QC findings')}</h3>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead><tr><th align="left">Check</th><th align="left">Observed</th><th align="left">Flag condition</th><th align="left">Result</th></tr></thead>
-                    <tbody>{qcEvents.filter(e => e.status === 'fail' || e.status === 'advisory').map((e, i) => (
+                    <tbody>{qcEvents.filter(e => /^(fail|advisory|unavailable|unknown|not_evaluated)$/i.test(e.status || '')).map((e, i) => (
                       <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
                         <td>{e.gate ?? '—'}</td><td>{e.measured ?? '—'}</td>
                         <td>{e.operator ? `${e.operator} ` : ''}{e.threshold ?? '—'}</td><td>{qcResultLabel(e.status)}</td>
@@ -2302,6 +2305,14 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
             <tbody>
               {events.map((e, i) => {
                 const pass = isPassedStatus(e.status);
+                const _st = String(e.status || '').toLowerCase();
+                // audit S2#7: distinguish a blocking HALT/fail from a minor advisory from a
+                // degraded/unevaluable gate — previously fail and advisory were the same amber.
+                const resultColor =
+                  pass ? 'oklch(0.62 0.16 145)'                                              // green
+                  : (_st === 'fail' || _st === 'halt' || _st === 'error') ? 'oklch(0.58 0.20 25)'      // red
+                  : (_st === 'advisory' || _st === 'warn' || _st === 'warning') ? 'oklch(0.62 0.16 60)' // amber
+                  : 'oklch(0.60 0.02 260)';                                                   // gray (unavailable/unknown)
                 return (
                   <tr key={i} style={{ borderTop: '1px solid oklch(0.92 0.008 260)' }} data-testid={`qc-row-${i}`}>
                     <td style={{ padding: '7px 8px' }}>{e.ts ?? '—'}</td>
@@ -2311,7 +2322,7 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
                     <td
                       style={{
                         padding: '7px 8px',
-                        color: pass ? 'oklch(0.62 0.16 145)' : 'oklch(0.62 0.16 60)',
+                        color: resultColor,
                         fontWeight: 600,
                       }}
                       data-testid={`qc-row-${i}-result`}
