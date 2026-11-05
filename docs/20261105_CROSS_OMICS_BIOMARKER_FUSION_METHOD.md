@@ -138,10 +138,16 @@ no labels → nothing fires.
   showed `corroborated=0`, correctly: those matrices used layer-prefixed feature names, so no
   feature is shared across layers — corroboration is structurally impossible there, a data artifact
   not a code issue.)
-- **Optional remaining:** driving the full `/api/nextflow/analyze-outputs` HTTP endpoint (which adds
-  run-record `omics` recovery + attaching drivers to the `AnalysisResult`). That glue is
-  unit-covered (`DriversFromRunTest`) and the core capability is live-verified above; a full HTTP
-  call is a nice-to-have, not a correctness gap.
+- **Full HTTP endpoint live-verified (2026-11-05).** `POST /api/nextflow/analyze-outputs` for the
+  SNF run (`9d889185`) returned **HTTP 200** and attached **10 `driver:` findings** to the run's
+  `key_results` plus the "Cross-omics biomarker fusion ranked …" summary note — the complete path:
+  run-record `omics` recovery (`_run_lookup`) → S3 read → scoring → fusion → attach to
+  `AnalysisResult`. (Those drivers are `nominated`/single-layer because the SNF smoke matrices use
+  layer-prefixed feature names; corroboration is shown by the shared-feature live run above.)
+  - A pre-existing latent bug surfaced and was fixed in the same endpoint (commit `d4b735273`):
+    six `logger.` references where the module logger is `log` — they would `NameError`→500 on any
+    except path (analyzer, citation, report, figures, save, and the new biomarker block). All six
+    now use `log`, so a failure in any of those is logged and the endpoint degrades gracefully.
 
 ### Design note — why the backend hook, not a Nextflow step
 The alternative (a Python `BIOMARKER_FUSION` Nextflow process after SNF) would need a new/extended
