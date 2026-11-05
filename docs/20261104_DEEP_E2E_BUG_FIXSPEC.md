@@ -45,6 +45,13 @@ Projects page shows fabricated demo projects as the user's real ones; Starred Wo
 
 ---
 
+## 8. SYSTEMIC ROOT CAUSE — run-record data is never finalized/populated (ties together #5b, #6, and the "step panel not informative" complaint) — ✍️
+**Pattern:** the UI shells exist and have been polished for months (Findings panel, metrics, **the per-step detail panel** `components/steps/step-detail.tsx` — 538 lines, built Sep 2026, enhanced through Nov; `step-output-preview` 12+ commits; ~10 docs since 2026-03), but the **run record is never populated with the data they need**:
+- Per-step (a completed run `82c1245a`): steps report only `stepName`/`toolName`/`status`/`outputs`, and even those are **stale/empty** — `status="pending"` on a COMPLETED run, `outputs=[]`, and **no** `inputs`/`logs`/`command`/`duration`/`tool_version`/`parameters`. So `StepDetail` (which honestly renders only real fields) shows "tool not reported" + empty → **not informative**, no matter how much the component is polished.
+- Findings: `inline_findings=[]` (#5b). Metrics: all-zero (#6). Findings generation: ADMET-only (#5a).
+**Why it looks worked-on yet stays empty:** repeated sessions polished the *presentation* (the shell) without closing the *data-population* gap — the backend produces the data (trace, per-step status/outputs, findings sidecar) but it is never written back onto the run record the UI reads.
+**Fix (one workstream, not four):** a completion/finalization step that updates the run record with (a) each step's **final** status + real outputs (+ inputs/logs/duration/tool where the trace has them), (b) `metrics` from the trace + output_files, (c) `inline_findings` from `findings_data.json`. Then StepDetail, the metrics, and the findings field all fill from real data with no UI change. This is the highest-leverage fix — it makes multiple already-built panels informative at once.
+
 ## Ownership summary
 - **Human-applied (production `.nf`/workflow logic):** #1 ADMET DILI, #2 BOIN dose, #3 GEO contrast. These change executed workflow reduce/selection logic and must be verified with live runs.
 - **In progress (agents, frontend-safe):** #4 findings contradiction, #7 dead/mock UI.
