@@ -156,11 +156,20 @@ end-to-end on CPU Batch**:
   `_check_qc_thresholds("SNF_MULTIOMICS_INTEGRATION", …)` (a process with NO hardcoded branch) →
   `qc_passed=False`, halt fired with structured provenance, advisory correctly passing. So **any**
   workflow that writes a `gates` list gets it evaluated live with no further code change.
-What is **NOT** covered:
-- **A production workflow that EMITS declared gates in a Batch run.** This is workflow-authoring
-  (content) — e.g. adding a clustering-quality gate to `snf_multiomics/main.nf` + registering it in
-  the `qc_metrics.json` discovery map for S3/Batch — not a platform-capability gap, since the
-  evaluate/parse pipeline above is complete and deployed. Scope per-domain when a real gate is wanted.
+- **A production workflow that EMITS declared gates — live-verified on Batch (run `c56bd86d`).**
+  `snf_multiomics/main.nf` now computes clustering-quality metrics after SNF and writes
+  `qc_metrics.json` with a declared `gates` list (halt on degenerate/single-cluster, advisory on
+  weak silhouette / subtype imbalance). No handler change was needed — the `BIOC_` substring in
+  `_S3_REPORT_PATHS` already routes any bioconductor process's `qc_metrics.json` to the monitor. The
+  run proved the full loop: the `.nf` emitted the gates (`mean_silhouette=0.0526`,
+  `n_clusters_found=2`, `min_cluster_fraction=0.5`); the monitor logged
+  `[QC-S3] Reading work-dir qc_metrics.json for BIOC_SNF_MULTIOMICS` and evaluated them generically;
+  the silhouette **advisory fired** (0.0526 < 0.10, non-blocking → returncode 0) while the halt gate
+  passed. Multi-omics integration now has real, data-driven QC.
+
+Everything in this generalization program is now live-verified on dev or has a committed, tested
+fix. The only genuinely-remaining work is a SYSUCC-representative real-cohort run (§8 item 5), which
+needs the actual hospital dataset.
 - **The generalizations are deployed but dormant** (flags off) → zero real-traffic exercise.
 - **`fuse_channels` has no real 2nd consumer** — it is tested on synthetic entities, which proves
   the API, but the audit's point ("generality unexercised") is only half-closed until a real task
