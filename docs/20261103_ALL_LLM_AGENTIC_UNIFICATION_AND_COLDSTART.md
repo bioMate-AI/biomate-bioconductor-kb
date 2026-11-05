@@ -510,3 +510,35 @@ workflow; beta values + continuous phenotype → no catalog match (composed "Cus
 **Decision:** keep T-LLMKINDS (principled, tested, fixes the demonstrated negation flaw, neutral on this set). The next lever is
 finer-grained input matching (sub-formats: protein vs precursor vs PSM tables, array vs sequencing methylation, SMILES vs SDF) and
 catalog metadata consistency (declared inputs vs description) — not more weight on the raw/processed term.
+
+### 15.2 Catalog consistency: disabled nf-core pipelines; code-grounded description audit (2026-11-05)
+
+**Disabled nf-core pipelines.** 9 `nf-core/*` rows are `executable=0` although their real pipeline is deployed on dev (chipseq, atacseq,
+eager, mnaseseq, moleculardynamics, spatialxe, genephylo, hackathon, testpipeline). Cause (`docs/20261001_NONEXECUTABLE_STUB_AUDIT.md`):
+on 2026-10-01 the file that would run was the display stub (invented tool flags, 0 outputs). Since then the real pipelines are restored
+(§9) and the executor resolves real-first. **Not flipped:** re-enabling claims they run — needs a Batch run of each pipeline's test
+profile first (pending). They are routed to regardless (input_regime_v2 chip/ATAC cards).
+
+**False description found by its code.** `Detect And Annotate Somatic Mutations` runs GATK Mutect2 from tumour/normal BAM (its main.nf);
+its description said it "starts from a pre-existing VCF — it does NOT perform … variant calling" (a past per-row text patch). The
+input_regime_v2 list had excluded it on a reviewer flag based on that description — restored, both arms re-scored alike (94 vs 96 /120).
+
+**Audit** (`chain_composer/description_code_audit.py`, `d1cfcbe7f`): Flash lists VERBATIM description clauses contradicting the workflow's
+own `.nf` (inputs taken, steps performed), with the code line; Sonnet confirms against the code. 3,717 rows with local code (nf-core display
+stubs skipped) → **50 rows confirmed**. Triage (`evaluation/routing_eval/domain_retag/description_code_audit_*`):
+- **Applied-ready (21 rows):** 16 non-Bioconductor "Inputs: csv/vcf/…" boilerplate lines that the code contradicts, and 5 factual
+  clauses whose removal leaves a sound description (Aizynthfinder "mock_mode default true" — code default false; LC-MS joint workflow
+  "not for single-modality" — code has `mode = proteomics|metabolomics|both`; GROMACS `pdb2gmx` — code uses tleap; OpenFE "SepTop" —
+  code uses RelativeHybridTopology; P0 PKPD "Cmax within 30% of 15 nM" — code reference 30 nM). **Held until the GLM arm finishes**
+  (a changed DB would reach dev on any sync).
+- **Rewrite, not removal (3):** the false clause is the core sentence — somatic mutations (calls from BAM), CYP450 (claims "QSAR ML
+  models"; code is "a clearly-labelled HEURISTIC"), Search Gene (claims NCBI search; code does pattern search in a sequence).
+- **Code refuses / stub (3):** Isolate-Purify Immune Cells and Bacterial CFU exit with "wet-lab procedure with no compute equivalent";
+  Advanced Web Search returns empty results. A routability decision (should they be routable at all?) — owner.
+- **Bioconductor (excluded):** package DESCRIPTION text vs our narrower wrapper (same rule as §13.2). Several wrappers look broken
+  (e.g. tidysbml's code imports `regions.bed`) — separate wrapper-quality finding.
+
+**GLM-5.2 decomposition arm:** dev `/opt/biomate/.env` set to `BIOMATE_INTENT_MODEL=openrouter:z-ai/glm-5.2` + dedicated
+`BIOMATE_DECOMP_OPENROUTER_KEY` (owner-approved; backup `.env.bak_pre_glm_*`; `OPENROUTER_API_KEY` not set). The first sync refused
+(2 uncommitted source files of another session in the shared worktree) and the frontend stayed on Flash — the arm was stopped before it
+could be mislabelled. It runs once the worktree is clean, after verifying the frontend env and the intent log.
