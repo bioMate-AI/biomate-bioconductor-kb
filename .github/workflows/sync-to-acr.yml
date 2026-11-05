@@ -1,11 +1,6 @@
 name: Sync Images to Alibaba ECS
 
 on:
-  push:
-    branches:
-      - feat/aliyun-demo-deploy
-    paths:
-      - '.github/workflows/sync-to-acr.yml'
   workflow_dispatch:
     inputs:
       skip_assets:
