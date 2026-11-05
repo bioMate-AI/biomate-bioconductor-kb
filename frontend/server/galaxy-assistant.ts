@@ -4613,6 +4613,12 @@ Rules:
       }
     }
 
+    // Single-intent request naming a curated chain: build the chain (same guard as the sequential path).
+    if (!decomposition.isMultiIntent && decomposition.chainHint && intent.type === 'workflow_generation') {
+      const chainResponse = await this._curatedChainResponse(decomposition, message, context, log);
+      if (chainResponse) return chainResponse;
+    }
+
     // Multi-intent path: fan out to processSubIntent for each intent
     if (decomposition.isMultiIntent) {
       return this.processMultiIntent(decomposition, message, context, startTime, onResponseDelta, domainProfileContext, sessionMemoryBlock, onToolEvent);
@@ -5753,114 +5759,18 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     }
   }
 
-  private async processSequentialPipeline(
+  /**
+   * Curated-chain response for a classifier chain_hint (TIER 2). Used by the sequential pipeline and by
+   * single-intent requests — a named end-to-end pipeline ("run the full target-to-lead pipeline") is often
+   * decomposed as ONE intent, and the hint was then ignored. Returns null when the hint is dropped or the
+   * chain cannot be built, so the caller continues with its normal path.
+   */
+  private async _curatedChainResponse(
     decomposition: IntentDecomposition,
     message: string,
     context: ChatContext,
-    startTime: number,
-    onResponseDelta?: (chunk: string) => void,
-    domainProfileContext: string = ''
-  ): Promise<GalaxyAssistantResponse> {
-    const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] [SEQ] ${step}`);
-    log(`Building sequential pipeline: ${decomposition.intents.length} steps`);
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // TIER 1: Try the full query as a single workflow first.
-    // If one workflow covers all the user's biological steps → return early.
-    // ═══════════════════════════════════════════════════════════════════════
-    log('Tier 1: Attempting full-query single-workflow resolution');
-    try {
-      // Use a clean context (no previous messages) to avoid chat-history bias from prior turns.
-      // Tier 1 evaluates this query in isolation: "can one workflow cover all the steps?"
-      const tier1Context: ChatContext = {
-        ...context,
-        previousMessages: [],
-      };
-      const _t1UploadedParams = extractUploadedFileParams(message);
-      const _t1MergedInline: Record<string, string> = {
-        ...(decomposition.intents[0]?.inlineParameters || {}),
-        ..._t1UploadedParams,
-      };
-      const tier1Workflow = await this.generateWorkflow(
-        message,
-        [],
-        _t1MergedInline,
-        tier1Context,
-        decomposition.preferredDomains,
-        decomposition.keyTerms,
-        context.sessionDatasets?.length ? context.sessionDatasets : undefined,
-        decomposition.penalizedDomains
-      );
-      if (tier1Workflow?.success && tier1Workflow?.nextflow_path) {
-        const _t1Name = tier1Workflow.workflow_name || tier1Workflow.workflow_ga?.name || tier1Workflow.name || tier1Workflow.nextflow_path?.split('/').pop() || 'workflow';
-        log(`Tier 1: Got workflow "${_t1Name}" (${tier1Workflow.nextflow_path}) — checking coverage`);
-        const coverage = await this._checkWorkflowCoverage(
-          _t1Name,
-          tier1Workflow.description || tier1Workflow.message || '',
-          decomposition.intents,
-          message
-        );
-        log(`Tier 1 coverage: ${coverage.coveredCount}/${decomposition.intents.length} steps, confidence=${coverage.confidence.toFixed(2)}`);
-        // HIGH confidence threshold (≥0.8): auto-collapse to single workflow without asking.
-        if (coverage.confidence >= 0.8 && coverage.coversAll) {
-          // Merge all inline params into the workflow
-          const mergedParams = Object.assign({}, ...decomposition.intents.map(i => i.inlineParameters || {}));
-          tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
-          log(`Tier 1 MATCH: returning single workflow card`);
-          const allFacts = decomposition.intents.flatMap(i => i.facts);
-          const t1Summary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
-          const t1BaseMsg = `I'll run the **${_t1Name}** workflow — it handles all your steps in one integrated pipeline.`;
-          return {
-            message: t1Summary ? `${t1Summary}\n\n${t1BaseMsg}` : t1BaseMsg,
-            intentType: 'workflow_generation',
-            intentConfidence: coverage.confidence,
-            generatedWorkflow: tier1Workflow,
-            isMultiIntent: false,
-            extractedFacts: allFacts.map((f, idx) => ({
-              id: `fact-t1-${Date.now()}-${idx}`,
-              category: f.category as any,
-              value: f.value,
-              source: { type: 'user_message' as const, turnIndex: context.turnIndex ?? 0 },
-              confidence: f.confidence,
-              supersedes: f.supersedes,
-            })),
-            suggestions: ['Adjust parameters', 'Review workflow steps'],
-            sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: true, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false },
-          };
-        }
-        // MEDIUM confidence (≥0.65): show workflow but ask user to confirm it covers everything.
-        if (coverage.confidence >= 0.65 && coverage.coversAll) {
-          // MEDIUM confidence: show workflow but note it needs user confirmation
-          log(`Tier 1 MEDIUM confidence: show single workflow with confirmation note`);
-          const mergedParams = Object.assign({}, ...decomposition.intents.map(i => i.inlineParameters || {}));
-          tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
-          const allFacts = decomposition.intents.flatMap(i => i.facts);
-          const t1mSummary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
-          const t1mBaseMsg = `I believe the **${_t1Name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`;
-          return {
-            message: t1mSummary ? `${t1mSummary}\n\n${t1mBaseMsg}` : t1mBaseMsg,
-            intentType: 'workflow_generation',
-            intentConfidence: coverage.confidence,
-            generatedWorkflow: tier1Workflow,
-            isMultiIntent: false,
-            suggestions: ['Confirm this covers all steps', 'Adjust parameters'],
-            extractedFacts: allFacts.map((f, idx) => ({
-              id: `fact-t1m-${Date.now()}-${idx}`,
-              category: f.category as any,
-              value: f.value,
-              source: { type: 'user_message' as const, turnIndex: context.turnIndex ?? 0 },
-              confidence: f.confidence,
-              supersedes: f.supersedes,
-            })),
-            sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: true, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false },
-          };
-        }
-        log(`Tier 1 no match (confidence ${coverage.confidence.toFixed(2)} < 0.4 or coversAll=false), falling through`);
-      }
-    } catch (err: any) {
-      log(`Tier 1 failed (non-fatal): ${err.message}`);
-    }
-
+    log: (step: string) => void,
+  ): Promise<GalaxyAssistantResponse | null> {
     // ═══════════════════════════════════════════════════════════════════════
     // TIER 2: Curated chain lookup via chainHint.
     // If the intent classifier named a known chain, use its pre-defined steps.
@@ -5987,6 +5897,120 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         log(`Tier 2 failed (non-fatal): ${err.message}`);
       }
     }
+    return null;
+  }
+
+  private async processSequentialPipeline(
+    decomposition: IntentDecomposition,
+    message: string,
+    context: ChatContext,
+    startTime: number,
+    onResponseDelta?: (chunk: string) => void,
+    domainProfileContext: string = ''
+  ): Promise<GalaxyAssistantResponse> {
+    const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] [SEQ] ${step}`);
+    log(`Building sequential pipeline: ${decomposition.intents.length} steps`);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TIER 1: Try the full query as a single workflow first.
+    // If one workflow covers all the user's biological steps → return early.
+    // ═══════════════════════════════════════════════════════════════════════
+    log('Tier 1: Attempting full-query single-workflow resolution');
+    try {
+      // Use a clean context (no previous messages) to avoid chat-history bias from prior turns.
+      // Tier 1 evaluates this query in isolation: "can one workflow cover all the steps?"
+      const tier1Context: ChatContext = {
+        ...context,
+        previousMessages: [],
+      };
+      const _t1UploadedParams = extractUploadedFileParams(message);
+      const _t1MergedInline: Record<string, string> = {
+        ...(decomposition.intents[0]?.inlineParameters || {}),
+        ..._t1UploadedParams,
+      };
+      const tier1Workflow = await this.generateWorkflow(
+        message,
+        [],
+        _t1MergedInline,
+        tier1Context,
+        decomposition.preferredDomains,
+        decomposition.keyTerms,
+        context.sessionDatasets?.length ? context.sessionDatasets : undefined,
+        decomposition.penalizedDomains
+      );
+      if (tier1Workflow?.success && tier1Workflow?.nextflow_path) {
+        const _t1Name = tier1Workflow.workflow_name || tier1Workflow.workflow_ga?.name || tier1Workflow.name || tier1Workflow.nextflow_path?.split('/').pop() || 'workflow';
+        log(`Tier 1: Got workflow "${_t1Name}" (${tier1Workflow.nextflow_path}) — checking coverage`);
+        const coverage = await this._checkWorkflowCoverage(
+          _t1Name,
+          tier1Workflow.description || tier1Workflow.message || '',
+          decomposition.intents,
+          message
+        );
+        log(`Tier 1 coverage: ${coverage.coveredCount}/${decomposition.intents.length} steps, confidence=${coverage.confidence.toFixed(2)}`);
+        // HIGH confidence threshold (≥0.8): auto-collapse to single workflow without asking.
+        if (coverage.confidence >= 0.8 && coverage.coversAll) {
+          // Merge all inline params into the workflow
+          const mergedParams = Object.assign({}, ...decomposition.intents.map(i => i.inlineParameters || {}));
+          tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
+          log(`Tier 1 MATCH: returning single workflow card`);
+          const allFacts = decomposition.intents.flatMap(i => i.facts);
+          const t1Summary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
+          const t1BaseMsg = `I'll run the **${_t1Name}** workflow — it handles all your steps in one integrated pipeline.`;
+          return {
+            message: t1Summary ? `${t1Summary}\n\n${t1BaseMsg}` : t1BaseMsg,
+            intentType: 'workflow_generation',
+            intentConfidence: coverage.confidence,
+            generatedWorkflow: tier1Workflow,
+            isMultiIntent: false,
+            extractedFacts: allFacts.map((f, idx) => ({
+              id: `fact-t1-${Date.now()}-${idx}`,
+              category: f.category as any,
+              value: f.value,
+              source: { type: 'user_message' as const, turnIndex: context.turnIndex ?? 0 },
+              confidence: f.confidence,
+              supersedes: f.supersedes,
+            })),
+            suggestions: ['Adjust parameters', 'Review workflow steps'],
+            sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: true, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false },
+          };
+        }
+        // MEDIUM confidence (≥0.65): show workflow but ask user to confirm it covers everything.
+        if (coverage.confidence >= 0.65 && coverage.coversAll) {
+          // MEDIUM confidence: show workflow but note it needs user confirmation
+          log(`Tier 1 MEDIUM confidence: show single workflow with confirmation note`);
+          const mergedParams = Object.assign({}, ...decomposition.intents.map(i => i.inlineParameters || {}));
+          tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
+          const allFacts = decomposition.intents.flatMap(i => i.facts);
+          const t1mSummary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
+          const t1mBaseMsg = `I believe the **${_t1Name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`;
+          return {
+            message: t1mSummary ? `${t1mSummary}\n\n${t1mBaseMsg}` : t1mBaseMsg,
+            intentType: 'workflow_generation',
+            intentConfidence: coverage.confidence,
+            generatedWorkflow: tier1Workflow,
+            isMultiIntent: false,
+            suggestions: ['Confirm this covers all steps', 'Adjust parameters'],
+            extractedFacts: allFacts.map((f, idx) => ({
+              id: `fact-t1m-${Date.now()}-${idx}`,
+              category: f.category as any,
+              value: f.value,
+              source: { type: 'user_message' as const, turnIndex: context.turnIndex ?? 0 },
+              confidence: f.confidence,
+              supersedes: f.supersedes,
+            })),
+            sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: true, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false },
+          };
+        }
+        log(`Tier 1 no match (confidence ${coverage.confidence.toFixed(2)} < 0.4 or coversAll=false), falling through`);
+      }
+    } catch (err: any) {
+      log(`Tier 1 failed (non-fatal): ${err.message}`);
+    }
+
+    // TIER 2: curated chain (see _curatedChainResponse).
+    const tier2 = await this._curatedChainResponse(decomposition, message, context, log);
+    if (tier2) return tier2;
 
     // ═══════════════════════════════════════════════════════════════════════
     // TIER 3: Greedy sequential resolution.
