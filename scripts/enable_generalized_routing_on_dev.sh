@@ -89,47 +89,62 @@ remote "set -e
   echo '[1/6] snapshotting live container code into '\$SNAP' ...'
   docker commit \$C \$SNAP >/dev/null
 
-  echo '[2/6] capturing run config (env minus the two flags, net/ports/binds)...'
+  echo '[2/6] capturing run config (env minus the two flags, net/ports/binds/restart)...'
   ENV_FILE=/tmp/galaxy_routing_env.\$TS
+  OLD=\${C}_old_\$TS
+  umask 077                              # env-file holds secrets (AWS/DB keys) → owner-only
+  trap 'rm -f \"\$ENV_FILE\"' EXIT        # and always remove it, even on an early/failed exit
   docker inspect \$C --format '{{range .Config.Env}}{{println .}}{{end}}' \
     | grep -vE '^($FLAG1|$FLAG2)=' \
     | grep -vE '^(PATH|HOME|TERM|HOSTNAME|SHELL|SHLVL|LOGNAME|USER|_)=' > \$ENV_FILE
-  NETWORK=\$(docker inspect \$C --format '{{range \$k,\$v := .NetworkSettings.Networks}}{{\$k}}{{end}}')
-  PORTS=\$(docker inspect \$C --format '{{range \$p,\$bs := .HostConfig.PortBindings}}{{range \$bs}}-p {{.HostPort}}:{{\$p}} {{end}}{{end}}' | sed 's|/tcp||g')
+  NETWORK=\$(docker inspect \$C --format '{{range \$k,\$v := .NetworkSettings.Networks}}{{\$k}} {{end}}' | awk '{print \$1}')
+  PORTS=\$(docker inspect \$C --format '{{range \$p,\$bs := .HostConfig.PortBindings}}{{range \$bs}}-p {{if .HostIp}}{{.HostIp}}:{{end}}{{.HostPort}}:{{\$p}} {{end}}{{end}}' | sed 's|/tcp||g')
   BINDS=\$(docker inspect \$C --format '{{range .HostConfig.Binds}}-v {{.}} {{end}}')
-  ENTRY=\$(docker inspect \$C --format '{{if .Config.Entrypoint}}{{index .Config.Entrypoint 0}}{{end}}')
-  echo \"      net=\$NETWORK ports=\$PORTS binds=\$BINDS\"
+  RESTART=\$(docker inspect \$C --format '{{.HostConfig.RestartPolicy.Name}}')
+  if [ -z \"\$RESTART\" ] || [ \"\$RESTART\" = no ]; then RESTART=unless-stopped; fi
+  echo \"      net=\$NETWORK ports=\$PORTS binds=\$BINDS restart=\$RESTART\"
 
-  echo '[3/6] stopping + removing old container...'
+  echo '[3/6] stopping old container + RENAMING it (keep for rollback, do NOT remove yet)...'
   docker stop \$C >/dev/null
-  docker rm \$C >/dev/null
+  docker rename \$C \$OLD
 
   echo '[4/6] running from snapshot with flags applied...'
   EXTRA=''
   [ -n '${NEW1}' ] && EXTRA=\"\$EXTRA -e $FLAG1=${NEW1}\"
   [ -n '${NEW2}' ] && EXTRA=\"\$EXTRA -e $FLAG2=${NEW2}\"
-  docker run -d --name \$C --network \"\$NETWORK\" \$PORTS \$BINDS \
-    --restart unless-stopped --env-file \$ENV_FILE \$EXTRA \$SNAP >/dev/null
+  if ! docker run -d --name \$C --network \"\$NETWORK\" \$PORTS \$BINDS \
+      --restart \"\$RESTART\" --env-file \$ENV_FILE \$EXTRA \$SNAP >/dev/null; then
+    echo '      ✗ docker run FAILED — rolling back to the old container' >&2
+    docker rm -f \$C >/dev/null 2>&1 || true
+    docker rename \$OLD \$C >/dev/null 2>&1 && docker start \$C >/dev/null 2>&1 || true
+    exit 4
+  fi
 
   echo '[5/6] verifying code was preserved (canary) + flags...'
   sleep 2
   if ! docker exec \$C grep -q '$CODE_CANARY_STR' '$CODE_CANARY_FILE' 2>/dev/null; then
-    echo '      ✗ CODE CANARY MISSING — snapshot did not preserve live code! Investigate.' >&2
+    echo '      ✗ CODE CANARY MISSING — rolling back to the old container' >&2
+    docker rm -f \$C >/dev/null 2>&1 || true
+    docker rename \$OLD \$C >/dev/null 2>&1 && docker start \$C >/dev/null 2>&1 || true
     exit 3
   fi
   echo \"      ✓ code preserved; $FLAG1=\$(docker exec \$C printenv $FLAG1 2>/dev/null || echo '<unset>') $FLAG2=\$(docker exec \$C printenv $FLAG2 2>/dev/null || echo '<unset>')\"
 
   echo '[6/6] waiting for Galaxy /api/version to come up...'
+  UP=0
   for i in \$(seq 1 60); do
-    if docker exec \$C sh -c 'curl -fsS http://localhost:8080/api/version >/dev/null 2>&1'; then
-      echo '      ✓ galaxy up'; break
-    fi
+    if docker exec \$C sh -c 'curl -fsS http://localhost:8080/api/version >/dev/null 2>&1'; then UP=1; echo '      ✓ galaxy up'; break; fi
     sleep 2
   done
-  rm -f \$ENV_FILE
+  if [ \"\$UP\" != 1 ]; then
+    echo '      ✗ galaxy did NOT come up in 120s — old container kept as '\$OLD' for rollback' >&2
+    exit 5
+  fi
+  echo '      removing old container '\$OLD'...'
+  docker rm \$OLD >/dev/null 2>&1 || true
 "
 
 echo
-echo "Done. Routing flags are now ${action^^}. Verify end-to-end with:"
+echo "Done. Routing flags are now $(printf '%s' "$action" | tr '[:lower:]' '[:upper:]'). Verify end-to-end with:"
 echo "  E2E_FIXTURE_PASSWORD='<pw>' EXPECT_FLAGS_ON=1 bash scripts/smoke_generalized_routing.sh"
 echo "Revert with: bash scripts/enable_generalized_routing_on_dev.sh off"
