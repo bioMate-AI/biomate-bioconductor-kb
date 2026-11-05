@@ -670,6 +670,8 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
         outputs={mixedOutputs as any}
       />,
     );
+    // Outputs live under the Outputs tab (component lands on Summary).
+    fireEvent.click(await screen.findByTestId("after-tab-outputs"));
     // 1 scientific output of 4 total → "Download all (1)", never (4).
     expect(await screen.findByText(/Download all \(1\) as ZIP/)).toBeInTheDocument();
     expect(screen.queryByText(/Download all \(4\)/)).toBeNull();
@@ -683,6 +685,8 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
         outputs={mixedOutputs as any}
       />,
     );
+    // Outputs live under the Outputs tab (component lands on Summary).
+    fireEvent.click(await screen.findByTestId("after-tab-outputs"));
     const section = await screen.findByTestId("run-metadata-section");
     expect(section).toBeInTheDocument();
     // 3 of the 4 files are metadata.
