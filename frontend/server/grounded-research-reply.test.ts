@@ -56,3 +56,13 @@ it('does not change behaviour when the evidence addresses the question or the ve
   expect(groundedResearchReply('Uncited essay.',{...research,evidence_answers_question:true}).usedBackendAnswer).toBe(true);
   expect(groundedResearchReply('Uncited essay.',research).usedBackendAnswer).toBe(true);
 });
+it('tells the model not to build on off-topic papers, and gives it none to copy',()=>{
+  const ctx=researchEvidenceContext(offTopic);
+  expect(ctx).toContain('do NOT address this question');
+  expect(ctx).not.toContain('microelectronics');
+  expect(ctx).not.toContain('Preserve these reference numbers');
+});
+it('never keeps the empty-reply placeholder as an answer',()=>{
+  const result=groundedResearchReply('I processed your request using the available tools.',offTopic);
+  expect(result.message).not.toMatch(/^I processed your request/);
+});

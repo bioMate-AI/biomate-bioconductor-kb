@@ -206,6 +206,21 @@ def _eager_load_steps(nextflow_path: str) -> dict:
         return {}
 
 
+def _composed_workflow_name(data: Dict) -> str:
+    """A composed workflow's display name: its own name, else the first clause of its description
+    (<=60 chars), never the literal placeholder "Generated Workflow" — a GSE157703 scRNA request
+    showed a card titled "Generated Workflow" (external-user replay, dev 2026-11-04)."""
+    import re as _re_nm
+    name = str((data or {}).get('name') or '').strip()
+    if name and name.lower() != 'generated workflow':
+        return name
+    desc = str((data or {}).get('description') or (data or {}).get('annotation') or '').strip()
+    clause = _re_nm.split(r'(?<=[.;:])\s|\s[—–-]\s', desc)[0].strip().rstrip('.;:') if desc else ''
+    if clause:
+        return clause if len(clause) <= 60 else clause[:57].rsplit(' ', 1)[0] + '…'
+    return 'Custom workflow'
+
+
 class AIAssistant:
     """Main Galaxy AI Assistant that orchestrates the entire AI pipeline."""
     
@@ -5756,7 +5771,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             Galaxy .ga workflow JSON
         """
         # Extract template structure
-        workflow_name = template.get('name', 'Generated Workflow')
+        workflow_name = _composed_workflow_name(template)
         workflow_desc = template.get('description', '') or template.get('annotation', '')
 
         # Galaxy .ga format uses 'steps' key (dict), not 'workflow_steps' (list)
@@ -5825,7 +5840,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         """
         # Similar to _build_workflow_ga_from_template
         # This is a simplified version - real implementation would be more complex
-        workflow_name = workflow_data.get('name', 'Generated Workflow')
+        workflow_name = _composed_workflow_name(workflow_data)
         workflow_desc = workflow_data.get('description', '')
         steps = workflow_data.get('steps', [])
 

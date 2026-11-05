@@ -6984,8 +6984,11 @@ ${paramLines || '(none recorded)'}`;
         previousMessages: _historyMessages,
         billingUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
-        // Inject integer userId so memory-integration can load user preferences/corrections
-        userId: req.user ? Number((req.user as any).id) : (context?.userId),
+        // The user's id as stored (UUID). It was Number(id) — NaN for UUID ids, and NaN is falsy, so
+        // every per-user chat feature keyed on context.userId was silently skipped: recent runs and
+        // their errors, cross-session/episode/correction memory, domain profile (found 2026-11-04 when
+        // "why is the run failing?" got no run context although the account had 246 failed runs).
+        userId: req.user ? (req.user as any).id : (context?.userId),
         // Session-uploaded datasets: activates WorkflowDatasetSelector + domain-specialist format context
         // file_path is included so AI can auto-populate file-type params (e.g. movies_path, reads, input).
         // When the in-memory Express session has none (e.g. cross-device, post-refresh), fall back to

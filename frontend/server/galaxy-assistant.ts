@@ -524,7 +524,7 @@ export interface ChatContext {
   previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
   currentWorkflow?: any;
   selectedDatasets?: string[];
-  userId?: number; // For fetching user patterns
+  userId?: number | string; // The user's id (UUID); numbers only for legacy callers
   sessionId?: string;
   enableThinking?: boolean;
   /** Accumulated facts from prior turns, passed so the LLM can decide supersession */
@@ -2230,6 +2230,23 @@ export function runErrorSummary(execution: any, errorMessage?: string | null): s
   return parts.join(' — ') || 'failed with no recorded error message (task logs not captured)';
 }
 
+/** Prompt line fixing the reply language to the user's own words (not the English attachment blocks,
+ *  tool output or retrieved papers that follow them): a Chinese cell-viability request was answered
+ *  in English (external-user replay 2026-11-04). Script-detectable languages are named explicitly. */
+export function replyLanguageNote(message: string): string {
+  const own = (message || '').split(/\n\s*\[(?:Attached files|Uploaded datasets|BioMate dataset|Galaxy dataset|Upload warnings|Memory context|Inline parameters)/i)[0];
+  const count = (re: RegExp) => (own.match(re) || []).length;
+  const letters = count(/\p{L}/gu) || 1;
+  const named = count(/[\u3040-\u30ff]/g) / letters > 0.1 ? 'Japanese'
+    : count(/[\uac00-\ud7af]/g) / letters > 0.2 ? 'Korean'
+    : count(/\p{Script=Han}/gu) / letters > 0.2 ? 'Chinese (the user\'s script: simplified or traditional)'
+    : count(/\p{Script=Cyrillic}/gu) / letters > 0.3 ? 'Russian'
+    : '';
+  return named
+    ? `[Reply language: ${named} — the language of the user's own words; keep tool names, gene symbols and file names as they are]`
+    : "[Reply language: the language of the user's own words above, not of attached file names, tool output or retrieved papers]";
+}
+
 export function parseExecutionMode(v: unknown): 'pipeline' | 'direct_compute' | null {
   return v === 'direct_compute' || v === 'pipeline' ? v : null;
 }
@@ -3002,7 +3019,7 @@ export class GalaxyAssistant {
   private sessionMemory: SessionMemoryUpdater;
 
   /** In-memory domain profile cache: userId → { domains, topics, fetchedAt } */
-  private _domainProfileCache: Map<number, { domains: string[]; topics: string[]; fetchedAt: number }> = new Map();
+  private _domainProfileCache: Map<number | string, { domains: string[]; topics: string[]; fetchedAt: number }> = new Map();
   private static readonly DOMAIN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(options: GalaxyAssistantOptions) {
@@ -3626,7 +3643,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
    * Fetch user domain profile from backend, with 5-minute in-memory cache.
    * Returns null if userId not set or fetch fails (never throws).
    */
-  private async _fetchDomainProfile(userId?: number): Promise<{ domains: string[]; topics: string[] } | null> {
+  private async _fetchDomainProfile(userId?: number | string): Promise<{ domains: string[]; topics: string[] } | null> {
     if (!userId) return null;
     const cached = this._domainProfileCache.get(userId);
     if (cached && Date.now() - cached.fetchedAt < GalaxyAssistant.DOMAIN_CACHE_TTL_MS) {
@@ -8167,7 +8184,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
   private async searchRelevantTools(
     userMessage: string,
     keywords: string[],
-    userId?: number
+    userId?: number | string
   ): Promise<ToolRecommendation[]> {
     try {
       // Fetch user patterns for personalization
@@ -9307,6 +9324,7 @@ ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(g
       ? runCodeInputsNote(message, await this._attachedFileHeads(message, context))
       : '';
     const userPrompt = `User: ${message}
+${replyLanguageNote(message)}
 ${inputsNote ? `\n${inputsNote}\n` : ''}
 ${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.tool.name} - ${t.reasoning}`).join('\n')}` : ''}
 
@@ -11022,7 +11040,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
    */
   private async _triggerSessionSummary(
     compressedMessages: Array<{ role: 'user' | 'assistant'; content: string }>,
-    userId?: number,
+    userId?: number | string,
     sessionId?: string,
   ): Promise<void> {
     if (!compressedMessages.length) return;

@@ -45,3 +45,20 @@ describe('runErrorSummary', () => {
     expect(runErrorSummary({ error: 'Caused by:' })).toMatch(/no recorded error message/);
   });
 });
+
+import { replyLanguageNote } from './galaxy-assistant';
+describe('replyLanguageNote', () => {
+  it('names Chinese for a Chinese request even with English attachment blocks after it', () => {
+    const m = '请帮我比较两组细胞活力并画图\n\n[Attached files: cell_viability.csv]\n[Uploaded datasets: cell_viability.csv: dataset_id=u1, galaxy_dataset_id=g1]';
+    expect(replyLanguageNote(m)).toContain('Chinese');
+  });
+  it('names Russian / Japanese / Korean by script', () => {
+    expect(replyLanguageNote('найди эволюцию генов у рыб')).toContain('Russian');
+    expect(replyLanguageNote('この遺伝子の発現を解析してください')).toContain('Japanese');
+    expect(replyLanguageNote('이 데이터를 분석해 주세요')).toContain('Korean');
+  });
+  it('falls back to the general rule for Latin-script languages', () => {
+    expect(replyLanguageNote("scrivimi l'abstract per ESTRO 2027")).toMatch(/language of the user's own words above/);
+    expect(replyLanguageNote('Run DESeq2 on my counts')).toMatch(/language of the user's own words above/);
+  });
+});

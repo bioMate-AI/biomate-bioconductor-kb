@@ -1,5 +1,14 @@
 /** Keep chat prose inside the reference boundary supplied by the research agent. */
 export function researchEvidenceContext(research:any): string {
+  if (research?.evidence_answers_question === false) {
+    // Off-topic retrieval: handing the model these papers with "preserve these reference numbers"
+    // made it write a literature-bound non-answer citing them (replay 2026-11-04: sepsis dataset
+    // search, fish co-evolution, a beginner question answered with a chromatography teaching paper).
+    return 'Literature search: the retrieved papers do NOT address this question (research agent verdict). '
+      + 'Do not base the answer on them and do not cite them. Answer from BioMate\'s own tools (search_workflows, '
+      + 'query_database, list_history, run_code, …) and well-established knowledge, and say plainly that the answer '
+      + 'is not drawn from retrieved papers. Never invent references, accessions or study results.';
+  }
   const answer=typeof research?.answer==='string' ? research.answer : '';
   const citations=Array.isArray(research?.citations) ? research.citations : [];
   const references=citations.map((c:any,i:number)=>`[${i+1}] ${c.title || ''} (${c.year || ''}) ${c.journal || ''} ${c.doi ? 'doi:'+c.doi : ''} ${c.pmid ? 'PMID:'+c.pmid : ''}${c.abstract ? '\nAbstract: '+c.abstract : ''}`);
@@ -18,7 +27,9 @@ export function groundedResearchReply(draft: string, research: any): {message:st
   // the off-topic bibliography (external-user replay 2026-11-04: upload/UI questions answered with
   // microelectronics papers, imatinib ADMET "not detailed in the provided literature").
   const draftBody = body(draft || '');
-  if (research?.evidence_answers_question === false && draftBody && !markers(draftBody).length && draftBody.length === (draft || '').trim().length) {
+  // The empty-reply placeholder is not an answer to keep (replay: "I processed your request using the available tools." + note).
+  const placeholder = /^I processed your request using the available tools\.?$/i.test(draftBody);
+  if (research?.evidence_answers_question === false && draftBody && !placeholder && !markers(draftBody).length && draftBody.length === (draft || '').trim().length) {
     return {message:`${draftBody}\n\n${OFF_TOPIC_EVIDENCE_NOTE}`, usedBackendAnswer:false};
   }
   const valid = (text: string) => markers(text).every(n=>n>=1 && n<=citations.length);
