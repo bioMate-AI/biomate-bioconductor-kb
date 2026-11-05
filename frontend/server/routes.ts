@@ -15549,16 +15549,16 @@ Rules:
     const modifier = variants.filter(v => /^modifier$/i.test(v.impact.trim()));
     const contextLines = [
       `### Rare Disease Variant Analysis`,
-      // committee Opus-1: output samples are truncated to ~8KB upstream, so these counts are over
-      // the SAMPLED PREVIEW, not the full annotated table — label them so, and do NOT whitelist the
-      // preview total as an authoritative "variants analyzed" count for the LLM narrative.
-      `Variants in sampled preview (first ~8KB): ${variants.length}`,
-      `HIGH impact (in preview): ${high.length}`,
-      `MODERATE impact (in preview): ${mod.length}`,
-      `LOW impact (in preview): ${low.length}`,
-      `MODIFIER (in preview): ${modifier.length}`,
-      ...(high.length > 0 ? [``, `HIGH impact (preview):`, ...high.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
-      ...(mod.length > 0 ? [``, `MODERATE impact (preview, top 5):`, ...mod.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
+      // committee Opus-1: counts are over the SAMPLED output (parser now reads up to ~1MB — most
+      // annotated tables fit, but a very large table is still sampled), so label them "sampled" and
+      // do NOT whitelist the total as an authoritative "variants analyzed" count for the LLM narrative.
+      `Variants in sampled output: ${variants.length}`,
+      `HIGH impact (sampled): ${high.length}`,
+      `MODERATE impact (sampled): ${mod.length}`,
+      `LOW impact (sampled): ${low.length}`,
+      `MODIFIER (sampled): ${modifier.length}`,
+      ...(high.length > 0 ? [``, `HIGH impact (sampled):`, ...high.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
+      ...(mod.length > 0 ? [``, `MODERATE impact (sampled, top 5):`, ...mod.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
       ``, `Source file: ${f.name}`,
     ];
     const numbers = new Set<string>([String(high.length), String(mod.length), String(low.length), String(modifier.length)]);
@@ -15865,13 +15865,17 @@ Rules:
                     const _m = filePath.match(/^s3:\/\/([^/]+)\/(.+)$/);
                     if (_m) {
                       const _obj = await _s3c.send(new _GOC({ Bucket: _m[1], Key: _m[2] }));
-                      const chunks: Buffer[] = [];
-                      for await (const chunk of _obj.Body as any) chunks.push(Buffer.from(chunk));
-                      content = Buffer.concat(chunks).slice(0, 8000).toString('utf8');
+                      // sampling-decouple: read up to ~1MB so the deterministic parser + descriptor
+                      // see the FULL structured output (e.g. toxicity_report.json's
+                      // per_compound_admet_ai block, whole variant tables for counts). The LLM
+                      // context is truncated to 8KB separately. Stop at the cap to bound memory.
+                      const chunks: Buffer[] = []; let _sz = 0;
+                      for await (const chunk of _obj.Body as any) { const _b = Buffer.from(chunk); chunks.push(_b); _sz += _b.length; if (_sz >= 1_000_000) break; }
+                      content = Buffer.concat(chunks).slice(0, 1_000_000).toString('utf8');
                     }
                   } else if (filePath) {
                     const raw = await fsImport.readFile(filePath, 'utf8');
-                    content = raw.slice(0, 8000);
+                    content = raw.slice(0, 1_000_000); // sampling-decouple: full-ish parse-source; LLM context truncated below
                   }
                   return content.trim() ? { name: fileName, content } : null;
                 } catch { return null; }
@@ -15912,9 +15916,9 @@ Rules:
                 if (!_m) continue;
                 try {
                   const _obj = await _s3i.send(new _GI({ Bucket: _m[1], Key: _m[2] }));
-                  const chunks: Buffer[] = [];
-                  for await (const ch of _obj.Body as any) chunks.push(Buffer.from(ch));
-                  const content = Buffer.concat(chunks).slice(0, 8000).toString('utf8');
+                  const chunks: Buffer[] = []; let _szI = 0;
+                  for await (const ch of _obj.Body as any) { const _bI = Buffer.from(ch); chunks.push(_bI); _szI += _bI.length; if (_szI >= 1_000_000) break; } // sampling-decouple: full-ish parse-source
+                  const content = Buffer.concat(chunks).slice(0, 1_000_000).toString('utf8');
                   if (content.trim()) outputSamples.push({ name: fileName, content });
                 } catch { /* skip unreadable */ }
               }
@@ -16021,15 +16025,21 @@ Rules:
             return;
           }
 
+          // sampling-decouple: the parser/descriptor read the full ~1MB sample above; the LLM
+          // context (and its grounding number set) is TRUNCATED to 8KB per file so the token budget
+          // and the "LLM may only cite numbers it was shown" guarantee are preserved.
+          const _LLM_CAP = 8000;
           const fileContext = preprocessed
             ? preprocessed.context
-            : outputSamples.map(f => `### File: ${f.name}\n\`\`\`\n${f.content}\n\`\`\``).join('\n\n');
+            : outputSamples.map(f => `### File: ${f.name}\n\`\`\`\n${f.content.slice(0, _LLM_CAP)}\n\`\`\``).join('\n\n');
 
-          // Numeric tokens for guardrail: prefer pre-extracted (authoritative) over raw file scan
+          // Numeric tokens for guardrail: prefer pre-extracted (authoritative) over raw file scan.
+          // Scan only the 8KB the LLM actually sees, so the guardrail never admits a number that is
+          // in the full file but outside the LLM's context.
           const outputNumbers: Set<string> = preprocessed?.numbers ?? (() => {
             const s = new Set<string>();
             for (const f of outputSamples) {
-              for (const m of f.content.matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)) s.add(m[1]);
+              for (const m of f.content.slice(0, _LLM_CAP).matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)) s.add(m[1]);
             }
             return s;
           })();
