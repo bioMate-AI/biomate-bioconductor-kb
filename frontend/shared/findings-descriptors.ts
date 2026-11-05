@@ -30,7 +30,9 @@ export interface PatternDescriptor {
     type: EntityType;
     column?: string | RegExp;        // csv/tsv: entity column
     blockHeaderRegex?: RegExp;       // kvBlocks: new-entity line; capture group 1 = id
-    arrayPath?: string;              // jsonReport: dot path to the entity array
+    arrayPath?: string | string[];   // jsonReport: dot path(s) to the entity array. When several
+                                     // paths are given, every present array is MERGED by idField
+                                     // (e.g. per_compound_admet_ai AI probs + per_compound heuristics).
     idField?: string;                // jsonReport: field in each entity object for the id
     scheme?: string;                 // identifier scheme (SMILES, Ensembl, …)
   };
@@ -52,13 +54,33 @@ export function looksLikeSmiles(s: string): boolean {
 }
 
 // ── ADMET structured report (toxicity_report.json: per_compound[] + batch toxicity{}) ──
+// The real toxicity_report.json (predict_admet_properties/main.nf) carries TWO per-compound
+// arrays: `per_compound_admet_ai` (Chemprop AI probabilities: hERG_prob, DILI_prob,
+// cyp2d6_inhibitor_prob, …) and `per_compound` (RDKit heuristics: herg_ic50_uM, logP, mw,
+// dili_risk). The AI array holds the liability-bearing endpoints (hERG, CYP2D6) that the flat
+// `_parseAdmetOutput` path in routes.ts flags from the same run's human-readable log. Reading
+// ONLY `per_compound` (the old descriptor) left this path blind to hERG/CYP2D6, so the embedded
+// findings_document summary said "No major liabilities flagged." while the flat summary flagged
+// them — the dual-summary contradiction. We now MERGE both arrays by SMILES and mirror the flat
+// path's exact metric names + 0.5 thresholds so the two liability verdicts can never disagree.
 const ADMET_REPORT: PatternDescriptor = {
   id: 'admet_report',
   match: { fileRegex: /toxicity_report|admet.*\.json/i, contentIncludes: ['per_compound'] },
   parse: 'jsonReport',
-  entity: { type: 'compound', arrayPath: 'per_compound', idField: 'smiles', scheme: 'SMILES' },
+  entity: { type: 'compound', arrayPath: ['per_compound_admet_ai', 'per_compound'], idField: 'smiles', scheme: 'SMILES' },
   metrics: [
-    { name: 'DILI probability', source: 'dili_probability', threshold: { value: 0.5, direction: 'high_bad' }, label: 'drug-induced liver injury risk' },
+    // ADMET-AI probability endpoints (per_compound_admet_ai) — names + thresholds mirror the
+    // flat `_parseAdmetOutput` THRESHOLDS map exactly so both summaries flag the same set.
+    { name: 'hERG inhibition',       source: 'hERG_prob',                threshold: { value: 0.5, direction: 'high_bad' }, label: 'hERG (cardiac) liability risk' },
+    { name: 'DILI probability',      source: /^(dili_prob|dili_probability)$/i, threshold: { value: 0.5, direction: 'high_bad' }, label: 'drug-induced liver injury risk' },
+    { name: 'CYP2D6 inhibitor',      source: 'cyp2d6_inhibitor_prob',    threshold: { value: 0.5, direction: 'high_bad' }, label: 'CYP2D6 inhibitor risk' },
+    { name: 'Oral bioavailability',  source: 'oral_bioavailability_prob', threshold: { value: 0.5, direction: 'low_bad' },  label: 'oral bioavailability' },
+    { name: 'ClinTox',               source: 'clintox_prob',             threshold: { value: 0.5, direction: 'high_bad' }, label: 'clinical toxicity probability' },
+    { name: 'CYP3A4 substrate',      source: 'cyp3a4_substrate_prob',    label: 'CYP3A4 substrate probability' },
+    { name: 'BBB penetration',       source: 'bbb_prob',                 label: 'blood-brain barrier penetration' },
+    { name: 'Plasma protein bind %', source: 'ppbr_pct', units: '%',     label: 'plasma protein binding (%)' },
+    { name: 'Caco-2 logPapp',        source: 'caco2_logPapp',            label: 'intestinal permeability (logPapp)' },
+    // RDKit per_compound endpoints — kept for legacy reports that carry no ADMET-AI block.
     { name: 'hERG IC50',        source: 'herg_ic50_uM', units: 'µM', label: 'hERG (cardiac) IC50' },
     { name: 'logP',             source: 'logP', label: 'lipophilicity (logP)' },
     { name: 'MW',               source: 'mw', units: 'Da', label: 'molecular weight' },

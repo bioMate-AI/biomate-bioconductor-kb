@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { buildFindingsDocument, documentToLegacy } from './findings-extract';
+import {
+  buildFindingsDocument,
+  documentToLegacy,
+  documentLiabilities,
+  flatLiabilities,
+  reconcileFindingsDocument,
+} from './findings-extract';
 import { matchDescriptor, DESCRIPTORS } from './findings-descriptors';
 
 const CAFFEINE = 'Cn1c(=O)c2c(ncn2C)n(C)c1=O';
@@ -162,6 +168,114 @@ describe('buildFindingsDocument — ADMET structured report (jsonReport + batch)
 
   it('uses the Report evidence class', () => {
     expect(doc.provenance.p0.evidenceClass).toBe('Report');
+  });
+});
+
+// ── Dual-summary contradiction regression (BUG 2) ──────────────────────────────
+// Real toxicity_report.json shape: the ADMET-AI probabilities live in
+// `per_compound_admet_ai` (hERG_prob, DILI_prob, cyp2d6_inhibitor_prob) while the RDKit
+// heuristics live in `per_compound` (herg_ic50_uM, logP, mw, dili_risk). Before the fix the
+// descriptor read only `per_compound` — blind to hERG/CYP2D6 — so buildFindingsDocument said
+// "No major liabilities flagged." while the flat _parseAdmetOutput path flagged hERG + CYP2D6.
+// Terfenadine: hERG_prob 0.977 (liability), cyp2d6_inhibitor_prob 0.861 (liability),
+// DILI_prob 0.041 (low, pass).
+const TERFENADINE = 'CC(C)(C)c1ccc(cc1)C(O)CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1';
+const ADMET_AI_JSON = {
+  name: 'toxicity_report.json',
+  content: JSON.stringify({
+    per_compound_admet_ai: [
+      {
+        smiles: TERFENADINE,
+        hERG_prob: 0.977,
+        DILI_prob: 0.041,
+        cyp2d6_inhibitor_prob: 0.861,
+        oral_bioavailability_prob: 0.72,
+        clintox_prob: 0.12,
+        cyp3a4_substrate_prob: 0.55,
+        bbb_prob: 0.60,
+        ppbr_pct: 98.2,
+        caco2_logPapp: 1.4,
+      },
+    ],
+    per_compound: [
+      { smiles: TERFENADINE, dili_probability: 0.041, herg_ic50_uM: 0.01, dili_risk: 'low', logP: 5.8, mw: 471.7 },
+    ],
+    toxicity: { herg_ic50_uM: 0.01, dili_probability: 0.041, ames_probability: 0.1 },
+  }),
+};
+
+// The flat findings object exactly as _parseAdmetOutput (routes.ts) emits it for the same run.
+const TERFENADINE_FLAT = {
+  summary: 'ADMET prediction completed for 1 compound. Potential liabilities flagged: hERG inhibition, CYP2D6 inhibitor.',
+  key_results: [
+    { metric: 'hERG inhibition',  value: '0.977', interpretation: 'Elevated hERG (cardiac) liability risk (0.977) — potential liability', source_file: 'toxicity_report.json' },
+    { metric: 'DILI probability', value: '0.041', interpretation: 'Acceptable drug-induced liver injury risk (0.041)', source_file: 'toxicity_report.json' },
+    { metric: 'CYP2D6 inhibitor', value: '0.861', interpretation: 'Elevated CYP2D6 inhibitor risk (0.861) — potential liability', source_file: 'toxicity_report.json' },
+  ],
+};
+
+describe('BUG 2 — ADMET findings_document agrees with the flat verdict (no dual-summary contradiction)', () => {
+  const m = matchDescriptor('Predict ADMET Properties (AI)', [ADMET_AI_JSON]);
+  const doc = buildFindingsDocument(m!.descriptor, m!.file);
+
+  it('matches the JSON report descriptor and reads the single merged compound', () => {
+    expect(m?.descriptor.id).toBe('admet_report');
+    expect(doc.entityRoster).toHaveLength(1);
+  });
+
+  it('flags hERG (0.977) and CYP2D6 (0.861), passes DILI (0.041)', () => {
+    const herg = doc.records.find(r => r.metric.name === 'hERG inhibition')!;
+    expect(herg.metric.value).toBe('0.977');
+    expect(herg.assessment?.flag).toBe('liability');
+    const cyp = doc.records.find(r => r.metric.name === 'CYP2D6 inhibitor')!;
+    expect(cyp.metric.value).toBe('0.861');
+    expect(cyp.assessment?.flag).toBe('liability');
+    const dili = doc.records.find(r => r.metric.name === 'DILI probability')!;
+    expect(dili.metric.value).toBe('0.041');
+    expect(dili.assessment?.flag).toBe('pass');
+  });
+
+  it('merges per_compound heuristics alongside the AI probabilities (no data lost)', () => {
+    // logP/mw come from per_compound, hERG_prob from per_compound_admet_ai — same compound.
+    expect(doc.records.find(r => r.metric.name === 'logP')?.metric.value).toBe('5.8');
+    expect(doc.records.find(r => r.metric.name === 'MW')?.metric.value).toBe('471.7');
+  });
+
+  it('document summary flags hERG + CYP2D6 and NEVER says "no liabilities"', () => {
+    expect(doc.summary).toMatch(/hERG inhibition/);
+    expect(doc.summary).toMatch(/CYP2D6 inhibitor/);
+    expect(doc.summary).not.toMatch(/No major liabilities/i);
+  });
+
+  it('the two verdicts AGREE — same liability set, reconciliation is a no-op', () => {
+    const docSet = documentLiabilities(doc);
+    const flatSet = flatLiabilities(TERFENADINE_FLAT);
+    expect([...docSet].sort()).toEqual(['CYP2D6 inhibitor', 'hERG inhibition']);
+    expect([...flatSet].sort()).toEqual(['CYP2D6 inhibitor', 'hERG inhibition']);
+    // sets equal → reconcile returns the document unchanged (no deferral, no extra caveat)
+    const reconciled = reconcileFindingsDocument(TERFENADINE_FLAT, doc);
+    expect(reconciled.summary).toBe(doc.summary);
+    expect(reconciled.caveats).toEqual(doc.caveats);
+  });
+});
+
+describe('reconcileFindingsDocument — safeguard fires on a genuine mismatch', () => {
+  const m = matchDescriptor('Predict ADMET Properties (AI)', [ADMET_AI_JSON]);
+  const doc = buildFindingsDocument(m!.descriptor, m!.file); // flags hERG + CYP2D6
+
+  it('defers the embedded summary to the flat verdict and logs when sets disagree', () => {
+    const flatSaysNothing = { summary: 'ADMET prediction completed for 1 compound. No major liabilities flagged.', key_results: [] };
+    const logged: string[] = [];
+    const reconciled = reconcileFindingsDocument(flatSaysNothing, doc, (m2) => logged.push(m2));
+    expect(reconciled.summary).toBe(flatSaysNothing.summary);     // embedded summary defers to flat
+    expect(reconciled.caveats.some(c => /reconciled/i.test(c))).toBe(true);
+    expect(logged.some(l => /mismatch/i.test(l))).toBe(true);     // logged at error
+  });
+
+  it('is a no-op when neither path produced a liability signal', () => {
+    const cleanDoc = { ...doc, records: doc.records.filter(r => r.assessment?.flag !== 'liability') };
+    const out = reconcileFindingsDocument({ summary: 'clean', key_results: [] }, cleanDoc);
+    expect(out).toBe(cleanDoc);
   });
 });
 

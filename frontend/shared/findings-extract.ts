@@ -88,10 +88,25 @@ function parseEntities(descriptor: PatternDescriptor, file: { name: string; cont
   if (descriptor.parse === 'jsonReport') {
     let json: unknown;
     try { json = JSON.parse(file.content); } catch { return { entities: [], batch: null }; }
-    const arr = getByPath(json, descriptor.entity.arrayPath);
-    const entities: RawEntity[] = Array.isArray(arr)
-      ? arr.map((o, i) => ({ id: String((o as Record<string, unknown>)?.[descriptor.entity.idField || 'id'] ?? `item_${i + 1}`), metrics: objToMetrics(o) }))
-      : [];
+    const idField = descriptor.entity.idField || 'id';
+    const paths = Array.isArray(descriptor.entity.arrayPath)
+      ? descriptor.entity.arrayPath
+      : [descriptor.entity.arrayPath];
+    // Merge every present array by id so parallel per-entity arrays (e.g. the ADMET-AI
+    // probability rows and the RDKit heuristic rows, both keyed by SMILES) become one
+    // record set with the union of their fields — never two divergent views of one compound.
+    const merged = new Map<string, Record<string, string>>();
+    const order: string[] = [];
+    for (const p of paths) {
+      const arr = getByPath(json, p);
+      if (!Array.isArray(arr)) continue;
+      arr.forEach((o, i) => {
+        const id = String((o as Record<string, unknown>)?.[idField] ?? `item_${i + 1}`);
+        if (!merged.has(id)) { merged.set(id, {}); order.push(id); }
+        Object.assign(merged.get(id)!, objToMetrics(o));
+      });
+    }
+    const entities: RawEntity[] = order.map(id => ({ id, metrics: merged.get(id)! }));
     const batch = descriptor.batch ? { id: 'panel', metrics: objToMetrics(getByPath(json, descriptor.batch.path)) } : null;
     return { entities, batch };
   }
@@ -265,5 +280,61 @@ export function documentToLegacy(doc: FindingsDocument): {
     })),
     caveats: doc.caveats,
     next_steps: doc.nextSteps,
+  };
+}
+
+/** Distinct metric names the FindingsDocument flagged as a liability. */
+export function documentLiabilities(doc: FindingsDocument): Set<string> {
+  return new Set(doc.records.filter(r => r.assessment?.flag === 'liability').map(r => r.metric.name));
+}
+
+/**
+ * Distinct liability metric names from the flat findings shape. The deterministic ADMET path
+ * (`_parseAdmetOutput`) marks a liability by ending the interpretation with "potential liability";
+ * we read that marker so the flat and document verdicts are compared on the same basis.
+ */
+export function flatLiabilities(findings: {
+  key_results?: Array<{ metric?: string; interpretation?: string }>;
+} | null | undefined): Set<string> {
+  const out = new Set<string>();
+  for (const kr of findings?.key_results || []) {
+    if (kr.metric && /potential liability/i.test(kr.interpretation || '')) out.add(kr.metric);
+  }
+  return out;
+}
+
+function sameSet(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+}
+
+/**
+ * Reconciliation safeguard: one payload must never carry two contradictory liability verdicts.
+ * The flat `summary`/`key_results` and the embedded `findings_document` are computed independently,
+ * so if their liability sets disagree we log at error and make the embedded document DEFER to the
+ * flat (primary) verdict — rewriting the document summary to the flat summary and recording a
+ * caveat. When the sets agree (the intended steady state after the descriptor fix) this is a no-op.
+ */
+export function reconcileFindingsDocument(
+  flat: { summary?: string; key_results?: Array<{ metric?: string; interpretation?: string }> } | null | undefined,
+  doc: FindingsDocument,
+  log: (msg: string) => void = (m) => console.error(m),
+): FindingsDocument {
+  const flatSet = flatLiabilities(flat);
+  const docSet = documentLiabilities(doc);
+  // Reconcile only when at least one path produced a liability signal AND the two disagree.
+  if (flatSet.size + docSet.size === 0 || sameSet(flatSet, docSet)) return doc;
+  log(
+    `[Findings] liability verdict mismatch — flat=[${[...flatSet].join(', ')}] ` +
+    `document=[${[...docSet].join(', ')}]; embedded summary deferring to the flat (primary) verdict`,
+  );
+  return {
+    ...doc,
+    summary: (flat?.summary && flat.summary.trim()) ? flat.summary : doc.summary,
+    caveats: [
+      ...doc.caveats,
+      'Embedded findings summary reconciled to the primary liability verdict (a mismatch between the two independently-computed verdicts was detected and logged).',
+    ],
   };
 }
