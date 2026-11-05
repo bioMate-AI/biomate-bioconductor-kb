@@ -100,10 +100,39 @@ included, deterministic); the F-stat one-way ANOVA (NaN-aware, df guards) is cor
 
 ---
 
+## Pass 4 — adversarial re-review of the pass-2/3 FIXES (did the fixes introduce regressions?)
+Two reviewers (Opus correctness + Sonnet integration) attacked ONLY the four new fix commits
+(`3cb929682`, `863a8d356`, `eea051da2`). Both ran the suites locally: **30/30** pass.
+
+**CONFIRMED regression (BOTH reviewers independently; Opus reproduced) → FIXED (`cb70c6772`):**
+my A1 fix applied the broad `_is_missing` token set to the **label** column unconditionally, so a
+**classification** class literally named `none`/`-`/`.`/`NA` (e.g. a treatment arm `none`, mutation
+status `none`) was **silently dropped** — Opus reproduced `arm=[drugA,none,drugA,none]` collapsing to a
+single class. Root-cause fix (task-aware, strictly better than the reviewers' token-narrowing
+suggestion — it keeps *any* non-blank label as a valid class):
+- label row-skip uses a new `_is_blank` (None/empty/whitespace only), never a semantic token;
+- the **regression** path explicitly drops missing/non-numeric-label rows (where `float("NA")` would
+  crash), keeping X/y aligned and logging the count;
+- classification keeps every non-blank label as a class; `_load_csv` (molecule, regression-only) skips
+  non-numeric/non-finite labels. +2 tests (categorical `none` kept; blank still skipped), 20/20.
+
+**CONFIRMED clean by both reviewers** (ruled-out, with evidence): M1 (`make_s3_client` import-safe,
+signature-compatible, won't throw at construction, new `RuntimeError` still caught by the per-layer
+handler → findings path not sunk); H2 (purely additive, fires only for a `[`-prefixed str, double-
+wrapped in try/except, `_json.loads` once per request — not a hot path/DoS); `_val` non-finite guard
+(rejects only inf/overflow, no legit finite value lost, no existing test's numbers change); X/y stay
+aligned; `csv.DictReader` yields only str/None so `_is_missing`'s `isinstance` guard is safe; the
+driver hook's `isinstance(list)` path is unchanged for real runs. One LOW note left as-is: the per-layer
+M1 `RuntimeError` text is surfaced in the **logs** (where a developer debugging a missing-drivers
+finding looks), not to end users — intentional for a best-effort supplementary finding.
+
 ## Net
-Three committee passes caught one HIGH plumbing bug (H1, which corrected a false claim of mine), one
-reproduced MEDIUM crash (A1), one MEDIUM on-prem/error-masking bug (M1), and a false "unit-tested"
-claim — all fixed and (for H1) live-verified. Two reviewer suggestions were rejected with math (the
-F-floor variants), one disagreement between reviewers was resolved by code (H2), and the LOW/cosmetic
+Four committee passes: pass 1 caught a unit-test that never ran (my false "unit-tested" claim) + I
+rejected a floor suggestion with math; passes 2/3 caught one HIGH plumbing bug (H1, correcting a false
+"evaluated live" claim of mine, now live-verified), one reproduced MEDIUM crash (A1), one MEDIUM
+on-prem/error-masking bug (M1); pass 4 caught a MEDIUM silent-data-loss **regression that my A1 fix
+introduced** (classification labels named `none`/`-`/`.`), now fixed with a task-aware root-cause fix.
+Reviewer suggestions were taken when right (A1 regression, M1, H1), rejected with math when wrong (the
+F-floor variants), and a reviewer disagreement (H2) was resolved by reading the code. The LOW/cosmetic
 remainder is documented as known-minor rather than churned. "No one does it perfect once" — borne out
-again, and the corrections are the point.
+at every pass, including on my own fixes; the corrections are the point.
