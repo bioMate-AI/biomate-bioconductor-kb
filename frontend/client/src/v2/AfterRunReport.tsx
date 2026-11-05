@@ -1003,8 +1003,15 @@ function OutputsTab({
     );
   }
 
-  const fileUrl = (f: OutputFile, download = false) =>
-    `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;
+  const fileUrl = (f: OutputFile, download = false) => {
+    // Prefer download_url (Galaxy proxy / presigned URL) when available.
+    // This avoids routing through the Node.js step-file endpoint, which requires
+    // the file to be reachable from the Node.js container. On on-prem MinIO
+    // deployments, Galaxy is in the same Docker network as MinIO and can serve
+    // the file reliably even when the Node.js container cannot.
+    if ((f as any).download_url) return (f as any).download_url;
+    return `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;
+  };
 
   const iconForExt = (ext: string) => {
     if (['png','jpg','jpeg','gif','svg','webp','tiff'].includes(ext)) return '🖼';

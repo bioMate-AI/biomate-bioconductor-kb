@@ -319,6 +319,14 @@ services:
       # ── 本地镜像仓库 ──────────────────────────────────────────────────────
       BIOMATE_LOCAL_REGISTRY: ${BIOMATE_LOCAL_REGISTRY:-localhost:5050}
 
+      # ── 海光 C86 / 信创 x86 兼容性（由 install.sh 自动写入 .env）──────────
+      # C86 (Zen 1) 不支持 AVX-512；这些变量限制 OpenBLAS / Intel MKL 只使用
+      # AVX2 路径，防止在 Hygon CPU 上出现 SIGILL 崩溃。在标准 x86 / ARM64 上
+      # 这些变量无害，统一透传即可。
+      OPENBLAS_CORETYPE: ${OPENBLAS_CORETYPE:-}
+      MKL_ENABLE_INSTRUCTIONS: ${MKL_ENABLE_INSTRUCTIONS:-}
+      MKL_DEBUG_CPU_TYPE: ${MKL_DEBUG_CPU_TYPE:-}
+
       # ── Bioconductor container override ───────────────────────────────────
       # Bioconductor R workflows use a private ECR image by default.
       # On air-gapped or no-AWS hosts, set this to a pre-pulled local image:

@@ -12640,6 +12640,41 @@ Rules:
     }
   });
 
+  // On-prem MinIO S3 output file download proxy.
+  // Galaxy's /api/nextflow/outputs/download serves files directly from MinIO
+  // (same Docker network). Browsers can't reach port 8081; this route
+  // forwards authenticated requests through the main app port.
+  // Galaxy wraps output file download_url as: /api/nextflow/outputs/download?s3_uri=...
+  // which becomes /api/galaxy-proxy/api/nextflow/outputs/download?s3_uri=... here.
+  app.get("/api/galaxy-proxy/api/nextflow/outputs/download", authenticateToken, async (req: any, res) => {
+    try {
+      const runId = req.query.run_id as string | undefined;
+      if (runId) {
+        const execRun = await storage.getExecutionRun(runId).catch(() => null);
+        if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      }
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const qs = new URLSearchParams(req.query as Record<string, string>).toString();
+      const upstream = await fetch(`${galaxyUrl}/api/nextflow/outputs/download?${qs}`, {
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (!upstream.ok) {
+        // Galaxy 404/403 after restart (run not in _runs): fall through to step-file
+        return res.status(upstream.status).json({ error: 'Galaxy backend error' });
+      }
+      const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+      const cd = upstream.headers.get('content-disposition');
+      res.setHeader('Content-Type', ct);
+      if (cd) res.setHeader('Content-Disposition', cd);
+      const buf = await upstream.arrayBuffer();
+      res.send(Buffer.from(buf));
+    } catch (e: any) {
+      res.status(500).json({ error: (e as Error).message });
+    }
+  });
+
   // On-prem local output file download proxy.
   // Galaxy's /api/nextflow/outputs/local-download is only reachable on the
   // internal network (port 8081, not exposed to browsers). This route

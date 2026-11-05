@@ -24,6 +24,10 @@ on:
         description: 'Mirror biomni-admet:x86 from AWS ECR → Alibaba ACR (run once; ~4GB, ~15 min). Requires ACR_USERNAME + ACR_PASSWORD secrets.'
         type: boolean
         default: false
+      build_frontend:
+        description: 'Build + push new frontend image to ACR, then deploy to ECS. Required after routes.ts / React changes.'
+        type: boolean
+        default: false
 
 permissions:
   packages: read
@@ -344,6 +348,53 @@ jobs:
                docker tag ghcr.io/biomate-ai/biomni-tools:latest biomate/biomni-tools:latest && \
                echo "=== biomate/biomni-tools:latest installed on ECS ===" && \
                docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}}"'
+
+      - name: Build frontend image and push to ACR (Beijing)
+        # Builds the Node.js/Express + React frontend with VITE_ONPREM=true baked in,
+        # pushes to Alibaba Container Registry (Beijing region, same network as ECS → fast pull).
+        # Triggered by: workflow_dispatch with build_frontend=true.
+        # Required whenever frontend/server/routes.ts or frontend/client/ code changes.
+        # After this step BIOMATE_FRONTEND_IMAGE in ECS .env is updated and the new
+        # image is pre-pulled so the restart-stack step uses it immediately.
+        if: ${{ inputs.build_frontend == true }}
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          if [ -z "$ACR_USERNAME" ] || [ -z "$ACR_PASSWORD" ]; then
+            echo "ERROR: ACR_USERNAME / ACR_PASSWORD secrets not set — cannot push to ACR"
+            exit 1
+          fi
+          ACR_IMG="${{ env.ACR_REGISTRY }}/${{ env.ACR_NAMESPACE }}/biomate-frontend:feat-aliyun-deploy-latest"
+          echo "Building frontend image (linux/amd64, VITE_ONPREM=true)..."
+          echo "$ACR_PASSWORD" | docker login "${{ env.ACR_REGISTRY }}" -u "$ACR_USERNAME" --password-stdin
+          docker build \
+            --platform linux/amd64 \
+            --build-arg VITE_ONPREM=true \
+            --build-arg GIT_SHA=${{ github.sha }} \
+            -t "$ACR_IMG" \
+            frontend/
+          echo "Pushing frontend image to ACR..."
+          docker push "$ACR_IMG"
+          echo "Image pushed: $ACR_IMG"
+          # Update BIOMATE_FRONTEND_IMAGE on ECS and pre-pull the image
+          ACR_USER="${ACR_USERNAME}"
+          ACR_PASS="${ACR_PASSWORD}"
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            bash -s << ENDSSH
+          set -e
+          echo "$ACR_PASS" | docker login ${{ env.ACR_REGISTRY }} -u "$ACR_USER" --password-stdin
+          echo "Pulling $ACR_IMG from ACR (Beijing internal — fast)..."
+          docker pull "$ACR_IMG"
+          ENV_FILE=/app/biomate/.env
+          grep -q "^BIOMATE_FRONTEND_IMAGE=" "\$ENV_FILE" && \
+            sed -i "s|^BIOMATE_FRONTEND_IMAGE=.*|BIOMATE_FRONTEND_IMAGE=$ACR_IMG|" "\$ENV_FILE" || \
+            echo "BIOMATE_FRONTEND_IMAGE=$ACR_IMG" >> "\$ENV_FILE"
+          echo "BIOMATE_FRONTEND_IMAGE updated to: $ACR_IMG"
+          ENDSSH
 
       - name: Configure Docker registry mirror (DaoCloud — China-accessible)
         # DaoCloud mirror allows pulling Docker Hub images from Alibaba Cloud ECS.
