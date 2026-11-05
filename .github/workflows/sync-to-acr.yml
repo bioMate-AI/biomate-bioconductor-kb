@@ -349,20 +349,16 @@ jobs:
                echo "=== biomate/biomni-tools:latest installed on ECS ===" && \
                docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}}"'
 
-      - name: Build and hot-deploy server bundle to ECS
-        # Compiles server/index.ts → dist/index.js on the GHA runner (esbuild, ~5s),
-        # then SSH-pipes the ~2 MB bundle to ECS and docker-cp it into the running
-        # biomate-frontend container. No Docker image rebuild or ACR credentials needed.
-        # Triggered by: workflow_dispatch with build_frontend=true.
-        # Required whenever frontend/server/routes.ts or other server-side code changes.
+      - name: Pre-compile server bundle (if build_frontend=true)
+        # Compile server/index.ts → /tmp/server_index.js on the GHA runner so it's
+        # ready to pipe to ECS after the stack restarts (the hot-deploy step runs later).
+        # Must happen BEFORE restart so the compiled file is available; the actual
+        # docker-cp + container restart is done in the post-restart hot-deploy step.
         if: ${{ inputs.build_frontend == true }}
-        env:
-          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
           echo "=== Installing frontend deps ==="
           cd frontend
           npm ci --prefer-offline 2>&1 | tail -5
-
           echo "=== Compiling server bundle ==="
           npx esbuild server/index.ts \
             --platform=node \
@@ -373,21 +369,6 @@ jobs:
             --outfile=/tmp/server_index.js
           ls -lh /tmp/server_index.js
           cd ..
-
-          echo "=== Piping bundle to ECS ==="
-          cat /tmp/server_index.js | \
-            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
-              root@${{ env.ECS_IP }} \
-              'cat > /tmp/server_index_deploy.js && \
-               echo "Received: $(wc -c < /tmp/server_index_deploy.js) bytes" && \
-               docker cp /tmp/server_index_deploy.js biomate-frontend:/app/dist/index.js && \
-               echo "docker cp done" && \
-               docker restart --time 15 biomate-frontend && \
-               echo "biomate-frontend restarted with new server bundle" && \
-               sleep 5 && \
-               STATUS=$(docker inspect biomate-frontend --format "{{.State.Status}}" 2>/dev/null) && \
-               echo "Container status after restart: $STATUS"'
 
       - name: Configure Docker registry mirror (DaoCloud — China-accessible)
         # DaoCloud mirror allows pulling Docker Hub images from Alibaba Cloud ECS.
@@ -503,6 +484,32 @@ jobs:
              else
                echo "WARNING: ADMET main.nf not found at $NF_FILE"
              fi'
+
+      - name: Hot-deploy server bundle into running frontend container
+        # MUST run AFTER Restart stack + galaxy restart — compose down/up recreates
+        # containers from the image, so docker-cp must happen on the already-running
+        # container. Copies the pre-compiled dist/index.js (built in the pre-compile
+        # step) into biomate-frontend:/app/dist/index.js and restarts the container.
+        # The restart is a simple stop+start — the copied file persists because it
+        # modifies the container's writable layer, not the base image.
+        if: ${{ inputs.build_frontend == true }}
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          cat /tmp/server_index.js | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+              root@${{ env.ECS_IP }} \
+              'cat > /tmp/server_index_deploy.js && \
+               echo "Received: $(wc -c < /tmp/server_index_deploy.js) bytes" && \
+               docker cp /tmp/server_index_deploy.js biomate-frontend:/app/dist/index.js && \
+               echo "docker cp done" && \
+               docker restart --time 15 biomate-frontend && \
+               echo "biomate-frontend restarted with new server bundle" && \
+               sleep 8 && \
+               STATUS=$(docker inspect biomate-frontend --format "{{.State.Status}}" 2>/dev/null) && \
+               echo "Container status: $STATUS" && \
+               curl -sf --max-time 10 http://localhost:5000/api/health 2>/dev/null || echo "(health check skipped — may still be starting)"'
 
       - name: Patch index.html — remove Google CDN links (blocked in China)
         # Google Fonts and Google Tag Manager are inaccessible from mainland China.
