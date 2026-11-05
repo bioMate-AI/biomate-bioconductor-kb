@@ -263,13 +263,29 @@ describe('reconcileFindingsDocument — safeguard fires on a genuine mismatch', 
   const m = matchDescriptor('Predict ADMET Properties (AI)', [ADMET_AI_JSON]);
   const doc = buildFindingsDocument(m!.descriptor, m!.file); // flags hERG + CYP2D6
 
-  it('defers the embedded summary to the flat verdict and logs when sets disagree', () => {
+  it('keeps the document as primary when the flat has NO deterministic liability signal (audit S3#1)', () => {
+    // An LLM-generated flat ("no liabilities", no "potential liability" marker) → flatSet empty.
+    // Empty flatSet vs non-empty docSet is NOT a genuine disagreement; the document is the
+    // reliable source and its correct summary must be preserved — NOT overwritten with the flat's
+    // "no liabilities" text (which previously re-created the #4 dual-verdict contradiction).
     const flatSaysNothing = { summary: 'ADMET prediction completed for 1 compound. No major liabilities flagged.', key_results: [] };
     const logged: string[] = [];
     const reconciled = reconcileFindingsDocument(flatSaysNothing, doc, (m2) => logged.push(m2));
-    expect(reconciled.summary).toBe(flatSaysNothing.summary);     // embedded summary defers to flat
+    expect(reconciled.summary).toBe(doc.summary);                 // document summary PRESERVED
+    expect(reconciled.summary).toMatch(/hERG inhibition/);        // still flags the real liabilities
+    expect(reconciled.caveats).toEqual(doc.caveats);              // no reconcile caveat added
+    expect(logged.length).toBe(0);                                // nothing logged (early return)
+  });
+
+  it('still defers to the flat when a DETERMINISTIC flat liability signal genuinely disagrees', () => {
+    // Deterministic flat (carries the "potential liability" marker) flags a different set → a real
+    // disagreement → the defer-to-flat safeguard still fires.
+    const flatDet = { summary: 'ADMET: AMES liability only.', key_results: [{ metric: 'AMES mutagenicity', interpretation: 'positive — potential liability' }] };
+    const logged: string[] = [];
+    const reconciled = reconcileFindingsDocument(flatDet, doc, (m2) => logged.push(m2));
+    expect(reconciled.summary).toBe(flatDet.summary);
     expect(reconciled.caveats.some(c => /reconciled/i.test(c))).toBe(true);
-    expect(logged.some(l => /mismatch/i.test(l))).toBe(true);     // logged at error
+    expect(logged.some(l => /mismatch/i.test(l))).toBe(true);
   });
 
   it('is a no-op when neither path produced a liability signal', () => {
