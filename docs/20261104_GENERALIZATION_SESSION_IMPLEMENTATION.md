@@ -137,11 +137,20 @@ a dev run is the follow-up).
 
 ## 7. Test coverage — honest assessment (see §8 of this doc for the plan)
 What IS covered: **unit/logic level, thoroughly** — splits, loaders, trainers, routing parsers,
-fusion, gate evaluation (218 passing across the four modules), PLUS **model-training executes
-end-to-end on CPU Batch** (above). What is **NOT** covered:
-- **Multi-omics SNF + QC-gate engine not yet run inside a live Batch execution** — model-training is
-  now Batch-verified; the SNF integration and a declared-gate run inside a real workflow remain
-  (§8 items 2, 4-execution).
+fusion, gate evaluation (218 passing across the four modules), PLUS **BOTH activated routes execute
+end-to-end on CPU Batch**:
+- **Model-training** (run `cd3201a0`): 5-fold stratified CV + `model.pkl` (above).
+- **Multi-omics SNF** (run `9d889185`, §8 item 2 closed): a 3-layer request
+  (`omics=[rna,protein,methyl]`, `n_clusters=2`) ran `snf_multiomics/main.nf` on
+  `bioc-domain-general:3.20-slim`; the executor staged all 3 layers (`[snf] 3 views aligned to 40
+  common samples`), SNFtool installed from CRAN at runtime, and `snf_clusters.csv` **correctly
+  recovered the 2 planted latent subtypes** (even→cluster 2, odd→cluster 1). This path needed NO
+  fixes — unlike ml_training, its `.nf` was correctly built (real `path` input staging + runtime
+  package install), confirming the staging gap was specific to the ml_training `.nf`.
+What is **NOT** covered:
+- **QC-gate engine inside a live Batch run** — unit-verified 7/7 against the live handler, but a
+  workflow that DECLARES gates in its `qc_metrics.json` and asserts pass/advisory/halt during a real
+  run remains (§8 item 4-execution).
 - **The generalizations are deployed but dormant** (flags off) → zero real-traffic exercise.
 - **`fuse_channels` has no real 2nd consumer** — it is tested on synthetic entities, which proves
   the API, but the audit's point ("generality unexercised") is only half-closed until a real task
