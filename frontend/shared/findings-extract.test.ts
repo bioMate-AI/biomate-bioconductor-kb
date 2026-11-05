@@ -293,6 +293,26 @@ describe('reconcileFindingsDocument — safeguard fires on a genuine mismatch', 
     const out = reconcileFindingsDocument({ summary: 'clean', key_results: [] }, cleanDoc);
     expect(out).toBe(cleanDoc);
   });
+
+  it('committee Opus-2: a CLEAN deterministic flat (empty liability set) is NOT overridden by a document false-positive', () => {
+    // Deterministic parser genuinely found zero liabilities (flatSet empty), but the entity document
+    // flags one. With flatIsDeterministic=true the empty-flatSet early return must NOT fire (that would
+    // silently trust the document over the clean primary verdict); instead defer to the clean flat + log.
+    const flatClean = { summary: 'ADMET prediction completed. No liabilities flagged.', key_results: [] };
+    const logged: string[] = [];
+    const reconciled = reconcileFindingsDocument(flatClean, doc, (m2) => logged.push(m2), /* flatIsDeterministic */ true);
+    expect(reconciled.summary).toBe(flatClean.summary);              // deferred to the clean deterministic flat
+    expect(reconciled.caveats.some(c => /reconciled/i.test(c))).toBe(true);
+    expect(logged.some(l => /mismatch/i.test(l))).toBe(true);        // the disagreement IS logged
+  });
+
+  it('an LLM flat (not deterministic) with empty liability set keeps the document (unchanged S3#1 behavior)', () => {
+    const flatLLM = { summary: 'No liabilities flagged.', key_results: [] };
+    const logged: string[] = [];
+    const reconciled = reconcileFindingsDocument(flatLLM, doc, (m2) => logged.push(m2) /* flatIsDeterministic defaults false */);
+    expect(reconciled.summary).toBe(doc.summary);                    // document primary for LLM flat
+    expect(logged.length).toBe(0);
+  });
 });
 
 describe('buildFindingsDocument — variant (categorical IMPACT verdict, autodelim)', () => {

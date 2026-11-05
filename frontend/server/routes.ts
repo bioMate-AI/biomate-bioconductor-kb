@@ -15437,12 +15437,15 @@ Rules:
     const delim = lines[0].includes('\t') ? '\t' : ',';
     const header = lines[0].split(delim).map(h => h.replace(/"/g, '').trim());
     let geneIdx = header.findIndex(h => /^(gene|gene_id|geneid|gene\.name|name|symbol)$/i.test(h));
-    // (audit S3#3) nf-core write.csv(row.names=TRUE) puts gene IDs in the unlabeled first column
-    // (header ""). Fall back to column 0 — the row-name column — rather than synthetic gene_N names.
-    if (geneIdx === -1) geneIdx = 0;
     const lfcIdx = header.findIndex(h => /log2fold/i.test(h) && !/se$/i.test(h));
     const padjIdx = header.findIndex(h => /^(padj|p\.adj|fdr|bh|q\.value)$/i.test(h));
     if (lfcIdx === -1 || padjIdx === -1) return null;
+    // (audit S3#3) nf-core write.csv(row.names=TRUE) puts gene IDs in the UNLABELED first column
+    // (header ""). Fall back to column 0 ONLY in that true row-name case — committee Opus-3: a blind
+    // `geneIdx=0` mislabels genes with a numeric value when col 0 is numeric or IS the LFC/padj
+    // column. When no gene column matches and col 0 isn't the row-name column, keep geneIdx=-1 and
+    // emit honest synthetic gene_N rather than a number.
+    if (geneIdx === -1 && header[0] === '' && lfcIdx !== 0 && padjIdx !== 0) geneIdx = 0;
     type Gene = {gene: string; lfc: number; padj: number};
     const genes: Gene[] = [];
     for (const line of lines.slice(1)) {
@@ -15450,7 +15453,7 @@ Rules:
       const lfc = parseFloat(cols[lfcIdx]);
       const padj = parseFloat(cols[padjIdx]);
       if (isNaN(lfc) || isNaN(padj)) continue;
-      genes.push({ gene: (cols[geneIdx] || `gene_${genes.length + 1}`), lfc, padj });
+      genes.push({ gene: (geneIdx >= 0 && cols[geneIdx]) ? cols[geneIdx] : `gene_${genes.length + 1}`, lfc, padj });
     }
     const sig = genes.filter(g => g.padj < 0.05);
     const topUp = [...sig].sort((a, b) => b.lfc - a.lfc).slice(0, 8);
@@ -15546,16 +15549,19 @@ Rules:
     const modifier = variants.filter(v => /^modifier$/i.test(v.impact.trim()));
     const contextLines = [
       `### Rare Disease Variant Analysis`,
-      `Variants analyzed: ${variants.length}`,
-      `HIGH impact variants: ${high.length}`,
-      `MODERATE impact variants: ${mod.length}`,
-      `LOW impact variants: ${low.length}`,
-      `MODIFIER variants: ${modifier.length}`,
-      ...(high.length > 0 ? [``, `HIGH impact:`, ...high.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
-      ...(mod.length > 0 ? [``, `MODERATE impact (top 5):`, ...mod.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
+      // committee Opus-1: output samples are truncated to ~8KB upstream, so these counts are over
+      // the SAMPLED PREVIEW, not the full annotated table — label them so, and do NOT whitelist the
+      // preview total as an authoritative "variants analyzed" count for the LLM narrative.
+      `Variants in sampled preview (first ~8KB): ${variants.length}`,
+      `HIGH impact (in preview): ${high.length}`,
+      `MODERATE impact (in preview): ${mod.length}`,
+      `LOW impact (in preview): ${low.length}`,
+      `MODIFIER (in preview): ${modifier.length}`,
+      ...(high.length > 0 ? [``, `HIGH impact (preview):`, ...high.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
+      ...(mod.length > 0 ? [``, `MODERATE impact (preview, top 5):`, ...mod.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
       ``, `Source file: ${f.name}`,
     ];
-    const numbers = new Set<string>([String(variants.length), String(high.length), String(mod.length), String(low.length), String(modifier.length)]);
+    const numbers = new Set<string>([String(high.length), String(mod.length), String(low.length), String(modifier.length)]);
     return { context: contextLines.join('\n'), numbers };
   }
 
@@ -15989,7 +15995,7 @@ Rules:
 
           if (preprocessed?.findings) {
             console.log(`[Findings] deterministic parse succeeded for "${workflowName}" — skipping LLM`);
-            const _reconciledDoc = _findingsDoc ? reconcileFindingsDocument(preprocessed.findings, _findingsDoc) : null;
+            const _reconciledDoc = _findingsDoc ? reconcileFindingsDocument(preprocessed.findings, _findingsDoc, undefined, /* flatIsDeterministic */ true) : null;
             // SHADOW — document-as-truth migration, step 2 (logs only, NO behavior change; see
             // docs/20261105_FINDINGS_QC_SIMPLIFICATION_DESIGN.md). Compare the document→flat
             // projection (documentToLegacy) against today's parser flat so the later cutover to

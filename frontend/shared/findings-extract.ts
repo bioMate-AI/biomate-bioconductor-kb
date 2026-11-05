@@ -320,18 +320,20 @@ export function reconcileFindingsDocument(
   flat: { summary?: string; key_results?: Array<{ metric?: string; interpretation?: string }> } | null | undefined,
   doc: FindingsDocument,
   log: (msg: string) => void = (m) => console.error(m),
+  flatIsDeterministic = false,
 ): FindingsDocument {
   const flatSet = flatLiabilities(flat);
   const docSet = documentLiabilities(doc);
   // Reconcile only when at least one path produced a liability signal AND the two disagree.
   if (flatSet.size + docSet.size === 0 || sameSet(flatSet, docSet)) return doc;
-  // audit S3#1: `flatLiabilities` only recognizes a liability via the deterministic
-  // "potential liability" marker (emitted by _parseAdmetOutput, now largely dead). On an
-  // LLM-generated flat the flatSet is EMPTY, so an empty flatSet vs a non-empty docSet is
-  // NOT a genuine disagreement — the entity-aware document is the reliable source. Return
-  // doc unchanged rather than overwriting its CORRECT summary with the LLM flat's (possibly
-  // "no liabilities") text, which re-created the #4 dual-verdict contradiction.
-  if (flatSet.size === 0) return doc;
+  // audit S3#1 (+ committee Opus-2): `flatLiabilities` only recognizes a liability via the
+  // deterministic "potential liability" marker. On an LLM flat the flatSet is EMPTY, so an
+  // empty flatSet vs a non-empty docSet is NOT a real disagreement — the entity document is the
+  // reliable source; return doc unchanged. BUT on the DETERMINISTIC path an empty flatSet is
+  // MEANINGFUL (the parser genuinely found zero liabilities): a document false-positive must not
+  // silently override the clean primary verdict, so fall through to the defer-to-flat path (log +
+  // reconcile the doc summary to the clean flat). Hence gate the early return on NOT deterministic.
+  if (flatSet.size === 0 && !flatIsDeterministic) return doc;
   log(
     `[Findings] liability verdict mismatch — flat=[${[...flatSet].join(', ')}] ` +
     `document=[${[...docSet].join(', ')}]; embedded summary deferring to the flat (primary) verdict`,

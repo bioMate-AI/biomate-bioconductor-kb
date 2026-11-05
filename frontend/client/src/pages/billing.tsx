@@ -860,7 +860,10 @@ export default function BillingPage() {
                           <TableCell className="pl-6 font-medium">{compute.vcpu_usd > 0 ? "" : "Compute"}</TableCell>
                           <TableCell className="text-muted-foreground">GPU time</TableCell>
                           <TableCell className="text-muted-foreground">$1.50 / hr</TableCell>
-                          <TableCell className="text-muted-foreground">{((compute.total_seconds ?? 0) / 3600).toFixed(1)} hrs</TableCell>
+                          {/* committee Sonnet-3: the API emits ONE total_seconds for all compute, so
+                              showing it on both vCPU and GPU rows double-states the hours. Show it on
+                              the vCPU row only; blank here when vCPU is also present. */}
+                          <TableCell className="text-muted-foreground">{compute.vcpu_usd > 0 ? "—" : `${((compute.total_seconds ?? 0) / 3600).toFixed(1)} hrs`}</TableCell>
                           <TableCell className="text-right pr-6">{fmt(compute.gpu_usd)}</TableCell>
                         </TableRow>
                       )}
@@ -871,7 +874,9 @@ export default function BillingPage() {
                     <TableRow>
                       <TableCell className="pl-6 font-medium">Storage</TableCell>
                       <TableCell className="text-muted-foreground">S3 objects</TableCell>
-                      <TableCell className="text-muted-foreground">$0.15 / GB</TableCell>
+                      {/* committee Sonnet-3: the API has no GB figure (only puts/gets + $), so the
+                          "$0.15 / GB" rate can't reconcile with the PUT quantity — blank the rate. */}
+                      <TableCell className="text-muted-foreground">—</TableCell>
                       <TableCell className="text-muted-foreground">{storage.puts ?? 0} put{(storage.puts ?? 0) !== 1 ? "s" : ""}</TableCell>
                       <TableCell className="text-right pr-6">{fmt(storage.total_usd)}</TableCell>
                     </TableRow>

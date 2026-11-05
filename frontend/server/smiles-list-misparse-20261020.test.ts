@@ -68,12 +68,11 @@ describe('schema-authoritative inline params — source contract', () => {
   const SRC = fs.readFileSync(path.join(__dirname, 'galaxy-assistant.ts'), 'utf-8');
 
   it('intersects inline_parameters with the workflow schema before the viewer renders rows', () => {
-    // The guard that drops any inline_parameters key not declared by the workflow
-    // schema (required ∪ optional), preventing phantom "Recommended" param rows.
+    // The guard drops any inline_parameters key not declared by the workflow schema
+    // (required ∪ optional) ONLY when a schema is available — preventing phantom
+    // "Recommended" rows without dropping user-supplied values on an empty schema
+    // (committee Sonnet-1).
     expect(SRC).toMatch(/Dropping inline param/);
-    expect(SRC).toMatch(/_schemaNames\.has\(_k\)/);
-    // audit S4#3: and drops ALL inline params when the schema is not yet available
-    // (empty schema → cannot validate → no unvalidated/phantom rows).
-    expect(SRC).toMatch(/_schemaNames\.size === 0/);
+    expect(SRC).toMatch(/_schemaNames\.size > 0 && !_schemaNames\.has\(_k\)/);
   });
 });

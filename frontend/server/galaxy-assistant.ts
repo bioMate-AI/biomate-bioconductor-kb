@@ -9068,13 +9068,14 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
             if (_inlineObj && typeof _inlineObj === 'object' && !Array.isArray(_inlineObj)) {
               for (const _k of Object.keys(_inlineObj)) {
                 if (_k === 'domain_hint') continue;
-                // Drop any inline key the schema doesn't declare. audit S4#3: when the schema
-                // isn't available yet (_schemaNames empty — lazily-fetched / fresh workflow),
-                // we cannot tell a real param from a hallucinated one, so drop ALL of them
-                // rather than surface an unvalidated/phantom "Recommended" row. Real params
-                // re-prefill once the schema hydrates.
-                if (_schemaNames.size === 0 || !_schemaNames.has(_k)) {
-                  console.log(`[GalaxyAssistant] Dropping inline param "${_k}" (${_schemaNames.size === 0 ? 'schema not yet available' : `not in ${_wfGaN?.name || 'workflow'} schema`}) — prevents phantom param row`);
+                // Drop any inline key the schema doesn't declare (prevents a hallucinated phantom
+                // "Recommended" row). committee Sonnet-1: only do this when a schema is ACTUALLY
+                // available to validate against — when _schemaNames is empty (lazily-fetched / fresh
+                // workflow), we cannot distinguish a hallucinated key from a real user-supplied value
+                // (SMILES, dataset ref), and these objects are consumed in place with no re-prefill,
+                // so dropping all of them would silently lose the user's grounded input. Leave them.
+                if (_schemaNames.size > 0 && !_schemaNames.has(_k)) {
+                  console.log(`[GalaxyAssistant] Dropping inline param "${_k}" (not in ${_wfGaN?.name || 'workflow'} schema) — prevents phantom param row`);
                   delete _inlineObj[_k];
                 }
               }
