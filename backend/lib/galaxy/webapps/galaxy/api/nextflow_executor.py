@@ -12449,7 +12449,7 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         analyzer = OutputAnalyzer()
         analysis = analyzer.analyze(run_id, workflow_id, output_files)
     except Exception as exc:
-        logger.error("[analyze-outputs] OutputAnalyzer failed for run %s: %s", run_id, exc)
+        log.error("[analyze-outputs] OutputAnalyzer failed for run %s: %s", run_id, exc)
         raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
 
     # ── Cross-omics biomarker drivers (multi-omics stratification runs) ──────────
@@ -12490,11 +12490,11 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
                     analysis.next_steps.append(
                         "Validate the top corroborated cross-omics drivers "
                         "(e.g. targeted assay or survival association).")
-                    logger.info("[analyze-outputs] cross-omics drivers for run %s: "
-                                "%d (%d corroborated)", run_id, len(_drivers), len(_corrob))
+                    log.info("[analyze-outputs] cross-omics drivers for run %s: "
+                             "%d (%d corroborated)", run_id, len(_drivers), len(_corrob))
     except Exception as _bm_exc:
-        logger.warning("[analyze-outputs] cross-omics biomarker fusion skipped for run %s: %s",
-                       run_id, _bm_exc)
+        log.warning("[analyze-outputs] cross-omics biomarker fusion skipped for run %s: %s",
+                    run_id, _bm_exc)
 
     # ── Citation Search (best-effort) ────────────────────────────────────────────
     citations_serialized: List[Dict] = []
@@ -12508,7 +12508,7 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         ]
         report = reporter.generate(analysis, raw_citations)
     except Exception as exc:
-        logger.warning("[analyze-outputs] Citation/report generation failed: %s", exc)
+        log.warning("[analyze-outputs] Citation/report generation failed: %s", exc)
         # Build report without citations
         from galaxy.ai.finding_reporter import FindingReporter
         reporter = FindingReporter()
@@ -12519,7 +12519,7 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
     try:
         report_path = reporter.save_report(report, output_dir)
     except Exception as exc:
-        logger.warning("[analyze-outputs] Could not save findings_report.md: %s", exc)
+        log.warning("[analyze-outputs] Could not save findings_report.md: %s", exc)
 
     # ── Save findings_data.json sidecar (structured data for frontend) ───────────
     structured_payload = {
@@ -12541,7 +12541,7 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         if _figs:
             structured_payload["figures"] = _figs
     except Exception as _exc:
-        logger.warning("[analyze-outputs] figures adapter failed: %s", _exc)
+        log.warning("[analyze-outputs] figures adapter failed: %s", _exc)
     try:
         import json as _json
         os.makedirs(output_dir, exist_ok=True)
@@ -12549,7 +12549,7 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         with open(json_path, "w", encoding="utf-8") as fh:
             _json.dump(structured_payload, fh, ensure_ascii=False)
     except Exception as exc:
-        logger.warning("[analyze-outputs] Could not save findings_data.json: %s", exc)
+        log.warning("[analyze-outputs] Could not save findings_data.json: %s", exc)
 
     return {**structured_payload, "report_path": report_path}
 
