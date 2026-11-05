@@ -6224,12 +6224,19 @@ class NextflowQCGateHandler:
         # GENERAL FALLBACK (data-driven): evaluate any workflow-DECLARED gates via the
         # general engine, so a domain with no hardcoded branch above still gets real
         # gates from its own declared data. Additive — never alters a hardcoded branch.
+        _declared_evaluated = False
         if _declared_gates:
             try:
                 from galaxy.ai.qc_gate_engine import evaluate_gates
                 _measured = {k: v for k, v in _raw_metrics.items()
                              if k not in ("gates", "declared_gates")}
                 _rep = evaluate_gates(_declared_gates, _measured)
+                # A gate counts as "evaluated" only when its metric was present (pass/
+                # advisory/halt), not when it was skipped for a missing metric. If at
+                # least one declared gate was evaluated, QC WAS run — so a clean pass
+                # must report (True, []), not (None, []) ("no QC").
+                _declared_evaluated = any(
+                    r.action in ("pass", "advisory", "halt") for r in _rep.results)
                 _seen = {(f.get("metric"), f.get("threshold")) for f in failures}
                 for r in _rep.results:
                     if r.action in ("advisory", "halt") and (r.metric, r.threshold) not in _seen:
@@ -6244,11 +6251,12 @@ class NextflowQCGateHandler:
                             "provenance": r.provenance,
                         })
             except Exception:
+                _declared_evaluated = False
                 pass  # declared-gate evaluation is best-effort; never break the hardcoded path
 
         # Advisory items (advisory=True) are informational only — they do not block the workflow.
         # qc_passed is determined solely by hard (non-advisory) failures.
-        if not qc_metrics.observed and not failures:
+        if not qc_metrics.observed and not failures and not _declared_evaluated:
             return None, []
         blocking_failures = [f for f in failures if not f.get("advisory", False)]
         return (len(blocking_failures) == 0, failures)
