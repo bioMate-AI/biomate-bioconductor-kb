@@ -1,6 +1,6 @@
 import { normalizeQcEvents } from "../shared/qc-assessment";
 import { matchDescriptor } from "../shared/findings-descriptors";
-import { buildFindingsDocument } from "../shared/findings-extract";
+import { buildFindingsDocument, reconcileFindingsDocument } from "../shared/findings-extract";
 import { registerVoiceRoutes } from "./voice-routes";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -15803,7 +15803,8 @@ Rules:
 
           if (preprocessed?.findings) {
             console.log(`[Findings] deterministic parse succeeded for "${workflowName}" — skipping LLM`);
-            const _det = _findingsDoc ? { ...preprocessed.findings, findings_document: _findingsDoc } : preprocessed.findings;
+            const _reconciledDoc = _findingsDoc ? reconcileFindingsDocument(preprocessed.findings, _findingsDoc) : null;
+            const _det = _reconciledDoc ? { ...preprocessed.findings, findings_document: _reconciledDoc } : preprocessed.findings;
             _findingsCache.set(runId, _det);
             void persistFindingsSidecar(_det);
             return;
@@ -16013,8 +16014,9 @@ Respond ONLY with valid JSON (no markdown wrapper):
               if (figs.length > 0) parsed.figures = figs;
             }
 
-            // Attach the entity-aware findings document (additive) when the extractor matched.
-            if (_findingsDoc) parsed.findings_document = _findingsDoc;
+            // Attach the entity-aware findings document (additive) when the extractor matched,
+            // reconciled against the flat verdict so one payload never contradicts itself.
+            if (_findingsDoc) parsed.findings_document = reconcileFindingsDocument(parsed, _findingsDoc);
             _findingsCache.set(runId, parsed);
             void persistFindingsSidecar(parsed);
           } catch (parseErr: any) {
@@ -16037,7 +16039,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
               const _clean = _rawClaude.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
               const _parsed = JSON.parse(_clean);
               console.log('[Findings] Claude fallback succeeded');
-              if (_findingsDoc) _parsed.findings_document = _findingsDoc;
+              if (_findingsDoc) _parsed.findings_document = reconcileFindingsDocument(_parsed, _findingsDoc);
               _findingsCache.set(runId, _parsed);
               void persistFindingsSidecar(_parsed);
             } catch (claudeErr: any) {
