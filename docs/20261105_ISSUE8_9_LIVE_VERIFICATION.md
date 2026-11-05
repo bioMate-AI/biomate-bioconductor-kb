@@ -37,11 +37,17 @@ Unit test added (`run-record-metrics-20261104.test.ts`): outputs attach via the
 
 Gate: `tsc` clean; full `vitest run` 2178 passed / 42 skipped / 0 failed.
 
-### Needs live re-check after sync
-Re-`GET /api/workflows/runs/82c1245a` on dev after this deploys — the two steps should now carry
-their `02_predict_admet_properties` / `01_*` outputs (not 0). NOTE: the read-time backfill in
-`GET /:id` only re-attaches when a terminal step still has no outputs while output files exist, so
-the first GET after deploy triggers it.
+### Live re-check after sync — CONFIRMED ✓
+After the fix deployed (carried by a concurrent session's sync of the branch tip),
+`GET /api/workflows/runs/82c1245a` now returns:
+- **"Predict Admet Properties": 6 outputs** attributed (was 0) via the `02_predict_admet_properties/`
+  S3 path (pk_summary.json, …_output.txt, …_results.json, qc_metrics.json, toxicity_report.json,
+  versions.yml).
+- "Admet Infer Shard": 0 — correct, no fabrication (that step published no files under its own dir
+  for this run).
+- Both steps `completed`.
+Total attributed outputs 0 → 6. The step-detail panel on a completed run is now genuinely
+informative (real status + real per-step outputs). #8 fully verified live.
 
 ## Honest status
 - #9: verified (data + unit tests).
