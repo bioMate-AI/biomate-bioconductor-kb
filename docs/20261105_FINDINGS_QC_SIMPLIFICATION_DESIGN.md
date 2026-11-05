@@ -139,6 +139,28 @@ its `per_compound_admet_ai` array → the descriptor only sees the earlier `per_
 Decouple the **parse-source** from the **LLM-context**: read the FULL structured output file for the
 deterministic parser AND the descriptor (so both see the complete `per_compound_admet_ai` and
 accurate per-row counts), while keeping an 8 KB-bounded slice only for the LLM narrative context
-(token budget). This brings the document to parser parity (shadow → `cutover-ready`) and fixes the
-Opus-1 preview-count at its root. It touches the LLM context budget across all findings, so run it
-as its own focused, committee-reviewed pass — not a rushed change.
+(token budget). Fixes the Opus-1 preview-count at its root. **SHIPPED** (commit 3f33f4b6e, 1 MB cap
++ early-break). It touches the LLM context budget, so it was gated + will be committee-reviewed.
+
+### ⚠️ CORRECTION (2026-11-05, after shipping the decouple + re-running the shadow)
+**The 8 KB truncation was NOT the ADMET parity cause — hypothesis DISPROVEN by the shadow.** Probed
+run `82c1245a`'s actual `toxicity_report.json`: it is **1,672 bytes** (never truncated) and CONTAINS
+the full `per_compound_admet_ai` block. Then ran the DEPLOYED descriptor code locally on that real
+file: `matchDescriptor` → `admet_report`, one merged entity, and **`documentToLegacy` extracts all 16
+metrics** (hERG inhibition, DILI probability, CYP2D6, Oral bioavailability, ClinTox, CYP3A4, BBB,
+PPB, Caco-2, hERG IC50, logP, MW, DILI risk + 3 panel) — **FULL parser parity.** So the descriptor +
+projection are CORRECT; the document-as-truth projection works for ADMET at the code level.
+- The one dev shadow line still showing `doc-only=[logP]` was logged at `20:37:40 UTC`, ~25 s after
+  the decouple "Sync OK" (20:37:15 UTC) — i.e. at the container-swap boundary, almost certainly an
+  in-flight request still on the old 8 KB container (or a per-run sampling artifact). I could not get
+  a clean post-settle dev regen (cached ADMET runs don't regenerate; cancelled runs have no outputs).
+- **Lesson (again):** the shadow did its job — it stopped me believing the decouple "fixed" parity
+  when the real file disproved the premise. The decouple is still a valid, shipped improvement
+  (large structured files, honest variant counts), just not the ADMET-parity fix it was hypothesized
+  to be.
+
+### Status of the cutover
+**Code-proven safe for ADMET** (local repro: projection = 16 metrics = parser parity). Remaining
+before the actual cutover (wire `documentToLegacy` as the flat source + delete the reconciler): one
+CLEAN dev shadow confirmation on a freshly-regenerating ADMET run (should log `cutover-ready`), and
+the per-domain shadow checks for DESeq2 / enrichGO / raredisease. Then steps 3–5 of the migration.
