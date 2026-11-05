@@ -1,5 +1,26 @@
 # New `.nf` workflow safety/correctness — review patches (audit sweep, surface 1)
 
+> ## ⚠️ COMMITTEE CORRECTIONS (Fable, 2026-11-05) — read before applying §2/§3/§5
+> - **§2 phase2_dose — the proposed fix crashes and over-corrects; revise it.** The *diagnosis* is
+>   correct (`is_safe = (safety_margin is None) or …` at 396; `candidate_doses[-1]` fallback at 401).
+>   But (a) `primary_dose = None` as the drop-in causes `TypeError` downstream — `primary_dose * auc_per_mg`
+>   at ~419 and `{primary_dose:.0f}` at ~461/570/625/633/803. Use an explicit status + skip those format
+>   sites, do NOT set it to `None`. (b) `unknown = NOT safe` over-corrects: `params.mtd_auc_ug_L_h` defaults
+>   to `'null'` (line 28) → `mtd_auc is None` → EVERY dose margin is `None` on a default run → it would
+>   NEVER recommend. Keep **unknown as a THIRD state** (efficacy-only + `provisional`/`safety_not_assessed`,
+>   which the file already models at line 731 / the "(provisional)" label line 461); fire the no-dose branch
+>   only when margins are KNOWN and all < 3; replace `candidate_doses[-1]` with an explicit status, not None.
+> - **§3 docking — `params.smoke_test` must be exported** through `script:` like `PARAM_RECEPTOR_PDB` (line 44),
+>   or it is an unused Groovy param. Otherwise the diagnosis + fix are CONFIRMED correct.
+> - **§5 ADMET per-compound DILI — MISLOCATED / likely wrong.** The `.nf` already writes per-compound DILI
+>   from each compound's OWN value (Phase-1 ~229-230; Phase-2 sync at ~517-520 uses `match["DILI_prob"]`,
+>   the same-SMILES match, NOT `worst_dili`). The `dili_aggregation:'worst_compound_in_panel'` label (line 532)
+>   is on the AGGREGATE `toxicity` block only. If aspirin showed 0.675 per-compound, the copy is in a
+>   CONSUMER (findings descriptor / card builder), not this `.nf`. **Re-scope §5: this is not a `.nf` fix** —
+>   re-investigate the consumer, or drop §5.
+> - §1 repeated_dose_tox, §4 stability, and the BOIN/DILI docs: CONFIRMED correct (DILI doc has its own caveat).
+
+
 **Not applied.** Production `.nf` embedded Python (executed by Nextflow); a human applies +
 live-verifies. Four NEW safety/correctness bugs from the 2026-11-05 audit (the BOIN dose>MTD and
 ADMET DILI bugs have their own docs — `20261105_BOIN_PHASE2_DOSE_FIX_PATCH.md`,

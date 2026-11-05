@@ -1,5 +1,24 @@
 # Backend-Python review patches (audit sweep: QC gates + billing)
 
+> ## ⚠️ COMMITTEE CORRECTIONS (Fable, 2026-11-05)
+> - **B4 (GOLD on zero gates) — real but NOT a live "perfect pass" bug; it's latent hygiene.** `all([])→True`,
+>   `overall="GOLD"` is confirmed in `qc_gate_reader.py:541-551`, BUT the claimed reach via
+>   `nextflow_executor.py:4506-4508` is wrong — `gate_checker` takes `build_gate_event(...).get("gates", [])`
+>   and DISCARDS `passed`/`overall`, so an empty list is just no rows; and the live emitter
+>   `qc_gate_emit.py:154-155` returns False on empty `gates` (no GOLD event). The only consumer of
+>   `passed`/`overall_level` is a docstring example. The `NOT_EVALUATED` fix is good hygiene, not an
+>   active bug — downgrade its priority.
+> - **B6 (`inf` quota) — symptom confirmed, MECHANISM in the doc is wrong.** Starlette's `JSONResponse.render`
+>   uses `allow_nan=False`, so FastAPI raises `ValueError: Out of range float values are not JSON compliant`
+>   → **HTTP 500** (it never emits an `Infinity` token for the browser to reject). The Node proxy passes the
+>   500 through. The `null`-for-unlimited fix is correct regardless; **verification must look for a 500**, not
+>   a client JSON.parse error.
+> - **B8** — the lazy re-derive fix has an existing hook: `internal_set_plan` (`billing_router.py:631-645`)
+>   already delegates to `ensure_quota_set`.
+> - B1/B2/B3/B5/B7 CONFIRMED as diagnosed (B1 note: after the `.nf` DILI patch, the label/number are coupled by
+>   one bucketer, so B1 becomes a threshold-harmonization task — `.nf` "high" ≥0.65 vs gate HALT ≥0.8).
+
+
 **Not applied.** Backend-Python fixes a human applies + verifies. From the 2026-11-05 audit
 (surfaces 2 QC and 5 billing). Line numbers from the audit's code trace — verify exact lines on
 apply (the backend tree moves). Each: root cause, fix sketch, verification.

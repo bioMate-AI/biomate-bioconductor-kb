@@ -1,5 +1,25 @@
 # GEO pseudobulk nonsense contrasts — STRUCTURAL review patch (BUG #3)
 
+> ## ⚠️ COMMITTEE CORRECTION (Fable, 2026-11-05) — the R block below WILL NOT COMPILE as written; the applier MUST re-escape it
+> The **diagnosis is correct** (and understated: `status` is in the *preference* regex at line 279, so
+> the publication-date column is actively PREFERRED, not a fallback). But the replacement R is embedded
+> in a Groovy `"""` script string, and Fable verified with `nextflow run` that it breaks three ways —
+> apply these escapes or externalize the R to a real `.R` file:
+> 1. **Every R `$` must be escaped as `\$`** (`c$col`→`c\$col`, `pf$key`→`pf\$key`, `pick$col`, `pick$values`,
+>    `pick$key`, `pick$n_levels`, `c$n_levels`, …) — otherwise Groovy interpolates it → `No such variable: col`.
+>    (The file already does this, e.g. `e\$message` at line 80.)
+> 2. **Avoid `$|`** — `"^status$|…"`, `"^type$|…"`, `"^sex$|…"` hit the Groovy lexer (`token recognition error at: '|'`).
+>    Rewrite those alternations so a `$` is never immediately followed by `|` (e.g. use `[0-9]`/word-boundary
+>    forms, or split the regex), OR escape as `\$`.
+> 3. **`\d` must be `\\\\d`** (four backslashes) or use `[0-9]` — `\\d{4}-\\d{2}-\\d{2}`, `gsm\\d+`, `gse\\d+`
+>    reach R as `\d` → `'\d' is an unrecognized escape`. (File convention: `"RAW\\\\.tar"` at line 121.)
+> **Secondary (PLAUSIBLE):** `is_bookkeeping` excludes `^source_name`, but `source_name_ch1` is often the
+> ONLY column carrying the biological group in GEO — excluding it risks "No clean biological factor"
+> failures on datasets that work today. Reconsider excluding it (or only exclude when a real
+> characteristics column exists). Any one of the three escaping bugs fails GEO_PSEUDOBULK for EVERY
+> dataset, so verify a clean 2-level run still works after applying.
+
+
 **Not applied.** Executed R inside a workflow `.nf`; a human applies it and verifies against real
 GEO datasets. **This is the structural (root-cause) version** — it replaces the earlier
 heuristic draft (keyword denylist + fail-loud guards) and ALSO removes a pre-existing

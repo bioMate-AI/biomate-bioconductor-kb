@@ -52,9 +52,14 @@ For terfenadine `dili_p = 0.0408` (the ADMET-AI worst-compound value): `0.0408 >
 
 hERG is unchanged (already correct: 0.977 / IC50 0.0103 µM → gate correctly flags cardiotox).
 
-## Same bug elsewhere (apply the identical fix)
-- `backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf` — Phase-1 heuristic sets `toxicity.dili_probability` (~127-158), override fires only on `clintox_prob >= 0.80/0.50` (~274-280), never downgrades to "low" → identical stale-high DILI for low-AI-signal compounds. Make its DILI set unconditional the same way.
-- `backend/biomni_workflows/_archived/drug_discovery/ADMET_pred/main.nf` — byte-identical logic; archived (lower priority) but same class.
+## Same bug elsewhere — ⚠️ CORRECTED (committee Fable, 2026-11-05): the "identical fix" does NOT transfer
+- `backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf` (~274-280) — the
+  override there derives DILI from a DeepPurpose **ClinTox** probability; there is **no DILI model** in that
+  file. Making that set *unconditional* would define `dili_probability := clintox_prob` for EVERY compound,
+  conflating two endpoints — a new bug, not the same fix. **Do NOT apply the identical change here.** Instead
+  either leave the asymmetry, or (better) drop the ClinTox→DILI override entirely and compute DILI from a real
+  DILI source. This caveat applies to the byte-identical `_archived/drug_discovery/ADMET_pred/main.nf` too.
+- The primary fix in this doc (`predict_admet_properties/main.nf`) is CONFIRMED correct by the committee.
 
 ## Verification (human, after applying)
 Run a live ADMET workflow on a known low-DILI/high-logP compound (terfenadine is the canonical case). Confirm in the output `toxicity_report.json` that `toxicity.dili_probability == per_compound[0].dili_probability` and that `qc_metrics.json.admet_dili_probability_passes == true`, and that the after-run QC card shows the DILI gate PASS (not FAIL). hERG must remain flagged.
