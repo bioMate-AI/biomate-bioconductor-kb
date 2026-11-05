@@ -26,7 +26,7 @@ import { render, screen, within, fireEvent, waitFor } from "@testing-library/rea
 // assert against the rendered DOM via the data-testid hooks added to the
 // rich panel.
 
-import { AfterRunReport } from "./AfterRunReport";
+import { AfterRunReport, isRunMetadataFile } from "./AfterRunReport";
 
 // Block the fetch calls AfterRunReport makes on mount.
 beforeEach(() => {
@@ -608,5 +608,108 @@ describe("v2/AfterRunReport — three-tab consolidation (accepted design)", () =
     // Trajectory section removed (item 17) — no backend endpoint; the step view
     // is the trajectory. It must NOT appear.
     expect(within(record).queryByTestId("record-section-trajectory")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FIX #9 — after-run UX bugs on failed / partial runs.
+// ---------------------------------------------------------------------------
+
+describe("v2/AfterRunReport — isRunMetadataFile (FIX #9.1 classification)", () => {
+  it("classifies Nextflow pipeline_info / execution bookkeeping as metadata", () => {
+    const meta = [
+      { path: "work/pipeline_info/execution_report_2026-11-04.html", name: "execution_report_2026-11-04.html" },
+      { path: "pipeline_info/execution_timeline_2026-11-04.html", name: "execution_timeline_2026-11-04.html" },
+      { path: "pipeline_info/execution_trace_2026-11-04.txt", name: "execution_trace_2026-11-04.txt" },
+      { path: "out/pipeline_info/dag.html", name: "dag.html" },
+      { path: "run/dag.html", name: "dag.html" },
+      { path: "run/report.html", name: "report.html" },
+      { path: "run/timeline.html", name: "timeline.html" },
+      { path: "run/trace.txt", name: "trace.txt" },
+      { path: "logs/.nextflow.log", name: ".nextflow.log" },
+      { path: "logs/.nextflow.log.3", name: ".nextflow.log.3" },
+    ];
+    for (const f of meta) expect(isRunMetadataFile(f)).toBe(true);
+  });
+
+  it("does NOT classify genuine scientific outputs as metadata", () => {
+    const sci = [
+      { path: "deseq2/results.tsv", name: "results.tsv" },
+      { path: "multiqc/multiqc_report.html", name: "multiqc_report.html" },
+      { path: "plots/volcano.png", name: "volcano.png" },
+      { path: "admet/predictions.csv", name: "predictions.csv" },
+      { path: "variants/sample.vcf", name: "sample.vcf" },
+    ];
+    for (const f of sci) expect(isRunMetadataFile(f)).toBe(false);
+  });
+});
+
+describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (FIX #9)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    // OutputsTab only fetches when the outputs prop is empty; we pass outputs
+    // directly, so a blanket 404 keeps the other tab hooks quiet.
+    vi.spyOn(global, "fetch").mockImplementation(async () =>
+      ({ ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response),
+    );
+  });
+  afterEach(() => { vi.clearAllMocks(); });
+
+  const mixedOutputs = [
+    { step: "deseq2", name: "results.tsv", path: "deseq2/results.tsv", ext: "tsv" },
+    { step: "", name: "dag.html", path: "pipeline_info/dag.html", ext: "html" },
+    { step: "", name: "execution_trace_2026-11-04.txt", path: "pipeline_info/execution_trace_2026-11-04.txt", ext: "txt" },
+    { step: "", name: ".nextflow.log", path: "logs/.nextflow.log", ext: "log" },
+  ];
+
+  it("Download-all count excludes pipeline_info/metadata files", async () => {
+    render(
+      <AfterRunReport
+        {...baseProps}
+        executionStatus={"completed" as any}
+        outputs={mixedOutputs as any}
+      />,
+    );
+    // 1 scientific output of 4 total → "Download all (1)", never (4).
+    expect(await screen.findByText(/Download all \(1\) as ZIP/)).toBeInTheDocument();
+    expect(screen.queryByText(/Download all \(4\)/)).toBeNull();
+  });
+
+  it("groups Nextflow bookkeeping under a 'Run metadata' section (not Outputs)", async () => {
+    render(
+      <AfterRunReport
+        {...baseProps}
+        executionStatus={"completed" as any}
+        outputs={mixedOutputs as any}
+      />,
+    );
+    const section = await screen.findByTestId("run-metadata-section");
+    expect(section).toBeInTheDocument();
+    // 3 of the 4 files are metadata.
+    expect(within(section).getByText(/Run metadata \(Nextflow\) · 3/)).toBeInTheDocument();
+    expect(within(section).getByText("dag.html")).toBeInTheDocument();
+  });
+
+  it("shows a 'No report' note instead of the Download-report button on a failed run", async () => {
+    render(
+      <AfterRunReport
+        {...baseProps}
+        executionStatus={"failed" as any}
+        errorMessage="DESeq2 exited with code 1"
+      />,
+    );
+    expect(await screen.findByTestId("afterrun-no-report")).toHaveTextContent(
+      /No report — the run did not complete/,
+    );
+    expect(screen.queryByTestId("afterrun-download-report")).toBeNull();
+  });
+
+  it("keeps the download affordance on a completed run", async () => {
+    // The completed-run download UI is a menu behind an always-visible toggle
+    // (Markdown report + PPTX deck); the per-item afterrun-download-report lives
+    // inside that collapsed menu. Assert the toggle is present and no no-report note.
+    render(<AfterRunReport {...baseProps} executionStatus={"completed" as any} />);
+    expect(await screen.findByTestId("afterrun-download-toggle")).toBeInTheDocument();
+    expect(screen.queryByTestId("afterrun-no-report")).toBeNull();
   });
 });

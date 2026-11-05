@@ -26,6 +26,67 @@ import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
 import { TrajectoryView, type TrajectoryRow, type TrajectoryKind } from "@/components/trajectory-view";
 import ReactMarkdown from "react-markdown";
 
+// Text-like file extensions we render inline as text (in a <pre>) rather than
+// in an <iframe>. Chrome blocks iframing a step-file response served with
+// `X-Content-Type-Options: nosniff` for non-HTML MIME types (application/json,
+// text/plain, …) → "该内容被屏蔽了 / This content is blocked". Fetching the body
+// and rendering it as text sidesteps the frame-navigation block entirely.
+const TEXT_PREVIEW_EXTS = new Set([
+  'json', 'txt', 'text', 'log', 'csv', 'tsv', 'tab', 'yml', 'yaml', 'md',
+  'out', 'err', 'txt', 'nf', 'config', 'sh', 'py', 'r', 'vcf', 'bed', 'gff',
+  'gtf', 'sam', 'fasta', 'fa', 'fastq', 'fq', 'xml', 'ini', 'cfg', 'tsv',
+]);
+
+// Nextflow writes execution-bookkeeping files under `pipeline_info/` even when
+// a run fails before producing any scientific results: dag.html, report.html,
+// timeline.html, trace.txt, execution_report*/execution_timeline*/execution_trace*,
+// and the .nextflow.log. These are run metadata, NOT results — presenting them in
+// the primary Outputs list (and counting them in "Download all (N)") makes a
+// failed/partial run look like it produced data. Detect them by path/name so the
+// Outputs tab can group them under a clearly-labeled "Run metadata" section and
+// keep the scientific-output count honest. Not hidden (they're useful for
+// debugging) — just not shown as results.
+export function isRunMetadataFile(f: { path?: string; name?: string }): boolean {
+  const p = (f.path || "").toLowerCase();
+  const n = ((f.name || "").toLowerCase()) || p.split("/").filter(Boolean).pop() || "";
+  // Anything under a pipeline_info/ directory is Nextflow bookkeeping.
+  if (/(^|\/)pipeline_info\//.test(p)) return true;
+  // The Nextflow run log (optionally rotated: .nextflow.log.1 …).
+  if (/\.nextflow\.log(\.\d+)?$/.test(n)) return true;
+  // nf-core timestamped execution reports: execution_report_2026-11-04.html, etc.
+  if (/^execution_(report|timeline|trace)[^/]*$/.test(n)) return true;
+  // Bare default Nextflow report names (emitted when not timestamped).
+  if (/^(dag|report|timeline|trace)\.(html|htm|txt)$/.test(n)) return true;
+  return false;
+}
+
+// Inline text preview: fetch the file body and render in a <pre>. Truncates
+// very large files so the modal stays responsive (a Download link is always
+// offered by the surrounding chrome for the full file).
+function TextFilePreview({ url, name }: { url: string; name: string }) {
+  const [text, setText] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setText(null); setErr(null);
+    fetch(url, { credentials: 'include' })
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const body = await r.text();
+        if (!cancelled) setText(body.length > 200_000 ? body.slice(0, 200_000) + '\n\n… (truncated — download for the full file)' : body);
+      })
+      .catch(e => { if (!cancelled) setErr((e as Error).message); });
+    return () => { cancelled = true; };
+  }, [url]);
+  if (err) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12 }}>Preview unavailable ({err}). Use Download below.</div>;
+  if (text === null) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 12 }}>Loading {name}…</div>;
+  return (
+    <pre style={{ width: '100%', maxHeight: 400, overflow: 'auto', margin: 0, padding: 12, border: '1px solid var(--border)', borderRadius: 4, fontFamily: 'ui-monospace, monospace', fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+      {text}
+    </pre>
+  );
+}
+
 // Strip raw Nextflow debug log lines down to a readable one-liner.
 // Input:  "Jul-22 07:56:33.018 [Task monitor] DEBUG ... name: STEP (DESeq2); ... exit: 1; error: Essential container...; workDir: s3://..."
 // Output: "DESeq2 exited with code 1 — Essential container in task exited"
@@ -304,6 +365,18 @@ export function AfterRunReport({
         {downloadToast && (
           <span style={styles.toast} role="status">{downloadToast}</span>
         )}
+        {/* FIX #9.2 — a failed/cancelled run has no scientific report to stitch,
+            so offering a report download produces a misleading, findings-free
+            document. Show a no-report note; the download menu only on a run that
+            completed. */}
+        {isFailed ? (
+          <span
+            style={{ ...styles.linkish, opacity: 0.6, cursor: 'default' }}
+            data-testid="afterrun-no-report"
+          >
+            No report — the run did not complete
+          </span>
+        ) : (
         <div style={{ position: 'relative' }} data-testid="afterrun-download">
           <button
             type="button"
@@ -355,6 +428,7 @@ export function AfterRunReport({
             </>
           )}
         </div>
+        )}
       </div>
 
       {/* PM must-fix #1: failed-run section above the tab bar. Shown for
@@ -1174,8 +1248,16 @@ function OutputsTab({
     return () => { cancelled = true; };
   }, [runId, outputs.length]);
   const effectiveOutputs = outputs.length > 0 ? outputs : fetched;
-  // Total size summary (when present in the output records)
-  const totalCount = effectiveOutputs.length;
+  // FIX #9.1 — separate Nextflow run-metadata (pipeline_info/, dag.html,
+  // report.html, timeline.html, trace.txt, execution_*, .nextflow.log) from
+  // scientific results. A failed/partial run often has ONLY these bookkeeping
+  // files; listing them as "Outputs" (and in the Download-all count) presents
+  // execution logs as if they were data.
+  const scientificOutputs = effectiveOutputs.filter((f) => !isRunMetadataFile(f));
+  const metadataOutputs = effectiveOutputs.filter((f) => isRunMetadataFile(f));
+  // "Download all (N)" and the primary table reflect scientific outputs only.
+  const totalCount = scientificOutputs.length;
+  const metadataCount = metadataOutputs.length;
   const reproUrl = `/api/nextflow/runs/${runId}/reproducibility`;
   // Phase 1 of docs/20260602_ASYNC_JOB_QUEUE_DESIGN.md §11 — bulk ZIP is now
   // produced asynchronously by the jobs subsystem; the user clicks a
@@ -1244,18 +1326,6 @@ function OutputsTab({
     }
   };
 
-  if (totalCount === 0) {
-    return (
-      <div style={styles.tabContent}>
-        <p style={styles.empty}>
-          {executionStatus === 'failed'
-            ? tOr('afterrun.no_outputs_failed', 'No outputs — run did not complete successfully.')
-            : tOr('afterrun.no_outputs_yet', 'No output files registered yet.')}
-        </p>
-      </div>
-    );
-  }
-
   const fileUrl = (f: OutputFile, download = false) =>
     `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;
 
@@ -1301,11 +1371,73 @@ function OutputsTab({
 
   const q = query.trim().toLowerCase();
   const filtered = q
-    ? effectiveOutputs.filter((f) =>
+    ? scientificOutputs.filter((f) =>
         (f.name || '').toLowerCase().includes(q) || (f.ext || '').toLowerCase().includes(q))
-    : effectiveOutputs;
+    : scientificOutputs;
   const shown = showAll ? filtered : filtered.slice(0, OUTPUT_RENDER_CAP);
   const cardKey = (f: OutputFile, i: number) => (f.path || f.name) + '::' + i;
+
+  // Run-metadata section (Nextflow bookkeeping) — rendered under its own
+  // heading so it's available for debugging but never counted as results.
+  const metadataSection = metadataCount > 0 ? (
+    <details style={{ marginTop: 16 }} data-testid="run-metadata-section">
+      <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+        Run metadata (Nextflow) · {metadataCount}
+      </summary>
+      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '6px 0 8px' }}>
+        Execution bookkeeping written by Nextflow (DAG, timeline, trace, run log).
+        These are not scientific results — they're useful for debugging a run.
+      </p>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
+          <tbody>
+            {metadataOutputs.map((f, i) => (
+              <tr key={(f.path || f.name) + i} style={{ borderTop: '1px solid var(--border)' }}>
+                <td style={{ padding: '6px 8px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 13 }}>{iconForExt(f.ext)}</span>
+                    <span style={{ color: 'var(--text)' }}>{f.name}</span>
+                  </span>
+                </td>
+                <td style={{ padding: '6px 8px', fontFamily: 'var(--font-ui, system-ui)', width: 90 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    {canPreview(f.ext) && (
+                      <button
+                        onClick={() => setPreviewFile(f)}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
+                      >view</button>
+                    )}
+                    <a
+                      href={fileUrl(f, true)}
+                      download
+                      style={{ color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11, textDecoration: 'none' }}
+                    >dl</a>
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  ) : null;
+
+  // No scientific outputs at all. Show the empty state, but still surface any
+  // Nextflow run metadata below it (common on a failed/partial run).
+  if (totalCount === 0) {
+    return (
+      <div style={styles.tabContent}>
+        <p style={styles.empty}>
+          {executionStatus === 'failed'
+            ? 'No outputs — run did not complete successfully.'
+            : metadataCount > 0
+              ? 'No scientific outputs — only Nextflow run metadata is available.'
+              : 'No output files registered yet.'}
+        </p>
+        {metadataSection}
+      </div>
+    );
+  }
 
   return (
     <div style={styles.tabContent}>
@@ -1393,7 +1525,7 @@ function OutputsTab({
         )}
       </div>
 
-      <InteractiveToolsRow outputs={effectiveOutputs} />
+      <InteractiveToolsRow outputs={scientificOutputs} />
 
       {/* Outputs gallery — each output as an inline preview card. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '2px 0 10px' }}>
@@ -1498,6 +1630,8 @@ function OutputsTab({
           >{tOr('afterrun.show_n_more', 'Show {{n}} more', { n: filtered.length - shown.length })}</button>
         )}
       </div>
+
+      {metadataSection}
 
       {/* Inline preview overlay */}
       {previewFile && (
