@@ -74,19 +74,34 @@ def test_both_list_branches_guarded_by_file_ref_check():
 
 
 def test_file_ref_regex_behaviour():
-    # Re-implements the helper's predicates (no heavy import) to document intent.
+    # Behavioral test of the SHIPPED guard — WITHOUT the heavy `import galaxy...`
+    # (pulsar/boltons absent in plain CI). We EXTRACT the two shipped regex literals
+    # from the executor source and run the exact helper logic against them, so a drift
+    # in the real `_FILE_REF_EXT_RE` / `_URI_SCHEME_RE` (e.g. dropping `txt`) fails here
+    # rather than passing a stale re-implementation (committee R3 #5).
     import re as _re
-    ext = _re.compile(r'\.(csv|tsv|txt|json|rds|gmt|list|vcf|h5ad)(\.(gz|bz2|zip))?$', _re.I)
-    uri = _re.compile(r'^[a-z][a-z0-9+.-]*://')
-    def fref(v):
+    src = EXECUTOR.read_text()
+    ext_m = _re.search(r"_FILE_REF_EXT_RE\s*=\s*re\.compile\(\s*\n?\s*r?'([^']+)'\s*\n?\s*(?:r?'([^']*)')?", src)
+    # the pattern may span two adjacent string literals (line-continued); join them
+    ext_src = "".join(g for g in (ext_m.group(1), ext_m.group(2)) if g) if ext_m else None
+    uri_m = _re.search(r"_URI_SCHEME_RE\s*=\s*re\.compile\(\s*r?'([^']+)'", src)
+    assert ext_src and uri_m, "could not extract shipped _FILE_REF_EXT_RE / _URI_SCHEME_RE"
+    ext = _re.compile(ext_src, _re.IGNORECASE)
+    uri = _re.compile(uri_m.group(1))
+
+    def fref(v):  # mirrors _looks_like_single_file_ref's control flow, using SHIPPED regexes
         s = (v or "").strip()
         if not s or s.startswith("[") or "," in s or "\n" in s:
             return False
         return bool(uri.match(s) or ext.search(s))
+
     # single file refs → pass-through (NOT wrapped)
     for v in ["s3://b/x/gene_list.txt", "/local/genes.txt", "genes.tsv",
-              "https://x/y.gmt", "s3://b/m.rds"]:
+              "https://x/y.gmt", "s3://b/m.rds", "/d/counts.h5ad"]:
         assert fref(v), v
     # value lists / bare values → still wrapped
     for v in ['["CC","OC"]', "CC(=O)OC1=CC=CC=C1C(=O)O", "TP53,BRCA1", "MPNN", ""]:
         assert not fref(v), v
+    # the shipped ext set must still cover the core data types (guards drift/removal)
+    for e in ("csv", "tsv", "txt", "json", "rds", "h5ad"):
+        assert ext.search(f"x.{e}"), f"shipped _FILE_REF_EXT_RE dropped .{e}"

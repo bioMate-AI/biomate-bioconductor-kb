@@ -90,6 +90,18 @@ Each layer is a **channel** of `{feature: F}`. The default `EvidenceGateArbiter`
 `method="harmonic_sum"` is available for a weighted variant (per-layer reliability `weights`), e.g.
 down-weighting a noisier assay.
 
+> **REQUIREMENT — feature IDs must be HARMONIZED across layers.** Corroboration (`n_fired≥2`) keys on
+> an *identical feature string* appearing in more than one layer, so the caller MUST map each layer to
+> a shared identifier space (e.g. gene symbol / Ensembl ID) before fusion. If the layers keep their
+> native, disjoint namespaces (RNA gene symbols vs methylation probe IDs vs protein accessions), no
+> feature is shared and **nothing ever corroborates** — every driver is at best `nominated`. The
+> SYSUCC validation used shared gene symbols across all three layers precisely for this reason; a
+> real cross-omics run must harmonize upstream. (Related: because each layer's null is currently
+> calibrated over the *union* feature universe with out-of-layer features backfilled to baseline, a
+> layer whose features are mostly disjoint has a null skewed toward that backfill mass — another
+> reason to harmonize, and a candidate improvement is to compute each layer's null over its own
+> in-layer features only. Committee R1 F4.)
+
 ### 3.3 Output
 
 A ranked list of dicts: `entity` (the feature), `score`, `tier`, `rank`, `n_fired`,
