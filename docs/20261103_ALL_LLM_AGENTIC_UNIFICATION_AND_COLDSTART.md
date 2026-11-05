@@ -368,7 +368,7 @@ Paired bootstrap vs Flash (composite = mean of node F1, edge F1, structure; 5,00
 | Prompt | composite (3-run mean ± sd) | chain_hint accuracy (17 chain rows) | failed |
 |---|---|---|---|
 | production (old) | 0.355 ± 0.009 | 0.63 | 1 per run (`decreal_parallel_5` → target-ID path, no workflow node) |
-| v2 | 0.352 ± 0.005 | 0.67 | same |
+| v2 | 0.352 ± 0.005 | 0.67 | same, plus `decreal_sequential_63` once (run 2, zero workflow nodes) |
 
 Paired bootstrap on row means (24 rows incl. the excluded one, 5,000 resamples): Δ = −0.003 [−0.034, +0.029]. **Decision: v2 not shipped** (neutral; the real fork/join request already decomposes correctly with the production prompt, §12). The patch is kept out of the tree.
 
