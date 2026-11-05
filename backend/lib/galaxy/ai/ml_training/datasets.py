@@ -12,11 +12,50 @@ from __future__ import annotations
 
 import csv
 import logging
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 from .config import DatasetSpec, ConfigError
+
+log_stage = logging.getLogger(__name__)
+
+
+def stage_s3_to_local(s3_uri: str, dest: Optional[str] = None) -> str:
+    """Download an ``s3://`` object to a local file and return its path.
+
+    The ml_training loaders were written assuming the executor stages s3 inputs
+    into the work dir, but the ml_training ``.nf`` interpolates ``params.dataset``
+    as a plain value (no ``path`` input), so Nextflow never stages it. The Batch
+    container ships the AWS CLI and runs under an IAM role that can read the
+    work bucket, so the loader stages the object itself. Idempotent: if the
+    destination already exists (e.g. a genuinely staged run) it is reused.
+    """
+    if not s3_uri.startswith("s3://"):
+        raise ValueError(f"not an s3 uri: {s3_uri}")
+    target = dest or Path(s3_uri).name
+    if Path(target).exists() and Path(target).stat().st_size > 0:
+        return target
+    try:
+        subprocess.run(
+            ["aws", "s3", "cp", s3_uri, target],
+            check=True, capture_output=True, text=True,
+        )
+    except FileNotFoundError as exc:  # aws CLI missing (non-Batch env)
+        raise FileNotFoundError(
+            f"cannot stage {s3_uri}: the AWS CLI is not available in this "
+            f"environment (expected in the ml-training Batch image)"
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        raise FileNotFoundError(
+            f"failed to stage {s3_uri} via 'aws s3 cp' "
+            f"(exit {exc.returncode}): {(exc.stderr or '').strip()[:300]}"
+        ) from exc
+    if not (Path(target).exists() and Path(target).stat().st_size > 0):
+        raise FileNotFoundError(f"staged file {target} missing/empty after download of {s3_uri}")
+    log_stage.info("[ml_training] staged %s -> %s (%d bytes)", s3_uri, target, Path(target).stat().st_size)
+    return target
 
 log = logging.getLogger(__name__)
 

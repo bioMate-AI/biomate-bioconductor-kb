@@ -41,14 +41,11 @@ def _resolve_path(cfg: TrainingConfig) -> str:
     if spec.path:
         return spec.path
     if spec.s3_uri:
-        # Executor stages s3 inputs locally; the staged filename is the basename.
-        staged = Path(spec.s3_uri).name
-        if Path(staged).exists():
-            return staged
-        raise FileNotFoundError(
-            f"tabular training expects the staged CSV at '{staged}' "
-            f"(from {spec.s3_uri}); the executor stages inputs before the container runs"
-        )
+        # The ml_training .nf passes the dataset as a plain param (no Nextflow
+        # `path` staging), so stage the s3 object ourselves via the AWS CLI the
+        # Batch image ships. Reuses a genuinely-staged local copy if present.
+        from .datasets import stage_s3_to_local
+        return stage_s3_to_local(spec.s3_uri)
     raise ValueError("tabular training needs dataset.path or dataset.s3_uri")
 
 
