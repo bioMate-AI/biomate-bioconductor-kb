@@ -127,7 +127,15 @@ _WF_DENSE_BONUS_WEIGHT: float = 0.5
 # because the kind labels carry ~4% inter-model disagreement. Offline A/B (docs 20261103 §13.3): −25 vs −4
 # leaves cross_domain_routing and bioc_method_selection unchanged and fixes EPIC beta values → beta-value
 # method (not IDAT-only methylarray) and Cell Ranger output → scdownstream (not FASTQ-only scrnaseq).
-_INPUT_KIND_MISMATCH_PENALTY: float = float(os.environ.get("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", "25.0"))
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, default))
+    except (TypeError, ValueError):  # a malformed override must not break Galaxy startup
+        log.warning("[WorkflowSearch] ignoring malformed %s=%r", name, os.environ.get(name))
+        return default
+
+
+_INPUT_KIND_MISMATCH_PENALTY: float = _env_float("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", 25.0)
 
 
 SOURCE_PRIORITY = {
@@ -2702,7 +2710,10 @@ class UnifiedWorkflowSearch:
         """{workflow id: input kinds}, loaded once per DB file version (mtime) — the candidate SELECTs
         are unchanged, so the column is looked up here rather than threaded through every query shape."""
         try:
-            mtime = Path(str(self.db_path)).stat().st_mtime
+            # WAL mode: committed writes land in the -wal file until a checkpoint, so key on both files.
+            db = Path(str(self.db_path))
+            wal = Path(str(db) + "-wal")
+            mtime = (db.stat().st_mtime, wal.stat().st_mtime if wal.exists() else 0.0)
         except OSError:
             return {}
         cached = getattr(self, "_input_kinds_cache", None)
@@ -2724,7 +2735,8 @@ class UnifiedWorkflowSearch:
             finally:
                 conn.close()
         except sqlite3.Error as exc:
-            log.warning("[WorkflowSearch] input_kinds load failed: %s", exc)
+            log.warning("[WorkflowSearch] input_kinds load failed (retried on the next search): %s", exc)
+            return kinds  # not cached: a transient error must not disable the term until the file changes
         self._input_kinds_cache = (mtime, kinds)
         return kinds
 

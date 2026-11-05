@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from .domain_reclassifier import _DEFAULT_DB, openrouter_llm
+from .domain_reclassifier import _DEFAULT_DB, assert_fts_consistent, openrouter_llm
 
 # Kept in sync with UnifiedWorkflowSearch._RAW_KINDS / _PROCESSED_KINDS (asserted in tests).
 INPUT_KINDS: Dict[str, str] = {
@@ -94,25 +94,27 @@ def parse_kinds(raw: str) -> Optional[Dict]:
 def classify(db_path: Path, llm: Callable[[str], str], workers: int = 8, limit: Optional[int] = None) -> List[Dict]:
     conn = sqlite3.connect(str(db_path))
     rows = conn.execute("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(input_types,'[]'), "
-                        "COALESCE(annotation,'') FROM workflows WHERE executable=1 ORDER BY name").fetchall()
+                        "COALESCE(annotation,''), id FROM workflows WHERE executable=1 ORDER BY name").fetchall()
     conn.close()
     rows = rows[:limit] if limit else rows
 
     def one(r):
-        d = dict(zip(("name", "source", "description", "input_types", "annotation"), r))
+        d = dict(zip(("name", "source", "description", "input_types", "annotation", "id"), r))
         try:
             p = parse_kinds(llm(_row_prompt(d)))
         except Exception:  # noqa: BLE001
             p = None
-        return ({"name": d["name"], **p, "method": "llm"} if p
-                else {"name": d["name"], "input_kinds": None, "reason": "llm_failed", "method": "llm_failed"})
+        return ({"id": d["id"], "name": d["name"], **p, "method": "llm"} if p
+                else {"id": d["id"], "name": d["name"], "input_kinds": None, "reason": "llm_failed", "method": "llm_failed"})
 
     with ThreadPoolExecutor(max(1, workers)) as ex:
         return list(ex.map(one, rows))
 
 
 def apply(db_path: Path, results: List[Dict]) -> int:
-    """Write input_kinds (failed rows untouched). Adds the column if absent."""
+    """Write input_kinds (failed rows untouched). Adds the column if absent. Rows are addressed by id
+    (names are not unique); results recorded before ids fall back to the name."""
+    assert_fts_consistent(db_path)
     conn = sqlite3.connect(str(db_path))
     cols = {r[1] for r in conn.execute("PRAGMA table_info(workflows)")}
     if "input_kinds" not in cols:
@@ -120,8 +122,12 @@ def apply(db_path: Path, results: List[Dict]) -> int:
     n = 0
     for r in results:
         if r.get("input_kinds") is not None:
-            n += conn.execute("UPDATE workflows SET input_kinds = ? WHERE name = ? AND executable = 1",
-                              (json.dumps(r["input_kinds"]), r["name"])).rowcount
+            if r.get("id") is not None:
+                n += conn.execute("UPDATE workflows SET input_kinds = ? WHERE id = ? AND executable = 1",
+                                  (json.dumps(r["input_kinds"]), r["id"])).rowcount
+            else:
+                n += conn.execute("UPDATE workflows SET input_kinds = ? WHERE name = ? AND executable = 1",
+                                  (json.dumps(r["input_kinds"]), r["name"])).rowcount
     conn.commit()
     conn.close()
     return n

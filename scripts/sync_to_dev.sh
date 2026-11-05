@@ -848,7 +848,19 @@ deploy_databases() {
     _cur_local_md5=$(md5 -q "$local_db" 2>/dev/null \
       || md5sum "$local_db" 2>/dev/null | cut -d' ' -f1 \
       || echo '')
-    if [[ -n "$_cur_local_md5" && "$_cur_local_md5" == "${_DEV_DB_MD5:-}" ]]; then
+    # Never ship a catalog whose external-content FTS index disagrees with the workflows table: search
+    # then ranks on stale text and the update triggers fail mid-write (2026-11-05, docs/20261103 §13).
+    local _fts_bad=0
+    if command -v sqlite3 >/dev/null 2>&1 \
+       && ! sqlite3 "$local_db" "INSERT INTO workflows_fts(workflows_fts, rank) VALUES('integrity-check', 1);" >/dev/null 2>&1; then
+      log "::error:: [db] workflows_fts integrity-check FAILED on the local galaxy_ai_tools.db — not uploading it."
+      log "::error:: [db] rebuild first: sqlite3 $local_db \"INSERT INTO workflows_fts(workflows_fts) VALUES('rebuild')\""
+      _fts_bad=1
+    fi
+    if [[ "${_fts_bad:-0}" == 1 ]]; then
+      log "[db] galaxy_ai_tools.db NOT uploaded (FTS integrity) — dev keeps its current DB"
+      LAST_DB_SYNC="$local_db_mtime"
+    elif [[ -n "$_cur_local_md5" && "$_cur_local_md5" == "${_DEV_DB_MD5:-}" ]]; then
       log "[db] galaxy_ai_tools.db MD5 matches dev (${_cur_local_md5}) — skipping upload"
       LAST_DB_SYNC="$local_db_mtime"
     else

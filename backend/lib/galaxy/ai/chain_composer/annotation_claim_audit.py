@@ -25,7 +25,12 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .domain_reclassifier import _DEFAULT_DB, openrouter_llm
+from .domain_reclassifier import _DEFAULT_DB, assert_fts_consistent, openrouter_llm
+
+# Upstream-authored annotations are not edited: on Bioconductor rows `annotation` is the package's own
+# DESCRIPTION text, and the verifier confused package scope with our narrower wrapper's scope (2026-11-05
+# spot check: DSS's own DML/DMR sentence, MassArray's description). Only BioMate-authored keyword text is cleaned.
+UPSTREAM_AUTHORED_SOURCES = ("bioconductor",)
 
 _PROPOSE = """You audit the search keywords of one bioinformatics workflow for FALSE claims.
 
@@ -72,13 +77,15 @@ def _json(raw: str) -> Optional[dict]:
 
 def _rows(db: Path, names: Optional[List[str]] = None):
     conn = sqlite3.connect(str(db))
-    sql = ("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(input_kinds,'[]'), annotation "
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(workflows)")}
+    kinds = "COALESCE(input_kinds,'[]')" if "input_kinds" in cols else "'[]'"
+    sql = (f"SELECT name, COALESCE(source,''), COALESCE(description,''), {kinds}, annotation, id "
            "FROM workflows WHERE executable=1 AND annotation IS NOT NULL AND length(annotation) > 0")
     rows = conn.execute(sql).fetchall()
     conn.close()
     if names:
         rows = [r for r in rows if r[0] in set(names)]
-    return [dict(zip(("name", "source", "description", "kinds", "annotation"), r)) for r in rows]
+    return [dict(zip(("name", "source", "description", "kinds", "annotation", "id"), r)) for r in rows]
 
 
 def propose(db: Path, llm, workers: int, names=None) -> List[Dict]:
@@ -106,21 +113,55 @@ def verify(props: List[Dict], llm, workers: int) -> List[Dict]:
         return list(ex.map(one, props))
 
 
-def cleaned(annotation: str, phrases: List[str]) -> str:
+def _cleaned_v1(annotation: str, phrases: List[str]) -> str:
+    """The first version (2026-11-05, applied to dev): raw substring removal. Kept only so `repair` can
+    recognise rows it wrote — it also cut phrases out of longer words ("sam" out of "samtools")."""
     out = annotation
     for ph in sorted(phrases, key=len, reverse=True):
         out = out.replace(ph, " ")
     return re.sub(r"\s{2,}", " ", out).strip()
 
 
-def apply(db: Path, verified: List[Dict]) -> int:
+def cleaned(annotation: str, phrases: List[str]) -> str:
+    """Remove each phrase only where it stands as a whole token (not inside a longer word)."""
+    out = annotation
+    for ph in sorted(phrases, key=len, reverse=True):
+        out = re.sub(r"(?<![A-Za-z0-9])" + re.escape(ph) + r"(?![A-Za-z0-9])", " ", out)
+    return re.sub(r"\s{2,}", " ", out).strip()
+
+
+def _where(v: Dict):
+    return ("id = ?", v["id"]) if v.get("id") is not None else ("name = ?", v["name"])
+
+
+def apply(db: Path, verified: List[Dict], exclude_sources=UPSTREAM_AUTHORED_SOURCES) -> int:
+    assert_fts_consistent(db)
+    conn = sqlite3.connect(str(db))
+    n = 0
+    for v in verified:
+        if v.get("confirmed") and v.get("source") not in set(exclude_sources or ()):
+            # guarded by the original text: a row changed since the audit is left alone
+            col, key = _where(v)
+            n += conn.execute(f"UPDATE workflows SET annotation = ? WHERE {col} AND annotation = ?",
+                              (cleaned(v["annotation"], v["confirmed"]), key, v["annotation"])).rowcount
+    conn.commit()
+    conn.close()
+    return n
+
+
+def repair(db: Path, verified: List[Dict]) -> int:
+    """Re-apply the confirmed removals with the token-bounded `cleaned` to rows that still hold exactly what
+    `_cleaned_v1` wrote (rows changed since are left alone)."""
+    assert_fts_consistent(db)
     conn = sqlite3.connect(str(db))
     n = 0
     for v in verified:
         if v.get("confirmed"):
-            # guarded by the original text: a row changed since the audit is left alone
-            n += conn.execute("UPDATE workflows SET annotation = ? WHERE name = ? AND annotation = ?",
-                              (cleaned(v["annotation"], v["confirmed"]), v["name"], v["annotation"])).rowcount
+            old, new = _cleaned_v1(v["annotation"], v["confirmed"]), cleaned(v["annotation"], v["confirmed"])
+            if old != new:
+                col, key = _where(v)
+                n += conn.execute(f"UPDATE workflows SET annotation = ? WHERE {col} AND annotation = ?",
+                                  (new, key, old)).rowcount
     conn.commit()
     conn.close()
     return n
@@ -128,7 +169,7 @@ def apply(db: Path, verified: List[Dict]) -> int:
 
 def _cli(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("step", choices=["propose", "verify", "apply"])
+    ap.add_argument("step", choices=["propose", "verify", "apply", "repair"])
     ap.add_argument("--output"); ap.add_argument("--verified"); ap.add_argument("--db", default=str(_DEFAULT_DB))
     ap.add_argument("--model", default="google/gemini-3.8-flash"); ap.add_argument("--verify-model", default="anthropic/claude-sonnet-5.5")
     ap.add_argument("--workers", type=int, default=12); ap.add_argument("--names", default="")
@@ -145,6 +186,8 @@ def _cli(argv=None) -> int:
             for r in res:
                 f.write(json.dumps(r) + "\n")
         sys.stderr.write(f"rows with confirmed removals {sum(1 for r in res if r.get('confirmed'))}; phrases {sum(len(r.get('confirmed') or []) for r in res)}\n")
+    elif a.step == "repair":
+        sys.stderr.write(f"repaired {repair(Path(a.db), [json.loads(l) for l in open(a.verified) if l.strip()])} rows\n")
     else:
         sys.stderr.write(f"updated {apply(Path(a.db), [json.loads(l) for l in open(a.verified) if l.strip()])} rows\n")
     return 0

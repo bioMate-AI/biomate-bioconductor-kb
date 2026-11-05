@@ -6855,7 +6855,8 @@ def plan_dag(request: PlanDagRequest, trans: ProvidesUserContext = DependsOnTran
         return plan_dag_from_tasks(sa, [t.dict() for t in request.tasks], request.name, request.max_parallel)
     except Exception as exc:  # noqa: BLE001 — planning is best-effort; the chat falls back
         log.warning("[plan_dag] failed: %s", exc)
-        return {"success": False, "reason": f"error: {exc}"}
+        log.warning("[plan_dag] failed: %s", exc)
+        return {"success": False, "reason": f"error: {type(exc).__name__}"}
 
 
 
@@ -6941,6 +6942,21 @@ def workflow_by_name(
     except Exception as exc:
         log.warning("[workflow_by_name] failed: %s", exc)
         return {"success": False, "error": str(exc)}
+
+
+class WorkflowByNameRequest(BaseModel):
+    name: str
+    query: Optional[str] = None
+
+
+@router.post(
+    "/api/ai_assistant/workflow_by_name",
+    summary="Workflow lookup by exact name, with the request text in the body (input-compatibility check)"
+)
+def workflow_by_name_post(request: WorkflowByNameRequest, trans: ProvidesUserContext = DependsOnTrans) -> Dict[str, Any]:
+    """POST form of workflow_by_name: the user's request text goes in the body, not the URL (long or CJK
+    messages exceed request-line limits when percent-encoded, and URLs are access-logged)."""
+    return workflow_by_name(name=request.name, query=request.query, trans=trans)
 
 
 def _get_workflow_search_engine():

@@ -2257,11 +2257,41 @@ export function replyLanguageNote(message: string): string {
 /** Name for a DAG plan card: the integration step's task when there is one (it names the goal),
  *  else the first branch; never a generic placeholder. */
 export function dagPlanName(tasks: Array<{ description: string; depends_on: number[] }>): string {
+  // Named after the combining step; a plan with no dependent step is not "about" its last branch.
+  if (tasks.length > 1 && tasks.every(t => !t.depends_on.length)) return `${tasks.length} parallel analyses`;
   const sink = [...tasks].reverse().find(t => t.depends_on.length > 1) || tasks[tasks.length - 1] || tasks[0];
   const text = (sink?.description || 'Multi-step analysis').replace(/\s+/g, ' ').trim();
   const clause = text.split(/(?<=[.;:。；])\s*/)[0].replace(/[.;:。；]$/, '');
   const name = clause.length <= 60 ? clause : clause.slice(0, 57).replace(/\s+\S*$/, '') + '…';
   return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/** Intents in dependency order (stable; unknown dependency ids ignored). null on a cycle. */
+export function topoOrderIntents<T extends { id: string; dependsOn?: string[] }>(intents: T[]): T[] | null {
+  const ids = new Set(intents.map(i => i.id));
+  const done = new Set<string>();
+  const out: T[] = [];
+  let progressed = true;
+  while (out.length < intents.length && progressed) {
+    progressed = false;
+    for (const it of intents) {
+      if (done.has(it.id)) continue;
+      const deps = (it.dependsOn || []).filter(d => ids.has(d) && d !== it.id);
+      if (deps.every(d => done.has(d))) { out.push(it); done.add(it.id); progressed = true; }
+    }
+  }
+  return out.length === intents.length ? out : null;
+}
+
+/** A branch domain the router can use: the classifier's domain vocabulary is wider than the 14
+ *  CANONICAL_DOMAINS that preferred_domains (and so the ±4 domain term) accept. Aliases map; others drop. */
+export function canonicalBranchDomain(d: string | undefined): string | undefined {
+  if (!d) return undefined;
+  const v = d.trim().toLowerCase();
+  if ((CANONICAL_DOMAINS as readonly string[]).includes(v)) return v;
+  const alias: Record<string, string> = { variant_calling: 'genomics', pharmacology: 'drug_discovery', imaging: 'bioimaging',
+    ...(SUBDOMAIN_TO_CANONICAL as Record<string, string>) };
+  return alias[v];
 }
 
 /** One decomposition call through OpenRouter's OpenAI-compatible API (retried once on a transport or
@@ -5414,6 +5444,10 @@ Rules:
             // 2026-11-05: the reply recommended nf-core/proteomicslfq "for MaxQuant proteinGroups.txt" and
             // this step moved the correct dep card onto a raw-spectra pipeline.
             log(`Step 6c: "${_textWorkflow}" cannot run on this request's data (backend input-kind check) — keeping "${_cardName}"`);
+            // The card is right but the prose still recommends the other workflow: say so next to it.
+            const _cardLabel = generatedWorkflow.workflow_ga?.name || generatedWorkflow.workflow_name || _cardName;
+            response.message += `\n\n> **Note:** ${_textWorkflow} does not accept the kind of data described in your request, `
+              + `so the plan below uses **${_cardLabel}** instead.`;
           } else if (corrected?.success && (corrected.workflow_ga || corrected.nextflow_path)) {
             generatedWorkflow = {
               ...generatedWorkflow,
@@ -6209,8 +6243,16 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const wf = decomposition.intents.filter(i =>
       (i.type === 'workflow_generation' || i.actions?.needsWorkflowGeneration) && i.execution !== 'direct_compute');
     if (wf.length < 2) return null;
-    const idx = new Map(wf.map((i, k) => [i.id, k + 1]));
-    const tasks = wf.map((i, k) => ({
+    // Number the intents in dependency order: the classifier may list a combining step before its
+    // branches, and a step can only depend on an earlier one — numbering in emitted order silently
+    // dropped those edges and presented a fan-in as all-parallel (committee review 2026-11-05).
+    const ordered = topoOrderIntents(wf);
+    if (!ordered) {
+      log('DAG plan not assembled (cyclic dependencies between workflow intents) — per-intent cards');
+      return null;
+    }
+    const idx = new Map(ordered.map((i, k) => [i.id, k + 1]));
+    const tasks = ordered.map((i, k) => ({
       id: i.id,
       description: i.subQuery || message,
       depends_on: (i.dependsOn || []).map(d => idx.get(d)).filter((n): n is number => typeof n === 'number' && n <= k),
@@ -6226,8 +6268,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     log(`DAG plan assembled: ${steps.length} steps, max_parallel=${card.max_parallel}`);
     const lines = steps.map((s, k) => {
       const deps = (s.depends_on || []) as number[];
+      const wired = !data.order_only;
       return `  ${k + 1}. **${s.description || s.workflow_name}** — \`${s.nextflow_path}\`` +
-        (deps.length ? ` (uses the results of step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})` : ' (runs in parallel)');
+        (deps.length
+          ? ` (${wired ? 'uses the results of' : 'runs after'} step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})`
+          : ' (runs in parallel)');
     });
     const unwired: Array<{ from_step: number; to_step: number }> = data.unwired_dependencies || [];
     const hasJoin = steps.some(st => (st.depends_on || []).length > 0);
@@ -6343,6 +6388,15 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     });
     const dagResponse = await this._tryDagPlan(decomposition, message, log, routedPaths).catch(() => null);
     if (dagResponse) {
+      // The other parts of the request (interpretation, literature, benchmark…) were already answered in
+      // Steps 4–5; returning only the plan discarded them (committee review 2026-11-05).
+      const others = decomposition.intents
+        .map((it, k) => ({ it, r: subIntentResults[k] }))
+        .filter(({ it, r }) => !(it.type === 'workflow_generation' || it.actions?.needsWorkflowGeneration)
+          && typeof r?.message === 'string' && r.message.trim());
+      if (others.length) {
+        dagResponse.message += '\n\n' + others.map(({ it, r }) => `**${it.subQuery}**\n\n${String(r?.message || '').trim()}`).join('\n\n');
+      }
       onResponseDelta?.(dagResponse.message);
       return dagResponse;
     }
@@ -6575,8 +6629,9 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         // free-text sub-query's "WT vs KO / lysate / triplicates" matched a CLIP-seq workflow whose
         // inputs are named wt_/ko_ (dev, 2026-11-04).
         const effectiveIntent = workflowIntent(intent.taskSpec || intent.subQuery, originalMessage);
-        if (intent.domain) {
-          preferredDomains = [intent.domain, ...(preferredDomains || []).filter(d => d !== intent.domain)];
+        const _branchDomain = canonicalBranchDomain(intent.domain);
+        if (_branchDomain) {
+          preferredDomains = [_branchDomain, ...(preferredDomains || []).filter(d => d !== _branchDomain)];
         }
         const _subUploadedParams = extractUploadedFileParams(originalMessage || intent.subQuery);
         const _subMergedInline: Record<string, string> = {
@@ -7939,6 +7994,9 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       const isGemini = configured.startsWith('gemini-') || !!orModel;
       const effectiveIntentModel = orModel ? GEMINI_FLASH_MODEL : isGemini ? pickGeminiIntentModel(message) : configured;
       let primaryText: string | undefined;
+      if (orModel && !orKey) {
+        console.warn(`[Intent] BIOMATE_INTENT_MODEL=openrouter:${orModel} but BIOMATE_DECOMP_OPENROUTER_KEY is unset — using ${GEMINI_FLASH_MODEL}`);
+      }
       if (orModel && orKey) {
         primaryText = await decomposeViaOpenRouter(orModel, orKey, systemPrompt, messageForUQU).catch((e: any) => {
           console.warn(`[Intent] primary decomposition model ${orModel} failed (${String(e?.message || e).slice(0, 160)}) — falling back to ${GEMINI_FLASH_MODEL}`);
@@ -8811,11 +8869,16 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
   private async _lookupWorkflowByName(name: string, query?: string): Promise<any> {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const q = query ? `&query=${encodeURIComponent(query.slice(0, 4000))}` : '';
-      const resp = await fetch(
-        `${galaxyUrl}/api/ai_assistant/workflow_by_name?name=${encodeURIComponent(name)}${q}`,
-        { headers: { 'x-api-key': process.env.GALAXY_MASTER_API_KEY || process.env.GALAXY_API_KEY || '' } }
-      );
+      // POST: the request text (used for the input-compatibility check) does not belong in a URL —
+      // percent-encoded long or CJK messages exceed request-line limits, and URLs are access-logged.
+      const resp = await fetch(`${galaxyUrl}/api/ai_assistant/workflow_by_name`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': process.env.GALAXY_MASTER_API_KEY || process.env.GALAXY_API_KEY || '',
+        },
+        body: JSON.stringify({ name, ...(query ? { query: query.slice(0, 20000) } : {}) }),
+      });
       if (!resp.ok) return null;
       return await resp.json();
     } catch {
@@ -10075,8 +10138,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         }
         break;
       }
-      // Keep what the user already saw before the guard sent the reply back (persisted = displayed).
-      if (_shownBeforeNudge && rawResponse.trim()) rawResponse = `${_shownBeforeNudge}\n\n${rawResponse}`;
+      // The pre-nudge reply presented code that never ran, possibly with results stated before any
+      // computation; it is NOT kept. The final message (which replaces the streamed preview in the UI,
+      // chat-interface.tsx `data.response`) is the post-execution answer only. Committee review 2026-11-05.
+      if (_shownBeforeNudge && !rawResponse.trim()) rawResponse = _shownBeforeNudge;
 
       // Guard: if loop exhausted or tool-only response with no final text, provide fallback.
       // When a workflow was generated, produce a meaningful workflow-ready message.

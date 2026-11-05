@@ -101,3 +101,22 @@ def test_input_compatible_for_card_swap_guard(tmp_path):
     assert s.input_compatible(Q_TABLE, 3) is True    # accepts both regimes
     assert s.input_compatible("What is DIA proteomics?", 1) is None  # no explicit data kind
     assert s.input_compatible(Q_TABLE, 99) is None   # workflow without kinds
+
+
+def test_malformed_penalty_env_falls_back_instead_of_crashing(monkeypatch):
+    from galaxy.ai.unified_workflow_search import _env_float
+    monkeypatch.setenv("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", "twenty-five")
+    assert _env_float("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", 25.0) == 25.0
+
+
+def test_kinds_load_error_is_not_cached(tmp_path):
+    s = _search(tmp_path)
+    s._input_kinds_cache = None
+    import sqlite3 as _sq
+    orig = _sq.connect
+    try:
+        _sq.connect = lambda *a, **k: (_ for _ in ()).throw(_sq.OperationalError("locked"))
+        assert s._input_kinds_map() == {}
+    finally:
+        _sq.connect = orig
+    assert getattr(s, "_input_kinds_cache", None) is None  # retried next time, not stuck empty

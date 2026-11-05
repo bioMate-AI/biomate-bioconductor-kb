@@ -88,5 +88,35 @@ def test_untypeable_fan_in_keeps_the_order_and_reports_every_dependency():
 
 def test_routing_chosen_paths_are_used_instead_of_a_bare_search():
     tasks = [dict(t, nextflow_path=f"chosen/{t['id']}.nf") for t in FORK_JOIN]
-    out = plan_dag_from_tasks(FakeAssistant(unresolved={"rna", "lysate", "secretome", "integrate"}), tasks)
+    sa = FakeAssistant(unresolved={"rna", "lysate", "secretome", "integrate"})
+    sa.workflow_search = _Catalog(*[t["nextflow_path"] for t in tasks])  # routed paths are catalog workflows
+    out = plan_dag_from_tasks(sa, tasks)
     assert [s["nextflow_path"] for s in out["workflow"]["pipeline_steps"]] == [f"chosen/{t['id']}.nf" for t in FORK_JOIN]
+
+
+class _Catalog:
+    """workflow_search stand-in: an in-memory catalog of executable workflows."""
+    def __init__(self, *paths):
+        import sqlite3
+        self._db = sqlite3.connect(":memory:", check_same_thread=False)
+        self._db.execute("CREATE TABLE workflows (filename TEXT, executable INTEGER)")
+        self._db.executemany("INSERT INTO workflows VALUES (?, 1)", [(p,) for p in paths])
+
+    def _get_connection(self):
+        class _C:  # close() must not close the shared in-memory DB
+            def __init__(s, db): s.db = db
+            def execute(s, *a): return s.db.execute(*a)
+            def close(s): pass
+        return _C(self._db)
+
+
+def test_caller_supplied_path_used_only_if_in_catalog():
+    sa = FakeAssistant()
+    sa.workflow_search = _Catalog("routed/rna_from_chat.nf")
+    tasks = [dict(FORK_JOIN[0], nextflow_path="routed/rna_from_chat.nf"),
+             dict(FORK_JOIN[1], nextflow_path="/tmp/not_a_catalog_workflow.nf"),
+             FORK_JOIN[2], FORK_JOIN[3]]
+    out = plan_dag_from_tasks(sa, tasks)
+    paths = [s["nextflow_path"] for s in out["workflow"]["pipeline_steps"]]
+    assert paths[0] == "routed/rna_from_chat.nf"   # the turn's own routing, a catalog workflow
+    assert paths[1] == PATHS["lysate"]              # untrusted path ignored → resolved from the task

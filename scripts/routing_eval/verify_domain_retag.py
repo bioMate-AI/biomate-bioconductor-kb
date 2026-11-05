@@ -21,15 +21,18 @@ props = [json.loads(l) for l in open(a.proposals) if l.strip()]
 cand = [p for p in props if p["method"] == "llm" and p["proposed_domain"] != p["current_domain"] and p["confidence"] >= a.min_conf
         # A move INTO 'general' only removes routing signal (the router never prefers it): not applied.
         and p["proposed_domain"] != "general"]
-rows = {r[0]: r for r in db.execute("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(annotation,''), "
-                                     "COALESCE(domain,'general') FROM workflows WHERE executable=1")}
+rows_by_id = {r[5]: r for r in db.execute("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(annotation,''), "
+                                           "COALESCE(domain,'general'), id FROM workflows WHERE executable=1")}
+rows_by_name = {r[0]: r for r in rows_by_id.values()}  # proposals from before ids were recorded
 llm = D.openrouter_llm(a.model)
 
 def check(p):
-    r = rows[p["name"]]
+    r = rows_by_id.get(p.get("id")) or rows_by_name.get(p["name"])
+    if r is None:  # the row disappeared since the proposal: never edit it
+        return {**p, "second_model": a.model, "second_domain": None, "second_reason": "row_missing", "agreed": False}
     v = D._classify_one({"name": r[0], "source": r[1], "description": r[2], "annotation": r[3], "current_domain": r[4]},
                         llm, taxonomy=tax + ([r[4]] if r[4] not in tax else []), keep_on_failure=True)
-    return {**p, "second_model": a.model, "second_domain": v["proposed_domain"], "second_reason": v["reason"],
+    return {**p, "id": r[5], "second_model": a.model, "second_domain": v["proposed_domain"], "second_reason": v["reason"],
             "agreed": v["method"] == "llm" and v["proposed_domain"] == p["proposed_domain"]}
 
 out = list(ThreadPoolExecutor(8).map(check, cand))
@@ -39,7 +42,8 @@ ok = [o for o in out if o["agreed"]]
 with open(a.sql, "w") as f:
     f.write("BEGIN;\n")
     for o in ok:  # guarded by the current tag so a re-run or a diverged DB changes nothing unexpected
-        f.write("UPDATE workflows SET domain = %s WHERE name = %s AND domain = %s;\n" % tuple(
-            "'" + s.replace("'", "''") + "'" for s in (o["proposed_domain"], o["name"], o["current_domain"])))
+        q = lambda x: "'" + str(x).replace("'", "''") + "'"  # noqa: E731
+        f.write("UPDATE workflows SET domain = %s WHERE id = %d AND domain = %s;\n"
+                % (q(o["proposed_domain"]), int(o["id"]), q(o["current_domain"])))
     f.write("COMMIT;\n")
 print(f"proposals {len(props)}; changes >= {a.min_conf}: {len(cand)}; agreed {len(ok)}; disagreed {len(cand) - len(ok)}")

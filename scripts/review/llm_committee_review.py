@@ -34,7 +34,7 @@ ASK = """Return your review as ONE JSON object, no prose outside it:
 
 
 def call(model, packet, diffs):
-    body = json.dumps({"model": model, "temperature": 0.2, "max_tokens": 16000,
+    body = json.dumps({"model": model, "temperature": 0.2, "max_tokens": int(os.environ.get("REVIEW_MAX_TOKENS", "16000")),
                        "messages": [{"role": "system", "content": SYSTEM},
                                     {"role": "user", "content": f"{packet}\n\n=== CODE DIFFS ===\n{diffs}\n\n{ASK}"}]}).encode()
     req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=body, method="POST",

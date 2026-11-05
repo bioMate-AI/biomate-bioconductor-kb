@@ -62,11 +62,20 @@ describe('_tryDagPlan', () => {
     expect(never).not.toHaveBeenCalled();
   });
 
-  it('drops forward or unknown edges (only earlier steps can be dependencies)', async () => {
+  it('numbers intents in dependency order (a combining step emitted first keeps its edges); unknown ids ignored', async () => {
     const post = vi.fn(async () => ({ data: { success: false } }));
-    const odd = { intents: [intent('a', 'first', ['b']), intent('b', 'second', ['a', 'zzz'])] } as any;
-    await assistantWith(post)._tryDagPlan(odd, 'x', () => {});
-    expect((post.mock.calls[0] as any)[1].tasks.map((t: any) => t.depends_on)).toEqual([[], [1]]);
+    const joinFirst = { intents: [intent('join', 'integrate', ['a', 'zzz']), intent('a', 'first')] } as any;
+    await assistantWith(post)._tryDagPlan(joinFirst, 'x', () => {});
+    const sent = (post.mock.calls[0] as any)[1].tasks;
+    expect(sent.map((t: any) => t.id)).toEqual(['a', 'join']);
+    expect(sent.map((t: any) => t.depends_on)).toEqual([[], [1]]);
+  });
+
+  it('refuses a cyclic plan (per-intent cards) instead of silently dropping an edge', async () => {
+    const post = vi.fn();
+    const cyclic = { intents: [intent('a', 'first', ['b']), intent('b', 'second', ['a'])] } as any;
+    expect(await assistantWith(post)._tryDagPlan(cyclic, 'x', () => {})).toBeNull();
+    expect(post).not.toHaveBeenCalled();
   });
 });
 

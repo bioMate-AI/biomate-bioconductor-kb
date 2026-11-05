@@ -261,6 +261,19 @@ def build_dag_plan(
     return {"execution_mode": "dag", "steps": steps, "connections": connections, "max_parallel": max_parallel}
 
 
+def _is_catalog_workflow(sa: Any, nextflow_path: str) -> bool:
+    """True when the path is an executable workflow in the catalog (unknown → resolve from the task)."""
+    try:
+        conn = sa.workflow_search._get_connection()
+        try:
+            return conn.execute("SELECT 1 FROM workflows WHERE filename = ? AND executable = 1 LIMIT 1",
+                                (nextflow_path,)).fetchone() is not None
+        finally:
+            conn.close()
+    except Exception:  # noqa: BLE001 — no catalog access here: do not trust the path
+        return False
+
+
 def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str] = None,
                         max_parallel: Optional[int] = None) -> Dict[str, Any]:
     """Pure core of /plan_dag (``sa`` supplies _resolve_task_to_workflow / _workflow_io_types)."""
@@ -274,15 +287,19 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
         return {"success": False, "reason": "fewer_than_two_tasks"}
     resolved, per_task = {}, []
     for i, t in enumerate(tasks):
-        r = ({"nextflow_path": t["nextflow_path"], "parameters": {}} if t.get("nextflow_path")
+        # A caller-supplied path (the chat turn's own per-intent routing) is used only if it is an
+        # executable catalog workflow; anything else is resolved from the task like an unrouted branch.
+        given = t.get("nextflow_path")
+        r = ({"nextflow_path": given, "parameters": {}} if given and _is_catalog_workflow(sa, given)
              else sa._resolve_task_to_workflow(t))
         resolved[i] = r
         per_task.append({"task": t.get("id") or f"task_{i + 1}", "description": t.get("description", ""),
                          "nextflow_path": (r or {}).get("nextflow_path"), "resolved": bool(r)})
     if not all(resolved.values()):
         return {"success": False, "reason": "unresolved_task", "tasks": per_task}
-    _idx = {id(t): i for i, t in enumerate(tasks)}
-    plan = build_dag_plan(tasks, lambda t: resolved.get(_idx.get(id(t))),
+    _key = lambda t: t.get("id") or id(t)  # noqa: E731 — task id, not object identity
+    _idx = {_key(t): i for i, t in enumerate(tasks)}
+    plan = build_dag_plan(tasks, lambda t: resolved.get(_idx.get(_key(t))),
                           type_provider=sa._workflow_io_types, max_parallel=max_parallel)
     order_only = False
     if not plan:

@@ -243,7 +243,7 @@ def reclassify(
         # all_domains: audit every executable workflow against its current tag (mis-tags such as
         # proteomics packages filed under transcriptomics), not only the 'general' catch-all.
         sql = ("SELECT name, COALESCE(source,''), COALESCE(description,''), "
-               "       COALESCE(annotation,''), COALESCE(domain,'general') "
+               "       COALESCE(annotation,''), COALESCE(domain,'general'), id "
                "FROM workflows WHERE executable=1 "
                + ("" if all_domains else "AND domain='general' ")
                + "ORDER BY name")
@@ -272,12 +272,13 @@ def reclassify(
     if offline:
         llm = None
 
-    def _one(r: Tuple[str, str, str, str, str]) -> Dict[str, Any]:
-        name, source, desc, anno, domain = r
+    def _one(r: Tuple[str, str, str, str, str, int]) -> Dict[str, Any]:
+        name, source, desc, anno, domain, wid = r
         row_tax = (taxonomy + [domain]) if (canonical and domain not in taxonomy) else taxonomy
-        return _classify_one({"name": name, "source": source, "description": desc,
-                              "annotation": anno, "current_domain": domain}, llm,
-                             taxonomy=row_tax, keep_on_failure=all_domains)
+        out = _classify_one({"name": name, "source": source, "description": desc,
+                             "annotation": anno, "current_domain": domain}, llm,
+                            taxonomy=row_tax, keep_on_failure=all_domains)
+        return {**out, "id": wid}  # workflow names are not unique (27 duplicated, 2026-11-05)
 
     out: List[Dict[str, Any]] = []
     from concurrent.futures import ThreadPoolExecutor
@@ -287,6 +288,21 @@ def reclassify(
             if i % 100 == 0:
                 sys.stderr.write(f"  [{i}/{len(rows)}] processed\n")
     return out
+
+
+def assert_fts_consistent(db_path) -> None:
+    """Refuse to write the catalog when the external-content FTS index is inconsistent with `workflows`:
+    the update triggers then fail mid-run ("database disk image is malformed", 2026-11-05) and leave a
+    partial write. Rebuild first: INSERT INTO workflows_fts(workflows_fts) VALUES('rebuild')."""
+    conn = sqlite3.connect(str(db_path))
+    try:
+        has_fts = conn.execute("SELECT 1 FROM sqlite_master WHERE name='workflows_fts'").fetchone()
+        if has_fts:
+            conn.execute("INSERT INTO workflows_fts(workflows_fts, rank) VALUES('integrity-check', 1)")
+    except sqlite3.DatabaseError as exc:
+        raise RuntimeError(f"workflows_fts integrity-check failed on {db_path}: {exc} — rebuild the FTS index first") from exc
+    finally:
+        conn.close()
 
 
 def openrouter_llm(model: str, key_path: str = "~/.config/biomate/openrouter.key") -> Callable[[str], str]:
@@ -387,6 +403,8 @@ def _cli(argv=None) -> int:
     p.add_argument("--workers", type=int, default=1, help="parallel LLM calls")
     p.add_argument("--canonical", action="store_true", help="closed list = router's CANONICAL_DOMAINS + general + current tag")
     args = p.parse_args(argv)
+    if args.canonical and not args.all_domains:
+        p.error("--canonical audits existing tags against the router's vocabulary: use it with --all-domains")
 
     t0 = time.time()
     proposals = reclassify(limit=args.limit, offline=args.offline, all_domains=args.all_domains,
