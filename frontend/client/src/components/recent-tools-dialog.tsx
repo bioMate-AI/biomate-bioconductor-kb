@@ -10,17 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { recentToolsService } from "@/lib/recent-tools"
 import type { RecentTool } from "@shared/schema"
 import { 
-  Clock, 
-  Search, 
+  Clock,
+  Search,
   Filter,
   Trash2,
-  ExternalLink,
   BarChart,
   Database,
   GitBranch,
   TrendingUp,
-  Activity,
-  Star
+  Activity
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -258,17 +256,9 @@ export function RecentToolsDialog({
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              // Add to starred tools
-                            }}
-                            data-testid={`button-star-tool-${tool.id}`}
-                          >
-                            <Star className="w-4 h-4" />
-                          </Button>
+                          {/* "Star" and "View documentation" removed: both had no
+                              real target (empty onClick). Opening a tool's details
+                              is handled by card-click → onToolSelect. */}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -279,17 +269,6 @@ export function RecentToolsDialog({
                             data-testid={`button-remove-tool-${tool.id}`}
                           >
                             <Trash2 className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              // Open tool documentation
-                            }}
-                            data-testid={`button-view-tool-${tool.id}`}
-                          >
-                            <ExternalLink className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>

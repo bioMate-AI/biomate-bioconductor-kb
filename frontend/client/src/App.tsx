@@ -880,14 +880,20 @@ function App() {
     setShowToolDialog(true)
   }
 
+  // Both CTAs route through BioMate's real chat entry point via ?draft=, which
+  // pre-fills the chat input for the user to review/edit before sending (the
+  // same mechanism as the project "Analyze with BioMate" flow). They are NOT
+  // console.log no-ops.
   const handleAddToWorkflow = (tool: ToolItem) => {
-    console.log('Adding tool to workflow:', tool.name)
     setShowToolDialog(false)
+    const msg = `Add the ${tool.name} tool to my workflow.`
+    window.location.assign(`/?draft=${encodeURIComponent(msg)}`)
   }
 
   const handleStartChat = (tool: ToolItem) => {
-    console.log('Starting chat about tool:', tool.name)
     setShowToolDialog(false)
+    const msg = `Tell me about the ${tool.name} tool and how to use it.`
+    window.location.assign(`/?draft=${encodeURIComponent(msg)}`)
   }
 
   const toggleSidebar = () => {
