@@ -94,3 +94,32 @@ the flat (parser) AND the document (ADMET_REPORT descriptor) BOTH compute the ve
 shadow), step 3+ delete only after zero-divergence is shown. Do NOT delete the reconciler or a
 parser before the projection is proven equal. This is the change that converts today's "more
 correct" into "structurally can't be wrong this way again."
+
+## SHADOW EVIDENCE (live on dev, 2026-11-05) — CUTOVER BLOCKED for ADMET
+Step 2 shadow deployed (commit 3f40e7cf7) and exercised on the ADMET run 82c1245a. Dev log:
+```
+[Findings][shadow] documentToLegacy vs parser flat for "Predict ADMET Properties (AI)":
+  parser-only=[hERG inhibition, DILI probability, Oral bioavailability, BBB penetration, ClinTox,
+               Plasma protein bind %, Caco-2 logPapp, CYP2D6 inhibitor, CYP3A4 substrate]
+  doc-only=[logP]  — cutover pending
+```
+**The document projection produced only `logP` — it is MISSING all 9 of the parser's ADMET metrics,
+including every liability (hERG, DILI, CYP2D6).** A blind cutover would have collapsed ADMET
+findings to a single lipophilicity number and hidden the safety liabilities. The shadow caught this
+with zero user impact (returned flat unchanged) — the exact reason for shadow-before-switch.
+
+### Revised gate
+- **Do NOT cut over** the ADMET flat to `documentToLegacy`. The ADMET_REPORT descriptor, on this
+  run's sampled output shape, is not extracting the `per_compound_admet_ai` metrics (it got only
+  the RDKit `logP`). Root cause to fix FIRST: the document must read the same structured block
+  (`toxicity_report.json` → `per_compound_admet_ai[]`) the parser reads, so the projection reaches
+  parser parity. Only then does step 3 (cutover + reconciler deletion) become safe.
+- This empirically **vindicates keeping the deterministic parser** — for ADMET it is currently the
+  MORE complete source (contradicts the S3#6 "dead parser" claim).
+- Repeat the shadow check per domain (DESeq2 / enrichGO / raredisease) before any per-domain
+  cutover — each may differ. The shadow log is the gate; `cutover-ready` (matching key set) is the
+  only green light.
+
+**Net:** the simplification direction stands (document-as-truth, delete the reconciler), but the
+work is now clearly: **bring the descriptors to parser parity (shadow → cutover-ready) BEFORE
+deleting anything.** The shadow turned a risky guess into a measured, safe, incremental path.
