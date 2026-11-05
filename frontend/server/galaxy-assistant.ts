@@ -6136,7 +6136,8 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
    *  single-workflow cards and the dependency structure was dropped (bulk RNA-seq + proteomics
    *  integration, external user 2026-11-03; docs/20261019 Part A "A-live"). Returns null — and the
    *  existing path continues — when there is nothing to plan or the backend refuses (with a reason). */
-  private async _tryDagPlan(decomposition: IntentDecomposition, message: string, log: (s: string) => void): Promise<GalaxyAssistantResponse | null> {
+  private async _tryDagPlan(decomposition: IntentDecomposition, message: string, log: (s: string) => void,
+    routedPaths: Map<string, string> = new Map()): Promise<GalaxyAssistantResponse | null> {
     const wf = decomposition.intents.filter(i =>
       (i.type === 'workflow_generation' || i.actions?.needsWorkflowGeneration) && i.execution !== 'direct_compute');
     if (wf.length < 2) return null;
@@ -6145,6 +6146,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       id: i.id,
       description: i.subQuery || message,
       depends_on: (i.dependsOn || []).map(d => idx.get(d)).filter((n): n is number => typeof n === 'number' && n <= k),
+      ...(routedPaths.get(i.id) ? { nextflow_path: routedPaths.get(i.id) } : {}),
     }));
     const { data } = await this._api().client.post('/api/ai_assistant/plan_dag', { tasks, name: dagPlanName(tasks) }, { timeout: 60000 });
     if (!data?.success || !data.workflow) {
@@ -6160,13 +6162,18 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
         (deps.length ? ` (uses the results of step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})` : ' (runs in parallel)');
     });
     const unwired: Array<{ from_step: number; to_step: number }> = data.unwired_dependencies || [];
+    const hasJoin = steps.some(st => (st.depends_on || []).length > 0);
     const message_ = [
-      `I've planned this as **one ${steps.length}-step analysis**: the independent branches run in parallel and the combining step waits for them.`,
+      hasJoin
+        ? `I've planned this as **one ${steps.length}-step analysis**: the independent branches run in parallel and the combining step waits for them.`
+        : `I've planned this as **one ${steps.length}-step analysis**: the steps are independent and run in parallel.`,
       '',
       ...lines,
       '',
       unwired.length
-        ? `Before running, map the inputs of step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} in the plan: the outputs of step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')} are not connected to it automatically.`
+        ? (data.order_only
+          ? `Step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} runs after step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')}, but their result files are not connected to it automatically (the workflows do not declare matching input/output types) — select those results as its inputs when the earlier steps finish.`
+          : `Before running, map the inputs of step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} in the plan: the outputs of step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')} are not connected to it automatically.`)
         : '',
       'Fill in each branch\'s input files in the plan, then click **Confirm & Run**.',
     ].filter(Boolean).join('\n');
@@ -6204,12 +6211,6 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       return this.processSequentialPipeline(decomposition, message, context, startTime, onResponseDelta, domainProfileContext);
     }
 
-    // Fork/join (independent branches and/or fan-in): one executable DAG over catalog workflows.
-    const dagResponse = await this._tryDagPlan(decomposition, message, log).catch(() => null);
-    if (dagResponse) {
-      onResponseDelta?.(dagResponse.message);
-      return dagResponse;
-    }
 
     // Step 2-3: Parallel tool/dataset search using union of all keywords
     const allKeywords = Array.from(new Set(decomposition.intents.flatMap(i => i.keywords)));
@@ -6262,6 +6263,21 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       )
     );
     log(`Multi-intent Steps 4-5 complete: ${subIntentResults.length} results`);
+
+    // Fork/join (independent branches and/or fan-in): one executable DAG. Each branch uses the
+    // workflow this turn's own per-intent routing chose (a bare catalog search resolved an RNA-seq
+    // DE branch to a CLIP-seq workflow, dev 2026-11-04).
+    const routedPaths = new Map<string, string>();
+    decomposition.intents.forEach((it, k) => {
+      const wf: any = subIntentResults[k]?.generatedWorkflow;
+      const path = wf?.nextflow_path || wf?.workflow_ga?.nextflow_path;
+      if (wf?.success && typeof path === 'string' && path.endsWith('.nf')) routedPaths.set(it.id, path);
+    });
+    const dagResponse = await this._tryDagPlan(decomposition, message, log, routedPaths).catch(() => null);
+    if (dagResponse) {
+      onResponseDelta?.(dagResponse.message);
+      return dagResponse;
+    }
 
     // Collect workflow and research/benchmark results.
     // Prefer sub-intents that returned a *runnable* workflow (valid .nf path or non-empty steps)

@@ -72,6 +72,21 @@ def test_refuses_with_a_reason():
     out = plan_dag_from_tasks(FakeAssistant(unresolved={"integrate"}), FORK_JOIN)
     assert out == {"success": False, "reason": "unresolved_task", "tasks": out["tasks"]}
     assert [t["resolved"] for t in out["tasks"]] == [True, True, True, False]
-    no_types = FakeAssistant(types={**TYPES, "bioc/mixomics_spls/main.nf": (["h5ad"], ["csv"])})
-    assert plan_dag_from_tasks(no_types, FORK_JOIN)["reason"] == "no_type_compatible_handoff"
     assert plan_dag_from_tasks(FakeAssistant(), FORK_JOIN[:1])["reason"] == "fewer_than_two_tasks"
+
+
+def test_untypeable_fan_in_keeps_the_order_and_reports_every_dependency():
+    # catalog type metadata often generic: no typed handoff → order-only plan, nothing fabricated
+    no_types = FakeAssistant(types={**TYPES, "bioc/mixomics_spls/main.nf": (["h5ad"], ["csv"])})
+    out = plan_dag_from_tasks(no_types, FORK_JOIN)
+    assert out["success"] is True and out["order_only"] is True
+    card = out["workflow"]
+    assert card["connections"] == []
+    assert [s["depends_on"] for s in card["pipeline_steps"]] == [[], [], [], [1, 2, 3]]
+    assert len(out["unwired_dependencies"]) == 3
+
+
+def test_routing_chosen_paths_are_used_instead_of_a_bare_search():
+    tasks = [dict(t, nextflow_path=f"chosen/{t['id']}.nf") for t in FORK_JOIN]
+    out = plan_dag_from_tasks(FakeAssistant(unresolved={"rna", "lysate", "secretome", "integrate"}), tasks)
+    assert [s["nextflow_path"] for s in out["workflow"]["pipeline_steps"]] == [f"chosen/{t['id']}.nf" for t in FORK_JOIN]

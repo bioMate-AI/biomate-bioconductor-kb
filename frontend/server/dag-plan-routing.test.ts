@@ -38,10 +38,12 @@ const assistantWith = (post: any) => {
 describe('_tryDagPlan', () => {
   it('sends the workflow intents with 1-based edges and returns one DAG card', async () => {
     const post = vi.fn(async () => ({ data: { success: true, workflow: CARD, unwired_dependencies: [{ from_step: 2, to_step: 4 }, { from_step: 3, to_step: 4 }] } }));
-    const res = await assistantWith(post)._tryDagPlan(FORK_JOIN, 'integrate', () => {});
+    const res = await assistantWith(post)._tryDagPlan(FORK_JOIN, 'integrate', () => {}, new Map([['intent_1', 'routed/rna.nf']]));
     const [url, body] = (post.mock.calls[0] as any);
     expect(url).toBe('/api/ai_assistant/plan_dag');
     expect(body.tasks.map((t: any) => t.depends_on)).toEqual([[], [], [], [1, 2, 3]]); // interpretation intent is not a task
+    expect(body.tasks[0].nextflow_path).toBe('routed/rna.nf'); // the turn's own routing, not a bare search
+    expect(body.tasks[1].nextflow_path).toBeUndefined();
     expect(res.generatedWorkflow.workflow_type).toBe('pipeline');
     expect(res.generatedWorkflow.execution_mode).toBe('dag');
     expect(res.generatedWorkflow.pipeline_steps).toHaveLength(4);
@@ -74,4 +76,19 @@ describe('dagPlanName', () => {
       { description: 'integrate RNA and protein differential results', depends_on: [1, 2] }])).toBe('Integrate RNA and protein differential results');
     expect(dagPlanName([{ description: 'x'.repeat(80), depends_on: [] }]).length).toBeLessThanOrEqual(60);
   });
+});
+
+it('says "independent" (not "combining step") when nothing depends on anything', async () => {
+  const two = { intents: [intent('a', 'variant calling'), intent('b', 'rna de')] } as any;
+  const card = { ...CARD, pipeline_steps: CARD.pipeline_steps.slice(0, 2), connections: [] };
+  const post = vi.fn(async () => ({ data: { success: true, workflow: card } }));
+  const res = await assistantWith(post)._tryDagPlan(two, 'x', () => {});
+  expect(res.message).toContain('independent and run in parallel');
+  expect(res.message).not.toContain('combining step');
+});
+it('explains an order-only fan-in (no typed wiring) without implying data is passed', async () => {
+  const post = vi.fn(async () => ({ data: { success: true, order_only: true, workflow: { ...CARD, connections: [] },
+    unwired_dependencies: [1, 2, 3].map(f => ({ from_step: f, to_step: 4 })) } }));
+  const res = await assistantWith(post)._tryDagPlan(FORK_JOIN, 'x', () => {});
+  expect(res.message).toMatch(/Step 4 runs after steps 1, 2, 3, but their result files are not connected/);
 });

@@ -6823,6 +6823,9 @@ class PlanDagTask(BaseModel):
     description: str
     # 1-based indices of earlier tasks this one consumes; [] = an independent branch (root).
     depends_on: List[int] = Field(default_factory=list)
+    # The workflow the chat's own per-intent routing chose for this task (preferred over a bare
+    # catalog search, which resolved an RNA-seq DE task to a CLIP-seq workflow on 2026-11-04).
+    nextflow_path: Optional[str] = None
 
 
 class PlanDagRequest(BaseModel):

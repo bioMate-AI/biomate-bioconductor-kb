@@ -274,7 +274,8 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
         return {"success": False, "reason": "fewer_than_two_tasks"}
     resolved, per_task = {}, []
     for i, t in enumerate(tasks):
-        r = sa._resolve_task_to_workflow(t)
+        r = ({"nextflow_path": t["nextflow_path"], "parameters": {}} if t.get("nextflow_path")
+             else sa._resolve_task_to_workflow(t))
         resolved[i] = r
         per_task.append({"task": t.get("id") or f"task_{i + 1}", "description": t.get("description", ""),
                          "nextflow_path": (r or {}).get("nextflow_path"), "resolved": bool(r)})
@@ -283,6 +284,13 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
     _idx = {id(t): i for i, t in enumerate(tasks)}
     plan = build_dag_plan(tasks, lambda t: resolved.get(_idx.get(id(t))),
                           type_provider=sa._workflow_io_types, max_parallel=max_parallel)
+    order_only = False
+    if not plan:
+        # No typed handoff (catalog type metadata is often generic). The dependency ORDER is still
+        # known and chain.dag.validate_plan accepts a dependent step without connections, so keep the
+        # plan order-only — no fabricated wiring; every dependency is reported for the user to map.
+        plan = _order_only_plan(tasks, resolved, max_parallel)
+        order_only = plan is not None
     if not plan:
         return {"success": False, "reason": "no_type_compatible_handoff", "tasks": per_task}
     card = to_pipeline_card(plan, name=(name or "Multi-step analysis plan"))
@@ -296,4 +304,25 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
                for i, st in enumerate(plan["steps"]) for d in st.get("depends_on", []) if (d, i + 1) not in wired]
     if unwired:
         card["unwired_dependencies"] = unwired
-    return {"success": True, "workflow": card, "tasks": per_task, "unwired_dependencies": unwired}
+    if order_only:
+        card["order_only"] = True
+    return {"success": True, "workflow": card, "tasks": per_task, "unwired_dependencies": unwired,
+            "order_only": order_only}
+
+
+def _order_only_plan(tasks: List[Dict[str, Any]], resolved: Dict[int, Any],
+                     max_parallel: Optional[int]) -> Optional[Dict[str, Any]]:
+    """Plan with the declared dependency order and no inter-step connections (see caller)."""
+    steps = []
+    for i, t in enumerate(tasks):
+        r = resolved.get(i) or {}
+        if not r.get("nextflow_path"):
+            return None
+        deps = sorted({d for d in (t.get("depends_on") or []) if isinstance(d, int) and 1 <= d <= i})
+        steps.append({"step_key": str(t.get("id") or "step_%d" % (i + 1)), "description": t.get("description", ""),
+                      "nextflow_path": r["nextflow_path"], "parameters": r.get("parameters") or {},
+                      "depends_on": deps})
+    if max_parallel is None:
+        max_parallel = sum(1 for s in steps if not s["depends_on"]) or 1
+    return {"execution_mode": "dag", "steps": steps, "connections": [],
+            "max_parallel": max(1, min(16, int(max_parallel)))}
