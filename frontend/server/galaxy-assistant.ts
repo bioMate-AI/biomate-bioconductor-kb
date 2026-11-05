@@ -8122,6 +8122,24 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         // Re-throw so _generateResponse catch block can surface the correct error message
         throw error;
       }
+      // One more LLM attempt before any keyword heuristic: the configured fallback chain (llm-client
+      // YAML chain), with the same prompt. Previously only a Gemini 429/timeout reached it; any other
+      // model error or an unparseable reply went straight to the keyword path, silently.
+      let _chainErr = '';
+      try {
+        const { llmGenerate } = await import('./llm-client');
+        const r = await llmGenerate({ prompt: messageForUQU, system: systemPrompt, maxTokens: 4096, jsonMode: false });
+        const txt = (r?.text || '').trim();
+        if (txt) {
+          let recovered: any;
+          try { recovered = JSON.parse(txt); } catch { recovered = JSON.parse(jsonrepair(txt)); }
+          console.warn(`[Intent] primary classification failed (${errMsg.slice(0, 160)}) — recovered via fallback chain model ${r.modelUsed} (depth ${r.fallbackDepth})`);
+          return this.parseIntentResult(recovered, message);
+        }
+        _chainErr = 'empty response';
+      } catch (chainErr: any) {
+        _chainErr = String(chainErr?.message || chainErr).slice(0, 160);
+      }
       // JSON parse failure: build a best-effort intent so the pipeline still
       // attempts workflow search rather than silently skipping it.
       // If the message contains inline data (tabular data, SRA/GEO accessions,
@@ -8159,7 +8177,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       };
       // Last resort only: every LLM path failed. Not a decomposition — say so loudly (the benchmark found
       // this path scoring silently for 240 throttled calls, 2026-11-04) and mark the result degraded.
-      console.error(`[Intent] DEGRADED: all decomposition models failed (${errMsg.slice(0, 200)}) — keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
+      console.error(`[Intent] DEGRADED: all decomposition models failed (primary: ${errMsg.slice(0, 160)}; fallback chain: ${_chainErr}) — keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
       return {
         intents: [fallback],
         isMultiIntent: false,
