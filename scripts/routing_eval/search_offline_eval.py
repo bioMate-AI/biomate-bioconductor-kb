@@ -9,7 +9,7 @@ Scores the scorer itself on three gold sets against the local workflow DB:
   retag    — evaluation/routing_eval/domain_retag/payloads.json (20; mod regex, strict regex where set)
 Production adds Pass-0 (LLM) and dense bonuses on dev, so absolute numbers differ from dev; the A/B of a
 scorer change on identical inputs is what this measures.
-Usage: BIOMATE_FTS_NORM=0|1 PYTHONPATH=backend/lib python3 scripts/routing_eval/search_offline_eval.py <out.json>
+Usage: [SEARCH_DB=<db copy>] PYTHONPATH=backend/lib python3 scripts/routing_eval/search_offline_eval.py <out.json>
 """
 import json, os, re, sys
 from pathlib import Path
@@ -29,8 +29,9 @@ def top1(s, q):
 
 
 def main():
-    s = UnifiedWorkflowSearch()
-    out = {"fts_norm": os.environ.get("BIOMATE_FTS_NORM", "(default)"), "rows": []}
+    db = os.environ.get("SEARCH_DB")  # a candidate DB copy to compare against the default local DB
+    s = UnifiedWorkflowSearch(db_path=Path(db)) if db else UnifiedWorkflowSearch()
+    out = {"db": os.environ.get("SEARCH_DB", "(default)"), "rows": []}
     tot = {}
     for q in yaml.safe_load(open(ROOT / "evaluation/datasets/cross_domain_routing/queries.yaml")):
         p = top1(s, q["query"])
