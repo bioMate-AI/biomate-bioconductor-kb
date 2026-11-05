@@ -530,6 +530,7 @@ incomplete() {  # $1 = pipeline dir
 refetched=0; refetch_failed=""
 for d in "$NFCORE_SRC"/*/; do
   n=$(basename "$d"); [ "$n" = modules ] && continue; [ -f "$d/main.nf" ] || continue
+  case "$n" in *.incomplete_*|.fetch_*) continue ;; esac   # backups of replaced copies, not pipelines
   if incomplete "$d"; then
     tmp="$NFCORE_SRC/.fetch_$n"; rm -rf "$tmp"
     if timeout 300 git clone -q --depth 1 "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null && [ -f "$tmp/main.nf" ] && ! incomplete "$tmp"; then
@@ -541,7 +542,7 @@ for d in "$NFCORE_SRC"/*/; do
 done
 [ "$refetched" -gt 0 ] && echo "[nfcore] completed $refetched incomplete host pipelines from github.com/nf-core"
 [ -n "$refetch_failed" ] && echo "[nfcore] WARNING: could not complete:$refetch_failed"
-host_n=$(ls "$NFCORE_SRC"/*/main.nf 2>/dev/null | wc -l)
+host_n=$(ls "$NFCORE_SRC"/*/main.nf 2>/dev/null | grep -vcE "\.incomplete_|/\.fetch_")
 # 2) restore into the container every pipeline that is missing there OR incomplete there
 container_state=$(docker exec "$GC" sh -c 'for d in /app/nf-core-workflows/*/; do [ -f "$d/main.nf" ] || continue; n=$(basename "$d"); if grep -qE "includeConfig +.conf/base.config" "$d/nextflow.config" 2>/dev/null && [ ! -f "$d/conf/base.config" ]; then continue; fi; echo "$n"; done' | tr '\n' ' ')
 present=" $container_state "   # complete pipelines only
