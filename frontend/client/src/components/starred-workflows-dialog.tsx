@@ -13,10 +13,9 @@ import {
   Star, 
   Play, 
   Clock, 
-  Search, 
+  Search,
   Filter,
   Trash2,
-  ExternalLink,
   GitBranch
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -231,19 +230,10 @@ export function StarredWorkflowsDialog({
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              // Open workflow in new tab or view
-                            }}
-                            data-testid={`button-view-workflow-${workflow.id}`}
-                          >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            {t('actions.view')}
-                          </Button>
-                          <Button 
+                          {/* "View" removed: it had no real target (empty onClick).
+                              Open is handled by card-click / "Open" below, which
+                              routes through the real onWorkflowSelect handler. */}
+                          <Button
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation()
@@ -252,7 +242,7 @@ export function StarredWorkflowsDialog({
                             data-testid={`button-run-workflow-${workflow.id}`}
                           >
                             <Play className="w-4 h-4 mr-2" />
-                            {t('actions.run')}
+                            Open
                           </Button>
                         </div>
                       </div>
