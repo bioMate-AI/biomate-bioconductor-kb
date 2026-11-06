@@ -11,6 +11,7 @@ import { SettingsDialog } from './settings-dialog';
 import { normalizeSkillPack, type SkillPack } from './skills-selector';
 import { InstrumentsSection } from './instruments-section';
 import { McpServerForm } from './mcp-server-form';
+import { AddSkillForm } from './add-skill-form';
 
 const ACTIVE_DBS_KEY = 'biomate-active-databases';
 const CONNECTOR_SCOPES_KEY = 'biomate-connector-scopes';
@@ -429,12 +430,17 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
   const [packs, setPacks] = useState<SkillPack[] | null>(null);
   const [packsError, setPacksError] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('databases');
+  const loadPacks = useCallback(() => {
+    setPacksError(false);
+    return fetch('/api/skills', { credentials: 'include' })
+      .then(r => { if (!r.ok) throw new Error('skills'); return r.json(); })
+      .then(d => setPacks((d.skills || []).map(normalizeSkillPack)))
+      .catch(() => setPacksError(true));
+  }, []);
   useEffect(() => {
     if (!open || activeTab !== 'skills') return;
-    let cancelled = false;
-    fetch('/api/skills', { credentials: 'include' }).then(r => { if (!r.ok) throw new Error('skills'); return r.json(); }).then(d => { if (!cancelled) setPacks((d.skills || []).map(normalizeSkillPack)); }).catch(() => { if (!cancelled) setPacksError(true); });
-    return () => { cancelled = true; };
-  }, [open, activeTab]);
+    void loadPacks();
+  }, [open, activeTab, loadPacks]);
   const [selectedDbs, setSelectedDbs] = useState<string[]>(() => loadActiveDbs(DB.map(d => d.name)));
   // Three scopes (§0.9.2): one library, one state — the selector writes it, both
   // tabs read it. Persisted so the "connected once, switched per project" choice survives.
@@ -541,7 +547,13 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
           {activeTab === 'ai' && <><div className="p-4"><button className="text-sm underline" onClick={() => setSettingsOpen(true)}>Configure model providers and API keys</button></div><ConnectorTable compact={embedded} rows={AI} scopes={scopes} onScopeChange={setScope} /></>}
           {activeTab === 'yours' && <div className="p-5"><PrivateDbConnectionForm /></div>}
           {activeTab === 'mcp' && <div className="p-5"><McpServerForm /></div>}
-          {activeTab === 'skills' && <div className="p-5"><p className="text-sm text-muted-foreground mb-4">Select expert packs for each request using Skills &amp; experts in the chat composer.</p>{packsError ? <p role="alert">Could not load expert packs. Please reload to try again.</p> : packs === null ? <p>Loading expert packs…</p> : packs.length === 0 ? <p>No expert packs available yet.</p> : packs.map(pack => <article key={pack.id} className="py-4 border-b border-border"><h3 className="text-sm font-medium">{pack.label}</h3>{pack.description && <p className="text-sm text-muted-foreground mt-1">{pack.description}</p>}</article>)}</div>}
+          {activeTab === 'skills' && <div className="p-5 space-y-6">
+            <AddSkillForm onCreated={loadPacks} />
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">Your experts. Switch them on per request using Skills &amp; experts in the chat composer.</p>
+              {packsError ? <p role="alert">Could not load expert packs. Please reload to try again.</p> : packs === null ? <p>Loading expert packs…</p> : packs.length === 0 ? <p className="text-sm text-muted-foreground">No experts yet — create one above.</p> : packs.map(pack => <article key={pack.id} className="py-4 border-b border-border"><h3 className="text-sm font-medium">{pack.label}</h3>{pack.description && <p className="text-sm text-muted-foreground mt-1">{pack.description}</p>}</article>)}
+            </div>
+          </div>}
           {activeTab === 'instruments' && <InstrumentsSection />}
         </div>
 

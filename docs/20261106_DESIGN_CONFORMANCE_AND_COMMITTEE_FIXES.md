@@ -145,8 +145,15 @@ From the instruction-panel audit:
 2. ✅ **Silent 24k truncation — FIXED.** The projectless composer-instructions textarea now has
    `maxLength={24000}` (mirrors `MAX_COMPOSER_INSTRUCTIONS_LENGTH` in `server/chat-context.ts`) so input
    can no longer be silently trimmed server-side, plus a counter that appears within 10% of the cap.
-3. **"A skill or expert" creation flow** — the add-connector "Set up" for skills lists packs + points
-   to the composer rather than a describe-your-own-skill creation flow (design implies one).
+3. ✅ **"A skill or expert" creation flow — BUILT.** The add-connector skills tab now has a
+   `AddSkillForm` ("Create a skill or expert"): the user names it + says what it does + what the
+   expert should do each time (optional trigger keywords/domains). We generate a valid
+   Markdown-with-frontmatter skill file (pure `skillSlug` + `buildSkillMarkdown`, JSON-encoded scalars
+   so a colon/quote can't break the YAML) and POST it to the existing `/api/skills/upload` endpoint
+   (backend-validated by `validate_skill_upload`); the packs list refetches on success. Private skills
+   need personal Galaxy access — the server's 409 is surfaced honestly (not bypassed). The design
+   note ("cannot change a parameter — write it in a project's instructions") is shown. +8 helper
+   tests. All 3 instruction/connector-panel gaps are now closed.
 
 ## D. Verification status (as of 2026-11-06)
 - tsc clean; full vitest **2206 passed / 0 failed** (latest run after the chip fix).
