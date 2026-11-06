@@ -51,6 +51,7 @@ import {
   downloadDatasetRoCrate,
 } from "./datasets-api"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
+import { DatasetColumnsView } from "./dataset-columns-view"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
 export interface DatasetRef {
@@ -410,17 +411,32 @@ export function DatasetObject({
             )}
 
             {previewView === "columns" && (
-              // FUTURE: per-column type / % missing / distinct. The profiler returns
-              // column names + a sample only — no per-column stats — so we don't fake
-              // a column profile. Offer the real path to look deeper.
-              <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-columns-future">
-                <p>{t('dataset_obj.columns_future')}</p>
-                {onAnalyze && (
-                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
-                    <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
-                  </Button>
-                )}
-              </div>
+              // Per-column type / % missing / distinct / watch chip (design §4.3) —
+              // derived client-side from the profiler's column headers + sampled rows
+              // + quality notes, labelled as sample-derived (we never present a sample
+              // stat as whole-file truth). Needs a table-like sample to profile.
+              profile?.columns?.length && profile.sampleRows?.length ? (
+                <DatasetColumnsView
+                  columns={profile.columns}
+                  sampleRows={profile.sampleRows}
+                  notes={profile.notes}
+                  totalRows={shapeRows ?? undefined}
+                  t={t}
+                />
+              ) : isLoading ? (
+                <div className="space-y-2" data-testid="dataset-preview-columns-loading">
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : (
+                <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-columns-none">
+                  <p>{t('dataset_obj.columns_not_tabular')}</p>
+                  {onAnalyze && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
+                      <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
+                    </Button>
+                  )}
+                </div>
+              )
             )}
 
             {previewView === "plot" && (

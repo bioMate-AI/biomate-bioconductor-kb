@@ -313,7 +313,20 @@
     "one_version_only": "该文件目前只有一个版本。编辑它，或由运行写入，都会生成下一个版本。",
     "what_used_it": "作为工作流输入",
     "export_for_deposit": "导出存档包",
-    "no_preview": "尚未为该文件生成预览。"
+    "no_preview": "尚未为该文件生成预览。",
+    "col_header_name": "列",
+    "col_header_type": "类型",
+    "col_header_missing": "缺失比例",
+    "col_header_distinct": "不同值",
+    "col_type_numeric": "数值",
+    "col_type_categorical": "类别",
+    "col_type_text": "文本",
+    "col_type_empty": "空",
+    "col_all_unique": "全部唯一",
+    "col_watch": "注意",
+    "col_watch_missing": "样本中超过 20% 的值缺失。",
+    "columns_sample_note": "基于前 {{n}} 行样本统计；缺失比例与不同值均针对样本，而非整个文件。",
+    "columns_not_tabular": "该文件不是表格，没有可分析的列。可在 Jupyter 中打开，或在对话中询问以查看。"
   },
   "data_hub": {
     "choose_project": "选择一个项目",
