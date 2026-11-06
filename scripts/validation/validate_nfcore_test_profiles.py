@@ -128,10 +128,13 @@ def run_one(jwt, name, max_wait_s=5400):
     t0 = time.time(); last = {}
     while time.time() - t0 < max_wait_s:
         time.sleep(60)
-        st, last = call("GET", f"/api/workflows/runs/{run_id}", jwt)
-        ex = (last or {}).get("execution") or {}
-        if str(ex.get("status", "")).lower() in ("completed", "succeeded", "success", "failed", "error", "cancelled", "interrupted"):
+        # Poll the status route the UI polls: it reconciles the run against Galaxy's Nextflow state.
+        # The bare run record only changes when something reads that route (the reaper was a no-op
+        # until 49e071207, so a finished run read as 'running' for 80+ min).
+        st, stat = call("GET", f"/api/workflows/runs/{run_id}/status", jwt)
+        if str((stat or {}).get("status", "")).lower() in ("completed", "succeeded", "success", "failed", "error", "cancelled", "interrupted"):
             break
+    st, last = call("GET", f"/api/workflows/runs/{run_id}", jwt)
     ex = (last or {}).get("execution") or {}
     return {"name": name, "runId": run_id, "status": ex.get("status"), "exit_code": ex.get("exit_code", ex.get("rc")),
             "output_files": len(ex.get("output_files") or last.get("output_files") or []),
