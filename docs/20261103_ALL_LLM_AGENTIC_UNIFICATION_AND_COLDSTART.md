@@ -564,3 +564,62 @@ Paired (3-run row means): GPT-5.6 Terra − GLM-5.2 **+0.042 [−0.050, +0.136]*
 **+0.150 [+0.064, +0.238]** (11/1/11); GPT-6.1 Terra − GLM-5.2 −0.016 [−0.129, +0.092]. Not tested (owner: no premium): Claude Fable 5.1,
 GPT-6 Astra. Routing outcome on input_regime_v2, one clean rep: GLM-5.2 30/40 vs Flash 31/40 (the two other GLM reps were invalidated by
 restarts from concurrent syncs). **Dev runs GLM-5.2** (`/opt/biomate/.env`, owner-approved; Flash is the automatic fallback).
+
+## 16. Making the non-runnable nf-core pipelines run (2026-11-06)
+
+### 16.1 Per-pipeline Nextflow framework (`256453a3c`)
+Two groups of catalog nf-core pipelines could not run on dev's Nextflow 25.10.5 at their catalog-pinned releases:
+- **DSL1 pipelines.** Nextflow 22.12 removed DSL1. The 10 affected are cageseq, clipseq, diaproteomics, dualrnaseq, eager, imcyto, mnaseseq, proteogenomicsdb, proteomicslfq and slamseq.
+- **Pipelines whose manifest requires `!>=26.04.6`.** These are createpanelrefs, diseasemodulediscovery, scdownstream and stableexpression.
+
+`nextflow_executor._pipeline_nextflow_version` now picks the framework per pipeline. It applies only to paths under `/nf-core-workflows/`; everything else keeps the hard pin.
+- **DSL1 pipelines** (detected from `nextflow.enable.dsl=1`, or from having no `workflow {}`/`include {}`) run on `NXF_VER=22.10.8` with `-dsl1`.
+- **Pipelines requiring a newer framework** get the smallest supported version that meets the requirement (`_SUPPORTED_NXF_VERSIONS`).
+- **Plugin pin:** the override config pins the nf-amazon release built for that framework (22.10.8 → 1.11.5, 26.04.6 → 3.9.2). nf-amazon 3.x does not load on 22.10.
+- **Pre-fetch:** `sync_to_dev.sh` pre-fetches each framework and its plugin into the runtime `NXF_HOME` (/opt/nextflow). It reads the version→plugin map from the executor, so there is one source of truth.
+
+Applied to the 137 deployed pipelines, the classifier gives 123 default, 10 on 22.10.8 with `-dsl1`, and 4 on 26.04.6. These are exactly the groups found by validation run 2. pairgenomealign, phageannotator and moleculardynamics are DSL2 at their pinned releases.
+
+### 16.2 Validation run 3 (test profiles via the product execute path, 15 pipelines in parallel)
+Every DSL1 and 26.04 pipeline now parses, launches, and runs tasks on AWS Batch (logs show `NXF_VER=22.10.8 -dsl1` and `NXF_VER=26.04.6`). The remaining failures do not come from the framework:
+
+| Cause | Pipelines | Kind |
+|---|---|---|
+| `no space left on device` on the Batch host (image pull or container create) | eager, clipseq, diaproteomics, diseasemodulediscovery (also likely the cause for createpanelrefs, scdownstream, imcyto, mnaseseq, slamseq; re-run needed) | infra: launch template lt-099eb24c4fe1b477e v16 boots a **30 GB** root volume shared by every image and task; 15 concurrent nf-core runs filled it |
+| Test data removed upstream (`chr_sub.fasta`/`.gtf` return 404 on nf-core/test-datasets) | cageseq | upstream test data; the pipeline itself launched |
+| Ensembl REST API returned 503 | proteogenomicsdb | upstream, transient |
+| `$baseDir/bin/…` called by absolute path, which does not exist on the Batch host | dualrnaseq | pipeline assumes a shared filesystem → not runnable on Batch as released |
+| `Cannot invoke method into() on null object` (DSL1 `into` inside a DSL2 module) | moleculardynamics (unreleased dev snapshot) | the pipeline's own code is broken → executable=0 |
+| Blocked by the required-param gate (stub over-required 4 params) | proteomicslfq | fixed by §16.3 |
+
+### 16.3 Required params from the executed pipeline's schema (`65b59be6a`)
+nf-core rows resolve to a `biomni_workflows/nfcore/<name>` display stub, and the stub parser marked every null-default param as required. The executor, however, runs the real pipeline, and Nextflow validates against *its* `nextflow_schema.json`.
+
+`galaxy/ai/executed_schema.py` now provides the required set (minus `outdir`, which the executor sets). Both param builders use it: the chat path `_get_workflow_params` and `/api/workflows/search`. Stub entries stay for display and are demoted to optional when the pipeline's schema does not require them.
+
+Live on dev, the required params now match each schema exactly:
+
+| Pipeline | Required params now |
+|---|---|
+| chipseq | input, fasta |
+| atacseq, scrnaseq, mag, eager, rnaseq | input |
+| ampliseq | none (its schema has `input` inside an anyOf) |
+| proteomicslfq | input, database |
+
+Before the fix, the gate asked for genome, macs_gsize, host_genome and primers instead.
+
+### 16.4 Failed runs record why (`65b59be6a`)
+The run's errorMessage used to be the last log line, for example `-[nf-core/x] Pipeline completed with errors-`. Galaxy now adds `error_summary` to a failed status, built from the run's `nextflow.log`. It picks the first match from:
+1. the first failed process, with its cause and the last two lines of its command error;
+2. a launch-time `ERROR ~` message, with the script and line;
+3. the inputs reported missing.
+
+Node stores `error_summary` as errorMessage. It handles both the 22.10/25.10 log format and the 26.04 format (`ERROR ~ Error executing process`). Unit tests use the real dev failure shapes.
+
+### 16.5 Sync churn
+Seven pipelines with dev-snapshot pins (`1.0dev`, …) were re-cloned on every sync, because no fetchable version matches such a pin. Sync now records the fetched version as the pin (`26e3803d1`).
+
+### 16.6 Open
+- **Batch root volume:** raise it (new launch-template version; the CE audit in sync pins CEs to the latest version), then re-run validation for the disk-failed set. This needs owner approval because it changes shared AWS infra and EBS cost.
+- **executable=0 with evidence:** moleculardynamics (broken upstream code) and dualrnaseq (absolute-path bin calls). Re-enable spatialxe and genephylo, then turn on `BIOMATE_ENFORCE_EXECUTABLE`.
+- **Not started yet:** nf-core/quantms for raw proteomics.
