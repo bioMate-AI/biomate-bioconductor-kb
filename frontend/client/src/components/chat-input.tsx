@@ -217,11 +217,15 @@ export function ChatInput({
   // If the chat becomes filed into a project that carries standing
   // instructions and the user hasn't typed their own, adopt the project's.
   const seededProjectIdRef = useRef<string | null>(null)
+  // The exact text last seeded from the project, so the send path can tell an untouched project
+  // seed (which the server already injects — do NOT re-send) from chat-specific text the user typed.
+  const seededInstructionsRef = useRef<string>("")
   useEffect(() => {
     const seed = activeProject?.instructions ?? ""
-    if (!activeProject && seededProjectIdRef.current) { seededProjectIdRef.current = null; setInstructions("") }
+    if (!activeProject && seededProjectIdRef.current) { seededProjectIdRef.current = null; seededInstructionsRef.current = ""; setInstructions("") }
     if (activeProject && seededProjectIdRef.current !== activeProject.id) {
       seededProjectIdRef.current = activeProject.id
+      seededInstructionsRef.current = seed
       setInstructions(seed)
     }
   }, [activeProject])
@@ -344,9 +348,15 @@ export function ChatInput({
       // context path as every other override. They ride as
       // `composerInstructions` so the backend can apply them as a reading
       // lens; empty instructions add nothing (honest-empty).
+      // Composer instructions are REQUEST-scoped. In a project the standing instructions are already
+      // injected server-side (routes.ts "Research goal" / "Background instructions"), so re-sending
+      // the composer's seeded copy duplicated them in the prompt. Send `instructions` only when they
+      // are chat-specific — i.e. the user changed them from the project seed, or there is no project.
+      const isUntouchedProjectSeed = !!activeProjectId && instructions.trim() === seededInstructionsRef.current.trim()
+      const chatSpecificInstructions = isUntouchedProjectSeed ? "" : instructions.trim()
       // Render output requirements through the shared helper: ONLY formats the user left switched
       // ON are sent, as prose (never the raw JSON store, which also carried the disabled ones).
-      const trimmedInstructions = [instructions.trim(), outputRequirementsToPrompt(projectOutputRequirements)].filter(Boolean).join("\n\n")
+      const trimmedInstructions = [chatSpecificInstructions, outputRequirementsToPrompt(projectOutputRequirements)].filter(Boolean).join("\n\n")
       const datasetReferences: ComposerDatasetReference[] = selectedDatasets.map((dataset) => ({
         id: dataset.value,
         name: dataset.name,

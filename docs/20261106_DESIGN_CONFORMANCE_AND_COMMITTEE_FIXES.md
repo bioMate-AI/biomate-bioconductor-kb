@@ -133,11 +133,15 @@ but with real conformance gaps. Fixes shipped:
 ---
 
 ## C. Open gaps (next fixes)
-From the instruction-panel audit, verified-present but not yet fixed:
-1. **Duplicate injection** — project rules are sent both as "Research goal" and as "Composer
-   instructions" (the composer seeds `instructions` from `research_goal` and re-sends it). Costs
-   tokens; can conflict when the composer copy is stale. [server `routes.ts:6815-6823` + the composer
-   seed `chat-input.tsx`]
+From the instruction-panel audit:
+1. ✅ **Duplicate injection — FIXED (`da00ec406`).** Verified: the server injects the project's
+   standing instructions directly (`routes.ts:6815-6818` "Research goal" / "Background instructions"),
+   while the composer seeded `instructions` from the same project field and re-sent it as
+   `composerInstructions` → the same text appeared twice in `<project_context>`. Fix: the composer now
+   captures the seeded value (`seededInstructionsRef`) and sends `instructions` only when they are
+   chat-specific (changed from the seed, or projectless); an untouched project seed is dropped from the
+   payload (the server already injects it). Output requirements still ride the composer path (the
+   server does NOT inject those). tsc + vitest 2206/0.
 2. **Silent 24k truncation** — `server/chat-context.ts` truncates composer instructions at 24,000
    chars with no UI counter/`maxLength`.
 3. **"A skill or expert" creation flow** — the add-connector "Set up" for skills lists packs + points
