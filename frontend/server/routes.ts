@@ -12931,6 +12931,28 @@ ${paramLines || '(none recorded)'}`;
           }
         } catch (statusError: any) {
           console.warn("[ExecutionRun] Failed to fetch Nextflow status:", statusError?.message || statusError);
+          // Galaxy keeps run state in its container (/tmp/nextflow_runs) and the run-state store;
+          // a container rebuild loses both. Galaxy then answers 404 "Run not found" forever and
+          // the run stayed 'running' for weeks (dev 2026-11-06: 51 such runs from Sept 28 - Oct 14).
+          // A live run is always known to Galaxy, so a 404 a day after start means the state is
+          // gone: close it as failed with an honest message.
+          const lostState =
+            statusError?.response?.status === 404 &&
+            /Run not found/i.test(JSON.stringify(statusError?.response?.data ?? '')) &&
+            ['running', 'configuring', 'queued'].includes(String(run.execution?.status));
+          const startedMs = new Date(run.execution?.startedAt || (run as any).createdAt || 0).getTime();
+          if (lostState && startedMs > 0 && Date.now() - startedMs > 24 * 60 * 60 * 1000) {
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                status: 'failed',
+                completedAt: new Date(),
+                errorMessage:
+                  'The run record was lost on the execution backend (a server rebuild), so its final state is unknown. Please run it again.',
+              },
+            }) || run;
+            console.warn(`[ExecutionRun] lost-state → failed: ${run.id} — Galaxy has no record of Nextflow run ${run.execution?.nextflowRunId}`);
+          }
         }
       }
 

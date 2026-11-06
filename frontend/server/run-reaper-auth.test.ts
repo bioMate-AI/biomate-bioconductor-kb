@@ -33,3 +33,16 @@ describe("run-reaper sweeps every stuck run and closes never-launched ones", () 
     expect(body).toContain("if (ex.nextflowRunId || ex.galaxyInvocationId) return false;");
   });
 });
+
+describe("status route closes runs Galaxy has lost", () => {
+  const src = readFileSync(join(__dirname, "routes.ts"), "utf8");
+  it("treats a Galaxy 404 'Run not found' a day after start as failed", () => {
+    const i = src.indexOf("const lostState =");
+    expect(i).toBeGreaterThan(0);
+    const block = src.slice(i, i + 1400);
+    expect(block).toContain("statusError?.response?.status === 404");
+    expect(block).toContain("/Run not found/i");
+    expect(block).toContain("24 * 60 * 60 * 1000");
+    expect(block).toContain("status: 'failed'");
+  });
+});
