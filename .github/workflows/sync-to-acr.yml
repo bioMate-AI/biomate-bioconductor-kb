@@ -861,6 +861,14 @@ jobs:
             WD="/app/nf-work/$NF_ID"
             if [ -d "$WD" ]; then
               echo "=== $LABEL nf-work ($NF_ID) ==="
+              CFG="$WD/biomate_executor_override.config"
+              if [ -f "$CFG" ]; then
+                echo "--- biomate_executor_override.config (ACTUAL CONTENT) ---"
+                cat "$CFG"
+                echo "--- (end config, size=$(wc -c < $CFG) bytes) ---"
+              else
+                echo "(no biomate_executor_override.config — Python fix not running)"
+              fi
               LOG="$WD/nextflow.log"
               if [ -f "$LOG" ]; then
                 echo "--- nextflow.log (last 60 lines) ---"
