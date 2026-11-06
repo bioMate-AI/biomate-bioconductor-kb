@@ -27,8 +27,8 @@ inject_key() {
 }
 SSH_OPTS=(-i "$KEY" -o "ProxyCommand=$_SSM_PROXY" -o StrictHostKeyChecking=no -o ConnectTimeout=30
           -o IdentitiesOnly=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -o LogLevel=ERROR)
-ec2_ssh() { inject_key; ssh "${SSH_OPTS[@]}" "${EC2_USER}@${INSTANCE_ID}" "$@"; }
-ec2_scp() { inject_key; scp "${SSH_OPTS[@]}" "$@"; }
+ec2_ssh() { inject_key; ssh -n "${SSH_OPTS[@]}" "${EC2_USER}@${INSTANCE_ID}" "$@"; }  # -n: keep the while-read loop's stdin
+ec2_scp() { inject_key; scp "${SSH_OPTS[@]}" "$@" < /dev/null; }
 
 [ -f "$KEY" ] || { echo "[compat] ERROR: $KEY missing — run scripts/sync_to_dev.sh once to create it"; exit 1; }
 
