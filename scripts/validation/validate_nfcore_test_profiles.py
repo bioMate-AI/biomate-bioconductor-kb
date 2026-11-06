@@ -84,7 +84,10 @@ def main():
         sys.exit(f"login failed: HTTP {st}")
     from concurrent.futures import as_completed
     res = []
-    with ThreadPoolExecutor(len(names)) as ex:
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    # NFCORE_VALIDATE_PARALLEL bounds concurrent pipelines: Batch hosts have a 30 GB root volume shared by
+    # every image and task, and 15 concurrent nf-core runs filled it ("no space left on device", 2026-11-06).
+    with ThreadPoolExecutor(min(len(names), int(os.environ.get("NFCORE_VALIDATE_PARALLEL", "2")))) as ex:
         futs = [ex.submit(run_one, jwt, n) for n in names]
         for f in as_completed(futs):   # each result written as soon as that run finishes
             r = f.result(); res.append(r); print(json.dumps(r)[:300], flush=True)
