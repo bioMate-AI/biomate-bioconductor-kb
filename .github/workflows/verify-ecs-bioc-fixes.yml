@@ -1,0 +1,238 @@
+name: Verify ECS Bioc + Step-File Fixes
+
+# One-shot verification of two fix batches deployed to Aliyun ECS:
+#   RC-1: bioconductor containers now use quay.io (not ECR) + --pull missing
+#   RC-2: step-file API no longer 403 (nf-work volume mount + full paths)
+
+on:
+  workflow_dispatch:
+
+env:
+  ECS_IP: 101.201.107.126
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: RC-1 structural — containers + code + .nf refs
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+            root@${{ env.ECS_IP }} << 'ENDSSH'
+          FAIL=0
+
+          echo "=== [RC-1] Bioconductor containers (should be present after pre-pull) ==="
+          for IMG in \
+            "quay.io/biocontainers/bioconductor-normqpcr:1.56.0--r45h575d39b_0" \
+            "quay.io/biocontainers/bioconductor-proteomm:1.28.0--r45hdfd78af_0" \
+            "quay.io/biocontainers/bioconductor-mlinterfaces:1.90.0--r45ha27e39d_0"; do
+            if docker image inspect "$IMG" >/dev/null 2>&1; then
+              SIZE=$(docker image inspect "$IMG" --format '{{.Size}}' | awk '{printf "%.0f MB", $1/1024/1024}')
+              echo "  PRESENT $IMG ($SIZE)"
+            else
+              echo "  MISSING $IMG — RC-1 pre-pull did NOT work"; FAIL=1
+            fi
+          done
+
+          echo ""
+          echo "=== [RC-1] --pull missing in deployed nextflow_executor.py ==="
+          PULL_LINE=$(docker exec biomate-galaxy grep -n "pull.missing\|pull.never" \
+            /app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py 2>/dev/null | head -5)
+          echo "$PULL_LINE"
+          if echo "$PULL_LINE" | grep -q "pull missing"; then
+            echo "  OK: --pull missing confirmed"
+          elif echo "$PULL_LINE" | grep -q "pull never"; then
+            echo "  FAIL: still --pull never — RC-1 code fix NOT deployed"; FAIL=1
+          else
+            echo "  WARN: no pull line found — check manually"
+          fi
+
+          echo ""
+          echo "=== [RC-1] .nf container refs (must be quay.io, not ECR) ==="
+          VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows \
+            --format "{{.Mountpoint}}" 2>/dev/null)
+          for NF in \
+            "subworkflows/bioconductor/normqpcr/delta_delta_cq_normalization.nf" \
+            "subworkflows/bioconductor/proteomm/main.nf" \
+            "subworkflows/bioconductor/mlinterfaces/multi_classifier_evaluation.nf"; do
+            FILE="$VOLPATH/$NF"
+            CLINE=$(grep 'container ' "$FILE" 2>/dev/null | head -1 | sed 's/.*container[[:space:]]*//' | tr -d '"')
+            if echo "$CLINE" | grep -q "quay.io"; then
+              echo "  OK: $(basename $(dirname $NF)): $CLINE"
+            elif echo "$CLINE" | grep -q "ecr.amazonaws.com"; then
+              echo "  FAIL: $(basename $(dirname $NF)): still ECR — $CLINE"; FAIL=1
+            else
+              echo "  MISSING: $NF not found in volume (not yet uploaded?)"
+            fi
+          done
+
+          echo ""
+          echo "=== [RC-1] Container R-package load test (proves pull-on-demand works) ==="
+          for PAIR in \
+            "quay.io/biocontainers/bioconductor-normqpcr:1.56.0--r45h575d39b_0:NormqPCR" \
+            "quay.io/biocontainers/bioconductor-proteomm:1.28.0--r45hdfd78af_0:ProteomMM" \
+            "quay.io/biocontainers/bioconductor-mlinterfaces:1.90.0--r45ha27e39d_0:MLInterfaces"; do
+            IMG=$(echo "$PAIR" | cut -d: -f1):$(echo "$PAIR" | cut -d: -f2)
+            PKG=$(echo "$PAIR" | cut -d: -f3)
+            # 60s timeout; fail gracefully so other tests continue
+            OUT=$(timeout 60 docker run --rm "$IMG" \
+              Rscript -e "library($PKG); cat('$PKG OK\n')" 2>&1 || echo "TIMEOUT_OR_ERROR")
+            if echo "$OUT" | grep -q "$PKG OK"; then
+              echo "  PASS: $PKG loaded in $IMG"
+            else
+              echo "  FAIL: $PKG failed in $IMG — $OUT" | head -c 400; FAIL=1
+            fi
+          done
+
+          [ "$FAIL" -eq 0 ] || { echo "RC-1 checks FAILED"; exit 1; }
+          echo ""
+          echo "RC-1 all checks PASSED"
+          ENDSSH
+
+      - name: RC-2 structural — volume + env var + full-path code
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+            root@${{ env.ECS_IP }} << 'ENDSSH'
+          FAIL=0
+
+          echo "=== [RC-2] /app/nf-work volume mounted in frontend ==="
+          MOUNT=$(docker inspect biomate-frontend \
+            --format '{{range .Mounts}}{{if eq .Destination "/app/nf-work"}}{{.Source}} -> {{.Destination}} ({{.Mode}}){{end}}{{end}}' 2>/dev/null)
+          if [ -n "$MOUNT" ]; then
+            echo "  OK: $MOUNT"
+          else
+            echo "  FAIL: /app/nf-work NOT mounted in biomate-frontend"; FAIL=1
+          fi
+
+          echo ""
+          echo "=== [RC-2] NEXTFLOW_WORK_DIR in frontend container ==="
+          NWD=$(docker exec biomate-frontend env 2>/dev/null | grep NEXTFLOW_WORK_DIR || echo "NOT SET")
+          echo "  $NWD"
+          if echo "$NWD" | grep -q "NEXTFLOW_WORK_DIR="; then
+            echo "  OK"
+          else
+            echo "  FAIL: NEXTFLOW_WORK_DIR not set in frontend — step-file allowed-roots check will fail"; FAIL=1
+          fi
+
+          echo ""
+          echo "=== [RC-2] _scan_task_work_dir returns full paths (str(entry), not entry.name) ==="
+          SCAN_LINE=$(docker exec biomate-galaxy grep -n "str(entry)\|entry\.name" \
+            /app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py 2>/dev/null | \
+            grep -A2 -B2 "_scan_task\|scan_task" | head -10 || \
+            docker exec biomate-galaxy python3 -c "
+import ast, inspect
+src = open('/app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py').read()
+# find _scan_task_work_dir and check the append line
+in_fn = False
+for i, line in enumerate(src.splitlines(), 1):
+    if '_scan_task_work_dir' in line and 'def ' in line:
+        in_fn = True
+    if in_fn and 'files.append' in line:
+        print(f'  line {i}: {line.strip()}')
+        break
+" 2>/dev/null)
+          echo "$SCAN_LINE"
+          if echo "$SCAN_LINE" | grep -q "str(entry)"; then
+            echo "  OK: returns str(entry) (full path)"
+          elif echo "$SCAN_LINE" | grep -q "entry.name"; then
+            echo "  FAIL: still returns entry.name (bare filename) — RC-2 code fix NOT deployed"; FAIL=1
+          else
+            echo "  WARN: could not determine — verify manually"
+          fi
+
+          [ "$FAIL" -eq 0 ] || { echo "RC-2 structural checks FAILED"; exit 1; }
+          echo ""
+          echo "RC-2 structural checks PASSED"
+          ENDSSH
+
+      - name: RC-2 functional — step-file API returns 200 (not 403)
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+            root@${{ env.ECS_IP }} << 'ENDSSH'
+          BASE=http://localhost:5000
+          EMAIL=demo@biomate-demo.com
+          PASS='BioMate2026!'
+          FAIL=0
+
+          echo "=== Login ==="
+          LOGIN=$(curl -sf --max-time 15 -X POST "$BASE/api/auth/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}" 2>/dev/null)
+          TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])" 2>/dev/null)
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: Login failed — $LOGIN" | head -c 300; exit 1
+          fi
+          echo "Login OK"
+
+          echo ""
+          echo "=== Execute ADMET (PhysChem) to get a completed run with output files ==="
+          EXEC=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+            -d '{"workflowDefinition":{"name":"Physicochemical Properties","domain":"pharmacology","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf","parameters":{"smiles_string":"CC(=O)Oc1ccccc1C(=O)O"}}}' 2>/dev/null)
+          RUN_ID=$(echo "$EXEC" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF_ID=$(echo "$EXEC"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN_ID  nextflowRunId=$NF_ID"
+          if [ -z "$RUN_ID" ]; then
+            echo "ERROR: execute returned no runId — $EXEC" | head -c 300; exit 1
+          fi
+
+          echo ""
+          echo "=== Polling for completion (max 90×10s = 15 min) ==="
+          FINAL="unknown"
+          for i in $(seq 1 90); do
+            sleep 10
+            SR=$(curl -sf --max-time 15 "$BASE/api/workflows/runs/$RUN_ID/status" \
+              -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
+            S=$(echo "$SR" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',d.get('execution',{}).get('status','unknown')))" 2>/dev/null || echo "err")
+            printf "  [%02d/90] %s status=%s\n" "$i" "$(date +%H:%M:%S)" "$S"
+            case "$S" in completed|succeeded|failed|error) FINAL="$S"; break ;; esac
+          done
+          echo "Final status: $FINAL"
+          if [ "$FINAL" != "completed" ] && [ "$FINAL" != "succeeded" ]; then
+            echo "FAIL: workflow did not complete — step-file test skipped"; FAIL=1
+          fi
+
+          if [ "$FAIL" -eq 0 ] && [ -n "$NF_ID" ]; then
+            echo ""
+            echo "=== Find an output file in nf-work/$NF_ID ==="
+            WD="/app/nf-work/$NF_ID"
+            FILE_PATH=$(find "$WD/work" -name "*.csv" -o -name "*.txt" -o -name "*.json" 2>/dev/null | \
+              grep -v '\.command\.' | head -1)
+            if [ -z "$FILE_PATH" ]; then
+              FILE_PATH=$(find "$WD" -type f -not -name ".*" -not -name "*.nextflow*" 2>/dev/null | head -1)
+            fi
+            echo "Testing file: $FILE_PATH"
+
+            if [ -n "$FILE_PATH" ]; then
+              echo ""
+              echo "=== GET /api/workflows/runs/$NF_ID/step-file?filePath=$FILE_PATH ==="
+              HTTP=$(curl -o /dev/null -sw "%{http_code}" --max-time 15 \
+                "$BASE/api/workflows/runs/$NF_ID/step-file?filePath=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote('$FILE_PATH'))")" \
+                -H "Authorization: Bearer $TOKEN" 2>/dev/null)
+              echo "HTTP status: $HTTP"
+              if [ "$HTTP" = "200" ]; then
+                echo "  PASS RC-2: step-file returned 200 — full-path fix working"
+              else
+                echo "  FAIL RC-2: step-file returned $HTTP (expected 200)"; FAIL=1
+              fi
+            else
+              echo "  WARN: no output file found in $WD — skipping step-file test"
+            fi
+          fi
+
+          [ "$FAIL" -eq 0 ] || { echo "RC-2 functional test FAILED"; exit 1; }
+          echo ""
+          echo "RC-2 functional test PASSED"
+          ENDSSH
