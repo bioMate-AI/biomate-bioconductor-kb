@@ -612,6 +612,28 @@ docker cp "$ST/." "$GC:/app/nf-core-modules/"
 docker exec -u root "$GC" chown -R galaxy:galaxy /app/nf-core-modules 2>/dev/null || true
 echo "[nfcore] restored nf-core library into $GC ($host_sw subworkflows, $host_mod modules; had $have_sw / $have_mod)"
 REMOTE
+  # Extra Nextflow frameworks: the executor launches DSL1 pipelines on 22.10.8 and pipelines whose manifest
+  # requires a newer release on that release (_pipeline_nextflow_version). Pre-fetch each framework and its
+  # nf-amazon plugin into the runtime NXF_HOME so the first run does not download them mid-launch (concurrent
+  # first runs would race on the same jar). The version→plugin map is read from the executor — one source.
+  local nxf_map
+  nxf_map=$(python3 -c 'import re,ast,sys; s=open(sys.argv[1]).read(); m=re.search(r"^_NFAMAZON_FOR_NXF_VER = (\{.*\})", s, re.M); print(" ".join(f"{k}:{v}" for k,v in ast.literal_eval(m.group(1)).items()))' \
+    "$REPO_ROOT/backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py" 2>/dev/null)
+  [[ -z "$nxf_map" ]] && { log "[nfcore] ⚠ could not read _NFAMAZON_FOR_NXF_VER from the executor — extra frameworks not pre-fetched"; return 0; }
+  ec2_ssh "NXF_MAP='${nxf_map}' bash -s" <<'REMOTE'
+GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+GC="${GC:-biomate-galaxy-dev}"
+H=$(docker exec "$GC" sh -c 'if [ -d /opt/nextflow ]; then echo /opt/nextflow; else echo $HOME/.nextflow; fi')
+for vp in $NXF_MAP; do
+  v=${vp%%:*}; p=${vp##*:}
+  if docker exec "$GC" sh -c "[ -d $H/framework/$v ] && [ -d $H/plugins/nf-amazon-$p ]"; then echo "[nfcore] Nextflow $v + nf-amazon@$p present in $H"; continue; fi
+  if docker exec -e NXF_HOME="$H" -e NXF_VER="$v" -e NXF_OFFLINE=false "$GC" sh -c "timeout 600 nextflow -version >/dev/null 2>&1 && timeout 300 nextflow plugin install nf-amazon@$p >/dev/null 2>&1"; then
+    echo "[nfcore] fetched Nextflow $v + nf-amazon@$p into $H"
+  else
+    echo "[nfcore] WARNING: could not fetch Nextflow $v / nf-amazon@$p into $H — those pipelines will download it at launch"
+  fi
+done
+REMOTE
 }
 
 deploy_backend_python() {

@@ -2020,6 +2020,68 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
     )
 
 
+# Nextflow framework versions the executor may launch. The default stays the hard
+# pin in _sanitize_subprocess_env. Two groups of catalog nf-core pipelines cannot
+# run on it, unchanged at their catalog-pinned release:
+#   - DSL1 pipelines (no `workflow {}` / `include {}`; e.g. eager 2.x, mnaseseq,
+#     proteomicslfq 1.0.0): Nextflow >= 22.12 removed DSL1 -> 22.10.8 with -dsl1.
+#   - pipelines whose manifest requires a newer framework (`nextflowVersion =
+#     '!>=26.04.x'`; e.g. scdownstream): the smallest supported version meeting it.
+# Each supported version maps to the nf-amazon plugin release it runs with; the
+# default version's pin is decided in _generate_executor_config (3.3.0 / 3.4.4).
+_DEFAULT_NXF_VER = "25.10.5"
+_DSL1_NXF_VER = "22.10.8"
+_SUPPORTED_NXF_VERSIONS = ("22.10.8", "25.10.5", "26.04.6")
+_NFAMAZON_FOR_NXF_VER = {"22.10.8": "1.11.5", "26.04.6": "3.9.2"}
+
+
+def _ver_tuple(v: str) -> Tuple[int, ...]:
+    return tuple(int(p) for p in re.findall(r"\d+", v)[:3])
+
+
+def _pipeline_nextflow_version(nf_path: Union[str, Path]) -> Tuple[str, bool]:
+    """Return (NXF_VER, needs_dsl1) for a real nf-core pipeline.
+
+    Only pipelines under /nf-core-workflows/ are considered (BioMate's own .nf and
+    nf-core-modules subworkflows are written for the default framework). Anything
+    unreadable or unrecognised falls back to the default version.
+    """
+    nf_path = Path(nf_path)
+    if "/nf-core-workflows/" not in str(nf_path):
+        return _DEFAULT_NXF_VER, False
+    try:
+        main_src = nf_path.read_text(errors="replace")
+    except OSError:
+        return _DEFAULT_NXF_VER, False
+    dsl = re.search(r"(?m)^\s*nextflow\.enable\.dsl\s*=\s*([12])", main_src)
+    if dsl:
+        is_dsl1 = dsl.group(1) == "1"
+    else:
+        is_dsl1 = not (
+            re.search(r"(?m)^\s*workflow\s*(\w+\s*)?\{", main_src)
+            or re.search(r"(?m)^\s*include\s*\{", main_src)
+        )
+    if is_dsl1:
+        return _DSL1_NXF_VER, True
+    try:
+        cfg = (nf_path.parent / "nextflow.config").read_text(errors="replace")
+    except OSError:
+        return _DEFAULT_NXF_VER, False
+    m = re.search(r"""nextflowVersion\s*=\s*['"]\s*!?\s*>=\s*([0-9][0-9.]*)""", cfg)
+    if not m or _ver_tuple(m.group(1)) <= _ver_tuple(_DEFAULT_NXF_VER):
+        return _DEFAULT_NXF_VER, False
+    need = _ver_tuple(m.group(1))
+    for v in _SUPPORTED_NXF_VERSIONS:
+        if _ver_tuple(v) >= need:
+            return v, False
+    log.warning(
+        "[nextflow] %s requires Nextflow >= %s; no supported framework meets it "
+        "(supported: %s) — launching on %s",
+        nf_path.parent.name, m.group(1), ", ".join(_SUPPORTED_NXF_VERSIONS), _DEFAULT_NXF_VER,
+    )
+    return _DEFAULT_NXF_VER, False
+
+
 def _detect_nextflow_entry(nf_path: Path) -> Optional[str]:
     """
     Detect entry workflow name for scripts that define only named workflows.
@@ -3574,6 +3636,11 @@ process {{
         #     staging upload. 3.4.4+ has it fixed. We don't inject
         #     publishDir=null for nf-core, so the CRT crash path stays cold.
         nfamazon_version = "3.4.4" if "/nf-core-workflows/" in nf_path else "3.3.0"
+        # A pipeline launched on a non-default framework (see
+        # _pipeline_nextflow_version) needs the nf-amazon release built for it;
+        # 3.x does not load on 22.10 at all.
+        _nxf_ver, _ = _pipeline_nextflow_version(nf_path) if nf_path else (_DEFAULT_NXF_VER, False)
+        nfamazon_version = _NFAMAZON_FOR_NXF_VER.get(_nxf_ver, nfamazon_version)
         _plugin_ids = [f"    id 'nf-amazon@{nfamazon_version}'"]
         # This -c override's plugins{} scope REPLACES the pipeline's own plugins{}
         # scope, so an nf-core pipeline's `id 'nf-schema@X'` pin is dropped here.
@@ -7409,6 +7476,11 @@ def _execute_nextflow_impl(
         raise HTTPException(status_code=503, detail=str(e))
 
     cmd = [nf_bin, "run", str(nf_path)]
+    # Framework version this pipeline needs (DSL1 -> 22.10.8 + -dsl1; a newer
+    # manifest requirement -> that version). Applied to env["NXF_VER"] below.
+    _run_nxf_ver, _run_dsl1 = _pipeline_nextflow_version(nf_path)
+    if _run_dsl1:
+        cmd.append("-dsl1")
 
     # Entry selection: honor explicit request first; otherwise auto-detect for
     # scripts with named-only workflows (e.g. runnable subworkflows).
@@ -7661,6 +7733,12 @@ def _execute_nextflow_impl(
 
     # Environment — strip BASH_FUNC_* (bash completion exports break AWS Batch .command.sh)
     env = _sanitize_subprocess_env()
+    if _run_nxf_ver != env.get("NXF_VER"):
+        env["NXF_VER"] = _run_nxf_ver
+        log.info(
+            "[Nextflow run %s] NXF_VER=%s%s (pipeline requirement)",
+            run_id, _run_nxf_ver, " -dsl1" if _run_dsl1 else "",
+        )
     # SHARED NXF_HOME — was per-run, causing 16 concurrent NF heads to all
     # download the same nf-amazon plugin to their own private dirs and race
     # on plugin-jar extraction (similar mechanism to the AWS CRT race below).
