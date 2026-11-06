@@ -123,3 +123,13 @@ def test_nfcore_param_filter_runs_before_input_path_check():
     # _validate_input_paths rejects them as missing local paths.
     src = EXECUTOR.read_text()
     assert src.index("_as_default = [k for k, v in params.items()") < src.index("    _validate_input_paths(params)")
+
+
+def test_nfcore_param_filter_does_not_use_run_id_before_assignment():
+    # The filter runs before `run_id = _run_id or str(uuid.uuid4())`; referencing run_id there
+    # failed every nf-core launch that dropped a param (UnboundLocalError, 2026-11-06).
+    src = EXECUTOR.read_text()
+    start = src.index("    _native_collections = (")
+    assign = src.index("    run_id = _run_id or str(uuid.uuid4())")
+    assert start < assign
+    assert "run_id" not in src[start:src.index("    _validate_input_paths(params)")]

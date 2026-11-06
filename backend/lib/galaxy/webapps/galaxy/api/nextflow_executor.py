@@ -7510,7 +7510,7 @@ def _execute_nextflow_impl(
             for _k in _undeclared:
                 params.pop(_k, None)
             if _undeclared:
-                log.info(f"[Nextflow run {run_id}] dropped params the pipeline does not declare: {_undeclared}")
+                log.info(f"[Nextflow {Path(str(nf_path)).parent.name}] dropped params the pipeline does not declare: {_undeclared}")
             # A value equal to the pipeline's own default adds nothing on the command line, and
             # can only hurt: it overrides the -profile (test configs set inputs/caps) and trips the
             # input-path check for relative-glob defaults (cageseq input='data/*R1.fastq.gz', which
@@ -7521,7 +7521,7 @@ def _execute_nextflow_impl(
             for _k in _as_default:
                 params.pop(_k, None)
             if _as_default:
-                log.info(f"[Nextflow run {run_id}] not passing params equal to the pipeline default: {_as_default}")
+                log.info(f"[Nextflow {Path(str(nf_path)).parent.name}] not passing params equal to the pipeline default: {_as_default}")
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
     _validate_epitope_netmhc_params(nf_path, params)
