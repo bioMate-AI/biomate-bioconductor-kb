@@ -4004,7 +4004,24 @@ process {{
         # surfacing as a cryptic "Killed" with no output. Values mirror
         # galaxy.ai.resource_resolver.RESOURCE_TIERS. withLabel selectors that match no
         # process are harmless (unlike withName under strict mode).
-        if not _is_personal_wf:
+        # A real nf-core pipeline sizes every label itself in conf/base.config, capped by its own
+        # params.max_cpus/max_memory (or resourceLimits) — which `-profile test` lowers. Fixed tiers
+        # here override those caps: mnaseseq 1.0.0's test profile caps max_cpus=2, but process_high=12
+        # made TrimGalore pass --cores 4, which its Python-2 cutadapt rejects ("Running in parallel is
+        # not supported on Python 2", 2026-11-06). For those pipelines keep only the queue routing.
+        _nfcore_sizes_itself = (
+            "/nf-core-workflows/" in nf_path and "/nf-core-workflows/modules/" not in nf_path
+            and (Path(nf_path).parent / "conf" / "base.config").is_file()
+        )
+        if not _is_personal_wf and _nfcore_sizes_itself:
+            lines += [
+                "process {",
+                f"    withLabel: 'process_high'        {{ queue = '{hpc_queue}' }}",
+                f"    withLabel: 'process_high_memory' {{ queue = '{hpc_queue}' }}",
+                "}",
+            ]
+            log.info(f"[Nextflow] nf-core pipeline sizes its own labels (conf/base.config); process_high+ → {hpc_queue}")
+        elif not _is_personal_wf:
             lines += [
                 "process {",
                 "    withLabel: 'process_low'         { cpus = 2;  memory = '12.GB' }",

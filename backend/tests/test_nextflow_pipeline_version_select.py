@@ -87,3 +87,20 @@ def test_executor_config_pins_matching_nf_amazon(tmp_path):
         )
         text = Path(res).read_text() if res else ""
         assert want in text, (name, text[:300])
+
+
+def test_nfcore_pipeline_keeps_its_own_label_sizing(tmp_path):
+    # Fixed tiers overrode the pipeline's own check_max(params.max_cpus) caps (mnaseseq test
+    # profile: max_cpus=2 -> forced 12 cpus -> TrimGalore --cores 4 -> Python-2 cutadapt abort).
+    compute = {"executor": "awsbatch", "queue": "q", "region": "us-west-2",
+               "workDir": "s3://biomate-nextflow-work/test"}
+    p = _pipeline(tmp_path, "mnaseseq", DSL1_MAIN, "")
+    (p.parent / "conf").mkdir()
+    (p.parent / "conf" / "base.config").write_text("process { withLabel:process_high { cpus = 12 } }")
+    out = tmp_path / "cfg_sizes"
+    out.mkdir()
+    text = Path(ne._generate_executor_config(
+        compute, out, user_id="u", run_id="r-sizes", credentials={},
+        nf_path=str(p), output_location=None)).read_text()
+    assert "cpus = 12; memory = '72.GB'" not in text
+    assert "withLabel: 'process_high'" in text  # queue routing kept
