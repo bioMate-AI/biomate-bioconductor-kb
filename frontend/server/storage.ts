@@ -627,7 +627,16 @@ export class MemStorage implements IStorage {
       execution: {
         ...existing.execution,
         status,
-        errorMessage,
+        // A failed run keeps the error already recorded unless a new one is given: the
+        // Nextflow terminal transition writes the failure summary and then emits
+        // workflow_completed, whose handler re-sets the status with no message and was
+        // erasing it (every failed nf-core validation run showed errorMessage=null).
+        errorMessage:
+          errorMessage !== undefined
+            ? errorMessage
+            : status === 'failed'
+              ? existing.execution?.errorMessage
+              : undefined,
       },
       updatedAt: now,
     };

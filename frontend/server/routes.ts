@@ -12823,6 +12823,21 @@ ${paramLines || '(none recorded)'}`;
                 nextflowStatus: nextflowStatus,
               },
             }) || run;
+          } else if (
+            // A run finalized as failed by another path (the Galaxy completion poller /
+            // orphan finalizer) carries no message and a stale 'running' snapshot; the
+            // branches above skip already-terminal runs, so the cause never reached the
+            // record (nf-core/diseasemodulediscovery, 2026-11-06). Backfill it once.
+            run.execution.status === 'failed' && !run.execution.errorMessage &&
+            String(nfState) === 'failed' && nextflowStatus?.error_summary
+          ) {
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                errorMessage: nextflowStatus.error_summary,
+                nextflowStatus: nextflowStatus,
+              },
+            }) || run;
           } else if (run.execution.status === 'running') {
             // Keep latest Nextflow status snapshot for UI visibility.
             run = await storage.updateExecutionRun(run.id, {
