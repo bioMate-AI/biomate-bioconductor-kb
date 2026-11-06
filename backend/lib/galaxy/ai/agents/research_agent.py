@@ -2795,6 +2795,22 @@ class ResearchAgent:
                     entry += f"\n    Abstract: {abstract[:400]}"
                 lit.append(entry)
             prompt_parts.append("\n".join(lit))
+        else:
+            # Explicit no-evidence guard (defense-in-depth, model-independent).
+            # When retrieval returns 0 citations the model must NOT confabulate a
+            # bibliography from parametric memory — the historical failure mode
+            # (invented PMIDs/DOIs + a fake "N records retrieved" stat, esp. on
+            # evidence-review prompts that ASK for a table). The grounding guard only
+            # strips dangling [N] markers; it cannot catch inline-prose identifiers.
+            prompt_parts.append(
+                "## Retrieved Literature: NONE\n"
+                "Retrieval returned no verifiable citations for this question. You therefore MUST NOT:\n"
+                "- emit any [N] citation marker, evidence table, or per-study row;\n"
+                "- state any PMID, DOI, PDB ID, accession, or a 'records/papers retrieved' count;\n"
+                "- present any specific paper, author list, or year as a reference.\n"
+                "Begin your reply with exactly 'EVIDENCE: insufficient' and then give only "
+                "unreferenced background clearly marked as not literature-grounded."
+            )
 
         # Rigor-adaptive instructions. A quick factual question wants a brief answer;
         # an evidence-review request ("evidence table", "verify every DOI", "separate
@@ -2807,12 +2823,23 @@ class ResearchAgent:
             "structural evidence", "biochemical", "for every major claim", "provide the paper",
         ))
         if _deep:
+            # The evidence-table instruction is gated on having retrieved literature:
+            # with zero citations the "## Retrieved Literature: NONE" guard forbids a
+            # table, so asking for one here would contradict it and invite confabulation.
+            _table_line = (
+                "3. Where the question asks for a table, produce a markdown evidence table with one "
+                "row per study and the requested columns (e.g. method, organism/constructs, and "
+                "per-claim yes/no)."
+                if cites else
+                "3. Do NOT produce an evidence table or any per-study rows — no literature was "
+                "retrieved (see 'Retrieved Literature: NONE' above)."
+            )
             instructions = """## Instructions (evidence-review mode)
 Produce a rigorous, structured, evidence-graded answer.
 
 1. Use ONLY the numbered Retrieved Literature above for [N] citations. Never invent a paper, DOI, PMID, or PDB ID; if you are unsure an identifier is real, omit it.
 2. Distinguish what is DIRECTLY demonstrated experimentally from what remains a proposed model. If the retrieved evidence does not support a claim, write exactly: "Not directly demonstrated."
-3. Where the question asks for a table, produce a markdown evidence table with one row per study and the requested columns (e.g. method, organism/constructs, and per-claim yes/no).
+""" + _table_line + """
 4. Do NOT infer a mechanism (e.g. "handover"/transfer) from separate binding measurements — label it directly demonstrated only if the transfer itself was observed.
 5. End with a concise synthesis of what is established vs unknown. Prefer completeness and honesty over brevity.
 """ + _CONFLICT_INSTRUCTION
