@@ -188,6 +188,11 @@ export function ChatInput({
   const activeProject = activeProjectId
     ? projects.find((p) => p.id === activeProjectId) ?? null
     : null
+  // Spec 06 §6.1 instructions chip: "A count of standing project instructions in context. Present
+  // only inside a project that has them." Count the project's standing rules (one per non-empty line
+  // of its instructions, matching how the Instructions page splits them) from the fresh project prop.
+  const standingRuleCount = (activeProject?.instructions ?? "")
+    .split("\n").map((s) => s.trim()).filter(Boolean).length
   const [instructions, setInstructions] = useState<string>(activeProject?.instructions ?? "")
   const [instructionsOpen, setInstructionsOpen] = useState(false)
   // Expert/skill packs toggled on for THIS composer (spec 06 §6.5). The ids
@@ -870,11 +875,18 @@ export function ChatInput({
             and apply to every request. Outside a project there is no panel to
             open, so a lightweight inline field remains for projectless chats. */}
         {activeProjectId ? (
+          // Design-conformant (Spec 06 §6.1 / ChatView.jsx:72): show the chip ONLY when the project
+          // has standing instructions, and show their COUNT (so a user learns their run was shaped by
+          // a rule they wrote weeks ago) — not an always-visible label with a dot that lit for any of
+          // instructions/outputs/skills. Opening the Instructions panel is still a click away here,
+          // and also from the sidebar's per-project "Instructions" link, so a 0-rule project is not
+          // stranded by hiding the chip.
+          standingRuleCount > 0 ? (
           <button
             type="button"
             data-testid="composer-instructions-toggle"
             onClick={() => setLocation(`/projects?project=${activeProjectId}&tab=instructions`)}
-            title={t('composer.instructions_open_panel')}
+            title={`${standingRuleCount} standing instruction${standingRuleCount === 1 ? "" : "s"} from ${activeProject?.name ?? "this project"} ${standingRuleCount === 1 ? "is" : "are"} in context`}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               border: "none", background: "transparent", cursor: "pointer",
@@ -884,14 +896,20 @@ export function ChatInput({
           >
             <SlidersHorizontal className="w-3 h-3" />
             <span>{t('composer.instructions')}</span>
-            {(instructions.trim() || projectOutputRequirements.trim() || selectedSkillIds.length > 0) && (
-              <span
-                data-testid="composer-instructions-on"
-                aria-hidden
-                style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
-              />
-            )}
+            <span
+              data-testid="composer-instructions-count"
+              style={{
+                minWidth: 16, height: 16, padding: "0 5px", borderRadius: 999,
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10.5, fontWeight: 600, lineHeight: 1,
+                background: "var(--bm-accent-soft, oklch(0.93 0.03 245))",
+                color: "var(--bm-accent, oklch(0.45 0.14 245))",
+              }}
+            >
+              {standingRuleCount}
+            </span>
           </button>
+          ) : null
         ) : (
           <div style={{ minWidth: 0, flex: instructionsOpen ? "1 1 100%" : undefined }}>
             <button
