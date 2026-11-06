@@ -204,3 +204,44 @@ full `user-<n>-<slug>`, not the bare slug). Full unit suite tsc-clean, 2240/0.
   throw; duplicate-injection fix loses no data (there is no in-project instructions editor); chip count
   matches the Rules page exactly; maxLength char/byte consistent with the server slice; no test-id
   collision.
+
+## F. Chat context-scope ("universe view") audit (2026-11-06) — 3 probes, traced to code
+The chat's effective "universe" is: the current conversation (last ~6 messages) + EXPLICITLY attached
+files + passively-injected project context. It is narrower than users expect on all three probes.
+
+### (1) Refer to a project file and act on it — PARTIAL
+- Works: a file picked as a composer CHIP (or `?attachFile=`) resolves by exact id, reaches the model,
+  and the model can PREVIEW it (`read_file`, ≤500 lines) and pass its `s3_uri` to a Nextflow workflow
+  ("use this file and run enrichment"). Unresolved ids are reported honestly (don't substitute).
+- Gaps: a file named only in PROSE ("use de_results.tsv") is NOT resolved (no @-mention/name parse);
+  `run_code` CANNOT compute on project files (only the text preview) — biggest gap since run OUTPUTS
+  live in project files; `search_my_data` is user-wide not project-scoped and its ids aren't openable;
+  the project's file list is not in ambient context (chat is blind to project files until attached);
+  an all-unresolved selection may silently drop the "not found" note (PLAUSIBLE).
+  Evidence: chat-input.tsx:341-381; routes.ts:7010-7080, 1223-1250; dataset-reference-selection.ts;
+  project-file-references.ts:77-125; galaxy-assistant.ts:9347-9409, 10554-10650, 10829-10870.
+
+### (2) Search across history — mostly NO (no real search)
+- Current conversation: ~last 6 messages, ≤1200 chars each, 16KB budget; older is summarized but NOT
+  fed back into the same chat. (chat-history-selector.ts:44; galaxy-assistant.ts:9746-9760.)
+- Other past conversations: effectively NO — only a passive, FIRST-MESSAGE-ONLY, lexical top-5 over the
+  last 20 session SUMMARIES (galaxy-assistant.ts:3832-3871, gate :4553). No cross-conversation
+  transcript search tool. Mid-chat "what did we say earlier?" retrieves nothing.
+- Past runs/findings: `list_history` lists 50 recent runs by name/status only; can't search findings or
+  param VALUES ("the run where we used GRCh38" can't match). (galaxy-assistant.ts:11161-11260.)
+- No semantic retrieval anywhere; failures are SILENT (`catch { return '' }`) so the model may answer
+  from nothing. `recall_memory` exists only for connector/MCP, not the in-app chat.
+
+### (3) Edit the report through chat — NO (only a manual UI editor)
+- The versioned-save backend EXISTS and is correct (report-version.ts / report-version-store.ts; forks
+  v0, never overwrites; POST /api/runs/:id/report/versions). A manual UI editor exists (AfterRunReport
+  MethodsTab Edit→Save version) — but only the Methods tab.
+- Chat-driven edit is NOT wired: no `edit_report` tool/intent; a chat "tighten the abstract" yields at
+  best unsaved prose. The design (spec 12 "ask BioMate to edit this"; DocEditor ChatEdit) is a
+  prototype; code comments say it's not built. Gap to close: an `edit_report(runId, instruction)` tool
+  → propose-diff → on accept call the existing `reportVersionStore.append` (v0-fork protection already
+  there) + a ChatEdit accept UI in MethodsTab.
+
+**Net:** attached-file preview + run works; prose file-naming, real compute on project files,
+cross-history search, and chat report-editing are the real gaps. All build on existing primitives
+(read_file/run_code, a new search tool over chat_sessions/findings, reportVersionStore.append).
