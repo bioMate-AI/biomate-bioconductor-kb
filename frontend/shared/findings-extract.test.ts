@@ -108,6 +108,30 @@ describe('buildFindingsDocument — DESeq2 (csv, gene entity)', () => {
     // a significant gene is a hit, not a "liability"
     expect(doc.records.some(r => r.assessment?.flag === 'liability')).toBe(false);
   });
+
+  // autodelim must detect the delimiter from the HEADER line, not the whole body: a stray tab inside
+  // a CSV data cell must NOT flip the delimiter to '\t' and shatter the comma file into 1 col/line.
+  it('autodelim: a comma CSV with a stray tab in a data cell still parses (not 0 results)', () => {
+    const CSV_WITH_TAB = {
+      name: 'deseq2_results.csv',
+      content: ['gene,log2FoldChange,padj', 'TP53,2.5\t,0.001', 'BRCA1,3.1,0.0001'].join('\n'),
+    };
+    const mm = matchDescriptor('nf-core/differentialabundance', [CSV_WITH_TAB]);
+    const d = buildFindingsDocument(mm!.descriptor, mm!.file);
+    expect(d.entityRoster.map(e => e.label).sort()).toEqual(['BRCA1', 'TP53']);
+    expect(d.records.find(r => r.entity.label === 'BRCA1' && r.metric.name === 'padj')?.metric.value).toBe('0.0001');
+  });
+
+  // and a real TSV (BioMate's de_results.tsv) still detects tab and parses.
+  it('autodelim: a TSV header is detected as tab-delimited', () => {
+    const TSV = {
+      name: 'de_results.tsv',
+      content: ['gene_id\tlog2FoldChange\tpadj', 'ENSG1\t2.1\t0.001', 'ENSG2\t-3.0\t0.0002'].join('\n'),
+    };
+    const mm = matchDescriptor('nf-core/differentialabundance', [TSV]);
+    const d = buildFindingsDocument(mm!.descriptor, mm!.file);
+    expect(d.entityRoster.map(e => e.label).sort()).toEqual(['ENSG1', 'ENSG2']);
+  });
 });
 
 it('registry exposes all four ported parsers (+ ADMET JSON variant) as descriptors', () => {
@@ -297,6 +321,10 @@ describe('matchDescriptor — picks the structured report out of a multi-file AD
     // pk_summary carries `per_compound` but no `per_compound_admet_ai` and no ADMET/toxicity name →
     // it must not be mistaken for the toxicity report when it is the only ADMET-ish file present.
     const m = matchDescriptor('Predict ADMET Properties (AI)', [PK_SUMMARY, RESULTS_WRAPPER]);
+    // Assert a concrete winner (the name-matching wrapper), not just "not pk_summary" — a bare
+    // .not.toBe would also pass if no descriptor matched (m === null), masking a regression.
+    expect(m).not.toBeNull();
+    expect(m?.file.name).toBe('predict_admet_properties_results.json');
     expect(m?.file.name).not.toBe('pk_summary.json');
   });
 });

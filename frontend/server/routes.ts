@@ -15649,10 +15649,19 @@ Rules:
       // (no new workflow run) by bypassing the three cached-"ready" gates and dropping the in-memory
       // cache. Used to capture the document-as-truth SHADOW line on an already-finished run without
       // waiting for a fresh run (findings are otherwise cached in the S3 sidecar + _findingsCache and
-      // never re-emit the shadow). It recomputes from the same output files, so the result is
-      // identical content; it rewrites the sidecar. Does NOT bypass the failed-run early return above.
+      // never re-emit the shadow). For a deterministic-parser run (ADMET/DESeq2) it recomputes the
+      // SAME content from the same files; for an LLM-path run it re-calls the (non-deterministic) LLM,
+      // so regen is NON-DESTRUCTIVE by design: a degraded fallback must NOT overwrite a persisted good
+      // sidecar (see the `!forceRegen` guards on the _unavail/_minimal persists in runAsync). Does NOT
+      // bypass the failed-run early return above.
       const forceRegen = req.query.regen === '1' || req.query.regen === 'true';
-      if (forceRegen) _findingsCache.delete(runId);
+      if (forceRegen) {
+        // Coalesce rapid regens with an in-flight generation: if one is already running, return
+        // pending instead of deleting the sentinel and firing a second concurrent analysis.
+        const _inflight = _findingsCache.get(runId);
+        if (_inflight?._generating) return res.json({ status: 'pending', message: 'Analysis in progress…' });
+        _findingsCache.delete(runId);
+      }
 
       // Determine local output dir (local runs only; S3 runs not supported for disk check)
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
@@ -16361,7 +16370,10 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
               // from the S3 sidecar and converges — instead of re-reading the stale
               // garbage sidecar, re-rejecting it, and regenerating forever (the
               // perpetual-"pending" loop observed live on CAR-T).
-              void persistFindingsSidecar(_unavail);
+              // But a diagnostic ?regen=1 must never DOWNGRADE a previously-good persisted sidecar
+              // to this empty note (the LLM is non-deterministic, so a one-off failure on regen would
+              // otherwise destroy real findings). Skip the persist on forceRegen.
+              if (!forceRegen) void persistFindingsSidecar(_unavail);
             }
           }
         } catch (err: any) {
@@ -16376,7 +16388,9 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
             caveats: [],
           };
           _findingsCache.set(runId, _minimal);
-          void persistFindingsSidecar(_minimal);
+          // As with _unavail: a diagnostic ?regen=1 must not DOWNGRADE a persisted good sidecar to
+          // this empty note on a one-off LLM/output-read failure. Persist only on normal generation.
+          if (!forceRegen) void persistFindingsSidecar(_minimal);
         }
       };
 

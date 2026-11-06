@@ -115,7 +115,16 @@ function parseEntities(descriptor: PatternDescriptor, file: { name: string; cont
     const batch = descriptor.batch ? { id: 'panel', metrics: objToMetrics(getByPath(json, descriptor.batch.path)) } : null;
     return { entities, batch };
   }
-  const delim = descriptor.parse === 'tsv' ? '\t' : descriptor.parse === 'autodelim' ? (file.content.includes('\t') ? '\t' : ',') : ',';
+  let delim: string;
+  if (descriptor.parse === 'tsv') delim = '\t';
+  else if (descriptor.parse === 'autodelim') {
+    // Detect the delimiter from the HEADER line (first non-comment, non-empty line), NOT the whole
+    // body: a stray tab inside a quoted CSV data cell must not flip the delimiter and shatter the
+    // parse into one column per line (→ 0 findings). Pick whichever delimiter splits the header into
+    // more columns — robust for both a real TSV (de_results.tsv) and a comma CSV (enrich_results.csv).
+    const headerLine = file.content.split('\n').find(l => l.trim() && !l.startsWith('##')) || '';
+    delim = headerLine.split('\t').length > headerLine.split(',').length ? '\t' : ',';
+  } else delim = ',';
   return { entities: parseDelimited(file.content, delim, descriptor.entity.column, descriptor.metrics), batch: null };
 }
 
