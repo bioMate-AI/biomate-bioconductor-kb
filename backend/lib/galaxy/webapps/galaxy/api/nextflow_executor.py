@@ -7713,6 +7713,21 @@ def _execute_nextflow_impl(
         "/nf-core-workflows/" in str(nf_path) and "/nf-core-workflows/modules/" not in str(nf_path)
     )
     _native_params: dict = {}
+    # A param the real nf-core pipeline does not declare never helps: Nextflow ignores it or the
+    # pipeline's schema validation rejects it. Display stubs carried such names (proteomicslfq's
+    # enable_umi). Drop them here so API / MCP callers are covered too, not only the catalog path.
+    if _native_collections:
+        try:
+            from galaxy.ai.executed_schema import executed_pipeline_params  # noqa: PLC0415
+            _declared = executed_pipeline_params(str(request.nextflow_path or nf_path))
+        except Exception:
+            _declared = None
+        if _declared:
+            _undeclared = [k for k in params if k not in _declared["known"] and k != "outdir"]
+            for _k in _undeclared:
+                params.pop(_k, None)
+            if _undeclared:
+                log.info(f"[Nextflow run {run_id}] dropped params the pipeline does not declare: {_undeclared}")
     if _has_multiline:
         # One or more params contain embedded newlines (inline CSV/SMILES/FASTA).
         # Nextflow 25.x --params-file silently drops multi-line string values

@@ -1080,28 +1080,31 @@ _NF_PARSE_CACHE: Dict[str, Any] = {}
 
 
 def _reconcile_required_levels(nf_filename: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
-    """Set each param's level from the executed pipeline's schema (galaxy.ai.executed_schema).
+    """Required-ness, declared params and defaults from the executed pipeline (galaxy.ai.executed_schema).
 
-    A stub param is "required" only if the pipeline that runs requires it; schema-required
-    params the stub lacks are added. Unchanged when no executed schema is found.
+    A stub param is "required" only if the pipeline that runs requires it; params the
+    executed pipeline does not declare are dropped; defaults are the pipeline's own;
+    schema-required params the stub lacks are added. Unchanged when no executed schema is found.
     """
-    from galaxy.ai.executed_schema import executed_schema_required  # noqa: PLC0415
-    got = executed_schema_required(nf_filename)
+    from galaxy.ai.executed_schema import executed_pipeline_params  # noqa: PLC0415
+    got = executed_pipeline_params(nf_filename)
     if got is None:
         return parsed
-    req_names, props = got
-    meta = {k: dict(v) for k, v in (parsed.get("parameter_metadata") or {}).items()}
-    params = dict(parsed.get("parameters") or {})
+    req_names, props, known, defaults = got["required"], got["props"], got["known"], got["defaults"]
+    meta = {k: dict(v) for k, v in (parsed.get("parameter_metadata") or {}).items() if k in known}
+    params = {k: v for k, v in (parsed.get("parameters") or {}).items() if k in known}
     for name, m in meta.items():
         if name in req_names:
             m["level"] = "required"
         elif m.get("level") == "required":
             m["level"] = "optional"
+        if name in defaults:
+            params[name] = defaults[name]
     for name in sorted(req_names - set(meta)):
         d = props.get(name, {})
         meta[name] = {"type": "file" if d.get("format") in ("file-path", "path") else (d.get("type") or "string"),
                       "label": name.replace("_", " ").title(), "level": "required"}
-        params.setdefault(name, d.get("default"))
+        params.setdefault(name, defaults.get(name, d.get("default")))
     return {**parsed, "parameters": params, "parameter_metadata": meta}
 
 

@@ -102,7 +102,9 @@ def run_one(jwt, name, max_wait_s=5400):
         wf = s["workflow_ga"]
     if not wf or (wf.get("name") != name):
         return {"name": name, "status": "not_found", "search_http": st, "search_keys": list(s)[:8] if isinstance(s, dict) else None}
-    params = {**(wf.get("parameters") or {}), **TEST_PARAMS.get(name, {}), "profile": "test,aws"}
+    # Only the profile and the gate-required values: any other value sent on the command line
+    # overrides the test profile (proteomicslfq: add_decoys=true on its target-decoy database).
+    params = {**TEST_PARAMS.get(name, {}), "profile": "test,aws"}
     wf = {**wf, "parameters": params}
     st, e = call("POST", "/api/workflows/execute", jwt, {"workflowDefinition": wf, "params": params}, timeout=300)
     if st == 400 and "missing_required_params" in str(e) and TEST_CONFIG_DIR:

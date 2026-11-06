@@ -2880,20 +2880,28 @@ Respond with a single JSON object — no other text:
         )
 
     def _reconcile_required_with_executed_schema(self, filename: str, params: dict) -> dict:
-        """Take required-ness from the pipeline that actually runs (see galaxy.ai.executed_schema).
+        """Take required-ness, declared params and defaults from the pipeline that actually runs.
 
-        The stub's curated entries are kept for display, demoted to optional when the
-        executed pipeline's schema does not require them; schema-required params the stub
-        lacks are added from the schema.
+        See galaxy.ai.executed_schema. The stub's curated entries are kept for display, demoted
+        to optional when the executed pipeline does not require them; entries for params the
+        executed pipeline does not declare are dropped (Nextflow would ignore or reject them);
+        defaults are the pipeline's own (a stub default sent on the CLI overrides the pipeline's
+        config and its -profile, e.g. add_decoys=true on a target-decoy database); schema-
+        required params the stub lacks are added.
         """
-        from galaxy.ai.executed_schema import executed_schema_required  # noqa: PLC0415
-        got = executed_schema_required(filename)
+        from galaxy.ai.executed_schema import executed_pipeline_params  # noqa: PLC0415
+        got = executed_pipeline_params(filename)
         if got is None:
             return params
-        req_names, props = got
+        req_names, props, known, defaults = got['required'], got['props'], got['known'], got['defaults']
         required, optional = [], []
         for p in list(params.get('required', [])) + list(params.get('optional', [])):
-            entry = dict(p, required=p.get('name') in req_names)
+            name = p.get('name')
+            if name not in known:
+                continue
+            entry = dict(p, required=name in req_names)
+            if name in defaults:
+                entry['default'] = defaults[name]
             (required if entry['required'] else optional).append(entry)
         have = {p.get('name') for p in required}
         for name in sorted(req_names - have):
@@ -2903,7 +2911,7 @@ Respond with a single JSON object — no other text:
                 'label': name.replace('_', ' ').title(),
                 'description': d.get('description') or d.get('help_text') or '',
                 'type': self._schema_type_to_param_type(name, d),
-                'default': d.get('default'),
+                'default': defaults.get(name, d.get('default')),
                 'required': True,
             })
         return {'required': required, 'optional': optional}

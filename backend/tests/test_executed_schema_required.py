@@ -73,3 +73,37 @@ def test_unresolvable_returns_none(monkeypatch):
     mod._resolve_nextflow_path = boom
     monkeypatch.setitem(sys.modules, "galaxy.webapps.galaxy.api.nextflow_executor", mod)
     assert es.executed_schema_required("nfcore/zzz/main.nf") is None
+
+
+def test_config_param_defaults_top_level_literals():
+    cfg = """
+params {
+  input = null
+  add_decoys = false
+  decoy_affix = 'DECOY_'
+  max_cpus = 16
+  fdr = 0.01
+  igenomes_base = "s3://ngi-igenomes/igenomes"
+  genomes = [:]
+  nested {
+    inner = 'x'
+  }
+}
+process { cpus = 2 }
+"""
+    d = es.config_param_defaults(cfg)
+    assert d["input"] is None and d["add_decoys"] is False and d["decoy_affix"] == "DECOY_"
+    assert d["max_cpus"] == 16 and d["fdr"] == 0.01 and d["igenomes_base"].startswith("s3://")
+    assert d["genomes"] is es._UNSET and "inner" not in d and "cpus" not in d
+
+
+def test_executed_pipeline_params_defaults_and_known(tmp_path, monkeypatch):
+    d = tmp_path / "nf-core-workflows" / "proteomicslfq"
+    d.mkdir(parents=True)
+    (d / "main.nf").write_text("// dsl1")
+    (d / "nextflow_schema.json").write_text(json.dumps(SCHEMA))
+    (d / "nextflow.config").write_text("params {\n  add_decoys = false\n  fasta = 'x.fa'\n}\n")
+    _fake_executor(monkeypatch, d / "main.nf")
+    got = es.executed_pipeline_params("nfcore/proteomicslfq/main.nf")
+    assert got["defaults"]["add_decoys"] is False and got["defaults"]["fasta"] == "x.fa"
+    assert {"add_decoys", "input", "genome"} <= got["known"] and "enable_umi" not in got["known"]
