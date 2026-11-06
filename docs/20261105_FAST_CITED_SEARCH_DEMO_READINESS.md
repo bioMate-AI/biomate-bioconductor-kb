@@ -56,4 +56,22 @@ confidence would reintroduce fabrication. A future enhancement (not required for
 full-text retrieval for crisper answers. The literal multi-agent orchestrator remains a separate,
 dormant capability (`project_agent_patterns_research` build order) — out of scope for this demo.
 
-Commits: `f22bd970c` (hardening). Deployed to dev; PR #295.
+## 6. Broader test battery (live dev, "test further") — all dimensions hold
+Beyond §3's two queries, a wider battery confirms integrity + fan-out across the untested dimensions:
+
+**`research_query` endpoint:**
+| Query | Result |
+|---|---|
+| metformin → AMPK mechanism (PMID-rich topic) | 3 real DOI citations, topically correct; honest hedge on the precise mechanism. No fabrication. |
+| rs7903146 (DB-fan-out trigger) | Answer **factually correct**: "mapped to *TCF7L2* … type 2 diabetes mellitus." Citations real (some low-quality journals — a source-ranking quality note, not integrity). |
+| "best RNA-seq DE tool" (catalog) | Names **DESeq2 / edgeR / limma** (real). One real-but-off-topic citation surfaced (PMID 42955413 "BILBO", a platform not a DE method) — a minor precision slip, not fabrication. |
+
+**Chat path (`/api/chat/stream`, the actual demo surface, fixture-auth, SSE):**
+| Query | Final-answer result (parsed from the `final` SSE event, not progress telemetry) |
+|---|---|
+| Fabricated entities (ZZZX9/QQR7B) | **Exemplary**: actively verified both are not recognized gene symbols in NCBI Gene/UniProt/Ensembl, "**No peer-reviewed evidence table can be constructed**," called them "fictional or non-standard identifiers." Zero fabrication — the real DOIs seen in the raw stream were retrieval-progress telemetry, discarded from the answer. |
+| metformin → AMPK (real) | Cited answer with an honest "**Evidence boundary**" and **References: [1] PMID 42935801** — verified REAL on NCBI ("Metformin and atorvastatin ameliorate MASH via the AMPK/NF-κB pathway", Front. Endocrinol. 2026), topically exact. |
+
+**Conclusion:** the demo surface returns real verifiable citations (DOIs/PMIDs), correct DB-grounded facts, and correct tool names, and refuses to fabricate on the adversarial trap — on both the direct endpoint and the user-facing chat path. Residual quality-not-integrity polish (left, not churned): one off-topic citation can slip the precision filter when it shares a query entity token (Q5/BILBO); literature retrieval does not rank by journal quality (Q4); answers hedge when the specific mechanism isn't in the retrieved text (correct behavior).
+
+Commits: `f22bd970c` (hardening). Deployed to dev; PR #295. Broader battery live-verified 2026-11-05.
