@@ -2119,6 +2119,32 @@ def _ver_tuple(v: str) -> Tuple[int, ...]:
     return tuple(int(p) for p in re.findall(r"\d+", v)[:3])
 
 
+def _nfcore_compat_process_lines(nf_path: Union[str, Path, None]) -> List[str]:
+    """`process { withName: … }` lines substituting rebuilt compat images for this nf-core pipeline.
+
+    alpine-glibc images also get `containerOptions = ''`: the default options mount the host libz
+    and set LD_LIBRARY_PATH for glibc images, which makes an Alpine image's own musl programs load
+    glibc libz and fail; those images carry their own glibc libz under /usr/glibc-compat instead.
+    """
+    s = str(nf_path or "")
+    if "/nf-core-workflows/" not in s or "/nf-core-workflows/modules/" in s:
+        return []
+    pipeline = Path(s).parent.name
+    try:
+        from galaxy.ai.nfcore_compat_images import IMAGES, REPOSITORY  # noqa: PLC0415
+    except ImportError:
+        return []
+    out: List[str] = []
+    for img in IMAGES:
+        ref = f"{REPOSITORY}:{img.get('tag')}"
+        for use in img.get("uses") or []:
+            if use.get("pipeline") != pipeline or not use.get("process"):
+                continue
+            extra = "; containerOptions = ''" if img.get("fix") == "alpine-glibc" else ""
+            out.append(f"    withName: '{use['process']}' {{ container = '{ref}'{extra} }}")
+    return ["process {", *out, "}"] if out else []
+
+
 def _pipeline_nextflow_version(nf_path: Union[str, Path]) -> Tuple[str, bool]:
     """Return (NXF_VER, needs_dsl1) for a real nf-core pipeline.
 
@@ -3956,6 +3982,10 @@ process {{
             _container_opts = f"-e LD_LIBRARY_PATH={_ld_aws_host}"
         lines.append(f"    containerOptions = '{_container_opts}'")
         lines.append("}")
+        # Published task images that cannot run on these Batch hosts as-is (Alpine/musl vs the
+        # host-mounted glibc AWS CLI; a tool ENTRYPOINT that replaces the task script) are swapped
+        # per process for rebuilt ones — see galaxy/ai/nfcore_compat_images.py.
+        lines += _nfcore_compat_process_lines(nf_path)
         # Per-label GPU queue routing: processes labeled 'process_gpu' go to the GPU queue.
         # Avoids a single monolithic queue for all workflows.
         # IMPORTANT — a sensible default is required. Without it, every GPU-labelled
