@@ -909,7 +909,7 @@ function OutputsTab({
         if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
         setFetched(
           arr.map((f) => {
-            const filePath = String(f?.s3_uri || f?.path || f?.s3_key || f?.name || "");
+            const filePath = String(f?.s3_uri || f?.local_path || f?.path || f?.s3_key || f?.name || "");
             const name = String(f?.name || f?.filename || filePath.split("/").pop() || "");
             const ext = String(
               f?.extension ||
@@ -918,7 +918,7 @@ function OutputsTab({
             ).toLowerCase();
             const parts = filePath.split("/").filter(Boolean);
             const step = parts.length >= 2 ? parts[parts.length - 2] : "";
-            return { step, name, path: filePath, ext };
+            return { step, name, path: filePath, ext, download_url: f?.download_url };
           }),
         );
       } catch { /* silent — empty state still useful */ }
