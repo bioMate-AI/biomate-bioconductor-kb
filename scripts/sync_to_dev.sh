@@ -553,6 +553,12 @@ for d in "$NFCORE_SRC"/*/; do
     if [ -n "$pin" ] && timeout 300 git clone -q --depth 1 --branch "$pin" "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null; then ok=1
     elif [ -n "$pin" ] && echo "$pin" | grep -q dev && timeout 300 git clone -q --depth 1 "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null; then
       req=$(nfreq "$tmp"); { [ -z "$req" ] || [ -z "$NF_HAVE" ] || ver_le "$req" "$NF_HAVE"; } && ok=1   # dev snapshot: no tag
+      # A "<x>dev" pin names no fetchable version, so the clone never matches it and every sync re-cloned
+      # (7 pipelines, 2026-11-06). Record the version actually fetched as the pin — fetched once, then stable.
+      fv=$(mver "$tmp")
+      if [ $ok = 1 ] && [ -n "$fv" ]; then
+        awk -v n="$n" -v v="$fv" '$1==n{$2=v} {print}' "$PINS" > "$PINS.tmp" && mv "$PINS.tmp" "$PINS"
+      fi
     fi
     if [ $ok = 1 ] && [ -f "$tmp/main.nf" ] && ! incomplete "$tmp"; then
       [ -d "$NFCORE_SRC/$n.incomplete_$(date +%Y%m%d)" ] && rm -rf "$NFCORE_SRC/$n" || mv "$NFCORE_SRC/$n" "$NFCORE_SRC/$n.incomplete_$(date +%Y%m%d)"
