@@ -3126,11 +3126,46 @@ def _generate_executor_config(
     executor = compute.get("executor", "local")
     s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
 
-    # For local executor with MinIO: generate a minimal config so Nextflow can
-    # stage s3:// input files from MinIO rather than AWS S3.
+    # For local executor: generate a config so Nextflow uses proper Docker settings.
+    # Without a -c override config, Nextflow reads only the pipeline's own nextflow.config
+    # which may contain wrong Docker runOptions (e.g. bind mounts to paths that don't exist
+    # on this host) or no Docker settings at all, causing task container failures.
     if executor not in ("awsbatch", "slurm", "k8s"):
         if not s3_endpoint:
-            return None
+            # On-prem local executor without MinIO: generate a minimal config with Docker
+            # runOptions so Nextflow uses --pull missing, correct entrypoint/user, and the
+            # right network. This overrides the pipeline's own nextflow.config Docker settings
+            # via the -c flag (Nextflow applies -c configs AFTER pipeline nextflow.config).
+            docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
+            import platform as _nf_platform
+            _is_arm64 = _nf_platform.machine().lower() in ("aarch64", "arm64")
+            _arm64_env_block = 'env { DOCKER_DEFAULT_PLATFORM = "linux/arm64" }' if _is_arm64 else ""
+            import multiprocessing as _mp
+            host_cpus = _mp.cpu_count()
+            bioc_container = os.environ.get("BIOMATE_BIOC_CONTAINER", "")
+            bioc_override = (
+                f"\nprocess {{\n  withName: '/BIOC_.*/' {{\n    container = '{bioc_container}'\n  }}\n}}\n"
+                if bioc_container else ""
+            )
+            admet_container = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
+            admet_override = (
+                f"\nprocess {{\n  withName: ~/.*ADMET.*/ {{\n    container = '{admet_container}'\n  }}\n}}\n"
+                if admet_container else ""
+            )
+            onprem_local_config = (
+                "docker {\n"
+                "  enabled = true\n"
+                f"  runOptions = '--entrypoint \"\" --user root --network {docker_network} --pull missing'\n"
+                "}\n"
+                + (f"{_arm64_env_block}\n" if _arm64_env_block else "")
+                + f"\nexecutor {{\n  name   = 'local'\n  cpus   = {max(host_cpus, 4)}\n  memory = '16 GB'\n}}\n"
+                + f"\nprocess {{\n  cpus   = 1\n  memory = '4 GB'\n}}\n"
+                + bioc_override + admet_override
+            )
+            config_path = config_dir / "biomate_executor_override.config"
+            config_path.write_text(onprem_local_config)
+            log.info(f"[Nextflow] Generated on-prem local config (no MinIO): {config_path}")
+            return config_path
         # MinIO config for local executor
         minio_key    = os.environ.get("AWS_ACCESS_KEY_ID",     os.environ.get("MINIO_ROOT_USER", "biomate"))
         minio_secret = os.environ.get("AWS_SECRET_ACCESS_KEY", os.environ.get("MINIO_ROOT_PASSWORD", ""))

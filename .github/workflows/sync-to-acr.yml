@@ -861,6 +861,13 @@ jobs:
             WD="/app/nf-work/$NF_ID"
             if [ -d "$WD" ]; then
               echo "=== $LABEL nf-work ($NF_ID) ==="
+              LOG="$WD/nextflow.log"
+              if [ -f "$LOG" ]; then
+                echo "--- nextflow.log (last 60 lines) ---"
+                tail -60 "$LOG"
+              else
+                echo "(no nextflow.log at $LOG)"
+              fi
               find "$WD" -name ".command.err" 2>/dev/null | while read f; do
                 echo "--- $(dirname $f | xargs basename) .command.err ---"
                 tail -20 "$f" 2>/dev/null
