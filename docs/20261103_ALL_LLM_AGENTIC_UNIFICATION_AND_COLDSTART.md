@@ -632,15 +632,27 @@ Each was found from a failed or suspicious validation run. Each fix applies to e
 
 Validation results are therefore judged from each run's `workflow-trace.txt` plus its Nextflow log end line, not from the reported status. Run-4 results recorded before `f8cc10fb` (eager, diaproteomics, clipseq, proteogenomicsdb) are being re-run as run 6, because stub defaults may have overridden their test profiles.
 
-**Status by pipeline** (traces checked):
+**Final status by pipeline.** Each verdict is judged from `workflow-trace.txt` plus Nextflow's own "Pipeline completed …" line.
 
-| Status | Pipelines |
-|---|---|
-| Passed | createpanelrefs (26.04.6, all tasks completed). The eager, diaproteomics and clipseq passes predate `f8cc10fb` and are being re-checked in run 6. |
-| Not runnable as released (→ executable=0 with this evidence) | moleculardynamics (DSL1 `into` inside a DSL2 module); dualrnaseq (calls `$baseDir/bin` by absolute path, absent on Batch); imcyto (the CellProfiler image's ENTRYPOINT runs instead of the task script); diseasemodulediscovery (BIOPAX_VALIDATOR: "cannot execute: required file not found") |
-| Upstream data | cageseq: test data removed from nf-core/test-datasets (404) |
-| Pipeline-internal | scdownstream: SoupX "No plausible marker genes" on its test data (dev snapshot) |
-| Disk-limited | The 30 GB Batch root volume filled even with 2 concurrent validation pipelines. slamseq hit `No space left on device`. |
+| Pipeline | Framework | Result | Evidence |
+|---|---|---|---|
+| eager | 22.10.8 -dsl1 | **pass** | 26/26 tasks, "completed successfully". Re-run after all fixes (run 7): finalized 2 s after Nextflow's Goodbye, not mid-pipeline. |
+| mnaseseq | 22.10.8 -dsl1 | **pass** | 81 tasks (after the label-sizing fix) |
+| slamseq | 22.10.8 -dsl1 | **pass** | 67 tasks (run 5; run 4 had hit disk-full) |
+| clipseq | 22.10.8 -dsl1 | **pass** | 22 tasks (run 6, test-profile params only) |
+| proteogenomicsdb | 22.10.8 -dsl1 | **pass** | 8 tasks incl. decoy/clean (run 6); earlier failure was an Ensembl 503 |
+| createpanelrefs | 26.04.6 | **pass** | completed successfully |
+| rnaseq (regression check) | 25.10.5 | analysis pass | 208/209 tasks; only MultiQC failed: `CannotPullContainerError … no space left on device` |
+| diaproteomics | 22.10.8 -dsl1 | infra | passed in run 4 (18 tasks); run 6 failed at `dia_spectral_library_search` with `[Errno 28] No space left on device` |
+| proteomicslfq | 22.10.8 -dsl1 | pipeline-internal | 44/45 tasks; the final ProteomicsLFQ (OpenMS) step exits 8 = INCOMPATIBLE_INPUT_DATA on its own test data, with only the test-profile params set. Raw-proteomics support is planned via nf-core/quantms. |
+| moleculardynamics | 25.10.5 | not runnable as released | dev snapshot: DSL1 `into` inside a DSL2 module (`pre_pos_clean_pdb.nf:27`) |
+| dualrnaseq | 22.10.8 -dsl1 | not runnable on Batch | calls `$baseDir/bin/*.sh` by absolute path, absent on the Batch host |
+| imcyto | 22.10.8 -dsl1 | not runnable on Batch | the CellProfiler image's ENTRYPOINT runs `cellprofiler` instead of the task script ("You must specify a pipeline filename") |
+| diseasemodulediscovery | 26.04.6 | pipeline-internal | BIOPAX_VALIDATOR: "cannot execute: required file not found" |
+| scdownstream | 26.04.6 | pipeline-internal | SoupX "No plausible marker genes" on its test data (dev snapshot) |
+| cageseq | 22.10.8 -dsl1 | upstream data | test data removed from nf-core/test-datasets (404) |
+
+**Batch disk** is now the most frequent infrastructure failure: four runs (rnaseq MultiQC, diaproteomics, slamseq run 4, eager run 3) hit `no space left on device`. The launch template boots a 30 GB root volume, which every container image pull and task scratch shares. The owner chose to keep 30 GB; validation runs are therefore bounded to 2 concurrent pipelines.
 
 ### 16.7 Open
 - **Batch root volume:** raise it (new launch-template version; the CE audit in sync pins CEs to the latest version), then re-run validation for the disk-failed set. This needs owner approval because it changes shared AWS infra and EBS cost.
