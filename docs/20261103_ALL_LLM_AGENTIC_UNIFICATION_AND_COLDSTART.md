@@ -652,7 +652,18 @@ Validation results are therefore judged from each run's `workflow-trace.txt` plu
 | scdownstream | 26.04.6 | pipeline-internal | SoupX "No plausible marker genes" on its test data (dev snapshot) |
 | cageseq | 22.10.8 -dsl1 | upstream data | test data removed from nf-core/test-datasets (404) |
 
-**Batch disk** is now the most frequent infrastructure failure: four runs (rnaseq MultiQC, diaproteomics, slamseq run 4, eager run 3) hit `no space left on device`. The launch template boots a 30 GB root volume, which every container image pull and task scratch shares. The owner chose to keep 30 GB; validation runs are therefore bounded to 2 concurrent pipelines.
+**Batch disk (fixed, `3ab18e793`, applied 2026-11-06 by the owner).** Batch autoscaling adds instances, never disk. Every host booted with the AMI's 30 GB root, shared by every pulled image and all task scratch, and stopped-task containers were kept ~3 h. `scripts/batch_lt_storage.sh` created launch template `lt-099eb24c4fe1b477e` **v17**: a 200 GB gp3 encrypted root, plus ECS cleanup (stopped tasks after 15 min, image pruning every 10 min). ce-v2, hpc-v1 and ce-spot are pinned to v17. New hosts were verified with 200 GB gp3 encrypted volumes.
+
+Run 8 re-ran the four disk-failed pipelines on v17, one at a time; all passed with zero failed tasks:
+
+| Pipeline | Tasks | Time |
+|---|---|---|
+| rnaseq | 209/209 | 27 min |
+| diaproteomics | 33/33 | 11 min |
+| slamseq | 67/67 | 13 min |
+| eager | 26/26 | 8 min |
+
+Open design question from the owner: "we should not run multiple workflows in one machine". Batch packs jobs by resources, not by workflow. The options (per-run compute environment, single VM per run, per-tenant compute environment) are pending the owner's reason (disk vs data isolation).
 
 ### 16.7 Open
 - **Batch root volume:** raise it (new launch-template version; the CE audit in sync pins CEs to the latest version), then re-run validation for the disk-failed set. This needs owner approval because it changes shared AWS infra and EBS cost.
