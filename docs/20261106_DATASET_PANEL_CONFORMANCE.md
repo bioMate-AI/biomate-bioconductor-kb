@@ -47,19 +47,32 @@ saved to a project). tsc clean; +1 test (`.tsv` → `/files?file=ds-1`).
 Net: one preview-visualization layer + one dataset object, reachable from both Files and the
 after-run outputs.
 
-## Remaining gaps (prioritized, not yet built)
-1. **Columns view** — per-column type/%missing bar/distinct/watch chip (+ amber cells in Table). Spec's
-   "make the quality verdict arguable." Partly doable now from `profile.columns` + `sampleRows`; full
-   version needs the profiler to return per-column stats.
-2. **"Open in" Jupyter/RStudio/Plot by file type** — needs a dataset→history staging endpoint
+### Increment 3 — Columns view (`3d99f7ced`)
+Replaced the "columns coming soon" placeholder with the spec's §4.3 Columns view (the surface that
+"makes the quality verdict arguable"): `dataset-columns-view.tsx` `computeColumnStats` derives per
+column the inferred type (numeric/categorical/text/empty), % missing (bar), distinct / "all unique",
+and a **watch chip** when a quality note names the column or >20% of its sampled cells are missing.
+Client-side from the existing profiler `columns` + `sampleRows` + `notes` (no backend), **honestly
+labelled** as sample-derived (never presents a sample stat as whole-file truth). en+zh i18n; +4 tests.
+
+### Increment 4 — Lineage "what came out" (`89f5b3736`)
+The Where-it-came-from tab now shows, beneath each run that READ the file, the datasets that run
+PRODUCED — evidence-typed (`resolveViewer`) chips that each open as their own dataset object
+(`/files?file=<id>`), the spec's §4.5.3 "lineage chains without a separate lineage viewer."
+`DatasetObject` gained a `projectId` prop; produced outputs resolve from `project_files`
+(`source='run_output'`, grouped by `run_id`). Frontend-only, lazy, uploads excluded. +1 test.
+
+## Remaining gaps (prioritized, not yet built — each needs real backend work)
+1. **"Open in" Jupyter/RStudio/Plot by file type** — needs a dataset→history staging endpoint
    (`InteractiveToolLauncher` exists).
-3. **Lineage "what came out"** — evidence-typed outputs that open as dataset objects + training runs
-   in the lineage — needs a lineage endpoint extension.
-4. **In-hub ingest** — paste-URL (backend `import-url` exists) + connector pull from ＋Add + at-ingest
+2. **In-hub ingest** — paste-URL (backend `import-url` exists) + connector pull from ＋Add + at-ingest
    quality card + column-mapping correction.
-5. **Versioning writes** — edit-in-place / Compare / Restore + version tags on rows + used-by-N
+3. **Versioning writes** — edit-in-place / Compare / Restore + version tags on rows + used-by-N
    (backend `POST versions` is note-only today).
-6. **Scope (project/account) + content-hash dedup + `uploads/results/shared` folders** — backend fields.
+4. **Scope (project/account) + content-hash dedup + `uploads/results/shared` folders** — backend fields.
+5. **Amber-inheritance** ("amber travels" to descendants) — needs a downstream-quality field.
+6. **Columns view — whole-file stats** (current is sample-derived) + amber cells in Table — needs the
+   profiler to return per-column stats.
 
 ## Unrelated note
 Full vitest shows 1 failure in `add-skill-form.helpers.test.ts` (`buildSkillMarkdown` emits
