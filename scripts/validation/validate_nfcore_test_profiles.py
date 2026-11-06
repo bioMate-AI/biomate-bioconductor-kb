@@ -31,6 +31,17 @@ def call(method, path, jwt, body=None, timeout=120):
         return -1, {"error": str(e)[:300]}
 
 
+# Values the pre-launch required-param gate checks but `-profile test` would set from the pipeline's own
+# conf/test.config (copied verbatim from those files on dev; pipelines_testdata_base_path expanded to its default).
+TD = "https://raw.githubusercontent.com/nf-core/test-datasets/"
+TEST_PARAMS = {
+    "nf-core/chipseq": {"input": TD + "chipseq/samplesheet/v2.1/samplesheet_test.csv", "read_length": 50,
+                        "fasta": TD + "atacseq/reference/genome.fa", "gtf": TD + "atacseq/reference/genes.gtf"},
+    "nf-core/atacseq": {"input": TD + "atacseq/samplesheet/v2.0/samplesheet_test.csv", "read_length": 50,
+                        "fasta": TD + "atacseq/reference/genome.fa", "gtf": TD + "atacseq/reference/genes.gtf"},
+}
+
+
 def run_one(jwt, name, max_wait_s=5400):
     st, s = call("POST", "/api/workflows/search", jwt, {"query": name, "limit": 3, "defer_param_prefill": True})
     hits = (s.get("workflows") or s.get("results") or []) if isinstance(s, dict) else []
@@ -39,7 +50,7 @@ def run_one(jwt, name, max_wait_s=5400):
         wf = s["workflow_ga"]
     if not wf or (wf.get("name") != name):
         return {"name": name, "status": "not_found", "search_http": st, "search_keys": list(s)[:8] if isinstance(s, dict) else None}
-    params = {**(wf.get("parameters") or {}), "profile": "test,aws"}
+    params = {**(wf.get("parameters") or {}), **TEST_PARAMS.get(name, {}), "profile": "test,aws"}
     wf = {**wf, "parameters": params}
     st, e = call("POST", "/api/workflows/execute", jwt, {"workflowDefinition": wf, "params": params}, timeout=300)
     run_id = e.get("runId") if isinstance(e, dict) else None
@@ -50,7 +61,7 @@ def run_one(jwt, name, max_wait_s=5400):
         time.sleep(60)
         st, last = call("GET", f"/api/workflows/runs/{run_id}", jwt)
         ex = (last or {}).get("execution") or {}
-        if str(ex.get("status", "")).lower() in ("completed", "succeeded", "success", "failed", "error", "cancelled"):
+        if str(ex.get("status", "")).lower() in ("completed", "succeeded", "success", "failed", "error", "cancelled", "interrupted"):
             break
     ex = (last or {}).get("execution") or {}
     return {"name": name, "runId": run_id, "status": ex.get("status"), "exit_code": ex.get("exit_code", ex.get("rc")),
@@ -64,11 +75,13 @@ def main():
     jwt = json.loads(body).get("token", "") if st == 200 else ""
     if len(jwt) < 50:
         sys.exit(f"login failed: HTTP {st}")
+    from concurrent.futures import as_completed
+    res = []
     with ThreadPoolExecutor(len(names)) as ex:
-        res = list(ex.map(lambda n: run_one(jwt, n), names))
-    json.dump(res, open(out, "w"), indent=1)
-    for r in res:
-        print(json.dumps(r)[:300])
+        futs = [ex.submit(run_one, jwt, n) for n in names]
+        for f in as_completed(futs):   # each result written as soon as that run finishes
+            r = f.result(); res.append(r); print(json.dumps(r)[:300], flush=True)
+            json.dump(res, open(out, "w"), indent=1)
 
 
 if __name__ == "__main__":

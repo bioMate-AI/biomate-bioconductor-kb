@@ -1,0 +1,61 @@
+[
+ {
+  "name": "nf-core/spatialxe",
+  "runId": "846a87de-7743-40fa-bec9-7e8df469d5f7",
+  "status": "succeeded"
+ },
+ {
+  "name": "nf-core/taxprofiler",
+  "runId": "2f2680c9-034b-4374-bcb1-92cf969a6f93",
+  "status": "succeeded"
+ },
+ {
+  "name": "nf-core/genephylo",
+  "runId": "7157110a-78a0-4efc-83a7-9add0a277d45",
+  "status": "completed"
+ },
+ {
+  "name": "nf-core/eager",
+  "runId": "21530fbb-cd72-4f08-8167-34ba48b14e2d",
+  "status": "failed",
+  "cause": "Nextflow DSL1 is no longer supported (pinned 2.5.3)"
+ },
+ {
+  "name": "nf-core/mnaseseq",
+  "runId": "d461d894-0d3b-4d17-a011-a0c2b6da9461",
+  "status": "interrupted",
+  "cause": "Nextflow DSL1 is no longer supported"
+ },
+ {
+  "name": "nf-core/moleculardynamics",
+  "runId": "2091f2c4-95d8-425e-a2ec-f34f36abdb3d",
+  "status": "failed",
+  "cause": "NullPointerException .into() \u2014 DSL1 channel operator"
+ },
+ {
+  "name": "nf-core/scdownstream",
+  "runId": "a1c702bd-46a9-4009-9c1d-eb35599acf36",
+  "status": "failed",
+  "cause": "requires Nextflow >=26.04.6 (latest version, drifted) \u2014 re-run after pinning"
+ },
+ {
+  "name": "nf-core/chipseq",
+  "status": "no run recorded"
+ },
+ {
+  "name": "nf-core/atacseq",
+  "status": "no run recorded"
+ },
+ {
+  "name": "nf-core/scrnaseq",
+  "status": "no run recorded"
+ },
+ {
+  "name": "nf-core/mag",
+  "status": "no run recorded"
+ },
+ {
+  "name": "nf-core/ampliseq",
+  "status": "no run recorded"
+ }
+]
