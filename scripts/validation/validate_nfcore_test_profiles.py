@@ -26,7 +26,7 @@ def call(method, path, jwt, body=None, timeout=120):
         with urllib.request.urlopen(req, context=CTX, timeout=timeout) as r:
             return r.status, json.loads(r.read() or b"{}")
     except urllib.error.HTTPError as e:
-        return e.code, {"error": e.read()[:500].decode(errors="replace")}
+        return e.code, {"error": e.read()[:20000].decode(errors="replace")}
     except Exception as e:  # noqa: BLE001
         return -1, {"error": str(e)[:300]}
 
