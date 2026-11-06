@@ -49,6 +49,51 @@ TEST_PARAMS = {
 }
 
 
+# Directory holding each deployed pipeline's <name>/conf/test.config and <name>/nextflow.config, copied from the
+# Galaxy container (/app/nf-core-workflows). The launch gate requires the params the pipeline's schema requires
+# (e.g. input); `-profile test` would set them, but the gate runs before Nextflow, so they are read from here.
+TEST_CONFIG_DIR = os.environ.get("NFCORE_TEST_CONFIG_DIR", "")
+
+
+def _test_profile_values(name, wanted):
+    """{param: value} for `wanted` params as conf/test.config sets them (strings, string lists)."""
+    import re
+    short = name.split("/")[-1]
+    try:
+        test_cfg = open(os.path.join(TEST_CONFIG_DIR, short, "conf", "test.config")).read()
+    except OSError:
+        return {}
+    try:
+        base = re.search(r"pipelines_testdata_base_path\s*=\s*['\"]([^'\"]+)['\"]",
+                         open(os.path.join(TEST_CONFIG_DIR, short, "nextflow.config")).read()).group(1)
+    except (OSError, AttributeError):
+        base = TD
+
+    def expand(v):
+        # ${projectDir} is the pipeline's directory in the Galaxy container, where the executor runs it.
+        return (v.replace("${params.pipelines_testdata_base_path}", base)
+                 .replace("${projectDir}", f"/app/nf-core-workflows/{short}"))
+
+    out = {}
+    for p in wanted:
+        m = re.search(rf"(?m)^\s*{re.escape(p)}\s*=\s*(.+)$", test_cfg)
+        if not m:
+            continue
+        rhs = m.group(1).strip()
+        if rhs.startswith("["):
+            body = test_cfg[m.start(1):test_cfg.index("]", m.start(1))]
+            out[p] = [expand(x) for x in re.findall(r"['\"]([^'\"]+)['\"]", body)]
+            continue
+        pm = re.match(r"params\.pipelines_testdata_base_path\s*\+\s*['\"]([^'\"]+)['\"]", rhs)
+        if pm:
+            out[p] = base + pm.group(1)
+            continue
+        sm = re.match(r"['\"]([^'\"]*)['\"]", rhs)
+        if sm:
+            out[p] = expand(sm.group(1))
+    return out
+
+
 def run_one(jwt, name, max_wait_s=5400):
     st, s = call("POST", "/api/workflows/search", jwt, {"query": name, "limit": 3, "defer_param_prefill": True})
     hits = (s.get("workflows") or s.get("results") or []) if isinstance(s, dict) else []
@@ -60,6 +105,16 @@ def run_one(jwt, name, max_wait_s=5400):
     params = {**(wf.get("parameters") or {}), **TEST_PARAMS.get(name, {}), "profile": "test,aws"}
     wf = {**wf, "parameters": params}
     st, e = call("POST", "/api/workflows/execute", jwt, {"workflowDefinition": wf, "params": params}, timeout=300)
+    if st == 400 and "missing_required_params" in str(e) and TEST_CONFIG_DIR:
+        try:
+            missing = [m["name"] for m in json.loads(e["error"]).get("missing", [])]
+        except (KeyError, ValueError, TypeError):
+            missing = []
+        fill = _test_profile_values(name, missing)
+        if fill:
+            params = {**params, **fill}
+            wf = {**wf, "parameters": params}
+            st, e = call("POST", "/api/workflows/execute", jwt, {"workflowDefinition": wf, "params": params}, timeout=300)
     run_id = e.get("runId") if isinstance(e, dict) else None
     if not run_id:
         return {"name": name, "status": "launch_failed", "http": st, "detail": e}
