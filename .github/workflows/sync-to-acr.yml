@@ -868,6 +868,11 @@ jobs:
               else
                 echo "(no nextflow.log at $LOG)"
               fi
+              DOTLOG="$WD/.nextflow.log"
+              if [ -f "$DOTLOG" ]; then
+                echo "--- .nextflow.log (last 40 lines — Groovy traceback) ---"
+                tail -40 "$DOTLOG"
+              fi
               find "$WD" -name ".command.err" 2>/dev/null | while read f; do
                 echo "--- $(dirname $f | xargs basename) .command.err ---"
                 tail -20 "$f" 2>/dev/null

@@ -3142,26 +3142,22 @@ def _generate_executor_config(
             _arm64_env_block = 'env { DOCKER_DEFAULT_PLATFORM = "linux/arm64" }' if _is_arm64 else ""
             import multiprocessing as _mp
             host_cpus = _mp.cpu_count()
-            bioc_container = os.environ.get("BIOMATE_BIOC_CONTAINER", "")
-            bioc_override = (
-                f"\nprocess {{\n  withName: '/BIOC_.*/' {{\n    container = '{bioc_container}'\n  }}\n}}\n"
-                if bioc_container else ""
-            )
-            admet_container = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
-            admet_override = (
-                f"\nprocess {{\n  withName: ~/.*ADMET.*/ {{\n    container = '{admet_container}'\n  }}\n}}\n"
-                if admet_container else ""
-            )
-            onprem_local_config = (
-                "docker {\n"
-                "  enabled = true\n"
-                f"  runOptions = '--entrypoint \"\" --user root --network {docker_network} --pull missing'\n"
-                "}\n"
-                + (f"{_arm64_env_block}\n" if _arm64_env_block else "")
-                + f"\nexecutor {{\n  name   = 'local'\n  cpus   = {max(host_cpus, 4)}\n  memory = '16 GB'\n}}\n"
-                + f"\nprocess {{\n  cpus   = 1\n  memory = '4 GB'\n}}\n"
-                + bioc_override + admet_override
-            )
+            onprem_local_config = f"""docker {{
+  enabled = true
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull missing'
+}}
+{_arm64_env_block}
+executor {{
+  name   = 'local'
+  cpus   = {max(host_cpus, 4)}
+  memory = '16 GB'
+}}
+
+process {{
+  cpus   = 1
+  memory = '4 GB'
+}}
+"""
             config_path = config_dir / "biomate_executor_override.config"
             config_path.write_text(onprem_local_config)
             log.info(f"[Nextflow] Generated on-prem local config (no MinIO): {config_path}")
