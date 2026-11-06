@@ -161,7 +161,7 @@ jobs:
         run: |
           sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
             -o ConnectTimeout=30 -o ServerAliveInterval=30 root@${{ env.ECS_IP }} \
-            'cd /opt/biomate && docker compose -f docker-compose.onprem.yml down --remove-orphans && echo "All services stopped"'
+            'cd /app/biomate && docker compose -f docker-compose.onprem.yml down --remove-orphans && echo "All services stopped"'
 
   restart-stack:
     runs-on: ubuntu-latest
