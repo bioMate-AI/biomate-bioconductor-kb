@@ -1,0 +1,101 @@
+[
+  {
+    "file": "GSE15316.soft.txt",
+    "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE15316&targ=all&view=full&form=text",
+    "bytes": 14849762,
+    "sha256": "77052362b3ccacd00cb12b2977e2f82b1c8a5f0b4bea5df3843d15aa38f231c3",
+    "retrieved_utc": "2026-09-12T22:32:49.488490+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "GSE113156.soft.txt",
+    "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE113156&targ=all&view=full&form=text",
+    "bytes": 358311,
+    "sha256": "ecc65e12cfbb1cae4cae726f7c72e5eadcaa31b86fd5fdf2d2387be37398c20d",
+    "retrieved_utc": "2026-09-12T22:32:51.602079+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "GSE35455.soft.txt",
+    "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE35455&targ=all&view=full&form=text",
+    "bytes": 142440473,
+    "sha256": "7c209eea36d7baf43a6917b9f78c56f2ff99d386482377068de5e0c7079b9dac",
+    "retrieved_utc": "2026-09-12T22:33:09.979575+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "rheumatoid_arthritis_trials_0.json",
+    "url": "https://clinicaltrials.gov/api/v2/studies?query.cond=rheumatoid+arthritis&query.term=withdrawal+OR+discontinuation+OR+relapse+OR+sustained+remission&filter.overallStatus=COMPLETED&pageSize=100&format=json",
+    "bytes": 12923959,
+    "sha256": "2e891c9a9412422f6dead9d9b43cfdb2c8b105d18d323e3aca7af44005c5bf50",
+    "retrieved_utc": "2026-09-12T22:33:11.776876+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "rheumatoid_arthritis_trials_1.json",
+    "url": "https://clinicaltrials.gov/api/v2/studies?query.cond=rheumatoid+arthritis&query.term=withdrawal+OR+discontinuation+OR+relapse+OR+sustained+remission&filter.overallStatus=COMPLETED&pageSize=100&format=json&pageToken=ZVt07cGHkvI2wRk2CJf6_LLtz5GYPNRrd7KrgP4bnzaavfk7IQ",
+    "bytes": 8675088,
+    "sha256": "5868e24edc79d58ee76376eb639b5b94264ef03c4662c87a7c1346d0ae7b3975",
+    "retrieved_utc": "2026-09-12T22:33:13.716174+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "rheumatoid_arthritis_trials_2.json",
+    "url": "https://clinicaltrials.gov/api/v2/studies?query.cond=rheumatoid+arthritis&query.term=withdrawal+OR+discontinuation+OR+relapse+OR+sustained+remission&filter.overallStatus=COMPLETED&pageSize=100&format=json&pageToken=ZVt07cGHkvI2wRk2CJf6_LLtz5GYPNRrd7KrgP4YmTuVsfg8IQ",
+    "bytes": 10869024,
+    "sha256": "5c8e30a710333a62889d8df5e4aee1a431f3baf8658e4215132a0752cb0e7252",
+    "retrieved_utc": "2026-09-12T22:33:15.572629+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "rheumatoid_arthritis_trials_3.json",
+    "url": "https://clinicaltrials.gov/api/v2/studies?query.cond=rheumatoid+arthritis&query.term=withdrawal+OR+discontinuation+OR+relapse+OR+sustained+remission&filter.overallStatus=COMPLETED&pageSize=100&format=json&pageToken=ZVt07cGHkvI2wRk2CJf6_LLtz5GYPNRrd7KrgP4ZlDuRsP4-IQ",
+    "bytes": 2604800,
+    "sha256": "b17325d930d6ac7fb368ad34c701a465392eda79cb3a00bf2368035ca0b108dc",
+    "retrieved_utc": "2026-09-12T22:33:17.139007+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "asthma_trials_0.json",
+    "url": "https://clinicaltrials.gov/api/v2/studies?query.cond=asthma&query.term=withdrawal+OR+discontinuation+OR+relapse+OR+sustained+remission&filter.overallStatus=COMPLETED&pageSize=100&format=json",
+    "bytes": 6589443,
+    "sha256": "8ab9027ce85d6fdefc783289383bd86621a2a7dcddfa7d4eb84ef61250ae43ad",
+    "retrieved_utc": "2026-09-12T22:33:17.621811+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "asthma_trials_1.json",
+    "url": "https://clinicaltrials.gov/api/v2/studies?query.cond=asthma&query.term=withdrawal+OR+discontinuation+OR+relapse+OR+sustained+remission&filter.overallStatus=COMPLETED&pageSize=100&format=json&pageToken=ZVt07cGHkvI2wRk2CJf6_LLtz5GYPNRrd7KrgP4blDuQu_s5IQ",
+    "bytes": 5439843,
+    "sha256": "69c53dcdf8b13dd7c8ef5c8ee3607b54ed54c9e49fe98b1540637f63a1fa4253",
+    "retrieved_utc": "2026-09-12T22:33:19.382196+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "asthma_trials_2.json",
+    "url": "https://clinicaltrials.gov/api/v2/studies?query.cond=asthma&query.term=withdrawal+OR+discontinuation+OR+relapse+OR+sustained+remission&filter.overallStatus=COMPLETED&pageSize=100&format=json&pageToken=ZVt07cGHkvI2wRk2CJf6_LLtz5GYPNRrd7KrgP4ZlD-Wsf81IQ",
+    "bytes": 879152,
+    "sha256": "295b7f5ec4cf39871f855f134c6345e66921081b1952ae913b6ea2d724d8b821",
+    "retrieved_utc": "2026-09-12T22:33:20.751003+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "lupus_trials_0.json",
+    "url": "https://clinicaltrials.gov/api/v2/studies?query.cond=lupus&query.term=withdrawal+OR+discontinuation+OR+relapse+OR+sustained+remission&filter.overallStatus=COMPLETED&pageSize=100&format=json",
+    "bytes": 5918082,
+    "sha256": "729f63339471003590bd58cfb5e0bdbe13e746cd821a104f97f7d29da77fe87a",
+    "retrieved_utc": "2026-09-12T22:33:21.254880+00:00",
+    "status": "downloaded",
+    "training_eligible": false
+  }
+]

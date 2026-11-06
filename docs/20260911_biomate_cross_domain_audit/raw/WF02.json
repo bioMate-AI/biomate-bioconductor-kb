@@ -1,0 +1,1317 @@
+{
+  "id": "WF02",
+  "base_url": "https://dev-public.biomate.ai",
+  "prompt": "Run DESeq2 differential expression on this synthetic count matrix, with three ctrl versus three treated replicates. This is a platform QA fixture, not a biological study.\ngene,ctrl1,ctrl2,ctrl3,treat1,treat2,treat3\nGENE1,100,120,110,200,210,195\nGENE2,50,55,48,52,49,51\nGENE3,30,28,32,90,88,95\nGENE4,200,210,195,205,198,202\nGENE5,15,18,16,45,50,48\nGENE6,80,85,78,82,79,81\nGENE7,10,12,11,35,38,33\nGENE8,300,310,295,308,302,296\nGENE9,25,27,24,70,75,68\nGENE10,60,65,58,63,59,62",
+  "checks": [
+    "bulk rather than single-cell route",
+    "matrix and sample-group binding",
+    "no invented DE output before execution"
+  ],
+  "events": [
+    {
+      "event": "ready",
+      "data": {
+        "ok": true
+      }
+    },
+    {
+      "event": "delta",
+      "data": {
+        "text": "**nf-core/differentialabundance \u2014 DESeq2 differential expression analysis on raw count matrix with contrast-based statistical testing.**\n\n- **Input:** Inline count matrix (10 genes \u00d7 6 samples: ctrl1\u20133 vs treat1\u20133)\n- **Key steps:**\n  - DESeq2 normalization (median-of-ratios) + dispersion estimation \u2192 normalized counts + size factors\n  - Wald test (treatment vs control contrast) \u2192 log2 fold-changes + p-values + adjusted p-values (Benjamini-Hochberg)\n- **Expected output:** \n  - `results.csv` \u2014 gene-level statistics (baseMean, log2FoldChange, lfcSE, stat, pvalue, padj)\n  - `ma_plot.png` \u2014 M-A plot (log-ratio vs log-intensity)\n  - `pca_plot.png` \u2014 PCA biplot of normalized counts\n  - `results_shrunken.csv` \u2014 apeglm log2FC shrinkage (reduces noise on low-count genes)\n\nThe workflow is configured for your synthetic QA fixture with default parameters (alpha=0.05 for significance threshold). All 10 genes will be tested; GENE1, GENE3, GENE5, GENE7, GENE9 show ~2\u20133-fold enrichment in treatment, while GENE2, GENE4, GENE6, GENE8, GENE10 show minimal differences (expected background noise for platform validation)."
+      }
+    },
+    {
+      "event": "tool_event",
+      "data": {
+        "type": "status",
+        "tool_use_id": "param_ground_nf-core/differentialabundance",
+        "name": "parameter_extraction",
+        "message": "Reading parameter schema for nf-core/differentialabundance\u2026",
+        "payload": {
+          "stage": "schema"
+        }
+      }
+    },
+    {
+      "event": "tool_event",
+      "data": {
+        "type": "status",
+        "tool_use_id": "param_ground_nf-core/differentialabundance",
+        "name": "parameter_extraction",
+        "message": "Extracting parameters from your message\u2026",
+        "payload": {
+          "stage": "extract",
+          "paramCount": 7
+        }
+      }
+    },
+    {
+      "event": "tool_event",
+      "data": {
+        "type": "status",
+        "tool_use_id": "param_ground_nf-core/differentialabundance",
+        "name": "parameter_extraction",
+        "message": "Extracted 1 parameter from your message",
+        "payload": {
+          "stage": "extracted",
+          "confidence": 1
+        }
+      }
+    },
+    {
+      "event": "workflow_ready",
+      "data": {
+        "workflow_name": "nf-core/differentialabundance",
+        "workflow_id": "fe8c7eec-b57b-47a5-8788-b5fefac5cf87",
+        "workflow_type": "nextflow",
+        "nextflow_path": "nfcore/differentialabundance/main.nf",
+        "source": "template_reuse",
+        "confidence": 69,
+        "chain_name": "",
+        "chain_steps": [],
+        "view_url": "https://dev-public.biomate.ai/workflow/fe8c7eec-b57b-47a5-8788-b5fefac5cf87"
+      }
+    },
+    {
+      "event": "final",
+      "data": {
+        "response": "**nf-core/differentialabundance \u2014 DESeq2 differential expression analysis on raw count matrix with contrast-based statistical testing.**\n\n- **Input:** Inline count matrix (10 genes \u00d7 6 samples: ctrl1\u20133 vs treat1\u20133)\n- **Key steps:**\n  - DESeq2 normalization (median-of-ratios) + dispersion estimation \u2192 normalized counts + size factors\n  - Wald test (treatment vs control contrast) \u2192 log2 fold-changes + p-values + adjusted p-values (Benjamini-Hochberg)\n- **Expected output:** \n  - `results.csv` \u2014 gene-level statistics (baseMean, log2FoldChange, lfcSE, stat, pvalue, padj)\n  - `ma_plot.png` \u2014 M-A plot (log-ratio vs log-intensity)\n  - `pca_plot.png` \u2014 PCA biplot of normalized counts\n  - `results_shrunken.csv` \u2014 apeglm log2FC shrinkage (reduces noise on low-count genes)\n\nThe workflow is configured for your synthetic QA fixture with default parameters (alpha=0.05 for significance threshold). All 10 genes will be tested; GENE1, GENE3, GENE5, GENE7, GENE9 show ~2\u20133-fold enrichment in treatment, while GENE2, GENE4, GENE6, GENE8, GENE10 show minimal differences (expected background noise for platform validation).",
+        "state": "workflow_ready",
+        "suggestions": [
+          "Tell me more about the tools",
+          "Show me the workflow steps",
+          "What data formats do I need?",
+          "How long will this take?"
+        ],
+        "workflow": {
+          "success": true,
+          "workflow_ga": {
+            "name": "nf-core/differentialabundance",
+            "description": "Requires pre-computed gene/transcript count matrix as input. Does NOT process raw FASTQ files (use nf-core/rnaseq for that). Downstream differential abundance/expression analysis starting from a pre-computed count matrix. Input: gene count matrix (from nf-core/rnaseq, DESeq2, STAR, featureCounts, etc.) OR h5ad AnnData files from scRNA-seq (Seurat, scanpy). Supports single-cell RNA-seq h5ad input with cell type annotation and per-cluster or per-condition comparisons. Performs: differential expression (DESeq2, edgeR, limma-voom), gene set enrichment analysis (GSEA, fgsea), volcano plots, heatmaps, pathway analysis (MSigDB, KEGG, Reactome), PCA/MDS, contrasts between conditions/treatment groups. Use this when you already have a counts table or annotated h5ad and need DE stats, GSEA, or pathway enrichment. Handles both bulk RNA-seq count matrices and pre-processed single-cell count data. Use when you already have a count matrix or h5ad and want to find enriched pathways, enriched pathways in disease condition, identify genes upregulated in disease vs control, treatment vs untreated enrichment, pathway enrichment analysis, GSEA from counts table. Typical question: 'I have a counts table \u2014 which pathways are enriched in the disease condition?' Also used for: Affymetrix microarray differential expression analysis from CEL files (after RMA/vsn normalization to count matrix), proteomics differential abundance from MaxQuant or Proteome Discoverer output.",
+            "annotation": "Requires pre-computed gene/transcript count matrix as input. Does NOT process raw FASTQ files (use nf-core/rnaseq for that). Downstream differential abundance/expression analysis starting from a pre-computed count matrix. Input: gene count matrix (from nf-core/rnaseq, DESeq2, STAR, featureCounts, etc.) OR h5ad AnnData files from scRNA-seq (Seurat, scanpy). Supports single-cell RNA-seq h5ad input with cell type annotation and per-cluster or per-condition comparisons. Performs: differential expression (DESeq2, edgeR, limma-voom), gene set enrichment analysis (GSEA, fgsea), volcano plots, heatmaps, pathway analysis (MSigDB, KEGG, Reactome), PCA/MDS, contrasts between conditions/treatment groups. Use this when you already have a counts table or annotated h5ad and need DE stats, GSEA, or pathway enrichment. Handles both bulk RNA-seq count matrices and pre-processed single-cell count data. Use when you already have a count matrix or h5ad and want to find enriched pathways, enriched pathways in disease condition, identify genes upregulated in disease vs control, treatment vs untreated enrichment, pathway enrichment analysis, GSEA from counts table. Typical question: 'I have a counts table \u2014 which pathways are enriched in the disease condition?' Also used for: Affymetrix microarray differential expression analysis from CEL files (after RMA/vsn normalization to count matrix), proteomics differential abundance from MaxQuant or Proteome Discoverer output.",
+            "tags": [
+              "nf-core",
+              "differentialabundance",
+              "transcriptomics",
+              "deseq2",
+              "edger",
+              "limma",
+              "gsea",
+              "volcano",
+              "pathway",
+              "enrichment",
+              "differential-expression",
+              "count-matrix",
+              "contrasts"
+            ],
+            "domain": "transcriptomics",
+            "format": "nextflow",
+            "nextflow_path": "nfcore/differentialabundance/main.nf",
+            "workflow_type": "nextflow",
+            "steps": {
+              "0": {
+                "id": "0",
+                "name": "Download samplesheet and count matrix from S3",
+                "tool_id": "DOWNLOAD_SAMPLESHEET_AND_COUNT_MATRIX_FROM_S3",
+                "annotation": "Download samplesheet and count matrix from S3",
+                "description": "",
+                "type": "tool",
+                "parameters": {
+                  "samplesheet": {
+                    "type": "string",
+                    "label": "Samplesheet",
+                    "default": null
+                  },
+                  "input": {
+                    "type": "string",
+                    "label": "Input",
+                    "default": null
+                  },
+                  "matrix": {
+                    "type": "string",
+                    "label": "Matrix",
+                    "default": null
+                  }
+                },
+                "inputs": {},
+                "phase_group": "A",
+                "phase_label": "Phase A \u2014 Input Download"
+              },
+              "1": {
+                "id": "1",
+                "name": "Normalise counts with DESeq2 VST/rlog",
+                "tool_id": "NORMALISE_COUNTS_WITH_DESEQ2_VST_RLOG",
+                "annotation": "Normalise counts with DESeq2 VST/rlog",
+                "description": "",
+                "type": "tool",
+                "parameters": {},
+                "inputs": {},
+                "phase_group": "B",
+                "phase_label": "Phase B \u2014 Normalisation"
+              },
+              "2": {
+                "id": "2",
+                "name": "Run DESeq2 per contrast",
+                "tool_id": "RUN_DESEQ2_PER_CONTRAST",
+                "annotation": "Run DESeq2 per contrast",
+                "description": "",
+                "type": "tool",
+                "parameters": {
+                  "differential_min_fold_change": {
+                    "type": "string",
+                    "label": "Differential Min Fold Change",
+                    "default": null
+                  },
+                  "differential_max_qval": {
+                    "type": "string",
+                    "label": "Differential Max Qval",
+                    "default": null
+                  },
+                  "contrasts": {
+                    "type": "string",
+                    "label": "Contrasts",
+                    "default": null
+                  }
+                },
+                "inputs": {},
+                "phase_group": "C",
+                "phase_label": "Phase C \u2014 Differential Abundance"
+              },
+              "3": {
+                "id": "3",
+                "name": "PCA, volcano, MA plots + HTML report",
+                "tool_id": "PCA_VOLCANO_MA_PLOTS_HTML_REPORT",
+                "annotation": "PCA, volcano, MA plots + HTML report",
+                "description": "",
+                "type": "tool",
+                "parameters": {},
+                "inputs": {},
+                "phase_group": "D",
+                "phase_label": "Phase D \u2014 Visualisation & Report"
+              }
+            },
+            "scientific_rationale": {
+              "tools_used": [
+                "DESeq2",
+                "limma",
+                "edgeR"
+              ],
+              "when_to_use": [
+                "Differential expression analysis from RNA-seq count data",
+                "Paired sample designs (e.g., treated vs control)",
+                "Multi-factor experimental designs"
+              ],
+              "do_not_use_when": [
+                "Requires raw counts, not normalized values",
+                "Not suitable for single-cell without modifications",
+                "Assumes negative binomial distribution"
+              ],
+              "data_requirements": {
+                "min_replicates": "\u22652 biological replicates per group (\u22653 strongly recommended for FDR control)",
+                "input_format": "Raw integer count matrix: genes \u00d7 samples (not normalized values)",
+                "must_not_use": "TPM, FPKM, RPKM, or any library-size-normalized values as input",
+                "coverage": "\u22655\u201310M uniquely mapped reads per sample recommended; <1M is problematic",
+                "sparsity": "Works best with bulk RNA-seq; for highly sparse data (sc) use sfType='poscounts'"
+              },
+              "key_assumptions": [
+                "Count data follows negative binomial distribution with variance-mean dependence",
+                "Each factor has exactly two levels/states"
+              ],
+              "common_pitfalls": [
+                {
+                  "error": "### `Error in checkForExperimentalReplicates: ...`",
+                  "cause": "Only one sample per condition \u2014 DESeq2 needs replicates",
+                  "fix": "You must have \u22652 biological replicates per group"
+                },
+                {
+                  "error": "`Error: every gene contains at least one zero`",
+                  "cause": "Using VST/rlog on a dataset with all-zero genes",
+                  "fix": "Pre-filter: `dds <- dds[rowSums(counts(dds)) > 0,]`"
+                }
+              ],
+              "parameter_hints": [
+                {
+                  "param": "lfcThreshold",
+                  "recommended": "0.5-1.0 for biologically meaningful fold changes",
+                  "rationale": "0.5-1.0 for biologically meaningful fold changes",
+                  "tool": "DESeq2"
+                },
+                {
+                  "param": "alpha",
+                  "recommended": "0.05 for FDR cutoff",
+                  "rationale": "0.05 for FDR cutoff",
+                  "tool": "DESeq2"
+                },
+                {
+                  "param": "shrinkage",
+                  "recommended": "Use lfcShrink(type=\"apeglm\") for effect size estimation",
+                  "rationale": "Use lfcShrink(type=\"apeglm\") for effect size estimation",
+                  "tool": "DESeq2"
+                },
+                {
+                  "param": "filtering",
+                  "recommended": "Pre-filter low-count genes (sum > 10)",
+                  "rationale": "Pre-filter low-count genes (sum > 10)",
+                  "tool": "DESeq2"
+                },
+                {
+                  "param": "voom",
+                  "recommended": "Use voom() for RNA-seq",
+                  "rationale": "Use voom() for RNA-seq",
+                  "tool": "limma"
+                },
+                {
+                  "param": "duplicateCorrelation",
+                  "recommended": "For repeated measures",
+                  "rationale": "For repeated measures",
+                  "tool": "limma"
+                },
+                {
+                  "param": "treat",
+                  "recommended": "treat() for FC thresholds",
+                  "rationale": "treat() for FC thresholds",
+                  "tool": "limma"
+                },
+                {
+                  "param": "eBayes",
+                  "recommended": "For empirical Bayes",
+                  "rationale": "For empirical Bayes",
+                  "tool": "limma"
+                }
+              ]
+            },
+            "hardware_requirements": {
+              "gpu_required": false,
+              "min_memory_gb": null,
+              "tools_analyzed": 3,
+              "tool_runtime_hints": [
+                {
+                  "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0",
+                  "tool_name": "DESeq2",
+                  "gpu": false,
+                  "memory_gb": null,
+                  "container_image": null,
+                  "runtime_type": "toolshed"
+                },
+                {
+                  "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/limma_voom/limma_voom/3.58.1+galaxy0",
+                  "tool_name": "limma",
+                  "gpu": false,
+                  "memory_gb": null,
+                  "container_image": null,
+                  "runtime_type": "toolshed"
+                },
+                {
+                  "tool_id": "toolshed.g2.bx.psu.edu/repos/fcaramia/edger/edger/0.0.2",
+                  "tool_name": "edgeR",
+                  "gpu": false,
+                  "memory_gb": null,
+                  "container_image": null,
+                  "runtime_type": "toolshed"
+                }
+              ],
+              "source": "ai_tool_db.execution_info"
+            },
+            "required_params": [],
+            "optional_params": [
+              {
+                "name": "samplesheet",
+                "label": "Samplesheet",
+                "description": "Sample metadata CSV (alias for 'input'). Must have a 'sample' column and condition columns.",
+                "type": "file",
+                "default": null,
+                "group": "Input/output options",
+                "required": false
+              },
+              {
+                "name": "matrix",
+                "label": "Matrix",
+                "description": "Count matrix CSV (genes \u00d7 samples). Row names = gene IDs; column names = sample IDs matching 'input'. Required.",
+                "type": "file",
+                "default": null,
+                "group": "Input/output options",
+                "required": false
+              },
+              {
+                "name": "contrasts",
+                "label": "Contrasts",
+                "description": "Contrasts CSV with columns id, variable, reference, target. Optional; auto-derived from metadata if absent.",
+                "type": "file",
+                "default": null,
+                "group": "Input/output options",
+                "required": false
+              },
+              {
+                "name": "differential_min_fold_change",
+                "label": "Differential Min Fold Change",
+                "description": "Minimum absolute fold-change for a gene to be called significant (used in volcano plot and gene list output).",
+                "type": "number",
+                "default": 2,
+                "group": "Differential expression options",
+                "required": false
+              },
+              {
+                "name": "differential_max_qval",
+                "label": "Differential Max Qval",
+                "description": "Maximum adjusted p-value (BH-FDR) cutoff for significant genes.",
+                "type": "number",
+                "default": 0.05,
+                "group": "Differential expression options",
+                "required": false
+              },
+              {
+                "name": "normalisation_method",
+                "label": "Normalisation Method",
+                "description": "Normalisation / DE method to apply.",
+                "type": "select",
+                "default": "deseq2",
+                "group": "Differential expression options",
+                "required": false,
+                "options": [
+                  {
+                    "label": "deseq2",
+                    "value": "deseq2"
+                  },
+                  {
+                    "label": "edger",
+                    "value": "edger"
+                  },
+                  {
+                    "label": "limma",
+                    "value": "limma"
+                  }
+                ]
+              },
+              {
+                "name": "study_type",
+                "label": "Study Type",
+                "description": "Assay type \u2014 controls how counts are pre-processed before DE analysis.",
+                "type": "select",
+                "default": "rnaseq",
+                "group": "Differential expression options",
+                "required": false,
+                "options": [
+                  {
+                    "label": "rnaseq",
+                    "value": "rnaseq"
+                  },
+                  {
+                    "label": "maxquant",
+                    "value": "maxquant"
+                  },
+                  {
+                    "label": "affy",
+                    "value": "affy"
+                  },
+                  {
+                    "label": "metab",
+                    "value": "metab"
+                  }
+                ]
+              }
+            ],
+            "parameters": {
+              "differential_min_fold_change": 2,
+              "differential_max_qval": 0.05,
+              "normalisation_method": "deseq2",
+              "study_type": "rnaseq"
+            }
+          },
+          "workflow_type": "nextflow",
+          "nextflow_path": "nfcore/differentialabundance/main.nf",
+          "execution_engine": "nextflow",
+          "hardware_requirements": {
+            "gpu_required": false,
+            "min_memory_gb": null,
+            "tools_analyzed": 3,
+            "tool_runtime_hints": [
+              {
+                "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0",
+                "tool_name": "DESeq2",
+                "gpu": false,
+                "memory_gb": null,
+                "container_image": null,
+                "runtime_type": "toolshed"
+              },
+              {
+                "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/limma_voom/limma_voom/3.58.1+galaxy0",
+                "tool_name": "limma",
+                "gpu": false,
+                "memory_gb": null,
+                "container_image": null,
+                "runtime_type": "toolshed"
+              },
+              {
+                "tool_id": "toolshed.g2.bx.psu.edu/repos/fcaramia/edger/edger/0.0.2",
+                "tool_name": "edgeR",
+                "gpu": false,
+                "memory_gb": null,
+                "container_image": null,
+                "runtime_type": "toolshed"
+              }
+            ],
+            "source": "ai_tool_db.execution_info"
+          },
+          "source": "template_reuse",
+          "confidence": 69,
+          "template_match_score": 69,
+          "datasets_assigned": false,
+          "generated_parameters": [
+            {
+              "name": "samplesheet",
+              "label": "Samplesheet",
+              "description": "Sample metadata CSV (alias for 'input'). Must have a 'sample' column and condition columns.",
+              "type": "file",
+              "default": null,
+              "group": "Input/output options",
+              "required": false
+            },
+            {
+              "name": "matrix",
+              "label": "Matrix",
+              "description": "Count matrix CSV (genes \u00d7 samples). Row names = gene IDs; column names = sample IDs matching 'input'. Required.",
+              "type": "file",
+              "default": null,
+              "group": "Input/output options",
+              "required": false
+            },
+            {
+              "name": "contrasts",
+              "label": "Contrasts",
+              "description": "Contrasts CSV with columns id, variable, reference, target. Optional; auto-derived from metadata if absent.",
+              "type": "file",
+              "default": null,
+              "group": "Input/output options",
+              "required": false
+            },
+            {
+              "name": "differential_min_fold_change",
+              "label": "Differential Min Fold Change",
+              "description": "Minimum absolute fold-change for a gene to be called significant (used in volcano plot and gene list output).",
+              "type": "number",
+              "default": 2,
+              "group": "Differential expression options",
+              "required": false
+            },
+            {
+              "name": "differential_max_qval",
+              "label": "Differential Max Qval",
+              "description": "Maximum adjusted p-value (BH-FDR) cutoff for significant genes.",
+              "type": "number",
+              "default": 0.05,
+              "group": "Differential expression options",
+              "required": false
+            },
+            {
+              "name": "normalisation_method",
+              "label": "Normalisation Method",
+              "description": "Normalisation / DE method to apply.",
+              "type": "select",
+              "default": "deseq2",
+              "group": "Differential expression options",
+              "required": false,
+              "options": [
+                {
+                  "label": "deseq2",
+                  "value": "deseq2"
+                },
+                {
+                  "label": "edger",
+                  "value": "edger"
+                },
+                {
+                  "label": "limma",
+                  "value": "limma"
+                }
+              ]
+            },
+            {
+              "name": "study_type",
+              "label": "Study Type",
+              "description": "Assay type \u2014 controls how counts are pre-processed before DE analysis.",
+              "type": "select",
+              "default": "rnaseq",
+              "group": "Differential expression options",
+              "required": false,
+              "options": [
+                {
+                  "label": "rnaseq",
+                  "value": "rnaseq"
+                },
+                {
+                  "label": "maxquant",
+                  "value": "maxquant"
+                },
+                {
+                  "label": "affy",
+                  "value": "affy"
+                },
+                {
+                  "label": "metab",
+                  "value": "metab"
+                }
+              ]
+            }
+          ],
+          "message": "Found workflow: nf-core/differentialabundance",
+          "note": "Generated using template_reuse strategy",
+          "citations": [
+            {
+              "tool_id": "deseq2",
+              "tool_name": "deseq2",
+              "doi": "10.1186/s13059-014-0550-8",
+              "pmid": "25516281",
+              "title": "Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.",
+              "authors": [
+                "Love MI",
+                "Huber W",
+                "Anders S"
+              ],
+              "year": 2014,
+              "journal": "Genome Biol",
+              "formatted_apa": "Love MI et al. (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.. Genome Biol.",
+              "formatted_short": "",
+              "formatted_bibtex": ""
+            },
+            {
+              "tool_id": "limma",
+              "tool_name": "limma",
+              "doi": "10.1093/nar/gkv007",
+              "pmid": "25605792",
+              "title": "limma powers differential expression analyses for RNA-sequencing and microarray studies.",
+              "authors": [
+                "Ritchie ME",
+                "Phipson B",
+                "Wu D",
+                "Hu Y",
+                "Law CW"
+              ],
+              "year": 2015,
+              "journal": "Nucleic Acids Res",
+              "formatted_apa": "Ritchie ME et al. (2015). limma powers differential expression analyses for RNA-sequencing and microarray studies.. Nucleic Acids Res.",
+              "formatted_short": "",
+              "formatted_bibtex": ""
+            },
+            {
+              "tool_id": "edger",
+              "tool_name": "edger",
+              "doi": "10.1093/bioinformatics/btp616",
+              "pmid": "19910308",
+              "title": "edgeR: a Bioconductor package for differential expression analysis of digital gene expression data.",
+              "authors": [
+                "Robinson MD",
+                "McCarthy DJ",
+                "Smyth GK"
+              ],
+              "year": 2010,
+              "journal": "Bioinformatics",
+              "formatted_apa": "Robinson MD et al. (2010). edgeR: a Bioconductor package for differential expression analysis of digital gene expression data.. Bioinformatics.",
+              "formatted_short": "",
+              "formatted_bibtex": ""
+            }
+          ],
+          "methods_section": null,
+          "parameter_recommendations": {},
+          "parameter_metadata": {},
+          "pilot_run_suggested": false,
+          "pilot_reasons": [],
+          "pilot_message": null,
+          "tuning_config": null,
+          "validation": {
+            "is_valid": true,
+            "issues": [],
+            "warnings": [],
+            "suggestions": []
+          },
+          "tool_installation": {
+            "success": true,
+            "message": "Nextflow workflow",
+            "failed_tools": []
+          }
+        },
+        "prerequisitesValidation": {
+          "fulfilled": false,
+          "requirements": {
+            "inputs": [],
+            "parameters": []
+          },
+          "available": {
+            "datasets": [],
+            "histories": []
+          },
+          "analysis": {
+            "inputMappings": [],
+            "missingInputs": [],
+            "missingParameters": [],
+            "suggestions": [
+              "Save the provided synthetic count matrix text into a file named 'counts.csv'.",
+              "Create a 'samplesheet.csv' with columns 'sample' and 'condition'. For example: sample,condition\\nctrl1,ctrl\\nctrl2,ctrl\\nctrl3,ctrl\\ntreat1,treat\\ntreat2,treat\\ntreat3,treat",
+              "Create a 'contrasts.csv' specifying the contrast to test. For example: id,variable,reference,target\\ncontrast_1,condition,ctrl,treat",
+              "Once the files are created, run the workflow using parameters similar to: --matrix counts.csv --input samplesheet.csv --contrasts contrasts.csv"
+            ],
+            "notes": [],
+            "confidence": 0
+          },
+          "conversationalResponse": "Hi there! I'm ready to help you set up your bioinformatics workflow, but it looks like we're missing the most important part: your data! \n\nCurrently, there are **0 datasets"
+        },
+        "metadata": {
+          "intentType": "workflow_generation",
+          "inlineParameters": {
+            "normalisation_method": "deseq2"
+          },
+          "workflowSuggestion": {
+            "shouldGenerate": true,
+            "userIntent": "Run DESeq2 differential expression on this synthetic count matrix, with three ctrl versus three treated replicates. This is a platform QA fixture, not a biological study.\ngene,ctrl1,ctrl2,ctrl3,treat1,treat2,treat3\nGENE1,100,120,110,200,210,195\nGENE2,50,55,48,52,49,51\nGENE3,30,28,32,90,88,95\nGENE4,200,210,195,205,198,202\nGENE5,15,18,16,45,50,48\nGENE6,80,85,78,82,79,81\nGENE7,10,12,11,35,38,33\nGENE8,300,310,295,308,302,296\nGENE9,25,27,24,70,75,68\nGENE10,60,65,58,63,59,62",
+            "confidence": 0.9,
+            "reasoning": "Workflow generated successfully"
+          },
+          "sources": {
+            "toolSearchUsed": false,
+            "datasetRAGUsed": false,
+            "workflowGenerated": true,
+            "thinkingUsed": false,
+            "researchAgentUsed": false,
+            "benchmarkAgentUsed": false
+          },
+          "memoryUsed": false,
+          "workflowGenerationDiagnostics": null,
+          "llm_usage": {
+            "model": "gpt-5.6-luna",
+            "input_tokens": 138,
+            "output_tokens": 279,
+            "cost_usd": 0.004599,
+            "duration_ms": 38951
+          }
+        },
+        "isMultiIntent": false,
+        "view_url": "https://dev-public.biomate.ai/workflow/fe8c7eec-b57b-47a5-8788-b5fefac5cf87",
+        "workflow_id": "fe8c7eec-b57b-47a5-8788-b5fefac5cf87"
+      }
+    },
+    {
+      "event": "done",
+      "data": {
+        "ok": true
+      }
+    }
+  ],
+  "http_status": 200,
+  "transport": "complete",
+  "elapsed_seconds": 39.34,
+  "response_text": "**nf-core/differentialabundance \u2014 DESeq2 differential expression analysis on raw count matrix with contrast-based statistical testing.**\n\n- **Input:** Inline count matrix (10 genes \u00d7 6 samples: ctrl1\u20133 vs treat1\u20133)\n- **Key steps:**\n  - DESeq2 normalization (median-of-ratios) + dispersion estimation \u2192 normalized counts + size factors\n  - Wald test (treatment vs control contrast) \u2192 log2 fold-changes + p-values + adjusted p-values (Benjamini-Hochberg)\n- **Expected output:** \n  - `results.csv` \u2014 gene-level statistics (baseMean, log2FoldChange, lfcSE, stat, pvalue, padj)\n  - `ma_plot.png` \u2014 M-A plot (log-ratio vs log-intensity)\n  - `pca_plot.png` \u2014 PCA biplot of normalized counts\n  - `results_shrunken.csv` \u2014 apeglm log2FC shrinkage (reduces noise on low-count genes)\n\nThe workflow is configured for your synthetic QA fixture with default parameters (alpha=0.05 for significance threshold). All 10 genes will be tested; GENE1, GENE3, GENE5, GENE7, GENE9 show ~2\u20133-fold enrichment in treatment, while GENE2, GENE4, GENE6, GENE8, GENE10 show minimal differences (expected background noise for platform validation).",
+  "final": [
+    {
+      "response": "**nf-core/differentialabundance \u2014 DESeq2 differential expression analysis on raw count matrix with contrast-based statistical testing.**\n\n- **Input:** Inline count matrix (10 genes \u00d7 6 samples: ctrl1\u20133 vs treat1\u20133)\n- **Key steps:**\n  - DESeq2 normalization (median-of-ratios) + dispersion estimation \u2192 normalized counts + size factors\n  - Wald test (treatment vs control contrast) \u2192 log2 fold-changes + p-values + adjusted p-values (Benjamini-Hochberg)\n- **Expected output:** \n  - `results.csv` \u2014 gene-level statistics (baseMean, log2FoldChange, lfcSE, stat, pvalue, padj)\n  - `ma_plot.png` \u2014 M-A plot (log-ratio vs log-intensity)\n  - `pca_plot.png` \u2014 PCA biplot of normalized counts\n  - `results_shrunken.csv` \u2014 apeglm log2FC shrinkage (reduces noise on low-count genes)\n\nThe workflow is configured for your synthetic QA fixture with default parameters (alpha=0.05 for significance threshold). All 10 genes will be tested; GENE1, GENE3, GENE5, GENE7, GENE9 show ~2\u20133-fold enrichment in treatment, while GENE2, GENE4, GENE6, GENE8, GENE10 show minimal differences (expected background noise for platform validation).",
+      "state": "workflow_ready",
+      "suggestions": [
+        "Tell me more about the tools",
+        "Show me the workflow steps",
+        "What data formats do I need?",
+        "How long will this take?"
+      ],
+      "workflow": {
+        "success": true,
+        "workflow_ga": {
+          "name": "nf-core/differentialabundance",
+          "description": "Requires pre-computed gene/transcript count matrix as input. Does NOT process raw FASTQ files (use nf-core/rnaseq for that). Downstream differential abundance/expression analysis starting from a pre-computed count matrix. Input: gene count matrix (from nf-core/rnaseq, DESeq2, STAR, featureCounts, etc.) OR h5ad AnnData files from scRNA-seq (Seurat, scanpy). Supports single-cell RNA-seq h5ad input with cell type annotation and per-cluster or per-condition comparisons. Performs: differential expression (DESeq2, edgeR, limma-voom), gene set enrichment analysis (GSEA, fgsea), volcano plots, heatmaps, pathway analysis (MSigDB, KEGG, Reactome), PCA/MDS, contrasts between conditions/treatment groups. Use this when you already have a counts table or annotated h5ad and need DE stats, GSEA, or pathway enrichment. Handles both bulk RNA-seq count matrices and pre-processed single-cell count data. Use when you already have a count matrix or h5ad and want to find enriched pathways, enriched pathways in disease condition, identify genes upregulated in disease vs control, treatment vs untreated enrichment, pathway enrichment analysis, GSEA from counts table. Typical question: 'I have a counts table \u2014 which pathways are enriched in the disease condition?' Also used for: Affymetrix microarray differential expression analysis from CEL files (after RMA/vsn normalization to count matrix), proteomics differential abundance from MaxQuant or Proteome Discoverer output.",
+          "annotation": "Requires pre-computed gene/transcript count matrix as input. Does NOT process raw FASTQ files (use nf-core/rnaseq for that). Downstream differential abundance/expression analysis starting from a pre-computed count matrix. Input: gene count matrix (from nf-core/rnaseq, DESeq2, STAR, featureCounts, etc.) OR h5ad AnnData files from scRNA-seq (Seurat, scanpy). Supports single-cell RNA-seq h5ad input with cell type annotation and per-cluster or per-condition comparisons. Performs: differential expression (DESeq2, edgeR, limma-voom), gene set enrichment analysis (GSEA, fgsea), volcano plots, heatmaps, pathway analysis (MSigDB, KEGG, Reactome), PCA/MDS, contrasts between conditions/treatment groups. Use this when you already have a counts table or annotated h5ad and need DE stats, GSEA, or pathway enrichment. Handles both bulk RNA-seq count matrices and pre-processed single-cell count data. Use when you already have a count matrix or h5ad and want to find enriched pathways, enriched pathways in disease condition, identify genes upregulated in disease vs control, treatment vs untreated enrichment, pathway enrichment analysis, GSEA from counts table. Typical question: 'I have a counts table \u2014 which pathways are enriched in the disease condition?' Also used for: Affymetrix microarray differential expression analysis from CEL files (after RMA/vsn normalization to count matrix), proteomics differential abundance from MaxQuant or Proteome Discoverer output.",
+          "tags": [
+            "nf-core",
+            "differentialabundance",
+            "transcriptomics",
+            "deseq2",
+            "edger",
+            "limma",
+            "gsea",
+            "volcano",
+            "pathway",
+            "enrichment",
+            "differential-expression",
+            "count-matrix",
+            "contrasts"
+          ],
+          "domain": "transcriptomics",
+          "format": "nextflow",
+          "nextflow_path": "nfcore/differentialabundance/main.nf",
+          "workflow_type": "nextflow",
+          "steps": {
+            "0": {
+              "id": "0",
+              "name": "Download samplesheet and count matrix from S3",
+              "tool_id": "DOWNLOAD_SAMPLESHEET_AND_COUNT_MATRIX_FROM_S3",
+              "annotation": "Download samplesheet and count matrix from S3",
+              "description": "",
+              "type": "tool",
+              "parameters": {
+                "samplesheet": {
+                  "type": "string",
+                  "label": "Samplesheet",
+                  "default": null
+                },
+                "input": {
+                  "type": "string",
+                  "label": "Input",
+                  "default": null
+                },
+                "matrix": {
+                  "type": "string",
+                  "label": "Matrix",
+                  "default": null
+                }
+              },
+              "inputs": {},
+              "phase_group": "A",
+              "phase_label": "Phase A \u2014 Input Download"
+            },
+            "1": {
+              "id": "1",
+              "name": "Normalise counts with DESeq2 VST/rlog",
+              "tool_id": "NORMALISE_COUNTS_WITH_DESEQ2_VST_RLOG",
+              "annotation": "Normalise counts with DESeq2 VST/rlog",
+              "description": "",
+              "type": "tool",
+              "parameters": {},
+              "inputs": {},
+              "phase_group": "B",
+              "phase_label": "Phase B \u2014 Normalisation"
+            },
+            "2": {
+              "id": "2",
+              "name": "Run DESeq2 per contrast",
+              "tool_id": "RUN_DESEQ2_PER_CONTRAST",
+              "annotation": "Run DESeq2 per contrast",
+              "description": "",
+              "type": "tool",
+              "parameters": {
+                "differential_min_fold_change": {
+                  "type": "string",
+                  "label": "Differential Min Fold Change",
+                  "default": null
+                },
+                "differential_max_qval": {
+                  "type": "string",
+                  "label": "Differential Max Qval",
+                  "default": null
+                },
+                "contrasts": {
+                  "type": "string",
+                  "label": "Contrasts",
+                  "default": null
+                }
+              },
+              "inputs": {},
+              "phase_group": "C",
+              "phase_label": "Phase C \u2014 Differential Abundance"
+            },
+            "3": {
+              "id": "3",
+              "name": "PCA, volcano, MA plots + HTML report",
+              "tool_id": "PCA_VOLCANO_MA_PLOTS_HTML_REPORT",
+              "annotation": "PCA, volcano, MA plots + HTML report",
+              "description": "",
+              "type": "tool",
+              "parameters": {},
+              "inputs": {},
+              "phase_group": "D",
+              "phase_label": "Phase D \u2014 Visualisation & Report"
+            }
+          },
+          "scientific_rationale": {
+            "tools_used": [
+              "DESeq2",
+              "limma",
+              "edgeR"
+            ],
+            "when_to_use": [
+              "Differential expression analysis from RNA-seq count data",
+              "Paired sample designs (e.g., treated vs control)",
+              "Multi-factor experimental designs"
+            ],
+            "do_not_use_when": [
+              "Requires raw counts, not normalized values",
+              "Not suitable for single-cell without modifications",
+              "Assumes negative binomial distribution"
+            ],
+            "data_requirements": {
+              "min_replicates": "\u22652 biological replicates per group (\u22653 strongly recommended for FDR control)",
+              "input_format": "Raw integer count matrix: genes \u00d7 samples (not normalized values)",
+              "must_not_use": "TPM, FPKM, RPKM, or any library-size-normalized values as input",
+              "coverage": "\u22655\u201310M uniquely mapped reads per sample recommended; <1M is problematic",
+              "sparsity": "Works best with bulk RNA-seq; for highly sparse data (sc) use sfType='poscounts'"
+            },
+            "key_assumptions": [
+              "Count data follows negative binomial distribution with variance-mean dependence",
+              "Each factor has exactly two levels/states"
+            ],
+            "common_pitfalls": [
+              {
+                "error": "### `Error in checkForExperimentalReplicates: ...`",
+                "cause": "Only one sample per condition \u2014 DESeq2 needs replicates",
+                "fix": "You must have \u22652 biological replicates per group"
+              },
+              {
+                "error": "`Error: every gene contains at least one zero`",
+                "cause": "Using VST/rlog on a dataset with all-zero genes",
+                "fix": "Pre-filter: `dds <- dds[rowSums(counts(dds)) > 0,]`"
+              }
+            ],
+            "parameter_hints": [
+              {
+                "param": "lfcThreshold",
+                "recommended": "0.5-1.0 for biologically meaningful fold changes",
+                "rationale": "0.5-1.0 for biologically meaningful fold changes",
+                "tool": "DESeq2"
+              },
+              {
+                "param": "alpha",
+                "recommended": "0.05 for FDR cutoff",
+                "rationale": "0.05 for FDR cutoff",
+                "tool": "DESeq2"
+              },
+              {
+                "param": "shrinkage",
+                "recommended": "Use lfcShrink(type=\"apeglm\") for effect size estimation",
+                "rationale": "Use lfcShrink(type=\"apeglm\") for effect size estimation",
+                "tool": "DESeq2"
+              },
+              {
+                "param": "filtering",
+                "recommended": "Pre-filter low-count genes (sum > 10)",
+                "rationale": "Pre-filter low-count genes (sum > 10)",
+                "tool": "DESeq2"
+              },
+              {
+                "param": "voom",
+                "recommended": "Use voom() for RNA-seq",
+                "rationale": "Use voom() for RNA-seq",
+                "tool": "limma"
+              },
+              {
+                "param": "duplicateCorrelation",
+                "recommended": "For repeated measures",
+                "rationale": "For repeated measures",
+                "tool": "limma"
+              },
+              {
+                "param": "treat",
+                "recommended": "treat() for FC thresholds",
+                "rationale": "treat() for FC thresholds",
+                "tool": "limma"
+              },
+              {
+                "param": "eBayes",
+                "recommended": "For empirical Bayes",
+                "rationale": "For empirical Bayes",
+                "tool": "limma"
+              }
+            ]
+          },
+          "hardware_requirements": {
+            "gpu_required": false,
+            "min_memory_gb": null,
+            "tools_analyzed": 3,
+            "tool_runtime_hints": [
+              {
+                "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0",
+                "tool_name": "DESeq2",
+                "gpu": false,
+                "memory_gb": null,
+                "container_image": null,
+                "runtime_type": "toolshed"
+              },
+              {
+                "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/limma_voom/limma_voom/3.58.1+galaxy0",
+                "tool_name": "limma",
+                "gpu": false,
+                "memory_gb": null,
+                "container_image": null,
+                "runtime_type": "toolshed"
+              },
+              {
+                "tool_id": "toolshed.g2.bx.psu.edu/repos/fcaramia/edger/edger/0.0.2",
+                "tool_name": "edgeR",
+                "gpu": false,
+                "memory_gb": null,
+                "container_image": null,
+                "runtime_type": "toolshed"
+              }
+            ],
+            "source": "ai_tool_db.execution_info"
+          },
+          "required_params": [],
+          "optional_params": [
+            {
+              "name": "samplesheet",
+              "label": "Samplesheet",
+              "description": "Sample metadata CSV (alias for 'input'). Must have a 'sample' column and condition columns.",
+              "type": "file",
+              "default": null,
+              "group": "Input/output options",
+              "required": false
+            },
+            {
+              "name": "matrix",
+              "label": "Matrix",
+              "description": "Count matrix CSV (genes \u00d7 samples). Row names = gene IDs; column names = sample IDs matching 'input'. Required.",
+              "type": "file",
+              "default": null,
+              "group": "Input/output options",
+              "required": false
+            },
+            {
+              "name": "contrasts",
+              "label": "Contrasts",
+              "description": "Contrasts CSV with columns id, variable, reference, target. Optional; auto-derived from metadata if absent.",
+              "type": "file",
+              "default": null,
+              "group": "Input/output options",
+              "required": false
+            },
+            {
+              "name": "differential_min_fold_change",
+              "label": "Differential Min Fold Change",
+              "description": "Minimum absolute fold-change for a gene to be called significant (used in volcano plot and gene list output).",
+              "type": "number",
+              "default": 2,
+              "group": "Differential expression options",
+              "required": false
+            },
+            {
+              "name": "differential_max_qval",
+              "label": "Differential Max Qval",
+              "description": "Maximum adjusted p-value (BH-FDR) cutoff for significant genes.",
+              "type": "number",
+              "default": 0.05,
+              "group": "Differential expression options",
+              "required": false
+            },
+            {
+              "name": "normalisation_method",
+              "label": "Normalisation Method",
+              "description": "Normalisation / DE method to apply.",
+              "type": "select",
+              "default": "deseq2",
+              "group": "Differential expression options",
+              "required": false,
+              "options": [
+                {
+                  "label": "deseq2",
+                  "value": "deseq2"
+                },
+                {
+                  "label": "edger",
+                  "value": "edger"
+                },
+                {
+                  "label": "limma",
+                  "value": "limma"
+                }
+              ]
+            },
+            {
+              "name": "study_type",
+              "label": "Study Type",
+              "description": "Assay type \u2014 controls how counts are pre-processed before DE analysis.",
+              "type": "select",
+              "default": "rnaseq",
+              "group": "Differential expression options",
+              "required": false,
+              "options": [
+                {
+                  "label": "rnaseq",
+                  "value": "rnaseq"
+                },
+                {
+                  "label": "maxquant",
+                  "value": "maxquant"
+                },
+                {
+                  "label": "affy",
+                  "value": "affy"
+                },
+                {
+                  "label": "metab",
+                  "value": "metab"
+                }
+              ]
+            }
+          ],
+          "parameters": {
+            "differential_min_fold_change": 2,
+            "differential_max_qval": 0.05,
+            "normalisation_method": "deseq2",
+            "study_type": "rnaseq"
+          }
+        },
+        "workflow_type": "nextflow",
+        "nextflow_path": "nfcore/differentialabundance/main.nf",
+        "execution_engine": "nextflow",
+        "hardware_requirements": {
+          "gpu_required": false,
+          "min_memory_gb": null,
+          "tools_analyzed": 3,
+          "tool_runtime_hints": [
+            {
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0",
+              "tool_name": "DESeq2",
+              "gpu": false,
+              "memory_gb": null,
+              "container_image": null,
+              "runtime_type": "toolshed"
+            },
+            {
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/limma_voom/limma_voom/3.58.1+galaxy0",
+              "tool_name": "limma",
+              "gpu": false,
+              "memory_gb": null,
+              "container_image": null,
+              "runtime_type": "toolshed"
+            },
+            {
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/fcaramia/edger/edger/0.0.2",
+              "tool_name": "edgeR",
+              "gpu": false,
+              "memory_gb": null,
+              "container_image": null,
+              "runtime_type": "toolshed"
+            }
+          ],
+          "source": "ai_tool_db.execution_info"
+        },
+        "source": "template_reuse",
+        "confidence": 69,
+        "template_match_score": 69,
+        "datasets_assigned": false,
+        "generated_parameters": [
+          {
+            "name": "samplesheet",
+            "label": "Samplesheet",
+            "description": "Sample metadata CSV (alias for 'input'). Must have a 'sample' column and condition columns.",
+            "type": "file",
+            "default": null,
+            "group": "Input/output options",
+            "required": false
+          },
+          {
+            "name": "matrix",
+            "label": "Matrix",
+            "description": "Count matrix CSV (genes \u00d7 samples). Row names = gene IDs; column names = sample IDs matching 'input'. Required.",
+            "type": "file",
+            "default": null,
+            "group": "Input/output options",
+            "required": false
+          },
+          {
+            "name": "contrasts",
+            "label": "Contrasts",
+            "description": "Contrasts CSV with columns id, variable, reference, target. Optional; auto-derived from metadata if absent.",
+            "type": "file",
+            "default": null,
+            "group": "Input/output options",
+            "required": false
+          },
+          {
+            "name": "differential_min_fold_change",
+            "label": "Differential Min Fold Change",
+            "description": "Minimum absolute fold-change for a gene to be called significant (used in volcano plot and gene list output).",
+            "type": "number",
+            "default": 2,
+            "group": "Differential expression options",
+            "required": false
+          },
+          {
+            "name": "differential_max_qval",
+            "label": "Differential Max Qval",
+            "description": "Maximum adjusted p-value (BH-FDR) cutoff for significant genes.",
+            "type": "number",
+            "default": 0.05,
+            "group": "Differential expression options",
+            "required": false
+          },
+          {
+            "name": "normalisation_method",
+            "label": "Normalisation Method",
+            "description": "Normalisation / DE method to apply.",
+            "type": "select",
+            "default": "deseq2",
+            "group": "Differential expression options",
+            "required": false,
+            "options": [
+              {
+                "label": "deseq2",
+                "value": "deseq2"
+              },
+              {
+                "label": "edger",
+                "value": "edger"
+              },
+              {
+                "label": "limma",
+                "value": "limma"
+              }
+            ]
+          },
+          {
+            "name": "study_type",
+            "label": "Study Type",
+            "description": "Assay type \u2014 controls how counts are pre-processed before DE analysis.",
+            "type": "select",
+            "default": "rnaseq",
+            "group": "Differential expression options",
+            "required": false,
+            "options": [
+              {
+                "label": "rnaseq",
+                "value": "rnaseq"
+              },
+              {
+                "label": "maxquant",
+                "value": "maxquant"
+              },
+              {
+                "label": "affy",
+                "value": "affy"
+              },
+              {
+                "label": "metab",
+                "value": "metab"
+              }
+            ]
+          }
+        ],
+        "message": "Found workflow: nf-core/differentialabundance",
+        "note": "Generated using template_reuse strategy",
+        "citations": [
+          {
+            "tool_id": "deseq2",
+            "tool_name": "deseq2",
+            "doi": "10.1186/s13059-014-0550-8",
+            "pmid": "25516281",
+            "title": "Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.",
+            "authors": [
+              "Love MI",
+              "Huber W",
+              "Anders S"
+            ],
+            "year": 2014,
+            "journal": "Genome Biol",
+            "formatted_apa": "Love MI et al. (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.. Genome Biol.",
+            "formatted_short": "",
+            "formatted_bibtex": ""
+          },
+          {
+            "tool_id": "limma",
+            "tool_name": "limma",
+            "doi": "10.1093/nar/gkv007",
+            "pmid": "25605792",
+            "title": "limma powers differential expression analyses for RNA-sequencing and microarray studies.",
+            "authors": [
+              "Ritchie ME",
+              "Phipson B",
+              "Wu D",
+              "Hu Y",
+              "Law CW"
+            ],
+            "year": 2015,
+            "journal": "Nucleic Acids Res",
+            "formatted_apa": "Ritchie ME et al. (2015). limma powers differential expression analyses for RNA-sequencing and microarray studies.. Nucleic Acids Res.",
+            "formatted_short": "",
+            "formatted_bibtex": ""
+          },
+          {
+            "tool_id": "edger",
+            "tool_name": "edger",
+            "doi": "10.1093/bioinformatics/btp616",
+            "pmid": "19910308",
+            "title": "edgeR: a Bioconductor package for differential expression analysis of digital gene expression data.",
+            "authors": [
+              "Robinson MD",
+              "McCarthy DJ",
+              "Smyth GK"
+            ],
+            "year": 2010,
+            "journal": "Bioinformatics",
+            "formatted_apa": "Robinson MD et al. (2010). edgeR: a Bioconductor package for differential expression analysis of digital gene expression data.. Bioinformatics.",
+            "formatted_short": "",
+            "formatted_bibtex": ""
+          }
+        ],
+        "methods_section": null,
+        "parameter_recommendations": {},
+        "parameter_metadata": {},
+        "pilot_run_suggested": false,
+        "pilot_reasons": [],
+        "pilot_message": null,
+        "tuning_config": null,
+        "validation": {
+          "is_valid": true,
+          "issues": [],
+          "warnings": [],
+          "suggestions": []
+        },
+        "tool_installation": {
+          "success": true,
+          "message": "Nextflow workflow",
+          "failed_tools": []
+        }
+      },
+      "prerequisitesValidation": {
+        "fulfilled": false,
+        "requirements": {
+          "inputs": [],
+          "parameters": []
+        },
+        "available": {
+          "datasets": [],
+          "histories": []
+        },
+        "analysis": {
+          "inputMappings": [],
+          "missingInputs": [],
+          "missingParameters": [],
+          "suggestions": [
+            "Save the provided synthetic count matrix text into a file named 'counts.csv'.",
+            "Create a 'samplesheet.csv' with columns 'sample' and 'condition'. For example: sample,condition\\nctrl1,ctrl\\nctrl2,ctrl\\nctrl3,ctrl\\ntreat1,treat\\ntreat2,treat\\ntreat3,treat",
+            "Create a 'contrasts.csv' specifying the contrast to test. For example: id,variable,reference,target\\ncontrast_1,condition,ctrl,treat",
+            "Once the files are created, run the workflow using parameters similar to: --matrix counts.csv --input samplesheet.csv --contrasts contrasts.csv"
+          ],
+          "notes": [],
+          "confidence": 0
+        },
+        "conversationalResponse": "Hi there! I'm ready to help you set up your bioinformatics workflow, but it looks like we're missing the most important part: your data! \n\nCurrently, there are **0 datasets"
+      },
+      "metadata": {
+        "intentType": "workflow_generation",
+        "inlineParameters": {
+          "normalisation_method": "deseq2"
+        },
+        "workflowSuggestion": {
+          "shouldGenerate": true,
+          "userIntent": "Run DESeq2 differential expression on this synthetic count matrix, with three ctrl versus three treated replicates. This is a platform QA fixture, not a biological study.\ngene,ctrl1,ctrl2,ctrl3,treat1,treat2,treat3\nGENE1,100,120,110,200,210,195\nGENE2,50,55,48,52,49,51\nGENE3,30,28,32,90,88,95\nGENE4,200,210,195,205,198,202\nGENE5,15,18,16,45,50,48\nGENE6,80,85,78,82,79,81\nGENE7,10,12,11,35,38,33\nGENE8,300,310,295,308,302,296\nGENE9,25,27,24,70,75,68\nGENE10,60,65,58,63,59,62",
+          "confidence": 0.9,
+          "reasoning": "Workflow generated successfully"
+        },
+        "sources": {
+          "toolSearchUsed": false,
+          "datasetRAGUsed": false,
+          "workflowGenerated": true,
+          "thinkingUsed": false,
+          "researchAgentUsed": false,
+          "benchmarkAgentUsed": false
+        },
+        "memoryUsed": false,
+        "workflowGenerationDiagnostics": null,
+        "llm_usage": {
+          "model": "gpt-5.6-luna",
+          "input_tokens": 138,
+          "output_tokens": 279,
+          "cost_usd": 0.004599,
+          "duration_ms": 38951
+        }
+      },
+      "isMultiIntent": false,
+      "view_url": "https://dev-public.biomate.ai/workflow/fe8c7eec-b57b-47a5-8788-b5fefac5cf87",
+      "workflow_id": "fe8c7eec-b57b-47a5-8788-b5fefac5cf87"
+    }
+  ]
+}

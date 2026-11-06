@@ -1,0 +1,16 @@
+{
+  "task": "protocol_thresholds",
+  "mode": null,
+  "model": "openai/gpt-6.1-sol-pro",
+  "n": 100,
+  "n_with_usage": 100,
+  "input_tokens_total": 186885,
+  "output_tokens_total": 15192,
+  "input_tokens_mean": 1868.85,
+  "output_tokens_mean": 151.92,
+  "latency_ms_p50": 6019,
+  "latency_ms_p95": 10931,
+  "latency_ms_mean": 6564.82,
+  "n_with_latency": 100,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

@@ -22,6 +22,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, Tuple
+from urllib.parse import quote
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
@@ -118,6 +119,22 @@ def _run_lookup(run_id: str) -> Optional[Dict[str, Any]]:
     with _runs_lock:
         info = _runs.get(run_id)
     if info is not None:
+        # Deliberate-halt reconciliation (read-time). A soft/hard cancel — QC-gate
+        # halt or user pause — writes status 'paused'/'cancelled' to the store AND
+        # SIGTERM/SIGKILLs the process. The process-exit handler in THIS worker can
+        # race ahead and clobber the in-memory status to 'failed'/'interrupted' (the
+        # SIGKILL the pause itself sent) before the store write lands / if it reads a
+        # different worker's _runs. The store is authoritative for a deliberate halt,
+        # so when in-memory shows a NON-deliberate terminal, let a stored
+        # 'paused'/'cancelled' win — otherwise getNextflowStatus reports 'failed'
+        # while the reproducibility record says 'paused', and Resume is dead.
+        if info.get("status") in ("failed", "interrupted", "error"):
+            try:
+                _snap = get_run_state_store().get_run(run_id) or {}
+                if _snap.get("status") in ("paused", "cancelled"):
+                    info = {**info, "status": _snap["status"]}
+            except Exception as _store_exc:
+                log.debug("[runs] deliberate-halt reconcile failed for %s: %s", run_id, _store_exc)
         return info
     try:
         snap = get_run_state_store().get_run(run_id)
@@ -854,6 +871,21 @@ def _log_indicates_nextflow_failure(
     combined = "\n".join(text_parts)
     if not combined.strip():
         return False
+    # Benign post-completion SIGTERM: a halt-severity QC gate (or user pause) fires
+    # AFTER a fast workflow already finished its tasks, so _terminate_run_process
+    # SIGTERMs the driver and Nextflow logs "Session aborted -- Cause: SIGTERM" —
+    # but it then drains in-flight tasks and reaches its clean-completion marker with
+    # NO failed tasks. That is a completed run (the QC-gate verdict is a *finding*,
+    # not an execution failure), so the SIGTERM-abort line must not flag it as failed.
+    # Observed on ADMET (2/2 tasks COMPLETED, 8 outputs) being downgraded to failed.
+    # Guarded hard: requires Nextflow's own completion marker AND zero failed tasks;
+    # a SIGTERM that interrupted a run mid-flight has neither, so it still fails.
+    if (
+        "Session aborted -- Cause: SIGTERM" in combined
+        and "Execution complete -- Goodbye" in combined
+        and not re.search(r"failedCount\s*=\s*[1-9]", combined)
+    ):
+        combined = combined.replace("Session aborted -- Cause: SIGTERM", "")
     for marker in _NF_LOG_FAILURE_MARKERS:
         if marker in combined:
             return True
@@ -1127,7 +1159,15 @@ def _classify_failure(
         return verdict("infra_transient",
                        "A temporary infrastructure interruption stopped the run. "
                        "It can resume from the last completed step.", True, "resume")
-    if any(k in low for k in ("worker recycle", "log-stream", "orphan")) or rc == -1:
+    # Genuine orphan / restart evidence ONLY. Do NOT treat a bare rc == -1 as a
+    # restart: rc == -1 is a generic sentinel (set by _fail_run on ANY launch
+    # exception, by _stream_logs' default, and by orphan_finalizer when disk is
+    # ambiguous), so blanket-labeling it "backend restart" masks real launch
+    # failures (e.g. a 422 "input path not found") as a transient resume. Let a
+    # bare rc == -1 fall through to the real log-pattern classifiers below; only
+    # claim a restart when the log actually shows orphan/log-stream/worker-recycle
+    # evidence. (Root-cause of the 2026-10-05 mis-diagnosis.)
+    if any(k in low for k in ("worker recycle", "log-stream", "orphan")):
         return verdict("infra_transient",
                        "The run was interrupted by a backend restart. "
                        "It can resume from where it left off.", True, "resume")
@@ -1183,10 +1223,13 @@ def _classify_failure(
                        False, "fix_and_resume")
     # ── input data (deterministic: check the input) ──
     if any(k in low for k in ("not a valid", "malformed", "empty file", "no such file",
-                              "cannot read", "invalid format")):
+                              "cannot read", "invalid format",
+                              "input path(s) not found", "input path not found",
+                              "path does not exist", "input path")):
         return verdict("input_data",
-                       "An input file looks malformed or unreadable. "
-                       "Check the input, then resume.", False, "check_input")
+                       "An input could not be found or looks malformed. Check that "
+                       "every input path exists (use a full s3:// URI, not a bare key), "
+                       "then resume.", False, "check_input")
     # ── generic tool/process failure ──
     if any(k in low for k in ("process failed", "processfailedexception", "exit status",
                               "command error", "pipeline failed", "workflow execution failed")):
@@ -1401,6 +1444,62 @@ def _trigger_auto_reroute_on_failure(
         log.warning("[auto_reroute] trigger failed for run %s: %s", run_id, exc)
 
 
+def _nextflow_error_summary(log_text: str, limit: int = 600) -> str:
+    """One-paragraph cause of a failed run, from the Nextflow console log (<run>/nextflow.log).
+
+    The run record used to keep only the LAST log line — "-[nf-core/x] Pipeline completed
+    with errors-" or nothing — so a failed run never said which process failed or why.
+    Picks, in order: the first failed process (name + cause + the last lines of its
+    command error, where the exception sits); a launch-time `ERROR ~` message (+ the
+    script/line Nextflow points at); `No such file:` input errors. "" when none match.
+    """
+    if not log_text:
+        return ""
+    lines = log_text.splitlines()
+    out = ""
+    for i, line in enumerate(lines):
+        # 22.10/25.10 print the bare line; 26.04 prefixes it with "ERROR ~ ".
+        m = re.match(r"\s*(?:ERROR ~ )?Error executing process > '([^']+)'", line)
+        if not m:
+            continue
+        cause, cmd_err = "", []
+        j = i + 1
+        while j < len(lines) and not re.match(r"\s*(?:ERROR ~ )?Error executing process > ", lines[j]):
+            if lines[j].strip() == "Caused by:" and j + 1 < len(lines):
+                cause = lines[j + 1].strip()
+            if lines[j].strip() == "Command error:":
+                k = j + 1
+                while k < len(lines) and (lines[k].startswith("  ") or not lines[k].strip()):
+                    if lines[k].strip():
+                        cmd_err.append(lines[k].strip())
+                    k += 1
+                break
+            j += 1
+        # DSL2 names are fully qualified (NFCORE_X:X:SUBWF:PROC (tag)); keep the process + tag.
+        out = f"Process {m.group(1).split(':')[-1]} failed" + (f": {cause}" if cause else "")
+        if cmd_err:
+            out += " — " + " | ".join(cmd_err[-2:])
+        break
+    if not out:
+        for i, line in enumerate(lines):
+            if line.startswith("ERROR ~ "):
+                out = line[len("ERROR ~ "):].strip()
+                for nxt in lines[i + 1:i + 4]:
+                    sm = re.search(r"Check script '([^']+)' at line: (\d+)", nxt)
+                    if sm:
+                        out += f" (script {Path(sm.group(1)).name}, line {sm.group(2)})"
+                        break
+                    if nxt.strip():
+                        out += f" — {nxt.strip()}"
+                        break
+                break
+    if not out:
+        missing = sorted({l.split("No such file:", 1)[1].strip() for l in lines if "No such file:" in l})
+        if missing:
+            out = "Input not found: " + ", ".join(missing[:3]) + (f" (+{len(missing) - 3} more)" if len(missing) > 3 else "")
+    return out[:limit]
+
+
 def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
     """Single chokepoint before a status payload leaves for the browser: attach a
     classified `failure` verdict on failed runs and redact backend internals from
@@ -1425,9 +1524,19 @@ def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
         resp["failure"] = _classify_failure(
             status, raw_tail, resp.get("returncode"), resp.get("duration_s"),
             task_stderr=task_stderr)
+        run_id = str(resp.get("run_id") or "")
+        if run_id and "/" not in run_id and ".." not in run_id:
+            try:
+                _nf_log = (Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+                           / run_id / "nextflow.log").read_text(errors="replace")
+                _summary = _nextflow_error_summary(_nf_log)
+                if _summary:
+                    resp["error_summary"] = _summary
+            except OSError:
+                pass
     if "log_tail" in resp:
         resp["log_tail"] = _sanitize_log_tail(raw_tail)
-    for _k in ("error", "errorMessage", "error_message", "message"):
+    for _k in ("error", "errorMessage", "error_message", "message", "error_summary"):
         if isinstance(resp.get(_k), str):
             resp[_k] = _redact_internal(resp[_k])
     return resp
@@ -1576,7 +1685,12 @@ def _looks_like_false_failure(
     s3_output_files: Optional[list] = None,
     processes: Optional[list] = None,
 ) -> bool:
-    """Nextflow exited non-zero but Batch tasks succeeded and real outputs were published."""
+    """Recognize a wrapper-level false failure only with explicit Nextflow success proof.
+
+    Published S3 files and process-shaped paths are not proof: a failed workflow can
+    leave both behind.  A non-zero driver exit may be rescued only when Nextflow's own
+    final statistics say every task succeeded and it wrote its completion marker.
+    """
     if returncode == 0:
         return False
     has_outputs = bool(_non_pipeline_info_s3_outputs(s3_output_files))
@@ -1601,12 +1715,8 @@ def _looks_like_false_failure(
     stats = _parse_workflow_stats_from_log(log_full_text, log_tail)
     if stats:
         succeeded, failed = stats
-        if succeeded >= 1 and failed == 0:
+        if succeeded >= 1 and failed == 0 and "execution complete" in combined.lower():
             return True
-
-    proc_list = processes or []
-    if proc_list and all((p.get("status") or "").lower() == "completed" for p in proc_list):
-        return True
 
     return False
 
@@ -1657,6 +1767,56 @@ def _workflow_handles_sra_natively(nf_path: str) -> bool:
     # matching accession patterns (SRR/ERR/DRR).
     return bool(re.search(
         r"FASTERQ[_ ]?DUMP|fasterq-dump|\bprefetch\b|\[SED\]RR|from_?sra|sra_download",
+        text, re.IGNORECASE,
+    ))
+
+
+def _workflow_fetches_structure_natively(nf_path: str) -> bool:
+    """True if the workflow self-fetches a macromolecular STRUCTURE (a bare 4-char
+    PDB id and/or an s3:// receptor path) on its own — e.g. docking_autodock_vina
+    has a ``fetch_pdb()`` helper that downloads from ``files.rcsb.org`` and an
+    ``aws s3 cp`` staging branch for non-local receptor paths.
+
+    Why this matters (root cause of every PDB-accession docking Batch launch
+    failing): the accession chain otherwise classifies a bare id ("1IEP") as a
+    `structure` accession and HOST-prefetches it to a Galaxy-local path
+    (/tmp/.../1IEP.pdb), then substitutes that host path into the awsbatch command.
+    The Batch container cannot see the Galaxy host filesystem → the receptor file
+    is missing → docking dies. A workflow that already knows how to fetch the PDB
+    id itself must receive the raw accession so its own fetch fires (mirrors how an
+    SRA-native workflow gets the raw SRR). Only skip host-prefetch on Batch — on a
+    local/docker executor the host path IS visible via volume mounts.
+    """
+    try:
+        text = Path(nf_path).read_text(errors="ignore")
+    except Exception:
+        return False
+    return bool(re.search(
+        r"files\.rcsb\.org|fetch_pdb|rcsb\.org/download|emdb/structures",
+        text, re.IGNORECASE,
+    ))
+
+
+def _workflow_fetches_geo_natively(nf_path: str) -> bool:
+    """True if the workflow self-fetches a GEO series/sample itself via getGEO /
+    GEOquery (e.g. geo_data_connector, geo_scrna_pseudobulk).
+
+    Why this matters (root cause of the GSE22055 geo_data_connector chain-step
+    failure, 2026-11-02): the GEO registry entry classifies GSE/GSM as
+    handler="sequencing", so without this check the accession chain runs
+    nf-core/fetchngs on the GEO id as a pre-step. That FAILS outright for a
+    microarray series (there are no SRA runs to prefetch) and is the wrong fetcher
+    for array/bulk data the getGEO workflow already downloads (count matrix /
+    series matrix). A workflow that already knows how to fetch the GEO accession
+    must receive it raw so its own getGEO fires — mirrors the SRA-native /
+    structure-native skips above.
+    """
+    try:
+        text = Path(nf_path).read_text(errors="ignore")
+    except Exception:
+        return False
+    return bool(re.search(
+        r"getGEO\b|GEOquery|getGEOSuppFiles|geo_data_connector|geo_scrna_pseudobulk|series_matrix",
         text, re.IGNORECASE,
     ))
 
@@ -1926,6 +2086,68 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
     )
 
 
+# Nextflow framework versions the executor may launch. The default stays the hard
+# pin in _sanitize_subprocess_env. Two groups of catalog nf-core pipelines cannot
+# run on it, unchanged at their catalog-pinned release:
+#   - DSL1 pipelines (no `workflow {}` / `include {}`; e.g. eager 2.x, mnaseseq,
+#     proteomicslfq 1.0.0): Nextflow >= 22.12 removed DSL1 -> 22.10.8 with -dsl1.
+#   - pipelines whose manifest requires a newer framework (`nextflowVersion =
+#     '!>=26.04.x'`; e.g. scdownstream): the smallest supported version meeting it.
+# Each supported version maps to the nf-amazon plugin release it runs with; the
+# default version's pin is decided in _generate_executor_config (3.3.0 / 3.4.4).
+_DEFAULT_NXF_VER = "25.10.5"
+_DSL1_NXF_VER = "22.10.8"
+_SUPPORTED_NXF_VERSIONS = ("22.10.8", "25.10.5", "26.04.6")
+_NFAMAZON_FOR_NXF_VER = {"22.10.8": "1.11.5", "26.04.6": "3.9.2"}
+
+
+def _ver_tuple(v: str) -> Tuple[int, ...]:
+    return tuple(int(p) for p in re.findall(r"\d+", v)[:3])
+
+
+def _pipeline_nextflow_version(nf_path: Union[str, Path]) -> Tuple[str, bool]:
+    """Return (NXF_VER, needs_dsl1) for a real nf-core pipeline.
+
+    Only pipelines under /nf-core-workflows/ are considered (BioMate's own .nf and
+    nf-core-modules subworkflows are written for the default framework). Anything
+    unreadable or unrecognised falls back to the default version.
+    """
+    nf_path = Path(nf_path)
+    if "/nf-core-workflows/" not in str(nf_path):
+        return _DEFAULT_NXF_VER, False
+    try:
+        main_src = nf_path.read_text(errors="replace")
+    except OSError:
+        return _DEFAULT_NXF_VER, False
+    dsl = re.search(r"(?m)^\s*nextflow\.enable\.dsl\s*=\s*([12])", main_src)
+    if dsl:
+        is_dsl1 = dsl.group(1) == "1"
+    else:
+        is_dsl1 = not (
+            re.search(r"(?m)^\s*workflow\s*(\w+\s*)?\{", main_src)
+            or re.search(r"(?m)^\s*include\s*\{", main_src)
+        )
+    if is_dsl1:
+        return _DSL1_NXF_VER, True
+    try:
+        cfg = (nf_path.parent / "nextflow.config").read_text(errors="replace")
+    except OSError:
+        return _DEFAULT_NXF_VER, False
+    m = re.search(r"""nextflowVersion\s*=\s*['"]\s*!?\s*>=\s*([0-9][0-9.]*)""", cfg)
+    if not m or _ver_tuple(m.group(1)) <= _ver_tuple(_DEFAULT_NXF_VER):
+        return _DEFAULT_NXF_VER, False
+    need = _ver_tuple(m.group(1))
+    for v in _SUPPORTED_NXF_VERSIONS:
+        if _ver_tuple(v) >= need:
+            return v, False
+    log.warning(
+        "[nextflow] %s requires Nextflow >= %s; no supported framework meets it "
+        "(supported: %s) — launching on %s",
+        nf_path.parent.name, m.group(1), ", ".join(_SUPPORTED_NXF_VERSIONS), _DEFAULT_NXF_VER,
+    )
+    return _DEFAULT_NXF_VER, False
+
+
 def _detect_nextflow_entry(nf_path: Path) -> Optional[str]:
     """
     Detect entry workflow name for scripts that define only named workflows.
@@ -2186,6 +2408,44 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 if _collected:
                     src = _collected
             if not src:
+                # No input resolved for this declared name. Rather than abort the
+                # launch with a 422 ("no entry wrapper could be generated"), bind a
+                # non-data placeholder so the workflow LAUNCHES — its own no-input
+                # demo fallback (qPCR ddCq, HTS plate QC, the B8 QC parsers, …) then
+                # supplies sample data for a one-click "try the platform" run, while
+                # a workflow that truly needs input fails loudly inside R (better UX
+                # than an opaque channel-binding 422). Only for the single list-slot
+                # shape (path(input_files, stageAs:'?/*')); a multi-input workflow
+                # with a genuinely missing declared input still bails to the caller.
+                # The `.dat` extension is deliberately NOT a data extension the .nf
+                # bodies scan for (csv/tsv/txt/rds), so demo-capable workflows ignore
+                # it and take their no-input path.
+                #
+                # SINGLE COLLECT-ALL SLOT (n_path<=1) — declared names are logical, not
+                # positional: every supplied file lands in the SAME `path(input_files,
+                # stageAs:'?/*')` list regardless of which `// Input:` token it maps to. So
+                # when the slot is a single list AND we have already staged at least one real
+                # file for a prior declared name, a subsequent unsupplied name is harmless —
+                # it does NOT mean "half-bound channel". Skip it (do NOT even add a placeholder,
+                # which would pollute the file list) and let the R body resolve it as optional.
+                # Concrete case: dropletutils `// Input: dir.name, my.counts` — the 10X files
+                # cover `dir.name`; `my.counts` is optional (the R body derives it from the SCE
+                # via counts(sce) when no my.counts.rds/.mtx is staged). Previously this returned
+                # None → a 422 for the natural single-input call. A genuinely multi-SLOT
+                # workflow (n_path>1) still bails so its real missing input surfaces.
+                if n_path <= 1 and staged:
+                    continue
+                if n_path <= 1:
+                    # Single collect-all `path(input_files, stageAs:'?/*')` slot: declared
+                    # names are logical (all funnel into ONE list), so even a multi-name
+                    # header (`// Input: data.csv, metadata.csv`) with NOTHING supplied just
+                    # needs one non-null placeholder — the workflow's own self-contained
+                    # fixture then runs. (Was gated on len(names)==1, which 422'd the
+                    # multi-name self-generating modules, e.g. metaboanalystr timeseries/meta.)
+                    _ph = run_dir / "bioc_no_input_placeholder.dat"
+                    _ph.write_text("")
+                    staged.append(_ph.resolve())
+                    continue
                 return None
             # UNIVERSAL multi-omics interface: a declared input may be a LIST of files — one
             # matrix per omics modality (e.g. rna.csv, methylation.csv, proteomics.csv). Stage
@@ -2689,6 +2949,31 @@ def _validate_input_paths(params: dict) -> None:
 
     Raises HTTPException(422) on any violation.
     """
+    # Normalize bare S3 upload keys to full s3:// URIs so they validate + stage
+    # like any other S3 input. MCP upload_file / the signed-url flow return a BARE
+    # key (e.g. "users/<uid>/uploads/x.csv"); without this it is treated as a local
+    # path and fails 422 "path does not exist" — the 2026-10-05 root cause that was
+    # masked by the rc==-1 "backend restart" mislabel. Mirrors
+    # perception._resolve_input_ref's bare-key handling (plus the "users/" prefix
+    # the live upload keys actually use). Mutates params in place so the same dict
+    # used for staging/launch downstream carries the resolved URI.
+    _upload_bucket = (os.environ.get("AWS_S3_NEXTFLOW_BUCKET")
+                      or os.environ.get("AWS_S3_UPLOAD_BUCKET")
+                      or "biomate-nextflow-work")
+    _UPLOAD_KEY_PREFIXES = ("users/", "projects/", "nextflow/", "uploads/", "inputs/", "outputs/")
+    for _k in list(params.keys()):
+        _v = params.get(_k)
+        if _k == "outdir" or not isinstance(_v, str) or not _v:
+            continue
+        if _v.startswith(("s3://", "http://", "https://", "/")):
+            continue
+        if _is_public_accession(str(_v)):
+            continue
+        _vs = _v.lstrip("/")
+        if _vs.startswith(_UPLOAD_KEY_PREFIXES) and not Path(_v).exists():
+            params[_k] = f"s3://{_upload_bucket}/{_vs}"
+            log.info("[input] normalized bare upload key for --%s -> %s", _k, params[_k])
+
     missing: list[str] = []
     total_bytes = 0
     large_items: list[str] = []
@@ -2948,6 +3233,150 @@ def _coerce_mistyped_sequence_params(
             log.info("[param-coerce] No coercion applied for '%s' (action=%s)", key, action)
 
 
+# ── Docking parameter normalization ───────────────────────────────────────────
+# Single chokepoint for the docking param CLASS. The context extractor emits
+# box_center/box_size as loose CSV/scalar strings and smiles_list as a possibly-
+# NAME token, but the docking .nf (docking_autodock_vina) needs a JSON 3-vector
+# for the boxes and a valid SMILES for the ligand. Normalize all three here, at
+# the same pre-launch boundary as the sequence coercion above, so every caller
+# (chat, API, benchmark) gets the fix.
+
+_DOCKING_BOX_KEYS = ("box_center", "box_size")
+
+
+def _coerce_box_vector(value: Any, *, fill_scalar: bool) -> Optional[list]:
+    """Coerce a box_center/box_size value to a numeric vector list, or None if it
+    can't be interpreted. A valid JSON array / list is returned normalized (no-op
+    semantically). A CSV / whitespace string ("15,34,46" / "15 34 46") is split to
+    floats. A lone scalar ("25" / 25) becomes a 3-vector [v,v,v] when
+    fill_scalar=True (box_size is a cube), else a single-element list.
+    """
+    import json as _json
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (list, tuple)):
+        try:
+            nums = [float(x) for x in value]
+        except (TypeError, ValueError):
+            return None
+        return nums or None
+    if isinstance(value, (int, float)):
+        return [float(value)] * 3 if fill_scalar else [float(value)]
+    if not isinstance(value, str):
+        return None
+    s = value.strip()
+    if not s:
+        return None
+    if s.startswith("["):
+        # Already a JSON array — parse to confirm/normalize; leave untouched if invalid.
+        try:
+            parsed = _json.loads(s)
+        except (ValueError, TypeError):
+            return None
+        if isinstance(parsed, list):
+            try:
+                return [float(x) for x in parsed]
+            except (TypeError, ValueError):
+                return None
+        return None
+    tokens = [t for t in re.split(r"[,\s]+", s) if t]
+    try:
+        nums = [float(t) for t in tokens]
+    except ValueError:
+        return None
+    if len(nums) == 1 and fill_scalar:
+        return nums * 3
+    return nums or None
+
+
+def _resolve_smiles_list_param(params: dict) -> None:
+    """Resolve chemical-NAME tokens in smiles_list to SMILES via the shared PubChem
+    resolver (galaxy.ai.federated_query.resolve_chemical_name). RDKit in the
+    docking/ADMET .nf rejects a bare name ("imatinib"), so a name that cannot be
+    resolved is surfaced as a hard 422 rather than silently docking garbage.
+    """
+    import json as _json
+    raw = params.get("smiles_list")
+    if isinstance(raw, (list, tuple)):
+        tokens = [str(t).strip() for t in raw if str(t).strip()]
+    elif isinstance(raw, str):
+        s = raw.strip()
+        if not s:
+            return
+        if s.startswith("["):
+            try:
+                parsed = _json.loads(s)
+                tokens = (
+                    [str(t).strip() for t in parsed if str(t).strip()]
+                    if isinstance(parsed, list) else [s]
+                )
+            except ValueError:
+                tokens = [s]
+        else:
+            # A bare string is one token (a lone SMILES or a lone compound name).
+            # Do NOT split on commas: SMILES never use commas, and splitting risks
+            # mangling a legitimate single SMILES. Multi-compound lists arrive as
+            # JSON arrays (handled above).
+            tokens = [s]
+    else:
+        return
+
+    try:
+        from galaxy.ai.federated_query import (
+            resolve_chemical_name as _resolve_name,
+            _looks_like_chemical_name as _is_name,
+        )
+    except Exception as _imp_exc:  # resolver unavailable → surface names, don't dock garbage
+        log.warning("[docking-norm] SMILES name resolver unavailable: %s", _imp_exc)
+        _resolve_name = None
+        _is_name = None
+
+    out_tokens: list = []
+    unresolved: list = []
+    for tok in tokens:
+        if _is_name and _is_name(tok):
+            smi = _resolve_name(tok) if _resolve_name else None
+            if smi:
+                log.info("[docking-norm] smiles_list: name %r → SMILES %s", tok, smi[:48])
+                out_tokens.append(smi)
+            else:
+                unresolved.append(tok)
+        else:
+            out_tokens.append(tok)
+
+    if unresolved:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "Unresolved compound name(s) in smiles_list",
+                "unresolved": unresolved,
+                "reason": (
+                    "These look like compound NAMES, not SMILES, and could not be "
+                    "resolved to a structure via PubChem. Supply a SMILES string "
+                    "(e.g. 'smiles:CC(=O)...') so docking/ADMET receives a real molecule."
+                ),
+            },
+        )
+    params["smiles_list"] = out_tokens
+
+
+def _normalize_docking_params(params: dict) -> None:
+    """In-place normalization of docking-class params. No-op when none are present.
+
+    - box_center / box_size → JSON-serializable numeric vector (scalar box_size
+      expands to a cube [v,v,v]); valid JSON arrays pass through unchanged.
+    - smiles_list → each chemical-NAME token resolved to SMILES (422 if unresolvable).
+    """
+    for key in _DOCKING_BOX_KEYS:
+        if key not in params:
+            continue
+        coerced = _coerce_box_vector(params[key], fill_scalar=(key == "box_size"))
+        if coerced is not None and coerced != params[key]:
+            log.info("[docking-norm] %s: %r → %s", key, params[key], coerced)
+            params[key] = coerced
+
+    if "smiles_list" in params:
+        _resolve_smiles_list_param(params)
 def _validate_epitope_netmhc_params(nf_path: Path, params: dict) -> None:
     """Reject epitopeprediction runs that enable NetMHC tools without licensed tarballs."""
     path_low = str(nf_path).lower()
@@ -3305,6 +3734,11 @@ process {{
         #     staging upload. 3.4.4+ has it fixed. We don't inject
         #     publishDir=null for nf-core, so the CRT crash path stays cold.
         nfamazon_version = "3.4.4" if "/nf-core-workflows/" in nf_path else "3.3.0"
+        # A pipeline launched on a non-default framework (see
+        # _pipeline_nextflow_version) needs the nf-amazon release built for it;
+        # 3.x does not load on 22.10 at all.
+        _nxf_ver, _ = _pipeline_nextflow_version(nf_path) if nf_path else (_DEFAULT_NXF_VER, False)
+        nfamazon_version = _NFAMAZON_FOR_NXF_VER.get(_nxf_ver, nfamazon_version)
         _plugin_ids = [f"    id 'nf-amazon@{nfamazon_version}'"]
         # This -c override's plugins{} scope REPLACES the pipeline's own plugins{}
         # scope, so an nf-core pipeline's `id 'nf-schema@X'` pin is dropped here.
@@ -3466,8 +3900,20 @@ process {{
         # Symptom hit by nfcore/abotyper, nfcore/createtaxdb on NF 25.10
         # post-pull (2026-06-07). Skip the directive for nfcore + bioconductor.
         is_nfcore_or_bioc = "/nf-core-workflows/" in nf_path or "/bioconductor/" in nf_path
+        # Per-process-container workflows: some nf-core-modules workflows are multi-tool
+        # (each process a separate LEAN bioconda/quay biocontainer) — e.g. proteomics_db_search
+        # runs OpenMS (decoy DB) + Sage (search) + Mokapot (rescore), three distinct images.
+        # Forcing ONE global container can't serve all three; a monolithic combined image is
+        # fragile (dep-skew whack-a-mole: procps, pandas...) and doesn't scale to large tools.
+        # For these ALLOW-LISTED workflows, skip the global container so each process's own
+        # `container` directive wins (the benchmark-validated per-tool images). SAFETY: only
+        # add a workflow here whose EVERY process declares a container — nf_encyclopedia does
+        # NOT (its modules rely on the forced global), so it is intentionally excluded.
+        _PER_PROCESS_CONTAINER_WORKFLOWS = ("proteomics_dda_search", "proteomics_db_search")
+        _per_process_containers = any(w in (nf_path or "") for w in _PER_PROCESS_CONTAINER_WORKFLOWS)
+        _skip_global_container = is_nfcore_or_bioc or _per_process_containers
         lines += [
-            *( [f"    container = '{container}'"] if not is_nfcore_or_bioc else [] ),
+            *( [f"    container = '{container}'"] if not _skip_global_container else [] ),
             # Inject billing context + credentials into every Batch task container.
             "    environment = [",
         ] + env_lines + [
@@ -3501,7 +3947,20 @@ process {{
         # docs/20260607_BATCH_AMI_AWSCLI_NOT_SELF_CONTAINED.md (the true
         # fix is rebuilding the AMI with a self-contained aws-cli; this
         # is the temporary workaround so nf-core test runs work today).
-        if "/nf-core-workflows/" in nf_path:
+        #
+        # nf-core-modules/ capability subworkflows (proteomics_dda_search,
+        # etc.) use the SAME pattern: quay.io biocontainers whose libz lives in
+        # /usr/local/lib (deliberately EXCLUDED from _ld_aws_host to avoid the
+        # libtinfo pyFlow breakage above). The OpenMS/Comet binaries resolve
+        # their own libz via RPATH and run fine, but the host-mounted aws binary
+        # (which downloads .command.run at task START) exits 127 with
+        # 'libz.so.1: cannot open shared object file'. Mount the host libz into a
+        # covered path so aws staging works, just like /nf-core-workflows/.
+        # Verified live 2026-09-28 on proteomics_dda_search (docs/20260928_PROTEOMICS_DDA_VALIDATION.md).
+        _needs_host_libz = (
+            "/nf-core-workflows/" in nf_path or "/nf-core-modules/" in nf_path
+        )
+        if _needs_host_libz:
             # AL2023 Batch host is RHEL-family: libs live in /usr/lib64.
             # Mount into BOTH /lib/x86_64-linux-gnu/ AND /usr/lib64/ inside
             # the container so glibc-style and RHEL-style search paths both
@@ -3527,6 +3986,21 @@ process {{
             compute.get("gpu_batch_queue")
             or os.environ.get("GPU_BATCH_QUEUE", "")
             or "biomate-gpu-spot-queue"
+        )
+        # Per-label HPC queue routing (same class of bug as GPU above): processes
+        # labelled `process_high` (72 GB) / `process_high_memory` (200 GB) request more
+        # RAM than the default CPU CE `biomate-nextflow-ce-v2` offers (m5/r5.2xlarge =
+        # 64 GB max), so on the default `biomate-nextflow-queue` they sit RUNNABLE
+        # forever (Batch never finds a fitting instance) with no hard failure — observed
+        # 2026-09-28 with nf-encyclopedia's ENCYCLOPEDIA_AGGREGATE (process_high). Route
+        # them to the HPC CE (biomate-nextflow-hpc-v1: c5.9xlarge/r5.4xlarge = 72/128 GB).
+        # NOTE: process_high_memory (200 GB) still exceeds r5.4xlarge (128 GB) — hpc is
+        # strictly better than the 64 GB default but a 200 GB tier needs a larger instance
+        # added to the hpc CE to actually schedule (infra follow-up, not an executor fix).
+        hpc_queue = (
+            compute.get("hpc_batch_queue")
+            or os.environ.get("HPC_BATCH_QUEUE", "")
+            or "biomate-hpc-queue"
         )
         # Skip GPU process label/name selectors for user-uploaded personal workflows.
         # Personal workflows live under /tmp/biomate_user_nf/ and don't use BioMate
@@ -3562,16 +4036,47 @@ process {{
         # surfacing as a cryptic "Killed" with no output. Values mirror
         # galaxy.ai.resource_resolver.RESOURCE_TIERS. withLabel selectors that match no
         # process are harmless (unlike withName under strict mode).
-        if not _is_personal_wf:
+        # A real nf-core pipeline sizes every label itself in conf/base.config, capped by its own
+        # params.max_cpus/max_memory (or resourceLimits) — which `-profile test` lowers. Fixed tiers
+        # here override those caps: mnaseseq 1.0.0's test profile caps max_cpus=2, but process_high=12
+        # made TrimGalore pass --cores 4, which its Python-2 cutadapt rejects ("Running in parallel is
+        # not supported on Python 2", 2026-11-06). For those pipelines keep only the queue routing.
+        _nfcore_sizes_itself = (
+            "/nf-core-workflows/" in nf_path and "/nf-core-workflows/modules/" not in nf_path
+            and (Path(nf_path).parent / "conf" / "base.config").is_file()
+        )
+        if not _is_personal_wf and _nfcore_sizes_itself:
+            lines += [
+                "process {",
+                f"    withLabel: 'process_high'        {{ queue = '{hpc_queue}' }}",
+                f"    withLabel: 'process_high_memory' {{ queue = '{hpc_queue}' }}",
+                "}",
+            ]
+            log.info(f"[Nextflow] nf-core pipeline sizes its own labels (conf/base.config); process_high+ → {hpc_queue}")
+        elif not _is_personal_wf:
             lines += [
                 "process {",
                 "    withLabel: 'process_low'         { cpus = 2;  memory = '12.GB' }",
                 "    withLabel: 'process_medium'      { cpus = 6;  memory = '36.GB' }",
-                "    withLabel: 'process_high'        { cpus = 12; memory = '72.GB' }",
-                "    withLabel: 'process_high_memory' { cpus = 12; memory = '200.GB' }",
+                f"    withLabel: 'process_high'        {{ cpus = 12; memory = '72.GB'; queue = '{hpc_queue}' }}",
+                f"    withLabel: 'process_high_memory' {{ cpus = 12; memory = '200.GB'; queue = '{hpc_queue}' }}",
                 "}",
             ]
-            log.info("[Nextflow] injected process_low/medium/high memory tiers (12/36/72 GB)")
+            log.info(f"[Nextflow] injected process_low/medium/high memory tiers (12/36/72 GB); process_high+ → {hpc_queue}")
+
+            # Per-group right-sizing (opt-in, BIOMATE_RESOURCE_CLASSIFICATION=1): since ~96% of processes
+            # carry a blanket process_medium label, size specific processes by what they do via withName —
+            # ONLY for processes present in this .nf (strict-mode safe), so unmatched steps keep process_medium.
+            try:
+                from galaxy.ai import resource_classification as _rc  # noqa: PLC0415
+                if _rc.is_enabled() and nf_path:
+                    _nf_text = Path(nf_path).read_text(errors="replace") if os.path.exists(nf_path) else ""
+                    _rc_lines = _rc.render_withname_lines(_nf_text)
+                    if _rc_lines:
+                        lines += _rc_lines
+                        log.info("[Nextflow] resource classification: sized %d process(es) by group", len(_rc_lines) - 2)
+            except Exception as _rc_exc:  # never block a launch over sizing
+                log.warning("[Nextflow] resource classification skipped: %s", _rc_exc)
         # For nf-core pipelines: emit a slimmer aws.client block.
         # Their own nextflow.config often sets `aws.client.anonymous = true`
         # globally (so iGenomes public-bucket reads work). That makes ALL
@@ -3620,6 +4125,14 @@ process {{
             # volumes needed — adding volumes=['/opt/aws-cli'] would duplicate the mount
             # and cause "containerPath values aren't unique across mountPoints" on AWS Batch.
             "        cliPath = '/opt/aws-cli/bin/aws'",
+            # Spot-reclaim resilience: retry a task up to 3x ONLY when its Batch instance is
+            # reclaimed (spot interruption / host termination) — NOT on real task failures, so it
+            # never masks a genuine bug. Default in NF 25.x is 0 (no retry), which made a reclaim
+            # fail the whole job (validated 2026-10-04: a cold spot merfish job died on reclaim with
+            # retryStrategy=null). With this, a reclaimed task re-runs on a fresh node (spot, or the
+            # on-demand fallback CE), making a spot-preferred queue production-safe. Required before
+            # re-enabling the spot CE on the queues — see docs/20261004_BATCH_SPOT_MIGRATION_PLAN.md.
+            "        maxSpotAttempts = 3",
             # For nf-core: their task containers are minimal biocontainers
             # (perl, gtf2bed, etc.) lacking libz/libcrypto/libssl. The Batch
             # AMI's /opt/aws-cli/bin/aws is dynamically linked against
@@ -3636,11 +4149,28 @@ process {{
             # on nfcore/chipseq: with libz-only mount, GTF2BED passes (libz
             # error gone) and the run moves to next process. With full
             # /usr/lib64 mount, /bin/sh itself fails on tinfo glibc.
-            *(
-                ["        volumes = ['/usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro']"]
-                if is_nfcore
-                else []
-            ),
+            #
+            # Applies to nf-core AND bioconductor AND nf-core-modules — all three run
+            # minimal quay.io/biocontainers task images whose own libz lives in
+            # /usr/local/lib (not on the host aws binary's search path), so the mounted
+            # aws exits 127 'libz.so.1: cannot open shared object file' during S3 staging.
+            # (Audit 2026-09-29: 699 raw-quay workflows sit under bioconductor/+modules,
+            # previously EXCLUDED from this mount; the `containerOptions -v` branch above
+            # is IGNORED by AWS Batch — only this `volumes` directive is Batch-effective,
+            # so extending the gate here is the real fix. Observed failure: dropletutils.)
+            # Broadening to ALL paths is also safe (single-file, proven no-regression) —
+            # kept surgical to leave BioMate's own full-image workflows untouched.
+            # 2026-10-02: ALWAYS mount host libz (class fix). The gate was a path allow-list
+            # (nf-core → +bioconductor → +nf-core-modules → +single_cell …) that kept breaking
+            # for each new domain whose workflow runs a bare quay.io/biocontainers task image
+            # (libz in /usr/local/lib, not on the host-mounted aws binary's search path → aws
+            # exits 127 during S3 staging). The container is chosen by the .nf process directive,
+            # which this config block can't see, so NO nf_path list can be complete. The mount is
+            # a SINGLE read-only file and is a no-op for BioMate full images that already have it
+            # (proven no-regression on the full-image workflows), so mount it unconditionally and
+            # close the whole exit-127 class. (Observed instances: dropletutils, merfish/squidpy,
+            # fpsim2, flow-cytometry — all different nf_path prefixes, same root cause.)
+            "        volumes = ['/usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro']",
             "    }",
             "}",
             "docker.enabled = true",
@@ -4076,11 +4606,187 @@ def _parse_trace_progress(trace_path: Path) -> dict:
     }
 
 
+def _read_qc_events_sidecar(outdir: str) -> Optional[dict]:
+    """Read the QC gate report sidecar that _evaluate_qc_from_s3 writes at
+    <outdir>/output/qc_events.json. Returns the parsed report, or None if it is
+    absent/unreadable. Region-aware (the nextflow outputs bucket is us-east-1, so
+    a client pinned to the wrong region would fail the GET)."""
+    try:
+        import json as _json3, boto3 as _boto3
+        _uri = (outdir or "").rstrip("/") + "/output/qc_events.json"
+        if not _uri.startswith("s3://"):
+            return None
+        _b, _k = _uri[5:].split("/", 1)
+        _c = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        try:
+            _loc = _c.get_bucket_location(Bucket=_b).get("LocationConstraint") or "us-east-1"
+            _c = _boto3.client("s3", region_name=_loc)
+        except Exception:
+            pass
+        _obj = _c.get_object(Bucket=_b, Key=_k)
+        return _json3.loads(_obj["Body"].read().decode("utf-8"))
+    except Exception:
+        return None
+
+
+def _write_qc_degraded_sidecar(outdir: Optional[str], reason: str, retrospective: bool = False) -> None:
+    """Persist a DEGRADED qc_events sidecar so the after-run QC table shows
+    'QC could not be evaluated' instead of the empty 'all passed' fallback when
+    the inputs were unreadable. Best-effort (never raises). The event uses
+    status 'unavailable' (frontend qcStatus → 'UNAVAILABLE'); `degraded:true`
+    lets the on-demand reader re-evaluate on a later view so a transient S3
+    error auto-recovers instead of being cached forever."""
+    try:
+        import json as _json, boto3 as _boto3, datetime as _dt
+        _outdir = (outdir or "").rstrip("/")
+        if not _outdir.startswith("s3://"):
+            return
+        _ts = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        _report = {
+            "source": "s3_sidecar",
+            "evaluation_context": "retrospective" if retrospective else "completion",
+            "evaluated_at": _ts,
+            "degraded": True,
+            "gates_triggered": 0,
+            "warnings_emitted": 1,  # renders the QC summary (not the empty fallback)
+            "events": [{
+                "ts": _ts, "gate": "QC evaluation", "threshold": "", "measured": "",
+                "status": "unavailable", "advisory": True,
+                "message": "QC gates could not be evaluated (%s)." % reason,
+            }],
+            "methods_text": ("QC gates could not be evaluated for this run (%s). "
+                             "This run was NOT recorded as a clean QC pass." % reason),
+        }
+        _b, _k = (_outdir + "/output/qc_events.json")[5:].split("/", 1)
+        _c = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        try:
+            _loc = _c.get_bucket_location(Bucket=_b).get("LocationConstraint") or "us-east-1"
+            _c = _boto3.client("s3", region_name=_loc)
+        except Exception:
+            pass
+        _c.put_object(Bucket=_b, Key=_k, Body=_json.dumps(_report).encode("utf-8"),
+                      ContentType="application/json")
+        log.info("[QC S3] persisted DEGRADED qc_events sidecar %s/output/qc_events.json", _outdir)
+    except Exception as _exc:  # noqa: BLE001 — sidecar is best-effort
+        log.warning("[QC S3] degraded sidecar write failed: %s", _exc)
+
+
+def _reconstruct_qc_from_s3(run_id, files, workflow_domain, qc_overrides, retrospective, outdir=None):
+    """Read standard QC outputs for other domains; never emit execution events."""
+    import fnmatch
+    import json
+    import os
+    from datetime import datetime, timezone
+    import boto3
+    from galaxy.ai.qc_records import assess_qc_document
+    from galaxy.ai.retrievers.qc_gate_emit import classify_gate_only_domain
+    from galaxy.ai.retrievers.qc_gate_reader import build_gate_event
+    from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
+
+    original = get_run_state_store().get_run(run_id) or {}
+    handler = NextflowQCGateHandler(
+        invocation_id=run_id, work_dir=Path("/tmp"), sse_callback=lambda *args: None,
+        app=None, workflow_domain=workflow_domain,
+        qc_overrides=original.get("qc_overrides", qc_overrides), qc_profile=original.get("qc_profile"),
+    )
+    def gate_checker(process, metrics):
+        domain = classify_gate_only_domain(process)
+        return build_gate_event(process, domain, metrics).get("gates", []) if domain else []
+
+    clients = {}
+    def client_for(bucket):
+        if bucket not in clients:
+            client = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+            try:
+                region = client.get_bucket_location(Bucket=bucket).get("LocationConstraint") or "us-east-1"
+                client = boto3.client("s3", region_name=region)
+            except Exception:
+                pass  # Reading outputs need not require GetBucketLocation permission.
+            clients[bucket] = client
+        return clients[bucket]
+
+    rows = []
+    seen = set()
+    patterns = [pattern for _, pattern in handler._S3_REPORT_PATHS.values()]
+    for file in files:
+        uri = file.get("s3_uri", "")
+        name = file.get("name") or file.get("filename") or uri.rsplit("/", 1)[-1]
+        basename = name.rsplit("/", 1)[-1]
+        if uri in seen or not uri.startswith("s3://") or not (
+            basename in {"qc_metrics.json", "qc_report.json", "qc.json"}
+            or any(fnmatch.fnmatch(basename, pattern) for pattern in patterns)
+        ):
+            continue
+        seen.add(uri)
+        try:
+            bucket, key = uri[5:].split("/", 1)
+            blob = json.loads(client_for(bucket).get_object(Bucket=bucket, Key=key)["Body"].read())
+            # Never infer a producing process from an ambiguous qc_metrics.json basename.
+            # Exact registered report names or a step directory may identify it.
+            if isinstance(blob, dict) and not blob.get("process"):
+                candidates = [process for process, (_, pattern) in handler._S3_REPORT_PATHS.items()
+                              if process in uri.upper() or (pattern not in {"qc_metrics.json", "qc_report.json"}
+                                                           and fnmatch.fnmatch(basename, pattern))]
+                if len(set(candidates)) == 1:
+                    blob = {**blob, "process": candidates[0]}
+            rows.extend(assess_qc_document(blob, handler._check_qc_thresholds, uri, gate_checker))
+        except Exception as exc:
+            log.warning("[QC] Cannot reconstruct %s: %s", uri, exc)
+            rows.append({"gate": basename, "status": "unavailable", "source": uri,
+                         "message": "The QC source could not be read."})
+
+    if not rows:
+        return []
+    now = datetime.now(timezone.utc).isoformat()
+    rows = [{**row, "ts": now} for row in rows]
+    report = {
+        "invocation_id": run_id, "source": "s3_sidecar", "events": rows,
+        "evaluation_context": "retrospective" if retrospective else "completion",
+        "evaluated_at": now,
+        "criteria_basis": "stored profile/overrides with evaluator defaults"
+                          if "qc_overrides" in original or "qc_profile" in original else
+                          "original criteria unavailable; evaluator defaults",
+        "active_profile": handler.active_profile, "active_overrides": handler.qc_overrides,
+        "gates_triggered": sum(row["status"] == "fail" for row in rows),
+        "warnings_emitted": sum(row["status"] == "advisory" for row in rows),
+        "methods_text": "QC findings reconstructed from the recorded output files. No execution action was taken.",
+    }
+    outdir = (original.get("outdir") or outdir or "").rstrip("/")
+    if outdir.startswith("s3://"):
+        bucket, key = (outdir + "/output/qc_events.json")[5:].split("/", 1)
+        client_for(bucket).put_object(Bucket=bucket, Key=key, Body=json.dumps(report).encode(),
+                                     ContentType="application/json")
+    return [row for row in rows if row["status"] == "fail"]
+
+
+def _qc_unevaluable(reason: str) -> list:
+    """A single ADVISORY gate entry recording that QC could NOT be evaluated.
+
+    Rule: a gate that cannot be read must never be recorded as a clean pass (an
+    empty failure list reads as 'all gates clear'). This sentinel makes the
+    recorded verdict explicitly 'unknown' rather than clean. It is marked
+    advisory=True so it is non-blocking (the viewer's blocking check keys on
+    advisory !== true) — appropriate because a read error is not a measured
+    safety failure, but it must still not read as a pass."""
+    return [{
+        "metric": "qc_evaluation",
+        "value": None,
+        "threshold": None,
+        "operator": "",
+        "advisory": True,
+        "status": "unknown",
+        "message": "QC gates could not be evaluated (%s) — NOT recorded as a pass." % reason,
+    }]
+
+
 def _evaluate_qc_from_s3(
     run_id: str,
     s3_output_files: list,
     workflow_domain: str,
     qc_overrides: dict,
+    retrospective: bool = False,
+    outdir: Optional[str] = None,
+    s3_list_degraded: bool = False,
 ) -> list:
     """
     Evaluate QC gates for completed AWS Batch runs by reading output files from S3.
@@ -4092,10 +4798,10 @@ def _evaluate_qc_from_s3(
         from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler, QC_RED_LINES
 
         domain_upper = workflow_domain.upper()
-        is_admet = any(k in domain_upper for k in ("ADMET", "PHARMACOL", "DRUG_DISC", "TOXICITY"))
+        is_admet = "ADMET" in domain_upper
         is_admet_files = any(
-            f.get("filename", "").endswith("toxicity_report.json") or
-            "predict_admet_properties" in f.get("filename", "")
+            (f.get("filename") or f.get("name") or "").endswith("toxicity_report.json") or
+            "predict_admet_properties" in (f.get("filename") or f.get("name") or "")
             for f in s3_output_files
         )
         is_cryo = any(k in domain_upper for k in ("CRYO", "CRYOSPARC", "CRYOEM", "CRYO_EM"))
@@ -4103,9 +4809,6 @@ def _evaluate_qc_from_s3(
         is_preproc_files = any(
             f.get("filename", "").endswith("qc_report.json") for f in s3_output_files
         )
-        if (not (is_admet or is_admet_files) and not is_cryo
-                and not (is_preproc or is_preproc_files)):
-            return []  # S3 QC supported for ADMET, CryoEM, and preprocessing/cleaning domains
 
         # ── Preprocessing / cleaning QC path (over-correction gate) ─────────
         # The clean_and_verify subworkflow emits qc_report.json already in the
@@ -4148,6 +4851,11 @@ def _evaluate_qc_from_s3(
                 })
             return _fails
 
+        # Everything else (not ADMET, CryoEM or preprocessing): generic S3 reconstruction.
+        if not (is_admet or is_admet_files or is_cryo):
+            return _reconstruct_qc_from_s3(run_id, s3_output_files, workflow_domain,
+                                          qc_overrides, retrospective, outdir)
+
         # ── CryoEM path ────────────────────────────────────────────────────
         if is_cryo and not (is_admet or is_admet_files):
             # Build outdir from one of the s3_uris
@@ -4189,73 +4897,233 @@ def _evaluate_qc_from_s3(
                 })
             return gate_failures
 
-        # ── ADMET path ─────────────────────────────────────────────────────
-        # Real SSE callback — broadcasts to /internal/sse-inject so the
-        # AutoLoopPanel receives autoloop_gate_results / autoloop_update
-        # events. Previously this was a no-op which left the UI empty
-        # even when gates were correctly evaluated.
-        import urllib.request as _urllib
-
-        def _sse_emit(event_type: str, data: Dict[str, Any]) -> None:
-            _inject_url = f"{_resolve_frontend_url()}/internal/sse-inject"
-            try:
-                req = _urllib.Request(
-                    _inject_url,
-                    data=_json.dumps({
-                        "invocation_id": run_id,
-                        "event_type": event_type,
-                        "data": data,
-                    }).encode("utf-8"),
-                    headers={"Content-Type": "application/json"},
-                )
-                with _urllib.urlopen(req, timeout=5):
-                    pass
-            except Exception as exc:
-                log.debug("[autoloop SSE] inject failed for %s: %s", event_type, exc)
-
+        # ── ADMET completion assessment (no execution events) ─────────────
+        original = get_run_state_store().get_run(run_id) or {}
+        qc_overrides = original.get("qc_overrides", qc_overrides)
         handler = NextflowQCGateHandler(
             invocation_id=run_id,
             work_dir=Path("/tmp"),
-            sse_callback=_sse_emit,
+            sse_callback=lambda *args: None,
             app=None,
             workflow_domain=workflow_domain,
             qc_overrides=qc_overrides,
+            qc_profile=original.get("qc_profile"),
         )
 
-        # Read toxicity_report.json from S3
+        # Read ADMET safety metrics from S3. Prefer toxicity_report.json
+        # (nested {"toxicity": {...}}); fall back to qc_metrics.json (flat)
+        # which the AI Chemprop workflow emits. Match on BOTH the "filename"
+        # and "name" keys — _list_s3_output_files stores the basename under
+        # "name", so the old filename-only match silently skipped every file
+        # (root cause of qc_gates=null on completed terfenadine runs where the
+        # metrics were present on S3 — 2026-09-08). The s3_uri suffix check is
+        # the belt-and-braces path.
+        def _basename(f: Dict[str, Any]) -> str:
+            return f.get("filename") or f.get("name") or ""
+
         metrics: Dict[str, Any] = {}
-        for f in s3_output_files:
-            s3_uri = f.get("s3_uri", "")
-            filename = f.get("filename", "")
-            if not (filename == "toxicity_report.json" or s3_uri.endswith("/toxicity_report.json")):
-                continue
-            try:
-                result = _sub.run(
-                    [_aws_cli_bin(), "s3", "cp", s3_uri, "-"],
-                    capture_output=True, timeout=15
-                )
-                if result.returncode == 0:
-                    data = _json.loads(result.stdout)
-                    tox = data.get("toxicity", data)
-                    for key in ("herg_ic50_uM", "dili_risk", "dili_probability",
-                                "ames_positive", "ames_probability", "clintox_probability"):
-                        if key in tox:
-                            metrics[key] = tox[key]
-                    break
-            except Exception as _e:
-                log.warning("[QC S3] Failed to read %s: %s", s3_uri, _e)
+        _read_error: Optional[str] = None  # set when a MATCHED metrics file could not be read
+
+        def _extract(data: Dict[str, Any]) -> Dict[str, Any]:
+            src = data.get("toxicity", data) if isinstance(data, dict) else {}
+            out: Dict[str, Any] = {}
+            for key in ("herg_ic50_uM", "dili_risk", "dili_probability",
+                        "ames_positive", "ames_probability", "clintox_probability"):
+                if isinstance(src, dict) and key in src:
+                    out[key] = src[key]
+            return out
+
+        # First pass: toxicity_report.json. Second pass: qc_metrics.json.
+        for _target in ("toxicity_report.json", "qc_metrics.json"):
+            for f in s3_output_files:
+                s3_uri = f.get("s3_uri", "")
+                if not (_basename(f) == _target or s3_uri.endswith("/" + _target)):
+                    continue
+                try:
+                    result = _sub.run(
+                        [_aws_cli_bin(), "s3", "cp", s3_uri, "-"],
+                        capture_output=True, timeout=15
+                    )
+                    if result.returncode == 0:
+                        metrics = _extract(_json.loads(result.stdout))
+                        if metrics:
+                            break
+                    else:
+                        # A matched safety-metrics file we FAILED to download — this is a
+                        # read error (throttle/permission/missing object), not "no metrics".
+                        _read_error = "s3 cp %s exited %d" % (_target, result.returncode)
+                        log.warning("[QC S3] non-zero reading %s: rc=%d", s3_uri, result.returncode)
+                except Exception as _e:
+                    _read_error = "%s reading %s" % (type(_e).__name__, _target)
+                    log.warning("[QC S3] Failed to read %s: %s", s3_uri, _e)
+            if metrics:
+                break
 
         if not metrics:
+            # Distinguish "couldn't read the metrics" (degraded — must NOT read as a
+            # clean pass, per the no-silent-skip rule) from "no safety metrics present"
+            # (legitimate — some workflows emit none, which is a real empty/pass).
+            if _read_error:
+                log.error(
+                    "[QC S3] QC NOT EVALUATED for %s — %s; recording as degraded, NOT a pass",
+                    run_id, _read_error,
+                )
+                _write_qc_degraded_sidecar(outdir, _read_error, retrospective)
+                return _qc_unevaluable(_read_error)
+            if s3_list_degraded:
+                # No metrics because the S3 output LISTING itself errored (H3/H4) — the
+                # inputs are unreliable, so this is degraded, not a clean "no failures".
+                log.error(
+                    "[QC S3] QC NOT EVALUATED for %s — output listing failed; recording as degraded, NOT a pass",
+                    run_id,
+                )
+                _write_qc_degraded_sidecar(outdir, "S3 output listing failed", retrospective)
+                return _qc_unevaluable("S3 output listing failed")
             return []
+
+        # Completion-time evaluation only records findings; it never dispatches
+        # auto-loop/remediation events for a finished or historical run.
 
         _, all_failures = handler._check_qc_thresholds(
             "PREDICT_ADMET_PROPERTIES", metrics
         )
+
+        # Build a FLAT per-gate audit table (pass AND fail) for the after-run QC
+        # document. Needed, and not optional, for two reasons:
+        #  (1) This S3/on-demand eval path never calls _emit_qc_gate_event, so the
+        #      handler's qc_event_log (what get_qc_report().events returns) is empty
+        #      even when gates FAILED — the detailed table would be blank.
+        #  (2) An all-pass run must still show every evaluated gate with its
+        #      measured-vs-threshold value, not the empty "all passed" placeholder
+        #      (the exact symptom the user reported).
+        # Rows use the FLAT shape the after-run QcAuditTab renders directly
+        # ({ts, gate, threshold, measured, status, message}); thresholds are read
+        # from handler._get_threshold so pass rows match the gate-decision logic.
+        import datetime as _dt
+        _ts_now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        _failed_by_metric: Dict[str, Any] = {}
+        for _f in (all_failures or []):
+            _failed_by_metric.setdefault(_f.get("metric"), _f)
+        _gate_rows: List[Dict[str, Any]] = []
+
+        def _emit_row(_metric, _label, _measured, _threshold, _status, _msg="", _adv=False):
+            _gate_rows.append({
+                "ts": _ts_now, "gate": _label, "threshold": _threshold,
+                "measured": _measured, "status": _status, "message": _msg,
+                "advisory": _adv, "metric": _metric,
+            })
+
+        def _pass_or_fail(_metric, _label, _pass_threshold, _pass_measured, _pass_msg):
+            _ff = _failed_by_metric.get(_metric)
+            if _ff:
+                _emit_row(_metric, _label, _ff.get("value"), _ff.get("threshold"),
+                          "advisory" if _ff.get("advisory") else "fail",
+                          _ff.get("message", ""), bool(_ff.get("advisory")))
+            else:
+                _emit_row(_metric, _label, _pass_measured, _pass_threshold, "pass", _pass_msg)
+
+        if metrics.get("herg_ic50_uM") is not None:
+            _hv = round(float(metrics["herg_ic50_uM"]), 3)
+            _ht = handler._get_threshold("herg_ic50_medium_risk_uM", 10.0)
+            _pass_or_fail("herg_ic50_uM", "hERG IC50 (μM)", f">= {_ht}", _hv,
+                          f"hERG IC50 {_hv} μM — low cardiotoxicity risk")
+        elif metrics.get("herg_inhibition_prob") is not None:
+            _hp = round(float(metrics["herg_inhibition_prob"]), 3)
+            _hpt = handler._get_threshold("herg_inhibition_prob_threshold", 0.9)
+            _pass_or_fail("herg_inhibition_prob", "hERG inhibition prob", f"< {_hpt}", _hp,
+                          f"hERG inhibition probability {_hp} — low risk")
+        if metrics.get("ames_positive") is not None or metrics.get("ames_probability") is not None:
+            _ap = metrics.get("ames_probability")
+            _apt = handler._get_threshold("ames_probability_threshold", 0.7)
+            _am = round(float(_ap), 3) if _ap is not None else int(bool(metrics.get("ames_positive")))
+            _pass_or_fail("ames_positive", "Ames mutagenicity", f"< {_apt}", _am,
+                          f"Ames probability {_am} — negative")
+        if metrics.get("dili_risk") is not None or metrics.get("dili_probability") is not None:
+            _dv = metrics.get("dili_probability")
+            _dm = metrics.get("dili_risk") or (round(float(_dv), 3) if _dv is not None else "low")
+            _pass_or_fail("dili_risk", "DILI risk", "low", _dm, "DILI risk low")
+        if metrics.get("clintox_probability") is not None:
+            _cv = round(float(metrics["clintox_probability"]), 3)
+            _ct = handler._get_threshold("clintox_probability_threshold", 0.8)
+            _pass_or_fail("clintox_probability", "Clinical toxicity", f"< {_ct}", _cv,
+                          f"ClinTox probability {_cv} — low clinical-toxicity risk")
+
+        # Persist the full QC report to an S3 sidecar next to the outputs, so a
+        # reopened/historical run (live monitor gone, work dir ephemeral) serves
+        # the SAME detailed QC table the live view shows — not the empty
+        # "all passed" fallback. Best-effort: a failure here never blocks the run
+        # or the gate result. Read back by the Node /qc-events handler.
+        try:
+            _report = handler.get_qc_report()
+            _report["source"] = "s3_sidecar"
+            _report["evaluation_context"] = "retrospective" if retrospective else "completion"
+            _report["evaluated_at"] = _ts_now
+            _report["criteria_basis"] = ("stored profile/overrides with evaluator defaults"
+                                         if "qc_overrides" in original or "qc_profile" in original
+                                         else "original criteria unavailable; evaluator defaults")
+            # Replace the (empty, nested-shape) qc_event_log events with the flat
+            # per-gate rows the after-run QcAuditTab renders directly, so a reopened
+            # run shows the full measured-vs-threshold gate table (pass + fail).
+            if _gate_rows:
+                _report["events"] = _gate_rows
+                _report["gates_triggered"] = sum(1 for _r in _gate_rows if _r["status"] == "fail")
+                _report["warnings_emitted"] = sum(1 for _r in _gate_rows if _r["status"] == "advisory")
+            # Write to <outdir>/output/qc_events.json — the SAME path the Node
+            # /qc-events handler reads (sidecarBase = run.nextflowOutputDir, then
+            # "/output/qc_events.json"). Nextflow publishes the actual outputs under
+            # <outdir>/run/ and <outdir>/pipeline_info/, NOT <outdir>/output/, so the
+            # old "parent dir of the first output file" derivation put the sidecar in
+            # /run/ where Node never looks. The run's stored outdir is authoritative;
+            # fall back to stripping the publish subdir from an output URI.
+            _outdir = (outdir or "").rstrip("/")
+            try:
+                _snap = get_run_state_store().get_run(run_id) or {}
+                _outdir = (_snap.get("outdir") or _outdir).rstrip("/")
+            except Exception:
+                _outdir = ""
+            if not _outdir.startswith("s3://"):
+                for _f in s3_output_files:
+                    _u = _f.get("s3_uri", "")
+                    if _u.startswith("s3://"):
+                        for _sub in ("/run/", "/pipeline_info/"):
+                            if _sub in _u:
+                                _outdir = _u.split(_sub)[0]
+                                break
+                        if _outdir.startswith("s3://"):
+                            break
+            _sidecar_uri = (_outdir + "/output/qc_events.json") if _outdir.startswith("s3://") else ""
+            if _sidecar_uri:
+                import boto3 as _boto3
+                _sb, _sk = _sidecar_uri[5:].split("/", 1)
+                # Resolve the bucket's real region (biomate-nextflow-work is us-east-1);
+                # a cross-region PutObject raises PermanentRedirect and the sidecar is lost.
+                _s3c = _boto3.client(
+                    "s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1"
+                )
+                try:
+                    _loc = _s3c.get_bucket_location(Bucket=_sb).get("LocationConstraint") or "us-east-1"
+                    _s3c = _boto3.client("s3", region_name=_loc)
+                except Exception:
+                    pass
+                _s3c.put_object(
+                    Bucket=_sb, Key=_sk,
+                    Body=_json.dumps(_report).encode("utf-8"),
+                    ContentType="application/json",
+                )
+                log.info("[QC S3] persisted qc_events sidecar %s", _sidecar_uri)
+        except Exception as _sc_exc:  # noqa: BLE001 — sidecar is best-effort
+            log.warning("[QC S3] qc_events sidecar write failed for %s: %s", run_id, _sc_exc)
+
         return all_failures
 
     except Exception as _exc:
-        log.warning("[QC S3] Gate evaluation failed for %s: %s", run_id, _exc)
-        return []
+        # A crash in gate evaluation must not be recorded as a clean safety pass.
+        log.error(
+            "[QC S3] Gate evaluation ERRORED for %s — recording as degraded, NOT a pass: %s",
+            run_id, _exc, exc_info=True,
+        )
+        _write_qc_degraded_sidecar(outdir, "evaluation error: %s" % type(_exc).__name__, retrospective)
+        return _qc_unevaluable("evaluation error: %s" % type(_exc).__name__)
 
 
 def _start_qc_monitor(
@@ -4514,6 +5382,18 @@ _S3_LIST_CACHE: Dict[str, Tuple[float, list]] = {}
 _S3_LIST_TTL_SEC = 10.0
 _S3_LIST_CACHE_LOCK = threading.Lock()
 
+# Side-channel so an immediate caller can tell "[] because the S3 LIST errored"
+# (degraded — must not feed a fake-clean QC verdict) from "[] genuinely empty".
+# The list functions still return [] (every caller iterates a list); the caller
+# reads this flag RIGHT AFTER the call. Set on the except path, cleared at entry.
+_s3_list_tls = threading.local()
+
+
+def s3_list_last_error() -> Optional[str]:
+    """The reason the most recent _list_s3_* call on THIS thread errored, or None.
+    Read immediately after the list call; it is reset at the start of each call."""
+    return getattr(_s3_list_tls, "error", None)
+
 
 def _list_s3_output_files(s3_uri: str) -> list:
     """
@@ -4522,14 +5402,16 @@ def _list_s3_output_files(s3_uri: str) -> list:
     Skips Nextflow internal files (work/, .nextflow/, trace).
     Results cached for _S3_LIST_TTL_SEC to keep status polling cheap.
     """
+    _s3_list_tls.error = None  # reset per-call; set only if THIS listing errors
     now = time.time()
     with _S3_LIST_CACHE_LOCK:
         cached = _S3_LIST_CACHE.get(s3_uri)
         if cached and (now - cached[0]) < _S3_LIST_TTL_SEC:
-            return cached[1]
+            return cached[1]  # a cached result is always a prior SUCCESS (errors aren't cached)
     try:
         import boto3
     except ImportError:
+        _s3_list_tls.error = "boto3 unavailable"
         return []
     try:
         parts = s3_uri[len("s3://"):].split("/", 1)
@@ -4565,7 +5447,10 @@ def _list_s3_output_files(s3_uri: str) -> list:
                     _S3_LIST_CACHE.pop(k, None)
         return results
     except Exception as exc:
-        log.warning(f"[Nextflow] S3 output listing failed for {s3_uri}: {exc}")
+        # A LIST error (throttle/permission/network) is NOT "zero outputs" — record it
+        # so the completion path doesn't read empty outputs as a clean/complete run.
+        _s3_list_tls.error = "%s: %s" % (type(exc).__name__, exc)
+        log.error("[Nextflow] S3 output listing FAILED for %s (degraded, not zero outputs): %s", s3_uri, exc)
         return []
 
 
@@ -4590,9 +5475,11 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
     Returns list of dicts: {key, name, size, extension, s3_uri}.
     Fallback for when publishDir to outdir fails (common with cross-region S3).
     """
+    _s3_list_tls.error = None  # reset per-call; set only if THIS listing errors
     try:
         import boto3
     except ImportError:
+        _s3_list_tls.error = "boto3 unavailable"
         return []
     try:
         parts = work_s3_uri[len("s3://"):].split("/", 1)
@@ -4619,7 +5506,8 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
         log.info("[Nextflow] Listed %d work-dir output files from %s", len(results), work_s3_uri)
         return results
     except Exception as exc:
-        log.warning("[Nextflow] work-dir output listing failed for %s: %s", work_s3_uri, exc)
+        _s3_list_tls.error = "%s: %s" % (type(exc).__name__, exc)
+        log.error("[Nextflow] work-dir output listing FAILED for %s (degraded, not zero outputs): %s", work_s3_uri, exc)
         return []
 
 
@@ -5090,21 +5978,78 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             )
             returncode = 0
 
+        # Trace-authoritative salvage: the driver JVM can be SIGKILL'd (-9) during
+        # shutdown AFTER every task finished (observed on ADMET: killed at the
+        # timeline/report-rendering step, BEFORE "Execution complete -- Goodbye" was
+        # flushed). The returncode then looks like an interrupt/failure, but
+        # workflow-trace.txt — the same source the status API uses for
+        # completedTasks/failedTasks — shows every task COMPLETED and none FAILED.
+        # Honor that verdict so a cleanly-completed run is not marked failed.
+        # Deliberately does NOT require the "Execution complete" log marker (it may
+        # be truncated by the kill); the trace + absence of any failure marker is the
+        # authoritative proof. Safe: a genuinely failed run has a FAILED task in the
+        # trace (so _tr_completed != _tr_total) or a failure marker in the log, either
+        # of which blocks the rescue. (ADMET runs f0d735a2 / a55ab8d3: 2/2 COMPLETED,
+        # 0 FAILED, 8 outputs, rc=-9 → were wrongly shown as "failed".)
+        if returncode != 0 and _trace_path.is_file():
+            try:
+                _tr_lines = [
+                    l for l in _trace_path.read_text().splitlines()
+                    if l.strip() and not l.startswith("task_id")
+                ]
+                _tr_total = len(_tr_lines)
+                _tr_completed = sum(1 for l in _tr_lines if "\tCOMPLETED\t" in l)
+                _tr_failed = sum(1 for l in _tr_lines if "\tFAILED\t" in l)
+                if (
+                    _tr_total > 0
+                    and _tr_completed == _tr_total
+                    and _tr_failed == 0
+                    and not _log_indicates_nextflow_failure(log_full_text=_log_text, log_tail=None)
+                ):
+                    log.warning(
+                        "[Nextflow run %s] exit %d but workflow-trace shows all %d task(s) "
+                        "COMPLETED / 0 FAILED and no failure marker (driver signal-killed "
+                        "post-completion) — marking succeeded",
+                        run_id, returncode, _tr_total,
+                    )
+                    returncode = 0
+            except Exception as _tr_exc:
+                log.debug("[Nextflow run %s] trace-salvage check failed: %s", run_id, _tr_exc)
+
         if returncode == 0:
             final_status = "succeeded"
         elif returncode < 0:
-            # Negative return code means killed by signal (e.g. SIGTERM = -15)
-            import signal as _signal
+            # Negative return code means killed by signal (e.g. SIGTERM = -15).
+            # BUT a halt-severity QC gate / user pause terminates the process the
+            # SAME way (soft cancel → SIGTERM) and sets status="paused" so a later
+            # -resume works. If this run was deliberately PAUSED, the signal is NOT
+            # a failure — do NOT clobber "paused" to "interrupted"/"failed", or the
+            # run shows "Failed" and Resume (which requires status=paused) is dead.
+            _cur_status = ""
             try:
-                sig_name = _signal.Signals(-returncode).name
-            except ValueError:
-                sig_name = str(-returncode)
-            final_status = "interrupted"
-            log.warning(
-                "[Nextflow run %s] process killed by signal %s (%s) — "
-                "gunicorn restart or container stop; resume required",
-                run_id, sig_name, returncode,
-            )
+                with _runs_lock:
+                    _cur_status = (_runs.get(run_id) or {}).get("status", "") if run_id in _runs else ""
+                if _cur_status != "paused":
+                    _cur_status = (get_run_state_store().get_run(run_id) or {}).get("status", "") or _cur_status
+            except Exception:
+                pass
+            if _cur_status in ("paused", "cancelled"):
+                final_status = _cur_status
+                log.info("[Nextflow run %s] signal-killed as part of a deliberate %s — "
+                         "keeping that status (resumable/terminal), not interrupted",
+                         run_id, _cur_status)
+            else:
+                import signal as _signal
+                try:
+                    sig_name = _signal.Signals(-returncode).name
+                except ValueError:
+                    sig_name = str(-returncode)
+                final_status = "interrupted"
+                log.warning(
+                    "[Nextflow run %s] process killed by signal %s (%s) — "
+                    "gunicorn restart or container stop; resume required",
+                    run_id, sig_name, returncode,
+                )
         else:
             final_status = "failed"
 
@@ -5184,16 +6129,22 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         _qc_gates_s3 = None
         if _present and returncode == 0 and str(_outdir_for_s3).startswith("s3://"):
             _s3_output_files = _s3_files_for_salvage or _list_s3_output_files(_outdir_for_s3)
+            _s3_list_degraded = bool(not _s3_output_files and s3_list_last_error())
             # Fallback: if publishDir failed to write to outdir (common with cross-region S3
             # in nf-amazon@3.3.0), scan the Nextflow work dir where Batch tasks copy outputs.
             if not _s3_output_files and str(_workdir_for_s3).startswith("s3://"):
                 log.info("[Nextflow] outdir listing empty for %s — scanning workdir fallback", run_id)
                 _s3_output_files = _list_s3_work_output_files(_workdir_for_s3)
+                # Degraded only if BOTH listings came up empty-via-error; a successful
+                # (genuinely empty) workdir listing clears the earlier degraded signal.
+                _s3_list_degraded = bool(not _s3_output_files and s3_list_last_error())
             _qc_gates_s3 = _evaluate_qc_from_s3(
                 run_id=run_id,
                 s3_output_files=_s3_output_files,
                 workflow_domain=_wf_domain_for_qc,
                 qc_overrides=_qc_overrides_for_qc,
+                outdir=_outdir_for_s3,
+                s3_list_degraded=_s3_list_degraded,
             )
             if _qc_gates_s3:
                 log.info("[QC Gate] S3 evaluation for %s: %d gate(s)", run_id, len(_qc_gates_s3))
@@ -5343,6 +6294,34 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
 # Public-database accession download handlers
 # ---------------------------------------------------------------------------
 
+def _s3_object_exists(s3_uri: str) -> Optional[bool]:
+    """
+    True/False if an s3:// object exists; None if we cannot tell (no boto3,
+    credentials/permission error). Callers treat None as "can't verify".
+    """
+    if not s3_uri.startswith("s3://"):
+        return None
+    try:
+        import boto3  # type: ignore
+        from botocore.exceptions import ClientError  # type: ignore
+    except Exception:
+        return None
+    try:
+        bucket, key = s3_uri[len("s3://"):].split("/", 1)
+    except ValueError:
+        return None
+    try:
+        boto3.client("s3").head_object(Bucket=bucket, Key=key)
+        return True
+    except ClientError as ce:
+        code = (ce.response or {}).get("Error", {}).get("Code", "")
+        if code in ("404", "NoSuchKey", "NotFound"):
+            return False
+        return None  # 403 / auth / region — can't definitively say missing
+    except Exception:
+        return None
+
+
 def _run_fetchngs_prefetch(
     accessions: list[str],
     work_base: Path,
@@ -5351,12 +6330,24 @@ def _run_fetchngs_prefetch(
     profile: str,
     env: dict,
     executor_config_path: Optional[Path],
+    s3_work_dir: str = "",
+    s3_outdir: str = "",
 ) -> Optional[str]:
     """
     Run nf-core/fetchngs synchronously to download sequencing data for *accessions*.
 
-    Returns the path to the generated samplesheet.csv, or None on failure.
-    The samplesheet can be passed as --input to the main workflow.
+    Returns the path to the generated samplesheet.csv (local path, or an s3://
+    URI when running on AWS Batch), or None on failure. The samplesheet is passed
+    as --input to the main workflow.
+
+    ROOT-CAUSE FIX (docs/20260730_WGS_CRYOEM_ROOTCAUSE_AND_FIXES.md): on the
+    awsbatch executor Nextflow REQUIRES an s3:// work directory — a local `-w`
+    path makes it exit rc=1 in ~6s ("an S3 bucket must be provided as working
+    directory") before anything downloads. This broke EVERY SRA-accession
+    workflow (WGS, RNA-seq-from-SRA, etc.). When the caller indicates Batch
+    (``s3_work_dir`` is an s3:// URI) we run fetchngs on Batch with an S3 work
+    dir + S3 outdir and return the S3 samplesheet URI, so the main Batch
+    workflow (which cannot read the head node's local disk) can consume it.
     """
     try:
         fetchngs_path = _resolve_nextflow_path("nfcore/fetchngs/main.nf")
@@ -5367,21 +6358,52 @@ def _run_fetchngs_prefetch(
     fetch_run_dir = work_base / f"{run_id}_fetchngs"
     fetch_run_dir.mkdir(parents=True, exist_ok=True)
 
-    # Write accession list file
+    # Write accession list file. The input CSV is read by the Nextflow head
+    # process (the orchestrator), not by a Batch task, so a local path is fine
+    # even on awsbatch — only the work dir + published outputs must live on S3.
     ids_file = fetch_run_dir / "ids.csv"
     ids_file.write_text("\n".join(accessions) + "\n")
 
-    fetch_outdir = fetch_run_dir / "output"
-    fetch_outdir.mkdir(exist_ok=True)
-    fetch_work = fetch_run_dir / "work"
-    fetch_work.mkdir(exist_ok=True)
+    on_batch = bool(s3_work_dir and s3_work_dir.startswith("s3://"))
+
+    # GUARD (per root-cause doc): a fetchngs pre-step must NEVER launch with the
+    # awsbatch executor and a non-s3:// work dir — that is the rc=1 trap. Fail
+    # fast with a clear message instead of a 6-second opaque Nextflow crash.
+    profile_is_aws = "aws" in (profile or "").lower()
+    if profile_is_aws and not on_batch:
+        log.error(
+            "[fetchngs run_id=%s] ABORT: awsbatch profile %r requires an s3:// work dir "
+            "but none was threaded in (s3_work_dir=%r). Refusing to launch — this is the "
+            "documented rc=1 trap (local -w under awsbatch). Caller must pass s3_work_dir.",
+            run_id, profile, s3_work_dir,
+        )
+        return None
+
+    if on_batch:
+        # Separate S3 prefixes from the main run's work/outputs so nothing collides.
+        fetch_work_arg = f"{s3_work_dir.rstrip('/')}_fetchngs"
+        if s3_outdir and s3_outdir.startswith("s3://"):
+            fetch_outdir_arg = f"{s3_outdir.rstrip('/')}/_fetchngs"
+        else:
+            fetch_outdir_arg = f"{fetch_work_arg.rstrip('/')}_out"
+        log.info(
+            "[fetchngs run_id=%s] awsbatch mode: work=%s outdir=%s",
+            run_id, fetch_work_arg, fetch_outdir_arg,
+        )
+    else:
+        fetch_outdir_local = fetch_run_dir / "output"
+        fetch_outdir_local.mkdir(exist_ok=True)
+        fetch_work_local = fetch_run_dir / "work"
+        fetch_work_local.mkdir(exist_ok=True)
+        fetch_work_arg = str(fetch_work_local)
+        fetch_outdir_arg = str(fetch_outdir_local)
 
     cmd = [
         nf_bin, "run", str(fetchngs_path),
         "-profile", profile,
-        "-w", str(fetch_work),
+        "-w", fetch_work_arg,
         "--input", str(ids_file),
-        "--outdir", str(fetch_outdir),
+        "--outdir", fetch_outdir_arg,
         "--nf_core_pipeline", "rnaseq",  # generates samplesheet compatible with nf-core pipelines
     ]
     if executor_config_path:
@@ -5407,17 +6429,43 @@ def _run_fetchngs_prefetch(
             log.error(f"[fetchngs run_id={run_id}] Failed (rc={proc.returncode}) — check {log_path}")
             return None
 
-        # nf-core/fetchngs writes samplesheet to outdir/samplesheet/samplesheet.csv
+        if on_batch:
+            # fetchngs published the samplesheet to S3; the local outdir is empty.
+            # Verify the expected S3 object before handing it to the main workflow
+            # (a wrong path would waste a 30-min Batch run on a confusing input error).
+            for cand in (
+                f"{fetch_outdir_arg.rstrip('/')}/samplesheet/samplesheet.csv",
+                f"{fetch_outdir_arg.rstrip('/')}/fastq/samplesheet.csv",
+                f"{fetch_outdir_arg.rstrip('/')}/samplesheet.csv",
+            ):
+                exists = _s3_object_exists(cand)
+                if exists is True:
+                    log.info(f"[fetchngs run_id={run_id}] S3 samplesheet verified: {cand}")
+                    return cand
+            # Could not positively verify. If we got a definitive "missing" on the
+            # primary path, bail; otherwise return the canonical path optimistically
+            # (boto3 absent or permission-masked) — the main workflow validates inputs.
+            primary = f"{fetch_outdir_arg.rstrip('/')}/samplesheet/samplesheet.csv"
+            if _s3_object_exists(primary) is False:
+                log.warning(f"[fetchngs run_id={run_id}] No S3 samplesheet at {fetch_outdir_arg}")
+                return None
+            log.warning(
+                f"[fetchngs run_id={run_id}] Could not verify S3 samplesheet (no boto3/perms); "
+                f"returning canonical path {primary}"
+            )
+            return primary
+
+        # Local (non-batch) mode: nf-core/fetchngs writes samplesheet under outdir/.
         for candidate in [
-            fetch_outdir / "samplesheet" / "samplesheet.csv",
-            fetch_outdir / "fastq" / "samplesheet.csv",
-            fetch_outdir / "samplesheet.csv",
+            Path(fetch_outdir_arg) / "samplesheet" / "samplesheet.csv",
+            Path(fetch_outdir_arg) / "fastq" / "samplesheet.csv",
+            Path(fetch_outdir_arg) / "samplesheet.csv",
         ]:
             if candidate.exists():
                 log.info(f"[fetchngs run_id={run_id}] Samplesheet ready: {candidate}")
                 return str(candidate)
 
-        log.warning(f"[fetchngs run_id={run_id}] No samplesheet found in {fetch_outdir}")
+        log.warning(f"[fetchngs run_id={run_id}] No samplesheet found in {fetch_outdir_arg}")
         return None
 
     except subprocess.TimeoutExpired:
@@ -5584,6 +6632,8 @@ def _resolve_accession_file(
     profile: str,
     env: dict,
     executor_config_path: Optional[Path],
+    s3_work_dir: str = "",
+    s3_outdir: str = "",
 ) -> Optional[str]:
     """
     Dispatch to the appropriate download handler for a single accession.
@@ -5595,7 +6645,8 @@ def _resolve_accession_file(
 
     if handler == "sequencing":
         return _run_fetchngs_prefetch(
-            [accession], work_base, run_id, nf_bin, profile, env, executor_config_path
+            [accession], work_base, run_id, nf_bin, profile, env, executor_config_path,
+            s3_work_dir=s3_work_dir, s3_outdir=s3_outdir,
         )
     elif handler == "structure":
         return _download_pdb_structure(accession, dl_dir)
@@ -5635,10 +6686,16 @@ def _accession_chain_thread(
     trace_path: Path,
     env: dict,
     executor_config_path: Optional[Path],
+    s3_work_dir: str = "",
+    s3_outdir: str = "",
 ) -> None:
     """
     Background thread: resolve all public-database accessions, substitute resolved
     file paths into the main Nextflow command, then launch and stream the main workflow.
+
+    ``s3_work_dir`` / ``s3_outdir`` are the main run's S3 locations (non-empty only
+    on the awsbatch executor); they are threaded into the fetchngs pre-step so the
+    SRA download runs on Batch with an S3 work dir — see _run_fetchngs_prefetch.
 
     Status transitions: fetching_accessions → running (or failed).
     """
@@ -5666,7 +6723,8 @@ def _accession_chain_thread(
         _set_status("fetching_accessions", accession_status="running fetchngs")
 
         samplesheet = _run_fetchngs_prefetch(
-            seq_accessions, work_base, run_id, nf_bin, profile, env, executor_config_path
+            seq_accessions, work_base, run_id, nf_bin, profile, env, executor_config_path,
+            s3_work_dir=s3_work_dir, s3_outdir=s3_outdir,
         )
         if samplesheet:
             # Map the first sequencing param → samplesheet; others get the same path
@@ -5682,7 +6740,8 @@ def _accession_chain_thread(
         if info["handler"] == "sequencing":
             continue  # already resolved above
         local_file = _resolve_accession_file(
-            info, work_base, run_id, nf_bin, profile, env, executor_config_path
+            info, work_base, run_id, nf_bin, profile, env, executor_config_path,
+            s3_work_dir=s3_work_dir, s3_outdir=s3_outdir,
         )
         if local_file:
             resolved[key] = local_file
@@ -5775,10 +6834,19 @@ def _fail_run(run_id: str, message: str) -> None:
             snapshot = dict(rec)
         try:
             get_run_state_store().set_run(run_id, snapshot)
-        except Exception:
-            pass
+        except Exception as _store_exc:
+            # The cross-worker store is how a failed status survives a gunicorn
+            # worker recycle. If this write is lost, the run reverts to looking
+            # "running" forever after a recycle — so this must be visible, not a
+            # silent pass. The in-proc _runs dict above still has the failed state
+            # for this worker, so we don't re-raise.
+            log.error(
+                "[runs] _fail_run: persisting terminal 'failed' to run-state store FAILED "
+                "for %s (status may be lost on worker recycle): %s",
+                run_id, _store_exc,
+            )
     except Exception as _e:
-        log.debug("[runs] _fail_run failed for %s: %s", run_id, _e)
+        log.error("[runs] _fail_run failed for %s: %s", run_id, _e)
 
 
 def _narrate_launch_failure(invocation_id: str, run_id: str, message: str) -> None:
@@ -6117,6 +7185,102 @@ def execute_nextflow(
     }
 
 
+_NUM_TRAILING_JUNK_RE = re.compile(r'^\s*([-+]?\d+(?:\.\d+)?)\s*[^\w\s]+\s*$')
+
+
+def _sanitize_numeric_overrides(params: dict, run_id: str = "") -> None:
+    """Authoritative, schema-independent guard applied to the EXECUTABLE param
+    overrides just before they reach `nextflow run` / the --params-file.
+
+    An LLM-extracted value that is a clean number followed ONLY by trailing
+    punctuation (e.g. "500000)" copied from prose) would otherwise reach the
+    pipeline and crash Groovy `params.X as int` (observed 2026-10-07: WGS
+    max_spots="500000)" → NumberFormatException, run dead in ~6s). Earlier
+    guardrails validated the *extracted* params but not this executable copy
+    (two-copies divergence), and schema-typed coercion missed max_spots because
+    the schema mistyped it as "string". This is the single chokepoint for EVERY
+    run, independent of how the param was produced.
+
+    Mutates params in place. Safe: the regex requires leading digits then only
+    non-word, non-space trailing chars, so it never matches SMILES ("CC(=O)..."),
+    gene names ("53BP1"), unit values ("500mg"), accessions, or s3://paths. A
+    value that is already clean, or not number-like, is left untouched.
+    """
+    for _k, _v in list(params.items()):
+        if isinstance(_v, str):
+            _m = _NUM_TRAILING_JUNK_RE.match(_v)
+            if _m and _m.group(1) != _v:
+                log.info("[ParamSanitize run=%s] --%s %r -> %r (stripped trailing punctuation)",
+                         run_id, _k, _v, _m.group(1))
+                params[_k] = _m.group(1)
+
+
+def _normalize_smiles_list_param(params: dict, run_id: str = "") -> None:
+    """Authoritative guard: `smiles_list` MUST reach the pipeline as a JSON-ARRAY
+    string — the form ADMET / drug-discovery workflows declare and parse
+    (`params.smiles_list = '["CC...","..."]'`).
+
+    A bare SMILES ("CC(C)(C)c1ccc...") or a comma/newline-separated list arrives as
+    non-JSON and aborts the Nextflow session at parse time ("Unable to determine the
+    current character ... 'C'", line 1 index 0) — observed 2026-10-29 on a
+    terfenadine ADMET run, run died in ~17s before any process. Scoped to the one
+    key: a value already a valid JSON array is canonicalized; a Python list, a bare
+    SMILES, or a comma/newline list is wrapped into a JSON array. Mutates in place.
+    SMILES never contain commas, so comma/newline splitting is safe.
+    """
+    import json as _slj
+    if "smiles_list" not in params:
+        return
+    v = params["smiles_list"]
+    items = None
+    if isinstance(v, list):
+        items = [str(x).strip() for x in v if str(x).strip()]
+    elif isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return
+        if s.startswith("["):
+            try:
+                parsed = _slj.loads(s)
+                if isinstance(parsed, list):
+                    items = [str(x).strip() for x in parsed if str(x).strip()]
+            except Exception:
+                items = None  # looks like an array but isn't valid JSON → rebuild
+        if items is None:
+            items = [x.strip() for x in re.split(r"[,\n]+", s) if x.strip()]
+    else:
+        return
+    if items is None:
+        return
+    new_val = _slj.dumps(items)
+    if new_val != v:
+        log.info("[SmilesNorm run=%s] smiles_list %r -> %r", run_id, v, new_val)
+    params["smiles_list"] = new_val
+
+
+_FILE_REF_EXT_RE = re.compile(
+    r'\.(csv|tsv|txt|json|rds|rdata|h5ad|h5|loom|mtx|gmt|gmx|list|tab|parquet|'
+    r'vcf|bed|gff|gtf|fa|fasta|fastq|bam|cram|maf|xlsx?)(\.(gz|bz2|zip))?$',
+    re.IGNORECASE,
+)
+_URI_SCHEME_RE = re.compile(r'^[a-z][a-z0-9+.-]*://')
+
+
+def _looks_like_single_file_ref(value: str) -> bool:
+    """True if a string is a SINGLE file reference (a URI like s3://…/x.csv or a path
+    ending in a data-file extension) rather than a list of values.
+
+    Used to stop the ``*_list`` JSON-array wrapping (meant for value lists like
+    ``smiles_list='["CC...","..."]'``) from mangling a FILE-PATH param whose name
+    merely ends in ``_list`` (e.g. ``gene_list=s3://…/gene_list.txt``, which
+    clusterProfiler reads via ``Channel.fromPath(params.gene_list)``). Wrapping that
+    into ``["s3://…"]`` made Nextflow fail with 'Illegal character in scheme name'."""
+    s = (value or "").strip()
+    if not s or s.startswith("[") or "," in s or "\n" in s:
+        return False  # JSON array / multi-value list → not a single file
+    return bool(_URI_SCHEME_RE.match(s) or _FILE_REF_EXT_RE.search(s))
+
+
 def _execute_nextflow_impl(
     request: NextflowExecuteRequest,
     _run_id: Optional[str] = None,
@@ -6138,6 +7302,12 @@ def _execute_nextflow_impl(
 
     # Pre-flight: check if this pipeline can run on this host with these settings.
     params = dict(request.parameters or {})
+    # Authoritative sanitize of executable overrides before input validation /
+    # --params-file / `nextflow run` (fixes e.g. WGS max_spots="500000)").
+    _sanitize_numeric_overrides(params, run_id=_run_id or "")
+    # Authoritative: coerce smiles_list to a JSON-array string (a bare SMILES aborts
+    # the Nextflow session at JSON parse — terfenadine ADMET run, 2026-10-29).
+    _normalize_smiles_list_param(params, run_id=_run_id or "")
     # `profile` and `executor` are Nextflow CLI / compute options — not pipeline params.
     # Passing them as --profile in the param loop breaks nf-core (duplicate -profile vs --profile).
     _param_profile = params.pop("profile", None)
@@ -6333,6 +7503,11 @@ def _execute_nextflow_impl(
         user_id=str(request.user_id) if hasattr(request, "user_id") else "anonymous",
     )
 
+    # Docking-class param normalization (box_center/box_size → JSON vectors;
+    # smiles_list compound NAMES → SMILES). Same pre-launch boundary as the
+    # sequence coercion above. No-op for non-docking workflows.
+    _normalize_docking_params(params)
+
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
     _validate_epitope_netmhc_params(nf_path, params)
@@ -6420,6 +7595,11 @@ def _execute_nextflow_impl(
         raise HTTPException(status_code=503, detail=str(e))
 
     cmd = [nf_bin, "run", str(nf_path)]
+    # Framework version this pipeline needs (DSL1 -> 22.10.8 + -dsl1; a newer
+    # manifest requirement -> that version). Applied to env["NXF_VER"] below.
+    _run_nxf_ver, _run_dsl1 = _pipeline_nextflow_version(nf_path)
+    if _run_dsl1:
+        cmd.append("-dsl1")
 
     # Entry selection: honor explicit request first; otherwise auto-detect for
     # scripts with named-only workflows (e.g. runnable subworkflows).
@@ -6560,6 +7740,30 @@ def _execute_nextflow_impl(
             cmd.append("-resume")
             log.info(f"[Nextflow run {run_id}] Resuming from {request.resume_from_run_id}, work_dir={prev_work}")
 
+    # Real nf-core pipelines read list/map params as Groovy collections (e.g. proteomicslfq 1.0.0
+    # `input = [a.mzML, b.mzML]`); the JSON-string encoding below exists for BioMate's own .nf, whose
+    # auto_convert() json.loads them. A JSON string reached proteomicslfq as one non-file value
+    # ("EITHER spectra data OR an SDRF needs to be provided", 2026-11-06). For nf-core pipelines,
+    # collections go through -params-file as native JSON, which Nextflow loads as lists/maps.
+    _native_collections = (
+        "/nf-core-workflows/" in str(nf_path) and "/nf-core-workflows/modules/" not in str(nf_path)
+    )
+    _native_params: dict = {}
+    # A param the real nf-core pipeline does not declare never helps: Nextflow ignores it or the
+    # pipeline's schema validation rejects it. Display stubs carried such names (proteomicslfq's
+    # enable_umi). Drop them here so API / MCP callers are covered too, not only the catalog path.
+    if _native_collections:
+        try:
+            from galaxy.ai.executed_schema import executed_pipeline_params  # noqa: PLC0415
+            _declared = executed_pipeline_params(str(request.nextflow_path or nf_path))
+        except Exception:
+            _declared = None
+        if _declared:
+            _undeclared = [k for k in params if k not in _declared["known"] and k != "outdir"]
+            for _k in _undeclared:
+                params.pop(_k, None)
+            if _undeclared:
+                log.info(f"[Nextflow run {run_id}] dropped params the pipeline does not declare: {_undeclared}")
     if _has_multiline:
         # One or more params contain embedded newlines (inline CSV/SMILES/FASTA).
         # Nextflow 25.x --params-file silently drops multi-line string values
@@ -6589,6 +7793,8 @@ def _execute_nextflow_impl(
                 _params_for_json[key] = value
             elif isinstance(value, (int, float)):
                 _params_for_json[key] = value
+            elif isinstance(value, (list, dict)) and _native_collections:
+                _params_for_json[key] = value
             elif isinstance(value, (list, dict)):
                 # Serialize collections as JSON, NOT str() — str([...]) emits a
                 # Python repr with single quotes ("['CC(=O)...']") which the
@@ -6597,10 +7803,14 @@ def _execute_nextflow_impl(
                 # SMILES → 0 valid molecules → admet-ai crash). json.dumps yields
                 # valid JSON that json.loads round-trips. Fixes ~272 workflows.
                 _params_for_json[key] = _ml_json.dumps(value)
-            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")) \
+                    and not _looks_like_single_file_ref(value):
                 # Workflow expects a JSON array string (e.g. smiles_list). If Galaxy AI
                 # extracted a single value as a bare string, wrap it so JsonSlurper
-                # in the .nf doesn't throw JsonException on a non-JSON scalar.
+                # in the .nf doesn't throw JsonException on a non-JSON scalar. BUT NOT
+                # when the value is a single file reference (e.g. gene_list=s3://…/x.txt,
+                # read via Channel.fromPath) — wrapping that → "Illegal character in
+                # scheme name". _looks_like_single_file_ref guards that.
                 _stripped = value.strip()
                 try:
                     _pl = _ml_json.loads(_stripped)
@@ -6635,14 +7845,20 @@ def _execute_nextflow_impl(
                 cmd += ["--outdir", str(value)]
             elif isinstance(value, bool):
                 cmd += [f"--{key}", "true" if value else "false"]
+            elif isinstance(value, (list, dict)) and _native_collections:
+                _native_params[key] = value
             elif isinstance(value, (list, dict)):
                 # JSON, not str() — see the --params-file path above: str([...])
                 # emits a single-quoted Python repr that auto_convert(json.loads)
                 # can't parse, so a list param was consumed as one string value.
                 import json as _cli_json
                 cmd += [f"--{key}", _cli_json.dumps(value)]
-            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")) \
+                    and not _looks_like_single_file_ref(value):
                 # Same *_list wrapping for CLI flag path (single-SMILES bare string case).
+                # Skip when the value is a single file ref (e.g. gene_list=s3://…/x.txt
+                # read via Channel.fromPath) — wrapping it → "Illegal character in scheme
+                # name" (clusterProfiler enrichGO, 2026-11-05).
                 import json as _cli_json
                 _stripped = value.strip()
                 try:
@@ -6653,6 +7869,12 @@ def _execute_nextflow_impl(
             else:
                 cmd += [f"--{key}", str(value)]
 
+    if _native_params:
+        import json as _np_json
+        _native_path = log_dir / "nf-params-collections.json"
+        _native_path.write_text(_np_json.dumps(_native_params, indent=2))
+        cmd += ["-params-file", str(_native_path)]
+        log.info(f"[Nextflow run {run_id}] -params-file (native collections): {list(_native_params)}")
     log.info(f"[Nextflow run {run_id}] cmd: {' '.join(cmd)}")
     log.info(f"[Nextflow run {run_id}] outdir: {outdir}")
     if selected_entry:
@@ -6664,6 +7886,12 @@ def _execute_nextflow_impl(
 
     # Environment — strip BASH_FUNC_* (bash completion exports break AWS Batch .command.sh)
     env = _sanitize_subprocess_env()
+    if _run_nxf_ver != env.get("NXF_VER"):
+        env["NXF_VER"] = _run_nxf_ver
+        log.info(
+            "[Nextflow run %s] NXF_VER=%s%s (pipeline requirement)",
+            run_id, _run_nxf_ver, " -dsl1" if _run_dsl1 else "",
+        )
     # SHARED NXF_HOME — was per-run, causing 16 concurrent NF heads to all
     # download the same nf-amazon plugin to their own private dirs and race
     # on plugin-jar extraction (similar mechanism to the AWS CRT race below).
@@ -6862,6 +8090,39 @@ def _execute_nextflow_impl(
                     f"SRA natively → passing raw accession (skipping fetchngs prefetch)"
                 )
                 continue
+            # Skip the fetchngs prefetch for GEO accessions (GSE/GSM) when the target
+            # workflow self-fetches GEO via getGEO (geo_data_connector / geo_scrna_pseudobulk).
+            # The GEO registry entry maps GSE→handler="sequencing", so otherwise the chain
+            # runs nf-core/fetchngs on the GEO id — which FAILS outright for a microarray
+            # series (no SRA runs) and is the wrong fetcher for array/bulk data getGEO already
+            # downloads. Pass the raw accession through so the workflow's own getGEO fires.
+            # (root cause of the GSE22055 geo_data_connector chain-step failure, 2026-11-02)
+            if (
+                info["handler"] == "sequencing"
+                and "GEO" in info.get("label", "")
+                and _workflow_fetches_geo_natively(str(nf_path))
+            ):
+                log.info(
+                    f"[Nextflow run {run_id}] --{key}={info['accession']}: workflow self-fetches "
+                    f"GEO (getGEO) → passing raw accession (skipping fetchngs prefetch)"
+                )
+                continue
+            # Skip the HOST prefetch for STRUCTURE accessions (PDB/EMDB) on AWS Batch
+            # when the workflow self-fetches the id. Host-prefetching writes the .pdb to
+            # a Galaxy-local path the Batch container can't see; the workflow's own
+            # fetch_pdb()/s3-stage branch handles the bare id correctly. Pass it through.
+            # (On local/docker the host path is volume-mounted and visible, so keep the
+            # prefetch there — only _is_batch is affected.)
+            if (
+                info["handler"] == "structure"
+                and _is_batch
+                and _workflow_fetches_structure_natively(str(nf_path))
+            ):
+                log.info(
+                    f"[Nextflow run {run_id}] --{key}={info['accession']}: Batch + workflow "
+                    f"self-fetches structure → passing raw PDB/EMDB id (skipping host prefetch)"
+                )
+                continue
             accession_params[key] = info
             log.info(
                 f"[Nextflow run {run_id}] Detected {info['label']} accession in "
@@ -6949,6 +8210,11 @@ def _execute_nextflow_impl(
         "billing_instance_type": _billing_instance_type,
         # Accession metadata (empty dict when not applicable)
         "accession_params": {k: v["label"] for k, v in accession_params.items()},
+        # Input parameters the run READ — persisted so the datasets_object
+        # API can list which runs consumed a given dataset (honest-empty when
+        # a run supplied no file/S3 params). See datasets_object.py.
+        "parameters": dict(request.parameters or {}),
+        "resume_from_run_id": request.resume_from_run_id,
     }
     with _runs_lock:
         _runs[run_id] = dict(_run_record_init)
@@ -6990,6 +8256,11 @@ def _execute_nextflow_impl(
                 "trace_path": trace_path,
                 "env": env,
                 "executor_config_path": executor_config_path,
+                # Thread the main run's S3 locations so the fetchngs pre-step runs
+                # on Batch with an S3 work dir (root-cause fix: a local -w under the
+                # awsbatch executor crashes rc=1). Empty on local/non-batch runs.
+                "s3_work_dir": _s3_work_dir if _is_batch else "",
+                "s3_outdir": str(outdir) if _is_batch and str(outdir).startswith("s3://") else "",
             },
             daemon=True,
             name=f"nf-acc-{run_id[:8]}",
@@ -7284,6 +8555,182 @@ def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
     return {"steps": steps, "count": len(steps)}
 
 
+# ── Skip-dependency analysis (spec 02 §2.5.1) ───────────────────────────────
+# Per-phase declared-skip state, DAG-aware. A phase is skippable ONLY when the
+# workflow declares a `skip_*` parameter for a process in that phase (real
+# declared capability — not a universal toggle). DAG dependency is derived from
+# the two honest signals in the workflow definition the executor already parses:
+#   (a) declared `params.skip_*` → maps to the phase(s) whose process bodies
+#       reference it, giving `skippable=true` + the param name.
+#   (b) channel wiring in the `workflow {}` body (`PROC.out` consumed by a later
+#       process) → real load-bearing edges between phases. When a phase feeds a
+#       NON-skippable downstream phase, skipping is BLOCKED (`blocks`); when it
+#       only feeds SKIPPABLE downstream phases, skipping is advisory (`warn`).
+# When the .nf has no channel wiring (param-extraction stubs), the fallback is
+# phase order: a non-skippable phase is load-bearing for later phases
+# (`blocks`); a skippable phase warns for its later phases (`warn`). No skip
+# params anywhere → every phase honestly renders not-skippable, blocking nothing.
+
+# params that look like a real skip toggle: skip_*, no_*, or *_skip
+_SKIP_PARAM_RE = re.compile(r'params\.((?:skip_|no_)[a-zA-Z0-9_]+|[a-zA-Z0-9_]+_skip)')
+
+
+def _analyze_skip_dependency(nextflow_path: str) -> List[Dict[str, Any]]:
+    """Return per-phase skip/DAG info as a list of PhaseSkipInfo-shaped dicts.
+
+    Shape per phase (matches the frontend SkipDependency `PhaseSkipInfo`):
+        {id, label, skippable, param?, why, blocks?, warn?}
+    """
+    # 1. Parse steps (gives phase_group / phase_label / tool_id per step).
+    from galaxy.webapps.galaxy.api.ai_assistant import _parse_nextflow_steps
+    steps = _parse_nextflow_steps(nextflow_path) or {}
+    db_steps = _steps_from_db_metadata(nextflow_path)
+    if db_steps and not (len(db_steps) <= 1 < len(steps)):
+        steps = db_steps
+    if not steps:
+        steps = _steps_synthetic_from_db(nextflow_path)
+
+    # Ordered list of phase keys, file order preserved, deduped.
+    phase_order: List[str] = []
+    phase_label: Dict[str, str] = {}
+    phase_tools: Dict[str, List[str]] = {}
+    for _k in sorted(steps.keys(), key=lambda s: int(s) if str(s).isdigit() else 0):
+        st = steps[_k]
+        pg = (st.get("phase_group") or "").strip()
+        if not pg:
+            # No phase annotation → single implicit phase; not phase-split.
+            continue
+        if pg not in phase_order:
+            phase_order.append(pg)
+            phase_label[pg] = (st.get("phase_label") or "").strip() or f"Phase {pg}"
+            phase_tools[pg] = []
+        tid = (st.get("tool_id") or "").upper()
+        if tid:
+            phase_tools[pg].append(tid)
+
+    if not phase_order:
+        return []
+
+    # 2. Read the raw .nf so we can map skip params → phases and parse wiring.
+    content = ""
+    try:
+        nf_file = _resolve_nextflow_path(nextflow_path)
+        content = nf_file.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        content = ""
+
+    # 2a. Per-process skip-param references, keyed by UPPER process name.
+    proc_skip_params: Dict[str, List[str]] = {}
+    if content:
+        proc_starts = list(re.finditer(r'^process\s+(\w+)\s*\{', content, re.MULTILINE))
+        for i, pm in enumerate(proc_starts):
+            pname = pm.group(1).upper()
+            start = pm.end()
+            end = proc_starts[i + 1].start() if i + 1 < len(proc_starts) else len(content)
+            body = content[start:end]
+            refs = [g.group(1) for g in _SKIP_PARAM_RE.finditer(body)]
+            if refs:
+                proc_skip_params[pname] = list(dict.fromkeys(refs))
+
+    # Phase → declared skip param: the first skip param referenced by any of the
+    # phase's processes (honest: only a phase that actually gates on the param).
+    phase_skip_param: Dict[str, Optional[str]] = {}
+    for pg in phase_order:
+        chosen: Optional[str] = None
+        for tid in phase_tools.get(pg, []):
+            for sp in proc_skip_params.get(tid, []):
+                chosen = sp
+                break
+            if chosen:
+                break
+        phase_skip_param[pg] = chosen
+
+    # 2b. Channel-wiring DAG edges: PROC_A.out consumed inside PROC_B(...).
+    tool_to_phase: Dict[str, str] = {}
+    for pg in phase_order:
+        for tid in phase_tools.get(pg, []):
+            tool_to_phase.setdefault(tid, pg)
+
+    # downstream[pg] = set of phases that consume pg's outputs.
+    downstream: Dict[str, set] = {pg: set() for pg in phase_order}
+    wiring_found = False
+    if content and ".out" in content:
+        for call in re.finditer(r'\b([A-Z][A-Z0-9_]+)\s*\(([^)]*)\)', content):
+            consumer = call.group(1)
+            args = call.group(2)
+            cons_phase = tool_to_phase.get(consumer)
+            if not cons_phase:
+                continue
+            for prod_m in re.finditer(r'\b([A-Z][A-Z0-9_]+)\.out\b', args):
+                producer = prod_m.group(1)
+                prod_phase = tool_to_phase.get(producer)
+                if prod_phase and prod_phase != cons_phase:
+                    downstream[prod_phase].add(cons_phase)
+                    wiring_found = True
+
+    if not wiring_found:
+        # Fallback: linear phase order — each phase feeds all later phases.
+        for i, pg in enumerate(phase_order):
+            for later in phase_order[i + 1:]:
+                downstream[pg].add(later)
+
+    # 3. Assemble PhaseSkipInfo per phase.
+    result: List[Dict[str, Any]] = []
+    for pg in phase_order:
+        param = phase_skip_param.get(pg)
+        skippable = param is not None
+        label = phase_label.get(pg, f"Phase {pg}")
+        deps = downstream.get(pg, set())
+        dep_ids = [d for d in phase_order if d in deps]  # stable file order
+
+        info: Dict[str, Any] = {"id": pg, "label": label, "skippable": skippable}
+        if skippable:
+            info["param"] = param
+            if dep_ids:
+                info["warn"] = dep_ids
+                info["why"] = (
+                    f"{label} — the workflow declares `{param}`, so this phase can be skipped. "
+                    f"Downstream phases still run but with reduced input."
+                )
+            else:
+                info["why"] = (
+                    f"{label} — the workflow declares `{param}`, so this phase can be skipped "
+                    f"without affecting downstream phases."
+                )
+        else:
+            if dep_ids:
+                info["blocks"] = dep_ids
+                info["why"] = (
+                    f"{label} — this workflow does not declare a skip parameter for this phase, "
+                    f"and its output feeds downstream phases, so it always runs."
+                )
+            else:
+                info["why"] = (
+                    f"{label} — this workflow does not declare a skip parameter for this phase, "
+                    f"so it always runs."
+                )
+        result.append(info)
+
+    return result
+
+
+@router.get("/api/nextflow/skip-analysis",
+            summary="Per-phase declared-skip + DAG-dependency analysis for a workflow")
+def get_nextflow_skip_analysis(nextflow_path: str = "") -> Dict[str, Any]:
+    """
+    Return per-phase skip/dependency info for a Nextflow workflow, derived from
+    the workflow definition the executor already parses (declared `skip_*` params
+    + DAG channel wiring / phase order). Consumed by the SkipDependency panel.
+
+    Response: {"phases": [PhaseSkipInfo...], "count": N}. Empty `phases` means the
+    workflow has no annotated phase groups (renders nothing, honestly).
+    """
+    if not nextflow_path:
+        raise HTTPException(status_code=400, detail="nextflow_path is required")
+    phases = _analyze_skip_dependency(nextflow_path)
+    return {"phases": phases, "count": len(phases)}
+
+
 @router.post("/api/nextflow/resume/{run_id}", summary="Resume a Nextflow run with -resume")
 def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()) -> Dict[str, Any]:
     """
@@ -7416,12 +8863,56 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
             invocation_id = info.get("invocation_id")
             proc = info.get("process")
 
+    # A late QC event must not overwrite completion, and a pause needs a
+    # controller that can actually be stopped. Check before writing paused state.
+    previous = dict(info or {})
+    if soft and not previous:
+        previous = dict(get_run_state_store().get_run(run_id) or {})
+    previous_status = previous.get("status")
+    if soft and previous_status in {"completed", "succeeded", "failed", "cancelled"}:
+        return {"run_id": run_id, "ok": False, "status": previous_status, "note": "already-terminal"}
+    if soft and proc is not None and proc.poll() is not None:
+        return {"run_id": run_id, "ok": False, "status": previous_status, "note": "already-exited"}
+    pause_pids = _find_nextflow_pids_for_run(run_id) if soft and proc is None else None
+    if soft and proc is None and not pause_pids:
+        return {"run_id": run_id, "ok": False, "status": previous_status, "note": "no-process-found"}
+
+    # Write the terminal status BEFORE signalling the process. The completion
+    # thread (process.wait()) wakes the instant the SIGTERM lands and classifies
+    # the run by returncode (<0 → interrupted/failed). If "paused"/"cancelled"
+    # isn't already recorded, it clobbers the deliberate pause/cancel to a false
+    # "failed" (the ADMET-run-shows-Failed bug) and Resume dies. Setting it first
+    # lets the returncode<0 handler recognise the signal-kill as intentional.
+    _terminal_status = "paused" if soft else "cancelled"
+    _completed_at_now = time.time()
+    with _runs_lock:
+        if soft and (_runs.get(run_id) or {}).get("status") in {"completed", "succeeded", "failed", "cancelled"}:
+            return {"run_id": run_id, "ok": False, "status": _runs[run_id]["status"], "note": "already-terminal"}
+        if run_id in _runs:
+            _runs[run_id]["status"] = _terminal_status
+            _runs[run_id]["completed_at"] = _completed_at_now
+    try:
+        get_run_state_store().update_run(
+            run_id, status=_terminal_status, completed_at=_completed_at_now)
+    except Exception as _pre_exc:
+        log.debug("[runs] pre-terminate status write failed for %s: %s", run_id, _pre_exc)
+
     pids_terminated: List[int] = []
     note: str
 
     if proc is not None:
         rc = proc.poll()
         if rc is not None:
+            if soft:
+                with _runs_lock:
+                    current_status = (_runs.get(run_id) or {}).get("status")
+                    restored_status = current_status if current_status not in (None, "paused") else previous_status
+                    if run_id in _runs:
+                        _runs[run_id]["status"] = restored_status
+                        _runs[run_id]["completed_at"] = previous.get("completed_at")
+                get_run_state_store().update_run(run_id, status=restored_status,
+                                                completed_at=previous.get("completed_at"))
+                return {"run_id": run_id, "ok": False, "status": restored_status, "note": "already-exited"}
             return {"run_id": run_id, "ok": True, "status": info.get("status") if info else None, "note": "already-exited"}
         try:
             proc.terminate()
@@ -7439,7 +8930,7 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
         # Multi-worker fallback: find the Nextflow Java PID by run_id match.
         import os as _os
         import signal as _signal
-        pids = _find_nextflow_pids_for_run(run_id)
+        pids = pause_pids if soft else _find_nextflow_pids_for_run(run_id)
         for pid in pids:
             try:
                 _os.kill(pid, _signal.SIGTERM)
@@ -7457,6 +8948,15 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
             note = "by-pgrep"
         else:
             note = "no-process-found"
+
+    if soft and not pids_terminated:
+        with _runs_lock:
+            if run_id in _runs:
+                _runs[run_id]["status"] = previous_status
+                _runs[run_id]["completed_at"] = previous.get("completed_at")
+        get_run_state_store().update_run(run_id, status=previous_status,
+                                        completed_at=previous.get("completed_at"))
+        return {"run_id": run_id, "ok": False, "status": previous_status, "note": note}
 
     _terminal_status = "paused" if soft else "cancelled"
     _completed_at_now = time.time()
@@ -7764,71 +9264,10 @@ def _get_nextflow_status_impl(
                     "duration_s": _fb_duration_s,
                 }
 
-            # S3 completion heuristic: if ≥3 output files exist and the run has been going
-            # for >5 min without a Nextflow "Execution complete" log, treat as completed.
-            # This handles the race where Nextflow exits cleanly but its log line is read
-            # before the final write, leaving the executor stuck in "running" indefinitely.
-            if _s3_outdir and _fb_started_at:
-                import subprocess as _sp_h
-                # Defensive: if the aws CLI isn't installed in the Galaxy
-                # container (stale image without the Dockerfile's
-                # /opt/aws-cli install step), don't 500 the entire status
-                # endpoint — every poll would crash with
-                # FileNotFoundError: [Errno 2] No such file or directory:
-                # 'aws'. Prefer the self-contained absolute path Galaxy's
-                # Dockerfile installs to (/opt/aws-cli/bin/aws), then PATH
-                # lookup, then bail gracefully.
-                _h_files = []
-                try:
-                    _h_ls = _sp_h.run(
-                        [_aws_cli_bin(), "s3", "ls", _s3_outdir + "/", "--recursive"],
-                        capture_output=True, text=True, timeout=10,
-                    )
-                except FileNotFoundError:
-                    log.warning(
-                        "[Nextflow] aws CLI not available for S3 completion heuristic "
-                        "(neither /opt/aws-cli/bin/aws nor PATH lookup found). "
-                        "Status endpoint will continue without S3-based terminal detection."
-                    )
-                    _h_ls = None
-                except Exception as _h_ls_err:
-                    log.warning("[Nextflow] aws s3 ls failed for heuristic: %s", _h_ls_err)
-                    _h_ls = None
-                for _hl in (_h_ls.stdout.splitlines() if _h_ls else []):
-                    _hp = _hl.split()
-                    if len(_hp) >= 4:
-                        _hf = _hp[3].split("/")[-1]
-                        _he = _hf.rsplit(".", 1)[-1].lower() if "." in _hf else ""
-                        if _he in {"json", "csv", "html", "png", "pdf"}:
-                            _h_files.append({"s3_uri": f"s3://{_s3_outdir.split('s3://')[1].split('/')[0]}/{_hp[3]}", "filename": _hf, "size": int(_hp[2]) if _hp[2].isdigit() else 0})
-                _h_elapsed = time.time() - _fb_started_at
-                if len(_h_files) >= 3 and _h_elapsed > 300:
-                    if _looks_like_false_success(
-                        log_full_text=log_full_text,
-                        log_tail=log_tail_fallback,
-                        total_steps=0,
-                        duration_s=int(_h_elapsed),
-                        s3_output_files=_h_files,
-                        workflow_domain=_disk_timing.get("workflow_domain", ""),
-                        nextflow_path=_disk_timing.get("nextflow_path", ""),
-                    ):
-                        log.warning(
-                            "[Nextflow] S3 completion heuristic suppressed for %s (false success)",
-                            run_id,
-                        )
-                    else:
-                        log.info("[Nextflow] S3 completion heuristic: %d files, %.0fs elapsed — marking completed", len(_h_files), _h_elapsed)
-                        _fb_procs_h = _build_processes_from_s3_files(_h_files, _s3_outdir, "")
-                        return {
-                            "run_id": run_id, "invocation_id": run_id,
-                            "status": "completed", "returncode": 0,
-                            "outdir": _s3_outdir, "work_dir": str(log_dir / "work"),
-                            "log_tail": log_tail_fallback, "is_batch": True,
-                            "s3_output_files": _h_files, "completedSteps": len(_h_files),
-                            "totalSteps": len(_h_files), "progressPercent": 100,
-                            "processes": _fb_procs_h, "started_at": _fb_started_at,
-                            "completed_at": time.time(), "duration_s": int(_h_elapsed),
-                        }
+            # S3 files are surfaced below for observability, but are never a
+            # terminal signal. Nextflow may publish intermediate output before
+            # a subsequent process fails. A terminal state requires an explicit
+            # process exit result, timing record, or completed workflow trace.
 
             # Still running — list intermediate S3 outputs so the UI can show them
             _running_s3_files: list = []
@@ -7970,27 +9409,11 @@ def _get_nextflow_status_impl(
         end = completed_at if completed_at else now
         duration_s = int(end - started_at)
 
-    # S3 completion heuristic for Batch runs stuck in "running":
-    # EventBridge sometimes fails to update status after Nextflow exits.
-    # If ≥3 JSON/CSV output files exist AND >5 min elapsed → treat as completed.
+    # Presence of S3 files is not a terminal signal: those files can be
+    # intermediate artifacts from a workflow that is still running or later
+    # fails. Keep the executor's stored status until explicit completion
+    # evidence (process exit status or completed trace) is available.
     _info_status = info.get("status", "running")
-    if _info_status == "running" and s3_files and started_at:
-        _s3_data_files = [f for f in s3_files
-                          if str(f.get("filename", "")).rsplit(".", 1)[-1].lower() in {"json", "csv", "html", "png", "pdf"}]
-        _elapsed = now - started_at
-        if len(_s3_data_files) >= 3 and _elapsed > 300:
-            if not _looks_like_false_success(
-                log_full_text=log_full_text,
-                log_tail=log_tail,
-                total_steps=progress.get("totalTasks", progress.get("totalSteps", 0)),
-                duration_s=int(_elapsed),
-                s3_output_files=s3_files,
-                workflow_domain=workflow_domain,
-                nextflow_path=info.get("nextflow_path", ""),
-            ):
-                log.info("[Nextflow] S3 completion heuristic (normal path): %d files, %.0fs → completed", len(_s3_data_files), _elapsed)
-                _info_status = "completed"
-                completed_at = completed_at or now
 
     _nf_path_for_status = info.get("nextflow_path", "")
     _is_personal_nf_status = str(_nf_path_for_status).startswith("/tmp/biomate_user_nf/")
@@ -8169,18 +9592,26 @@ def download_local_output(run_id: str, rel_path: str) -> Any:
 
 @router.get("/api/nextflow/outputs/download", summary="Generate presigned download URL for S3 output")
 def download_s3_output(
-    s3_uri: str,
     run_id: str,
+    s3_uri: Optional[str] = None,
+    local_path: Optional[str] = None,
     presigned_only: int = 0,
 ) -> Any:
     """
-    Generate a presigned S3 GET URL for a workflow output file.
+    Generate a presigned S3 GET URL for an S3 workflow output file, or stream
+    a local workflow output file.
 
     Security: the requested s3_uri must belong to the outdir of the given run_id.
     Returns a 302 redirect to the presigned URL (15-minute expiry).
     If presigned_only=1, returns JSON {"url": "..."} instead of redirecting.
     """
     from starlette.responses import RedirectResponse
+
+    if bool(s3_uri) == bool(local_path):
+        raise HTTPException(
+            status_code=400,
+            detail="Provide exactly one of s3_uri or local_path.",
+        )
 
     info = _run_lookup(run_id)
     if info is None:
@@ -8193,6 +9624,32 @@ def download_s3_output(
             raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     outdir = str(info.get("outdir", ""))
+
+    # Local development runs are real workflow outputs too.  The listing
+    # endpoint used to advertise them through this S3-only handler, which
+    # always returned 400.  Keep the same run-root authorization boundary as
+    # the S3 branch; do not serve an arbitrary path supplied by a client.
+    if local_path:
+        from starlette.responses import FileResponse
+
+        if outdir.startswith("s3://"):
+            raise HTTPException(status_code=400, detail="This run does not have local outputs.")
+        try:
+            output_root = Path(outdir).resolve(strict=True)
+            requested = Path(local_path).resolve(strict=True)
+            requested.relative_to(output_root)
+        except (FileNotFoundError, RuntimeError, ValueError):
+            raise HTTPException(status_code=404, detail="Local output file is unavailable.")
+        if not requested.is_file():
+            raise HTTPException(status_code=404, detail="Local output file is unavailable.")
+        # Unlike an S3 URL, a local file cannot be returned as a presigned URL.
+        if presigned_only:
+            raise HTTPException(
+                status_code=400,
+                detail="Local outputs do not have presigned URLs.",
+            )
+        return FileResponse(requested, filename=requested.name)
+
     if not outdir.startswith("s3://"):
         raise HTTPException(status_code=400, detail="This run does not have S3 outputs. Use /api/nextflow/outputs/local-download for local runs.")
 
@@ -8250,20 +9707,50 @@ def list_run_output_files(run_id: str) -> Any:
     List all output files for a completed run, with presigned S3 download URLs.
     Returns [{name, s3_uri, size, extension, download_url}].
     """
+    def _local_files(output_dir: Path) -> list:
+        """List local outputs with links that the download handler can serve.
+
+        `local_path` is still validated by `download_s3_output` against this
+        run's output root before any bytes are sent.
+        """
+        files = []
+        for f in sorted(output_dir.rglob("*")):
+            if f.is_file():
+                name = f.name
+                ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+                files.append({
+                    "name": name,
+                    "s3_uri": None,
+                    # rel_path / local_path: read by the on-prem frontend path (routes.ts, /outputs/local-download)
+                    "rel_path": str(f.relative_to(output_dir)),
+                    "local_path": str(f),
+                    "size": f.stat().st_size,
+                    "extension": ext,
+                    "download_url": (
+                        "/api/nextflow/outputs/download?local_path="
+                        f"{quote(str(f))}&run_id={quote(run_id)}"
+                    ),
+                })
+        return files
+
     info = _run_lookup(run_id)
     if info is None:
         work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
         output_dir = work_base / run_id / "output"
         if output_dir.exists():
-            local_files = _list_local_output_files(str(output_dir), run_id)
-            return {"run_id": run_id, "files": local_files}
+            return {"run_id": run_id, "files": _local_files(output_dir)}
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     outdir = str(info.get("outdir", ""))
     if not outdir.startswith("s3://"):
-        # Local executor (on-prem or personal workflow) — list filesystem outputs
-        local_files = _list_local_output_files(outdir, run_id)
-        return {"run_id": run_id, "files": local_files}
+        output_dir = Path(outdir)
+        if output_dir.is_dir():
+            return {"run_id": run_id, "files": _local_files(output_dir)}
+        return {
+            "run_id": run_id,
+            "files": [],
+            "note": "Local output directory is unavailable.",
+        }
 
     raw_files = _list_s3_output_files(outdir)
     if not raw_files:
@@ -8343,6 +9830,7 @@ async def list_qc_profiles() -> Dict[str, Any]:
             summary="Get QC event log for a workflow invocation")
 def get_invocation_qc_events(
     invocation_id: str,
+    request: Request,
     trans: ProvidesUserContext = DependsOnTrans,
 ):
     """
@@ -8368,6 +9856,20 @@ def get_invocation_qc_events(
                 break
 
         if monitor is None or monitor.qc_handler is None:
+            # Read the recorded local assessment before reconstructing it using
+            # a newer evaluator. Only use the run's stored directory.
+            snapshot = get_run_state_store().get_run(invocation_id) or {}
+            stored_workdir = snapshot.get("work_dir") or ""
+            if stored_workdir and not stored_workdir.startswith("s3://"):
+                recorded = Path(stored_workdir) / "qc_events.json"
+                if recorded.is_file():
+                    try:
+                        import json as _record_json
+                        report = _record_json.loads(recorded.read_text())
+                        if isinstance(report, dict) and isinstance(report.get("events"), list):
+                            return {**report, "source": "recorded_local"}
+                    except (OSError, ValueError):
+                        pass
             # Attempt to locate a persisted JSONL audit log even if monitor is gone
             import json as _json
             jobs_dir = getattr(getattr(trans.app, 'config', None), 'root', None)
@@ -8391,6 +9893,69 @@ def get_invocation_qc_events(
                         "events": entries,
                         "methods_text": "QC governance applied (see audit log for details).",
                     }
+
+            # On-demand S3 QC evaluation — the live monitor and audit log are both
+            # gone (reopened/historical run, or a Batch run whose Galaxy-side
+            # completion thread never fired), but the QC source files
+            # (qc_metrics.json / toxicity_report.json / qc_report.json) persist
+            # durably in S3. The caller (the Node /qc-events proxy, which owns the
+            # authoritative run->outdir lookup from Postgres) passes the run's
+            # outdir + domain as query params; evaluate the gates now from S3 and
+            # return the report. _evaluate_qc_from_s3 also writes the qc_events.json
+            # sidecar, so a second read is served from there. Without this, every
+            # AWS Batch run whose completion handler was orphaned shows the empty
+            # "all passed" QC fallback even though its gate data is sitting in S3.
+            _qp = request.query_params
+            _od_outdir = (_qp.get("outdir") or "").strip()
+            _od_domain = (_qp.get("workflow_domain") or _qp.get("domain") or "").strip()
+            _od_run_id = (_qp.get("run_id") or "").strip() or invocation_id
+            # Do NOT require a domain here: the stored run record often has a null
+            # domain (e.g. runs launched via the MCP session), but
+            # _evaluate_qc_from_s3 self-detects ADMET/CryoEM/preproc from the
+            # output FILE signatures (toxicity_report.json, qc_report.json, ...).
+            # Gate on a resolvable S3 outdir alone; non-QC domains return [] fast.
+            if _od_outdir.startswith("s3://"):
+                cached_report = _read_qc_events_sidecar(_od_outdir)
+                # A DEGRADED sidecar (QC couldn't be evaluated last time) is not a
+                # final answer — re-evaluate below so a transient S3 error recovers
+                # instead of being cached forever. A normal report is returned as-is.
+                if cached_report is not None and not cached_report.get("degraded"):
+                    return {**cached_report, "source": "s3_sidecar"}
+                try:
+                    import json as _json2
+                    _od_overrides = {}
+                    _ov_raw = _qp.get("qc_overrides") or ""
+                    if _ov_raw:
+                        try:
+                            _od_overrides = _json2.loads(_ov_raw)
+                        except Exception:
+                            _od_overrides = {}
+                    _od_files = _list_s3_output_files(_od_outdir)
+                    _od_degraded = bool(not _od_files and s3_list_last_error())
+                    _od_workdir = (_qp.get("workdir") or "").strip()
+                    if not _od_files and _od_workdir.startswith("s3://"):
+                        _od_files = _list_s3_work_output_files(_od_workdir)
+                        _od_degraded = bool(not _od_files and s3_list_last_error())
+                    # Runs the QC handler + writes <outdir>/output/qc_events.json.
+                    _evaluate_qc_from_s3(
+                        run_id=_od_run_id,
+                        s3_output_files=_od_files,
+                        workflow_domain=_od_domain,
+                        qc_overrides=_od_overrides,
+                        retrospective=True,
+                        outdir=_od_outdir,
+                        s3_list_degraded=_od_degraded,
+                    )
+                    # Read back the sidecar it just wrote (the full gate report).
+                    _sc = _read_qc_events_sidecar(_od_outdir)
+                    if _sc:
+                        _sc["invocation_id"] = invocation_id
+                        _sc["source"] = "s3_ondemand"
+                        return _sc
+                except Exception as _od_exc:  # noqa: BLE001
+                    log.warning("[QC Events] on-demand S3 eval failed for %s: %s",
+                                invocation_id, _od_exc)
+
             return {
                 "invocation_id": invocation_id,
                 "source": "not_found",
@@ -9028,19 +10593,20 @@ def _render_qc_report_html(report: Dict[str, Any]) -> str:
     active_overrides = report.get("active_overrides", {})
     gates_triggered = report.get("gates_triggered", 0)
     warnings_emitted = report.get("warnings_emitted", 0)
-    events = report.get("events", [])
+    from galaxy.ai.qc_records import normalize_qc_events
+    events = normalize_qc_events(report.get("events", []))
     methods_text = _html_escape(report.get("methods_text", ""))
     source = report.get("source", "unknown")
 
     generated_at = _dt.now(_tz.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     # Summary counts
-    gate_events = [e for e in events if e.get("type") == "gate"]
-    warn_events = [e for e in events if e.get("type") == "warning"]
-    total_steps = len(set(e.get("process_name", "") for e in events))
-    failed_steps = len(set(e.get("process_name", "") for e in gate_events))
-    warning_steps = len(set(e.get("process_name", "") for e in warn_events))
-    passed_steps = total_steps - failed_steps
+    gate_events = [e for e in events if e.get("status") == "fail"]
+    warn_events = [e for e in events if e.get("status") == "advisory"]
+    total_steps = len(events)
+    failed_steps = len(gate_events)
+    warning_steps = len(warn_events)
+    passed_steps = sum(e.get("status") == "pass" for e in events)
 
     # Build overrides table rows
     overrides_rows = ""
@@ -9056,25 +10622,17 @@ def _render_qc_report_html(report: Dict[str, Any]) -> str:
     # Build per-step event rows
     step_rows = ""
     for event in events:
-        etype = event.get("type", "")
-        process_name = _html_escape(event.get("process_name", "unknown"))
-        timestamp = _html_escape(event.get("timestamp", ""))
+        status = event.get("status", "not_evaluated")
+        process_name = _html_escape(event.get("process_name") or event.get("gate") or "unknown")
+        timestamp = _html_escape(event.get("ts") or event.get("timestamp") or "")
         profile_used = _html_escape(event.get("active_profile") or "none")
-
-        if etype == "gate":
-            status_cell = '<td class="status-failed">FAILED</td>'
-            row_class = "row-failed"
-            failures = event.get("failures", [])
-            detail_cells = _render_failures_cells(failures)
-        elif etype == "warning":
-            status_cell = '<td class="status-warning">WARNING</td>'
-            row_class = "row-warning"
-            warnings_list = event.get("warnings", [])
-            detail_cells = _render_warnings_cells(warnings_list)
-        else:
-            status_cell = '<td class="status-passed">PASSED</td>'
-            row_class = "row-passed"
-            detail_cells = "<td>-</td><td>-</td><td>-</td><td>-</td>"
+        row_class = "row-passed" if status == "pass" else "row-failed" if status == "fail" else "row-warning"
+        status_cell = f'<td>{_html_escape(status.upper().replace("_", " "))}</td>'
+        detail_cells = _render_failures_cells([{
+            **event, "metric": event.get("gate") or event.get("metric") or "",
+            "value": event.get("measured") if event.get("measured") is not None else "—",
+            "threshold": event.get("threshold") if event.get("threshold") is not None else "—",
+        }])
 
         step_rows += (
             f'<tr class="{row_class}">'
@@ -9089,7 +10647,7 @@ def _render_qc_report_html(report: Dict[str, Any]) -> str:
     if not step_rows:
         step_rows = (
             '<tr><td colspan="8" class="none">'
-            "No QC events recorded — all processes passed automatically."
+            "No QC evaluations recorded. Check outcomes are unavailable."
             "</td></tr>"
         )
 
@@ -9292,7 +10850,7 @@ def _render_qc_report_html(report: Dict[str, Any]) -> str:
       <div class="label">Failed Steps</div>
     </div>
     <div class="summary-card card-warning">
-      <div class="number">{warning_steps + warnings_emitted}</div>
+      <div class="number">{warning_steps}</div>
       <div class="label">Advisory Warnings</div>
     </div>
   </div>
@@ -11160,8 +12718,76 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         analyzer = OutputAnalyzer()
         analysis = analyzer.analyze(run_id, workflow_id, output_files)
     except Exception as exc:
-        logger.error("[analyze-outputs] OutputAnalyzer failed for run %s: %s", run_id, exc)
+        log.error("[analyze-outputs] OutputAnalyzer failed for run %s: %s", run_id, exc)
         raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
+
+    # ── Cross-omics biomarker drivers (multi-omics stratification runs) ──────────
+    # If this run produced a subtype/cluster assignment AND had >=2 omics input
+    # layers, name the features that drive the subtypes, corroborated across layers
+    # (fuse_channels via multiomics.biomarker_fusion). Best-effort: never break findings.
+    try:
+        _rec = _run_lookup(run_id) or {}
+        _omics = ((_rec.get("parameters") or {}).get("omics")) or []
+        # For real SNF runs `omics` is stored as a Python list (the run record keeps
+        # the ORIGINAL request params, not the serialized CLI form). But if a caller
+        # ever passed it as a JSON-array string, parse it rather than silently skip
+        # the driver hook (third-pass committee H2 — defensive, not a known live case).
+        if isinstance(_omics, str):
+            _s = _omics.strip()
+            if _s.startswith("["):
+                try:
+                    import json as _json
+                    _parsed = _json.loads(_s)
+                    if isinstance(_parsed, list):
+                        _omics = _parsed
+                except Exception:
+                    pass
+        # Basenames of the INPUT omics layers (to exclude re-published inputs — A3).
+        from galaxy.ai.multiomics.biomarker_fusion import select_cluster_output
+        _input_basenames = [os.path.basename(str(_u)) for _u in _omics] \
+            if isinstance(_omics, list) else []
+        _clusters_file = select_cluster_output(output_files, _input_basenames)
+        if _clusters_file and isinstance(_omics, list) and len(_omics) >= 2:
+            _cpath = _clusters_file.get("path") or ""
+            _ctext = ""
+            if _cpath and os.path.isfile(_cpath):
+                with open(_cpath) as _fh:
+                    _ctext = _fh.read()
+            if _ctext:
+                import asyncio as _asyncio
+                from galaxy.ai.multiomics.biomarker_fusion import drivers_from_run
+                # Run OFF the event loop (boto3 + numpy F-stats are blocking) and WITH a
+                # label-permutation significance pass (n_perm) so the Findings surface
+                # permutation-SIGNIFICANT drivers — not the relative-tail "corroborated"
+                # tier, which over-calls on null data (committee: the tier reported
+                # 42–56 false "corroborated" on random labels). FWER (max-statistic) p.
+                _drivers = await _asyncio.to_thread(
+                    drivers_from_run, _ctext, _omics, top_k=25, n_perm=50)
+                _sig = [d for d in _drivers if d.get("significant")]
+                if _drivers:
+                    for d in (_sig or _drivers)[:10]:
+                        _p = d.get("perm_p")
+                        _plabel = f"perm_p={_p:.3f}" if isinstance(_p, (int, float)) else "not sig-tested"
+                        analysis.key_results.append({
+                            "metric": f"driver:{d.get('entity')}",
+                            "value": round(float(d.get("score", 0.0)), 3),
+                            "interpretation": (
+                                f"{'significant' if d.get('significant') else 'candidate'} "
+                                f"({_plabel}) across {d.get('n_fired', 0)} layer(s): "
+                                f"{', '.join(d.get('fired_channels') or [])}"),
+                        })
+                    analysis.summary += (
+                        f" Cross-omics biomarker fusion: {len(_sig)} subtype driver(s) "
+                        f"permutation-significant (FWER p≤0.05) of {len(_drivers)} ranked.")
+                    if _sig:
+                        analysis.next_steps.append(
+                            "Validate the permutation-significant cross-omics drivers "
+                            "(e.g. targeted assay or survival association).")
+                    log.info("[analyze-outputs] cross-omics drivers for run %s: "
+                             "%d ranked, %d significant", run_id, len(_drivers), len(_sig))
+    except Exception as _bm_exc:
+        log.warning("[analyze-outputs] cross-omics biomarker fusion skipped for run %s: %s",
+                    run_id, _bm_exc)
 
     # ── Citation Search (best-effort) ────────────────────────────────────────────
     citations_serialized: List[Dict] = []
@@ -11175,7 +12801,7 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         ]
         report = reporter.generate(analysis, raw_citations)
     except Exception as exc:
-        logger.warning("[analyze-outputs] Citation/report generation failed: %s", exc)
+        log.warning("[analyze-outputs] Citation/report generation failed: %s", exc)
         # Build report without citations
         from galaxy.ai.finding_reporter import FindingReporter
         reporter = FindingReporter()
@@ -11186,7 +12812,7 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
     try:
         report_path = reporter.save_report(report, output_dir)
     except Exception as exc:
-        logger.warning("[analyze-outputs] Could not save findings_report.md: %s", exc)
+        log.warning("[analyze-outputs] Could not save findings_report.md: %s", exc)
 
     # ── Save findings_data.json sidecar (structured data for frontend) ───────────
     structured_payload = {
@@ -11208,7 +12834,7 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         if _figs:
             structured_payload["figures"] = _figs
     except Exception as _exc:
-        logger.warning("[analyze-outputs] figures adapter failed: %s", _exc)
+        log.warning("[analyze-outputs] figures adapter failed: %s", _exc)
     try:
         import json as _json
         os.makedirs(output_dir, exist_ok=True)
@@ -11216,7 +12842,7 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         with open(json_path, "w", encoding="utf-8") as fh:
             _json.dump(structured_payload, fh, ensure_ascii=False)
     except Exception as exc:
-        logger.warning("[analyze-outputs] Could not save findings_data.json: %s", exc)
+        log.warning("[analyze-outputs] Could not save findings_data.json: %s", exc)
 
     return {**structured_payload, "report_path": report_path}
 
@@ -11693,4 +13319,3 @@ async def browse_s3(
     except Exception as exc:
         log.exception("[browse_s3] Failed for bucket=%s prefix=%s: %s", bucket, prefix, exc)
         raise HTTPException(status_code=500, detail=str(exc))
-

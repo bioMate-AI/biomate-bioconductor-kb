@@ -121,7 +121,10 @@ export function WorkflowReportViewer({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh]">
+      {/* Reports are editable FILES, shown in a pane — not a centered pop-up
+          (design spec 12). Override the shadcn centered modal to a full-height
+          side panel anchored right; all editing/save/download/tabs are preserved. */}
+      <DialogContent className="!left-auto !right-0 !top-0 !translate-x-0 !translate-y-0 h-screen max-h-screen w-[min(1040px,96vw)] max-w-none border-l bg-background rounded-none overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />

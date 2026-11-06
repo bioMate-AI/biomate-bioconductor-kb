@@ -1,0 +1,250 @@
+{
+  "name": "display_ngs_multitarget",
+  "n_targets": 5,
+  "total_rows": 2215404,
+  "total_unique_peptides_across_targets": 525665,
+  "schema": [
+    "target",
+    "sequence",
+    "n_residues",
+    "round_or_io",
+    "count",
+    "enrichment_log2fc",
+    "cyclization",
+    "display_type",
+    "source_accession",
+    "is_binder"
+  ],
+  "min_count_floor": 3,
+  "binder_rule_global": "terminal/selected count>=10 AND log2fc>=2.0 (bucket by enriched tail, not quantiles)",
+  "per_target": {
+    "PADI4 (human peptidylarginine deiminase 4)": {
+      "rows": 1854030,
+      "unique_peptides": 370806,
+      "binder_peptides": 394
+    },
+    "hPCSK9 (human PCSK9)": {
+      "rows": 28270,
+      "unique_peptides": 14135,
+      "binder_peptides": 749
+    },
+    "FIKK13 (P. falciparum FIKK13 kinase)": {
+      "rows": 77484,
+      "unique_peptides": 12914,
+      "binder_peptides": 38
+    },
+    "Abeta42 (amyloid-beta 42)": {
+      "rows": 88234,
+      "unique_peptides": 44117,
+      "binder_peptides": 1104
+    },
+    "hIAPP (islet amyloid polypeptide / amylin)": {
+      "rows": 167386,
+      "unique_peptides": 83693,
+      "binder_peptides": 828
+    }
+  },
+  "campaigns": [
+    {
+      "target": "PADI4 (human peptidylarginine deiminase 4)",
+      "source_accession": "PRJNA1188087",
+      "display_type": "mRNA_display_RaPID",
+      "cyclization": "thioether_ClAc-Cys(head-to-sidechain)",
+      "mode": "rapid_rounds (reused from S3 single-target harvest)",
+      "stages": [
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "baseline_stage": "R2",
+      "terminal_stage": "R6",
+      "peptides_kept": 370806,
+      "binder_peptides": 394,
+      "binder_rule": "R6 count>=10 AND log2fc>=2.0",
+      "note": "reused s3://knowledge-datasets-1759951976/.../display_ngs_padi4_rapid/"
+    },
+    {
+      "target": "hPCSK9 (human PCSK9)",
+      "source_accession": "PRJNA1406026",
+      "display_type": "mRNA_display_XL_RaPID",
+      "cyclization": "photo-crosslinked macrocycle (Bpa/PhoL/N3F reprogrammed internal Met)",
+      "mode": "rapid_orf_io",
+      "anchors": {
+        "up": "CATATG",
+        "orf_window_codons": 12
+      },
+      "codon_range": null,
+      "stages": [
+        "input",
+        "output"
+      ],
+      "baseline_stage": "input",
+      "terminal_stage": "output",
+      "enrichment_definition": "log2((freq_stage+eps)/(freq_input+eps)); eps=1/min(stage_total)",
+      "per_stage_stats": {
+        "input": {
+          "reads": 7975656,
+          "productive": 7715414,
+          "productive_pct": 96.74,
+          "unique_peptides": 45494
+        },
+        "output": {
+          "reads": 8415530,
+          "productive": 8179698,
+          "productive_pct": 97.2,
+          "unique_peptides": 29677
+        }
+      },
+      "peptides_kept": 14135,
+      "binder_peptides": 749,
+      "binder_rule": "terminal(output) count>=10 AND log2fc>=2.0"
+    },
+    {
+      "target": "FIKK13 (P. falciparum FIKK13 kinase)",
+      "source_accession": "PRJNA1172558",
+      "display_type": "mRNA_display_RaPID",
+      "cyclization": "thioether_ClAc-Cys(head-to-sidechain)",
+      "mode": "rapid_rounds",
+      "anchors": {
+        "up": "CATATG",
+        "down": "TGCGGCAGC"
+      },
+      "codon_range": [
+        6,
+        12
+      ],
+      "stages": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "baseline_stage": "R1",
+      "terminal_stage": "R6",
+      "enrichment_definition": "log2((freq_stage+eps)/(freq_R1+eps)); eps=1/min(stage_total)",
+      "per_stage_stats": {
+        "R1": {
+          "reads": 687363,
+          "productive": 404767,
+          "productive_pct": 58.89,
+          "unique_peptides": 383077
+        },
+        "R2": {
+          "reads": 2274747,
+          "productive": 226358,
+          "productive_pct": 9.95,
+          "unique_peptides": 174151
+        },
+        "R3": {
+          "reads": 1608935,
+          "productive": 104036,
+          "productive_pct": 6.47,
+          "unique_peptides": 86801
+        },
+        "R4": {
+          "reads": 1835622,
+          "productive": 65880,
+          "productive_pct": 3.59,
+          "unique_peptides": 55358
+        },
+        "R5": {
+          "reads": 1248799,
+          "productive": 68373,
+          "productive_pct": 5.48,
+          "unique_peptides": 15085
+        },
+        "R6": {
+          "reads": 279814,
+          "productive": 9371,
+          "productive_pct": 3.35,
+          "unique_peptides": 1103
+        }
+      },
+      "peptides_kept": 12914,
+      "binder_peptides": 38,
+      "binder_rule": "terminal(R6) count>=10 AND log2fc>=2.0"
+    },
+    {
+      "target": "Abeta42 (amyloid-beta 42)",
+      "source_accession": "PRJNA1170358",
+      "display_type": "M13_phage_cyclic_peptide",
+      "cyclization": "disulfide/head-to-tail cyclic (Cys-flanked variable)",
+      "mode": "phage_io",
+      "anchors": {
+        "up": "CACAAC",
+        "down": "CTCAGT"
+      },
+      "codon_range": [
+        5,
+        14
+      ],
+      "stages": [
+        "library",
+        "selected"
+      ],
+      "baseline_stage": "library",
+      "terminal_stage": "selected",
+      "enrichment_definition": "log2((freq_stage+eps)/(freq_library+eps)); eps=1/min(stage_total)",
+      "per_stage_stats": {
+        "library": {
+          "reads": 9926055,
+          "productive": 8161041,
+          "productive_pct": 82.22,
+          "unique_peptides": 156950
+        },
+        "selected": {
+          "reads": 15625111,
+          "productive": 13766860,
+          "productive_pct": 88.11,
+          "unique_peptides": 10036
+        }
+      },
+      "peptides_kept": 44117,
+      "binder_peptides": 1104,
+      "binder_rule": "terminal(selected) count>=10 AND log2fc>=2.0"
+    },
+    {
+      "target": "hIAPP (islet amyloid polypeptide / amylin)",
+      "source_accession": "PRJNA1170358",
+      "display_type": "M13_phage_cyclic_peptide",
+      "cyclization": "disulfide/head-to-tail cyclic (Cys-flanked variable)",
+      "mode": "phage_io",
+      "anchors": {
+        "up": "CACAAC",
+        "down": "CTCAGT"
+      },
+      "codon_range": [
+        5,
+        14
+      ],
+      "stages": [
+        "library",
+        "selected"
+      ],
+      "baseline_stage": "library",
+      "terminal_stage": "selected",
+      "enrichment_definition": "log2((freq_stage+eps)/(freq_library+eps)); eps=1/min(stage_total)",
+      "per_stage_stats": {
+        "library": {
+          "reads": 10342880,
+          "productive": 9976365,
+          "productive_pct": 96.46,
+          "unique_peptides": 394521
+        },
+        "selected": {
+          "reads": 3145738,
+          "productive": 3108976,
+          "productive_pct": 98.83,
+          "unique_peptides": 4467
+        }
+      },
+      "peptides_kept": 83693,
+      "binder_peptides": 828,
+      "binder_rule": "terminal(selected) count>=10 AND log2fc>=2.0"
+    }
+  ]
+}

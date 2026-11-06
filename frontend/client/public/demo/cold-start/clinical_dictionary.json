@@ -1,0 +1,21 @@
+{
+  "source": "NCCTG lung cancer, R survival::cancer",
+  "time": "days to death/censoring",
+  "status": {
+    "1": "censored",
+    "2": "dead"
+  },
+  "sex": {
+    "1": "male",
+    "2": "female"
+  },
+  "covariates": [
+    "age",
+    "sex",
+    "ph.ecog",
+    "wt.loss"
+  ],
+  "endpoint": "overall survival, not treatment response",
+  "sample_count": 228,
+  "data_policy": "Published deidentified cohort; no molecular biomarker measurements"
+}

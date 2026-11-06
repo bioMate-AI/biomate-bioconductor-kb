@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 05 — Design &amp; generate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Design &amp; generate</h1>
+<p class="docmeta"><span>BioMate · Function-module spec 05</span><span>Status: for review</span><span>Lane: Instant → Cloud</span></p>
+
+<p class="lede">De novo molecular design as one pipeline: <strong>generate → predict activity → optimise properties → rank candidates</strong>. This module was the standing open question in Spec 00 §0.10, and a live brief answered it — a lead-discovery programme whose deliverable is exactly this chain, optimising candidates on druglikeness, target affinity and safety together. Generation is a distinct intent from analysing data or training a predictor, so it earns a module rather than a track.</p>
+
+<h2><span class="num">5.1</span>The four stages</h2>
+<table class="st">
+<thead><tr><th>Track</th><th>The user's sentence</th><th>Produces</th><th>Lane</th></tr></thead>
+<tbody>
+<tr><td>Generate</td><td>"Propose molecules for this target."</td><td>Chemically valid structures under stated constraints.</td><td>Cloud</td></tr>
+<tr><td>Predict activity</td><td>"Would these bind?"</td><td>Predicted affinity with a rationale and an applicability verdict.</td><td>Cloud</td></tr>
+<tr><td>Optimise properties</td><td>"Better potency without losing solubility."</td><td>A revised series, with the trade-off shown.</td><td>Cloud</td></tr>
+<tr><td>Rank candidates</td><td>"Which twenty should we make?"</td><td>A ranked shortlist under criteria the user set.</td><td>Instant → Cloud</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Pipeline rule</span><p>The four stages are one run, not four products. A user who asks only to generate still gets predictions and a ranking, because an unranked pile of structures is not an answer. What varies is where the run stops being interesting to them — so every stage's output is inspectable as a step in the run surface (Spec 07), and any stage can be re-run with changed parameters without redoing the others.</p></div>
+
+<h2><span class="num">5.2</span>Generate</h2>
+<p>Generation is only useful when constrained, so the constraints are the interface. The composer resolves them from the goal and the project, then shows them as resolved parameters before the run starts.</p>
+<table class="st">
+<thead><tr><th>Constraint</th><th>Example</th><th>Origin</th></tr></thead>
+<tbody>
+<tr><td>Target</td><td>A structure, or a pharmacophore inferred from a known series.</td><td>Project file, or a database lookup.</td></tr>
+<tr><td>Scaffold policy</td><td>Stay on this scaffold · hop away from it · grow this fragment.</td><td>Stated in the goal.</td></tr>
+<tr><td>Property envelope</td><td>MW, logP, TPSA, rotatable bonds — a drug-like window, not a single cut-off.</td><td>Project instruction, or a default the run names.</td></tr>
+<tr><td>Exclusions</td><td>Structural alerts, a moiety the chemists have banned, claimed chemical space.</td><td>Project instruction; patent exclusions come from Search (Spec 01).</td></tr>
+<tr><td>Count</td><td>500 candidates.</td><td>Stated, with the compute cost shown before the run.</td></tr>
+</tbody>
+</table>
+<h4>Chemistry validity is a gate, not a filter</h4>
+<p>Generated structures pass a validity gate before anything downstream sees them: parseable, valence-correct, stereochemistry defined where it matters, synthetic accessibility above a floor. Rejections are <strong>counted and characterised</strong>, never silently dropped — "412 of 500 passed; 61 failed synthetic accessibility, 27 hit a structural alert" — because a high rejection rate is the most useful early signal that the constraints are wrong.</p>
+
+<h2><span class="num">5.3</span>Predict activity</h2>
+<p>Every prediction carries the model, the version and a confidence, and links to the model object (Spec 03 §3.3). Two things this stage refuses to do:</p>
+<ul>
+<li><strong>No confident numbers outside the applicability region.</strong> A candidate unlike anything in the training set is reported as out-of-domain, not as a number with an invisible caveat.</li>
+<li><strong>No score without a rationale.</strong> A predicted affinity comes with what drove it — the interaction, the substructure, the nearest measured analogue — because a chemist cannot act on a scalar.</li>
+</ul>
+<p>Where a docking step runs, pose plausibility is gated separately from score: a good score on an implausible pose is a failure, and is shown as one.</p>
+
+<h2><span class="num">5.4</span>Optimise properties</h2>
+<p>The brief's core axis — druglikeness, target affinity and safety optimised <em>together</em>. The design commitment is that the trade-off is shown rather than collapsed.</p>
+<figure>
+<div class="wire">┌──────────────────────────────────────────────────────────────┐
+│ Round 4 · 96 candidates re-scored          3 objectives      │
+│                                                              │
+│   affinity   [################....]  8.4   target >= 8.0     │
+│   safety     [##########..........]  hERG 18 uM  want > 30   │
+│   drug-like  [####################]  4 of 4 in window        │
+│                                                              │
+│   BM-4471   8.5  / >30 uM / 4-4   accepted                   │
+│   BM-4488   8.1  /  18 uM / 4-4   flagged by the safety gate │
+│   BM-4519   8.8  /   6 uM / 3-4   rejected by the safety gate│
+└──────────────────────────────────────────────────────────────┘</div>
+<figcaption>Multi-objective view. Each objective keeps its own units and its own target; candidates are shown against all three, and a rejection names the gate that rejected it.</figcaption>
+</figure>
+<div class="rule"><span class="lbl">No composite score</span><p>A single blended number is never shown. It hides the weighting, and the weighting is the scientific judgement — so weights are the user's to set, are stated on every ranking, and changing them re-ranks without re-running the predictions.</p></div>
+<p>Safety is a gate rather than an objective to be traded away: a candidate below the safety floor is rejected and <strong>stays visible with its reason</strong>, however good its affinity. That is why BM-4519 above, the most potent candidate in the round, is the one that is rejected.</p>
+
+<h2><span class="num">5.5</span>Rank candidates</h2>
+<p>The output that a programme actually consumes. Criteria are explicit, the shortlist is traceable, and the tail is not hidden.</p>
+<table class="el">
+<thead><tr><th>Element</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>criteria strip</td><td>The objectives, their targets and their weights, editable in place. Every ranking states the criteria that produced it.</td></tr>
+<tr><td>shortlist rows</td><td>Candidate id, per-objective values with units, confidence per prediction, and the gate verdict.</td></tr>
+<tr><td>why?</td><td>Opens the models and predictions behind that row — model version, nearest measured analogue, assay round if the surrogate has been refitted.</td></tr>
+<tr><td>rejected set</td><td>Collapsed but present. A programme lead must be able to see what was excluded and on which gate.</td></tr>
+<tr><td>export</td><td>Order sheet and plate map, pairing platform candidate ids with the lab's registry ids — see §5.7.</td></tr>
+</tbody>
+</table>
+<h3>5.5.1 Two views of one ranking <span class="tag new">new</span></h3>
+<p>The shortlist renders as a table <em>or</em> as a <strong>2D depiction grid</strong> — the same ranking, the same verdicts, switched by a control. The grid is not a decorative alternative: a chemist reads structures, and a ranked list of identifier strings withholds the one thing that makes a shortlist judgeable at a glance. Depictions render from the structures themselves, so the grid cannot disagree with the table.</p>
+<p>In both views a rejected candidate keeps its card with the rejecting gate named, and a candidate outside the scoring model's applicability region is marked <strong>held</strong> — shown, ranked nowhere, and offered no confident number. The evidence-class instances behind these viewers are specified in Spec 03 §3.8.</p>
+
+<h2><span class="num">5.6</span>How the module is entered</h2>
+<table class="st">
+<thead><tr><th>Route</th><th>What happens</th></tr></thead>
+<tbody>
+<tr><td>Cold-start card</td><td>Four tracks with worked examples — "Scaffold-hop away from this series but keep the binding pharmacophore", "Improve druglikeness while keeping hERG above 30 µM".</td></tr>
+<tr><td>Intent router</td><td>Generation, ranking, affinity and multi-objective phrasings route to <em>Cloud · design</em> with the stage named. The router is covered by a self-test: every authored example must route to its own module (Spec 00 §0.5).</td></tr>
+<tr><td>From a dataset</td><td>An assay table can start a design run directly — the measured compounds become the starting series.</td></tr>
+<tr><td>From Models</td><td>A newly gated potency or safety model offers to re-score the current candidate set.</td></tr>
+<tr><td>From Search</td><td>A patent answer can be promoted into an exclusion constraint on the next generation run.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">5.7</span>The wet-lab loop</h2>
+<p>Design without a return path from the bench is a demo. The loop's mechanics — the round contract, the three intake routes, the mapping template, partial returns and censored values — are specified in <strong>Spec 03 §3.7</strong>, because the refit is a training run. What belongs here is the design-side consequence:</p>
+<ul>
+<li>A ranked shortlist leaves the platform as an <strong>order</strong>, in the format the lab registers from, with identity preserved both ways.</li>
+<li>Returned measurements re-score the candidate set and are shown against the predictions that preceded them — a visible predicted-versus-measured record per round, which is the only honest measure of whether the design pipeline is working.</li>
+<li>Proposals that produced no data (not synthesised, insufficient material, assay QC failed) stay in the round with their reasons, so the next round is not designed on survivors only.</li>
+</ul>
+
+<h2><span class="num">5.8</span>States and failure</h2>
+<table class="st">
+<thead><tr><th>Situation</th><th>What the UI does</th></tr></thead>
+<tbody>
+<tr><td>Most generations rejected</td><td>Reports the rejection profile and points at the constraint most likely responsible, before offering to re-run.</td></tr>
+<tr><td>All candidates out-of-domain</td><td>Says the predictor cannot speak to this chemical space, and offers to adapt the model on the user's own series (Spec 03 §3.2.2) rather than returning numbers anyway.</td></tr>
+<tr><td>No candidate clears every gate</td><td>Says so plainly and shows the closest misses with the gate each fails. Never quietly relaxes a safety floor to fill a shortlist.</td></tr>
+<tr><td>Predictions contradict measurements</td><td>The predicted-versus-measured panel flags the divergence and offers a refit; the surrogate is not trusted silently after a bad round.</td></tr>
+<tr><td>Claimed chemical space</td><td>Candidates inside a claim are marked, with the claim cited, and excluded from the shortlist by default.</td></tr>
+<tr><td>Scoring model is pre-trained, not ours</td><td>The prediction still names its model and version, and the model object says its evidence is published rather than held out on our data (Spec 03 §3.2.4).</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">5.9</span>Copy rules</h2>
+<ol>
+<li><strong>Never one score.</strong> Objectives keep their units and their targets.</li>
+<li><strong>Weights are the user's, and are always stated.</strong></li>
+<li><strong>Rejections stay visible</strong> — with the gate that rejected them.</li>
+<li><strong>A prediction names its model, version and confidence</strong>, and out-of-domain is a verdict, not a footnote.</li>
+<li><strong>Counts of what failed are reported</strong>, because the failure profile is the diagnostic.</li>
+</ol>
+
+<h2><span class="num">5.10</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Whether synthetic route feasibility is a gate in this module or a separate step owned by chemistry.</li>
+<li><span class="tag open">open</span> How much structure to render in-product — 2D depictions are cheap and expected; 3D pose viewing may belong to the step view instead.</li>
+<li><span class="tag open">open</span> Whether protein and peptide design share these four tracks or need their own module.</li>
+<li><span class="tag open">open</span> Whether patent exclusion should be enforced at generation time (slower, cleaner) or at ranking time (faster, noisier).</li>
+</ul>
+
+<p class="docfoot"><span>Spec 05 · Design &amp; generate</span><span>Next: 06 — The composer</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

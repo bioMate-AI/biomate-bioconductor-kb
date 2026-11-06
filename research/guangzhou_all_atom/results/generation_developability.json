@@ -1,0 +1,83 @@
+{
+  "n_designs_scored": 272,
+  "train_n": 602,
+  "train_pos_rate": 0.435,
+  "endpoint": "predicted blood-stability (P[stable]); ranking-grade AUROC~0.84 leak-free",
+  "designs_pred_stability": {
+    "mean": 0.462,
+    "q10": 0.214,
+    "median": 0.442,
+    "q90": 0.718
+  },
+  "reference_pred_stability": {
+    "mean": 0.438,
+    "median": 0.375
+  },
+  "frac_designs_pred_stable(>0.5)": 0.419,
+  "mean_uncertainty": 0.175,
+  "top10_designs": [
+    {
+      "sequence": "PLEEKNISATILLQYCAECN",
+      "pred_stability": 0.912,
+      "uncertainty": 0.057,
+      "length": 20
+    },
+    {
+      "sequence": "GNSEEQCCSASILSWYLYECN",
+      "pred_stability": 0.881,
+      "uncertainty": 0.064,
+      "length": 21
+    },
+    {
+      "sequence": "KLECCQTGCHCCYWPTYCPCD",
+      "pred_stability": 0.878,
+      "uncertainty": 0.098,
+      "length": 21
+    },
+    {
+      "sequence": "GICWQQSKGSQYLDKDECY",
+      "pred_stability": 0.856,
+      "uncertainty": 0.098,
+      "length": 19
+    },
+    {
+      "sequence": "IQLYVCTCCQCASQKLGIGYN",
+      "pred_stability": 0.841,
+      "uncertainty": 0.121,
+      "length": 21
+    },
+    {
+      "sequence": "CQEIKCIASESYINQCLCCCL",
+      "pred_stability": 0.836,
+      "uncertainty": 0.115,
+      "length": 21
+    },
+    {
+      "sequence": "CIVCCCCTSINQVYWQLQYLN",
+      "pred_stability": 0.836,
+      "uncertainty": 0.153,
+      "length": 21
+    },
+    {
+      "sequence": "LNCCQCCCLISILYKVENCLC",
+      "pred_stability": 0.833,
+      "uncertainty": 0.081,
+      "length": 21
+    },
+    {
+      "sequence": "GKVIDVTCCSYICQPCELYC",
+      "pred_stability": 0.832,
+      "uncertainty": 0.136,
+      "length": 20
+    },
+    {
+      "sequence": "GGEDNKGQRIHYNNWYLCC",
+      "pred_stability": 0.831,
+      "uncertainty": 0.112,
+      "length": 19
+    }
+  ],
+  "limits": [
+    "designs scored as LINEAR peptide SMILES (macrocyclic closure not achieved) \u2014 an approximation; permeability deferred (different featurization); ranking-grade model, not a calibrated oracle; no wet-lab validation"
+  ]
+}

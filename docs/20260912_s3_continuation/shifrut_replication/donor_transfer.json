@@ -1,0 +1,2795 @@
+{
+  "protocol": "Observed known-target effects transferred between2 donor labels in same external experiment. Both guides aggregated, all8 control guides aggregated within donor/condition. Both true-target and mismatched-target readouts excluded from every arm for fair comparison; no fitted model or independent cross-study validation. Two directions reuse same donors. Condition mean excludes direct perturbation per output; cyclic target mismatch fixed lexicographic derangement. Descriptive equal-weight target-condition means, no statistical independence claim.",
+  "n_rows": 80,
+  "mean_metrics": {
+    "no_change": {
+      "mse": 0.000492176524680101,
+      "pearson": null,
+      "spearman": null
+    },
+    "condition_mean": {
+      "mse": 0.0005864056533559049,
+      "pearson": 0.05226925565270063,
+      "spearman": 0.007464274729187148
+    },
+    "matched_observed_target": {
+      "mse": 0.0009160546123997526,
+      "pearson": 0.06755626272548243,
+      "spearman": 0.024411143387390727
+    },
+    "cyclic_mismatched_target": {
+      "mse": 0.0009664802405807974,
+      "pearson": 0.016807134768392084,
+      "spearman": 0.008314309811058832
+    }
+  },
+  "by_test_donor": {
+    "D1": {
+      "no_change": {
+        "mse": 0.00045454308286154154,
+        "pearson": null,
+        "spearman": null
+      },
+      "condition_mean": {
+        "mse": 0.0005498046069117148,
+        "pearson": 0.05540286241364423,
+        "spearman": 0.00942914634688979
+      },
+      "matched_observed_target": {
+        "mse": 0.0009160546123997526,
+        "pearson": 0.06755626272548243,
+        "spearman": 0.024411143387390723
+      },
+      "cyclic_mismatched_target": {
+        "mse": 0.0009656400476783976,
+        "pearson": 0.017300027704415005,
+        "spearman": 0.00798093471130857
+      }
+    },
+    "D2": {
+      "no_change": {
+        "mse": 0.0005298099664986604,
+        "pearson": null,
+        "spearman": null
+      },
+      "condition_mean": {
+        "mse": 0.000623006699800095,
+        "pearson": 0.04913564889175704,
+        "spearman": 0.005499403111484502
+      },
+      "matched_observed_target": {
+        "mse": 0.0009160546123997526,
+        "pearson": 0.06755626272548243,
+        "spearman": 0.024411143387390727
+      },
+      "cyclic_mismatched_target": {
+        "mse": 0.0009673204334831973,
+        "pearson": 0.016314241832369163,
+        "spearman": 0.008647684910809094
+      }
+    }
+  },
+  "rows": [
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "ARID1A",
+      "mismatched_target": "BTLA",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0010346288304807919,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0011657602963703255,
+          "pearson": 0.03296395894453296,
+          "spearman": -0.006195833313770226,
+          "cosine": 0.03281858692088274
+        },
+        "matched_observed_target": {
+          "mse": 0.0019988927400539556,
+          "pearson": -0.04216447189268221,
+          "spearman": 0.00711907627853731,
+          "cosine": -0.042878283500168854
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0015583351891938694,
+          "pearson": -0.06118100089925969,
+          "spearman": -0.017586902616440723,
+          "cosine": -0.06169254138642945
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "BTLA",
+      "mismatched_target": "C10orf54",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004088220219937255,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005612657980700854,
+          "pearson": 0.009838719141594378,
+          "spearman": -0.008301259576538012,
+          "cosine": 0.010234003162575564
+        },
+        "matched_observed_target": {
+          "mse": 0.000864022632995992,
+          "pearson": -0.019342551207439645,
+          "spearman": -0.015211798454262028,
+          "cosine": -0.017685248967649895
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0008938939549404002,
+          "pearson": -0.0014633512102305171,
+          "spearman": -0.007175818897214049,
+          "cosine": -0.0023248451452563563
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "C10orf54",
+      "mismatched_target": "CBLB",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005279308301452191,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.000693193819877946,
+          "pearson": -0.013600165435756885,
+          "spearman": -0.002892099680249119,
+          "cosine": -0.013217415023777672
+        },
+        "matched_observed_target": {
+          "mse": 0.00098856274306484,
+          "pearson": 0.02296968866165752,
+          "spearman": 0.011059937381284718,
+          "cosine": 0.02215672005512136
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010059548693980398,
+          "pearson": 0.018702623223351363,
+          "spearman": 0.02606585543861198,
+          "cosine": 0.019757998551676533
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "CBLB",
+      "mismatched_target": "CD3D",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004371911782610569,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.000580563597337935,
+          "pearson": 0.02691364860001961,
+          "spearman": 0.002808575325581977,
+          "cosine": 0.027151393221544667
+        },
+        "matched_observed_target": {
+          "mse": 0.0009106496598716898,
+          "pearson": 0.02593166165884217,
+          "spearman": 0.017779931937304486,
+          "cosine": 0.02663440667845477
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0009253883960818065,
+          "pearson": 0.0006282464664191409,
+          "spearman": 0.0043875410639273305,
+          "cosine": 0.0006241014061778886
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "CD3D",
+      "mismatched_target": "CD5",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005585121863035089,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006945314375258946,
+          "pearson": 0.0363793548731077,
+          "spearman": 0.0007337223780144184,
+          "cosine": 0.036322349416981724
+        },
+        "matched_observed_target": {
+          "mse": 0.0010312503177495652,
+          "pearson": 0.015131772015730348,
+          "spearman": 0.0013831625260971186,
+          "cosine": 0.015133374314814457
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010823321075379155,
+          "pearson": 0.07790364097144636,
+          "spearman": 0.034510071808938614,
+          "cosine": 0.07804766432768838
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "CD5",
+      "mismatched_target": "CDKN1B",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005903897332146484,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.000731021366317259,
+          "pearson": 0.02792508902798032,
+          "spearman": -0.0024412824432356204,
+          "cosine": 0.027770368988405444
+        },
+        "matched_observed_target": {
+          "mse": 0.0011890293656896616,
+          "pearson": 0.01334926152693463,
+          "spearman": 0.008721391540378693,
+          "cosine": 0.01384096526304636
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.002284218520415992,
+          "pearson": -0.014263413530237953,
+          "spearman": -1.847987769536501e-05,
+          "cosine": -0.014112531196274996
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "CDKN1B",
+      "mismatched_target": "DGKA",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.000781119976553478,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0008922267934248891,
+          "pearson": 0.06608252884216043,
+          "spearman": 0.002105678024905599,
+          "cosine": 0.06628903363160336
+        },
+        "matched_observed_target": {
+          "mse": 0.0020316530012008797,
+          "pearson": 0.18206891885979745,
+          "spearman": 0.04849832715032958,
+          "cosine": 0.1817800102150417
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010714445577400331,
+          "pearson": 0.051984999652720076,
+          "spearman": -0.0015110177438886372,
+          "cosine": 0.051433092005637907
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "DGKA",
+      "mismatched_target": "DGKZ",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00032596935323210834,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0004584335079757936,
+          "pearson": 0.055461654602173685,
+          "spearman": 0.019934551156592237,
+          "cosine": 0.05550127470856801
+        },
+        "matched_observed_target": {
+          "mse": 0.000631549689116154,
+          "pearson": 0.056933002334825226,
+          "spearman": 0.00919944445671714,
+          "cosine": 0.056822356578391915
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.001257459744324228,
+          "pearson": 0.14465489775770307,
+          "spearman": 0.04042927930640656,
+          "cosine": 0.14456480268022914
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "DGKZ",
+      "mismatched_target": "HAVCR2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005589464066439745,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006989078775612864,
+          "pearson": 0.02976026087260722,
+          "spearman": -0.001552472352028405,
+          "cosine": 0.029754967341233597
+        },
+        "matched_observed_target": {
+          "mse": 0.0014178641950563272,
+          "pearson": 0.15674504559079588,
+          "spearman": 0.04335496578250063,
+          "cosine": 0.15673247577828492
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010389052896470578,
+          "pearson": -0.041667752540214896,
+          "spearman": -0.01200414523930024,
+          "cosine": -0.041647099295925256
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "HAVCR2",
+      "mismatched_target": "LAG3",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003778277582590698,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005059727013542988,
+          "pearson": 0.06034959478547532,
+          "spearman": 0.01701298141767741,
+          "cosine": 0.06031204974081466
+        },
+        "matched_observed_target": {
+          "mse": 0.0008367056749108729,
+          "pearson": -0.024669987040308754,
+          "spearman": -0.0032077817340991984,
+          "cosine": -0.02480243740398382
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0011040752936348262,
+          "pearson": -0.019266603758361905,
+          "spearman": -0.00438650718087224,
+          "cosine": -0.019426529296003744
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "LAG3",
+      "mismatched_target": "LCP2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0006237239381132473,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0007686567050694328,
+          "pearson": 0.020098047130591604,
+          "spearman": 0.0005858069462293783,
+          "cosine": 0.020160298297400247
+        },
+        "matched_observed_target": {
+          "mse": 0.0013355196934713993,
+          "pearson": -0.004573620170144262,
+          "spearman": 0.008666936489109866,
+          "cosine": -0.004227144281815503
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.001074310101615901,
+          "pearson": -0.0018522467752114984,
+          "spearman": 0.008856134726836369,
+          "cosine": -0.0017162795727450714
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "LCP2",
+      "mismatched_target": "MEF2D",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005816020198641758,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006803690541449589,
+          "pearson": 0.09757014451295813,
+          "spearman": 0.02308284568316783,
+          "cosine": 0.09719542189709696
+        },
+        "matched_observed_target": {
+          "mse": 0.001067643894692936,
+          "pearson": -0.03585163113267964,
+          "spearman": -0.01825087814966482,
+          "cosine": -0.036504060652445
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.001200890541765715,
+          "pearson": 0.09290412901947939,
+          "spearman": 0.03328219122623315,
+          "cosine": 0.09349606596461896
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "MEF2D",
+      "mismatched_target": "PDCD1",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005049396891633745,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.000640726261110861,
+          "pearson": 0.03844633067879993,
+          "spearman": 0.009262098452880799,
+          "cosine": 0.038718705627854795
+        },
+        "matched_observed_target": {
+          "mse": 0.0011288750217186743,
+          "pearson": 0.0972536717808888,
+          "spearman": 0.04369124733519897,
+          "cosine": 0.09657586761579236
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0009724456496949899,
+          "pearson": 0.00042897274722308615,
+          "spearman": -0.00020128257954616502,
+          "cosine": 0.000557773003385432
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "PDCD1",
+      "mismatched_target": "RASA2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004723208203395739,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005625426978745847,
+          "pearson": 0.12368140088709256,
+          "spearman": 0.02654363120159421,
+          "cosine": 0.12352803981319585
+        },
+        "matched_observed_target": {
+          "mse": 0.0009857888748790215,
+          "pearson": -0.04830821392041359,
+          "spearman": -0.023169174244548865,
+          "cosine": -0.048361620258690646
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010656216040199104,
+          "pearson": 0.041521409126803854,
+          "spearman": 0.014140182763842192,
+          "cosine": 0.04169699838702213
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "RASA2",
+      "mismatched_target": "SOCS1",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0006268031473942031,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0007684882520445426,
+          "pearson": 0.025046318405207154,
+          "spearman": 0.005273140318988396,
+          "cosine": 0.025346694873047016
+        },
+        "matched_observed_target": {
+          "mse": 0.0011890317021693373,
+          "pearson": 0.06121434864302282,
+          "spearman": 0.032196607254815914,
+          "cosine": 0.06074340132528223
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0012795217742502603,
+          "pearson": 0.01084113472834894,
+          "spearman": 0.009719911527836187,
+          "cosine": 0.010370221096244903
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "SOCS1",
+      "mismatched_target": "STAT6",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0006826334104654343,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0007663760171208974,
+          "pearson": 0.11262278391235753,
+          "spearman": 0.010578934790444245,
+          "cosine": 0.11260768586414187
+        },
+        "matched_observed_target": {
+          "mse": 0.0014070452973351877,
+          "pearson": -0.04337576956976833,
+          "spearman": 0.0006095072355190318,
+          "cosine": -0.043356598321847926
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0014806421819889282,
+          "pearson": 0.07060100332650351,
+          "spearman": 0.03606237992767742,
+          "cosine": 0.07049444543051456
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "STAT6",
+      "mismatched_target": "TCEB2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.000837453732993235,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0009473944176217264,
+          "pearson": 0.06568465903261815,
+          "spearman": 0.020827897382240782,
+          "cosine": 0.06558266055424816
+        },
+        "matched_observed_target": {
+          "mse": 0.0017179071641095485,
+          "pearson": 0.01682190482146891,
+          "spearman": 0.018335879364209374,
+          "cosine": 0.016385622170023904
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0015888621172710869,
+          "pearson": 0.0242121097166316,
+          "spearman": 0.02552142361105964,
+          "cosine": 0.02458398141211947
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "TCEB2",
+      "mismatched_target": "TMEM222",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0007457067630752667,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0008637794411880586,
+          "pearson": 0.05770220843253505,
+          "spearman": 0.012961856360901847,
+          "cosine": 0.0576383997232546
+        },
+        "matched_observed_target": {
+          "mse": 0.001190189665249054,
+          "pearson": 0.22574849228724833,
+          "spearman": 0.05362367948204758,
+          "cosine": 0.2258192817984291
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0011252360391570983,
+          "pearson": 0.06823348087498797,
+          "spearman": 0.02872324428248318,
+          "cosine": 0.06822823089170733
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "TMEM222",
+      "mismatched_target": "TNFRSF9",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003984479276985535,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005198001175151158,
+          "pearson": 0.07228636920025057,
+          "spearman": 0.024287655318592366,
+          "cosine": 0.07232472656789156
+        },
+        "matched_observed_target": {
+          "mse": 0.0008112919303752802,
+          "pearson": 0.0543398514600951,
+          "spearman": 0.019999674788926666,
+          "cosine": 0.054341777098057674
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0009972039677382204,
+          "pearson": 0.03536343283499087,
+          "spearman": 0.017165454936286764,
+          "cosine": 0.03539337443943576
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "nostim",
+      "target": "TNFRSF9",
+      "mismatched_target": "ARID1A",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005792828623394047,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0007223558300241125,
+          "pearson": 0.023919384676193117,
+          "spearman": 0.005913454948198597,
+          "cosine": 0.02405150333879854
+        },
+        "matched_observed_target": {
+          "mse": 0.0012038089493076666,
+          "pearson": 0.00801586363981397,
+          "spearman": 0.009604488525554518,
+          "cosine": 0.008114938763457624
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0014884198076875134,
+          "pearson": -0.019587068646657387,
+          "spearman": -0.0052256815657475714,
+          "cosine": -0.01880190532694251
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "ARID1A",
+      "mismatched_target": "BTLA",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004843645238011189,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005341727564835922,
+          "pearson": 0.08211288949016443,
+          "spearman": -0.008339967083248382,
+          "cosine": 0.08217304075560367
+        },
+        "matched_observed_target": {
+          "mse": 0.0008303699806752268,
+          "pearson": 0.14680187408102205,
+          "spearman": 0.03836085234870557,
+          "cosine": 0.14684283718814853
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0007092488989529224,
+          "pearson": 0.07462110869937343,
+          "spearman": -0.0012623768922780513,
+          "cosine": 0.07377832697992016
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "BTLA",
+      "mismatched_target": "C10orf54",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00023132999483016528,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00030325876484203903,
+          "pearson": 0.03879888343228145,
+          "spearman": 0.012092953017882631,
+          "cosine": 0.038890718449839976
+        },
+        "matched_observed_target": {
+          "mse": 0.0005083430681906884,
+          "pearson": 0.005284049645185292,
+          "spearman": -0.0012758447112200992,
+          "cosine": 0.004203984530474989
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006014672033903984,
+          "pearson": -0.04960165601859517,
+          "spearman": -0.016749866718824787,
+          "cosine": -0.05058514892674747
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "C10orf54",
+      "mismatched_target": "CBLB",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0002636381124649169,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.000334827379839634,
+          "pearson": 0.03897958833158074,
+          "spearman": 0.009807333146743527,
+          "cosine": 0.03886701341010622
+        },
+        "matched_observed_target": {
+          "mse": 0.0005784255579650116,
+          "pearson": 0.04370679486994889,
+          "spearman": 0.027565230418226803,
+          "cosine": 0.04478924794542798
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.000631563022526371,
+          "pearson": -0.034561993227744746,
+          "spearman": 0.00029905928175469673,
+          "cosine": -0.03504060372770079
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "CBLB",
+      "mismatched_target": "CD3D",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00029578470827767577,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0003453437724333515,
+          "pearson": 0.10585470114164088,
+          "spearman": 0.018963487896796125,
+          "cosine": 0.10597576027047212
+        },
+        "matched_observed_target": {
+          "mse": 0.00043156697911013827,
+          "pearson": 0.3286703407259028,
+          "spearman": 0.10426374599608718,
+          "cosine": 0.3291963207939591
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0009045489939052935,
+          "pearson": -0.11227524212995577,
+          "spearman": -0.047530521162572115,
+          "cosine": -0.11343586965942196
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "CD3D",
+      "mismatched_target": "CD5",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004210403028854052,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005120942065974297,
+          "pearson": -0.022064195081982402,
+          "spearman": -0.004203366099942576,
+          "cosine": -0.022299816720052584
+        },
+        "matched_observed_target": {
+          "mse": 0.0008576492544853817,
+          "pearson": 0.08709266841980733,
+          "spearman": 0.05144564644831682,
+          "cosine": 0.08888364690009835
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0007904305664759541,
+          "pearson": -0.08670680607762885,
+          "spearman": -0.025537624591027187,
+          "cosine": -0.08759523480296663
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "CD5",
+      "mismatched_target": "CDKN1B",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0002644063126622444,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00033357452939204675,
+          "pearson": 0.04582680568657808,
+          "spearman": 0.005037236300476939,
+          "cosine": 0.045775227869261026
+        },
+        "matched_observed_target": {
+          "mse": 0.0005138646447950939,
+          "pearson": 0.10030194485930646,
+          "spearman": 0.031123834276229854,
+          "cosine": 0.1000855859870254
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006573708491018012,
+          "pearson": -0.0016832062415676708,
+          "spearman": 0.0011902726729848033,
+          "cosine": -0.0022079791273773414
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "CDKN1B",
+      "mismatched_target": "DGKA",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004329747559190274,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0004904796508572872,
+          "pearson": 0.06670105410723501,
+          "spearman": 0.003447221581425429,
+          "cosine": 0.06658926696285104
+        },
+        "matched_observed_target": {
+          "mse": 0.0008049668105111721,
+          "pearson": 0.024780137392074904,
+          "spearman": 0.013835154580585296,
+          "cosine": 0.02362145839723705
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0005699406569930336,
+          "pearson": 0.09561530293798756,
+          "spearman": 0.017280645239028596,
+          "cosine": 0.09574969485285631
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "DGKA",
+      "mismatched_target": "DGKZ",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00015481336011299418,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00022870404026749223,
+          "pearson": 0.03896804380698779,
+          "spearman": 0.01327712941222958,
+          "cosine": 0.03891653901136342
+        },
+        "matched_observed_target": {
+          "mse": 0.00032701435982531216,
+          "pearson": 0.05789763469795926,
+          "spearman": 0.019037521436118494,
+          "cosine": 0.05797192125609206
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0005052156500050831,
+          "pearson": 0.019346018083397726,
+          "spearman": 0.00010294793935478859,
+          "cosine": 0.019634836045760298
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "DGKZ",
+      "mismatched_target": "HAVCR2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003180177038663564,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00037580803807984645,
+          "pearson": 0.0771444270963394,
+          "spearman": 0.017630674900307373,
+          "cosine": 0.07680897170635656
+        },
+        "matched_observed_target": {
+          "mse": 0.0006391773857200648,
+          "pearson": 0.05562255219788806,
+          "spearman": 0.031042096639695097,
+          "cosine": 0.05707858680517796
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0005661203420144073,
+          "pearson": 0.048096809113305515,
+          "spearman": 0.004931598686782623,
+          "cosine": 0.0452396986714792
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "HAVCR2",
+      "mismatched_target": "LAG3",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0002590814292464495,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00031652583616338496,
+          "pearson": 0.08612148506654592,
+          "spearman": 0.016300060291710657,
+          "cosine": 0.08622454942545137
+        },
+        "matched_observed_target": {
+          "mse": 0.0005157846237245226,
+          "pearson": 0.032787336262673626,
+          "spearman": 0.019362681987277225,
+          "cosine": 0.033967888784450596
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006986699662590583,
+          "pearson": -0.07196745595698707,
+          "spearman": -0.016649575814449823,
+          "cosine": -0.07279598320999413
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "LAG3",
+      "mismatched_target": "LCP2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003639637590699329,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0004174356147191858,
+          "pearson": 0.08432380815735187,
+          "spearman": 0.003103622929588167,
+          "cosine": 0.08411815910191722
+        },
+        "matched_observed_target": {
+          "mse": 0.0006683936244441321,
+          "pearson": 0.11612070573612593,
+          "spearman": 0.046458822612028834,
+          "cosine": 0.11724097061401172
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0008597002276788305,
+          "pearson": 0.1364095745179411,
+          "spearman": 0.05563311561563637,
+          "cosine": 0.13655553534313133
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "LCP2",
+      "mismatched_target": "MEF2D",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004803920364337511,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005271606553478564,
+          "pearson": 0.09084571907562673,
+          "spearman": 0.023281353084207958,
+          "cosine": 0.09013815593095405
+        },
+        "matched_observed_target": {
+          "mse": 0.000780175855704127,
+          "pearson": 0.2980867155353949,
+          "spearman": 0.09036632011986495,
+          "cosine": 0.2977571701335415
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0008283187268936481,
+          "pearson": -0.015519016579923285,
+          "spearman": -0.006351857124956759,
+          "cosine": -0.015940213225289462
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "MEF2D",
+      "mismatched_target": "PDCD1",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003052445900970652,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0003752963666712354,
+          "pearson": 0.039638870027513755,
+          "spearman": 0.004925576900382432,
+          "cosine": 0.03990559993973042
+        },
+        "matched_observed_target": {
+          "mse": 0.0005928329776955181,
+          "pearson": 0.07412782746846894,
+          "spearman": 0.0334518728267903,
+          "cosine": 0.07435500995010656
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006445962538650006,
+          "pearson": -0.086933722002011,
+          "spearman": -0.028979812913889666,
+          "cosine": -0.0876511920816796
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "PDCD1",
+      "mismatched_target": "RASA2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00020265439364324897,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0002687584169938806,
+          "pearson": 0.06432350424816209,
+          "spearman": 0.011514654243722743,
+          "cosine": 0.06421658246471093
+        },
+        "matched_observed_target": {
+          "mse": 0.0004936529463033648,
+          "pearson": -0.007759193108936737,
+          "spearman": -0.011924163548165908,
+          "cosine": -0.007502413163435424
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006591100203151836,
+          "pearson": 0.08003362136681412,
+          "spearman": 0.018980245196531558,
+          "cosine": 0.07833399952462768
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "RASA2",
+      "mismatched_target": "SOCS1",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00033866595214722634,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0003846672495145141,
+          "pearson": 0.10972270354967116,
+          "spearman": 0.013502141615353264,
+          "cosine": 0.10971765343418778
+        },
+        "matched_observed_target": {
+          "mse": 0.0006269588217416264,
+          "pearson": 0.26451045490809355,
+          "spearman": 0.08244751246136423,
+          "cosine": 0.263524544119205
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006972513811645417,
+          "pearson": 0.08405699044398085,
+          "spearman": 0.05460296633148838,
+          "cosine": 0.0839101005135622
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "SOCS1",
+      "mismatched_target": "STAT6",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00033148683701622145,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0003979872970718645,
+          "pearson": 0.0488749664195887,
+          "spearman": 0.014751703700655493,
+          "cosine": 0.04896966331021496
+        },
+        "matched_observed_target": {
+          "mse": 0.0007365087326108167,
+          "pearson": 0.021705918219365673,
+          "spearman": 0.0140708186131059,
+          "cosine": 0.022626638062721124
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0007619722491488658,
+          "pearson": -0.003664446587571472,
+          "spearman": -0.001743333388898939,
+          "cosine": -0.0034483802168876676
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "STAT6",
+      "mismatched_target": "TCEB2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005159849222394331,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005686501865300787,
+          "pearson": 0.07328679331924058,
+          "spearman": 0.004091505412972235,
+          "cosine": 0.07271389674008653
+        },
+        "matched_observed_target": {
+          "mse": 0.0008875832112270991,
+          "pearson": 0.06083254901834671,
+          "spearman": 0.021424656992169683,
+          "cosine": 0.05985642713537048
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0011008687717905614,
+          "pearson": -0.005457663182908525,
+          "spearman": 0.005470665859012114,
+          "cosine": -0.007949180184933034
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "TCEB2",
+      "mismatched_target": "TMEM222",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003173597131691684,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00038469753587922314,
+          "pearson": 0.047524372995880935,
+          "spearman": 0.012394407955426671,
+          "cosine": 0.04747700610959641
+        },
+        "matched_observed_target": {
+          "mse": 0.000718338830020947,
+          "pearson": 0.20532631230615975,
+          "spearman": 0.06142780342390477,
+          "cosine": 0.20490161879588853
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0005566494161462702,
+          "pearson": 0.05066335238399497,
+          "spearman": 0.032442264879376584,
+          "cosine": 0.050966270745627214
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "TMEM222",
+      "mismatched_target": "TNFRSF9",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00022075743421544794,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00029733224111988814,
+          "pearson": 0.022597027589954282,
+          "spearman": 0.02577186927827206,
+          "cosine": 0.02268954775080195
+        },
+        "matched_observed_target": {
+          "mse": 0.0004793960962108827,
+          "pearson": 0.022206859418592177,
+          "spearman": 0.011603118048791041,
+          "cosine": 0.021416742764718336
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.000634339191615428,
+          "pearson": 0.01567134068995143,
+          "spearman": 0.02102361821671743,
+          "cosine": 0.015363246011601819
+        }
+      }
+    },
+    {
+      "test_donor": "D1",
+      "train_donor": "D2",
+      "condition": "stim",
+      "target": "TNFRSF9",
+      "mismatched_target": "ARID1A",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003255098858297629,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00037304374813476,
+          "pearson": 0.10740075696290924,
+          "spearman": 0.01928637305044063,
+          "cosine": 0.10711064091739284
+        },
+        "matched_observed_target": {
+          "mse": 0.0007138985220109354,
+          "pearson": 0.045909788018232985,
+          "spearman": 0.018353429579796333,
+          "cosine": 0.04653312955421664
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.000753057810789453,
+          "pearson": 0.07715955485831155,
+          "spearman": 0.02133112222113778,
+          "cosine": 0.07693540653797545
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "ARID1A",
+      "mismatched_target": "BTLA",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0008823279230809784,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0010945902926045217,
+          "pearson": -0.08074989260835834,
+          "spearman": -0.04259298071334634,
+          "cosine": -0.08010125635807551
+        },
+        "matched_observed_target": {
+          "mse": 0.0019988927400539556,
+          "pearson": -0.04216447189268221,
+          "spearman": 0.007119076278537309,
+          "cosine": -0.042878283500168854
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0013390180483186596,
+          "pearson": -0.04207634748594911,
+          "spearman": -0.009216565642149654,
+          "cosine": -0.03973927137498539
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "BTLA",
+      "mismatched_target": "C10orf54",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00044019577511871763,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.000627941388416078,
+          "pearson": -0.0669256181181172,
+          "spearman": -0.025570784895026632,
+          "cosine": -0.06649175315051552
+        },
+        "matched_observed_target": {
+          "mse": 0.000864022632995992,
+          "pearson": -0.01934255120743965,
+          "spearman": -0.015211798454262028,
+          "cosine": -0.017685248967649895
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0009821042928504211,
+          "pearson": -0.01581837228993154,
+          "spearman": 0.005989017445087174,
+          "cosine": -0.0143021804278277
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "C10orf54",
+      "mismatched_target": "CBLB",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00048300889651958675,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006404861996388633,
+          "pearson": -0.0076477937345029974,
+          "spearman": -0.007994913703078206,
+          "cosine": -0.007848218618509317
+        },
+        "matched_observed_target": {
+          "mse": 0.00098856274306484,
+          "pearson": 0.02296968866165752,
+          "spearman": 0.011059937381284718,
+          "cosine": 0.02215672005512136
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0009120003601966489,
+          "pearson": 0.009253741104848955,
+          "spearman": 0.005786912401939437,
+          "cosine": 0.008720252034954593
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "CBLB",
+      "mismatched_target": "CD3D",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004983220682841902,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006253591333175962,
+          "pearson": 0.04730651072512899,
+          "spearman": 0.014621298463586003,
+          "cosine": 0.04756579008684538
+        },
+        "matched_observed_target": {
+          "mse": 0.0009106496598716898,
+          "pearson": 0.025931661658842173,
+          "spearman": 0.017779931937304483,
+          "cosine": 0.02663440667845477
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010553601076676738,
+          "pearson": 0.0015829385265177841,
+          "spearman": 0.00832906102085227,
+          "cosine": 0.0014265541390621164
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "CD3D",
+      "mismatched_target": "CD5",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004885482759417929,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006345631341555239,
+          "pearson": 0.013273116925578357,
+          "spearman": -0.0021445970581800504,
+          "cosine": 0.0132692323549756
+        },
+        "matched_observed_target": {
+          "mse": 0.0010312503177495652,
+          "pearson": 0.015131772015730346,
+          "spearman": 0.0013831625260971184,
+          "cosine": 0.015133374314814457
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010568378942842362,
+          "pearson": 0.020696130853201607,
+          "spearman": 0.009494783456921656,
+          "cosine": 0.02069854372042054
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "CD5",
+      "mismatched_target": "CDKN1B",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0006153243096933545,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006987978483680215,
+          "pearson": 0.11400014396839389,
+          "spearman": 0.02171854991873752,
+          "cosine": 0.11362719071508913
+        },
+        "matched_observed_target": {
+          "mse": 0.0011890293656896616,
+          "pearson": 0.01334926152693463,
+          "spearman": 0.008721391540378693,
+          "cosine": 0.01384096526304636
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0013079699917172849,
+          "pearson": 0.06464362026752489,
+          "spearman": 0.03676019419114024,
+          "cosine": 0.06383443532024943
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "CDKN1B",
+      "mismatched_target": "DGKA",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0016651659135443744,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0015900741344426616,
+          "pearson": 0.22613275290556914,
+          "spearman": 0.058500768612747556,
+          "cosine": 0.22601791678085503
+        },
+        "matched_observed_target": {
+          "mse": 0.0020316530012008797,
+          "pearson": 0.18206891885979745,
+          "spearman": 0.04849832715032958,
+          "cosine": 0.1817800102150417
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0018138701799848232,
+          "pearson": 0.12038235720700557,
+          "spearman": 0.04481885622768144,
+          "cosine": 0.1203350933535435
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "DGKA",
+      "mismatched_target": "DGKZ",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003436144524520908,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00045234713260448975,
+          "pearson": 0.09730052855519605,
+          "spearman": 0.021178448006216676,
+          "cosine": 0.09705380116092233
+        },
+        "matched_observed_target": {
+          "mse": 0.000631549689116154,
+          "pearson": 0.05693300233482523,
+          "spearman": 0.00919944445671714,
+          "cosine": 0.056822356578391915
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.000856456301674959,
+          "pearson": 0.05265973178267896,
+          "spearman": -0.0006230343460331143,
+          "cosine": 0.052659852155025125
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "DGKZ",
+      "mismatched_target": "HAVCR2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.001105303070804563,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0010539247975347257,
+          "pearson": 0.24882717315763672,
+          "spearman": 0.0653200914232464,
+          "cosine": 0.24862327261389613
+        },
+        "matched_observed_target": {
+          "mse": 0.0014178641950563272,
+          "pearson": 0.15674504559079586,
+          "spearman": 0.043354965782500636,
+          "cosine": 0.15673247577828492
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.001335866349390615,
+          "pearson": 0.11391475708172176,
+          "spearman": 0.028588353200866976,
+          "cosine": 0.11395670682643359
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "HAVCR2",
+      "mismatched_target": "LAG3",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004386827897290648,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006239034056290584,
+          "pearson": -0.062117990391212595,
+          "spearman": -0.022435975202274642,
+          "cosine": -0.06161291442013798
+        },
+        "matched_observed_target": {
+          "mse": 0.0008367056749108729,
+          "pearson": -0.024669987040308754,
+          "spearman": -0.003207781734099199,
+          "cosine": -0.02480243740398382
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010760378463068624,
+          "pearson": -0.01332643264898858,
+          "spearman": 0.00781649608517969,
+          "cosine": -0.013030080793396702
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "LAG3",
+      "mismatched_target": "LCP2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0007061848560718485,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0009038885241807804,
+          "pearson": -0.06815671873596998,
+          "spearman": -0.038913585676940574,
+          "cosine": -0.06753284409100745
+        },
+        "matched_observed_target": {
+          "mse": 0.0013355196934713993,
+          "pearson": -0.004573620170144262,
+          "spearman": 0.008666936489109867,
+          "cosine": -0.004227144281815503
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0013715126781992544,
+          "pearson": -0.06372016850006541,
+          "spearman": -0.012787090166226986,
+          "cosine": -0.0653067948477446
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "LCP2",
+      "mismatched_target": "MEF2D",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00044874405224622503,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006360405192153004,
+          "pearson": -0.06499932012894366,
+          "spearman": -0.036340338399225985,
+          "cosine": -0.06477204179518546
+        },
+        "matched_observed_target": {
+          "mse": 0.001067643894692936,
+          "pearson": -0.03585163113267964,
+          "spearman": -0.01825087814966482,
+          "cosine": -0.036504060652445
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0009802314420778147,
+          "pearson": -0.028660149984874934,
+          "spearman": -0.005037908773022185,
+          "cosine": -0.02801172965195969
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "MEF2D",
+      "mismatched_target": "PDCD1",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0007421774640056138,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.000804159250041528,
+          "pearson": 0.13561941162140143,
+          "spearman": 0.029884265073200342,
+          "cosine": 0.1353813793068701
+        },
+        "matched_observed_target": {
+          "mse": 0.0011288750217186743,
+          "pearson": 0.0972536717808888,
+          "spearman": 0.04369124733519897,
+          "cosine": 0.09657586761579236
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0009445707664861202,
+          "pearson": 0.22773517202880653,
+          "spearman": 0.06167940459805038,
+          "cosine": 0.2279520080375163
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "PDCD1",
+      "mismatched_target": "RASA2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00046799341607910085,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006457493685957059,
+          "pearson": -0.04564809044047982,
+          "spearman": -0.029077015999784774,
+          "cosine": -0.04560327024533773
+        },
+        "matched_observed_target": {
+          "mse": 0.0009857888748790215,
+          "pearson": -0.04830821392041359,
+          "spearman": -0.023169174244548865,
+          "cosine": -0.048361620258690646
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0011234216807546197,
+          "pearson": -0.026580922052153982,
+          "spearman": 0.002603984258247593,
+          "cosine": -0.026427333965924758
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "RASA2",
+      "mismatched_target": "SOCS1",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0006391214819621563,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0007665276201201932,
+          "pearson": 0.041491549570692655,
+          "spearman": 0.008567579230528562,
+          "cosine": 0.041353650425046566
+        },
+        "matched_observed_target": {
+          "mse": 0.0011890317021693373,
+          "pearson": 0.06121434864302282,
+          "spearman": 0.032196607254815914,
+          "cosine": 0.06074340132528223
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0012909581605972343,
+          "pearson": 0.02331312277053533,
+          "spearman": 0.015114030239715926,
+          "cosine": 0.023324729129271835
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "SOCS1",
+      "mismatched_target": "STAT6",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0006659465245852232,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0008275494912941419,
+          "pearson": -0.012865340835523398,
+          "spearman": -0.02314011619328369,
+          "cosine": -0.013005580377703186
+        },
+        "matched_observed_target": {
+          "mse": 0.0014070452973351877,
+          "pearson": -0.04337576956976833,
+          "spearman": 0.0006095072355190318,
+          "cosine": -0.043356598321847926
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0015037538816717953,
+          "pearson": -0.00036585067901892765,
+          "spearman": 0.012825412206104139,
+          "cosine": -0.00022598883941502457
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "STAT6",
+      "mismatched_target": "TCEB2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0009090468760884773,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0010409209567584583,
+          "pearson": 0.02832747462187482,
+          "spearman": -0.004678772080155726,
+          "cosine": 0.02872567980602017
+        },
+        "matched_observed_target": {
+          "mse": 0.0017179071641095485,
+          "pearson": 0.016821904821468905,
+          "spearman": 0.018335879364209374,
+          "cosine": 0.016385622170023904
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0016688325918920337,
+          "pearson": -0.008348593703044093,
+          "spearman": 0.006936523723004014,
+          "cosine": -0.008606790447023237
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "TCEB2",
+      "mismatched_target": "TMEM222",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0007914484720027378,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0009066787669797202,
+          "pearson": 0.05512980416586223,
+          "spearman": 0.020866902350668237,
+          "cosine": 0.054689519374023464
+        },
+        "matched_observed_target": {
+          "mse": 0.001190189665249054,
+          "pearson": 0.22574849228724833,
+          "spearman": 0.05362367948204758,
+          "cosine": 0.2258192817984291
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0011799998473920317,
+          "pearson": 0.008999931737952898,
+          "spearman": 0.015102747518075513,
+          "cosine": 0.008818865772563161
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "TMEM222",
+      "mismatched_target": "TNFRSF9",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00045934013351949155,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005651040423232436,
+          "pearson": 0.08961888128765315,
+          "spearman": 0.01987844396251623,
+          "cosine": 0.08961980811980198
+        },
+        "matched_observed_target": {
+          "mse": 0.0008112919303752802,
+          "pearson": 0.054339851460095095,
+          "spearman": 0.019999674788926666,
+          "cosine": 0.054341777098057674
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010060283553901812,
+          "pearson": 0.031646489465624546,
+          "spearman": 0.025717744818699612,
+          "cosine": 0.03165114321524921
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "nostim",
+      "target": "TNFRSF9",
+      "mismatched_target": "ARID1A",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0006343646134113593,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0007677365163645428,
+          "pearson": 0.031934912528885445,
+          "spearman": -0.002312309005458571,
+          "cosine": 0.03200323851093473
+        },
+        "matched_observed_target": {
+          "mse": 0.0012038089493076666,
+          "pearson": 0.00801586363981397,
+          "spearman": 0.009604488525554518,
+          "cosine": 0.008114938763457624
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0016455467426937762,
+          "pearson": 0.014574744636319834,
+          "spearman": 0.013425142043291961,
+          "cosine": 0.014470259137945213
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "ARID1A",
+      "mismatched_target": "BTLA",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004889243945317533,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005316764147820647,
+          "pearson": 0.09990612093957507,
+          "spearman": 0.011741585510578271,
+          "cosine": 0.09975986638096618
+        },
+        "matched_observed_target": {
+          "mse": 0.0008303699806752268,
+          "pearson": 0.14680187408102205,
+          "spearman": 0.03836085234870557,
+          "cosine": 0.14684283718814853
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006949454624179255,
+          "pearson": 0.0375745994527771,
+          "spearman": 0.010713270715448179,
+          "cosine": 0.037647949054517627
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "BTLA",
+      "mismatched_target": "C10orf54",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00027914968529692795,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0003235493981128215,
+          "pearson": 0.12528115357887162,
+          "spearman": 0.029952195404570166,
+          "cosine": 0.12653330066250545
+        },
+        "matched_observed_target": {
+          "mse": 0.0005083430681906884,
+          "pearson": 0.005284049645185291,
+          "spearman": -0.001275844711220099,
+          "cosine": 0.004203984530474989
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0005312243555059905,
+          "pearson": 0.02022445740088552,
+          "spearman": 0.006833516028571658,
+          "cosine": 0.0213382713842487
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "C10orf54",
+      "mismatched_target": "CBLB",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003416726259337252,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0004091419120110611,
+          "pearson": 0.04434181548296874,
+          "spearman": 0.007085895448280777,
+          "cosine": 0.04579203837766432
+        },
+        "matched_observed_target": {
+          "mse": 0.0005784255579650116,
+          "pearson": 0.04370679486994889,
+          "spearman": 0.0275652304182268,
+          "cosine": 0.04478924794542798
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006782262613079022,
+          "pearson": -0.062208428296550655,
+          "spearman": -0.02259983788226834,
+          "cosine": -0.06390352817890124
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "CBLB",
+      "mismatched_target": "CD3D",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00034658603195624713,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0003938585866729475,
+          "pearson": 0.10584129324794962,
+          "spearman": 0.04368336766441931,
+          "cosine": 0.1051116107479462
+        },
+        "matched_observed_target": {
+          "mse": 0.00043156697911013827,
+          "pearson": 0.3286703407259028,
+          "spearman": 0.10426374599608718,
+          "cosine": 0.3291963207939591
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0008184877226969082,
+          "pearson": -0.0654809204605768,
+          "spearman": -0.018550265016708256,
+          "cosine": -0.06656006743602667
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "CD3D",
+      "mismatched_target": "CD5",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.000519769863606493,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005906427898997683,
+          "pearson": 0.02789351856230617,
+          "spearman": -0.0034804861439110516,
+          "cosine": 0.028973885670210843
+        },
+        "matched_observed_target": {
+          "mse": 0.0008576492544853817,
+          "pearson": 0.08709266841980734,
+          "spearman": 0.05144564644831682,
+          "cosine": 0.08888364690009835
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0008150817328153417,
+          "pearson": -0.042195924207245335,
+          "spearman": -0.018661793276409683,
+          "cosine": -0.04178720478580432
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "CD5",
+      "mismatched_target": "CDKN1B",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003064363854455922,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00035558540840224963,
+          "pearson": 0.10651915863498408,
+          "spearman": 0.019684161842775674,
+          "cosine": 0.10589058300818767
+        },
+        "matched_observed_target": {
+          "mse": 0.0005138646447950939,
+          "pearson": 0.10030194485930646,
+          "spearman": 0.031123834276229858,
+          "cosine": 0.1000855859870254
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0007104711601480188,
+          "pearson": 0.03991516254607233,
+          "spearman": 0.008963298072779617,
+          "cosine": 0.039506129654897325
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "CDKN1B",
+      "mismatched_target": "DGKA",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00039144123375913463,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00046292839642347736,
+          "pearson": 0.0334307040279619,
+          "spearman": 4.9529689597678595e-05,
+          "cosine": 0.03174867969795819
+        },
+        "matched_observed_target": {
+          "mse": 0.0008049668105111721,
+          "pearson": 0.024780137392074904,
+          "spearman": 0.013835154580585296,
+          "cosine": 0.02362145839723705
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0005427208841664133,
+          "pearson": 0.007805178700361568,
+          "spearman": 0.011111901004612968,
+          "cosine": 0.00723176128609106
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "DGKA",
+      "mismatched_target": "DGKZ",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00019220098674946145,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0002352281547075972,
+          "pearson": 0.15785389251930196,
+          "spearman": 0.03881910182753535,
+          "cosine": 0.15802389313694842
+        },
+        "matched_observed_target": {
+          "mse": 0.00032701435982531216,
+          "pearson": 0.05789763469795927,
+          "spearman": 0.019037521436118497,
+          "cosine": 0.05797192125609206
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.00045738463213636276,
+          "pearson": 0.10686121776367508,
+          "spearman": 0.03030418438899909,
+          "cosine": 0.1071558635580324
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "DGKZ",
+      "mismatched_target": "HAVCR2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00035977356530738925,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0004219377007749612,
+          "pearson": 0.05929132317301211,
+          "spearman": -0.0039994235229603966,
+          "cosine": 0.060094453786144655
+        },
+        "matched_observed_target": {
+          "mse": 0.0006391773857200648,
+          "pearson": 0.055622552197888066,
+          "spearman": 0.031042096639695094,
+          "cosine": 0.05707858680517796
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006403598725711429,
+          "pearson": -0.0345234936441162,
+          "spearman": -0.021548935690500894,
+          "cosine": -0.03520438286630909
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "HAVCR2",
+      "mismatched_target": "LAG3",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0002748311863993004,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00035219791106748193,
+          "pearson": 0.019956308959684983,
+          "spearman": 0.0034246422197691737,
+          "cosine": 0.01840457964290295
+        },
+        "matched_observed_target": {
+          "mse": 0.0005157846237245226,
+          "pearson": 0.03278733626267363,
+          "spearman": 0.019362681987277225,
+          "cosine": 0.033967888784450596
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006314739094951693,
+          "pearson": 0.013138308874504935,
+          "spearman": 0.007479453174159034,
+          "cosine": 0.01134944464996353
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "LAG3",
+      "mismatched_target": "LCP2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00039312592215779487,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0004609301433693591,
+          "pearson": 0.04077249776835153,
+          "spearman": 0.000918939937703068,
+          "cosine": 0.041831247010679425
+        },
+        "matched_observed_target": {
+          "mse": 0.0006683936244441321,
+          "pearson": 0.11612070573612594,
+          "spearman": 0.046458822612028834,
+          "cosine": 0.11724097061401172
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0007057594848509598,
+          "pearson": 0.190142492034605,
+          "spearman": 0.06642473981247338,
+          "cosine": 0.1928064978973578
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "LCP2",
+      "mismatched_target": "MEF2D",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0006264796660256896,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0007241408111546501,
+          "pearson": -0.03256113192121005,
+          "spearman": -0.01866769226488871,
+          "cosine": -0.03236816892469732
+        },
+        "matched_observed_target": {
+          "mse": 0.000780175855704127,
+          "pearson": 0.29808671553539495,
+          "spearman": 0.09036632011986497,
+          "cosine": 0.2977571701335415
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010543345780024832,
+          "pearson": -0.13996710259213763,
+          "spearman": -0.04956378523252725,
+          "cosine": -0.14015084887817855
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "MEF2D",
+      "mismatched_target": "PDCD1",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0003351532137352831,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00037706097480834583,
+          "pearson": 0.12321256001593675,
+          "spearman": 0.014325984924297168,
+          "cosine": 0.12302005983325433
+        },
+        "matched_observed_target": {
+          "mse": 0.0005928329776955181,
+          "pearson": 0.07412782746846894,
+          "spearman": 0.0334518728267903,
+          "cosine": 0.07435500995010656
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0005047592599563015,
+          "pearson": 0.06352281160418065,
+          "spearman": 0.022601366286063976,
+          "cosine": 0.06341055086801983
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "PDCD1",
+      "mismatched_target": "RASA2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0002873774956460607,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0003596756091624825,
+          "pearson": 0.03405106993199447,
+          "spearman": 0.0034094744421541553,
+          "cosine": 0.03441674255615596
+        },
+        "matched_observed_target": {
+          "mse": 0.0004936529463033648,
+          "pearson": -0.007759193108936738,
+          "spearman": -0.011924163548165908,
+          "cosine": -0.007502413163435424
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0006705754904054173,
+          "pearson": -0.07119517347288797,
+          "spearman": -0.03444492792175056,
+          "cosine": -0.07117688167081501
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "RASA2",
+      "mismatched_target": "SOCS1",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005066009653073083,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005552888411437134,
+          "pearson": 0.08594229268649031,
+          "spearman": 0.007170811697775533,
+          "cosine": 0.08351391131075037
+        },
+        "matched_observed_target": {
+          "mse": 0.0006269588217416264,
+          "pearson": 0.26451045490809355,
+          "spearman": 0.08244751246136423,
+          "cosine": 0.263524544119205
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0008238143003105502,
+          "pearson": 0.01601898122624738,
+          "spearman": 0.01608961696731076,
+          "cosine": 0.017486968696900865
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "SOCS1",
+      "mismatched_target": "STAT6",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004219462350495574,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0005262481353104787,
+          "pearson": -0.05594376074693109,
+          "spearman": -0.011817722522009499,
+          "cosine": -0.057158813254334764
+        },
+        "matched_observed_target": {
+          "mse": 0.0007365087326108167,
+          "pearson": 0.021705918219365673,
+          "spearman": 0.0140708186131059,
+          "cosine": 0.022626638062721124
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0010648091815829274,
+          "pearson": -0.13240395360939256,
+          "spearman": -0.02990164925417136,
+          "cosine": -0.1355558977768045
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "STAT6",
+      "mismatched_target": "TCEB2",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.00042784574709257427,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0004891647811436862,
+          "pearson": 0.05762896685796196,
+          "spearman": -0.0015379173033378828,
+          "cosine": 0.057310688876983755
+        },
+        "matched_observed_target": {
+          "mse": 0.0008875832112270991,
+          "pearson": 0.06083254901834671,
+          "spearman": 0.021424656992169683,
+          "cosine": 0.05985642713537048
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0007286855169329893,
+          "pearson": 0.022420781397120684,
+          "spearman": 0.00479795758295482,
+          "cosine": 0.022325757152643583
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "TCEB2",
+      "mismatched_target": "TMEM222",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0005762247651762908,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0006479365410246627,
+          "pearson": 0.026547738645924607,
+          "spearman": 0.014764611234465059,
+          "cosine": 0.0256195318925371
+        },
+        "matched_observed_target": {
+          "mse": 0.000718338830020947,
+          "pearson": 0.20532631230615975,
+          "spearman": 0.06142780342390477,
+          "cosine": 0.20490161879588853
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0007885553878949808,
+          "pearson": 0.011455366015318772,
+          "spearman": 0.01867154402469108,
+          "cosine": 0.012059210386187692
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "TMEM222",
+      "mismatched_target": "TNFRSF9",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0002690781770119081,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.00031674566879597385,
+          "pearson": 0.11701181712002444,
+          "spearman": 0.03571283598579855,
+          "cosine": 0.1179871765043305
+        },
+        "matched_observed_target": {
+          "mse": 0.0004793960962108827,
+          "pearson": 0.022206859418592174,
+          "spearman": 0.011603118048791043,
+          "cosine": 0.021416742764718336
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0005118888108031552,
+          "pearson": 0.1383164068143438,
+          "spearman": 0.054492110976799506,
+          "cosine": 0.13975165475141416
+        }
+      }
+    },
+    {
+      "test_donor": "D2",
+      "train_donor": "D1",
+      "condition": "stim",
+      "target": "TNFRSF9",
+      "mismatched_target": "ARID1A",
+      "readouts": 33692,
+      "metrics": {
+        "no_change": {
+          "mse": 0.0004229191486169801,
+          "pearson": null,
+          "spearman": null,
+          "cosine": null
+        },
+        "condition_mean": {
+          "mse": 0.0004799872906508627,
+          "pearson": 0.06859712114435729,
+          "spearman": 0.0034012702720753515,
+          "cosine": 0.06901291198026863
+        },
+        "matched_observed_target": {
+          "mse": 0.0007138985220109354,
+          "pearson": 0.045909788018232985,
+          "spearman": 0.018353429579796333,
+          "cosine": 0.04653312955421664
+        },
+        "cyclic_mismatched_target": {
+          "mse": 0.0008688818157799086,
+          "pearson": 0.04264300562886888,
+          "spearman": 0.009371567164409945,
+          "cosine": 0.042429588052924176
+        }
+      }
+    }
+  ],
+  "input_sha256": "a4dc1e3d8146f09bf6e947c39a710bea4a5408ae1acd6203a54c86c0f4aaee1e"
+}

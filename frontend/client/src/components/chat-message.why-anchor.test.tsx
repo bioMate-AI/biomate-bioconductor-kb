@@ -45,7 +45,11 @@ function makeProgressMessage(extras: Record<string, any> = {}): Message {
   } as Message
 }
 
-describe("chat-message → <WhyAnchor> rationale_id flow", () => {
+// SKIPPED 2026-10-20 (UI refinement item 3): the "(why?)" WhyAnchor is commented
+// out in chat-message.tsx — it rendered a void link for steps with no curated
+// rationale (the common case). Re-enable this suite when the step event carries a
+// rationale-exists flag and WhyAnchor is wired back in.
+describe.skip("chat-message → <WhyAnchor> rationale_id flow", () => {
   beforeEach(() => {
     // jsdom doesn't ship fetch — install a controllable mock
     const fetchMock = vi.fn(async (url: string) => {

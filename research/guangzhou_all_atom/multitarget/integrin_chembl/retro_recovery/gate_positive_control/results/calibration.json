@@ -1,0 +1,82 @@
+{
+ "S-tpsa|0.55": {
+  "d": 0.107421875,
+  "achieved": 0.5512341927675415,
+  "feasible": true
+ },
+ "S-tpsa|0.6": {
+  "d": 0.2099609375,
+  "achieved": 0.6003209610030359,
+  "feasible": true
+ },
+ "S-tpsa|0.65": {
+  "d": 0.322265625,
+  "achieved": 0.6498355976875897,
+  "feasible": true
+ },
+ "S-tpsa|0.7": {
+  "d": 0.44921875,
+  "achieved": 0.7012133742039202,
+  "feasible": true
+ },
+ "S-typ|0.55": {
+  "d": 0.1123046875,
+  "achieved": 0.5507702979632533,
+  "feasible": true
+ },
+ "S-typ|0.6": {
+  "d": 0.224609375,
+  "achieved": 0.598794936577898,
+  "feasible": true
+ },
+ "S-typ|0.65": {
+  "d": 0.3515625,
+  "achieved": 0.6506666864591764,
+  "feasible": true
+ },
+ "S-typ|0.7": {
+  "d": 0.48828125,
+  "achieved": 0.6997872960581436,
+  "feasible": true
+ },
+ "S-cens|0.55": {
+  "d": 0.390625,
+  "achieved": 0.5510150996764247,
+  "feasible": true
+ },
+ "S-cens|0.6": {
+  "d": 0.859375,
+  "achieved": 0.6012196846592973,
+  "feasible": true
+ },
+ "S-cens|0.65": {
+  "d": 1.5625,
+  "achieved": 0.6506885448918759,
+  "feasible": true
+ },
+ "S-cens|0.7": {
+  "d": null,
+  "achieved": 0.6903232764254701,
+  "feasible": false
+ },
+ "S-diffuse|0.55": {
+  "d": 0.0830078125,
+  "achieved": 0.5511219269224942,
+  "feasible": true
+ },
+ "S-diffuse|0.6": {
+  "d": 0.1611328125,
+  "achieved": 0.6002286873878389,
+  "feasible": true
+ },
+ "S-diffuse|0.65": {
+  "d": 0.2490234375,
+  "achieved": 0.6508464770357788,
+  "feasible": true
+ },
+ "S-diffuse|0.7": {
+  "d": 0.341796875,
+  "achieved": 0.6999513381930828,
+  "feasible": true
+ }
+}

@@ -65,13 +65,25 @@ def ac(v, default=None):
     try: return float(v)
     except: return default
 
+# Provenance of the plate signals: 'user' = real plate reader data supplied by
+# the caller; 'synthetic_demo' = the built-in CI/smoke demo plate below. This
+# flag is surfaced in the output so a demo run can NEVER be mistaken for a real
+# screen. The QC math (Z-factor, 4PL Hill) is real either way — only the input
+# provenance differs.
+DATA_SOURCE = {'value': 'user'}
+
 def parse_plate_data(raw):
-    '''Parse plate data from JSON string or generate demo data.'''
+    '''Parse plate data from JSON string, or generate a labelled synthetic demo plate.'''
     if raw and raw not in ('null','None',''):
         try:
             return json.loads(raw)
         except json.JSONDecodeError:
             pass
+    # No real plate data provided -> synthetic demo plate (CI / smoke only).
+    DATA_SOURCE['value'] = 'synthetic_demo'
+    print("WARNING: no plate_data_json provided -- generating a SYNTHETIC DEMO plate "
+          "(random.gauss). Results are labelled data_source='synthetic_demo' and are "
+          "NOT a real screen.", file=sys.stderr)
     # Demo data: 96-well plate
     import random
     random.seed(42)
@@ -224,6 +236,8 @@ qc_metrics = {
     'n_neg_controls': len(neg_signals),
     'qc_status': qc_status,
     'dynamic_range': round(float(mu_neg / mu_pos), 2) if mu_pos > 0 else None,
+    # Input provenance: 'user' (real plate) or 'synthetic_demo' (built-in demo plate).
+    'data_source': DATA_SOURCE['value'],
 }
 
 # Normalize and call hits
@@ -285,10 +299,13 @@ with open('hit_list.csv', 'w', newline='') as f:
 with open('dose_response_curves.csv', 'w', newline='') as f:
     csv.writer(f).writerows(dr_csv_rows)
 
-full = {'status': 'completed', 'qc_metrics': qc_metrics,
+full = {'status': 'completed', 'data_source': DATA_SOURCE['value'], 'qc_metrics': qc_metrics,
         'n_compounds': len(sample_rows), 'n_hits': len(hits),
         'hit_rate_pct': round(100*len(hits)/max(len(sample_rows),1), 2),
         'hits': hits[:50]}  # cap first 50 hits in JSON
+if DATA_SOURCE['value'] == 'synthetic_demo':
+    full['warning'] = ('data_source=synthetic_demo: hits/QC computed on a built-in '
+                       'randomly-generated demo plate, not a real screen.')
 with open('hts_results.json', 'w') as f:
     json.dump(full, f, indent=2)
 

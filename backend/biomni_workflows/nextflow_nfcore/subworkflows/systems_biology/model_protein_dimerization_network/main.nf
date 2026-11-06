@@ -262,7 +262,7 @@ with open("model_protein_dimerization_network_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("model_protein_dimerization_network_output.txt", "w") as f:
-    f.write("Biomni: Model Protein Dimerization Network" + NL)
+    f.write("BioMate: Model Protein Dimerization Network" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -133,7 +133,7 @@ def simulate_metabolic_network_perturbation(
             model = cobra.io.load_model(model_file)
             log = f"Loaded metabolic model {model_file} with {len(model.reactions)} reactions and {len(model.metabolites)} metabolites.\\n\\n"
     except Exception as e:
-        return f"Error loading model: {str(e)}"
+        raise RuntimeError(f"Error loading model: {str(e)}")
 
     # Step 2: Set up metabolite list and initial concentrations
     metabolites = list(model.metabolites)
@@ -205,7 +205,7 @@ def simulate_metabolic_network_perturbation(
 
         log += f"Simulation completed successfully with {len(solution.t)} time points.\\n\\n"
     except Exception as e:
-        return f"Error during simulation: {str(e)}"
+        raise RuntimeError(f"Error during simulation: {str(e)}")
 
     # Step 6: Calculate fluxes at each time point
     fluxes = np.zeros((len(solution.t), len(model.reactions)))
@@ -297,7 +297,7 @@ with open("simulate_metabolic_network_perturbation_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("simulate_metabolic_network_perturbation_output.txt", "w") as f:
-    f.write("Biomni: Simulate Metabolic Network Perturbation" + NL)
+    f.write("BioMate: Simulate Metabolic Network Perturbation" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

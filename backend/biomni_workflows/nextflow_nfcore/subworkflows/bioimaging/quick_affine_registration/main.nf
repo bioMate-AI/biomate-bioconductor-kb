@@ -334,7 +334,7 @@ with open("quick_affine_registration_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("quick_affine_registration_output.txt", "w") as f:
-    f.write("Biomni: Quick Affine Registration" + NL)
+    f.write("BioMate: Quick Affine Registration" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

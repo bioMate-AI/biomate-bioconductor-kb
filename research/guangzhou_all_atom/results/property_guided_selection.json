@@ -1,0 +1,38 @@
+{
+  "n_targets": 68,
+  "n_designs": 272,
+  "endpoint": "predicted blood-stability P[stable] (ranking-grade AUROC~0.84)",
+  "select_mechanism": "generate-and-select best-of-k per target (no sampler guidance)",
+  "best_of_k_curve": {
+    "1": {
+      "mean_best_of_k": 0.4606,
+      "mean_random_pick": 0.4617,
+      "n_targets": 68
+    },
+    "2": {
+      "mean_best_of_k": 0.5532,
+      "mean_random_pick": 0.4617,
+      "n_targets": 68
+    },
+    "3": {
+      "mean_best_of_k": 0.6047,
+      "mean_random_pick": 0.4617,
+      "n_targets": 68
+    },
+    "4": {
+      "mean_best_of_k": 0.6352,
+      "mean_random_pick": 0.4617,
+      "n_targets": 68
+    }
+  },
+  "lift_best_of_maxk_vs_random": 0.1735,
+  "designs_pred_stability_all": {
+    "mean": 0.4617,
+    "q90": 0.7184
+  },
+  "limits": [
+    "proxy: selecting by the same predictor we report (needs wet-lab for ground truth)",
+    "only 4 attempts/target \u2014 larger N needs a GPU generation run",
+    "differentiable sampler-guidance needs a latent property surrogate (next step)"
+  ]
+}

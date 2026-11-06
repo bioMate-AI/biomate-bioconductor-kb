@@ -1,6 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { URL } from 'url';
 import open from 'open';
+import { randomBytes } from 'node:crypto';
 import { generatePKCE } from './pkce.js';
 import { SurfaceConfig } from './surfaces.js';
 
@@ -18,7 +19,17 @@ export async function runPKCEFlow(
   const { verifier, challenge } = generatePKCE();
   const port = surface.callbackPort;
   const redirectUri = `http://127.0.0.1:${port}/callback`;
-  const state = Math.random().toString(36).slice(2);
+  const state = randomBytes(32).toString('base64url');
+  const registration = await fetch(`${authBaseUrl}/oauth/register`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ client_name: `BioMate ${surface.label}`, redirect_uris: [redirectUri], token_endpoint_auth_method: 'none' }),
+    redirect: 'error', signal: AbortSignal.timeout(15000),
+  });
+  if (!registration.ok) throw new Error(`OAuth registration failed: HTTP ${registration.status}`);
+  const { client_id } = await registration.json() as { client_id: string };
+  if (!client_id) throw new Error('OAuth registration returned no client ID');
+  process.env.BIOMATE_OAUTH_CLIENT_ID = client_id;
+  process.env.BIOMATE_AUTH_BASE = authBaseUrl;
 
   const codePromise = catchCallback(port, state);
   // Mark the rejection as handled — the awaiter below will still receive it.
@@ -28,7 +39,7 @@ export async function runPKCEFlow(
 
   const authUrl = new URL(`${authBaseUrl}/oauth/authorize`);
   authUrl.searchParams.set('response_type', 'code');
-  authUrl.searchParams.set('client_id', surface.clientId);
+  authUrl.searchParams.set('client_id', client_id);
   authUrl.searchParams.set('redirect_uri', redirectUri);
   authUrl.searchParams.set('code_challenge', challenge);
   authUrl.searchParams.set('code_challenge_method', 'S256');
@@ -45,7 +56,7 @@ export async function runPKCEFlow(
     grant_type: 'authorization_code',
     code,
     redirect_uri: redirectUri,
-    client_id: surface.clientId,
+    client_id,
     code_verifier: verifier,
   });
   const resp = await fetch(`${authBaseUrl}/oauth/token`, {
@@ -94,10 +105,11 @@ function catchCallback(port: number, expectedState: string): Promise<string> {
     });
     server.on('error', reject);
     server.listen(port, '127.0.0.1');
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       server.close();
       reject(new Error('OAuth callback timed out after 3 minutes'));
     }, 3 * 60 * 1000);
+    server.on('close', () => clearTimeout(timeout));
   });
 }
 

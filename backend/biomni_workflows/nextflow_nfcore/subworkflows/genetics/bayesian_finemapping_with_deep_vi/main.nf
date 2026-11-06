@@ -384,7 +384,7 @@ with open("bayesian_finemapping_with_deep_vi_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("bayesian_finemapping_with_deep_vi_output.txt", "w") as f:
-    f.write("Biomni: Bayesian Finemapping With Deep Vi" + NL)
+    f.write("BioMate: Bayesian Finemapping With Deep Vi" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,16 @@
+{
+  "task": "autofix_benchmark",
+  "mode": null,
+  "model": "openai/gpt-6.1-sol-pro",
+  "n": 100,
+  "n_with_usage": 100,
+  "input_tokens_total": 200707,
+  "output_tokens_total": 4222,
+  "input_tokens_mean": 2007.07,
+  "output_tokens_mean": 42.22,
+  "latency_ms_p50": 3675,
+  "latency_ms_p95": 7918,
+  "latency_ms_mean": 4286.32,
+  "n_with_latency": 100,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

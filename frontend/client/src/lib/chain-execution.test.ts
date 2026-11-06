@@ -85,3 +85,13 @@ describe('buildChainConnections', () => {
     expect(conns[0].to_input).toBe('smiles')
   })
 })
+
+it('preserves explicit graph roots and biological dimensions without inventing legacy dependencies', () => {
+  const steps = buildChainSubmitSteps([{ depends_on: [], dimensions: { target: 'A' } }, { depends_on: [1] }, {}])
+  expect(steps.map(step => step.depends_on)).toEqual([[], [1], undefined])
+  expect(steps[0].dimensions).toEqual({ target: 'A' })
+})
+it('preserves context transforms between steps', () => {
+  const context = { organism: { from_run_param: 'genome', transform: 'genome_to_organism' } }
+  expect(buildChainConnections({ connections: [{ from_step: 1, to_step: 2, context_params: context }] })[0].context_params).toEqual(context)
+})

@@ -1,0 +1,1611 @@
+{
+  "artifact": "COMBINER_V2_RESULT",
+  "title": "Evidence-gated, null-calibrated target-selection combiner (v2)",
+  "date": "2026-09-13",
+  "training_eligible": false,
+  "replaces": "v1 averaging combiner (P1d target_selection_fixed.json): AUROC_combined 0.8542 < best-single 0.8572",
+  "substrate": "observational autoimmune (8 DisGeNET diseases); genetics-anchored + STRING PPI-module + CollecTRI regulatory",
+  "design_refs": [
+    "20260908_TARGET_SELECTION_CHANNELS_DESIGN.md",
+    "20260909_COMBINER_REDESIGN_evidence_gated_selector.md",
+    "W6_combiner_inventory.json"
+  ],
+  "channels": [
+    "genetics",
+    "ppi_module",
+    "regulatory"
+  ],
+  "null_thresholds": {
+    "per_channel_z": 1.645,
+    "one_sided_p": "0.05"
+  },
+  "best_single_baseline_note": "On THIS observational substrate best-single is GENETICS. The program-level best-single of AUROC 0.8572 is the PERTURBATION channel on the DISJOINT CZI Th2/Th1 substrate; its full per-gene vector was never persisted and it shares no gold with the observational diseases, so it cannot be per-gene fused here. It is carried as a separate-substrate anchor (see .md).",
+  "perturbation_separate_substrate_anchor": {
+    "source": "P1b/p1b_target_id_ranking.json",
+    "AUROC_signature_projection": 0.8492,
+    "AUROC_validated_gold": 0.8555,
+    "AUROC_degree_null": 0.6841,
+    "null_gap": 0.1651,
+    "substrate": "CZI CD4+T Perturb-seq Th2/Th1 (Ota); 7864 KOs",
+    "note": "Strongest single channel program-wide; fusable only where a matched KO screen + shared gold exist."
+  },
+  "aggregate": {
+    "n_diseases": 8,
+    "diseases": [
+      "SLE",
+      "RA",
+      "CD",
+      "IBD",
+      "AS",
+      "MS",
+      "PsO",
+      "UC"
+    ],
+    "mean_AUROC_combined_adaptive": 0.6109,
+    "mean_AUROC_best_single": 0.6544,
+    "mean_nomination_recall_at_10": 0.013,
+    "mean_nomination_recall_at_20": 0.0215,
+    "mean_nomination_recall_at_50": 0.0466,
+    "mean_best_single_recall_at_10": 0.0131,
+    "mean_best_single_recall_at_20": 0.0239,
+    "mean_best_single_recall_at_50": 0.0523,
+    "mean_tier1_precision": 0.2424,
+    "mean_tier2_precision": 0.4401,
+    "mean_prevalence": 0.0541,
+    "mean_tier2_precision_lift_x": 8.43,
+    "total_gold_reachable_best_single_alone": 875,
+    "total_gold_reachable_combiner": 2404,
+    "total_or_gate_coverage_gain_gold": 1529,
+    "nomination_recall_beats_best_single": false,
+    "tier2_precision_beats_prevalence": true
+  },
+  "per_disease": {
+    "SLE": {
+      "n_gold_in_universe": 972,
+      "n_universe": 16214,
+      "prevalence": 0.0599,
+      "best_single_channel": "genetics",
+      "gold_reachable_best_single_alone": 111,
+      "gold_reachable_combiner": 315,
+      "or_gate_coverage_gain_gold": 204,
+      "AUROC_combined_adaptive": 0.6064,
+      "AUROC_best_single": 0.6134,
+      "combined_beats_best_single": false,
+      "nomination_recall_at_k": {
+        "recall@10": 0.0103,
+        "recall@20": 0.0175,
+        "recall@50": 0.035,
+        "recall@100": 0.0504,
+        "recall@200": 0.0874
+      },
+      "best_single_recall_at_k": {
+        "recall@10": 0.0103,
+        "recall@20": 0.0195,
+        "recall@50": 0.0422,
+        "recall@100": 0.0648,
+        "recall@200": 0.1132
+      },
+      "nomination_beats_best_single_recall": {
+        "recall@10": false,
+        "recall@20": false,
+        "recall@50": false,
+        "recall@100": false,
+        "recall@200": false
+      },
+      "confidence_tiers": {
+        "tier>=1": {
+          "n": 1108,
+          "n_gold_hit": 315,
+          "precision": 0.2843
+        },
+        "tier>=2": {
+          "n": 96,
+          "n_gold_hit": 49,
+          "precision": 0.5104
+        },
+        "tier>=3": {
+          "n": 0,
+          "n_gold_hit": 0,
+          "precision": NaN
+        }
+      },
+      "tier2_precision_lift_vs_prevalence": 8.52,
+      "label_permutation_null": {
+        "observed_recall_at_50": 0.035,
+        "perm_mean_recall_at_50": 0.0032,
+        "perm_p_value": 0.005
+      },
+      "loo_weights": {
+        "genetics": 0.1602,
+        "ppi_module": 0.0688,
+        "regulatory": 0.01
+      }
+    },
+    "RA": {
+      "n_gold_in_universe": 1619,
+      "n_universe": 16209,
+      "prevalence": 0.0999,
+      "best_single_channel": "genetics",
+      "gold_reachable_best_single_alone": 152,
+      "gold_reachable_combiner": 430,
+      "or_gate_coverage_gain_gold": 278,
+      "AUROC_combined_adaptive": 0.5464,
+      "AUROC_best_single": 0.5586,
+      "combined_beats_best_single": false,
+      "nomination_recall_at_k": {
+        "recall@10": 0.0062,
+        "recall@20": 0.0117,
+        "recall@50": 0.0266,
+        "recall@100": 0.0482,
+        "recall@200": 0.0686
+      },
+      "best_single_recall_at_k": {
+        "recall@10": 0.0062,
+        "recall@20": 0.0111,
+        "recall@50": 0.0266,
+        "recall@100": 0.0469,
+        "recall@200": 0.0908
+      },
+      "nomination_beats_best_single_recall": {
+        "recall@10": false,
+        "recall@20": true,
+        "recall@50": false,
+        "recall@100": true,
+        "recall@200": false
+      },
+      "confidence_tiers": {
+        "tier>=1": {
+          "n": 1035,
+          "n_gold_hit": 430,
+          "precision": 0.4155
+        },
+        "tier>=2": {
+          "n": 157,
+          "n_gold_hit": 99,
+          "precision": 0.6306
+        },
+        "tier>=3": {
+          "n": 0,
+          "n_gold_hit": 0,
+          "precision": NaN
+        }
+      },
+      "tier2_precision_lift_vs_prevalence": 6.31,
+      "label_permutation_null": {
+        "observed_recall_at_50": 0.0266,
+        "perm_mean_recall_at_50": 0.0032,
+        "perm_p_value": 0.005
+      },
+      "loo_weights": {
+        "genetics": 0.1681,
+        "ppi_module": 0.0773,
+        "regulatory": 0.0095
+      }
+    },
+    "CD": {
+      "n_gold_in_universe": 807,
+      "n_universe": 16212,
+      "prevalence": 0.0498,
+      "best_single_channel": "genetics",
+      "gold_reachable_best_single_alone": 121,
+      "gold_reachable_combiner": 299,
+      "or_gate_coverage_gain_gold": 178,
+      "AUROC_combined_adaptive": 0.6364,
+      "AUROC_best_single": 0.6869,
+      "combined_beats_best_single": false,
+      "nomination_recall_at_k": {
+        "recall@10": 0.0124,
+        "recall@20": 0.0198,
+        "recall@50": 0.0483,
+        "recall@100": 0.0595,
+        "recall@200": 0.1029
+      },
+      "best_single_recall_at_k": {
+        "recall@10": 0.0112,
+        "recall@20": 0.0235,
+        "recall@50": 0.0508,
+        "recall@100": 0.088,
+        "recall@200": 0.1487
+      },
+      "nomination_beats_best_single_recall": {
+        "recall@10": true,
+        "recall@20": false,
+        "recall@50": false,
+        "recall@100": false,
+        "recall@200": false
+      },
+      "confidence_tiers": {
+        "tier>=1": {
+          "n": 1173,
+          "n_gold_hit": 299,
+          "precision": 0.2549
+        },
+        "tier>=2": {
+          "n": 154,
+          "n_gold_hit": 75,
+          "precision": 0.487
+        },
+        "tier>=3": {
+          "n": 0,
+          "n_gold_hit": 0,
+          "precision": NaN
+        }
+      },
+      "tier2_precision_lift_vs_prevalence": 9.78,
+      "label_permutation_null": {
+        "observed_recall_at_50": 0.0483,
+        "perm_mean_recall_at_50": 0.0031,
+        "perm_p_value": 0.005
+      },
+      "loo_weights": {
+        "genetics": 0.1497,
+        "ppi_module": 0.0657,
+        "regulatory": 0.0005
+      }
+    },
+    "IBD": {
+      "n_gold_in_universe": 819,
+      "n_universe": 16209,
+      "prevalence": 0.0505,
+      "best_single_channel": "genetics",
+      "gold_reachable_best_single_alone": 136,
+      "gold_reachable_combiner": 336,
+      "or_gate_coverage_gain_gold": 200,
+      "AUROC_combined_adaptive": 0.6245,
+      "AUROC_best_single": 0.6805,
+      "combined_beats_best_single": false,
+      "nomination_recall_at_k": {
+        "recall@10": 0.011,
+        "recall@20": 0.0195,
+        "recall@50": 0.0464,
+        "recall@100": 0.0855,
+        "recall@200": 0.1074
+      },
+      "best_single_recall_at_k": {
+        "recall@10": 0.0122,
+        "recall@20": 0.0244,
+        "recall@50": 0.0574,
+        "recall@100": 0.0965,
+        "recall@200": 0.1636
+      },
+      "nomination_beats_best_single_recall": {
+        "recall@10": false,
+        "recall@20": false,
+        "recall@50": false,
+        "recall@100": false,
+        "recall@200": false
+      },
+      "confidence_tiers": {
+        "tier>=1": {
+          "n": 1543,
+          "n_gold_hit": 336,
+          "precision": 0.2178
+        },
+        "tier>=2": {
+          "n": 226,
+          "n_gold_hit": 88,
+          "precision": 0.3894
+        },
+        "tier>=3": {
+          "n": 0,
+          "n_gold_hit": 0,
+          "precision": NaN
+        }
+      },
+      "tier2_precision_lift_vs_prevalence": 7.71,
+      "label_permutation_null": {
+        "observed_recall_at_50": 0.0464,
+        "perm_mean_recall_at_50": 0.0029,
+        "perm_p_value": 0.005
+      },
+      "loo_weights": {
+        "genetics": 0.1506,
+        "ppi_module": 0.067,
+        "regulatory": 0.0
+      }
+    },
+    "AS": {
+      "n_gold_in_universe": 300,
+      "n_universe": 16221,
+      "prevalence": 0.0185,
+      "best_single_channel": "genetics",
+      "gold_reachable_best_single_alone": 68,
+      "gold_reachable_combiner": 126,
+      "or_gate_coverage_gain_gold": 58,
+      "AUROC_combined_adaptive": 0.6811,
+      "AUROC_best_single": 0.6834,
+      "combined_beats_best_single": false,
+      "nomination_recall_at_k": {
+        "recall@10": 0.03,
+        "recall@20": 0.0433,
+        "recall@50": 0.09,
+        "recall@100": 0.1,
+        "recall@200": 0.1433
+      },
+      "best_single_recall_at_k": {
+        "recall@10": 0.03,
+        "recall@20": 0.0467,
+        "recall@50": 0.1,
+        "recall@100": 0.1467,
+        "recall@200": 0.2133
+      },
+      "nomination_beats_best_single_recall": {
+        "recall@10": false,
+        "recall@20": false,
+        "recall@50": false,
+        "recall@100": false,
+        "recall@200": false
+      },
+      "confidence_tiers": {
+        "tier>=1": {
+          "n": 1386,
+          "n_gold_hit": 126,
+          "precision": 0.0909
+        },
+        "tier>=2": {
+          "n": 177,
+          "n_gold_hit": 31,
+          "precision": 0.1751
+        },
+        "tier>=3": {
+          "n": 0,
+          "n_gold_hit": 0,
+          "precision": NaN
+        }
+      },
+      "tier2_precision_lift_vs_prevalence": 9.46,
+      "label_permutation_null": {
+        "observed_recall_at_50": 0.09,
+        "perm_mean_recall_at_50": 0.003,
+        "perm_p_value": 0.005
+      },
+      "loo_weights": {
+        "genetics": 0.1502,
+        "ppi_module": 0.0632,
+        "regulatory": 0.0
+      }
+    },
+    "MS": {
+      "n_gold_in_universe": 970,
+      "n_universe": 16210,
+      "prevalence": 0.0598,
+      "best_single_channel": "genetics",
+      "gold_reachable_best_single_alone": 75,
+      "gold_reachable_combiner": 340,
+      "or_gate_coverage_gain_gold": 265,
+      "AUROC_combined_adaptive": 0.5799,
+      "AUROC_best_single": 0.7051,
+      "combined_beats_best_single": false,
+      "nomination_recall_at_k": {
+        "recall@10": 0.0093,
+        "recall@20": 0.0155,
+        "recall@50": 0.0258,
+        "recall@100": 0.0299,
+        "recall@200": 0.0794
+      },
+      "best_single_recall_at_k": {
+        "recall@10": 0.0103,
+        "recall@20": 0.0175,
+        "recall@50": 0.0381,
+        "recall@100": 0.0526,
+        "recall@200": 0.0773
+      },
+      "nomination_beats_best_single_recall": {
+        "recall@10": false,
+        "recall@20": false,
+        "recall@50": false,
+        "recall@100": false,
+        "recall@200": true
+      },
+      "confidence_tiers": {
+        "tier>=1": {
+          "n": 1283,
+          "n_gold_hit": 340,
+          "precision": 0.265
+        },
+        "tier>=2": {
+          "n": 169,
+          "n_gold_hit": 89,
+          "precision": 0.5266
+        },
+        "tier>=3": {
+          "n": 0,
+          "n_gold_hit": 0,
+          "precision": NaN
+        }
+      },
+      "tier2_precision_lift_vs_prevalence": 8.81,
+      "label_permutation_null": {
+        "observed_recall_at_50": 0.0258,
+        "perm_mean_recall_at_50": 0.0032,
+        "perm_p_value": 0.005
+      },
+      "loo_weights": {
+        "genetics": 0.1471,
+        "ppi_module": 0.0708,
+        "regulatory": 0.0004
+      }
+    },
+    "PsO": {
+      "n_gold_in_universe": 725,
+      "n_universe": 16213,
+      "prevalence": 0.0447,
+      "best_single_channel": "genetics",
+      "gold_reachable_best_single_alone": 109,
+      "gold_reachable_combiner": 205,
+      "or_gate_coverage_gain_gold": 96,
+      "AUROC_combined_adaptive": 0.5856,
+      "AUROC_best_single": 0.6363,
+      "combined_beats_best_single": false,
+      "nomination_recall_at_k": {
+        "recall@10": 0.0124,
+        "recall@20": 0.0221,
+        "recall@50": 0.051,
+        "recall@100": 0.0703,
+        "recall@200": 0.1021
+      },
+      "best_single_recall_at_k": {
+        "recall@10": 0.0124,
+        "recall@20": 0.0248,
+        "recall@50": 0.0524,
+        "recall@100": 0.0883,
+        "recall@200": 0.1476
+      },
+      "nomination_beats_best_single_recall": {
+        "recall@10": false,
+        "recall@20": false,
+        "recall@50": false,
+        "recall@100": false,
+        "recall@200": false
+      },
+      "confidence_tiers": {
+        "tier>=1": {
+          "n": 1003,
+          "n_gold_hit": 205,
+          "precision": 0.2044
+        },
+        "tier>=2": {
+          "n": 135,
+          "n_gold_hit": 47,
+          "precision": 0.3481
+        },
+        "tier>=3": {
+          "n": 0,
+          "n_gold_hit": 0,
+          "precision": NaN
+        }
+      },
+      "tier2_precision_lift_vs_prevalence": 7.79,
+      "label_permutation_null": {
+        "observed_recall_at_50": 0.051,
+        "perm_mean_recall_at_50": 0.0033,
+        "perm_p_value": 0.005
+      },
+      "loo_weights": {
+        "genetics": 0.157,
+        "ppi_module": 0.0731,
+        "regulatory": 0.0042
+      }
+    },
+    "UC": {
+      "n_gold_in_universe": 809,
+      "n_universe": 16220,
+      "prevalence": 0.0499,
+      "best_single_channel": "genetics",
+      "gold_reachable_best_single_alone": 103,
+      "gold_reachable_combiner": 353,
+      "or_gate_coverage_gain_gold": 250,
+      "AUROC_combined_adaptive": 0.6269,
+      "AUROC_best_single": 0.6709,
+      "combined_beats_best_single": false,
+      "nomination_recall_at_k": {
+        "recall@10": 0.0124,
+        "recall@20": 0.0222,
+        "recall@50": 0.0494,
+        "recall@100": 0.0593,
+        "recall@200": 0.1063
+      },
+      "best_single_recall_at_k": {
+        "recall@10": 0.0124,
+        "recall@20": 0.0235,
+        "recall@50": 0.0507,
+        "recall@100": 0.0841,
+        "recall@200": 0.1273
+      },
+      "nomination_beats_best_single_recall": {
+        "recall@10": false,
+        "recall@20": false,
+        "recall@50": false,
+        "recall@100": false,
+        "recall@200": false
+      },
+      "confidence_tiers": {
+        "tier>=1": {
+          "n": 1709,
+          "n_gold_hit": 353,
+          "precision": 0.2066
+        },
+        "tier>=2": {
+          "n": 302,
+          "n_gold_hit": 137,
+          "precision": 0.4536
+        },
+        "tier>=3": {
+          "n": 0,
+          "n_gold_hit": 0,
+          "precision": NaN
+        }
+      },
+      "tier2_precision_lift_vs_prevalence": 9.09,
+      "label_permutation_null": {
+        "observed_recall_at_50": 0.0494,
+        "perm_mean_recall_at_50": 0.0031,
+        "perm_p_value": 0.005
+      },
+      "loo_weights": {
+        "genetics": 0.152,
+        "ppi_module": 0.0651,
+        "regulatory": 0.0
+      }
+    }
+  },
+  "per_target_evidence_breakdown_sample": {
+    "SLE": [
+      {
+        "gene": "TYK2",
+        "rank": 1,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.729,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.67,
+        "rationale": "TYK2: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "WDFY4",
+        "rank": 2,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.712,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.667,
+        "rationale": "WDFY4: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "NCF2",
+        "rank": 3,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.694,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.664,
+        "rationale": "NCF2: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "BANK1",
+        "rank": 4,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.677,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.66,
+        "rationale": "BANK1: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "PTPN22",
+        "rank": 5,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.66,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.657,
+        "rationale": "PTPN22: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IKZF1",
+        "rank": 6,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.949,
+          "ppi_module": 8.0,
+          "regulatory": 2.998
+        },
+        "combined_adaptive": 0.847,
+        "rationale": "IKZF1: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      },
+      {
+        "gene": "IL12B",
+        "rank": 7,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.914,
+          "ppi_module": 8.0,
+          "regulatory": 3.478
+        },
+        "combined_adaptive": 0.841,
+        "rationale": "IL12B: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      },
+      {
+        "gene": "IL12A",
+        "rank": 8,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.879,
+          "ppi_module": 8.0,
+          "regulatory": 2.323
+        },
+        "combined_adaptive": 0.834,
+        "rationale": "IL12A: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      }
+    ],
+    "RA": [
+      {
+        "gene": "CTLA4",
+        "rank": 1,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.774,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.659,
+        "rationale": "CTLA4: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "CD40",
+        "rank": 2,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.756,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.656,
+        "rationale": "CD40: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "TYK2",
+        "rank": 3,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.739,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.653,
+        "rationale": "TYK2: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "SH2B3",
+        "rank": 4,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.721,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.65,
+        "rationale": "SH2B3: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "PTPN22",
+        "rank": 5,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.704,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.647,
+        "rationale": "PTPN22: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL12B",
+        "rank": 6,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.686,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.644,
+        "rationale": "IL12B: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL6R",
+        "rank": 7,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.669,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.64,
+        "rationale": "IL6R: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "PADI4",
+        "rank": 8,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.651,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.637,
+        "rationale": "PADI4: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      }
+    ],
+    "CD": [
+      {
+        "gene": "NOD2",
+        "rank": 1,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 2.742,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.694,
+        "rationale": "NOD2: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL12B",
+        "rank": 2,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.715,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.69,
+        "rationale": "IL12B: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL23R",
+        "rank": 3,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.698,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.687,
+        "rationale": "IL23R: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "LACC1",
+        "rank": 4,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.663,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.683,
+        "rationale": "LACC1: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "GPR35",
+        "rank": 5,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.646,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.68,
+        "rationale": "GPR35: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "PRDM1",
+        "rank": 6,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.942,
+          "ppi_module": 8.0,
+          "regulatory": 7.894
+        },
+        "combined_adaptive": 0.845,
+        "rationale": "PRDM1: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      },
+      {
+        "gene": "IRF1",
+        "rank": 7,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.856,
+          "ppi_module": 2.155,
+          "regulatory": 4.81
+        },
+        "combined_adaptive": 0.815,
+        "rationale": "IRF1: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      },
+      {
+        "gene": "SMAD3",
+        "rank": 8,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module"
+        ],
+        "per_channel_z": {
+          "genetics": 0.976,
+          "ppi_module": 2.284,
+          "regulatory": -0.158
+        },
+        "combined_adaptive": 0.838,
+        "rationale": "SMAD3: fired ['ppi_module'] above null (tier 1); single-channel nomination -> candidate"
+      }
+    ],
+    "IBD": [
+      {
+        "gene": "NOD2",
+        "rank": 1,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 2.736,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.692,
+        "rationale": "NOD2: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL12B",
+        "rank": 2,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.711,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.689,
+        "rationale": "IL12B: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL23R",
+        "rank": 3,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.694,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.685,
+        "rationale": "IL23R: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL10",
+        "rank": 4,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.677,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.682,
+        "rationale": "IL10: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "RUNX3",
+        "rank": 5,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.87,
+          "ppi_module": 3.681,
+          "regulatory": 2.295
+        },
+        "combined_adaptive": 0.818,
+        "rationale": "RUNX3: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      },
+      {
+        "gene": "IRF1",
+        "rank": 6,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.819,
+          "ppi_module": 2.97,
+          "regulatory": 2.862
+        },
+        "combined_adaptive": 0.804,
+        "rationale": "IRF1: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      },
+      {
+        "gene": "JAZF1",
+        "rank": 7,
+        "tier": 1,
+        "is_gold": false,
+        "which_channels_fired": [
+          "ppi_module"
+        ],
+        "per_channel_z": {
+          "genetics": 0.973,
+          "ppi_module": 7.147,
+          "regulatory": -0.132
+        },
+        "combined_adaptive": 0.85,
+        "rationale": "JAZF1: fired ['ppi_module'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "BANK1",
+        "rank": 8,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module"
+        ],
+        "per_channel_z": {
+          "genetics": 0.956,
+          "ppi_module": 8.0,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.849,
+        "rationale": "BANK1: fired ['ppi_module'] above null (tier 1); single-channel nomination -> candidate"
+      }
+    ],
+    "AS": [
+      {
+        "gene": "IL23R",
+        "rank": 1,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.774,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.704,
+        "rationale": "IL23R: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "ERAP1",
+        "rank": 2,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.756,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.701,
+        "rationale": "ERAP1: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "TNFRSF1A",
+        "rank": 3,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.739,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.697,
+        "rationale": "TNFRSF1A: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL6R",
+        "rank": 4,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.721,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.694,
+        "rationale": "IL6R: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "GPR35",
+        "rank": 5,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.704,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.691,
+        "rationale": "GPR35: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "INAVA",
+        "rank": 6,
+        "tier": 1,
+        "is_gold": false,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.686,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.687,
+        "rationale": "INAVA: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "TNFSF15",
+        "rank": 7,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.669,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.684,
+        "rationale": "TNFSF15: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "PTPN22",
+        "rank": 8,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.651,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.68,
+        "rationale": "PTPN22: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      }
+    ],
+    "MS": [
+      {
+        "gene": "TNFRSF1A",
+        "rank": 1,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.729,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.674,
+        "rationale": "TNFRSF1A: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "CD58",
+        "rank": 2,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.712,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.671,
+        "rationale": "CD58: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL7R",
+        "rank": 3,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.694,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.667,
+        "rationale": "IL7R: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "CD86",
+        "rank": 4,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.677,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.664,
+        "rationale": "CD86: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "TNFSF14",
+        "rank": 5,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.66,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.661,
+        "rationale": "TNFSF14: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "BATF",
+        "rank": 6,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 1.001,
+          "ppi_module": 8.0,
+          "regulatory": 6.093
+        },
+        "combined_adaptive": 0.857,
+        "rationale": "BATF: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      },
+      {
+        "gene": "GFI1",
+        "rank": 7,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 1.035,
+          "ppi_module": -0.256,
+          "regulatory": 2.494
+        },
+        "combined_adaptive": 0.629,
+        "rationale": "GFI1: fired ['regulatory'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IFNGR2",
+        "rank": 8,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module"
+        ],
+        "per_channel_z": {
+          "genetics": 0.949,
+          "ppi_module": 4.825,
+          "regulatory": -0.076
+        },
+        "combined_adaptive": 0.841,
+        "rationale": "IFNGR2: fired ['ppi_module'] above null (tier 1); single-channel nomination -> candidate"
+      }
+    ],
+    "PsO": [
+      {
+        "gene": "IFIH1",
+        "rank": 1,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 2.714,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.67,
+        "rationale": "IFIH1: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL12B",
+        "rank": 2,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.742,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.667,
+        "rationale": "IL12B: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "TRAF3IP2",
+        "rank": 3,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.725,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.664,
+        "rationale": "TRAF3IP2: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "TYK2",
+        "rank": 4,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.708,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.66,
+        "rationale": "TYK2: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL23R",
+        "rank": 5,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.69,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.657,
+        "rationale": "IL23R: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "SH2B3",
+        "rank": 6,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.673,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.654,
+        "rationale": "SH2B3: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "TNFAIP3",
+        "rank": 7,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.656,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.651,
+        "rationale": "TNFAIP3: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "PRDM1",
+        "rank": 8,
+        "tier": 1,
+        "is_gold": false,
+        "which_channels_fired": [
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 1.034,
+          "ppi_module": null,
+          "regulatory": 3.596
+        },
+        "combined_adaptive": 0.555,
+        "rationale": "PRDM1: fired ['regulatory'] above null (tier 1); single-channel nomination -> candidate"
+      }
+    ],
+    "UC": [
+      {
+        "gene": "IL23R",
+        "rank": 1,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.729,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.7,
+        "rationale": "IL23R: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL12B",
+        "rank": 2,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.712,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.697,
+        "rationale": "IL12B: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "IL10",
+        "rank": 3,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.694,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.693,
+        "rationale": "IL10: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "FCGR2A",
+        "rank": 4,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.677,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.69,
+        "rationale": "FCGR2A: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "GPR35",
+        "rank": 5,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "genetics"
+        ],
+        "per_channel_z": {
+          "genetics": 1.66,
+          "ppi_module": null,
+          "regulatory": null
+        },
+        "combined_adaptive": 0.686,
+        "rationale": "GPR35: fired ['genetics'] above null (tier 1); single-channel nomination -> candidate"
+      },
+      {
+        "gene": "TLR4",
+        "rank": 6,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.931,
+          "ppi_module": 8.0,
+          "regulatory": 2.613
+        },
+        "combined_adaptive": 0.838,
+        "rationale": "TLR4: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      },
+      {
+        "gene": "PTPN2",
+        "rank": 7,
+        "tier": 2,
+        "is_gold": true,
+        "which_channels_fired": [
+          "ppi_module",
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.897,
+          "ppi_module": 8.0,
+          "regulatory": 9.233
+        },
+        "combined_adaptive": 0.831,
+        "rationale": "PTPN2: fired ['ppi_module', 'regulatory'] above null (tier 2); corroborated across >=2 independent channels -> high-confidence"
+      },
+      {
+        "gene": "DAP",
+        "rank": 8,
+        "tier": 1,
+        "is_gold": true,
+        "which_channels_fired": [
+          "regulatory"
+        ],
+        "per_channel_z": {
+          "genetics": 0.966,
+          "ppi_module": 0.0,
+          "regulatory": 7.494
+        },
+        "combined_adaptive": 0.805,
+        "rationale": "DAP: fired ['regulatory'] above null (tier 1); single-channel nomination -> candidate"
+      }
+    ]
+  },
+  "caveats": [
+    "Single gold cohort family (DisGeNET) -> surface-biased, favors genetics/literature.",
+    "DisGeNET is both the gold and partly upstream of the genetics prior -> circularity; knowledge-prior kept as SOFT prior only; module channels are seeded by genetics-prior TOP genes (NOT the gold) and gold genes never seed their own module (leakage control).",
+    "PPI-module and regulatory channels are constructed here (not the demonstrated perturbation channel); they are the staged-but-unfused channels wired as null-gated add-ons.",
+    "Perturbation (the program's strongest channel) cannot be per-gene fused on this substrate (disjoint substrate + unpersisted full vector).",
+    "Leave-one-disease-out is used for adaptive channel weights, but all 8 diseases share the DisGeNET provenance -> weights are not fully independent across diseases."
+  ]
+}

@@ -1,0 +1,4249 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT04570657",
+      "orgStudyIdInfo": {
+        "id": "D9181C00001"
+      },
+      "secondaryIdInfos": [
+        {
+          "id": "140910",
+          "type": "OTHER",
+          "domain": "FDA"
+        },
+        {
+          "id": "2020-000789-40",
+          "type": "EUDRACT_NUMBER"
+        }
+      ],
+      "organization": {
+        "fullName": "AstraZeneca",
+        "class": "INDUSTRY"
+      },
+      "briefTitle": "Study to Assess the Efficacy and Safety of MEDI3506 in Adults With Uncontrolled Moderate-to-severe Asthma",
+      "officialTitle": "A Phase II, Randomised, Double-blind, Placebo-controlled Study to Assess the Efficacy and Safety of MEDI3506 in Adult Participants With Uncontrolled Moderate-to-severe Asthma",
+      "acronym": "FRONTIER-3"
+    },
+    "statusModule": {
+      "statusVerifiedDate": "2024-01",
+      "overallStatus": "COMPLETED",
+      "expandedAccessInfo": {
+        "hasExpandedAccess": false
+      },
+      "startDateStruct": {
+        "date": "2020-09-17",
+        "type": "ACTUAL"
+      },
+      "primaryCompletionDateStruct": {
+        "date": "2022-12-12",
+        "type": "ACTUAL"
+      },
+      "completionDateStruct": {
+        "date": "2023-02-06",
+        "type": "ACTUAL"
+      },
+      "studyFirstSubmitDate": "2020-08-07",
+      "studyFirstSubmitQcDate": "2020-09-25",
+      "studyFirstPostDateStruct": {
+        "date": "2020-09-30",
+        "type": "ACTUAL"
+      },
+      "resultsFirstSubmitDate": "2023-12-12",
+      "resultsFirstSubmitQcDate": "2024-01-09",
+      "resultsFirstPostDateStruct": {
+        "date": "2024-01-30",
+        "type": "ACTUAL"
+      },
+      "lastUpdateSubmitDate": "2024-01-09",
+      "lastUpdatePostDateStruct": {
+        "date": "2024-01-30",
+        "type": "ACTUAL"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "responsibleParty": {
+        "type": "SPONSOR"
+      },
+      "leadSponsor": {
+        "name": "AstraZeneca",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true,
+      "isFdaRegulatedDrug": true,
+      "isFdaRegulatedDevice": false
+    },
+    "descriptionModule": {
+      "briefSummary": "Study D9181C00001 is a Phase II, randomised, double-blind, placebo-controlled, parallel group, proof of concept study to evaluate the efficacy, safety, pharmacokinetics (PK) and immunogenicity of MEDI3506 in adult participants with uncontrolled moderate to severe asthma on standard of care (SOC). Up to approximately 80 sites globally will participate in this study.\n\nApproximately 228 participants will be randomized to 3 treatment groups in a 1:1:1 ratio to receive MEDI3506 dose 1, MEDI3506 dose 2, or placebo."
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Asthma"
+      ],
+      "keywords": [
+        "MEDI3506",
+        "lung function",
+        "IL-33",
+        "inflammation"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE2"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "QUADRUPLE",
+          "whoMasked": [
+            "PARTICIPANT",
+            "CARE_PROVIDER",
+            "INVESTIGATOR",
+            "OUTCOMES_ASSESSOR"
+          ]
+        }
+      },
+      "enrollmentInfo": {
+        "count": 250,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "MEDI3506 Dose 1",
+          "type": "EXPERIMENTAL",
+          "description": "Approximately 76 participants will be randomized to this arm to receive the higher dose of MEDI3506",
+          "interventionNames": [
+            "Biological: MEDI3506"
+          ]
+        },
+        {
+          "label": "MEDI3506 Dose 2",
+          "type": "EXPERIMENTAL",
+          "description": "Approximately 76 participants will be randomized to this arm to receive the lower dose of MEDI3506",
+          "interventionNames": [
+            "Biological: MEDI3506"
+          ]
+        },
+        {
+          "label": "Placebo",
+          "type": "PLACEBO_COMPARATOR",
+          "description": "Approximately 76 participants will be randomized to this arm. Participants in this group will receive the placebo.",
+          "interventionNames": [
+            "Drug: Placebo"
+          ]
+        }
+      ],
+      "interventions": [
+        {
+          "type": "BIOLOGICAL",
+          "name": "MEDI3506",
+          "description": "Participants will receive multiple doses of MEDI3506 at dose level 1 or dose level 2",
+          "armGroupLabels": [
+            "MEDI3506 Dose 1",
+            "MEDI3506 Dose 2"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Placebo",
+          "description": "Participants will receive multiple doses of placebo",
+          "armGroupLabels": [
+            "Placebo"
+          ]
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Change From Baseline to Week 16 in Pre-bronchodilator (Pre-BD) Forced Expiratory Volume in the First Second (FEV1) as Measured in the Study Clinic",
+          "description": "In-clinic spirometry measurements were taken prior to the administration of bronchodilators. Baseline was the last measurement prior to first injection of investigational product (IP).\n\nThe least squares (LS) means, LS mean differences and 80% confidence intervals (CIs), and one-sided p-value results were based on a mixed model repeated measures (MMRM). The model included fixed effects for baseline, background medication, geographic region, baseline inhaled corticosteroids (ICS) total daily dose, visit, treatment, and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements.",
+          "timeFrame": "Baseline and week 16"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Change From Baseline to Weeks 8 and 16 in Post-bronchodilator (Post-BD) FEV1 as Measured in the Study Clinic",
+          "description": "In-clinic spirometry measurements were taken following the use of bronchodilators. Bronchodilatation was induced using albuterol (90 \u00b5g metered dose), salbutamol (100 \u00b5g metered dose), or levalbuterol (45 \u00b5g metered dose), and measurements were taken after up to a maximum of 4 inhalations. Baseline was the last measurement prior to first injection of IP.\n\nThe LS means, LS mean differences and 80% CIs, and one-sided p-value results were based on MMRM. The model included fixed effects for baseline, background medication, geographic region, baseline ICS total daily dose, visit, treatment, and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements.",
+          "timeFrame": "Baseline and weeks 8 and 16"
+        },
+        {
+          "measure": "Serum Concentrations of Tozorakimab",
+          "description": "Tozorakimab serum concentrations were measured using a validated assay method.",
+          "timeFrame": "Pharmacokinetic (PK) samples were taken pre-dose (day 1) and at weeks 1, 4, 8, 12, 16, 20, and 24"
+        },
+        {
+          "measure": "Number of Participants With Anti-drug Antibodies (ADAs)",
+          "description": "ADA prevalence is the number of participants ADA positive (ADA+) at baseline and/or post-baseline. Treatment-emergent ADA+ (TE-ADA +) positive is defined as being either of treatment-induced ADA+ (ADA negative \\[ADA-\\] at baseline and at least one post-baseline ADA+) and treatment-boosted ADA+ (ADA+ at baseline and baseline titre is boosted by \u2265 4-fold increase at \u2265 1 post-baseline time point). Treatment-emergent ADA- (TE-ADA-) is defined as ADA+ but not fulfilling the definition of TE-ADA+. ADA persistently positive is defined as ADA- at baseline and ADA+ at \u2265 2 post-baseline assessment with \u2265 16 weeks between first and last positive assessments, or ADA+ at the last post-baseline assessment. ADA transiently positive is defined as ADA- at baseline, having at least one post-baseline ADA+ assessment and not fulfilling the conditions of ADA persistently positive. Baseline is defined as the last ADA assessment prior to first injection of IP.",
+          "timeFrame": "Blood samples were taken pre-dose (day 1) and at weeks 1, 4, 8, 12, 16, and 24"
+        },
+        {
+          "measure": "Change From Baseline to Week 16 in the Asthma Control Questionnaire-6 (ACQ-6) Score",
+          "description": "In the ACQ-6, participants were asked to recall how their asthma has been during the previous week by responding to one BD-use question and 5 symptom questions. Questions were weighted equally and scored from 0 (totally controlled) to 6 (severely uncontrolled). Mean scores of \u2264 0.75 indicate well-controlled asthma, scores between \\>0.75 and \\<1.5 indicate partly controlled asthma, and scores \u22651.5 indicate not well-controlled asthma. Results were based on an MMRM which included fixed effects for baseline, background medication, geographic region, baseline ICS total daily dose, visit, treatment and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements. A negative change from baseline indicates an improvement in asthma control.",
+          "timeFrame": "Baseline and week 16"
+        },
+        {
+          "measure": "Number of Participants With a Decrease in ACQ-6 Score \u2265 0.5 From Baseline to Week 16",
+          "description": "In the ACQ-6, participants were asked to recall how their asthma has been during the previous week by responding to one BD-use question and 5 symptom questions. Questions were weighted equally and scored from 0 (totally controlled) to 6 (severely uncontrolled). Mean scores of \u2264 0.75 indicate well-controlled asthma, scores between \\>0.75 and \\<1.5 indicate partly controlled asthma, and scores \u22651.5 indicate not well-controlled asthma. A decrease in ACQ-6 score baseline indicates an improvement in asthma control, and individual changes of at least 0.5 are considered clinically meaningful.",
+          "timeFrame": "Baseline and week 16"
+        },
+        {
+          "measure": "Number of Participants Achieving ACQ-6 Well Controlled Status at Week 16",
+          "description": "In the ACQ-6, participants were asked to recall how their asthma has been during the previous week by responding to one BD-use question and 5 symptom questions. Questions were weighted equally and scored from 0 (totally controlled) to 6 (severely uncontrolled). Mean scores of \u2264 0.75 indicate well-controlled asthma, scores between \\>0.75 and \\<1.5 indicate partly controlled asthma, and scores \u22651.5 indicate not well-controlled asthma.",
+          "timeFrame": "Baseline and week 16"
+        },
+        {
+          "measure": "Change From Baseline to Week 16 in St George's Respiratory Questionnaire (SGRQ) Domain and Total Scores",
+          "description": "The SGRQ is a 50-item patient-reported outcome instrument to measure the health status of participants with airway obstruction diseases, giving a total score and 3 domain scores (symptoms, activity, and impacts). The total score is expressed as a percentage of overall impairment, with 100 representing the worst possible health status and 0 the best possible health status. Each domain score ranges from 0 to 100, with higher scores indicating greater impairment. A negative change from baseline indicates an improvement in impairments. Results were based on an MMRM which included fixed effects for baseline, background medication, geographic region, baseline ICS total daily dose, visit, treatment and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements.",
+          "timeFrame": "Baseline and week 16"
+        },
+        {
+          "measure": "Number of Participants With a Decrease in SGRQ Total Score of \u2265 4 Points From Baseline to Week 16",
+          "description": "The SGRQ is a 50-item patient-reported outcome instrument to measure the health status of participants with airway obstruction diseases, giving a total score and 3 domain scores (symptoms, activity, and impacts). The total score is expressed as a percentage of overall impairment, with 100 representing the worst possible health status and 0 the best possible health status. A decrease in the SGRQ total score indicates an improvement in overall impairment.",
+          "timeFrame": "Baseline and week 16"
+        },
+        {
+          "measure": "Number of Participants With at Least One Asthma CompEx Event From Baseline to Week 16",
+          "description": "Asthma CompEx is a combination of exacerbations of asthma and diary events (i.e., a combination of electronic diary \\[eDiary\\] variables). eDiary events are defined by criteria using morning/evening diary variables of PEF, symptoms, and use of rescue medication. A participant was considered to have a CompEx event if they had one or both of an asthma exacerbation or diary event. For participants who did not experience an on-treatment CompEx event, date of censoring was the minimum between the date of last dose + 28 days, and the last day of eDiary recording during the on-treatment period.",
+          "timeFrame": "Baseline to week 16"
+        },
+        {
+          "measure": "Asthma CompEx Annualised Event Rate",
+          "description": "The annualised rate of asthma CompEx events was calculated as the total number of asthma CompEx events / (date of last dose of IP + 28 - date of first dose of IP - recovery time + 1) / 365.25.\n\nThe rates, rate ratios, and one-sided p-values were estimated from a negative binomial regression, with the log(follow up time) included as an offset term. The dependent variable will be the number of CompEx events during the on-treatment period (i.e., from baseline to last dose date +28 days), and the model will include treatment group, background medication, geographic region and baseline ICS total daily dose as covariates.",
+          "timeFrame": "Baseline to week 16"
+        },
+        {
+          "measure": "Percent Change From Baseline to Week 16 in Concentration of Fractional Exhaled Nitric Oxide (FeNO) in Exhaled Breath",
+          "description": "A standardised single-breath FeNO test was performed to evaluate airway inflammation. Results were based on MMRM on log-transformed change from baseline. Log-transformed change from baseline is calculated as the visit value in log minus the baseline value in log. The results from the model were then back transformed. The model included fixed effects for baseline (in log), background medication, geographic region, baseline ICS total daily dose, visit, treatment and the baseline by visit and treatment by visit interactions. Visits within subject were considered as repeated measurements.",
+          "timeFrame": "Baseline and week 16"
+        }
+      ],
+      "otherOutcomes": [
+        {
+          "measure": "Change From Baseline to Week 16 in Pre-BD FEV1 as Measured in the Study Clinic: Analysis Per Number of Exacerbations in Last 12 Months",
+          "description": "In-clinic spirometry measurements were taken prior to the administration of bronchodilators. Baseline was the last measurement prior to first injection of IP.\n\nThe LS means, LS mean differences and 80% CIs, and one-sided p-value results were based on MMRM. The model included fixed effects for baseline, visit, treatment, and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements. Analysis is presented by the number of asthma exacerbations experienced within the 12 months prior to baseline (1 or \u2265 2 exacerbations in the previous 12 months).",
+          "timeFrame": "Baseline and week 16"
+        },
+        {
+          "measure": "Eosinophil Count",
+          "description": "The eosinophil count at baseline and week 16 are presented. Baseline was defined as the last measurement prior to first injection of IP.",
+          "timeFrame": "Baseline and Week 16"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "INCLUSION CRITERIA\n\n* Aged 18 to \\< 65 years of age\n* Physician-diagnosed asthma of early onset, defined as development of asthma before the age of 25 years.\n* History of \u2265 1 asthma exacerbation in previous 24 months\n* Treated with medium to high dose ICS defined as total daily dose of \\> 250 g fluticasone dry powder or equivalent, for at least 12 months and on a stable dose for \u2265 3 months.\n* Stable LABA therapy for \u2265 3 months.\n* An ACQ-6 score \u2265 1.5.\n* Morning pre-BD FEV1 \u2265 40% predicted normal and \\> 1 L.\n* Morning pre-BD FEV1 \\< 85% predicted normal.\n* Participants with documented evidence of asthma as demonstrated by either:\n* BD reversibility, within 12 months, or at screening, or\n* Positive methacholine challenge test within 12 months.\n* Bodyweight \u2265 40 kg and BMI \\< 40 kg/m2.\n* For female participants, a negative pregnancy test.\n* Abide by contraception requirements for males and females\n* Provide informed consent\n\nEXCLUSION CRITERIA\n\n* Participants with a positive diagnostic nucleic acid test for SARS-CoV-2.\n* Participants with a significant COVID-19 illness within 6 months of enrolment:\n* Participants with a recent history of, or who have a positive test for, infective hepatitis or unexplained jaundice, or participants who have been treated for hepatitis B, hepatitis C, or HIV.\n* Evidence of active or latent TB:\n* An LVEF \\< 45% measured by echocardiogram during screening.\n* A family history of heart failure.\n* Current smokers or recent ex-smokers i.e., have quit e cigarettes or other inhaled tobacco products \u2264 6 months prior to SV1.\n* Ex-smokers with a total smoking history of \\> 10 pack years.\n* As judged by the investigator, any evidence of any active medical or psychiatric condition or other reason (prior to randomisation) that in the investigator's opinion makes it undesirable for the participant to participate in the study.\n* Any clinically important pulmonary disease other than asthma.\n* Any other clinically relevant abnormal findings on physical examination or laboratory testing, that in the opinion of the investigator or medical monitor might compromise the safety of the participant in the study or interfere with evaluation of the study intervention.\n* A known history of severe reaction to any medication including biologic agents or human gamma globulin therapy.\n* History of, or a reason to believe, a participant has a history of, drug or alcohol abuse within the past 2 years.\n* Current diagnosis of cancer.\n* History of cancer, except if treated with apparent success with curative therapy (response duration of \\> 5 years).\n* History of allogeneic bone marrow transplant.\n* A helminth parasitic infection diagnosed within 6 months prior to SV4 (randomisation) that has not been treated, or has not responded to SOC therapy.\n* An asthma exacerbation within 8 weeks.\n* Receiving any prohibited concomitant medications or therapies as specified in the protocol:\n\nKnown history of allergy or reaction to any component of the study intervention formulation, including hereditary fructose intolerance.",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "18 Years",
+      "maximumAge": "65 Years",
+      "stdAges": [
+        "ADULT",
+        "OLDER_ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Research Site",
+          "city": "Bakersfield",
+          "state": "California",
+          "zip": "93301",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 35.37329,
+            "lon": -119.01871
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Los Angeles",
+          "state": "California",
+          "zip": "90025",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.05223,
+            "lon": -118.24368
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Newport Beach",
+          "state": "California",
+          "zip": "92663",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.61891,
+            "lon": -117.92895
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Coral Gables",
+          "state": "Florida",
+          "zip": "33134",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 25.72149,
+            "lon": -80.26838
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Ames",
+          "state": "Iowa",
+          "zip": "50010-3014",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 42.03471,
+            "lon": -93.61994
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Missoula",
+          "state": "Montana",
+          "zip": "59808",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 46.87215,
+            "lon": -113.994
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Toledo",
+          "state": "Ohio",
+          "zip": "43617",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.66394,
+            "lon": -83.55521
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Edmond",
+          "state": "Oklahoma",
+          "zip": "73034",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 35.65283,
+            "lon": -97.4781
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Boerne",
+          "state": "Texas",
+          "zip": "78006",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 29.79466,
+            "lon": -98.73197
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Buenos Aires",
+          "zip": "C1121 ABE",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -34.61315,
+            "lon": -58.37723
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Buenos Aires",
+          "zip": "C1414AIF",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -34.61315,
+            "lon": -58.37723
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "CABA",
+          "zip": "C1425BEN",
+          "country": "Argentina"
+        },
+        {
+          "facility": "Research Site",
+          "city": "C\u00f3rdoba",
+          "zip": "X5003DCE",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -31.40648,
+            "lon": -64.18853
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Florida",
+          "zip": "B1602DQD",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -34.53258,
+            "lon": -58.49078
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Godoy Cruz",
+          "zip": "5501",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -32.92533,
+            "lon": -68.84428
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Lan\u00fas Este",
+          "zip": "B1824KAJ",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -34.71416,
+            "lon": -58.37431
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Mar del Plata",
+          "zip": "7600",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -38.00042,
+            "lon": -57.5562
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Mendoza",
+          "zip": "5500",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -32.88946,
+            "lon": -68.84582
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Mendoza",
+          "zip": "M5500GHB",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -32.88946,
+            "lon": -68.84582
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Quilmes",
+          "zip": "B1878FNR",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -34.72065,
+            "lon": -58.25454
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "San Juan Bautista",
+          "zip": "1888",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -34.80896,
+            "lon": -58.27623
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "San Miguel de Tucum\u00e1n",
+          "zip": "4000",
+          "country": "Argentina",
+          "geoPoint": {
+            "lat": -26.81601,
+            "lon": -65.21051
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Berlin",
+          "zip": "10717",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 52.52437,
+            "lon": 13.41053
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Cottbus",
+          "zip": "03050",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 51.75769,
+            "lon": 14.32888
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Frankfurt",
+          "zip": "60596",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 49.68333,
+            "lon": 10.53333
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Frankfurt am Main",
+          "zip": "60389",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 50.11552,
+            "lon": 8.68417
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Koblenz",
+          "zip": "56068",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 50.35357,
+            "lon": 7.57883
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Landsberg",
+          "zip": "86899",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 51.52698,
+            "lon": 12.16076
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Leipzig",
+          "zip": "04357",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 51.33962,
+            "lon": 12.37129
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "L\u00fcbeck",
+          "zip": "23552",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 53.86893,
+            "lon": 10.68729
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Magdeburg",
+          "zip": "39120",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 52.13129,
+            "lon": 11.63189
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Mainz",
+          "zip": "55128",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 49.98185,
+            "lon": 8.28008
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Peine",
+          "zip": "31224",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 52.31928,
+            "lon": 10.2352
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Schwerin",
+          "zip": "19055",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 53.62937,
+            "lon": 11.41316
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Balassagyarmat",
+          "zip": "2660",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 48.07296,
+            "lon": 19.29614
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Budapest",
+          "zip": "1033",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 47.49835,
+            "lon": 19.04045
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "G\u00f6d\u00f6ll\u0151",
+          "zip": "2100",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 47.59657,
+            "lon": 19.35515
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Sz\u00e1zhalombatta",
+          "zip": "2440",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 47.32949,
+            "lon": 18.93878
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Szeged",
+          "zip": "6722",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 46.253,
+            "lon": 20.14824
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Bialystok",
+          "zip": "15-044",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 53.13333,
+            "lon": 23.16433
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Bychawa",
+          "zip": "23100",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 51.01608,
+            "lon": 22.53296
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Bydgoszcz",
+          "zip": "85-231",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 53.1235,
+            "lon": 18.00762
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Katowice",
+          "zip": "40-648",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 50.2597,
+            "lon": 19.02173
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Krakow",
+          "zip": "30-033",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 50.06143,
+            "lon": 19.93658
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Lodz",
+          "zip": "90-302",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 51.77058,
+            "lon": 19.47395
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Lublin",
+          "zip": "20-362",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 51.25058,
+            "lon": 22.57009
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Poznan",
+          "zip": "60-214",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 52.40692,
+            "lon": 16.92993
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Tarn\u00f3w",
+          "zip": "33-100",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 50.01381,
+            "lon": 20.98698
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Wroclaw",
+          "zip": "53-301",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 51.10286,
+            "lon": 17.03006
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Wroclaw",
+          "zip": "54-239",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 51.10286,
+            "lon": 17.03006
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Bellville",
+          "zip": "7530",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -33.90022,
+            "lon": 18.62847
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Benoni",
+          "zip": "1500",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -26.18848,
+            "lon": 28.32078
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Bloemfontein",
+          "zip": "9301",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -29.12107,
+            "lon": 26.214
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Cape Town",
+          "zip": "7500",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -33.92584,
+            "lon": 18.42322
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Cape Town",
+          "zip": "7572",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -33.92584,
+            "lon": 18.42322
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Cape Town",
+          "zip": "7700",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -33.92584,
+            "lon": 18.42322
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Durban",
+          "zip": "4001",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -29.8579,
+            "lon": 31.0292
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Durban",
+          "zip": "4091",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -29.8579,
+            "lon": 31.0292
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Johannesburg",
+          "zip": "2113",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -26.20227,
+            "lon": 28.04363
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Pretoria",
+          "zip": "0002",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -25.74486,
+            "lon": 28.18783
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Welkom",
+          "zip": "9460",
+          "country": "South Africa",
+          "geoPoint": {
+            "lat": -27.97742,
+            "lon": 26.73506
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Bradford",
+          "zip": "BD9 6RJ",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 53.79391,
+            "lon": -1.75206
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "Cambridge",
+          "zip": "CB2 0QQ",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 52.2,
+            "lon": 0.11667
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "High Wycombe",
+          "zip": "HP11 2QW",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 51.62907,
+            "lon": -0.74934
+          }
+        },
+        {
+          "facility": "Research Site",
+          "city": "London",
+          "zip": "W1T 6AH",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 51.50853,
+            "lon": -0.12574
+          }
+        }
+      ]
+    },
+    "referencesModule": {
+      "seeAlsoLinks": [
+        {
+          "label": "d9181c00001-study-synopsis\\_Redacted\\_pdfA.pdf",
+          "url": "https://filehosting-v2.pharmacm.com/api/Attachment/Download?tenantId=80217111&amp;parentIdentifier=D9181C00001&amp;attachmentIdentifier=ad9f60d8-283b-41ff-808d-263adeba65f9&amp;fileName=d9181c00001-study-synopsis_Redacted_pdfA.pdf&amp;versionIdentifier="
+        }
+      ]
+    },
+    "ipdSharingStatementModule": {
+      "ipdSharing": "YES",
+      "description": "Qualified researchers can request access to anonymized individual patient-level data from AstraZeneca group of companies sponsored clinical trials via the request portal. All request will be evaluated as per the AZ disclosure commitment: https://astrazenecagrouptrials.pharmacm.com/ST/Submission/Disclosure.\n\nYes, indicates that AZ are accepting requests for IPD, but this does not mean all requests will be shared.",
+      "infoTypes": [
+        "STUDY_PROTOCOL",
+        "SAP"
+      ],
+      "timeFrame": "AstraZeneca will meet or exceed data availability as per the commitments made to the EFPIA Pharma Data Sharing Principles. For details of our timelines, please rerefer to our disclosure commitment at https://astrazenecagrouptrials.pharmacm.com/ST/Submission/Disclosure.",
+      "accessCriteria": "When a request has been approved AstraZeneca will provide access to the de-identified individual patient-level data in an approved sponsored tool . Signed Data Sharing Agreement (non-negotiable contract for data accessors) must be in place before accessing requested information. Additionally, all users will need to accept the terms and conditions of the SAS MSE to gain access. For additional details, please review the Disclosure Statements at https://astrazenecagrouptrials.pharmacm.com/ST/Submission/Disclosure.",
+      "url": "https://astrazenecagroup-dt.pharmacm.com/DT/Home"
+    }
+  },
+  "resultsSection": {
+    "participantFlowModule": {
+      "preAssignmentDetails": "Adult participants with uncontrolled moderate to severe asthma were randomised in a 1:1:1 ratio to receive tozorakimab (MEDI3506) Dose A (lower dose), tozorakimab Dose B (higher dose), or placebo. Of the 478 participants screened, 250 were enrolled, and of these, 15 were excluded from analysis due to invalidity of data (see limitations and caveats for further details).",
+      "recruitmentDetails": "Participants were enrolled and randomised in 52 study centres in 7 countries including Argentina, Germany, Hungary, Poland, South Africa, the United Kingdom, and the United States from 17 September 2020. The last participant completed their last study visit on 06 February 2023.",
+      "groups": [
+        {
+          "id": "FG000",
+          "title": "Tozorakimab Dose A",
+          "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+        },
+        {
+          "id": "FG001",
+          "title": "Tozorakimab Dose B",
+          "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+        },
+        {
+          "id": "FG002",
+          "title": "Placebo",
+          "description": "Participants were randomised to receive placebo by SC injection."
+        }
+      ],
+      "periods": [
+        {
+          "title": "Overall Study",
+          "milestones": [
+            {
+              "type": "STARTED",
+              "achievements": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "77"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "77"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "81"
+                }
+              ]
+            },
+            {
+              "type": "Intent to Treat (ITT) Population",
+              "achievements": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "77"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "77"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "81"
+                }
+              ]
+            },
+            {
+              "type": "As-treated Population",
+              "achievements": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "77"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "77"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "81"
+                }
+              ]
+            },
+            {
+              "type": "Pharmacokinetic (PK) Population",
+              "achievements": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "75"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "77"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "0"
+                }
+              ]
+            },
+            {
+              "type": "COMPLETED",
+              "achievements": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "76"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "74"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "77"
+                }
+              ]
+            },
+            {
+              "type": "NOT COMPLETED",
+              "achievements": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "1"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "3"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "4"
+                }
+              ]
+            }
+          ],
+          "dropWithdraws": [
+            {
+              "type": "Adverse Event",
+              "reasons": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "0"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "0"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "1"
+                }
+              ]
+            },
+            {
+              "type": "Lost to Follow-up",
+              "reasons": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "0"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "0"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "1"
+                }
+              ]
+            },
+            {
+              "type": "Physician Decision",
+              "reasons": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "0"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "1"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "0"
+                }
+              ]
+            },
+            {
+              "type": "Withdrawal by Subject",
+              "reasons": [
+                {
+                  "groupId": "FG000",
+                  "numSubjects": "1"
+                },
+                {
+                  "groupId": "FG001",
+                  "numSubjects": "2"
+                },
+                {
+                  "groupId": "FG002",
+                  "numSubjects": "2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "baselineCharacteristicsModule": {
+      "groups": [
+        {
+          "id": "BG000",
+          "title": "Tozorakimab Dose A",
+          "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+        },
+        {
+          "id": "BG001",
+          "title": "Tozorakimab Dose B",
+          "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+        },
+        {
+          "id": "BG002",
+          "title": "Placebo",
+          "description": "Participants were randomised to receive placebo by SC injection."
+        },
+        {
+          "id": "BG003",
+          "title": "Total",
+          "description": "Total of all reporting groups"
+        }
+      ],
+      "denoms": [
+        {
+          "units": "Participants",
+          "counts": [
+            {
+              "groupId": "BG000",
+              "value": "77"
+            },
+            {
+              "groupId": "BG001",
+              "value": "77"
+            },
+            {
+              "groupId": "BG002",
+              "value": "81"
+            },
+            {
+              "groupId": "BG003",
+              "value": "235"
+            }
+          ]
+        }
+      ],
+      "measures": [
+        {
+          "title": "Age, Continuous",
+          "paramType": "MEAN",
+          "dispersionType": "STANDARD_DEVIATION",
+          "unitOfMeasure": "years",
+          "classes": [
+            {
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "42.1",
+                      "spread": "11.97"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "43.1",
+                      "spread": "12.37"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "48.3",
+                      "spread": "10.41"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "44.5",
+                      "spread": "11.87"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Sex: Female, Male",
+          "paramType": "COUNT_OF_PARTICIPANTS",
+          "unitOfMeasure": "Participants",
+          "classes": [
+            {
+              "categories": [
+                {
+                  "title": "Female",
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "53"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "54"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "43"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "150"
+                    }
+                  ]
+                },
+                {
+                  "title": "Male",
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "24"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "23"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "38"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "85"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Ethnicity (NIH/OMB)",
+          "paramType": "COUNT_OF_PARTICIPANTS",
+          "unitOfMeasure": "Participants",
+          "classes": [
+            {
+              "categories": [
+                {
+                  "title": "Hispanic or Latino",
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "26"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "24"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "33"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "83"
+                    }
+                  ]
+                },
+                {
+                  "title": "Not Hispanic or Latino",
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "51"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "53"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "48"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "152"
+                    }
+                  ]
+                },
+                {
+                  "title": "Unknown or Not Reported",
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "0"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "0"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "0"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "0"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Race/Ethnicity, Customized",
+          "paramType": "COUNT_OF_PARTICIPANTS",
+          "unitOfMeasure": "Participants",
+          "classes": [
+            {
+              "categories": [
+                {
+                  "title": "Asian",
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "0"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "0"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "1"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "1"
+                    }
+                  ]
+                },
+                {
+                  "title": "Black or African American",
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "4"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "8"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "7"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "19"
+                    }
+                  ]
+                },
+                {
+                  "title": "White",
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "71"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "67"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "72"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "210"
+                    }
+                  ]
+                },
+                {
+                  "title": "Other",
+                  "measurements": [
+                    {
+                      "groupId": "BG000",
+                      "value": "2"
+                    },
+                    {
+                      "groupId": "BG001",
+                      "value": "2"
+                    },
+                    {
+                      "groupId": "BG002",
+                      "value": "1"
+                    },
+                    {
+                      "groupId": "BG003",
+                      "value": "5"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "outcomeMeasuresModule": {
+      "outcomeMeasures": [
+        {
+          "type": "PRIMARY",
+          "title": "Change From Baseline to Week 16 in Pre-bronchodilator (Pre-BD) Forced Expiratory Volume in the First Second (FEV1) as Measured in the Study Clinic",
+          "description": "In-clinic spirometry measurements were taken prior to the administration of bronchodilators. Baseline was the last measurement prior to first injection of investigational product (IP).\n\nThe least squares (LS) means, LS mean differences and 80% confidence intervals (CIs), and one-sided p-value results were based on a mixed model repeated measures (MMRM). The model included fixed effects for baseline, background medication, geographic region, baseline inhaled corticosteroids (ICS) total daily dose, visit, treatment, and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention. Participants with data available are included.",
+          "reportingStatus": "POSTED",
+          "paramType": "LEAST_SQUARES_MEAN",
+          "dispersionType": "Standard Error",
+          "unitOfMeasure": "litres",
+          "timeFrame": "Baseline and week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "76"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "81"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "0.148",
+                      "spread": "0.047"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "0.116",
+                      "spread": "0.048"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "0.112",
+                      "spread": "0.046"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.267",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "0.036",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.038",
+              "ciUpperLimit": "0.111",
+              "estimateComment": "Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.473",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "0.004",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.071",
+              "ciUpperLimit": "0.079",
+              "estimateComment": "Tozorakimab Dose B - Placebo"
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Change From Baseline to Weeks 8 and 16 in Post-bronchodilator (Post-BD) FEV1 as Measured in the Study Clinic",
+          "description": "In-clinic spirometry measurements were taken following the use of bronchodilators. Bronchodilatation was induced using albuterol (90 \u00b5g metered dose), salbutamol (100 \u00b5g metered dose), or levalbuterol (45 \u00b5g metered dose), and measurements were taken after up to a maximum of 4 inhalations. Baseline was the last measurement prior to first injection of IP.\n\nThe LS means, LS mean differences and 80% CIs, and one-sided p-value results were based on MMRM. The model included fixed effects for baseline, background medication, geographic region, baseline ICS total daily dose, visit, treatment, and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention. Participants with data available are included.",
+          "reportingStatus": "POSTED",
+          "paramType": "LEAST_SQUARES_MEAN",
+          "dispersionType": "Standard Error",
+          "unitOfMeasure": "litres",
+          "timeFrame": "Baseline and weeks 8 and 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "24"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "25"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "35"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "title": "Week 8",
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "-0.062",
+                      "spread": "0.067"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "0.008",
+                      "spread": "0.068"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "-0.050",
+                      "spread": "0.060"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Week 16",
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "-0.064",
+                      "spread": "0.067"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "-0.050",
+                      "spread": "0.068"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "-0.026",
+                      "spread": "0.060"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.437",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-0.012",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.110",
+              "ciUpperLimit": "0.086",
+              "estimateComment": "Week 8: Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.221",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "0.059",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.039",
+              "ciUpperLimit": "0.157",
+              "estimateComment": "Week 8: Tozorakimab Dose B - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.308",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-0.038",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.136",
+              "ciUpperLimit": "0.060",
+              "estimateComment": "Week 16: Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.372",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-0.025",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.122",
+              "ciUpperLimit": "0.072",
+              "estimateComment": "Week 16: Tozorakimab Dose B - Placebo"
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Serum Concentrations of Tozorakimab",
+          "description": "Tozorakimab serum concentrations were measured using a validated assay method.",
+          "populationDescription": "The PK population included participants who received at least one dose of tozorakimab and had at least one detectable serum concentration measurement post-first dose of study intervention. Participants with data available at each time point are presented.",
+          "reportingStatus": "POSTED",
+          "paramType": "GEOMETRIC_MEAN",
+          "dispersionType": "Geometric Coefficient of Variation",
+          "unitOfMeasure": "\u00b5g/L",
+          "timeFrame": "Pharmacokinetic (PK) samples were taken pre-dose (day 1) and at weeks 1, 4, 8, 12, 16, 20, and 24",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "75"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "77"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "title": "Pre-dose",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "77"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "NA",
+                      "spread": "NA",
+                      "comment": "Geometric mean (CV%) could not be calculated due to too many samples with tozorakimab concentrations below the limit of quantification."
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "NA",
+                      "spread": "NA",
+                      "comment": "Geometric mean (CV%) could not be calculated due to too many samples with tozorakimab concentrations below the limit of quantification."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Week 1",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "76"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "8939.24",
+                      "spread": "367.31"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "18374.15",
+                      "spread": "239.89"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Week 4",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "72"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "72"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "2165.82",
+                      "spread": "180.17"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "4102.04",
+                      "spread": "168.60"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Week 8",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "70"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "2680.07",
+                      "spread": "113.59"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "4476.11",
+                      "spread": "109.27"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Week 12",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "75"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "2673.94",
+                      "spread": "121.08"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "4646.57",
+                      "spread": "153.62"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Week 16",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "71"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "72"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "2742.93",
+                      "spread": "128.83"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "5007.93",
+                      "spread": "117.76"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Week 20",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "75"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "72"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "356.56",
+                      "spread": "177.25"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "761.75",
+                      "spread": "152.78"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Week 24",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "72"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "80.36",
+                      "spread": "170.34"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "146.67",
+                      "spread": "214.16"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Number of Participants With Anti-drug Antibodies (ADAs)",
+          "description": "ADA prevalence is the number of participants ADA positive (ADA+) at baseline and/or post-baseline. Treatment-emergent ADA+ (TE-ADA +) positive is defined as being either of treatment-induced ADA+ (ADA negative \\[ADA-\\] at baseline and at least one post-baseline ADA+) and treatment-boosted ADA+ (ADA+ at baseline and baseline titre is boosted by \u2265 4-fold increase at \u2265 1 post-baseline time point). Treatment-emergent ADA- (TE-ADA-) is defined as ADA+ but not fulfilling the definition of TE-ADA+. ADA persistently positive is defined as ADA- at baseline and ADA+ at \u2265 2 post-baseline assessment with \u2265 16 weeks between first and last positive assessments, or ADA+ at the last post-baseline assessment. ADA transiently positive is defined as ADA- at baseline, having at least one post-baseline ADA+ assessment and not fulfilling the conditions of ADA persistently positive. Baseline is defined as the last ADA assessment prior to first injection of IP.",
+          "populationDescription": "The as-treated population included participants who were randomised and received any study intervention. Participants with data available are included.",
+          "reportingStatus": "POSTED",
+          "paramType": "COUNT_OF_PARTICIPANTS",
+          "unitOfMeasure": "Participants",
+          "timeFrame": "Blood samples were taken pre-dose (day 1) and at weeks 1, 4, 8, 12, 16, and 24",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "81"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "title": "ADA prevalence",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "81"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "3"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "3"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "1"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "TE-ADA+",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "75"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "81"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "3"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "2"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "1"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Treatment-induced ADA+",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "75"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "81"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "3"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "2"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "1"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "TE-ADA-",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "75"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "81"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "0"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "1"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "0"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Both baseline and post-baseline positive",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "81"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "0"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "1"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "0"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "ADA persistently positive",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "81"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "3"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "1"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "0"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "ADA transiently positive",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "81"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "0"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "1"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Change From Baseline to Week 16 in the Asthma Control Questionnaire-6 (ACQ-6) Score",
+          "description": "In the ACQ-6, participants were asked to recall how their asthma has been during the previous week by responding to one BD-use question and 5 symptom questions. Questions were weighted equally and scored from 0 (totally controlled) to 6 (severely uncontrolled). Mean scores of \u2264 0.75 indicate well-controlled asthma, scores between \\>0.75 and \\<1.5 indicate partly controlled asthma, and scores \u22651.5 indicate not well-controlled asthma. Results were based on an MMRM which included fixed effects for baseline, background medication, geographic region, baseline ICS total daily dose, visit, treatment and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements. A negative change from baseline indicates an improvement in asthma control.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention. Participants with data available are included.",
+          "reportingStatus": "POSTED",
+          "paramType": "LEAST_SQUARES_MEAN",
+          "dispersionType": "Standard Error",
+          "unitOfMeasure": "score on a scale",
+          "timeFrame": "Baseline and week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "76"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "81"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "-0.925",
+                      "spread": "0.117"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "-0.942",
+                      "spread": "0.117"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "-0.895",
+                      "spread": "0.112"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.416",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-0.030",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.215",
+              "ciUpperLimit": "0.154",
+              "estimateComment": "Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.371",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-0.047",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.231",
+              "ciUpperLimit": "0.137",
+              "estimateComment": "Tozorakimab Dose B - Placebo"
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Number of Participants With a Decrease in ACQ-6 Score \u2265 0.5 From Baseline to Week 16",
+          "description": "In the ACQ-6, participants were asked to recall how their asthma has been during the previous week by responding to one BD-use question and 5 symptom questions. Questions were weighted equally and scored from 0 (totally controlled) to 6 (severely uncontrolled). Mean scores of \u2264 0.75 indicate well-controlled asthma, scores between \\>0.75 and \\<1.5 indicate partly controlled asthma, and scores \u22651.5 indicate not well-controlled asthma. A decrease in ACQ-6 score baseline indicates an improvement in asthma control, and individual changes of at least 0.5 are considered clinically meaningful.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention. Participants with evaluable ACQ-6 scores were included in the analysis.",
+          "reportingStatus": "POSTED",
+          "paramType": "COUNT_OF_PARTICIPANTS",
+          "unitOfMeasure": "Participants",
+          "timeFrame": "Baseline and week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "73"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "74"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "77"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "53"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "56"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "53"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.612",
+              "statisticalMethod": "Chi-squared",
+              "paramType": "Odds Ratio (OR)",
+              "paramValue": "1.20",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.76",
+              "ciUpperLimit": "1.90"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.348",
+              "statisticalMethod": "Chi-squared",
+              "paramType": "Odds Ratio (OR)",
+              "paramValue": "1.41",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.88",
+              "ciUpperLimit": "2.25"
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Number of Participants Achieving ACQ-6 Well Controlled Status at Week 16",
+          "description": "In the ACQ-6, participants were asked to recall how their asthma has been during the previous week by responding to one BD-use question and 5 symptom questions. Questions were weighted equally and scored from 0 (totally controlled) to 6 (severely uncontrolled). Mean scores of \u2264 0.75 indicate well-controlled asthma, scores between \\>0.75 and \\<1.5 indicate partly controlled asthma, and scores \u22651.5 indicate not well-controlled asthma.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention. Participants with evaluable ACQ-6 scores were included in the analysis.",
+          "reportingStatus": "POSTED",
+          "paramType": "COUNT_OF_PARTICIPANTS",
+          "unitOfMeasure": "Participants",
+          "timeFrame": "Baseline and week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "73"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "74"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "77"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "17"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "18"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "21"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.575",
+              "statisticalMethod": "Chi-squared",
+              "paramType": "Odds Ratio (OR)",
+              "paramValue": "0.81",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.50",
+              "ciUpperLimit": "1.31"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.679",
+              "statisticalMethod": "Chi-squared",
+              "paramType": "Odds Ratio (OR)",
+              "paramValue": "0.86",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.53",
+              "ciUpperLimit": "1.38"
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Change From Baseline to Week 16 in St George's Respiratory Questionnaire (SGRQ) Domain and Total Scores",
+          "description": "The SGRQ is a 50-item patient-reported outcome instrument to measure the health status of participants with airway obstruction diseases, giving a total score and 3 domain scores (symptoms, activity, and impacts). The total score is expressed as a percentage of overall impairment, with 100 representing the worst possible health status and 0 the best possible health status. Each domain score ranges from 0 to 100, with higher scores indicating greater impairment. A negative change from baseline indicates an improvement in impairments. Results were based on an MMRM which included fixed effects for baseline, background medication, geographic region, baseline ICS total daily dose, visit, treatment and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention. Participants with data available are included.",
+          "reportingStatus": "POSTED",
+          "paramType": "LEAST_SQUARES_MEAN",
+          "dispersionType": "Standard Error",
+          "unitOfMeasure": "score on a scale",
+          "timeFrame": "Baseline and week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "76"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "80"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "title": "SGRQ Activity Total Score",
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "-10.340",
+                      "spread": "2.477"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "-11.706",
+                      "spread": "2.507"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "-10.342",
+                      "spread": "2.390"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "SGRQ Impacts Total Score",
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "-8.237",
+                      "spread": "1.750"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "-8.509",
+                      "spread": "1.774"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "-6.816",
+                      "spread": "1.689"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "SGRQ Symptoms Total Score",
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "-15.290",
+                      "spread": "2.828"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "-19.130",
+                      "spread": "2.873"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "-15.981",
+                      "spread": "2.726"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "SGRQ Total Score",
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "-10.133",
+                      "spread": "1.815"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "-11.366",
+                      "spread": "1.838"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "-9.470",
+                      "spread": "1.750"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.500",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "0.002",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-3.825",
+              "ciUpperLimit": "3.828",
+              "estimateComment": "SGRQ Activity Total Score: Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.324",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-1.364",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-5.198",
+              "ciUpperLimit": "2.470",
+              "estimateComment": "SGRQ Activity Total Score: Tozorakimab Dose B - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.248",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-1.421",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-4.103",
+              "ciUpperLimit": "1.260",
+              "estimateComment": "SGRQ Impacts Total Score: Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.210",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-1.694",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-4.383",
+              "ciUpperLimit": "0.996",
+              "estimateComment": "SGRQ Impacts Total Score: Tozorakimab Dose B - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.420",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "0.691",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-3.715",
+              "ciUpperLimit": "5.096",
+              "estimateComment": "SGRQ Symptoms Total Score: Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.181",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-3.150",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-7.579",
+              "ciUpperLimit": "1.280",
+              "estimateComment": "SGRQ Symptoms Total Score: Tozorakimab Dose B - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.380",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-0.663",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-3.454",
+              "ciUpperLimit": "2.129",
+              "estimateComment": "SGRQ Total Score: Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.192",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-1.896",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-4.694",
+              "ciUpperLimit": "0.903",
+              "estimateComment": "SGRQ Total Score: Tozorakimab Dose B - Placebo"
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Number of Participants With a Decrease in SGRQ Total Score of \u2265 4 Points From Baseline to Week 16",
+          "description": "The SGRQ is a 50-item patient-reported outcome instrument to measure the health status of participants with airway obstruction diseases, giving a total score and 3 domain scores (symptoms, activity, and impacts). The total score is expressed as a percentage of overall impairment, with 100 representing the worst possible health status and 0 the best possible health status. A decrease in the SGRQ total score indicates an improvement in overall impairment.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention. Participants with evaluable SGRQ scores were included in the analysis.",
+          "reportingStatus": "POSTED",
+          "paramType": "COUNT_OF_PARTICIPANTS",
+          "unitOfMeasure": "Participants",
+          "timeFrame": "Baseline and week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "73"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "74"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "77"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "50"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "53"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "54"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.828",
+              "statisticalMethod": "Chi-squared",
+              "paramType": "Odds Ratio (OR)",
+              "paramValue": "0.93",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.59",
+              "ciUpperLimit": "1.46"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.840",
+              "statisticalMethod": "Chi-squared",
+              "paramType": "Odds Ratio (OR)",
+              "paramValue": "1.07",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.68",
+              "ciUpperLimit": "1.70"
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Number of Participants With at Least One Asthma CompEx Event From Baseline to Week 16",
+          "description": "Asthma CompEx is a combination of exacerbations of asthma and diary events (i.e., a combination of electronic diary \\[eDiary\\] variables). eDiary events are defined by criteria using morning/evening diary variables of PEF, symptoms, and use of rescue medication. A participant was considered to have a CompEx event if they had one or both of an asthma exacerbation or diary event. For participants who did not experience an on-treatment CompEx event, date of censoring was the minimum between the date of last dose + 28 days, and the last day of eDiary recording during the on-treatment period.",
+          "populationDescription": "The ITT population included participant who were randomised and received any study intervention.",
+          "reportingStatus": "POSTED",
+          "paramType": "COUNT_OF_PARTICIPANTS",
+          "unitOfMeasure": "Participants",
+          "timeFrame": "Baseline to week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "81"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "19"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "15"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "15"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.239",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "Regression, Cox",
+              "statisticalComment": "Cox regression model with treatment group, background medication, geographic region, and ICS total daily dose as covariates.",
+              "paramType": "Hazard Ratio (HR)",
+              "paramValue": "1.3",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.8",
+              "ciUpperLimit": "2.0"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.461",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "Regression, Cox",
+              "statisticalComment": "Cox regression model with treatment group, background medication, geographic region, and ICS total daily dose as covariates.",
+              "paramType": "Hazard Ratio (HR)",
+              "paramValue": "1.0",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.6",
+              "ciUpperLimit": "1.7"
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Asthma CompEx Annualised Event Rate",
+          "description": "The annualised rate of asthma CompEx events was calculated as the total number of asthma CompEx events / (date of last dose of IP + 28 - date of first dose of IP - recovery time + 1) / 365.25.\n\nThe rates, rate ratios, and one-sided p-values were estimated from a negative binomial regression, with the log(follow up time) included as an offset term. The dependent variable will be the number of CompEx events during the on-treatment period (i.e., from baseline to last dose date +28 days), and the model will include treatment group, background medication, geographic region and baseline ICS total daily dose as covariates.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention.",
+          "reportingStatus": "POSTED",
+          "paramType": "NUMBER",
+          "dispersionType": "80% Confidence Interval",
+          "unitOfMeasure": "events per participant-treatment year",
+          "timeFrame": "Baseline to week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "81"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "0.86",
+                      "lowerLimit": "0.58",
+                      "upperLimit": "1.28"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "0.69",
+                      "lowerLimit": "0.44",
+                      "upperLimit": "1.07"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "0.99",
+                      "lowerLimit": "0.68",
+                      "upperLimit": "1.44"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.346",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "Negative binomial regression",
+              "paramType": "Rate ratio",
+              "paramValue": "0.87",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.56",
+              "ciUpperLimit": "1.36"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.166",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "Negative binomial regression",
+              "paramType": "Rate ratio",
+              "paramValue": "0.70",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.43",
+              "ciUpperLimit": "1.12"
+            }
+          ]
+        },
+        {
+          "type": "SECONDARY",
+          "title": "Percent Change From Baseline to Week 16 in Concentration of Fractional Exhaled Nitric Oxide (FeNO) in Exhaled Breath",
+          "description": "A standardised single-breath FeNO test was performed to evaluate airway inflammation. Results were based on MMRM on log-transformed change from baseline. Log-transformed change from baseline is calculated as the visit value in log minus the baseline value in log. The results from the model were then back transformed. The model included fixed effects for baseline (in log), background medication, geographic region, baseline ICS total daily dose, visit, treatment and the baseline by visit and treatment by visit interactions. Visits within subject were considered as repeated measurements.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention. Participants with data available are included.",
+          "reportingStatus": "POSTED",
+          "paramType": "GEOMETRIC_LEAST_SQUARES_MEAN",
+          "dispersionType": "80% Confidence Interval",
+          "unitOfMeasure": "percent change",
+          "timeFrame": "Baseline and week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "74"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "81"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "-17.429",
+                      "lowerLimit": "-23.423",
+                      "upperLimit": "-10.965"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "-16.500",
+                      "lowerLimit": "-22.548",
+                      "upperLimit": "-9.981"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "-5.007",
+                      "lowerLimit": "-11.612",
+                      "upperLimit": "2.091"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.029",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "Geometric LS mean ratio",
+              "paramValue": "0.869",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.791",
+              "ciUpperLimit": "0.956"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.040",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "Geometric LS mean ratio",
+              "paramValue": "0.879",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.800",
+              "ciUpperLimit": "0.966"
+            }
+          ]
+        },
+        {
+          "type": "OTHER_PRE_SPECIFIED",
+          "title": "Change From Baseline to Week 16 in Pre-BD FEV1 as Measured in the Study Clinic: Analysis Per Number of Exacerbations in Last 12 Months",
+          "description": "In-clinic spirometry measurements were taken prior to the administration of bronchodilators. Baseline was the last measurement prior to first injection of IP.\n\nThe LS means, LS mean differences and 80% CIs, and one-sided p-value results were based on MMRM. The model included fixed effects for baseline, visit, treatment, and the baseline by visit and treatment by visit interactions. Visits within participant were considered as repeated measurements. Analysis is presented by the number of asthma exacerbations experienced within the 12 months prior to baseline (1 or \u2265 2 exacerbations in the previous 12 months).",
+          "populationDescription": "Participants in the ITT population with 1 or \u2265 2 exacerbations in the previous 12 months are included in the analysis. The ITT population included participants who were randomised and received any study intervention. Participants with data available are included.",
+          "reportingStatus": "POSTED",
+          "paramType": "LEAST_SQUARES_MEAN",
+          "dispersionType": "Standard Error",
+          "unitOfMeasure": "litres",
+          "timeFrame": "Baseline and week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "45"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "47"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "52"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "title": "1 Exacerbation in Last 12 Months",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "45"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "47"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "52"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "0.188",
+                      "spread": "0.065"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "0.042",
+                      "spread": "0.070"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "0.165",
+                      "spread": "0.062"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "\u2265 2 Exacerbations in Last 12 Months",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "31"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "30"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "29"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "0.059",
+                      "spread": "0.067"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "0.194",
+                      "spread": "0.065"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "-0.018",
+                      "spread": "0.069"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "groupDescription": "1 Exacerbation in Last 12 Months",
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.385",
+              "pValueComment": "One-sided p-value; alpha = 0.1",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "0.023",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.078",
+              "ciUpperLimit": "0.124",
+              "estimateComment": "Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "groupDescription": "1 Exacerbation in Last 12 Months",
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.060",
+              "pValueComment": "One-sided p-value; alpha = 0.1",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "-0.123",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.224",
+              "ciUpperLimit": "-0.022",
+              "estimateComment": "Tozorakimab Dose B - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "groupDescription": "\u2265 2 Exacerbation in Last 12 Months",
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.186",
+              "pValueComment": "One-sided p-value; alpha = 0.1",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean Difference",
+              "paramValue": "0.077",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "-0.034",
+              "ciUpperLimit": "0.187",
+              "estimateComment": "Tozorakimab Dose A - Placebo"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "groupDescription": "\u2265 2 Exacerbation in Last 12 Months",
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "0.007",
+              "pValueComment": "One-sided p-value; alpha = 0.1",
+              "statisticalMethod": "MMRM",
+              "paramType": "LS mean difference",
+              "paramValue": "0.212",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.102",
+              "ciUpperLimit": "0.322",
+              "estimateComment": "Tozorakimab Dose B - Placebo"
+            }
+          ]
+        },
+        {
+          "type": "OTHER_PRE_SPECIFIED",
+          "title": "Eosinophil Count",
+          "description": "The eosinophil count at baseline and week 16 are presented. Baseline was defined as the last measurement prior to first injection of IP.",
+          "populationDescription": "The ITT population included participants who were randomised and received any study intervention. Participants with data available are included.",
+          "reportingStatus": "POSTED",
+          "paramType": "GEOMETRIC_MEAN",
+          "dispersionType": "Geometric Coefficient of Variation",
+          "unitOfMeasure": "10^9 cells/L",
+          "timeFrame": "Baseline and Week 16",
+          "groups": [
+            {
+              "id": "OG000",
+              "title": "Tozorakimab Dose A",
+              "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection."
+            },
+            {
+              "id": "OG001",
+              "title": "Tozorakimab Dose B",
+              "description": "Participants were randomised to receive tozorakimab Dose B by SC injection."
+            },
+            {
+              "id": "OG002",
+              "title": "Placebo",
+              "description": "Participants were randomised to receive placebo by SC injection."
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "OG000",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG001",
+                  "value": "77"
+                },
+                {
+                  "groupId": "OG002",
+                  "value": "81"
+                }
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "title": "Baseline",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "77"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "81"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "0.187",
+                      "spread": "80.4"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "0.200",
+                      "spread": "88.4"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "0.178",
+                      "spread": "83.3"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Week 16",
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "65"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "70"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "73"
+                    }
+                  ]
+                }
+              ],
+              "categories": [
+                {
+                  "measurements": [
+                    {
+                      "groupId": "OG000",
+                      "value": "0.122",
+                      "spread": "82.9"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "0.136",
+                      "spread": "77.6"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "0.185",
+                      "spread": "93.2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "analyses": [
+            {
+              "groupIds": [
+                "OG000",
+                "OG002"
+              ],
+              "groupDescription": "Analysis at Week 16 based on MMRM which included fixed effects for baseline, background medication, geographic region, baseline ICS total daily dose, visit, treatment and the baseline by visit and treatment by visit interactions.",
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "< 0.001",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "Geometric LS Mean Ratio",
+              "paramValue": "0.630",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.559",
+              "ciUpperLimit": "0.710"
+            },
+            {
+              "groupIds": [
+                "OG001",
+                "OG002"
+              ],
+              "groupDescription": "Analysis at Week 16 based on MMRM which included fixed effects for baseline, background medication, geographic region, baseline ICS total daily dose, visit, treatment and the baseline by visit and treatment by visit interactions.",
+              "nonInferiorityType": "SUPERIORITY",
+              "pValue": "< 0.001",
+              "pValueComment": "One-sided p-value",
+              "statisticalMethod": "MMRM",
+              "paramType": "Geometric LS Mean Ratio",
+              "paramValue": "0.675",
+              "ciPctValue": "80",
+              "ciNumSides": "TWO_SIDED",
+              "ciLowerLimit": "0.599",
+              "ciUpperLimit": "0.760"
+            }
+          ]
+        }
+      ]
+    },
+    "adverseEventsModule": {
+      "frequencyThreshold": "5",
+      "timeFrame": "Day 1 to Week 24 (up to 24 weeks)",
+      "eventGroups": [
+        {
+          "id": "EG000",
+          "title": "Tozorakimab Dose A",
+          "description": "Participants were randomised to receive tozorakimab Dose A by subcutaneous (SC) injection.",
+          "deathsNumAffected": 0,
+          "deathsNumAtRisk": 77,
+          "seriousNumAffected": 1,
+          "seriousNumAtRisk": 77,
+          "otherNumAffected": 25,
+          "otherNumAtRisk": 77
+        },
+        {
+          "id": "EG001",
+          "title": "Tozorakimab Dose B",
+          "description": "Participants were randomised to receive tozorakimab Dose B by SC injection.",
+          "deathsNumAffected": 0,
+          "deathsNumAtRisk": 77,
+          "seriousNumAffected": 4,
+          "seriousNumAtRisk": 77,
+          "otherNumAffected": 20,
+          "otherNumAtRisk": 77
+        },
+        {
+          "id": "EG002",
+          "title": "Placebo",
+          "description": "Participants were randomised to receive placebo by SC injection.",
+          "deathsNumAffected": 0,
+          "deathsNumAtRisk": 81,
+          "seriousNumAffected": 2,
+          "seriousNumAtRisk": 81,
+          "otherNumAffected": 20,
+          "otherNumAtRisk": 81
+        }
+      ],
+      "seriousEvents": [
+        {
+          "term": "Bronchitis",
+          "organSystem": "Infections and infestations",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 1,
+              "numAffected": 1,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Clostridium difficile colitis",
+          "organSystem": "Infections and infestations",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 1,
+              "numAffected": 1,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Asthma",
+          "organSystem": "Respiratory, thoracic and mediastinal disorders",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 2,
+              "numAffected": 2,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Acid peptic disease",
+          "organSystem": "Gastrointestinal disorders",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 1,
+              "numAffected": 1,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Umbilical hernia",
+          "organSystem": "Gastrointestinal disorders",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 1,
+              "numAffected": 1,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Asthenia",
+          "organSystem": "General disorders",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 1,
+              "numAffected": 1,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Clavicle fracture",
+          "organSystem": "Injury, poisoning and procedural complications",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 1,
+              "numAffected": 1,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 81
+            }
+          ]
+        }
+      ],
+      "otherEvents": [
+        {
+          "term": "COVID-19",
+          "organSystem": "Infections and infestations",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 17,
+              "numAffected": 15,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 12,
+              "numAffected": 10,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 12,
+              "numAffected": 11,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Nasopharyngitis",
+          "organSystem": "Infections and infestations",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 6,
+              "numAffected": 6,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 6,
+              "numAffected": 5,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 5,
+              "numAffected": 4,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Injection site erythema",
+          "organSystem": "General disorders",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 5,
+              "numAffected": 4,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 15,
+              "numAffected": 7,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 5,
+              "numAffected": 2,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Urinary tract infection",
+          "organSystem": "Infections and infestations",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 4,
+              "numAffected": 4,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 2,
+              "numAffected": 2,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 3,
+              "numAffected": 3,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Injection site swelling",
+          "organSystem": "General disorders",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 5,
+              "numAffected": 4,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 4,
+              "numAffected": 1,
+              "numAtRisk": 81
+            }
+          ]
+        },
+        {
+          "term": "Injection site urticaria",
+          "organSystem": "General disorders",
+          "sourceVocabulary": "MedDRA 25.1",
+          "assessmentType": "SYSTEMATIC_ASSESSMENT",
+          "stats": [
+            {
+              "groupId": "EG000",
+              "numEvents": 1,
+              "numAffected": 1,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG001",
+              "numEvents": 7,
+              "numAffected": 4,
+              "numAtRisk": 77
+            },
+            {
+              "groupId": "EG002",
+              "numEvents": 0,
+              "numAffected": 0,
+              "numAtRisk": 81
+            }
+          ]
+        }
+      ]
+    },
+    "moreInfoModule": {
+      "limitationsAndCaveats": {
+        "description": "15 participants enrolled at 1 study centre were excluded from the final analysis due to inability to confirm the validity of the data reported by the site. The exclusion of data from this site did not change the interpretation of the primary endpoint, or results in a significant change to the interpretation of any other endpoint."
+      },
+      "certainAgreement": {
+        "piSponsorEmployee": false,
+        "restrictiveAgreement": false
+      },
+      "pointOfContact": {
+        "title": "Global Clinical Lead",
+        "organization": "AstraZeneca AB",
+        "email": "information.center@astrazeneca.com",
+        "phone": "1-877-240-9479"
+      }
+    }
+  },
+  "documentSection": {
+    "largeDocumentModule": {
+      "largeDocs": [
+        {
+          "typeAbbrev": "Prot",
+          "hasProtocol": true,
+          "hasSap": false,
+          "hasIcf": false,
+          "label": "Study Protocol",
+          "date": "2022-03-08",
+          "uploadDate": "2023-12-12T05:34",
+          "filename": "Prot_000.pdf",
+          "size": 1878998
+        },
+        {
+          "typeAbbrev": "SAP",
+          "hasProtocol": false,
+          "hasSap": true,
+          "hasIcf": false,
+          "label": "Statistical Analysis Plan",
+          "date": "2023-01-10",
+          "uploadDate": "2023-12-12T05:33",
+          "filename": "SAP_001.pdf",
+          "size": 3574072
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "miscInfoModule": {
+      "versionHolder": "2026-09-11",
+      "removedCountries": [
+        "Canada",
+        "Philippines"
+      ],
+      "submissionTracking": {
+        "firstMcpInfo": {
+          "postDateStruct": {
+            "date": "2023-12-28",
+            "type": "ACTUAL"
+          }
+        }
+      }
+    },
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "id": "D001249",
+          "term": "Asthma"
+        },
+        {
+          "id": "D007249",
+          "term": "Inflammation"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D001982",
+          "term": "Bronchial Diseases"
+        },
+        {
+          "id": "D012140",
+          "term": "Respiratory Tract Diseases"
+        },
+        {
+          "id": "D008173",
+          "term": "Lung Diseases, Obstructive"
+        },
+        {
+          "id": "D008171",
+          "term": "Lung Diseases"
+        },
+        {
+          "id": "D012130",
+          "term": "Respiratory Hypersensitivity"
+        },
+        {
+          "id": "D006969",
+          "term": "Hypersensitivity, Immediate"
+        },
+        {
+          "id": "D006967",
+          "term": "Hypersensitivity"
+        },
+        {
+          "id": "D007154",
+          "term": "Immune System Diseases"
+        },
+        {
+          "id": "D010335",
+          "term": "Pathologic Processes"
+        },
+        {
+          "id": "D013568",
+          "term": "Pathological Conditions, Signs and Symptoms"
+        }
+      ]
+    }
+  },
+  "hasResults": true
+}

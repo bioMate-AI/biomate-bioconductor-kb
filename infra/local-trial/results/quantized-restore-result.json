@@ -1,0 +1,10 @@
+{
+  "bucket": "biomate-models-399683337364",
+  "manifest_key": "biomate-core-local-trial/20260912/cpu-inference/snapshots/20260912T175018Z-185735c58f434e5cb02ea8ca8cc0970c/manifest.json",
+  "manifest_sha256": "30dc6a60cf9e211aecc7280bac53d9909dc2483ca90105e62087a9bcbab67ef0",
+  "file_count": 9,
+  "restore_verified": true,
+  "restore_method": "checkpoint_store.restore: manifest SHA256, every file hash and atomic directory promotion",
+  "restored_shards": 5,
+  "service_state": "Result=success\nExecMainStatus=0\nActiveState=inactive\n"
+}

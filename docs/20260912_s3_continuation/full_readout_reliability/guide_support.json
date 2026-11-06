@@ -1,0 +1,1756 @@
+{
+  "pairs": 192,
+  "cell_support": {
+    "minimum_cells": {
+      "min": 5.0,
+      "median": 35.0,
+      "max": 339.0
+    },
+    "cell_ratio": {
+      "min": 1.0,
+      "median": 2.317813765182186,
+      "max": 58.43333333333333
+    },
+    "minimum_library": {
+      "min": 31710.0,
+      "median": 388505.5,
+      "max": 3699016.0
+    }
+  },
+  "descriptive_spearman_with_guide_agreement": {
+    "minimum_cells": -0.04454760170649187,
+    "cell_ratio": -0.2192774648943966,
+    "minimum_library": -0.053744608414941816
+  },
+  "caveat": "Original132 panel; repeated donors/targets, confounded observational associations; no p-values, causal attribution, or filtering decisions",
+  "rows": [
+    {
+      "target": "ARPC2",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 18.0,
+      "cell_ratio": 1.2777777777777777,
+      "minimum_library": 124385.0,
+      "disjoint_pearson": 0.6020878926429607
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 11.0,
+      "cell_ratio": 1.3636363636363635,
+      "minimum_library": 107164.0,
+      "disjoint_pearson": 0.30529122470022996
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 20.0,
+      "cell_ratio": 1.0,
+      "minimum_library": 192475.0,
+      "disjoint_pearson": 0.1344759541691117
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 12.0,
+      "cell_ratio": 1.4166666666666667,
+      "minimum_library": 133594.0,
+      "disjoint_pearson": 0.20796962258119067
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 13.0,
+      "cell_ratio": 1.7692307692307692,
+      "minimum_library": 207112.0,
+      "disjoint_pearson": 0.20889188076771364
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 20.0,
+      "cell_ratio": 1.5,
+      "minimum_library": 246984.0,
+      "disjoint_pearson": 0.4850033921775383
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 11.0,
+      "cell_ratio": 2.0,
+      "minimum_library": 85974.0,
+      "disjoint_pearson": 0.4414673139186561
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 9.0,
+      "cell_ratio": 1.2222222222222223,
+      "minimum_library": 75194.0,
+      "disjoint_pearson": 0.4654177657780364
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 9.0,
+      "cell_ratio": 1.1111111111111112,
+      "minimum_library": 136008.0,
+      "disjoint_pearson": 0.2027020283945381
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 35.0,
+      "cell_ratio": 2.0,
+      "minimum_library": 290447.0,
+      "disjoint_pearson": 0.3640093547364349
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 22.0,
+      "cell_ratio": 1.7272727272727273,
+      "minimum_library": 170376.0,
+      "disjoint_pearson": 0.6980511136139198
+    },
+    {
+      "target": "ARPC2",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 46.0,
+      "cell_ratio": 2.0652173913043477,
+      "minimum_library": 604826.0,
+      "disjoint_pearson": 0.6190805024009378
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 133.0,
+      "cell_ratio": 1.2330827067669172,
+      "minimum_library": 1302627.0,
+      "disjoint_pearson": -0.22951647152372415
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 145.0,
+      "cell_ratio": 1.3241379310344827,
+      "minimum_library": 1966119.0,
+      "disjoint_pearson": 0.16256625084333307
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 129.0,
+      "cell_ratio": 1.3953488372093024,
+      "minimum_library": 1473844.0,
+      "disjoint_pearson": 0.3892896648757493
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 11.0,
+      "cell_ratio": 6.181818181818182,
+      "minimum_library": 140780.0,
+      "disjoint_pearson": -0.2402103898157657
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 17.0,
+      "cell_ratio": 2.9411764705882355,
+      "minimum_library": 242844.0,
+      "disjoint_pearson": -0.14430024934819813
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 8.0,
+      "cell_ratio": 7.125,
+      "minimum_library": 80916.0,
+      "disjoint_pearson": -0.11534907356137866
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 12.0,
+      "cell_ratio": 18.916666666666668,
+      "minimum_library": 92349.0,
+      "disjoint_pearson": 0.3497626018643394
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 7.0,
+      "cell_ratio": 26.571428571428573,
+      "minimum_library": 94367.0,
+      "disjoint_pearson": 0.21300793394302847
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 5.0,
+      "cell_ratio": 38.0,
+      "minimum_library": 43786.0,
+      "disjoint_pearson": 0.09815524640986195
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 13.0,
+      "cell_ratio": 1.8461538461538463,
+      "minimum_library": 124432.0,
+      "disjoint_pearson": 0.02475548737908947
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 16.0,
+      "cell_ratio": 1.75,
+      "minimum_library": 108284.0,
+      "disjoint_pearson": -0.031360166473042184
+    },
+    {
+      "target": "CD7",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 10.0,
+      "cell_ratio": 3.0,
+      "minimum_library": 114185.0,
+      "disjoint_pearson": 0.004249553513895624
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 42.0,
+      "cell_ratio": 2.0952380952380953,
+      "minimum_library": 484083.0,
+      "disjoint_pearson": 0.18409887568979025
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 77.0,
+      "cell_ratio": 1.0389610389610389,
+      "minimum_library": 1125725.0,
+      "disjoint_pearson": 0.11569400132556895
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 43.0,
+      "cell_ratio": 1.744186046511628,
+      "minimum_library": 540557.0,
+      "disjoint_pearson": 0.04922673394718443
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 23.0,
+      "cell_ratio": 1.8695652173913044,
+      "minimum_library": 204445.0,
+      "disjoint_pearson": -0.12110262530019159
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 18.0,
+      "cell_ratio": 4.611111111111111,
+      "minimum_library": 249952.0,
+      "disjoint_pearson": -0.01195668496825857
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 16.0,
+      "cell_ratio": 3.9375,
+      "minimum_library": 145890.0,
+      "disjoint_pearson": -0.09836283365378884
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 152.0,
+      "cell_ratio": 1.230263157894737,
+      "minimum_library": 1765700.0,
+      "disjoint_pearson": -0.29287069830292356
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 163.0,
+      "cell_ratio": 1.2760736196319018,
+      "minimum_library": 1796440.0,
+      "disjoint_pearson": 0.2189483917309647
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 163.0,
+      "cell_ratio": 1.01840490797546,
+      "minimum_library": 2213311.0,
+      "disjoint_pearson": 0.012023532190446981
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 94.0,
+      "cell_ratio": 3.8617021276595747,
+      "minimum_library": 1077386.0,
+      "disjoint_pearson": 0.14357082264700405
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 110.0,
+      "cell_ratio": 3.1,
+      "minimum_library": 1326590.0,
+      "disjoint_pearson": 0.4391178431743579
+    },
+    {
+      "target": "CORO1A",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 90.0,
+      "cell_ratio": 3.3777777777777778,
+      "minimum_library": 1485745.0,
+      "disjoint_pearson": -0.026567309133223166
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 91.0,
+      "cell_ratio": 2.5054945054945055,
+      "minimum_library": 717366.0,
+      "disjoint_pearson": 0.06473475194619258
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 78.0,
+      "cell_ratio": 2.8205128205128207,
+      "minimum_library": 1060499.0,
+      "disjoint_pearson": 0.350290393941137
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 102.0,
+      "cell_ratio": 2.127450980392157,
+      "minimum_library": 848304.0,
+      "disjoint_pearson": -0.11088872609423397
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 22.0,
+      "cell_ratio": 7.7727272727272725,
+      "minimum_library": 177133.0,
+      "disjoint_pearson": -0.27787191219606167
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 9.0,
+      "cell_ratio": 16.444444444444443,
+      "minimum_library": 135983.0,
+      "disjoint_pearson": 0.16369242369204565
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 12.0,
+      "cell_ratio": 11.916666666666666,
+      "minimum_library": 162128.0,
+      "disjoint_pearson": -0.23921648386193517
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 70.0,
+      "cell_ratio": 4.442857142857143,
+      "minimum_library": 616063.0,
+      "disjoint_pearson": -0.5051888558773088
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 65.0,
+      "cell_ratio": 4.969230769230769,
+      "minimum_library": 708865.0,
+      "disjoint_pearson": -0.3424526074882573
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 58.0,
+      "cell_ratio": 4.5,
+      "minimum_library": 835889.0,
+      "disjoint_pearson": 0.1698652796401664
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 30.0,
+      "cell_ratio": 2.2666666666666666,
+      "minimum_library": 245092.0,
+      "disjoint_pearson": 0.1129127768953599
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 24.0,
+      "cell_ratio": 2.5,
+      "minimum_library": 223823.0,
+      "disjoint_pearson": 0.239038994073727
+    },
+    {
+      "target": "CST7",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 22.0,
+      "cell_ratio": 2.8181818181818183,
+      "minimum_library": 332018.0,
+      "disjoint_pearson": 0.012104226579536068
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 93.0,
+      "cell_ratio": 1.010752688172043,
+      "minimum_library": 674666.0,
+      "disjoint_pearson": -0.045234713380736466
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 88.0,
+      "cell_ratio": 1.25,
+      "minimum_library": 1246603.0,
+      "disjoint_pearson": 0.11641645154251123
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 78.0,
+      "cell_ratio": 1.2692307692307692,
+      "minimum_library": 855266.0,
+      "disjoint_pearson": 0.17989319026925266
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 92.0,
+      "cell_ratio": 1.9456521739130435,
+      "minimum_library": 833536.0,
+      "disjoint_pearson": -0.1557622758413954
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 78.0,
+      "cell_ratio": 1.5897435897435896,
+      "minimum_library": 1037655.0,
+      "disjoint_pearson": 0.3616089324214327
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 82.0,
+      "cell_ratio": 1.5,
+      "minimum_library": 1090063.0,
+      "disjoint_pearson": 0.2771337072682075
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 38.0,
+      "cell_ratio": 2.289473684210526,
+      "minimum_library": 323568.0,
+      "disjoint_pearson": 0.41734849725720086
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 26.0,
+      "cell_ratio": 3.5,
+      "minimum_library": 288713.0,
+      "disjoint_pearson": 0.4128484613202872
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 35.0,
+      "cell_ratio": 2.257142857142857,
+      "minimum_library": 500845.0,
+      "disjoint_pearson": 0.3871911412375586
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 70.0,
+      "cell_ratio": 5.3,
+      "minimum_library": 673486.0,
+      "disjoint_pearson": -0.22347272504596594
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 51.0,
+      "cell_ratio": 7.921568627450981,
+      "minimum_library": 501653.0,
+      "disjoint_pearson": -0.11829840552801847
+    },
+    {
+      "target": "DUSP1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 55.0,
+      "cell_ratio": 6.363636363636363,
+      "minimum_library": 584943.0,
+      "disjoint_pearson": -0.25285263690120513
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 74.0,
+      "cell_ratio": 1.1081081081081081,
+      "minimum_library": 568967.0,
+      "disjoint_pearson": -0.32968040711276125
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 72.0,
+      "cell_ratio": 1.5138888888888888,
+      "minimum_library": 886940.0,
+      "disjoint_pearson": 0.19909150356812524
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 86.0,
+      "cell_ratio": 1.0232558139534884,
+      "minimum_library": 859182.0,
+      "disjoint_pearson": -0.08267020434193995
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 100.0,
+      "cell_ratio": 1.02,
+      "minimum_library": 804168.0,
+      "disjoint_pearson": -0.2504366420714833
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 87.0,
+      "cell_ratio": 1.2183908045977012,
+      "minimum_library": 1187180.0,
+      "disjoint_pearson": 0.026072292543641615
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 92.0,
+      "cell_ratio": 1.108695652173913,
+      "minimum_library": 1144174.0,
+      "disjoint_pearson": 0.13336232454544708
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 13.0,
+      "cell_ratio": 1.9230769230769231,
+      "minimum_library": 90032.0,
+      "disjoint_pearson": -0.05366497580547874
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 7.0,
+      "cell_ratio": 3.5714285714285716,
+      "minimum_library": 81799.0,
+      "disjoint_pearson": -0.33664744894748055
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 7.0,
+      "cell_ratio": 3.5714285714285716,
+      "minimum_library": 71770.0,
+      "disjoint_pearson": 0.39726769359190073
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 29.0,
+      "cell_ratio": 2.5172413793103448,
+      "minimum_library": 300497.0,
+      "disjoint_pearson": 0.25782755669740276
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 26.0,
+      "cell_ratio": 2.8076923076923075,
+      "minimum_library": 219960.0,
+      "disjoint_pearson": 0.27264475902539637
+    },
+    {
+      "target": "FOS",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 27.0,
+      "cell_ratio": 2.962962962962963,
+      "minimum_library": 337033.0,
+      "disjoint_pearson": -0.14404359307943662
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 69.0,
+      "cell_ratio": 2.072463768115942,
+      "minimum_library": 547873.0,
+      "disjoint_pearson": 0.24772606505747197
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 47.0,
+      "cell_ratio": 2.4893617021276597,
+      "minimum_library": 505701.0,
+      "disjoint_pearson": -0.019273735249194412
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 52.0,
+      "cell_ratio": 1.6538461538461537,
+      "minimum_library": 518915.0,
+      "disjoint_pearson": 0.04236893898007333
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 30.0,
+      "cell_ratio": 2.7333333333333334,
+      "minimum_library": 274691.0,
+      "disjoint_pearson": -0.1318555767921754
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 14.0,
+      "cell_ratio": 7.357142857142857,
+      "minimum_library": 160898.0,
+      "disjoint_pearson": -0.05101465965603743
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 30.0,
+      "cell_ratio": 3.0,
+      "minimum_library": 343772.0,
+      "disjoint_pearson": -0.2791168829520362
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 39.0,
+      "cell_ratio": 3.41025641025641,
+      "minimum_library": 457633.0,
+      "disjoint_pearson": -0.31664513582168585
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 38.0,
+      "cell_ratio": 3.5789473684210527,
+      "minimum_library": 423778.0,
+      "disjoint_pearson": -0.23223872802897097
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 25.0,
+      "cell_ratio": 4.76,
+      "minimum_library": 376418.0,
+      "disjoint_pearson": -0.390687808304809
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 25.0,
+      "cell_ratio": 4.0,
+      "minimum_library": 255794.0,
+      "disjoint_pearson": -0.21102919875007387
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 21.0,
+      "cell_ratio": 3.2857142857142856,
+      "minimum_library": 190929.0,
+      "disjoint_pearson": -0.18954204486725387
+    },
+    {
+      "target": "FTH1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 22.0,
+      "cell_ratio": 4.409090909090909,
+      "minimum_library": 301635.0,
+      "disjoint_pearson": -0.1814662029530867
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 24.0,
+      "cell_ratio": 6.583333333333333,
+      "minimum_library": 177165.0,
+      "disjoint_pearson": -0.10403337970777693
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 37.0,
+      "cell_ratio": 5.486486486486487,
+      "minimum_library": 507863.0,
+      "disjoint_pearson": 0.012349932547236734
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 22.0,
+      "cell_ratio": 7.409090909090909,
+      "minimum_library": 243244.0,
+      "disjoint_pearson": -0.06862474231099994
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 103.0,
+      "cell_ratio": 1.5339805825242718,
+      "minimum_library": 850692.0,
+      "disjoint_pearson": -0.19480748672646342
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 97.0,
+      "cell_ratio": 1.7835051546391754,
+      "minimum_library": 1214514.0,
+      "disjoint_pearson": 0.48880672012208704
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 105.0,
+      "cell_ratio": 1.276190476190476,
+      "minimum_library": 1336200.0,
+      "disjoint_pearson": -0.12434530116175534
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 191.0,
+      "cell_ratio": 1.8481675392670156,
+      "minimum_library": 2419181.0,
+      "disjoint_pearson": -0.14606585127785812
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 179.0,
+      "cell_ratio": 1.8659217877094971,
+      "minimum_library": 2238285.0,
+      "disjoint_pearson": -0.24785417903406048
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 175.0,
+      "cell_ratio": 1.782857142857143,
+      "minimum_library": 2649667.0,
+      "disjoint_pearson": -0.21488348225498202
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 30.0,
+      "cell_ratio": 1.7666666666666666,
+      "minimum_library": 278471.0,
+      "disjoint_pearson": -0.12255674471160605
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 36.0,
+      "cell_ratio": 1.3888888888888888,
+      "minimum_library": 420809.0,
+      "disjoint_pearson": -0.013566134114599438
+    },
+    {
+      "target": "GBP4",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 34.0,
+      "cell_ratio": 1.588235294117647,
+      "minimum_library": 428055.0,
+      "disjoint_pearson": 0.14438376919773174
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 97.0,
+      "cell_ratio": 1.4329896907216495,
+      "minimum_library": 704170.0,
+      "disjoint_pearson": 0.4381961977226729
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 96.0,
+      "cell_ratio": 1.4791666666666667,
+      "minimum_library": 1153926.0,
+      "disjoint_pearson": 0.33558386222093983
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 80.0,
+      "cell_ratio": 1.425,
+      "minimum_library": 791770.0,
+      "disjoint_pearson": 0.23280908559303706
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 29.0,
+      "cell_ratio": 3.0344827586206895,
+      "minimum_library": 246596.0,
+      "disjoint_pearson": 0.121044975281242
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 35.0,
+      "cell_ratio": 2.7714285714285714,
+      "minimum_library": 406809.0,
+      "disjoint_pearson": -0.2730450846750535
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 44.0,
+      "cell_ratio": 2.2045454545454546,
+      "minimum_library": 594608.0,
+      "disjoint_pearson": 0.013947475839474753
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 36.0,
+      "cell_ratio": 5.805555555555555,
+      "minimum_library": 224159.0,
+      "disjoint_pearson": 0.18923714606754188
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 19.0,
+      "cell_ratio": 12.842105263157896,
+      "minimum_library": 209252.0,
+      "disjoint_pearson": -0.003304608049162076
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 42.0,
+      "cell_ratio": 3.9523809523809526,
+      "minimum_library": 395890.0,
+      "disjoint_pearson": -0.04115788372378024
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 152.0,
+      "cell_ratio": 1.3157894736842106,
+      "minimum_library": 1576189.0,
+      "disjoint_pearson": -0.23967118043585892
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 170.0,
+      "cell_ratio": 1.1470588235294117,
+      "minimum_library": 1573001.0,
+      "disjoint_pearson": 0.24427251889683332
+    },
+    {
+      "target": "GBP5",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 138.0,
+      "cell_ratio": 1.4855072463768115,
+      "minimum_library": 1843969.0,
+      "disjoint_pearson": 0.006912191573841389
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 45.0,
+      "cell_ratio": 2.5555555555555554,
+      "minimum_library": 311283.0,
+      "disjoint_pearson": 0.22960849029667424
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 50.0,
+      "cell_ratio": 2.82,
+      "minimum_library": 667122.0,
+      "disjoint_pearson": 0.049161274803049264
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 65.0,
+      "cell_ratio": 1.5076923076923077,
+      "minimum_library": 659686.0,
+      "disjoint_pearson": 0.4112185928784025
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 42.0,
+      "cell_ratio": 1.0238095238095237,
+      "minimum_library": 390784.0,
+      "disjoint_pearson": -0.1697336403861175
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 33.0,
+      "cell_ratio": 1.393939393939394,
+      "minimum_library": 448097.0,
+      "disjoint_pearson": -0.1689683703818711
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 37.0,
+      "cell_ratio": 1.054054054054054,
+      "minimum_library": 450903.0,
+      "disjoint_pearson": 0.22626584540952585
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 18.0,
+      "cell_ratio": 1.2777777777777777,
+      "minimum_library": 138264.0,
+      "disjoint_pearson": 0.06740708480300985
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 16.0,
+      "cell_ratio": 1.3125,
+      "minimum_library": 210015.0,
+      "disjoint_pearson": 0.061468892323064045
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 16.0,
+      "cell_ratio": 1.4375,
+      "minimum_library": 243429.0,
+      "disjoint_pearson": -0.31306208796482443
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 31.0,
+      "cell_ratio": 1.5806451612903225,
+      "minimum_library": 294964.0,
+      "disjoint_pearson": -0.3242438015189493
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 17.0,
+      "cell_ratio": 3.2941176470588234,
+      "minimum_library": 195252.0,
+      "disjoint_pearson": 0.09993726645174311
+    },
+    {
+      "target": "HINT1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 37.0,
+      "cell_ratio": 1.5405405405405406,
+      "minimum_library": 451390.0,
+      "disjoint_pearson": -0.18006338457600476
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 38.0,
+      "cell_ratio": 1.131578947368421,
+      "minimum_library": 253165.0,
+      "disjoint_pearson": 0.2162307338194928
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 20.0,
+      "cell_ratio": 1.65,
+      "minimum_library": 207088.0,
+      "disjoint_pearson": -0.0692730215438561
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 26.0,
+      "cell_ratio": 1.5769230769230769,
+      "minimum_library": 212579.0,
+      "disjoint_pearson": -0.154589330198565
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 17.0,
+      "cell_ratio": 5.0,
+      "minimum_library": 183700.0,
+      "disjoint_pearson": 0.17427454813358248
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 17.0,
+      "cell_ratio": 4.352941176470588,
+      "minimum_library": 246588.0,
+      "disjoint_pearson": -0.07692273025965932
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 15.0,
+      "cell_ratio": 5.333333333333333,
+      "minimum_library": 224503.0,
+      "disjoint_pearson": 0.11826959419173597
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 18.0,
+      "cell_ratio": 10.0,
+      "minimum_library": 255203.0,
+      "disjoint_pearson": 0.1427852995034436
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 13.0,
+      "cell_ratio": 8.307692307692308,
+      "minimum_library": 169297.0,
+      "disjoint_pearson": -0.09640213676286126
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 18.0,
+      "cell_ratio": 8.222222222222221,
+      "minimum_library": 291056.0,
+      "disjoint_pearson": -0.19419374378343665
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 71.0,
+      "cell_ratio": 2.9295774647887325,
+      "minimum_library": 636320.0,
+      "disjoint_pearson": -0.007005350845321542
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 62.0,
+      "cell_ratio": 3.693548387096774,
+      "minimum_library": 535514.0,
+      "disjoint_pearson": 0.46352085861085957
+    },
+    {
+      "target": "IKZF1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 79.0,
+      "cell_ratio": 2.7088607594936707,
+      "minimum_library": 929753.0,
+      "disjoint_pearson": 0.18428783166415413
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 53.0,
+      "cell_ratio": 3.2264150943396226,
+      "minimum_library": 386227.0,
+      "disjoint_pearson": -0.20169710736790109
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 48.0,
+      "cell_ratio": 2.5208333333333335,
+      "minimum_library": 620747.0,
+      "disjoint_pearson": 0.09778695423390546
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 51.0,
+      "cell_ratio": 3.1176470588235294,
+      "minimum_library": 527873.0,
+      "disjoint_pearson": -0.3290614221617047
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 27.0,
+      "cell_ratio": 3.2962962962962963,
+      "minimum_library": 234202.0,
+      "disjoint_pearson": 0.2044638190311746
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 27.0,
+      "cell_ratio": 2.7777777777777777,
+      "minimum_library": 354679.0,
+      "disjoint_pearson": 0.08430838113562338
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 25.0,
+      "cell_ratio": 2.8,
+      "minimum_library": 273900.0,
+      "disjoint_pearson": -0.010150597477944286
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 22.0,
+      "cell_ratio": 3.590909090909091,
+      "minimum_library": 223640.0,
+      "disjoint_pearson": 0.3574772233288975
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 17.0,
+      "cell_ratio": 6.117647058823529,
+      "minimum_library": 188499.0,
+      "disjoint_pearson": -0.3125488647397946
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 19.0,
+      "cell_ratio": 3.6315789473684212,
+      "minimum_library": 223796.0,
+      "disjoint_pearson": 0.2919947149598157
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 111.0,
+      "cell_ratio": 1.6396396396396395,
+      "minimum_library": 1147110.0,
+      "disjoint_pearson": -0.24723158134074041
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 114.0,
+      "cell_ratio": 1.394736842105263,
+      "minimum_library": 1198116.0,
+      "disjoint_pearson": 0.1239054418099114
+    },
+    {
+      "target": "IL32",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 135.0,
+      "cell_ratio": 1.1481481481481481,
+      "minimum_library": 1810670.0,
+      "disjoint_pearson": -0.01576161448012997
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 22.0,
+      "cell_ratio": 2.727272727272727,
+      "minimum_library": 244489.0,
+      "disjoint_pearson": -0.013586796907631031
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 66.0,
+      "cell_ratio": 1.0,
+      "minimum_library": 934257.0,
+      "disjoint_pearson": 0.31627806990026985
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 20.0,
+      "cell_ratio": 3.3,
+      "minimum_library": 341385.0,
+      "disjoint_pearson": 0.11490701149123875
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 5.0,
+      "cell_ratio": 12.8,
+      "minimum_library": 53611.0,
+      "disjoint_pearson": -0.31951179508752575
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 52.0,
+      "cell_ratio": 1.2115384615384615,
+      "minimum_library": 767019.0,
+      "disjoint_pearson": 0.08516915267018656
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 19.0,
+      "cell_ratio": 3.4210526315789473,
+      "minimum_library": 259312.0,
+      "disjoint_pearson": -0.2141029777230855
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 17.0,
+      "cell_ratio": 4.411764705882353,
+      "minimum_library": 125707.0,
+      "disjoint_pearson": 0.030361859952252004
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 25.0,
+      "cell_ratio": 5.04,
+      "minimum_library": 267724.0,
+      "disjoint_pearson": 0.24791603157443426
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 19.0,
+      "cell_ratio": 5.7894736842105265,
+      "minimum_library": 221940.0,
+      "disjoint_pearson": 0.33424988799589905
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 183.0,
+      "cell_ratio": 6.251366120218579,
+      "minimum_library": 1745899.0,
+      "disjoint_pearson": -0.3397589543378937
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 339.0,
+      "cell_ratio": 3.368731563421829,
+      "minimum_library": 3691965.0,
+      "disjoint_pearson": -0.07383025565361868
+    },
+    {
+      "target": "KLF6",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 290.0,
+      "cell_ratio": 3.617241379310345,
+      "minimum_library": 3699016.0,
+      "disjoint_pearson": 0.00832480399438329
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 56.0,
+      "cell_ratio": 2.0892857142857144,
+      "minimum_library": 398985.0,
+      "disjoint_pearson": 0.6385819447174444
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 54.0,
+      "cell_ratio": 1.962962962962963,
+      "minimum_library": 738521.0,
+      "disjoint_pearson": 0.04015861383549318
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 71.0,
+      "cell_ratio": 1.4507042253521127,
+      "minimum_library": 652820.0,
+      "disjoint_pearson": 0.4321835072901608
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 23.0,
+      "cell_ratio": 2.260869565217391,
+      "minimum_library": 195311.0,
+      "disjoint_pearson": 0.1768073487987779
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 19.0,
+      "cell_ratio": 2.526315789473684,
+      "minimum_library": 222545.0,
+      "disjoint_pearson": 0.21170206305751765
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 35.0,
+      "cell_ratio": 1.1714285714285715,
+      "minimum_library": 340264.0,
+      "disjoint_pearson": -0.025104481360074746
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 26.0,
+      "cell_ratio": 2.3461538461538463,
+      "minimum_library": 249450.0,
+      "disjoint_pearson": 0.3933446931375367
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 40.0,
+      "cell_ratio": 1.1,
+      "minimum_library": 558957.0,
+      "disjoint_pearson": 0.4202599358521758
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 19.0,
+      "cell_ratio": 1.6842105263157894,
+      "minimum_library": 250078.0,
+      "disjoint_pearson": 0.4583646260921702
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 25.0,
+      "cell_ratio": 14.32,
+      "minimum_library": 212548.0,
+      "disjoint_pearson": -0.13315173365219643
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 39.0,
+      "cell_ratio": 11.41025641025641,
+      "minimum_library": 328901.0,
+      "disjoint_pearson": -0.08206331163114171
+    },
+    {
+      "target": "MSN",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 32.0,
+      "cell_ratio": 12.375,
+      "minimum_library": 461629.0,
+      "disjoint_pearson": 0.2263906539207232
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 34.0,
+      "cell_ratio": 1.2352941176470589,
+      "minimum_library": 349583.0,
+      "disjoint_pearson": 0.050100635381107914
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 38.0,
+      "cell_ratio": 1.8421052631578947,
+      "minimum_library": 455336.0,
+      "disjoint_pearson": 0.06890819685907043
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 35.0,
+      "cell_ratio": 1.2857142857142858,
+      "minimum_library": 347086.0,
+      "disjoint_pearson": 0.4100982801320693
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 26.0,
+      "cell_ratio": 1.6538461538461537,
+      "minimum_library": 239512.0,
+      "disjoint_pearson": 0.09166193125820885
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 24.0,
+      "cell_ratio": 2.5416666666666665,
+      "minimum_library": 495037.0,
+      "disjoint_pearson": 0.0757020915701753
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 29.0,
+      "cell_ratio": 1.6896551724137931,
+      "minimum_library": 366854.0,
+      "disjoint_pearson": 0.17780132136797583
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 71.0,
+      "cell_ratio": 2.1267605633802815,
+      "minimum_library": 668168.0,
+      "disjoint_pearson": 0.37612967850435336
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 45.0,
+      "cell_ratio": 5.155555555555556,
+      "minimum_library": 662608.0,
+      "disjoint_pearson": 0.10228609872224076
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 50.0,
+      "cell_ratio": 3.22,
+      "minimum_library": 700382.0,
+      "disjoint_pearson": 0.3288838046460886
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 5.0,
+      "cell_ratio": 5.4,
+      "minimum_library": 31710.0,
+      "disjoint_pearson": -0.00036269894238863225
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 13.0,
+      "cell_ratio": 1.0769230769230769,
+      "minimum_library": 110184.0,
+      "disjoint_pearson": 0.17422364136533772
+    },
+    {
+      "target": "SMCHD1",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 10.0,
+      "cell_ratio": 2.2,
+      "minimum_library": 142634.0,
+      "disjoint_pearson": 0.1915843803465298
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "minimum_cells": 59.0,
+      "cell_ratio": 3.7796610169491527,
+      "minimum_library": 461966.0,
+      "disjoint_pearson": 0.34691481035724225
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "minimum_cells": 50.0,
+      "cell_ratio": 4.6,
+      "minimum_library": 564098.0,
+      "disjoint_pearson": -0.23845980098415182
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "minimum_cells": 69.0,
+      "cell_ratio": 3.260869565217391,
+      "minimum_library": 712564.0,
+      "disjoint_pearson": -0.10797979337880889
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "minimum_cells": 23.0,
+      "cell_ratio": 2.869565217391304,
+      "minimum_library": 314307.0,
+      "disjoint_pearson": -0.08067538409610697
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "minimum_cells": 32.0,
+      "cell_ratio": 1.46875,
+      "minimum_library": 547173.0,
+      "disjoint_pearson": -0.007139018984045174
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "minimum_cells": 31.0,
+      "cell_ratio": 1.4838709677419355,
+      "minimum_library": 449320.0,
+      "disjoint_pearson": -0.1226888351228139
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "minimum_cells": 32.0,
+      "cell_ratio": 1.0,
+      "minimum_library": 321303.0,
+      "disjoint_pearson": 0.04889512425801594
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "minimum_cells": 26.0,
+      "cell_ratio": 1.7692307692307692,
+      "minimum_library": 286295.0,
+      "disjoint_pearson": 0.017137911010888893
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "minimum_cells": 37.0,
+      "cell_ratio": 1.027027027027027,
+      "minimum_library": 517625.0,
+      "disjoint_pearson": 0.35409561447058335
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "minimum_cells": 131.0,
+      "cell_ratio": 26.96946564885496,
+      "minimum_library": 1142160.0,
+      "disjoint_pearson": -0.02732504403457406
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "minimum_cells": 60.0,
+      "cell_ratio": 58.43333333333333,
+      "minimum_library": 566450.0,
+      "disjoint_pearson": -0.06162088154631265
+    },
+    {
+      "target": "VIM",
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "minimum_cells": 95.0,
+      "cell_ratio": 39.55789473684211,
+      "minimum_library": 1217073.0,
+      "disjoint_pearson": -0.014061891707050939
+    }
+  ]
+}

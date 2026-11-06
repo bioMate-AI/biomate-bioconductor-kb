@@ -54,7 +54,7 @@ with open("identify_transcription_factor_binding_sites_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("identify_transcription_factor_binding_sites_output.txt", "w") as f:
-    f.write("Biomni: Identify Transcription Factor Binding Sites Results" + NL)
+    f.write("BioMate: Identify Transcription Factor Binding Sites Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

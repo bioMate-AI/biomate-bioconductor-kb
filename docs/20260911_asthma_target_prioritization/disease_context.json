@@ -1,0 +1,900 @@
+{
+  "lane": "Target-disease evidence and disease context",
+  "retrieved_date": "2026-09-11",
+  "skills": [
+    "opentargets-skill",
+    "efo-ontology-skill"
+  ],
+  "rubric": {
+    "1": "No retrieved direct asthma evidence; adjacent context only.",
+    "2": "One direct asthma evidence family, limited support.",
+    "3": "Two direct asthma families or moderate convergent support.",
+    "4": "Strong direct asthma literature plus human genetic association and clinical-precedence context; mechanistic direction still requires record-level adjudication.",
+    "5": "Level 4 plus independently adjudicated causal mechanism/direction across direct human asthma evidence within this lane."
+  },
+  "independent_weight_recommendation": 0,
+  "weight_reason": "Open Targets aggregates genetics, clinical, literature already present in other lanes; ontology supplies phenotype mapping, not corroborating experiments.",
+  "targets": {
+    "TSLP": {
+      "score": 4,
+      "confidence": "Moderate-high for curated association convergence; limited for new mechanistic inference",
+      "direct_asthma": {
+        "disease": {
+          "id": "MONDO_0004979",
+          "name": "asthma"
+        },
+        "score": 0.7180353203466433,
+        "datasourceScores": [
+          {
+            "id": "clinical_precedence",
+            "score": 0.9397322783572372
+          },
+          {
+            "id": "gwas_credible_sets",
+            "score": 0.8791605125768325
+          },
+          {
+            "id": "europepmc",
+            "score": 0.9716027768881799
+          }
+        ],
+        "datatypeScores": [
+          {
+            "id": "literature",
+            "score": 0.9716027768881799
+          },
+          {
+            "id": "genetic_association",
+            "score": 0.8791605125768325
+          },
+          {
+            "id": "clinical",
+            "score": 0.9397322783572372
+          }
+        ]
+      },
+      "asthma_subtypes": [
+        {
+          "disease": {
+            "id": "MONDO_0005405",
+            "name": "childhood onset asthma"
+          },
+          "score": 0.46368118746920156,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.7495834299502112
+            },
+            {
+              "id": "europepmc",
+              "score": 0.26273829371668295
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.26273829371668295
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.7495834299502112
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "EFO_1002011",
+            "name": "adult onset asthma"
+          },
+          "score": 0.4399386320393209,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.72214581680574
+            },
+            {
+              "id": "europepmc",
+              "score": 0.030396539880581056
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.030396539880581056
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.72214581680574
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "EFO_0009759",
+            "name": "Chronic Obstructive Asthma"
+          },
+          "score": 0.429611295570004,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.7066779594944338
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "genetic_association",
+              "score": 0.7066779594944338
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0004784",
+            "name": "allergic asthma"
+          },
+          "score": 0.42052479210863497,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.6775471937199999
+            },
+            {
+              "id": "europepmc",
+              "score": 0.2836831509374757
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.2836831509374757
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.6775471937199999
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "EFO_0010638",
+            "name": "atopic asthma"
+          },
+          "score": 0.32157104146904075,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.5185164782783263
+            },
+            {
+              "id": "europepmc",
+              "score": 0.20886934103263255
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.20886934103263255
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.5185164782783263
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0850282",
+            "name": "chronic asthma"
+          },
+          "score": 0.016448469925242553,
+          "datasourceScores": [
+            {
+              "id": "europepmc",
+              "score": 0.13528242021841705
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.13528242021841705
+            }
+          ]
+        }
+      ],
+      "adjacent_atopy": [
+        {
+          "disease": {
+            "id": "MONDO_0011786",
+            "name": "allergic rhinitis"
+          },
+          "score": 0.4876673370761114,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.7654894846413033
+            },
+            {
+              "id": "clinical_precedence",
+              "score": 0.12158615952232422
+            },
+            {
+              "id": "europepmc",
+              "score": 0.28303716936548984
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.28303716936548984
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.7654894846413033
+            },
+            {
+              "id": "clinical",
+              "score": 0.12158615952232422
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0005271",
+            "name": "allergic disease"
+          },
+          "score": 0.476326720786259,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.7470391290358566
+            },
+            {
+              "id": "europepmc",
+              "score": 0.5269995546397293
+            },
+            {
+              "id": "clinical_precedence",
+              "score": 0.09118961964174316
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.5269995546397293
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.7470391290358566
+            },
+            {
+              "id": "clinical",
+              "score": 0.09118961964174316
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0004980",
+            "name": "atopic eczema"
+          },
+          "score": 0.10293206052447113,
+          "datasourceScores": [
+            {
+              "id": "clinical_precedence",
+              "score": 0.14353921610274387
+            },
+            {
+              "id": "europepmc",
+              "score": 0.41282650478430305
+            },
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.046213940431530195
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.41282650478430305
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.046213940431530195
+            },
+            {
+              "id": "clinical",
+              "score": 0.14353921610274387
+            }
+          ]
+        }
+      ],
+      "retrieved_rows": 200,
+      "total_associations": 515
+    },
+    "IL33": {
+      "score": 4,
+      "confidence": "Moderate-high for curated association convergence; limited for new mechanistic inference",
+      "direct_asthma": {
+        "disease": {
+          "id": "MONDO_0004979",
+          "name": "asthma"
+        },
+        "score": 0.720425819832416,
+        "datasourceScores": [
+          {
+            "id": "gwas_credible_sets",
+            "score": 0.9574656709497069
+          },
+          {
+            "id": "gene_burden",
+            "score": 0.7840773990893256
+          },
+          {
+            "id": "europepmc",
+            "score": 0.942941524527881
+          },
+          {
+            "id": "clinical_precedence",
+            "score": 0.169703882153284
+          }
+        ],
+        "datatypeScores": [
+          {
+            "id": "literature",
+            "score": 0.942941524527881
+          },
+          {
+            "id": "genetic_association",
+            "score": 0.9227880165776308
+          },
+          {
+            "id": "clinical",
+            "score": 0.169703882153284
+          }
+        ]
+      },
+      "asthma_subtypes": [
+        {
+          "disease": {
+            "id": "MONDO_0005405",
+            "name": "childhood onset asthma"
+          },
+          "score": 0.5039467208237692,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.6998476321783971
+            },
+            {
+              "id": "gene_burden",
+              "score": 0.5056756395660456
+            },
+            {
+              "id": "europepmc",
+              "score": 0.12093963514016469
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.12093963514016469
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.6610132336559268
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "EFO_1002011",
+            "name": "adult onset asthma"
+          },
+          "score": 0.41021581468639645,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.674773866199923
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "genetic_association",
+              "score": 0.674773866199923
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0004784",
+            "name": "allergic asthma"
+          },
+          "score": 0.30124853093256093,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.4745786163782865
+            },
+            {
+              "id": "clinical_precedence",
+              "score": 0.06079307976116211
+            },
+            {
+              "id": "europepmc",
+              "score": 0.2589332548559419
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.2589332548559419
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.4745786163782865
+            },
+            {
+              "id": "clinical",
+              "score": 0.06079307976116211
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "EFO_0009759",
+            "name": "Chronic Obstructive Asthma"
+          },
+          "score": 0.2934586776018278,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.4827172414273787
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "genetic_association",
+              "score": 0.4827172414273787
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "EFO_0010638",
+            "name": "atopic asthma"
+          },
+          "score": 0.29284892662225326,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.46733191512084604
+            },
+            {
+              "id": "europepmc",
+              "score": 0.28764664490831493
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.28764664490831493
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.46733191512084604
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0956975",
+            "name": "T2-high asthma"
+          },
+          "score": 0.2824378050243136,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.4645887428864068
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "genetic_association",
+              "score": 0.4645887428864068
+            }
+          ]
+        }
+      ],
+      "adjacent_atopy": [
+        {
+          "disease": {
+            "id": "MONDO_0005271",
+            "name": "allergic disease"
+          },
+          "score": 0.6358488823979351,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.846292840279674
+            },
+            {
+              "id": "gene_burden",
+              "score": 0.7599134970145264
+            },
+            {
+              "id": "europepmc",
+              "score": 0.4343361765033704
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.4343361765033704
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.8290169716266444
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0011786",
+            "name": "allergic rhinitis"
+          },
+          "score": 0.6017274399645556,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.8632366552574028
+            },
+            {
+              "id": "gene_burden",
+              "score": 0.45760468979109375
+            },
+            {
+              "id": "europepmc",
+              "score": 0.5471154002514805
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.5471154002514805
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.782110262164141
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0004980",
+            "name": "atopic eczema"
+          },
+          "score": 0.19855034346331066,
+          "datasourceScores": [
+            {
+              "id": "gene_burden",
+              "score": 0.2791654991090361
+            },
+            {
+              "id": "clinical_precedence",
+              "score": 0.1649687767185535
+            },
+            {
+              "id": "europepmc",
+              "score": 0.27866453242668227
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.27866453242668227
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.2791654991090361
+            },
+            {
+              "id": "clinical",
+              "score": 0.1649687767185535
+            }
+          ]
+        }
+      ],
+      "retrieved_rows": 200,
+      "total_associations": 1295
+    },
+    "IL1RL1": {
+      "score": 4,
+      "confidence": "Moderate-high for curated association convergence; limited for new mechanistic inference",
+      "direct_asthma": {
+        "disease": {
+          "id": "MONDO_0004979",
+          "name": "asthma"
+        },
+        "score": 0.5928291890989653,
+        "datasourceScores": [
+          {
+            "id": "gwas_credible_sets",
+            "score": 0.9105903329554067
+          },
+          {
+            "id": "europepmc",
+            "score": 0.9377790377504737
+          },
+          {
+            "id": "clinical_precedence",
+            "score": 0.15911744279154166
+          }
+        ],
+        "datatypeScores": [
+          {
+            "id": "literature",
+            "score": 0.9377790377504737
+          },
+          {
+            "id": "genetic_association",
+            "score": 0.9105903329554067
+          },
+          {
+            "id": "clinical",
+            "score": 0.15911744279154166
+          }
+        ]
+      },
+      "asthma_subtypes": [
+        {
+          "disease": {
+            "id": "MONDO_0005405",
+            "name": "childhood onset asthma"
+          },
+          "score": 0.5045656953453576,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.8256198915310855
+            },
+            {
+              "id": "europepmc",
+              "score": 0.0870472814747893
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.0870472814747893
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.8256198915310855
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "EFO_1002011",
+            "name": "adult onset asthma"
+          },
+          "score": 0.477341173373982,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.7851899842043095
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "genetic_association",
+              "score": 0.7851899842043095
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "EFO_0009759",
+            "name": "Chronic Obstructive Asthma"
+          },
+          "score": 0.40634752120439444,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.6684108171535522
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "genetic_association",
+              "score": 0.6684108171535522
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0004784",
+            "name": "allergic asthma"
+          },
+          "score": 0.3583075961989558,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.5831457251905681
+            },
+            {
+              "id": "europepmc",
+              "score": 0.1248612629910294
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.1248612629910294
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.5831457251905681
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "EFO_0010638",
+            "name": "atopic asthma"
+          },
+          "score": 0.2811305775876187,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.45787365263831137
+            },
+            {
+              "id": "europepmc",
+              "score": 0.09129600753132519
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.09129600753132519
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.45787365263831137
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0956975",
+            "name": "T2-high asthma"
+          },
+          "score": 0.21926114845112607,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.36066794002300556
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "genetic_association",
+              "score": 0.36066794002300556
+            }
+          ]
+        }
+      ],
+      "adjacent_atopy": [
+        {
+          "disease": {
+            "id": "MONDO_0005271",
+            "name": "allergic disease"
+          },
+          "score": 0.5230704820878104,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.8483581007782762
+            },
+            {
+              "id": "europepmc",
+              "score": 0.24106247784058052
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.24106247784058052
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.8483581007782762
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0011786",
+            "name": "allergic rhinitis"
+          },
+          "score": 0.5226754804982893,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.8438252533647
+            },
+            {
+              "id": "europepmc",
+              "score": 0.31872447369077617
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.31872447369077617
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.8438252533647
+            }
+          ]
+        },
+        {
+          "disease": {
+            "id": "MONDO_0004980",
+            "name": "atopic eczema"
+          },
+          "score": 0.42722240728157757,
+          "datasourceScores": [
+            {
+              "id": "gwas_credible_sets",
+              "score": 0.6702933288924541
+            },
+            {
+              "id": "clinical_precedence",
+              "score": 0.12158615952232422
+            },
+            {
+              "id": "europepmc",
+              "score": 0.09263478971855789
+            }
+          ],
+          "datatypeScores": [
+            {
+              "id": "literature",
+              "score": 0.09263478971855789
+            },
+            {
+              "id": "genetic_association",
+              "score": 0.6702933288924541
+            },
+            {
+              "id": "clinical",
+              "score": 0.12158615952232422
+            }
+          ]
+        }
+      ],
+      "retrieved_rows": 200,
+      "total_associations": 540
+    }
+  },
+  "ontology": {
+    "asthma": "MONDO_0004979",
+    "asthma_phenotypic_abnormality": "HP_0002099",
+    "childhood_onset_asthma": "MONDO_0005405",
+    "adult_onset_asthma": "EFO_1002011",
+    "allergic_asthma": "MONDO_0004784",
+    "atopic_asthma": "EFO_0010638",
+    "caveat": "EFO atopic-asthma term lists allergic asthma as exact synonym; do not count these as independent replications. Search hits mentioning asthma include biomarkers and mouse strains and must be filtered."
+  },
+  "caveats": [
+    "Scores are qualitative evidence-strength judgments, not probabilities, effect sizes, safety scores, or clinical recommendations.",
+    "enableIndirect:false used; target disease-score rows represent database annotations, not independently reviewed constituent study phenotypes.",
+    "First 200 rows per target retrieved; asthma and specified major subtypes/adjacent phenotypes found, low-scoring associations may be missing.",
+    "Absent datasource entries are missing curated support, not evidence of no biological relationship.",
+    "Europe PMC scores reflect literature association and do not establish mechanism or direction.",
+    "Current datasource IDs are clinical_precedence and gwas_credible_sets, differing from older helper labels."
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "base_url": "https://api.cellxgene.cziscience.com/curation/v1",
+  "path": "collections/6f6d381a-7701-4781-935c-db10d30de293",
+  "save_raw": true,
+  "raw_output_path": "/Users/kky/biomate-review/docs/20260911_asthma_target_prioritization/raw/expression_cellxgene_lung.json",
+  "max_items": 3,
+  "timeout_sec": 45
+}

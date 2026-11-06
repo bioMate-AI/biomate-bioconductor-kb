@@ -12,6 +12,7 @@ import uuid
 import httpx
 from typing import Dict, Any, List, Optional
 from .config import AIConfig
+from .local_inference import local_only, generate_local
 from .llm_client_fallback_implementation import (
     FallbackChainManager,
     generate_with_fallback
@@ -211,6 +212,10 @@ class LLMClient:
         call the provider directly so that on-prem deployments with only one LLM
         configured (e.g. Qianwen) work without cloud API keys.
         """
+        # 1) Explicit local-only mode (air-gapped trial): every call goes to the local model server.
+        if local_only():
+            return await generate_local(prompt, **kwargs)
+        # 2) On-prem direct providers (openai_compatible / deepseek / zhipu / local): skip the YAML fallback chain.
         _DIRECT_PROVIDERS = {'openai_compatible', 'deepseek', 'zhipu', 'local'}
         if self.provider in _DIRECT_PROVIDERS:
             import logging
@@ -218,6 +223,7 @@ class LLMClient:
                 f"[on-prem] Direct provider route: {self.provider}:{getattr(self, 'model', '?')}"
             )
             return await self._generate_openai_compatible(prompt, **kwargs)
+        # 3) Cloud providers: cascading fallback chain.
         return await generate_with_fallback(
             llm_client=self,
             prompt=prompt,
@@ -740,7 +746,7 @@ def get_all_providers() -> Dict[str, Dict[str, Any]]:
         'gemini': {
             'name': 'Google Gemini',
             'models': GEMINI_MODELS,
-            'recommended': 'gemini-3.5-flash',
+            'recommended': 'gemini-3.8-flash',
             'api_key_required': True,
             'local': False,
             'description': 'Google multimodal AI with strong performance'

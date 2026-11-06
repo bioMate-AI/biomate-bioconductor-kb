@@ -49,11 +49,14 @@ export interface PlddtChartProps {
 
 interface Band { min: number; color: string; label: string }
 
+// Band colours follow the reference design: very-high/low map to the status
+// tokens (--ok/--warn), confident/very-low use the reference's muted blue/red
+// (#4b8fd6 / #c0563f) rather than the saturated Tailwind primaries.
 const PL_BANDS: Band[] = [
-  { min: 90, color: "#22c55e", label: "very high" }, // green-500
-  { min: 70, color: "#3b82f6", label: "confident" }, // blue-500
-  { min: 50, color: "#f59e0b", label: "low" },       // amber-500
-  { min: 0,  color: "#ef4444", label: "very low" },  // red-500
+  { min: 90, color: "var(--ok)",   label: "very high" }, // green
+  { min: 70, color: "#4b8fd6",     label: "confident" }, // reference blue
+  { min: 50, color: "var(--warn)", label: "low" },       // amber
+  { min: 0,  color: "#c0563f",     label: "very low" },  // reference red
 ]
 
 function bandOf(v: number): Band {

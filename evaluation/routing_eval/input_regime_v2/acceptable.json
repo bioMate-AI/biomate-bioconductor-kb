@@ -1,0 +1,180 @@
+{
+ "_rule": "Acceptable = a catalog workflow that performs the requested task AND accepts the input the user states (by its declared input_types/description). Chosen from broad keyword pools of the catalog (not from input_kinds) and fixed on 2026-11-05 BEFORE any run of this set. Card names are compared as lowercase alphanumeric slugs.",
+ "acceptable": {
+  "prot_tab_1": [
+   "dep",
+   "proda",
+   "deqms_maxquant_lfq",
+   "polystest"
+  ],
+  "prot_tab_2": [
+   "proda",
+   "dep",
+   "polystest"
+  ],
+  "prot_tab_3": [
+   "peca",
+   "proteomm"
+  ],
+  "prot_tab_4": [
+   "proda",
+   "dep",
+   "polystest"
+  ],
+  "prot_tab_5": [
+   "proda",
+   "polystest"
+  ],
+  "prot_raw_1": [
+   "nf-core/proteomicslfq"
+  ],
+  "prot_raw_2": [
+   "nf-core/diaproteomics",
+   "nf-core/dia_proteomics_analysis",
+   "nf_encyclopedia"
+  ],
+  "prot_raw_3": [
+   "nf-core/mhcquant"
+  ],
+  "meth_idat_1": [
+   "nf-core/methylarray",
+   "rnbeads",
+   "missmethyl"
+  ],
+  "meth_idat_2": [
+   "nf-core/methylarray",
+   "minfi",
+   "rnbeads",
+   "missmethyl",
+   "enmix",
+   "watermelon",
+   "sesame",
+   "enmix_custom_step_by_step_preprocessing"
+  ],
+  "meth_beta_1": [
+   "coMethDMR",
+   "dmrcate",
+   "mcsea"
+  ],
+  "meth_beta_2": [
+   "dmrcate",
+   "mcsea"
+  ],
+  "meth_bs_1": [
+   "nf-core/methylseq"
+  ],
+  "rna_fastq_1": [
+   "nf-core/rnaseq"
+  ],
+  "rna_fastq_2": [
+   "nf-core/rnaseq"
+  ],
+  "rna_counts_1": [
+   "nf-core/differentialabundance",
+   "deseq2",
+   "edger",
+   "edger_classic_pipeline"
+  ],
+  "rna_counts_2": [
+   "deseq2",
+   "nf-core/differentialabundance"
+  ],
+  "rna_counts_3": [
+   "nf-core/differentialabundance",
+   "deseq2",
+   "edger",
+   "edger_classic_pipeline"
+  ],
+  "sc_fastq_1": [
+   "nf-core/scrnaseq"
+  ],
+  "sc_proc_1": [
+   "nf-core/scdownstream"
+  ],
+  "sc_proc_2": [
+   "nf-core/scdownstream"
+  ],
+  "sc_proc_3": [
+   "scrnaseq_cellcell_communication"
+  ],
+  "var_fastq_1": [
+   "nf-core/sarek",
+   "Wgs Germline Gatk"
+  ],
+  "var_bam_1": [
+   "nf-core/sarek",
+   "Detect And Annotate Somatic Mutations"
+  ],
+  "var_vcf_1": [
+   "Vep Annotation",
+   "nf-core/vcf_annotate_ensemblvep",
+   "nf-core/vcf_annotate_ensemblvep_snpeff"
+  ],
+  "var_vcf_2": [
+   "lfa"
+  ],
+  "chip_fastq_1": [
+   "nf-core/chipseq"
+  ],
+  "chip_peaks_1": [
+   "diffbind",
+   "Differential Binding Analysis",
+   "chipcomp"
+  ],
+  "atac_fastq_1": [
+   "nf-core/atacseq"
+  ],
+  "meta_reads_1": [
+   "nf-core/mag"
+  ],
+  "amp_1": [
+   "nf-core/ampliseq"
+  ],
+  "metab_raw_1": [
+   "xcms_lc_ms_preprocessing",
+   "nf-core/metaboigniter"
+  ],
+  "metab_tab_1": [
+   "metaboanalystr_statistical"
+  ],
+  "enrich_1": [
+   "clusterprofiler",
+   "fgsea_over_representation_analysis",
+   "Gene Set Enrichment Analysis"
+  ],
+  "enrich_2": [
+   "fgsea",
+   "clusterprofiler_gene_set_enrichment_analysis",
+   "Gene Set Enrichment Analysis",
+   "reactomepa_reactome_gsea"
+  ],
+  "admet_1": [
+   "Predict ADMET Properties (AI)",
+   "Predict Admet Properties",
+   "Admet Pred"
+  ],
+  "dock_1": [
+   "Schrodinger Glide Docking"
+  ],
+  "crispr_1": [
+   "Crispr Screen Mageck",
+   "nf-core/crisprseq"
+  ],
+  "both_1": [
+   "dep",
+   "proda",
+   "deqms_maxquant_lfq",
+   "polystest"
+  ],
+  "both_2": [
+   "nf-core/differentialabundance",
+   "deseq2",
+   "edger",
+   "edger_classic_pipeline"
+  ]
+ },
+ "_review": "2026-11-05, before any run: lists checked by GPT-5.6 Terra against descriptions/declared inputs (acc_review flags); flags accepted when the wrapper description is narrower than the task, rejected when the declared input is a known catalog placeholder (methylarray 'fasta', mhcquant empty, sesame 'count_data'). Four queries reworded so a qualifying workflow exists. Note: nf-core/chipseq and nf-core/atacseq are executable=0 in the catalog (open catalog issue), kept as the correct answers.",
+ "_corrections": [
+  "2026-11-05 (after both arms ran; applied to all arms alike): var_bam_1 \u2014 'Detect And Annotate Somatic Mutations' restored. It was removed on the reviewer flag 'description says it starts from a VCF', but its code (main.nf) takes tumor_bam/normal_bam and runs GATK Mutect2 \u2192 VCF \u2192 annotation: the DESCRIPTION is false, the declared inputs are right. Code is the ground truth."
+ ]
+}

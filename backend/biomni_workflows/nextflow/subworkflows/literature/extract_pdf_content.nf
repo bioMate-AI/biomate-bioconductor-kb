@@ -48,7 +48,7 @@ with open("extract_pdf_content_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("extract_pdf_content_output.txt", "w") as f:
-    f.write("Biomni: Extract Pdf Content Results" + NL)
+    f.write("BioMate: Extract Pdf Content Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

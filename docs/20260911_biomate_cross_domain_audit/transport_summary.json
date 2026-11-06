@@ -1,0 +1,42 @@
+[
+  {
+    "id": "DD01",
+    "transport": "complete",
+    "elapsed_seconds": 36.35
+  },
+  {
+    "id": "DD02",
+    "transport": "complete",
+    "elapsed_seconds": 40.05
+  },
+  {
+    "id": "DD03",
+    "transport": "complete",
+    "elapsed_seconds": 3.22
+  },
+  {
+    "id": "OM01",
+    "transport": "complete",
+    "elapsed_seconds": 32.02
+  },
+  {
+    "id": "OM02",
+    "transport": "complete",
+    "elapsed_seconds": 31.4
+  },
+  {
+    "id": "OM03",
+    "transport": "complete",
+    "elapsed_seconds": 33.48
+  },
+  {
+    "id": "ST01",
+    "transport": "complete",
+    "elapsed_seconds": 32.58
+  },
+  {
+    "id": "RG01",
+    "transport": "complete",
+    "elapsed_seconds": 36.47
+  }
+]

@@ -8,7 +8,24 @@
  * Covers kinase (468 kinome), GPCR, or nuclear receptor panels.
  *
  * Approach: ChEMBL REST API similarity search -> analogous compound activities ->
- * weighted activity transfer (Tanimoto-weighted kNN regression).
+ * weighted activity transfer (Tanimoto-weighted kNN from REAL measured pChEMBL).
+ *
+ * ---------------------------------------------------------------------------
+ * HONESTY CONTRACT (2026-09-22 fabrication sweep)
+ * ---------------------------------------------------------------------------
+ * A per-target IC50 across a 50+-member off-target panel is only real if it is
+ * (a) an experimentally measured activity from ChEMBL for a structurally near
+ * neighbour of the query, or (b) the output of a genuine trained
+ * QSAR/proteochemometric model. This workflow has (a) via the ChEMBL REST API
+ * but NOT (b) — no such model ships in the container.
+ *
+ * The previous fallback (`descriptor_based_panel`) manufactured a full panel of
+ * IC50s with `rng.normal(3.5, 1.5)` seeded by the molecule hash and labelled
+ * them `source='descriptor_estimate'`. Those numbers were noise dressed as
+ * predictions. They are DELETED. When ChEMBL yields too few real neighbour
+ * activities to profile selectivity, we now emit
+ * `status='requires_real_model'` with `predicted_IC50_nM: null` and fail loudly
+ * — we NEVER write a fabricated IC50.
  *
  * Input:  SMILES, target_class
  * Output: selectivity_panel.csv, selectivity_metrics.json
@@ -133,61 +150,28 @@ def gini_index(ic50_values):
     cumsum = np.cumsum(affinities)
     return round(1 - 2*np.sum(cumsum)/(n*cumsum[-1]) + 1/n, 3)
 
-# -- Fallback: descriptor-based kinase/GPCR panel (when API unavailable) ------
-def descriptor_based_panel(mol, target_class, panel_size):
-    '''
-    Generate synthetic selectivity panel based on fingerprint similarity
-    to known scaffolds. Uses hardcoded reference IC50 ranges per target class.
-    '''
-    mw   = Descriptors.ExactMolWt(mol)
-    logp = Crippen.MolLogP(mol)
-    hba  = len(mol.GetSubstructMatches(Chem.MolFromSmarts('[#7,#8]')))
+# -- HONESTY CONTRACT: no synthetic-panel fabrication --------------------------
+# The prior `descriptor_based_panel` fabricated a full IC50 panel with a
+# hash-seeded `rng.normal(3.5, 1.5)`. That produced deterministic-but-arbitrary
+# noise that LOOKED like a selectivity profile. It is deleted. A cross-target
+# IC50 panel requires REAL measured activities (ChEMBL) or a REAL trained
+# proteochemometric model — neither of which we can substitute with RNG. When
+# the ChEMBL path can't supply enough real activities we return an explicit
+# `requires_real_model` failure instead of inventing numbers.
+MIN_REAL_ACTIVITIES = 3   # need at least this many measured off-target IC50s
 
-    # Representative kinase targets with typical potency windows
-    KINASE_PANEL = [
-        ('CDK2','kinase'),('CDK4','kinase'),('CDK6','kinase'),('CDK9','kinase'),
-        ('EGFR','kinase'),('HER2','kinase'),('VEGFR2','kinase'),('PDGFRA','kinase'),
-        ('ABL1','kinase'),('BCR-ABL','kinase'),('BTK','kinase'),('JAK1','kinase'),
-        ('JAK2','kinase'),('SRC','kinase'),('LCK','kinase'),('ZAP70','kinase'),
-        ('PI3K-alpha','kinase'),('PI3K-delta','kinase'),('mTOR','kinase'),
-        ('AKT1','kinase'),('BRAF','kinase'),('MEK1','kinase'),('ERK2','kinase'),
-        ('p38-alpha','kinase'),('JNK1','kinase'),('ROCK1','kinase'),('PLK1','kinase'),
-        ('Aurora-A','kinase'),('Aurora-B','kinase'),('PARP1','kinase'),
-        ('CHK1','kinase'),('WEE1','kinase'),('ATR','kinase'),('ATM','kinase'),
-        ('DYRK1A','kinase'),('CLK1','kinase'),('CK2-alpha','kinase'),
-        ('GSK3-beta','kinase'),('CDK5','kinase'),('FGFR1','kinase'),
-        ('FGFR2','kinase'),('FGFR3','kinase'),('FLT3','kinase'),('KIT','kinase'),
-        ('RET','kinase'),('ALK','kinase'),('MET','kinase'),('ROS1','kinase'),
-        ('NTRK1','kinase'),('NTRK2','kinase'),('NTRK3','kinase'),
-    ]
-    GPCR_PANEL = [
-        ('D2R','GPCR'),('D3R','GPCR'),('5HT2A','GPCR'),('5HT2B','GPCR'),
-        ('5HT3','GPCR'),('M1','GPCR'),('M2','GPCR'),('beta1-AR','GPCR'),
-        ('beta2-AR','GPCR'),('H1','GPCR'),('H2','GPCR'),('A2A','GPCR'),
-        ('CB1','GPCR'),('CB2','GPCR'),('hERG','ion_channel'),
-        ('Nav1.5','ion_channel'),('Kv11.1','ion_channel'),
-        ('GABAA','receptor'),('NMDA','receptor'),('AMPA','receptor'),
-    ]
-    panel = KINASE_PANEL if target_class == 'kinase' else GPCR_PANEL
-    n_panel = {'full': len(panel), 'focused_50': min(50, len(panel)), 'focused_10': 10}
-    panel = panel[:n_panel.get(panel_size, 50)]
-
-    fp = morgan_fp(mol)
-    results = []
-    rng = np.random.default_rng(hash(Chem.MolToSmiles(mol)) % (2**32))
-
-    for (tname, tclass) in panel:
-        # Generate realistic IC50 distribution: log-normal around
-        # predicted selectivity based on simple structural rules
-        # Primary target (index 0) gets best affinity
-        is_primary = (tname == panel[0][0])
-        base_ic50_log = 2.0 if is_primary else rng.normal(3.5, 1.5)  # log10(nM)
-        ic50_nM = round(10**max(0, min(5, base_ic50_log + rng.normal(0, 0.5))), 1)
-        flag = ic50_nM <= 100
-        results.append({'target': tname, 'target_class': tclass,
-                        'predicted_IC50_nM': ic50_nM, 'flag_hit': flag,
-                        'source': 'descriptor_estimate'})
-    return results
+def requires_real_model_result(cid, reason):
+    '''Uniform honest-failure record — null IC50s, explicit status. No fake numbers.'''
+    return {
+        'compound': cid,
+        'status': 'requires_real_model',
+        'reason': reason,
+        'selectivity_entropy': None,
+        'Gini_index': None,
+        'primary_target_IC50_nM': None,
+        'off_target_hits': [],
+        'selectivity_verdict': 'UNAVAILABLE',
+    }
 
 # -- Process -------------------------------------------------------------------
 raw_smiles   = os.environ.get('PARAM_SMILES_LIST','["C"]')
@@ -199,24 +183,37 @@ smiles_pairs = parse_smiles_input(raw_smiles)
 all_panels, all_metrics = [], []
 panel_rows = []
 
+n_requires_real_model = 0
+
 for cid, smi in smiles_pairs:
     mol = Chem.MolFromSmiles(smi) if smi else None
     if mol is None:
-        print(f"WARNING: invalid SMILES {cid}", file=sys.stderr); continue
+        print(f"WARNING: invalid SMILES {cid}", file=sys.stderr)
+        all_metrics.append(requires_real_model_result(cid, 'invalid_smiles'))
+        n_requires_real_model += 1
+        continue
 
-    # Try ChEMBL API first, fall back to descriptor-based
+    # REAL activities only: ChEMBL similarity search -> measured off-target IC50s.
     similar = chembl_similarity_search(smi, threshold=0.7, max_results=30)
+    panel_data = []
     if similar:
         chembl_ids = [m.get('molecule_chembl_id') for m in similar if m.get('molecule_chembl_id')]
         activities = get_chembl_activities(chembl_ids, target_class)
         panel_data = [{'target': v['target'], 'target_class': target_class,
                        'predicted_IC50_nM': v['IC50_nM'],
                        'flag_hit': v['IC50_nM'] <= ic50_thresh,
-                       'source': 'ChEMBL_kNN'} for k, v in activities.items()]
-        if len(panel_data) < 5:
-            panel_data = descriptor_based_panel(mol, target_class, panel_size)
-    else:
-        panel_data = descriptor_based_panel(mol, target_class, panel_size)
+                       'source': 'ChEMBL_measured'} for k, v in activities.items()]
+
+    # HONESTY CONTRACT: if ChEMBL can't supply enough REAL neighbour activities,
+    # we do NOT fabricate a panel — we fail loudly with requires_real_model.
+    if len(panel_data) < MIN_REAL_ACTIVITIES:
+        reason = ('chembl_unavailable' if not similar
+                  else f'insufficient_real_activities({len(panel_data)}<{MIN_REAL_ACTIVITIES})')
+        print(f"WARNING: {cid} -> requires_real_model ({reason}); no fabricated IC50 emitted",
+              file=sys.stderr)
+        all_metrics.append(requires_real_model_result(cid, reason))
+        n_requires_real_model += 1
+        continue
 
     ic50_vals = [p['predicted_IC50_nM'] for p in panel_data]
     hits = [p for p in panel_data if p['flag_hit']]
@@ -227,10 +224,11 @@ for cid, smi in smiles_pairs:
     verdict = 'SELECTIVE (Gini>0.8)' if gini > 0.8 else ('MODERATELY_SELECTIVE' if gini > 0.5 else 'PROMISCUOUS')
 
     metrics = {
-        'compound': cid, 'selectivity_entropy': entropy, 'Gini_index': gini,
+        'compound': cid, 'status': 'completed', 'selectivity_entropy': entropy, 'Gini_index': gini,
         'primary_target_IC50_nM': primary_ic50,
         'off_target_hits': [f"{p['target']}: {p['predicted_IC50_nM']}nM" for p in hits[:5]],
-        'selectivity_verdict': verdict
+        'selectivity_verdict': verdict,
+        'n_real_activities': len(panel_data), 'activity_source': 'ChEMBL_measured'
     }
     all_metrics.append(metrics)
     for p in panel_data:
@@ -244,22 +242,44 @@ with open('selectivity_metrics.json','w') as f:
     out = all_metrics[0] if len(all_metrics)==1 else all_metrics
     json.dump(out, f, indent=2)
 
-full = {'status':'completed','compounds':len(all_metrics),'metrics':all_metrics}
+n_completed = sum(1 for m in all_metrics if m.get('status') == 'completed')
+if n_completed == 0:
+    overall_status = 'requires_real_model'
+elif n_completed == len(all_metrics):
+    overall_status = 'completed'
+else:
+    overall_status = 'partial'
+full = {'status': overall_status, 'compounds': len(all_metrics),
+        'n_completed': n_completed, 'n_requires_real_model': n_requires_real_model,
+        'metrics': all_metrics}
 with open('selectivity_results.json','w') as f:
     json.dump(full, f, indent=2)
 
 report = ["=== PROTEOME SELECTIVITY PROFILING REPORT ===",
           f"Target class: {target_class} | Panel: {panel_size}", ""]
 for m in all_metrics:
+    if m.get('status') == 'requires_real_model':
+        report += [f"Compound {m['compound']}: REQUIRES REAL MODEL ({m.get('reason','')})",
+                   "  No ChEMBL-measured off-target activities available; no IC50 fabricated.", ""]
+        continue
     report += [f"Compound {m['compound']}:",
                f"  Gini={m['Gini_index']} | Entropy={m['selectivity_entropy']} -> {m['selectivity_verdict']}",
-               f"  Primary IC50: {m['primary_target_IC50_nM']} nM"]
+               f"  Primary IC50: {m['primary_target_IC50_nM']} nM  "
+               f"(n={m.get('n_real_activities','?')} ChEMBL-measured)"]
     if m['off_target_hits']:
         report.append(f"  Off-target hits (<{ic50_thresh}nM): {', '.join(m['off_target_hits'])}")
     report.append("")
 with open('selectivity_output.txt','w') as f:
     f.write('\\n'.join(report))
 print('\\n'.join(report))
+
+# Fail loudly if NOTHING real could be produced — never exit 0 on an all-fake panel.
+if n_completed == 0:
+    sys.stderr.write("ERROR: proteome_selectivity_profiling produced no real (ChEMBL-measured) "
+                     "selectivity profile for any compound. A cross-target IC50 panel requires "
+                     "real measured activities or a trained QSAR/proteochemometric model; "
+                     "descriptor RNG fallback was removed. status=requires_real_model.\\n")
+    sys.exit(3)
 PYEOF
 
     cat << 'EOF' > versions.yml

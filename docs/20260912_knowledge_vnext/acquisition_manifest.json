@@ -1,0 +1,198 @@
+{
+  "inventory_sha256": "dc7f3dae6a8699f919dcd2808643f57201703b42dff3c4198c44e10afef49334",
+  "downloaded_artifacts": [
+    {
+      "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/tracks/structured_knowledge/pathways/go_bp.gmt",
+      "local_path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/raw/go_bp.gmt",
+      "bytes": 4929531,
+      "etag": "\"73c1ad5f7d3cccd230cb6f083d198c2c\"",
+      "source_last_modified": "2026-08-24T07:46:27+00:00",
+      "sha256": "b4b3b49a267c2239fad40d39a56f2146a57743992943915e80ebed34ec7ebaae",
+      "status": "downloaded_raw",
+      "release_date": "not established from object timestamp",
+      "license_status": "not established by S3 storage; source-specific training/redistribution terms require verification",
+      "training_status": "parsed for CURRENT integration; no optimizer exposure yet"
+    },
+    {
+      "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/tracks/structured_knowledge/pathways/kegg.gmt",
+      "local_path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/raw/kegg.gmt",
+      "bytes": 100237,
+      "etag": "\"f7c8a9aaab7c638922ec912c6cea5023\"",
+      "source_last_modified": "2026-08-24T07:46:26+00:00",
+      "sha256": "080f877db330cd67ea067d235990aed935d7200f0073b7995e7abb6642695f4e",
+      "status": "downloaded_raw",
+      "release_date": "not established from object timestamp",
+      "license_status": "not established by S3 storage; source-specific training/redistribution terms require verification",
+      "training_status": "parsed for CURRENT integration; no optimizer exposure yet"
+    },
+    {
+      "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/tracks/structured_knowledge/pathways/reactome.gmt",
+      "local_path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/raw/reactome.gmt",
+      "bytes": 1032186,
+      "etag": "\"26b6c62fa4ac0904738987b64d0575ca\"",
+      "source_last_modified": "2026-08-24T07:46:29+00:00",
+      "sha256": "89983d5c1f0af11c52edfeee7323eb425580ac6281d387a528562ab1787ce56b",
+      "status": "downloaded_raw",
+      "release_date": "not established from object timestamp",
+      "license_status": "not established by S3 storage; source-specific training/redistribution terms require verification",
+      "training_status": "parsed for CURRENT integration; no optimizer exposure yet"
+    },
+    {
+      "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/tracks/structured_knowledge/tf/collectri_human.tsv",
+      "local_path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/raw/collectri_human.tsv",
+      "bytes": 2414371,
+      "etag": "\"e0ad0ea0012e3e14a12d17a553b12086\"",
+      "source_last_modified": "2026-08-31T02:16:16+00:00",
+      "sha256": "e672ca22d2ab1a7c3a6dd1a3fc56cbcc0fd4b14a49957b0ba495b6ef9ae9a498",
+      "status": "downloaded_raw",
+      "release_date": "not established from object timestamp",
+      "license_status": "not established by S3 storage; source-specific training/redistribution terms require verification",
+      "training_status": "parsed for CURRENT integration; no optimizer exposure yet"
+    },
+    {
+      "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/genetics/genetics_priors_long.parquet",
+      "local_path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/raw/genetics_priors_long.parquet",
+      "bytes": 62133,
+      "etag": "\"48a3ec964f4835f882dc0ebf4a0b6663\"",
+      "source_last_modified": "2026-08-12T20:52:04+00:00",
+      "sha256": "dc69306baf9b38861353621f6ac01fac75ea8c67341e01a72837a855a4bf1671",
+      "status": "downloaded_raw",
+      "release_date": "not established from object timestamp",
+      "license_status": "not established by S3 storage; source-specific training/redistribution terms require verification",
+      "training_status": "parsed for CURRENT integration; no optimizer exposure yet"
+    },
+    {
+      "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_llm_models/rebakeoff_stage/primekg_immune_subgraph.parquet",
+      "local_path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/raw/primekg_immune_subgraph.parquet",
+      "bytes": 750313,
+      "etag": "\"fe2e453f6ed89396a3af16a56f47dac5\"",
+      "source_last_modified": "2026-08-31T03:29:23+00:00",
+      "sha256": "007c810cfdebca6842322ea933f04f50fdad2b34a88187dc66bcc7d7c9aa6497",
+      "status": "downloaded_raw",
+      "release_date": "not established from object timestamp",
+      "license_status": "not established by S3 storage; source-specific training/redistribution terms require verification",
+      "training_status": "parsed for CURRENT integration; no optimizer exposure yet"
+    }
+  ],
+  "total_downloaded_bytes": 9288771,
+  "cloud_writes": false,
+  "integration_target": "CURRENT model: existing collected artifacts, not newly sourced knowledge",
+  "new_external_sources_acquired": 0,
+  "prepared_artifacts": [
+    {
+      "path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/current_prepared/collectri_signed.parquet",
+      "sha256": "e45a4b32e546da78f33c2797ae9abd35375f3a19c65d158071dc275a194ea7ec",
+      "bytes": 723580
+    },
+    {
+      "path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/current_prepared/genetics_disease_specific.parquet",
+      "sha256": "2e0864ae8504933d58c51c5e74da68d1cb534ba80c77fcc093edaac94fbad1d0",
+      "bytes": 61670
+    },
+    {
+      "path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/current_prepared/go_bp_memberships.parquet",
+      "sha256": "d6731d8d64af865f5b50c23ec6a38e1f8732d21edf8eb92ab621849d53ab29c4",
+      "bytes": 1649803
+    },
+    {
+      "path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/current_prepared/kegg_memberships.parquet",
+      "sha256": "6543c5894c15c24fab692eb38e7b7ecbab9b2782f037120a2aba6b2fef00c462",
+      "bytes": 61821
+    },
+    {
+      "path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/current_prepared/primekg_typed.parquet",
+      "sha256": "dc8f934bfc677bb03f74ec7a4d6fab83de611fd9deab91d72a5d2da78306a1cf",
+      "bytes": 750313
+    },
+    {
+      "path": "/Users/kky/biomate-review/docs/20260912_knowledge_vnext/current_prepared/reactome_memberships.parquet",
+      "sha256": "186cc97af2fa8fe0c3598d48c1c29e5774ae18bfd58e11ff39231bdd90f89f8d",
+      "bytes": 440735
+    }
+  ],
+  "coverage": {
+    "reactome": {
+      "pathways": 2868,
+      "memberships": 142657,
+      "genes": 11990,
+      "exact_duplicate_memberships": 0,
+      "filter": "none; source membership retained"
+    },
+    "kegg": {
+      "pathways": 186,
+      "memberships": 12797,
+      "genes": 5245,
+      "exact_duplicate_memberships": 0,
+      "filter": "none; source membership retained"
+    },
+    "go_bp": {
+      "pathways": 7647,
+      "memberships": 627225,
+      "genes": 17959,
+      "exact_duplicate_memberships": 0,
+      "filter": "none; source membership retained"
+    },
+    "collectri": {
+      "rows": 42990,
+      "regulators": 1185,
+      "targets": 6675,
+      "sign_counts": {
+        "1.0": 37168,
+        "-1.0": 5822
+      },
+      "sign_decision_counts": {
+        "default activation": 21699,
+        "PMID": 19396,
+        "regulon": 1895
+      },
+      "exact_duplicate_rows": 0,
+      "caveat": "Some positive signs are default activation; preserve sign_decision, resources and references, do not label every edge experimentally signed."
+    },
+    "genetics": {
+      "rows": 1842,
+      "diseases": 9,
+      "genes": 1014,
+      "exact_duplicate_rows": 0,
+      "caveat": "Disease context and separate l2g/burden/raw/normalized priors retained; no maximum across diseases; limited original immune prior panel."
+    },
+    "primekg": {
+      "rows": 115424,
+      "relations": {
+        "protein_protein": 55734,
+        "disease_protein": 21378,
+        "bioprocess_protein": 19100,
+        "cellcomp_protein": 6014,
+        "molfunc_protein": 5788,
+        "pathway_protein": 4216,
+        "disease_phenotype_positive": 1164,
+        "phenotype_protein": 1066,
+        "exposure_protein": 560,
+        "disease_disease": 326,
+        "exposure_disease": 48,
+        "disease_phenotype_negative": 30
+      },
+      "x_types": {
+        "gene/protein": 84795,
+        "disease": 11636,
+        "biological_process": 9550,
+        "cellular_component": 3007,
+        "molecular_function": 2894,
+        "pathway": 2108,
+        "effect/phenotype": 1130,
+        "exposure": 304
+      },
+      "y_types": {
+        "gene/protein": 84795,
+        "disease": 11636,
+        "biological_process": 9550,
+        "cellular_component": 3007,
+        "molecular_function": 2894,
+        "pathway": 2108,
+        "effect/phenotype": 1130,
+        "exposure": 304
+      },
+      "exact_duplicate_rows": 0,
+      "caveat": "Collected immune subgraph, not full PrimeKG; name-based nodes require namespace mapping; no canonical node IDs in source."
+    }
+  }
+}

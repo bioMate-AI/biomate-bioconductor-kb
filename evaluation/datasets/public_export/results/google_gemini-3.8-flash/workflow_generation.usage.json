@@ -1,0 +1,16 @@
+{
+  "task": "workflow_generation",
+  "mode": null,
+  "model": "google/gemini-3.8-flash",
+  "n": 40,
+  "n_with_usage": 40,
+  "input_tokens_total": 4676,
+  "output_tokens_total": 12168,
+  "input_tokens_mean": 116.9,
+  "output_tokens_mean": 304.2,
+  "latency_ms_p50": 3004,
+  "latency_ms_p95": 11333,
+  "latency_ms_mean": 4666.125,
+  "n_with_latency": 40,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

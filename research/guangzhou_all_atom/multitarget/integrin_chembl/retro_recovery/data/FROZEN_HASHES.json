@@ -1,0 +1,18 @@
+{
+ "hashes": {
+  "compounds.csv.gz": "27c8ba7b23725d928b03f394d794713ae2c8fd0d3523493a25f0904ac80ea8a5",
+  "pair_labels.csv.gz": "15a2c89c6864edfad3e374fa21aec17cfb807c178bff35a78acc7ecae53fe437",
+  "targets.csv": "18302dfcbbf75cd30aa4262ec478a1af67a5363f0ad8add948ca1ac9b519acf1",
+  "items_M.csv.gz": "bd8aa90e500b395dfbdcaef46dac9c50329c518b62b1737ea0bf4f3b8e996138",
+  "items_I.csv.gz": "5da885424abe6cdeddff3b422524ce93bc617bb9ec7116965241feaedaae601e",
+  "uniprot_pfam.tsv": "2bb209aa2bb79c65eb468c913a164654a8217b2f0a3dcad765a5071128d55668",
+  "02_build_set.py": "3224de10d1e1485d765c7c5cadca61c23421c81e7c6ff9fe01f64fdcdf5d531c",
+  "chem.py": "237a18a92f878ccfc287ff2de33f546b7faf6149e676e1c21e0599e6abaa4480"
+ },
+ "seed": 20261028,
+ "params": {
+  "JACC": 0.67,
+  "N_DECOY": 20,
+  "MIN_DECOY": 10
+ }
+}

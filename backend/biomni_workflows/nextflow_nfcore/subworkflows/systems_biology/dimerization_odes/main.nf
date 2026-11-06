@@ -137,7 +137,7 @@ with open("dimerization_odes_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("dimerization_odes_output.txt", "w") as f:
-    f.write("Biomni: Dimerization Odes" + NL)
+    f.write("BioMate: Dimerization Odes" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

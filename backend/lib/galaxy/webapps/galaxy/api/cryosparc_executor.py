@@ -824,7 +824,8 @@ def _fire_qc_advisory(run: CryoSPARCRun, cb, gate_result, audit_dir: str = "") -
             cb(run.progress_percent, json.dumps({
                 "type": "qc_advisory",
                 "gate": gate_result.gate,
-                **{k: getattr(gate_result, k) for k in ("level", "metric", "value", "threshold", "message", "suggestion", "evidence", "profile")}
+                **{k: getattr(gate_result, k) for k in ("level", "metric", "value", "threshold", "message", "suggestion", "evidence", "profile")},
+                "status": getattr(gate_result, "status", None) or "advisory"
             }))
         except Exception:
             pass
@@ -1127,30 +1128,15 @@ def _check_model_quality_gate_from_job(refine_job, run, cb, qc_profile, audit_di
     if mock_mode or not _QC_GATES_AVAILABLE:
         return
 
-    # Placeholder call — placeholder values that intentionally trigger advisory
-    # so the analyst is reminded to run MolProbity before deposition.
-    placeholder_molprobity = 2.5       # triggers advisory (≥ 2.0)
-    placeholder_ramachandran = 0.95    # advisory (< 0.97 excellent threshold)
-    placeholder_rotamer = 0.03        # within acceptable range
-
-    result = check_model_quality_gate(
-        molprobity_score=placeholder_molprobity,
-        ramachandran_favored_pct=placeholder_ramachandran,
-        rotamer_outlier_pct=placeholder_rotamer,
-        profile=qc_profile,
+    # No validation was run. Preserve this fact without inventing measurements.
+    result = QCResult(
+        gate="model_validation", level="BRONZE", action="advisory",
+        metric="Model validation", value=None, threshold=None,
+        message="Model validation was not performed.",
+        suggestion="Run MolProbity on the atomic model to assess model quality.",
+        evidence="", profile=qc_profile, status="not_evaluated",
     )
-
-    log.info(
-        "[CryoSPARC] G12 model quality gate (PLACEHOLDER): MolProbity validation "
-        "requires running 'phenix.molprobity' externally on the sharpened map + model. "
-        "Emitting advisory as reminder. Run: phenix.molprobity <model.pdb> <map.mrc> "
-        "resolution=<fsc_res> and pass scores to check_model_quality_gate()."
-    )
-
-    if result.action == "halt":
-        _fire_qc_halt(run, cb, result, audit_dir)
-    elif result.action == "advisory":
-        _fire_qc_advisory(run, cb, result, audit_dir)
+    _fire_qc_advisory(run, cb, result, audit_dir)
 
 
 # ---------------------------------------------------------------------------

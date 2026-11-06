@@ -1,0 +1,51 @@
+{
+ "checkpoint": "ckpt.pt",
+ "n_params": 25483264,
+ "n_eval_peptides": 800,
+ "A_heldout_perplexity": {
+  "coverage": 1.0,
+  "mean_token_nll": {
+   "mean": 0.5056,
+   "ci95": [
+    0.467,
+    0.5635
+   ],
+   "n_clusters": 39,
+   "n": 800
+  },
+  "perplexity_of_mean_nll": 1.658
+ },
+ "B_stereo_sensitivity": {
+  "dflip_gap_true_minus_variant": {
+   "mean": 0.0075,
+   "ci95": [
+    0.0027,
+    0.0203
+   ],
+   "n_clusters": 39,
+   "n": 600
+  },
+  "nme_edit_gap_true_minus_variant": {
+   "mean": 0.0067,
+   "ci95": [
+    0.0006,
+    0.0244
+   ],
+   "n_clusters": 30,
+   "n": 513
+  },
+  "note": "gap > 0 (CI above 0): the model prefers the real isomer/N-Me pattern over a single-edit variant. NOTE: the variant is not a measured compound, so this tests plausibility not activity"
+ },
+ "C_sampling": {
+  "n_sampled": 500,
+  "validity": 0.664,
+  "uniqueness_of_valid": 1.0,
+  "novelty_vs_corpus": 0.9759,
+  "macrocycle_fraction_ring_ge12": 0.1024,
+  "macrocycle_fraction_real_cycpeptmpdb": 1.0,
+  "max_ring_size_TV_distance_vs_real": 0.9205,
+  "n_methyl_count_TV_distance_vs_real": 0.8173,
+  "mean_n_methyl_sampled": 0.078,
+  "mean_n_methyl_real": 2.667
+ }
+}

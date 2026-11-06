@@ -1,0 +1,65 @@
+{
+  "source_key": "biomni_data_lake/kg.csv.gz",
+  "etag": "\"feff44c2199cc9e1f6ea5fb2b1ea392b-11\"",
+  "bytes": 92004058,
+  "columns": [
+    "relation",
+    "display_relation",
+    "x_index",
+    "x_id",
+    "x_type",
+    "x_name",
+    "x_source",
+    "y_index",
+    "y_id",
+    "y_type",
+    "y_name",
+    "y_source"
+  ],
+  "sample_rows": [
+    {
+      "relation": "protein_protein",
+      "display_relation": "ppi",
+      "x_index": "0",
+      "x_id": "9796",
+      "x_type": "gene/protein",
+      "x_name": "PHYHIP",
+      "x_source": "NCBI",
+      "y_index": "8889",
+      "y_id": "56992",
+      "y_type": "gene/protein",
+      "y_name": "KIF15",
+      "y_source": "NCBI"
+    },
+    {
+      "relation": "protein_protein",
+      "display_relation": "ppi",
+      "x_index": "1",
+      "x_id": "7918",
+      "x_type": "gene/protein",
+      "x_name": "GPANK1",
+      "x_source": "NCBI",
+      "y_index": "2798",
+      "y_id": "9240",
+      "y_type": "gene/protein",
+      "y_name": "PNMA1",
+      "y_source": "NCBI"
+    },
+    {
+      "relation": "protein_protein",
+      "display_relation": "ppi",
+      "x_index": "2",
+      "x_id": "8233",
+      "x_type": "gene/protein",
+      "x_name": "ZRSR2",
+      "x_source": "NCBI",
+      "y_index": "5646",
+      "y_id": "23548",
+      "y_type": "gene/protein",
+      "y_name": "TTC33",
+      "y_source": "NCBI"
+    }
+  ],
+  "inspected_rows": 3,
+  "scope": "schema preview only; complete graph not downloaded or optimized"
+}

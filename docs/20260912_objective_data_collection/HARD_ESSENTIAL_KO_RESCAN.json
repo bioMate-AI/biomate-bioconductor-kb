@@ -1,0 +1,102 @@
+{
+  "_meta": {
+    "generated": "2026-09-13",
+    "purpose": "Double-check whether public data was MISSED that could re-power the FAILED leave-HLA-out H4 gate without a CRO experiment. Target = NEW hard-essential antigen-processing KO (B2M/TAP1/TAP2/TAPBP/tapasin, plus NLRC5/PSMB8-10/CIITA) immunopeptidome deposits across a DISTINCT HLA background, with WT control + processed peptide files.",
+    "gate_requirement_recap": "PASS needs >=3 DISJOINT-ALLELE hard-essential-KO<->WT immunopeptidome backgrounds. Public set to date = HAP1 only (the sole hard-essential collapse). A375/THP-1/HeLa all share HLA-A*02 and only carry weak/inverted trimmer-editor KOs (ERAP1/TAPBPR) or a non-collapsing B2M-KO (A375). So the corpus is under-powered on the discriminative axis AND collapses onto A*02.",
+    "search_scope": "PRIDE v2 REST (312-project immunopeptidome/ligandome/APM pool, 27 keyword queries), ProteomeXchange/proteomecentral PROXI, MassIVE https + GNPS datasette, IEDB-adjacent web search, targeted WebSearch/WebFetch on 2024-2026 B2M/TAP/tapasin/NLRC5 KO ligandome literature.",
+    "exclusion_set": "23 HELD + 10 FETCHED accessions from H4_CORPUS_INVENTORY.json + PXD023044; NOT re-counted.",
+    "disk_note": "4.8-5.9 GB free throughout; only 1 small (44 MB) processed matrix pulled to VERIFY availability (PXD063813 report.pr_matrix.tsv)."
+  },
+
+  "headline": {
+    "new_hard_essential_KO_immunopeptidome_deposits_with_DISTINCT_HLA_and_fetchable_processed_ligandome": 0,
+    "new_hard_essential_KO_deposits_found_at_all": 1,
+    "can_reach_>=3_disjoint_allele_hard_essential_backgrounds_from_public_data": false,
+    "verdict": "CRO-not-shrinkable CONFIRMED. No qualifying public data was missed. One genuinely new B2M-KO deposit (PXD063813) was found, but it (a) shares HLA-A*02 with the already-collapsed public backgrounds (adds NO disjoint allele) and (b) ships only a TRYPTIC whole-proteome DIA matrix as its processed file -- the immunopeptidome would require full raw reprocessing. It cannot re-power the disjoint-allele gate.",
+    "gate_criteria_status_after_rescan": {
+      "disjoint_HLA_alleles_available": "still NO -- every public hard-essential KO (HAP1 B2M/TAP/TAPBP, A375 B2M, and NEW C1R/K562 B2M) is on backgrounds already in the corpus or on A*02",
+      "hard_essential_KO_backgrounds_with_usable_processed_ligandome": "still 1 (HAP1). PXD063813 does not add one because its processed file is proteome, not ligandome.",
+      "backgrounds_carrying_positive_ordering": "unchanged (>=3 required, have 1)"
+    }
+  },
+
+  "NEW_hard_essential_KO_found": {
+    "PXD063813": {
+      "title": "The covalent bonding of beta-2-microglobulin with HLA class I influences the antigenic landscape of cells",
+      "submitter_lab": "Liepe (SPe / Sperner)",
+      "deposit_date": "2026-06",
+      "organism": "Homo sapiens",
+      "access": "OPEN (PRIDE, no auth; https mirror ftp.pride.ebi.ac.uk works)",
+      "instrument": "timsTOF (TIMS), DIA 50min",
+      "cell_lines": ["C1R (HLA-A*02 transfectant)", "K562 (HLA-A*02 transfectant)"],
+      "HLA_background": "HLA-A*02 in BOTH lines (C1R-A02, K562-A02). NOT DISJOINT -- A*02 is the exact allele the gate flagged as saturated (shared by A375/THP-1/HeLa).",
+      "hard_essential_KO": "B2M knockout ('NoB2M' arm) in each line",
+      "experimental_arms": {
+        "C1R_WT": "C1R-A02 (6 runs: 2 inj x 3 bio)",
+        "C1R_B2M_KO": "C1R-A02-NoB2M (6 runs)",
+        "K562_WT": "K562-A02 (6 runs)",
+        "K562_B2M_KO": "K562-A02-NoB2M (6 runs)"
+      },
+      "WT_control_present": true,
+      "same_flask_proteome_present": "the processed matrix IS a proteome (tryptic) search; a distinct eluate-only proteome is not separately provided",
+      "processed_peptide_files": {
+        "held_processed": "report.pr_matrix.tsv (44 MB), report.parquet, report.pg_matrix.tsv, report.unique_genes_matrix.tsv",
+        "modality_of_processed": "TRYPTIC WHOLE-PROTEOME DIA-NN search -- CONFIRMED from report.log.txt: '--cut K*,R* --missed-cleavages 1', avg peptide length 14.3, ~7800 proteins/run, 99% of 8-12mers end in K/R.",
+        "immunopeptidome_ligandome_processed_table": "NOT provided. Only 24 raw .d.zip files. Getting the eluted-ligand repertoire requires a fresh no-enzyme reprocessing of the raw TIMS files (disk-prohibitive here)."
+      },
+      "gate_verification_attempted": {
+        "metric": "within-deposit unique-precursor detection-count fraction of WT (on the held pr_matrix)",
+        "C1R_B2M_KO_over_WT": 0.96,
+        "K562_B2M_KO_over_WT": 0.99,
+        "KO_shared_with_WT": "0.98-0.99",
+        "interpretation": "These numbers reflect the PROTEOME (unchanged by B2M-KO, as expected) -- NOT presentation. They are NOT a valid presentation-collapse readout because the matrix is tryptic proteome, not HLA eluate. Cannot be used to resolve the A375 B2M-KO discordance from this file alone."
+      },
+      "why_it_does_not_re-power_the_gate": [
+        "Adds NO disjoint HLA allele (A*02 already saturated in the failing folds).",
+        "Its processed file is proteome, not ligandome -- so it does not add a usable hard-essential-KO<->WT PRESENTATION contrast without heavy raw reprocessing.",
+        "Even if reprocessed, it would be a 3rd/4th A*02 B2M-KO replicate, deepening the A*02 axis the gate already has, not extending allele coverage."
+      ],
+      "residual_value_if_processed_later": "Could help ADJUDICATE the A375 B2M-KO non-collapse (the primary CRO blocker): C1R and K562 are HLA-null parents with a single defined A*02, so a clean B2M-KO collapse there vs A375's 88% retention would localize the anomaly to A375 (leaky KO / MHC1-TIP sensitivity) rather than to A*02 biology. This is a CHEAP DIAGNOSTIC lead, not a gate re-power."
+    }
+  },
+
+  "candidates_examined_and_REJECTED": [
+    {"acc":"PXD060523","why":"NLRC5-/- but MOUSE fibrosarcoma tumor tissue -- no human HLA background; wrong species for the gate."},
+    {"acc":"PXD048728","why":"RNF185/tapasin ERAD regulation; TMT PROTEOMICS screen (tapasin is a substrate), not an eluted immunopeptidome KO contrast; human+mouse."},
+    {"acc":"PXD054743","why":"Tapasin-DEPENDENCE via HLA-B*44:02/44:05/W147A in 721.220 -- editor-level allele system (same paradigm as held PXD063219/PXD046825), not a hard-essential collapse; no tapasin-null vs WT presentation collapse."},
+    {"acc":"PXD046825","why":"Tapasin-mediated Trp editing on HLA-B44 -- editor effect, not hard-essential KO."},
+    {"acc":"PXD060641","why":"SUMO program restricts immunopeptidome; immunoproteasome effect is indirect/downstream, no hard-essential KO; processed files are MaxQuant peptides.txt (proteome)."},
+    {"acc":"PXD061196","why":"Companion of PXD060641 (SUMOylation); same rejection."},
+    {"acc":"PXD024417","why":"HeLa-CIITA is the fixed BACKGROUND; the perturbation is T6BP/TAX1BP1 silencing (autophagy receptor), class-II, not a CIITA/hard-essential KO."},
+    {"acc":"PXD024112","why":"NOTCH1 retroviral transduction into CLL cells; CIITA mentioned peripherally, not a KO."},
+    {"acc":"PXD005544","why":"TNBC patient tumors, correlative APM (TAP1/TAP2/tapasin) DOWNREGULATION -- no genetic KO, no WT/KO contrast."},
+    {"acc":"PXD015957","why":"Immunoproteasome PSMB8/9 OVEREXPRESSION (empty-vector vs OE) -- opposite of KO; OE does not collapse presentation."},
+    {"acc":"PXD027408","why":"Viral immune evasion vs TAP -- PLC PROTEOMICS (tryptic PLC proteins), not eluted ligandome; pharmacologic/viral, not genetic KO."},
+    {"acc":"PXD027006","why":"ERAP1 allotype IN-VITRO enzyme trimming of S1 spike -- not cellular immunopeptidome."},
+    {"acc":"PXD046891","why":"p14/CDKN2A knockdown melanoma -- not APM hard-essential."},
+    {"acc":"PXD053256","why":"TYW2 silencing (tRNA/translation fidelity) -- not APM hard-essential."},
+    {"acc":"PXD033485","why":"beta2m DISSOCIATION from MHC-I (biophysics of free heavy chain) -- not a B2M-KO immunopeptidome contrast."},
+    {"acc":"PXD068540/PXD069965","why":"MOUSE TAPBPR exchange catalyst -- mouse, editor-level."},
+    {"acc":"PXD068540_note","why":"editor (TAPBPR), mouse; excluded."}
+  ],
+
+  "MISCLASSIFICATION_recheck": {
+    "question": "Were any of the >=32 held 'WT-only' backgrounds actually hiding a hard-essential KO arm?",
+    "result": "NO. Re-read PXD022020, PXD000394, PXD071022 (MSI/MSS genotype comparison), PXD072525 (MM TAA discovery), PXD076608 (CML TKI), PXD077352 (covalent neoantigens), PXD028364/PXD037365 (A549 baseline). All are baseline panels, disease-genotype comparisons, or drug/covalent perturbations. None contains a B2M/TAP/TAPBP/NLRC5/PSMB/CIITA genetic KO arm. No misclassification found."
+  },
+
+  "MSV000091285_reattempt": {
+    "goal": "Re-fetch ONX-0914 immunoproteasome-inhibitor HLA-I MS via a NON-FTP route (FTP was blocked).",
+    "https_route_works": true,
+    "route_confirmed": "MassIVE https DownloadResultFile returns HTTP 200 (e.g. ccms_parameters/params.xml); GNPS datasette (datasetcache.gnps2.org) enumerates the .mzML tree (e.g. Jenifer_20221221_OTE_Aur2hr_J02.mzML = Aurora/ONX-0914 2hr arm). So the FTP block is transport-only; https is fully open.",
+    "but_disqualified_for_this_gate": "MSV000091285 is a PHARMACOLOGIC UPS/proteasome-inhibition study (its own summary: 'perturbation of the ubiquitin-proteasome system'; ~30% of the MHC-I repertoire is UPS-INDEPENDENT). It is NOT a genetic hard-essential KO and has NO distinct-HLA KO<->WT structure of the type the leave-HLA-out gate needs. Fetchability was the only open question; it does not add a hard-essential KO background.",
+    "recommendation": "Fetchable if wanted for the proteasome-dependence sub-question, but it is NOT a gate re-power and should not be counted toward the >=3 disjoint-allele requirement."
+  },
+
+  "honest_verdict": {
+    "cro_not_shrinkable": "CONFIRMED",
+    "public_data_missed": false,
+    "one_qualifier": "PXD063813 is a genuinely NEW public human B2M-KO immunopeptidome (C1R + K562), which the prior inventory did not hold. It is worth logging. But it does NOT satisfy the gate: no disjoint allele (A*02), and processed files are proteome-only. It is a cheap DIAGNOSTIC lead for the A375 B2M-KO discordance, not a substitute for the CRO's disjoint-allele hard-essential-KO panel.",
+    "bottom_line": "The leave-HLA-out gate remains FAIL/UNPROVEN across HLA on public data. No public deposit supplies a hard-essential machinery-KO<->WT immunopeptidome on an allele DISJOINT from the A*02 / HAP1 set. Reaching >=3 disjoint-allele hard-essential backgrounds still requires the CRO experiment."
+  }
+}

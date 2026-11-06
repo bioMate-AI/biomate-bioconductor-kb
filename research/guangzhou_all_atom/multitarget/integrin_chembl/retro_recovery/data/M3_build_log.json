@@ -1,0 +1,148 @@
+{
+ "pool": 12799,
+ "pool_with_typicality": 10932,
+ "caliper_schedule": [
+  4.0,
+  3.0,
+  2.0,
+  1.5
+ ],
+ "attempts": {
+  "4.0": {
+   "items": 4862,
+   "positives": 257,
+   "targets": 26,
+   "families": 15,
+   "positives_dropped": 17548,
+   "mean_match_distance": 3.0243012068747954,
+   "baseline_gap": {
+    "B3_nn_neg": 0.5280588558311937,
+    "B4_depth_neg": 0.49217056892955413
+   },
+   "band_ok": true,
+   "gate_VALID": false,
+   "gate_failed": [
+    "C2_multiproxy_leave_fold_out",
+    "C3_morgan_fp_leave_fold_out",
+    "secondary:n_arom",
+    "secondary:tpsa"
+   ],
+   "gate_primary": {
+    "C1_atomlm_typicality": [
+     0.509,
+     0.413,
+     0.595
+    ],
+    "C2_multiproxy_leave_fold_out": [
+     0.635,
+     0.516,
+     0.753
+    ],
+    "C3_morgan_fp_leave_fold_out": [
+     0.647,
+     0.51,
+     0.778
+    ]
+   }
+  },
+  "3.0": {
+   "items": 1200,
+   "positives": 70,
+   "targets": 7,
+   "families": 6,
+   "positives_dropped": 17785,
+   "mean_match_distance": 2.3265105363475547,
+   "baseline_gap": {
+    "B3_nn_neg": 0.5327587012541543,
+    "B4_depth_neg": 0.4954883331345848
+   },
+   "band_ok": true,
+   "gate_VALID": false,
+   "gate_failed": [
+    "secondary:heavy",
+    "secondary:has_halogen",
+    "secondary:n_arom",
+    "secondary:rotb",
+    "secondary:n_rings",
+    "unverifiable:C1_atomlm_typicality",
+    "unverifiable:C2_multiproxy_leave_fold_out",
+    "unverifiable:C3_morgan_fp_leave_fold_out"
+   ],
+   "gate_primary": {
+    "C1_atomlm_typicality": [
+     0.543,
+     0.495,
+     0.598
+    ],
+    "C2_multiproxy_leave_fold_out": [
+     0.473,
+     0.331,
+     0.613
+    ],
+    "C3_morgan_fp_leave_fold_out": [
+     0.614,
+     0.473,
+     0.765
+    ]
+   }
+  },
+  "2.0": {
+   "items": 107,
+   "positives": 6,
+   "targets": 1,
+   "families": 1,
+   "positives_dropped": 17903,
+   "mean_match_distance": 1.2688747906950557,
+   "baseline_gap": {
+    "B3_nn_neg": 0.5132013201320133,
+    "B4_depth_neg": 0.4801980198019802
+   },
+   "band_ok": true,
+   "gate_VALID": false,
+   "gate_failed": [
+    "unverifiable:C1_atomlm_typicality",
+    "unverifiable:C2_multiproxy_leave_fold_out",
+    "unverifiable:C3_morgan_fp_leave_fold_out"
+   ],
+   "gate_primary": {
+    "C1_atomlm_typicality": [
+     0.363,
+     NaN,
+     NaN
+    ],
+    "C2_multiproxy_leave_fold_out": "not evaluable (too few training items)",
+    "C3_morgan_fp_leave_fold_out": "not evaluable (too few training items)"
+   }
+  },
+  "1.5": {
+   "items": 71,
+   "positives": 5,
+   "targets": 1,
+   "families": 1,
+   "positives_dropped": 17912,
+   "mean_match_distance": 0.9449549304614321,
+   "baseline_gap": {
+    "B3_nn_neg": 0.45151515151515154,
+    "B4_depth_neg": 0.47575757575757577
+   },
+   "band_ok": true,
+   "gate_VALID": false,
+   "gate_failed": [
+    "unverifiable:C1_atomlm_typicality",
+    "unverifiable:C2_multiproxy_leave_fold_out",
+    "unverifiable:C3_morgan_fp_leave_fold_out"
+   ],
+   "gate_primary": {
+    "C1_atomlm_typicality": [
+     0.288,
+     NaN,
+     NaN
+    ],
+    "C2_multiproxy_leave_fold_out": "not evaluable (too few training items)",
+    "C3_morgan_fp_leave_fold_out": "not evaluable (too few training items)"
+   }
+  }
+ },
+ "accepted": false,
+ "caliper_used": 4.0
+}

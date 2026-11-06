@@ -1,0 +1,27 @@
+{
+  "name": "IL-23 (p19/p40)",
+  "indication": "psoriasis / Crohn's",
+  "modality": "IL-23R PPI blocker",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "motif": null,
+    "metal_cofactor": null,
+    "site": "IL-23R / p19 interface"
+  },
+  "counter_targets": [
+    "il12"
+  ],
+  "receptor_structure": "6WDP / 5MXA \u2014 needs prep",
+  "target": "il23",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet (rule induction honestly abstains until actives are added)"
+  },
+  "cofactors": [],
+  "receptor_pdb": "6wdp"
+}

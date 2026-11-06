@@ -23,8 +23,15 @@ from __future__ import annotations
 import json
 import re
 import logging
+import hashlib
+import os
+import tempfile
+from copy import copy
 from pathlib import Path
 from typing import Dict, List, Optional
+from html import escape
+
+import yaml
 
 log = logging.getLogger(__name__)
 
@@ -35,28 +42,51 @@ BIOC_ROOT = Path(__file__).parents[4] / "bioconductor_skill"
 
 def _parse_frontmatter(text: str) -> tuple[Dict, str]:
     """Split YAML frontmatter and body from a markdown skill file."""
-    if not text.startswith("---"):
+    text = text.lstrip("\ufeff").replace("\r\n", "\n")
+    if not text.startswith("---\n"):
         return {}, text
-    end = text.find("\n---", 3)
-    if end == -1:
-        return {}, text
-    fm_text = text[3:end].strip()
-    body = text[end + 4:].strip()
+    closing = re.search(r"^---[ \t]*$", text[4:], re.MULTILINE)
+    if closing is None:
+        raise ValueError("Skill frontmatter has no closing delimiter")
+    end = 4 + closing.start()
+    try:
+        meta = yaml.safe_load(text[4:end]) or {}
+    except yaml.YAMLError as exc:
+        raise ValueError("Skill frontmatter contains invalid YAML") from exc
+    if not isinstance(meta, dict):
+        raise ValueError("Skill frontmatter must be a YAML mapping")
+    return meta, text[4 + closing.end():].strip()
 
-    meta: Dict = {}
-    for line in fm_text.splitlines():
-        if ":" not in line:
-            continue
-        key, _, val = line.partition(":")
-        key = key.strip()
-        val = val.strip()
-        # Parse list values: [a, b, c] or inline yaml list
-        if val.startswith("[") and val.endswith("]"):
-            items = [v.strip().strip("'\"") for v in val[1:-1].split(",")]
-            meta[key] = [i for i in items if i]
-        else:
-            meta[key] = val.strip("'\"")
-    return meta, body
+
+def _string_list(meta: Dict, key: str) -> List[str]:
+    values = meta.get(key) or []
+    if not isinstance(values, list) or any(not isinstance(v, str) for v in values):
+        raise ValueError("Skill %s must be a list of strings" % key)
+    return [v.strip() for v in values if v.strip()]
+
+
+def validate_skill_upload(content: str) -> Dict:
+    """Accept standard metadata or legacy BioMate triggers, never executable bundles."""
+    if not isinstance(content, str) or len(content.encode("utf-8")) > 256_000:
+        raise ValueError("Skill must be UTF-8 Markdown no larger than 256 KB")
+    meta, body = _parse_frontmatter(content)
+    name = meta.get("name")
+    if not isinstance(name, str) or len(name) > 64 or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
+        raise ValueError("Skill name must use lowercase letters, numbers and single hyphens (max 64)")
+    triggers = _string_list(meta, "triggers")
+    _string_list(meta, "domains")
+    description = meta.get("description", "")
+    if not isinstance(description, str) or len(description) > 1024:
+        raise ValueError("Skill description must be text (max 1024 characters)")
+    if "title" in meta and (not isinstance(meta["title"], str) or not meta["title"].strip()):
+        raise ValueError("Skill title must be non-empty text")
+    if "metadata" in meta and not isinstance(meta["metadata"], dict):
+        raise ValueError("Skill metadata must be a mapping")
+    if not description.strip() and not triggers:
+        raise ValueError("Skill requires description or legacy triggers")
+    if not body:
+        raise ValueError("Skill instructions must not be empty")
+    return meta
 
 
 # ── Skill data class ────────────────────────────────────────────────────────
@@ -67,9 +97,15 @@ class Skill:
         meta, body = _parse_frontmatter(raw)
         self.id: str = meta.get("name", path.stem)
         self.title: str = meta.get("title", self.id)
-        self.triggers: List[str] = meta.get("triggers", [])
-        self.domains: List[str] = meta.get("domains", [])
-        self.version: str = meta.get("version", "1.0")
+        self.triggers: List[str] = _string_list(meta, "triggers")
+        self.domains: List[str] = _string_list(meta, "domains")
+        metadata = meta.get("metadata") or {}
+        if not isinstance(metadata, dict):
+            raise ValueError("Skill metadata must be a mapping")
+        self.version: str = str(meta.get("version", metadata.get("version", "1.0")))
+        self.description: str = str(meta.get("description", ""))
+        self.source: str = "expert"
+        self.sha256: str = hashlib.sha256(raw.encode("utf-8")).hexdigest()
         self.body: str = body
         # Pre-compile trigger pattern for fast matching
         if self.triggers:
@@ -94,12 +130,13 @@ class Skill:
             "domains": self.domains,
             "domain": self.domains[0] if self.domains else "general",
             "version": self.version,
-            "source": "expert",
-            "description": "",
+            "source": self.source,
+            "description": self.description,
+            "sha256": self.sha256,
         }
 
     def system_block(self) -> str:
-        return f"<skill id=\"{self.id}\" title=\"{self.title}\">\n{self.body}\n</skill>"
+        return f"<skill id=\"{escape(self.id, quote=True)}\" title=\"{escape(self.title, quote=True)}\">\n{self.body}\n</skill>"
 
 
 # ── Bioconductor skill ────────────────────────────────────────────────────────
@@ -214,9 +251,12 @@ class SkillManager:
         if not directory.exists():
             log.warning("[SkillManager] skills dir not found: %s", directory)
             return
-        for path in sorted(directory.glob("*.md")):
+        paths = sorted(set(directory.glob("*.md")) | set(directory.glob("*/SKILL.md")))
+        for path in paths:
             try:
                 skill = Skill(path)
+                if skill.id in self._skills:
+                    raise ValueError("Duplicate skill id: %s" % skill.id)
                 self._skills[skill.id] = skill
                 log.debug("[SkillManager] loaded skill: %s (%d triggers)", skill.id, len(skill.triggers))
             except Exception as e:
@@ -320,3 +360,71 @@ def get_skill_manager() -> SkillManager:
     if _manager is None:
         _manager = SkillManager()
     return _manager
+
+
+def scoped_skill_manager(user_id: Optional[int] = None, root: Optional[Path] = None,
+                         base: Optional[SkillManager] = None) -> SkillManager:
+    """Fresh private overlay: no global mutation or stale per-worker upload cache."""
+    base = base if base is not None else get_skill_manager()
+    if user_id is None or root is None:
+        return base
+    owner = _owner_id(user_id)
+    manager = copy(base)
+    manager._skills = dict(base._skills)
+    directory = Path(root) / owner
+    if directory.is_symlink():
+        raise ValueError("Invalid skill storage directory")
+    if directory.exists():
+        for path in sorted(directory.glob("*.md")):
+            if path.is_symlink():
+                continue
+            try:
+                skill = Skill(path)
+                skill.id = "user-%s-%s" % (owner, skill.id)
+                skill.source = "custom"
+                manager._skills[skill.id] = skill
+            except Exception as exc:
+                log.warning("[skills] private skill unavailable: %s", exc)
+    return manager
+
+
+def _owner_id(user_id: int) -> str:
+    if isinstance(user_id, bool) or not isinstance(user_id, int) or user_id <= 0:
+        raise ValueError("Authenticated numeric skill owner required")
+    return str(user_id)
+
+
+def store_private_skill(root: Path, user_id: int, content: str) -> Dict:
+    """Create once in an owner namespace; collisions never overwrite existing packs."""
+    meta = validate_skill_upload(content)
+    owner = _owner_id(user_id)
+    directory = Path(root) / owner
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if directory.is_symlink() or directory.resolve().parent != Path(root).resolve():
+        raise ValueError("Invalid skill storage directory")
+    dest = directory / (meta["name"] + ".md")
+    # Publish a completely written inode atomically; link never replaces an existing
+    # destination (including a symlink), even during concurrent identical uploads.
+    fd, staging = tempfile.mkstemp(prefix=".upload-", dir=str(directory))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(content)
+        os.link(staging, str(dest))
+    finally:
+        os.unlink(staging)
+    return {"skill_id": "user-%s-%s" % (owner, meta["name"]),
+            "sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            "scope": "user", "capability": "instructions_only"}
+
+
+def delete_private_skill(root: Path, user_id: int, skill_id: str) -> None:
+    owner = _owner_id(user_id)
+    prefix = "user-%s-" % owner
+    name = skill_id[len(prefix):] if isinstance(skill_id, str) and skill_id.startswith(prefix) else ""
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
+        raise FileNotFoundError("Private skill not found")
+    directory = Path(root) / owner
+    target = directory / (name + ".md")
+    if directory.is_symlink() or target.is_symlink():
+        raise FileNotFoundError("Private skill not found")
+    target.unlink()

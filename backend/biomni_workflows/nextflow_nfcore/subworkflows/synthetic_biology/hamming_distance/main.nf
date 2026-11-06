@@ -124,7 +124,7 @@ with open("hamming_distance_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("hamming_distance_output.txt", "w") as f:
-    f.write("Biomni: Hamming Distance" + NL)
+    f.write("BioMate: Hamming Distance" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

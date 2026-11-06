@@ -1,0 +1,16 @@
+{
+  "task": "cross_domain_routing",
+  "mode": "catalog",
+  "model": "qwen/qwen3.8-27b",
+  "n": 200,
+  "n_with_usage": 200,
+  "input_tokens_total": 445461,
+  "output_tokens_total": 1408,
+  "input_tokens_mean": 2227.305,
+  "output_tokens_mean": 7.04,
+  "latency_ms_p50": 365,
+  "latency_ms_p95": 605,
+  "latency_ms_mean": 415.915,
+  "n_with_latency": 200,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

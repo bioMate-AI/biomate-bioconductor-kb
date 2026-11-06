@@ -1,0 +1,36 @@
+{
+ "n_rows_ok": 28789,
+ "qc_flag_counts": {
+  "covalent_to_receptor": 2096,
+  "no_closure_redetected": 26004,
+  "length_outside_5_30": 2617,
+  "ring_lt4": 102,
+  "no_interface": 6,
+  "manifest_label_disagrees": 1
+ },
+ "n_library": 888,
+ "n_targets": 451,
+ "by_primary_cyclisation": {
+  "disulfide": 366,
+  "head_to_tail": 187,
+  "amide_like": 140,
+  "ester_like": 48,
+  "c_c_link": 78,
+  "thioether": 69
+ },
+ "by_method": {
+  "ELECTRON MICROSCOPY": 110,
+  "X-RAY DIFFRACTION": 765,
+  "SOLUTION NMR": 13
+ },
+ "n_with_ncaa": 527,
+ "n_with_D": 226,
+ "n_with_nme": 118,
+ "n_with_cis_amide": 134,
+ "n_with_affinity": 0,
+ "n_with_doi": 806,
+ "manifest_vs_redetected_disagree": 1,
+ "median_resolution": 2.2,
+ "n_library_antibody_like_receptor": 86,
+ "n_library_primary_non_antibody": 802
+}

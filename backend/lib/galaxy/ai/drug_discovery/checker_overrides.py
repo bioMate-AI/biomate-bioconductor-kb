@@ -28,9 +28,10 @@ from typing import Any
 
 log = logging.getLogger(__name__)
 
+from ._data_root import data_root  # deploy-layout-independent writable data root
+
 _OVERRIDES_PATH = (
-    Path(__file__).resolve().parents[5]
-    / "data" / "regulatory_training" / "regulatory_science_overrides.yaml"
+    data_root() / "regulatory_training" / "regulatory_science_overrides.yaml"
 )
 
 

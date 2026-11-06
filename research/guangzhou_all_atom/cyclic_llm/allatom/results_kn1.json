@@ -1,0 +1,195 @@
+{
+ "L0": {
+  "n_unique": 180,
+  "mechanism_features": {
+   "k": 180,
+   "rate": 1.0,
+   "ci95": [
+    0.979,
+    1.0
+   ]
+  },
+  "inside_genus": {
+   "k": 18,
+   "rate": 0.1,
+   "ci95": [
+    0.064,
+    0.153
+   ]
+  },
+  "outside_genus": {
+   "k": 162,
+   "rate": 0.9
+  },
+  "other_verdict": {
+   "k": 0,
+   "rate": 0.0
+  },
+  "identity_lt_0_7": {
+   "k": 2,
+   "rate": 0.011,
+   "ci95": [
+    0.003,
+    0.04
+   ]
+  },
+  "usable_novel": {
+   "k": 1,
+   "rate": 0.006,
+   "ci95": [
+    0.001,
+    0.031
+   ]
+  },
+  "mean_pairwise_similarity": 0.722,
+  "verdict_categories": {
+   "INSIDE (literal genus)": 18,
+   "literally OUTSIDE": 162
+  }
+ },
+ "L1": {
+  "n_unique": 2000,
+  "mechanism_features": {
+   "k": 2000,
+   "rate": 1.0,
+   "ci95": [
+    0.998,
+    1.0
+   ]
+  },
+  "inside_genus": {
+   "k": 7,
+   "rate": 0.004,
+   "ci95": [
+    0.002,
+    0.007
+   ]
+  },
+  "outside_genus": {
+   "k": 1993,
+   "rate": 0.997
+  },
+  "other_verdict": {
+   "k": 0,
+   "rate": 0.0
+  },
+  "identity_lt_0_7": {
+   "k": 1998,
+   "rate": 0.999,
+   "ci95": [
+    0.996,
+    1.0
+   ]
+  },
+  "usable_novel": {
+   "k": 1991,
+   "rate": 0.996,
+   "ci95": [
+    0.991,
+    0.998
+   ]
+  },
+  "mean_pairwise_similarity": 0.427,
+  "verdict_categories": {
+   "OUTSIDE (form)": 1625,
+   "literally OUTSIDE": 368,
+   "INSIDE (literal genus)": 7
+  }
+ },
+ "L2": {
+  "n_unique": 2000,
+  "mechanism_features": {
+   "k": 81,
+   "rate": 0.041,
+   "ci95": [
+    0.033,
+    0.05
+   ]
+  },
+  "inside_genus": {
+   "k": 0,
+   "rate": 0.0,
+   "ci95": [
+    0.0,
+    0.002
+   ]
+  },
+  "outside_genus": {
+   "k": 2000,
+   "rate": 1.0
+  },
+  "other_verdict": {
+   "k": 0,
+   "rate": 0.0
+  },
+  "identity_lt_0_7": {
+   "k": 2000,
+   "rate": 1.0,
+   "ci95": [
+    0.998,
+    1.0
+   ]
+  },
+  "usable_novel": {
+   "k": 81,
+   "rate": 0.041,
+   "ci95": [
+    0.033,
+    0.05
+   ]
+  },
+  "mean_pairwise_similarity": 0.338,
+  "verdict_categories": {
+   "OUTSIDE (form)": 1984,
+   "literally OUTSIDE": 16
+  }
+ },
+ "L3": {
+  "n_unique": 2000,
+  "mechanism_features": {
+   "k": 0,
+   "rate": 0.0,
+   "ci95": [
+    0.0,
+    0.002
+   ]
+  },
+  "inside_genus": {
+   "k": 0,
+   "rate": 0.0,
+   "ci95": [
+    0.0,
+    0.002
+   ]
+  },
+  "outside_genus": {
+   "k": 2000,
+   "rate": 1.0
+  },
+  "other_verdict": {
+   "k": 0,
+   "rate": 0.0
+  },
+  "identity_lt_0_7": {
+   "k": 2000,
+   "rate": 1.0,
+   "ci95": [
+    0.998,
+    1.0
+   ]
+  },
+  "usable_novel": {
+   "k": 0,
+   "rate": 0.0,
+   "ci95": [
+    0.0,
+    0.002
+   ]
+  },
+  "mean_pairwise_similarity": 0.138,
+  "verdict_categories": {
+   "OUTSIDE (form)": 2000
+  }
+ },
+ "CLAIM_L1_frontier_supported": true
+}

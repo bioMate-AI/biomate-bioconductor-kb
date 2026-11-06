@@ -52,7 +52,7 @@ with open("prepare_input_for_nnunet_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("prepare_input_for_nnunet_output.txt", "w") as f:
-    f.write("Biomni: Prepare Input For Nnunet Results" + NL)
+    f.write("BioMate: Prepare Input For Nnunet Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

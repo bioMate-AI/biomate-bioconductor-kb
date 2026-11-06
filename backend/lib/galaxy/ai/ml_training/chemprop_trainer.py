@@ -1,14 +1,13 @@
 """
 Chemprop molecular-DL training entrypoint (A-layer).
 
-This is the genuinely-new piece: train a Chemprop graph-neural-network on a
-molecular dataset and emit a versioned artifact + validation metrics. A cheap
-sklearn baseline path is included for quick smoke runs / capability comparison.
+Dispatches a TrainingConfig to its trainer and emits an artifact + validation
+metrics. model_type=chemprop_gnn is NOT implemented yet and raises
+NotImplementedError; the sklearn baseline (RDKit descriptors + gradient
+boosting, scaffold or random split) and the Ludwig trainers are real.
 
-Heavy deps (chemprop, torch, rdkit, numpy, scikit-learn) are lazy-imported and
-guarded. The unit tests never call `train()`; they monkeypatch it, so the suite
-runs without any ML stack installed. On a real training worker (AWS Batch GPU
-tier `process_gpu`, see design doc §4.1) the imports resolve and training runs.
+Heavy deps (rdkit, numpy, scikit-learn) are lazy-imported and guarded, so the
+orchestration tests can monkeypatch `train()` without any ML stack installed.
 """
 from __future__ import annotations
 
@@ -61,6 +60,11 @@ def train(cfg: TrainingConfig, dataset: LoadedDataset, artifact_dir: str) -> Tra
         result = train_trl(cfg, dataset, artifact_dir)
     elif cfg.model_type == "sklearn_gbr":
         result = _train_sklearn(cfg, dataset, artifact_dir)
+    elif cfg.model_type == "sklearn_tabular":
+        # Generic feature-matrix learner with k-fold CV; loads its own data
+        # (lazy import keeps chemprop_trainer ↔ tabular_trainer acyclic).
+        from .tabular_trainer import train as _train_tabular
+        result = _train_tabular(cfg, artifact_dir)
     else:  # pragma: no cover - guarded by config.validate()
         raise ValueError(f"unsupported model_type {cfg.model_type}")
     # Persist a small manifest next to the artifact for the wrapper to load.
@@ -69,26 +73,11 @@ def train(cfg: TrainingConfig, dataset: LoadedDataset, artifact_dir: str) -> Tra
 
 
 def _train_chemprop(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) -> TrainingResult:
-    try:
-        import chemprop  # noqa: F401
-    except ImportError as e:
-        raise ImportError(
-            "chemprop is required for model_type=chemprop_gnn. Install with "
-            "`pip install chemprop`, or use model_type=sklearn_gbr for a baseline. "
-            "On production this runs in the training container image."
-        ) from e
-
-    # NOTE: kept deliberately high-level for the PoC skeleton. The concrete
-    # chemprop>=2.0 training loop (MoleculeDatapoint -> MoleculeDataset ->
-    # data splits -> MPNN -> Trainer.fit) is wired on the training worker.
-    from .datasets import LoadedDataset  # local import for clarity
-    hp = cfg.hyperparams
-    log.info("[chemprop] training %s: %d rows, %d epochs, depth=%d",
-             cfg.name, len(ds), hp.epochs, hp.depth)
-    # --- placeholder for the real fit; the worker fills this in. ---
+    # No Chemprop training loop exists yet. Fail before any artifact, manifest
+    # or registration can be produced, whether or not chemprop is installed.
     raise NotImplementedError(
-        "Concrete chemprop training loop is implemented on the training worker "
-        "image. This skeleton validates config/orchestration; see design doc §8."
+        "model_type=chemprop_gnn is not implemented: there is no Chemprop training "
+        "loop, so no model was trained. Use model_type=ludwig_tabular or sklearn_gbr."
     )
 
 
@@ -97,7 +86,6 @@ def _train_sklearn(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) ->
     try:
         import numpy as np
         from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
-        from sklearn.model_selection import train_test_split
         from sklearn.metrics import roc_auc_score, mean_absolute_error
         from rdkit import Chem
         from rdkit.Chem import Descriptors
@@ -116,35 +104,55 @@ def _train_sklearn(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) ->
                 Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol),
                 Descriptors.TPSA(mol), Descriptors.NumRotatableBonds(mol)]
 
-    feats, ys = [], []
+    from .splits import split_dataset
+
+    feats, ys, smis = [], [], []
     for smi, y in ds.rows:
         f = featurize(smi)
         if f is not None:
             feats.append(f)
             ys.append(y)
+            smis.append(smi)
     X = np.array(feats)
     y = np.array(ys)
-    Xtr, Xte, ytr, yte = train_test_split(
-        X, y, test_size=cfg.dataset.test_frac or 0.2, random_state=cfg.hyperparams.seed)
+    spec = cfg.dataset
+    split = split_dataset(smis, spec.split, spec.val_frac, spec.test_frac, cfg.hyperparams.seed)
+    if not split.train or not split.test:
+        raise ValueError(
+            f"{split.method} split left an empty train or test partition "
+            f"({split.metadata()}); provide more molecules or adjust val_frac/test_frac")
+    Xtr, ytr = X[split.train], y[split.train]
 
+    unavailable: dict[str, str] = {}
     if cfg.task_type == "classification":
         model = GradientBoostingClassifier(random_state=cfg.hyperparams.seed)
         model.fit(Xtr, ytr)
-        proba = model.predict_proba(Xte)[:, 1]
-        metrics = {"test_auc": float(roc_auc_score(yte, proba))} if len(set(yte)) > 1 else {}
     else:
         model = GradientBoostingRegressor(random_state=cfg.hyperparams.seed)
         model.fit(Xtr, ytr)
-        metrics = {"test_mae": float(mean_absolute_error(yte, model.predict(Xte)))}
+
+    metrics: dict[str, float] = {}
+    for prefix, idx in (("val", split.val), ("test", split.test)):
+        if not idx:
+            continue
+        Xp, yp = X[idx], y[idx]
+        if cfg.task_type == "classification":
+            if len(set(yp.tolist())) > 1:
+                metrics[f"{prefix}_auc"] = float(roc_auc_score(yp, model.predict_proba(Xp)[:, 1]))
+            else:
+                unavailable[f"{prefix}_auc"] = f"{prefix} partition contains a single class"
+        else:
+            metrics[f"{prefix}_mae"] = float(mean_absolute_error(yp, model.predict(Xp)))
 
     model_path = str(Path(artifact_dir) / "model.pkl")
     joblib.dump(model, model_path)
     import sklearn
     return TrainingResult(
         model_type="sklearn_gbr", artifact_dir=artifact_dir, metrics=metrics,
-        n_train=len(Xtr), n_val=0, n_test=len(Xte),
+        n_train=len(split.train), n_val=len(split.val), n_test=len(split.test),
         framework_version=f"sklearn=={sklearn.__version__}",
-        extra={"featurizer": "rdkit_2d_6desc", "model_path": model_path},
+        extra={"featurizer": "rdkit_2d_6desc", "model_path": model_path,
+               "split": split.metadata(), "metrics_unavailable": unavailable},
     )
 
 

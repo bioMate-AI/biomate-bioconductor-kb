@@ -229,7 +229,7 @@ with open("get_refseq_id_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("get_refseq_id_output.txt", "w") as f:
-    f.write("Biomni: Get RefSeq ID" + NL)
+    f.write("BioMate: Get RefSeq ID" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,256 @@
+{
+ "n_nme": {
+  "n_sources": 18,
+  "n_peptides": 6698,
+  "pooled_rho": 0.3726162607077283,
+  "median_within_rho": 0.00898649823627013,
+  "ci95": [
+   -0.12889116821210075,
+   0.2819478861227514
+  ],
+  "n_pos": 9,
+  "n_neg": 9,
+  "half_medians": [
+   -0.05256639588887502,
+   0.07976509572911986
+  ],
+  "claimed_sign": 1,
+  "kb_basis": "modality: backbone N-methylation raises permeability (Biron 2008; medchem_kb MODALITY_HEURISTICS)",
+  "verdict": "INCONCLUSIVE"
+ },
+ "frac_nme": {
+  "n_sources": 19,
+  "n_peptides": 6734,
+  "pooled_rho": 0.4176870954206728,
+  "median_within_rho": 0.03689488728775517,
+  "ci95": [
+   -0.08659343876290002,
+   0.35143529393377015
+  ],
+  "n_pos": 10,
+  "n_neg": 9,
+  "half_medians": [
+   -0.01892189081521491,
+   0.07976509572911986
+  ],
+  "claimed_sign": 1,
+  "kb_basis": "same, normalised by length",
+  "verdict": "INCONCLUSIVE"
+ },
+ "tpsa": {
+  "n_sources": 20,
+  "n_peptides": 6784,
+  "pooled_rho": -0.028391736328862337,
+  "median_within_rho": -0.3016793011804775,
+  "ci95": [
+   -0.404171983533504,
+   -0.23047571749989765
+  ],
+  "n_pos": 0,
+  "n_neg": 20,
+  "half_medians": [
+   -0.29926330506839155,
+   -0.30409529729256346
+  ],
+  "claimed_sign": -1,
+  "kb_basis": "physchem: bRo5/chameleon (Rezai 2006, Over 2016, Doak 2014): lower exposed polarity favours permeability",
+  "verdict": "VALIDATED"
+ },
+ "hbd": {
+  "n_sources": 15,
+  "n_peptides": 6428,
+  "pooled_rho": -0.08753105809623445,
+  "median_within_rho": -0.41104055780272275,
+  "ci95": [
+   -0.48852803414530227,
+   -0.22791906656033534
+  ],
+  "n_pos": 2,
+  "n_neg": 13,
+  "half_medians": [
+   -0.4246633761591026,
+   -0.31947981218152904
+  ],
+  "claimed_sign": -1,
+  "kb_basis": "physchem: Ro5/Veber/bRo5 donor limits",
+  "verdict": "VALIDATED"
+ },
+ "logp": {
+  "n_sources": 20,
+  "n_peptides": 6784,
+  "pooled_rho": 0.15021263063986157,
+  "median_within_rho": 0.4674191798059218,
+  "ci95": [
+   0.10067029382605425,
+   0.6289582076088758
+  ],
+  "n_pos": 15,
+  "n_neg": 5,
+  "half_medians": [
+   0.4471370193497923,
+   0.4877013402620513
+  ],
+  "claimed_sign": 1,
+  "kb_basis": "physchem: lipophilicity favours passive permeability (Ro5 family)",
+  "verdict": "VALIDATED"
+ },
+ "ro5_pass": {
+  "n_sources": 2,
+  "verdict_basis": "too few sources",
+  "claimed_sign": 1,
+  "kb_basis": "physchem: Lipinski Ro5 (medchem_kb PHYSCHEM)",
+  "verdict": "INSUFFICIENT"
+ },
+ "veber_pass": {
+  "n_sources": 6,
+  "n_peptides": 3796,
+  "pooled_rho": 0.1756102005875481,
+  "median_within_rho": 0.22495602585520552,
+  "ci95": [
+   0.12639236957662436,
+   0.4526290521350519
+  ],
+  "n_pos": 6,
+  "n_neg": 0,
+  "half_medians": [
+   0.25710405151054105,
+   0.22495602585520552
+  ],
+  "claimed_sign": 1,
+  "kb_basis": "physchem: Veber",
+  "verdict": "VALIDATED"
+ },
+ "mw": {
+  "n_sources": 20,
+  "n_peptides": 6784,
+  "pooled_rho": 0.10647040641681742,
+  "median_within_rho": 0.17791698285881746,
+  "ci95": [
+   -0.14288009376236285,
+   0.4543100534388221
+  ],
+  "n_pos": 12,
+  "n_neg": 8,
+  "half_medians": [
+   -0.11760976480393,
+   0.45382447117132235
+  ],
+  "claimed_sign": -1,
+  "kb_basis": "physchem: Ro5 MW limit",
+  "verdict": "INCONCLUSIVE"
+ },
+ "n_D": {
+  "n_sources": 16,
+  "n_peptides": 6660,
+  "pooled_rho": -0.19601622058539392,
+  "median_within_rho": 0.02764787714125734,
+  "ci95": [
+   -0.08283214650939645,
+   0.13484873145330434
+  ],
+  "n_pos": 9,
+  "n_neg": 7,
+  "half_medians": [
+   0.07005854981781241,
+   0.01838927062781216
+  ],
+  "claimed_sign": 0,
+  "kb_basis": "modality: D-amino acids -> protease resistance / conformational control (no permeability claim)",
+  "verdict": "NO_CLAIM(descriptive)"
+ },
+ "ring": {
+  "n_sources": 10,
+  "n_peptides": 5626,
+  "pooled_rho": 0.09318136593198147,
+  "median_within_rho": -0.15849606867420746,
+  "ci95": [
+   -0.29153418246096063,
+   0.14060523360177607
+  ],
+  "n_pos": 4,
+  "n_neg": 6,
+  "half_medians": [
+   -0.20606601472080116,
+   0.09061193976085395
+  ],
+  "claimed_sign": 0,
+  "kb_basis": "modality: macrocyclisation rigidifies (no size claim)",
+  "verdict": "NO_CLAIM(descriptive)"
+ },
+ "n_pos": {
+  "n_sources": 4,
+  "n_peptides": 984,
+  "pooled_rho": -0.017377280732992093,
+  "median_within_rho": -0.1810231117514793,
+  "ci95": [
+   -0.2634329456281775,
+   -0.09139907876161799
+  ],
+  "n_pos": 0,
+  "n_neg": 4,
+  "half_medians": [
+   -0.1810231117514793,
+   -0.17741601219489772
+  ],
+  "claimed_sign": 0,
+  "kb_basis": "knowledge_liability_flags: cationic charge raises RENAL dose (no permeability claim)",
+  "verdict": "NO_CLAIM(descriptive)"
+ },
+ "net_charge": {
+  "n_sources": 4,
+  "n_peptides": 984,
+  "pooled_rho": -0.3466823204793119,
+  "median_within_rho": -0.04287065959908227,
+  "ci95": [
+   -0.2634329456281775,
+   0.03776768334245605
+  ],
+  "n_pos": 2,
+  "n_neg": 2,
+  "half_medians": [
+   0.021712721452954747,
+   -0.17741601219489772
+  ],
+  "claimed_sign": 0,
+  "kb_basis": "same",
+  "verdict": "NO_CLAIM(descriptive)"
+ },
+ "frac_arom": {
+  "n_sources": 17,
+  "n_peptides": 6515,
+  "pooled_rho": 0.07986852201549939,
+  "median_within_rho": -0.0331420955852869,
+  "ci95": [
+   -0.1619127063888913,
+   0.1852462072300954
+  ],
+  "n_pos": 7,
+  "n_neg": 10,
+  "half_medians": [
+   -0.07918754925487528,
+   0.09845707233852274
+  ],
+  "claimed_sign": 0,
+  "kb_basis": "availability model: hydrophobicity lowers cellular availability (linear SH3 peptides; no cyclic permeability claim)",
+  "verdict": "NO_CLAIM(descriptive)"
+ },
+ "n_res": {
+  "n_sources": 13,
+  "n_peptides": 4874,
+  "pooled_rho": 0.08763352877540644,
+  "median_within_rho": -0.20513997740896697,
+  "ci95": [
+   -0.29153418246096063,
+   0.10492758690250983
+  ],
+  "n_pos": 4,
+  "n_neg": 9,
+  "half_medians": [
+   -0.22694210023484732,
+   -0.01070656159835845
+  ],
+  "claimed_sign": 0,
+  "kb_basis": "none",
+  "verdict": "NO_CLAIM(descriptive)"
+ }
+}

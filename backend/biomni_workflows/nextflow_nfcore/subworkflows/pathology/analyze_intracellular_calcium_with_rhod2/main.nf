@@ -211,7 +211,7 @@ with open("analyze_intracellular_calcium_with_rhod2_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_intracellular_calcium_with_rhod2_output.txt", "w") as f:
-    f.write("Biomni: Analyze Intracellular Calcium With Rhod2" + NL)
+    f.write("BioMate: Analyze Intracellular Calcium With Rhod2" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

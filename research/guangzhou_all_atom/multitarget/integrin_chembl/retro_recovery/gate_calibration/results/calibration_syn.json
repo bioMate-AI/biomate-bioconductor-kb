@@ -1,0 +1,62 @@
+{
+ "S-tpsa|0.65|20": {
+  "d": 0.3125,
+  "achieved": 0.649422089200117,
+  "feasible": true
+ },
+ "S-tpsa|0.7|20": {
+  "d": 0.4345703125,
+  "achieved": 0.699958223636748,
+  "feasible": true
+ },
+ "S-typ|0.65|20": {
+  "d": 0.3125,
+  "achieved": 0.6511233536811177,
+  "feasible": true
+ },
+ "S-typ|0.7|20": {
+  "d": 0.4345703125,
+  "achieved": 0.7006708182491211,
+  "feasible": true
+ },
+ "S-diffuse|0.65|20": {
+  "d": 0.244140625,
+  "achieved": 0.6500681373853444,
+  "feasible": true
+ },
+ "S-diffuse|0.7|20": {
+  "d": 0.3369140625,
+  "achieved": 0.7007356361527696,
+  "feasible": true
+ },
+ "S-tpsa|0.65|47": {
+  "d": 0.3173828125,
+  "achieved": 0.6495456008382052,
+  "feasible": true
+ },
+ "S-tpsa|0.7|47": {
+  "d": 0.439453125,
+  "achieved": 0.700126971534094,
+  "feasible": true
+ },
+ "S-typ|0.65|47": {
+  "d": 0.3173828125,
+  "achieved": 0.6506233253591477,
+  "feasible": true
+ },
+ "S-typ|0.7|47": {
+  "d": 0.439453125,
+  "achieved": 0.7010239913270219,
+  "feasible": true
+ },
+ "S-diffuse|0.65|47": {
+  "d": 0.244140625,
+  "achieved": 0.6493022176159126,
+  "feasible": true
+ },
+ "S-diffuse|0.7|47": {
+  "d": 0.3369140625,
+  "achieved": 0.6998824887921208,
+  "feasible": true
+ }
+}

@@ -1,0 +1,17 @@
+{
+  "cluster.json": {
+    "path": "research/guangzhou_all_atom/cyclic_llm/paper1_cluster/results/paper1_cluster.json",
+    "sha256": "49cf5d1c0114a8a146a7a1dbcc68f1160efe8cebfb9cc22fd3b5496a92d48e70",
+    "commit": "ed4a8893416167123d78a2bc9422e06f6f1daa72"
+  },
+  "gate.json": {
+    "path": "research/guangzhou_all_atom/multitarget/integrin_chembl/retro_recovery/gate_calibration/results/gcal_eval.json",
+    "sha256": "50c4ec9eda6799eb5e9c66bc747b276127317e368e847d7cdfc646571949c9ac",
+    "commit": "9268d831a9ce85b90fc9ab2f95609510d8977a9d"
+  },
+  "transfer.json": {
+    "path": "research/guangzhou_all_atom/cyclic_llm/ihlm_backbone/pilot4/results/test_summary.json",
+    "sha256": "2d01ffead12cca25d0bdd75eb356f5da4116efd89c0e2fc31c86448c34126a4a",
+    "commit": "b3fb17adb0265240b744650051861d6bea5b374f"
+  }
+}

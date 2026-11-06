@@ -180,7 +180,7 @@ with open("verify_nifti_input_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("verify_nifti_input_output.txt", "w") as f:
-    f.write("Biomni: Verify Nifti Input" + NL)
+    f.write("BioMate: Verify Nifti Input" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,167 @@
+{
+  "date": "2026-10-10T00:17:57.977Z",
+  "scope": "Published npm connector, existing run, no new workflow or instrument execution",
+  "checks": [
+    {
+      "label": "exclude-findings",
+      "tool": "get_run",
+      "passed": true,
+      "isError": false,
+      "status": "completed",
+      "fields": [
+        "run_id",
+        "runId",
+        "workflowName",
+        "status",
+        "startedAt",
+        "nextflowRunId",
+        "output_files"
+      ]
+    },
+    {
+      "label": "default-findings-and-outputs",
+      "tool": "get_run",
+      "passed": true,
+      "isError": false,
+      "status": "completed",
+      "fields": [
+        "run_id",
+        "runId",
+        "workflowName",
+        "status",
+        "startedAt",
+        "nextflowRunId",
+        "output_files",
+        "findings"
+      ]
+    },
+    {
+      "label": "watch-run-snapshot",
+      "tool": "watch_run",
+      "passed": true,
+      "isError": false,
+      "status": "completed",
+      "fields": [
+        "run_id",
+        "runId",
+        "workflowName",
+        "status",
+        "startedAt",
+        "nextflowRunId",
+        "output_files",
+        "findings"
+      ]
+    },
+    {
+      "label": "explicit-findings-markdown",
+      "tool": "export_report",
+      "passed": true,
+      "isError": false,
+      "status": "ready",
+      "fields": [
+        "run_id",
+        "status",
+        "format",
+        "content"
+      ]
+    },
+    {
+      "label": "reject-unsupported-pdf",
+      "tool": "export_report",
+      "passed": true,
+      "isError": true,
+      "fields": [
+        "error"
+      ],
+      "error": "Unsupported report format. This connector currently exports markdown; PDF and DOCX are not implemented."
+    },
+    {
+      "label": "reject-unsupported-docx",
+      "tool": "export_report",
+      "passed": true,
+      "isError": true,
+      "fields": [
+        "error"
+      ],
+      "error": "Unsupported report format. This connector currently exports markdown; PDF and DOCX are not implemented."
+    },
+    {
+      "label": "reject-unsupported-section",
+      "tool": "export_report",
+      "passed": true,
+      "isError": true,
+      "fields": [
+        "error"
+      ],
+      "error": "Unsupported report sections. This endpoint exports the findings report; other sections are not implemented."
+    },
+    {
+      "label": "missing-run-fails",
+      "tool": "get_run",
+      "passed": true,
+      "isError": true,
+      "fields": [
+        "error"
+      ],
+      "error": "HTTP 404: {\"error\":\"Execution run not found\"}"
+    },
+    {
+      "label": "advertised-instrument-list-supported",
+      "tool": "list_instruments",
+      "passed": false,
+      "isError": true,
+      "fields": [
+        "error",
+        "available"
+      ],
+      "error": "Unknown operationId: list_instruments"
+    },
+    {
+      "label": "instrument-status-route-exists",
+      "tool": "get_instrument_status",
+      "passed": false,
+      "isError": true,
+      "fields": [
+        "error",
+        "available"
+      ],
+      "error": "Unknown operationId: get_instrument_status"
+    },
+    {
+      "label": "invalid-auth-denied",
+      "tool": "get_run",
+      "passed": true,
+      "isError": true,
+      "fields": [
+        "error"
+      ],
+      "error": "HTTP 401: {\"error\":\"Invalid token\"}"
+    }
+  ],
+  "toolNames": [
+    "biomate_session",
+    "search_workflow",
+    "get_workflow_spec",
+    "run_workflow",
+    "watch_run",
+    "get_run",
+    "cancel_run",
+    "list_runs",
+    "preview_file",
+    "export_report",
+    "analyze_results",
+    "explain_error",
+    "query_database",
+    "resolve_accession",
+    "browse_data",
+    "fetch_public_data",
+    "recall_memory",
+    "search_literature",
+    "upload_file",
+    "list_instruments",
+    "get_instrument_status",
+    "run_instrument_protocol"
+  ],
+  "passes": 9,
+  "failures": 2
+}

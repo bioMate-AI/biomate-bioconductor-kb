@@ -1,0 +1,71 @@
+{
+  "checkedAt": "2026-10-03T16:55:21.377Z",
+  "baseUrl": "https://dev-public.biomate.ai",
+  "run": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc",
+  "checks": [
+    {
+      "name": "existing run is completed",
+      "passed": true,
+      "detail": {
+        "status": "completed",
+        "workflowName": "Predict ADMET Properties (AI)"
+      }
+    },
+    {
+      "name": "canonical output list contains results",
+      "passed": true,
+      "detail": {
+        "count": 6
+      }
+    },
+    {
+      "name": "reproducibility record identifies outputs",
+      "passed": true,
+      "detail": {
+        "outputs": 6,
+        "fields": [
+          "recordVersion",
+          "runId",
+          "workflowName",
+          "status",
+          "createdAt",
+          "completedAt",
+          "parameters",
+          "inputBindings",
+          "outputs",
+          "outputCount"
+        ]
+      }
+    },
+    {
+      "name": "real chat opens a completed workflow without debug route",
+      "passed": true,
+      "detail": {
+        "url": "https://dev-public.biomate.ai/"
+      }
+    },
+    {
+      "name": "real outputs tab",
+      "passed": true,
+      "detail": {
+        "captured": true
+      }
+    },
+    {
+      "name": "real record tab",
+      "passed": true,
+      "detail": {
+        "captured": true
+      }
+    },
+    {
+      "name": "real summary tab",
+      "passed": true,
+      "detail": {
+        "captured": true
+      }
+    }
+  ],
+  "technicalChecksPassed": true,
+  "releaseStatus": "HOLD: scientific, editorial, localization and audiovisual review required"
+}

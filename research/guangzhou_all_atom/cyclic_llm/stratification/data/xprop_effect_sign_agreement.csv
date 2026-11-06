@@ -1,0 +1,8 @@
+assay,transformation,pampa_pair_mean,other_pair_mean,n_pampa,n_other,same_sign
+caco2,D flip (D minus L),-0.0096597744762287,-0.0465873015873015,7467,63,True
+caco2,N-Me added (with minus without),0.3168298927828453,0.3651141361499999,4166,40,True
+caco2,"D flip + N-Me swap ((D,nonMe) minus (L,Me))",-0.3180706243602866,-0.3492857142857142,3908,14,True
+caco2,substitution: aliphatic->aromatic,-0.1017323617091752,-0.348490548764706,3019,17,True
+caco2,substitution: aliphatic->polar,-0.6418750000000002,-0.1250020280833334,32,36,True
+rrck,D flip (D minus L),-0.0096597744762287,-0.163125,7467,16,True
+rrck,substitution: aliphatic->aromatic,-0.1017323617091752,-0.2074999999999999,3019,30,True

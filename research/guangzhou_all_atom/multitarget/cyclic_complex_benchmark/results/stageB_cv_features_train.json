@@ -1,0 +1,33 @@
+{
+ "n_features": {
+  "F_all": 26,
+  "F_noConsRing": 18,
+  "F_conf": 14,
+  "F_pl": 3
+ },
+ "F_all_C0.01": 0.831,
+ "F_all_C0.03": 0.841,
+ "F_all_C0.1": 0.843,
+ "F_all_C0.3": 0.84,
+ "F_all_C1.0": 0.839,
+ "F_noConsRing_C0.01": 0.843,
+ "F_noConsRing_C0.03": 0.84,
+ "F_noConsRing_C0.1": 0.847,
+ "F_noConsRing_C0.3": 0.843,
+ "F_noConsRing_C1.0": 0.84,
+ "F_conf_C0.01": 0.839,
+ "F_conf_C0.03": 0.841,
+ "F_conf_C0.1": 0.837,
+ "F_conf_C0.3": 0.827,
+ "F_conf_C1.0": 0.821,
+ "F_pl_C0.01": 0.841,
+ "F_pl_C0.03": 0.849,
+ "F_pl_C0.1": 0.858,
+ "F_pl_C0.3": 0.861,
+ "F_pl_C1.0": 0.864,
+ "S1_best_CV": 0.843,
+ "best_config": "F_pl_C1.0",
+ "best_CV": 0.864,
+ "gain_over_S1_pp": 2.1,
+ "ADOPT_new_primary": true
+}

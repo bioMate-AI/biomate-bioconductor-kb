@@ -1,0 +1,171 @@
+{
+  "document": "Knowledge-grounded cyclic-peptide candidates v1 \u2014 \u03b1v\u03b26 (and PD-L1 approach)",
+  "date": "2026-10-12",
+  "principle": "Knowledge fixes the binding pharmacophore (hard); the LLM/diversity explores the free flanking space for novelty + developability; structure/physics/FTO gate. This is the integration of LLM + knowledge, not a pure LLM.",
+  "avb6": {
+    "pharmacophore_fixed_by_knowledge": "RGD tripeptide (Asp carboxylate -> MIDAS metal; non-substitutable) in the extended RGDL context, presented on a head-to-tail macrocycle with a D-Pro + N-methyl conformational lock. Validated class: Trivehexin c[YRGDLAYp(NMe)K], avebehexin cyclo(FRGDLAFp(NMe)K), A20FMDV2 (...RGDLxxL...).",
+    "design_rule": "cyclo( cap - R-G-D-L - x1 - x2 - (D-Pro) - (N-methyl)X ); require RGD+Asp+dPro+NMe; diversify cap/x1/x2/NMe AWAY from Trivehexin(Y..A.Y)/avebehexin(F..A.F) for composition-of-matter novelty while preserving the mechanism.",
+    "honesty": "These are DESIGN HYPOTHESES that carry the validated pharmacophore (unlike the old 0/12-RGD set) \u2014 NOT validated binders. They still require: (1) docking vs the \u03b1v\u03b26 MIDAS pocket, (2) FTO vs the Trivehexin/avebehexin genus (they sit in that patented chemotype \u2014 the real squeeze the review flags), (3) wet-lab SPR. 'More promising' = carries the mechanism + the lock, with a per-candidate rationale; not 'will bind'.",
+    "candidates": [
+      {
+        "id": "AVB6-K-01",
+        "helm": "cyclo(F-R-G-D-L-S-W-[dP]-[NMeA])",
+        "motif": "RGDL",
+        "lock": "dPro+NMeAla",
+        "len": 9,
+        "rationale": "RGDL core; Phe/Ser/Trp flanks distinct from Trivehexin YRGDLAY",
+        "knowledge_liability": {
+          "tier": "PASS",
+          "net_charge": 0,
+          "flags": []
+        }
+      },
+      {
+        "id": "AVB6-K-02",
+        "helm": "cyclo(W-R-G-D-L-T-F-[dP]-[NMeV])",
+        "motif": "RGDL",
+        "lock": "dPro+NMeVal",
+        "len": 9,
+        "rationale": "aromatic Trp cap for \u03b26 selectivity pocket; Thr/Phe flanks novel",
+        "knowledge_liability": {
+          "tier": "PASS",
+          "net_charge": 0,
+          "flags": []
+        }
+      },
+      {
+        "id": "AVB6-K-03",
+        "helm": "cyclo(Y-R-G-D-L-G-H-[dP]-[NMeL])",
+        "motif": "RGDL",
+        "lock": "dPro+NMeLeu",
+        "len": 9,
+        "rationale": "His flank adds a polar contact; NMeLeu lock variant",
+        "knowledge_liability": {
+          "tier": "PASS",
+          "net_charge": 0,
+          "flags": []
+        }
+      },
+      {
+        "id": "AVB6-K-04",
+        "helm": "cyclo(H-R-G-D-L-A-W-[dP]-[NMeK])",
+        "motif": "RGDL",
+        "lock": "dPro+NMeLys",
+        "len": 9,
+        "rationale": "His cap + basic NMeLys for solubility; Trp retained for \u03b26",
+        "knowledge_liability": {
+          "tier": "WATCH",
+          "net_charge": 1,
+          "flags": [
+            "[soft] sar:renal-charge: net peptide charge +1 (extra cationic=1); cationic peptides are reabsorbed in the proximal tubule -> HIGHER kidney dose (dose-limiting organ). Added Lys/Arg worsens, not 'tunes', renal clearance."
+          ]
+        },
+        "liability_caveat": "basic NMeLys aids solubility but net +1 charge raises kidney dose; acceptable only if renal dosimetry is read early. Anionic NMeGlu variant (K-09) is renal-safer."
+      },
+      {
+        "id": "AVB6-K-05",
+        "helm": "cyclo(F-R-G-D-L-I-F-[dP]-[NMeA])",
+        "motif": "RGDL+I",
+        "lock": "dPro+NMeAla",
+        "len": 9,
+        "rationale": "RGDL-I toward the extended RGDLxxL/I high-affinity class",
+        "knowledge_liability": {
+          "tier": "PASS",
+          "net_charge": 0,
+          "flags": [
+            "[note] sar:extended-affinity: carries RGDL-[L/I] extended high-affinity motif (A20FMDV2 class) \u2014 affinity BONUS beyond the Trivehexin/avebehexin baseline"
+          ]
+        }
+      },
+      {
+        "id": "AVB6-K-06",
+        "helm": "cyclo(R-G-D-L-Q-F-[dP]-[NMeS]-G)",
+        "motif": "RGDL",
+        "lock": "dPro+NMeSer",
+        "len": 9,
+        "rationale": "shifted cyclization register; Gln/Ser polar face, novel topology",
+        "knowledge_liability": {
+          "tier": "PASS",
+          "net_charge": 0,
+          "flags": []
+        }
+      },
+      {
+        "id": "AVB6-K-07",
+        "helm": "cyclo([dL]-R-G-D-L-S-F-[dP]-[NMeT])",
+        "motif": "RGDL",
+        "lock": "dLeu+dPro+NMeThr",
+        "len": 9,
+        "rationale": "extra D-Leu cap for added rigidity/protease resistance",
+        "knowledge_liability": {
+          "tier": "PASS",
+          "net_charge": 0,
+          "flags": []
+        }
+      },
+      {
+        "id": "AVB6-K-08",
+        "helm": "cyclo(Y-R-G-D-L-I-W-[dP]-[NMeA])",
+        "motif": "RGDL+I",
+        "lock": "dPro+NMeAla",
+        "len": 9,
+        "rationale": "RGDLxI + Trp; Tyr cap but I/W interior distinct from Trivehexin",
+        "knowledge_liability": {
+          "tier": "PASS",
+          "net_charge": 0,
+          "flags": [
+            "[note] sar:extended-affinity: carries RGDL-[L/I] extended high-affinity motif (A20FMDV2 class) \u2014 affinity BONUS beyond the Trivehexin/avebehexin baseline"
+          ]
+        }
+      },
+      {
+        "id": "AVB6-K-09",
+        "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeE])",
+        "motif": "RGDL",
+        "lock": "dPro+NMeGlu",
+        "len": 9,
+        "rationale": "acidic NMeGlu to modulate charge/PK; flanks near-avebehexin -> FTO-watch",
+        "knowledge_liability": {
+          "tier": "PASS",
+          "net_charge": -1,
+          "flags": []
+        }
+      },
+      {
+        "id": "AVB6-K-10",
+        "helm": "cyclo(W-R-G-D-L-K-Y-[dP]-[NMeA])",
+        "motif": "RGDL",
+        "lock": "dPro+NMeAla",
+        "len": 9,
+        "rationale": "CORRECTED: cationic Lys flank INCREASES renal tubular reabsorption (megalin/cubilin) -> HIGHER kidney dose, the dose-limiting organ for peptide RLT. Recommended fix: replace Lys with Ser/Glu to lower renal retention -> cyclo(W-R-G-D-L-S-Y-[dP]-[NMeA]).",
+        "knowledge_liability": {
+          "tier": "WATCH",
+          "net_charge": 1,
+          "flags": [
+            "[soft] sar:renal-charge: net peptide charge +1 (extra cationic=1); cationic peptides are reabsorbed in the proximal tubule -> HIGHER kidney dose (dose-limiting organ). Added Lys/Arg worsens, not 'tunes', renal clearance."
+          ]
+        },
+        "rationale_ORIGINAL": "Lys flank for renal-clearance tuning (kidney is the dose-limiting organ)"
+      }
+    ],
+    "next_gates": [
+      "dock vs \u03b1v\u03b26 MIDAS pocket (rank by pose/affinity)",
+      "FTO vs Trivehexin/avebehexin/DOTA-5G genus (compound_novelty + patent)",
+      "renal-dosimetry/PK read",
+      "then synthesize the pruned, scored, novel subset"
+    ],
+    "knowledge_liability_review": {
+      "ran": "cyclic_llm/knowledge_liability_flags.py (deterministic, zero-compute, pre-docking)",
+      "report": "results/knowledge_liability_avb6.json",
+      "tiers": {
+        "PASS": 8,
+        "WATCH": 2
+      },
+      "note": "Hard flags = HOLD (do not spend docking until designed out). Soft = WATCH. PASS != binder (docking decides)."
+    }
+  },
+  "pdl1": {
+    "position": "PD-L1 is a discontinuous PPI surface \u2014 no linear motif, so I do NOT hand-write 'validated' PD-L1 sequences (that would be fabrication). Honest path: template on the known macrocyclic binder scaffolds (WL12; BMS-986229 class; dmp10 disulfide-directed) and GATE by docking vs the PD-L1 interface. Deliverable = a structure-gated generation run, not an inspectable sequence list.",
+    "pushback": "The review says PD-L1 'cannot be ruled in' by sequence \u2014 true \u2014 but it is MORE designable than 'just dock': the BMS macrocyclic-peptide and WL12 chemotypes give concrete scaffold priors to condition generation on. The right move is scaffold-constrained generation + docking, which the knowledge-grounded pipeline supports."
+  }
+}

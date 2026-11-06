@@ -15,6 +15,7 @@
 
 import { execFile, spawn } from 'child_process';
 import * as fs from 'fs/promises';
+import { constants as fsConstants } from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 
@@ -35,6 +36,9 @@ export interface CodeRunRequest {
   timeout_seconds?: number;
   /** Optional download function for Galaxy datasets. Signature matches galaxyAPIProxy. */
   downloadDataset?: (id: string) => Promise<AsyncIterable<Buffer>>;
+  /** Python only: code of this turn's earlier successful calls, re-run silently before `code` so its
+   *  variables, imports and loaded data exist (notebook-cell semantics; see pythonReplay). */
+  prior_code?: string[];
 }
 
 export interface OutputFile {
@@ -44,12 +48,56 @@ export interface OutputFile {
   preview: string; // first 10 lines if text-like
 }
 
+/** Where run_code stages input datasets inside the sandbox: SANDBOX_INPUT_DIR/<dataset id>/<filename>.
+ *  Exported so the chat prompt can tell the model the exact INPUT_FILES paths before its first call. */
+/** Imports for the conventional data-science aliases a script USES but never imports. Each call is a
+ *  fresh process, and the model often drops `import numpy as np` from a follow-up call (dev 2026-11-04:
+ *  `NameError: name 'np' is not defined` / `'plt'` cost a retry in 4 of 6 ad-hoc answers). Only aliases
+ *  the code references are imported (no start-up cost otherwise); a missing package is ignored. */
+const PY_ALIASES: Array<[string, string]> = [
+  ['np', 'import numpy as np'],
+  ['pd', 'import pandas as pd'],
+  ['plt', "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt"],
+  ['sns', 'import seaborn as sns'],
+];
+export function pythonAliasImports(code: string): string {
+  return PY_ALIASES
+    .filter(([alias]) => new RegExp(`\\b${alias}\\.`).test(code) && !new RegExp(`\\bas\\s+${alias}\\b`).test(code))
+    .map(([, stmt]) => `try:\n${stmt.split('\n').map(l => `    ${l}`).join('\n')}\nexcept ImportError:\n    pass`)
+    .join('\n');
+}
+
+/** Re-runs earlier successful cells of this turn with their output suppressed, so a follow-up call
+ *  can use what they defined. Code-interpreter tools are conventionally stateful and the model writes
+ *  for that: even with "each call is a fresh process" in the tool description, follow-up calls used
+ *  `df` / `np` from the previous call (NameError in 3 of 6 ad-hoc answers on dev, 2026-11-04).
+ *  A cell that fails on replay is skipped. */
+export function pythonReplay(prior: string[] = []): string {
+  if (!prior.length) return '';
+  return [
+    'import contextlib as _bm_ctx, io as _bm_io',
+    `for _bm_src in ${JSON.stringify(prior)}:`,
+    '    try:',
+    '        with _bm_ctx.redirect_stdout(_bm_io.StringIO()), _bm_ctx.redirect_stderr(_bm_io.StringIO()):',
+    "            exec(compile(_bm_src, '<earlier run_code call>', 'exec'), globals())",
+    '    except BaseException:',
+    '        pass',
+  ].join('\n');
+}
+
+export const SANDBOX_INPUT_DIR = '/work/input';
+export function stagedInputPath(datasetId: string, filename: string): string {
+  return `${SANDBOX_INPUT_DIR}/${datasetId}/${filename}`;
+}
+
 export interface CodeRunResult {
   stdout: string;
   stderr: string;
   exit_code: number;
   output_files: OutputFile[];
   duration_ms: number;
+  /** filename -> container path of each input that was actually staged (what INPUT_FILES holds). */
+  staged_inputs?: Record<string, string>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -66,26 +114,85 @@ function isTextFile(name: string): boolean {
 
 async function previewFile(filePath: string): Promise<string> {
   try {
-    const content = await fs.readFile(filePath, 'utf8');
-    return content.split('\n').slice(0, 10).join('\n');
+    // O_NOFOLLOW: the output dir is written by untrusted sandbox code.
+    const fh = await fs.open(filePath, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+    try {
+      const content = await fh.readFile('utf8');
+      return content.split('\n').slice(0, 10).join('\n');
+    } finally {
+      await fh.close();
+    }
   } catch {
     return '(binary or unreadable)';
   }
 }
 
-async function scanOutputDir(dir: string): Promise<OutputFile[]> {
+export async function scanOutputDir(dir: string): Promise<OutputFile[]> {
   const results: OutputFile[] = [];
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile()) continue;
       const filePath = path.join(dir, entry.name);
-      const stat = await fs.stat(filePath);
+      const stat = await fs.lstat(filePath);
+      if (!stat.isFile()) continue;
       const preview = isTextFile(entry.name) ? await previewFile(filePath) : '(binary)';
       results.push({ name: entry.name, path: filePath, size: stat.size, preview });
     }
   } catch { /* dir may not exist */ }
   return results;
+}
+
+export interface SandboxIdentity {
+  uid: number;
+  gid: number;
+}
+
+/**
+ * Identity the sandbox container runs user code as. Never root: RUN_CODE_UID/GID
+ * override explicitly; otherwise inherit the server identity but coerce 0 → 1000
+ * so a root frontend still drops privileges. Number('0')||x and Number(undefined)||x
+ * both fall through to the coerced default (0 is never valid).
+ * With RUN_CODE_BACKEND_URL the sandbox-launcher enforces LAUNCHER_UID/GID
+ * (default 1000:1000); RUN_CODE_UID/GID must match it.
+ */
+export function resolveSandboxIdentity(
+  hostUid: number = process.getuid?.() ?? 1000,
+  hostGid: number = process.getgid?.() ?? 1000,
+  env: NodeJS.ProcessEnv = process.env,
+): SandboxIdentity {
+  return {
+    uid: Number(env.RUN_CODE_UID) || (hostUid === 0 ? 1000 : hostUid),
+    gid: Number(env.RUN_CODE_GID) || (hostGid === 0 ? 1000 : hostGid),
+  };
+}
+
+/**
+ * Create the per-run output directory and make it writable by the sandbox
+ * identity only. The rest of the run tree (baseDir, input/, script) stays owned
+ * by the server, so sandbox code can write outputs but not tamper with inputs.
+ * Throws (rather than letting the run fail later with a PermissionError inside
+ * the sandbox) when the server cannot hand the directory over, e.g. a non-root
+ * server configured with a different RUN_CODE_UID/GID.
+ */
+export async function prepareSandboxOutputDir(
+  outputDir: string,
+  sandbox: SandboxIdentity,
+  hostUid: number = process.getuid?.() ?? sandbox.uid,
+  hostGid: number = process.getgid?.() ?? sandbox.gid,
+): Promise<void> {
+  await fs.mkdir(outputDir, { mode: 0o755 });
+  await fs.chmod(outputDir, 0o755);
+  if (hostUid === sandbox.uid && hostGid === sandbox.gid) return;
+  try {
+    await fs.chown(outputDir, sandbox.uid, sandbox.gid);
+  } catch (err: any) {
+    const msg = `[CodeRunner] cannot chown run output dir ${outputDir} to sandbox identity `
+      + `${sandbox.uid}:${sandbox.gid} (server is ${hostUid}:${hostGid}): ${err?.code || err?.message || err}. `
+      + `Run the server as root/with CAP_CHOWN, or set RUN_CODE_UID/RUN_CODE_GID to the server identity.`;
+    console.error(msg);
+    throw new Error(msg);
+  }
 }
 
 // ─── Main executor ────────────────────────────────────────────────────────────
@@ -98,7 +205,6 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
   const inputDir = path.join(baseDir, 'input');
   const outputDir = path.join(baseDir, 'output');
 
-  await fs.mkdir(outputDir, { recursive: true });
   await fs.mkdir(inputDir, { recursive: true });
 
   const start = Date.now();
@@ -106,7 +212,11 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
   // Track staged file info for the preamble comment
   const stagedFiles: { id: string; filename: string; dir: string }[] = [];
 
+  const { uid, gid } = resolveSandboxIdentity();
+
   try {
+    await prepareSandboxOutputDir(outputDir, { uid, gid });
+
     // Stage input datasets — preserve original filename so code can reference by name
     if (req.input_datasets?.length && req.downloadDataset) {
       await Promise.all(
@@ -138,49 +248,67 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     // Build the wrapper script that sets DATA_DIR, OUTPUT_DIR, then runs user code
     const dataDir = inputDir;
 
-    // Generate a comment block listing staged files so the AI's code knows exact paths
-    const stagedComment = stagedFiles.length > 0
-      ? '# Staged input files:\n' + stagedFiles.map(
-          f => `#   ${f.id}/${f.filename}  →  ${path.join(f.dir, f.filename)}`
-        ).join('\n') + '\n'
-      : '';
-
     let scriptPath: string;
     let interpreter: string;
     let args: string[];
 
     // Inside the sandbox container the host baseDir is bind-mounted at /work.
     // All script env vars must reference container paths, not host paths.
-    const containerData = '/work/input';
+    const containerData = SANDBOX_INPUT_DIR;
     const containerOutput = '/work/output';
     let scriptName: string;
 
+    // Absolute CONTAINER path of each staged file (not the host f.dir — that was a latent bug in
+    // the Python comment, which printed the host path the sandbox can't see).
+    const containerPathOf = (f: { id: string; filename: string }) =>
+      path.posix.join(containerData, f.id, f.filename);
+    // Comment block listing staged files (human-readable).
+    const stagedComment = stagedFiles.length > 0
+      ? '# Staged input files:\n' + stagedFiles.map(
+          f => `#   ${f.id}/${f.filename}  ->  ${containerPathOf(f)}`
+        ).join('\n') + '\n'
+      : '';
+
     if (req.language === 'python') {
+      // Pre-define every staged input's absolute path as a ready-to-use variable, so the model
+      // NEVER has to explore the filesystem (the multi-file-capsule failure: it ran `find /galaxy`,
+      // listed empty dirs, and burned its turn instead of reading the known path).
+      const pyInputFiles = stagedFiles.length > 0
+        ? 'INPUT_FILES = {\n' + stagedFiles.map(
+            f => `    ${JSON.stringify(f.filename)}: ${JSON.stringify(containerPathOf(f))},`
+          ).join('\n') + '\n}'
+        : 'INPUT_FILES = {}';
       const preamble = [
         `import os`,
         `os.environ['DATA_DIR'] = ${JSON.stringify(containerData)}`,
         `os.environ['OUTPUT_DIR'] = ${JSON.stringify(containerOutput)}`,
         `os.chdir(${JSON.stringify(containerOutput)})`,
-      ].join('\n');
+        pyInputFiles,
+        `INPUT_PATHS = list(INPUT_FILES.values())`,
+        pythonAliasImports(req.code),
+        pythonReplay(req.prior_code),
+      ].filter(Boolean).join('\n');
       scriptName = 'script.py';
       scriptPath = path.join(baseDir, scriptName);
       await fs.writeFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
       interpreter = 'python3';
       args = [`/work/${scriptName}`];
     } else if (req.language === 'r') {
+      const rInputFiles = stagedFiles.length > 0
+        ? 'INPUT_FILES <- list(\n' + stagedFiles.map(
+            f => `  ${JSON.stringify(f.filename)} = ${JSON.stringify(containerPathOf(f))}`
+          ).join(',\n') + '\n)'
+        : 'INPUT_FILES <- list()';
       const preamble = [
         `Sys.setenv(DATA_DIR = ${JSON.stringify(containerData)})`,
         `Sys.setenv(OUTPUT_DIR = ${JSON.stringify(containerOutput)})`,
         `setwd(${JSON.stringify(containerOutput)})`,
+        rInputFiles,
+        `INPUT_PATHS <- unlist(INPUT_FILES, use.names = FALSE)`,
       ].join('\n');
-      const rStagedComment = stagedFiles.length > 0
-        ? '# Staged input files:\n' + stagedFiles.map(
-            f => `#   ${f.id}/${f.filename}  ->  ${path.posix.join(containerData, f.id, f.filename)}`
-          ).join('\n') + '\n'
-        : '';
       scriptName = 'script.R';
       scriptPath = path.join(baseDir, scriptName);
-      await fs.writeFile(scriptPath, `${preamble}\n\n${rStagedComment}${req.code}`);
+      await fs.writeFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
       interpreter = 'Rscript';
       args = [`/work/${scriptName}`];
     } else {
@@ -202,16 +330,6 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     //     (production: no docker socket in the frontend container)
     //   - else → spawn ephemeral `docker run` against the host socket (dev only)
     const sidecarUrl = process.env.RUN_CODE_BACKEND_URL;
-    // Never run sandboxed user code as root, even when the frontend process
-    // itself is root (containers commonly run as uid 0 → process.getuid()===0).
-    // RUN_CODE_UID/GID override explicitly; otherwise inherit the host identity
-    // but coerce 0 → 1000 so a root frontend still drops privileges in the
-    // sandbox. Number('0')||x and Number(undefined=NaN)||x both fall through
-    // to the coerced default, which is exactly what we want (0 is never valid).
-    const hostUid = process.getuid?.() ?? 1000;
-    const hostGid = process.getgid?.() ?? 1000;
-    const uid = Number(process.env.RUN_CODE_UID) || (hostUid === 0 ? 1000 : hostUid);
-    const gid = Number(process.env.RUN_CODE_GID) || (hostGid === 0 ? 1000 : hostGid);
     // Canonical sandbox image. Override with RUN_CODE_IMAGE for custom builds.
     // The image is published to ECR (399683337364.dkr.ecr.us-west-2.amazonaws.com/
     // biomate/biotools:1) — `docker pull` it on a fresh machine after running
@@ -310,7 +428,14 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
           signal: controller.signal,
         });
         if (!resp.ok) {
-          return { stdout: '', stderr: `[sidecar error: HTTP ${resp.status}]`, exitCode: 1 };
+          // Include the response body — a bare "HTTP 500" hides the real cause
+          // (bad image, OOM, gVisor runtime missing, auth rejected).
+          const detail = await resp.text().catch(() => '');
+          return {
+            stdout: '',
+            stderr: `[sidecar error: HTTP ${resp.status} ${resp.statusText}]${detail ? ' ' + detail.slice(0, 4000) : ''}`,
+            exitCode: 1,
+          };
         }
         const body: any = await resp.json();
         return {
@@ -336,6 +461,7 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
       exit_code: result.exitCode,
       output_files,
       duration_ms,
+      staged_inputs: Object.fromEntries(stagedFiles.map(f => [f.filename, stagedInputPath(f.id, f.filename)])),
     };
   } finally {
     // Async cleanup — don't block the response

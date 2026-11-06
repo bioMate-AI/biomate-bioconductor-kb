@@ -1,0 +1,40 @@
+{
+ "fallback_exact_b3": 4424,
+ "pool": 12799,
+ "try_tol0.05_1": {
+  "baselines": {
+   "B3_nn_neg": 0.5688401613902491,
+   "B4_depth_neg": 0.5493888156403729,
+   "B3_nn_pos": 0.431159838609751,
+   "B4_depth_pos": 0.4506111843596271
+  },
+  "items": 12806,
+  "positives": 671,
+  "targets": 57,
+  "positives_dropped": 17014
+ },
+ "try_tol0.02_0": {
+  "baselines": {
+   "B3_nn_neg": 0.5295299001668502,
+   "B4_depth_neg": 0.49493235641752065,
+   "B3_nn_pos": 0.4704700998331499,
+   "B4_depth_pos": 0.5050676435824794
+  },
+  "items": 3486,
+  "positives": 188,
+  "targets": 20,
+  "positives_dropped": 17627
+ },
+ "chosen_tol": [
+  0.02,
+  0
+ ],
+ "baseline_gap_ok_within_0.45_0.55": true,
+ "baselines_chosen": {
+  "B3_nn_neg": 0.5295299001668502,
+  "B4_depth_neg": 0.49493235641752065,
+  "B3_nn_pos": 0.4704700998331499,
+  "B4_depth_pos": 0.5050676435824794
+ },
+ "families": 14
+}

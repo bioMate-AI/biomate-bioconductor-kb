@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "independently_reconstructed_coefficients": 12,
+  "rows_verified": 240,
+  "metric_summary_and_denominator_comparisons": 3870,
+  "gene_exclusion": "All20 target genes excluded from every fit/prediction/readout panel",
+  "fit": "Independently summed symmetrized cross-products and squared predictors from training-donor disjoint guide/reference pools, clipped to [0,1]",
+  "leakage_review": "No test-donor outcomes used in selection or alpha fitting; top panels reconstructed from train donor only. Exploratory adaptation after prior results, shared references, selection bias and only2 donor labels prevent confirmation/generalization claims.",
+  "correlation_denominators": "Every valid_rows count checked; zero alpha gives undefined correlations. Use MSE comparison.",
+  "input_sha256": "a4dc1e3d8146f09bf6e947c39a710bea4a5408ae1acd6203a54c86c0f4aaee1e"
+}

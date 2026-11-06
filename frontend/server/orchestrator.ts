@@ -9,7 +9,7 @@
  * Architecture:
  *   user message
  *     → Claude (orchestrator, claude-sonnet-4-6, tool_use loop)
- *       → search_workflows(intent)           → BioMate workflow library (2,455 workflows)
+ *       → search_workflows(intent)           → BioMate workflow library (4,200+ workflows)
  *       → search_literature(query)           → ResearchAgent (PubMed, S2, GWAS, OMIM...)
  *       → query_database(query, dbs)         → biological DB APIs
  *       → run_code(language, code)           → Galaxy /api/code/run
@@ -35,7 +35,7 @@ export const ORCHESTRATOR_TOOL_SCHEMAS: Anthropic.Tool[] = [
   {
     name: 'search_workflows',
     description:
-      'Search BioMate\'s library of 2,455 bioinformatics workflows and suggest the best match ' +
+      'Search BioMate\'s library of 4,200+ bioinformatics workflows and suggest the best match ' +
       'for the user\'s analysis intent. Returns a workflow card the user can run. ' +
       'Use for any computational biology task: RNA-seq, genomics, proteomics, single-cell, ' +
       'ADMET, PBPK, drug docking, cryo-EM, metagenomics, etc. ' +
@@ -398,7 +398,7 @@ export const ORCHESTRATOR_SYSTEM_PROMPT = `\
 You are BioMate, an AI assistant for biomedical research and bioinformatics.
 You have access to the following capabilities as tools:
 
-- **search_workflows** — find and suggest a bioinformatics workflow from BioMate's library of 2,455+ pipelines
+- **search_workflows** — find and suggest a bioinformatics workflow from BioMate's library of 4,200+ pipelines
 - **search_literature** — query PubMed, GWAS Catalog, OMIM, Open Targets, Ensembl, and more
 - **run_code** — execute Python, R, or bash in a secure sandbox
 - **synthesize_papers** — use PaperQA2 to answer questions across multiple uploaded PDFs

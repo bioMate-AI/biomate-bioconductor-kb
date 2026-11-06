@@ -1,0 +1,457 @@
+{
+ "I_v1": {
+  "status": "NOT_VALID_BIASED",
+  "n_targets": 46,
+  "primary": {
+   "C1_atomlm_typicality": [
+    0.5031,
+    0.4578,
+    0.5495,
+    25
+   ],
+   "C2_multiproxy_leave_fold_out": [
+    0.5591,
+    0.4994,
+    0.6189,
+    25
+   ],
+   "C3_morgan_fp_leave_fold_out": [
+    0.5837,
+    0.5328,
+    0.6362,
+    26
+   ]
+  },
+  "biased": [
+   "primary:C3_morgan_fp_leave_fold_out",
+   "secondary:o_frac",
+   "secondary:has_halogen",
+   "secondary:C4_censored_label"
+  ],
+  "unverifiable": [],
+  "not_equivalent": [
+   "primary:C2_multiproxy_leave_fold_out",
+   "primary:C3_morgan_fp_leave_fold_out"
+  ],
+  "C4": [
+   0.206,
+   0.1592,
+   0.253,
+   26
+  ],
+  "C5": {
+   "C5_assay_IC50_only": [
+    0.4522,
+    0.4246,
+    0.4853,
+    26
+   ],
+   "C5_assay_has_Ki_or_Kd": [
+    0.5504,
+    0.5168,
+    0.5783,
+    26
+   ],
+   "C5_assay_has_EC50": [
+    0.5021,
+    0.4868,
+    0.5178,
+    26
+   ]
+  }
+ },
+ "I_v1_Tall": {
+  "status": "NOT_VALID_BIASED",
+  "n_targets": 46,
+  "primary": {
+   "C1_atomlm_typicality": [
+    0.5031,
+    0.4578,
+    0.5495,
+    25
+   ],
+   "C2_multiproxy_leave_fold_out": [
+    0.564,
+    0.5021,
+    0.6249,
+    25
+   ],
+   "C3_morgan_fp_leave_fold_out": [
+    0.5748,
+    0.5236,
+    0.6278,
+    26
+   ]
+  },
+  "biased": [
+   "primary:C3_morgan_fp_leave_fold_out",
+   "secondary:o_frac",
+   "secondary:has_halogen",
+   "secondary:C4_censored_label"
+  ],
+  "unverifiable": [],
+  "not_equivalent": [
+   "primary:C2_multiproxy_leave_fold_out",
+   "primary:C3_morgan_fp_leave_fold_out"
+  ],
+  "C4": [
+   0.206,
+   0.1592,
+   0.253,
+   26
+  ],
+  "C5": {
+   "C5_assay_IC50_only": [
+    0.4522,
+    0.4246,
+    0.4853,
+    26
+   ],
+   "C5_assay_has_Ki_or_Kd": [
+    0.5504,
+    0.5168,
+    0.5783,
+    26
+   ],
+   "C5_assay_has_EC50": [
+    0.5021,
+    0.4868,
+    0.5178,
+    26
+   ]
+  }
+ },
+ "I_CD": {
+  "status": "NOT_VALID_BIASED",
+  "n_targets": 29,
+  "primary": {
+   "C1_atomlm_typicality": [
+    0.5268,
+    0.4704,
+    0.5865,
+    15
+   ],
+   "C2_multiproxy_leave_fold_out": [
+    0.5385,
+    0.4574,
+    0.6126,
+    15
+   ],
+   "C3_morgan_fp_leave_fold_out": [
+    0.6208,
+    0.5552,
+    0.6845,
+    16
+   ]
+  },
+  "biased": [
+   "primary:C3_morgan_fp_leave_fold_out",
+   "secondary:o_frac",
+   "secondary:n_arom",
+   "secondary:C4_censored_label",
+   "secondary:C5_assay_IC50_only",
+   "secondary:C5_assay_has_Ki_or_Kd"
+  ],
+  "unverifiable": [],
+  "not_equivalent": [
+   "primary:C1_atomlm_typicality",
+   "primary:C2_multiproxy_leave_fold_out",
+   "primary:C3_morgan_fp_leave_fold_out"
+  ],
+  "C4": [
+   0.2474,
+   0.1654,
+   0.3288,
+   16
+  ],
+  "C5": {
+   "C5_assay_IC50_only": [
+    0.4301,
+    0.3803,
+    0.4734,
+    16
+   ],
+   "C5_assay_has_Ki_or_Kd": [
+    0.5667,
+    0.5266,
+    0.6151,
+    16
+   ],
+   "C5_assay_has_EC50": [
+    0.5045,
+    0.4881,
+    0.5252,
+    16
+   ]
+  }
+ },
+ "I_EX": {
+  "status": "NOT_VALID_UNVERIFIABLE",
+  "n_targets": 0,
+  "primary": {
+   "C1_atomlm_typicality": [
+    NaN,
+    NaN,
+    NaN,
+    0
+   ],
+   "C2_multiproxy_leave_fold_out": "not evaluable (too few training items)",
+   "C3_morgan_fp_leave_fold_out": "not evaluable (too few training items)"
+  },
+  "biased": [],
+  "unverifiable": [
+   "primary:C1_atomlm_typicality",
+   "primary:C2_multiproxy_leave_fold_out",
+   "primary:C3_morgan_fp_leave_fold_out",
+   "secondary:heavy",
+   "secondary:charge",
+   "secondary:n_frac",
+   "secondary:o_frac",
+   "secondary:has_s",
+   "secondary:has_halogen",
+   "secondary:ncaa_frac",
+   "secondary:n_arom",
+   "secondary:tpsa",
+   "secondary:logp",
+   "secondary:hbd",
+   "secondary:hba",
+   "secondary:rotb",
+   "secondary:fsp3",
+   "secondary:ring",
+   "secondary:n_rings",
+   "secondary:in_corpus",
+   "secondary:in_cycpeptmpdb",
+   "secondary:C4_censored_label",
+   "secondary:C5_assay_IC50_only",
+   "secondary:C5_assay_has_Ki_or_Kd",
+   "secondary:C5_assay_has_EC50"
+  ],
+  "not_equivalent": [],
+  "C4": [
+   NaN,
+   NaN,
+   NaN,
+   0
+  ],
+  "C5": {
+   "C5_assay_IC50_only": [
+    NaN,
+    NaN,
+    NaN,
+    0
+   ],
+   "C5_assay_has_Ki_or_Kd": [
+    NaN,
+    NaN,
+    NaN,
+    0
+   ],
+   "C5_assay_has_EC50": [
+    NaN,
+    NaN,
+    NaN,
+    0
+   ]
+  }
+ },
+ "I_v2": {
+  "status": "NOT_VALID_BIASED",
+  "n_targets": 46,
+  "primary": {
+   "C1_atomlm_typicality": [
+    0.5015,
+    0.4527,
+    0.553,
+    22
+   ],
+   "C2_multiproxy_leave_fold_out": [
+    0.5815,
+    0.5263,
+    0.6357,
+    22
+   ],
+   "C3_morgan_fp_leave_fold_out": [
+    0.5956,
+    0.5489,
+    0.6434,
+    23
+   ]
+  },
+  "biased": [
+   "primary:C2_multiproxy_leave_fold_out",
+   "primary:C3_morgan_fp_leave_fold_out",
+   "secondary:o_frac",
+   "secondary:C4_censored_label"
+  ],
+  "unverifiable": [],
+  "not_equivalent": [
+   "primary:C2_multiproxy_leave_fold_out",
+   "primary:C3_morgan_fp_leave_fold_out"
+  ],
+  "C4": [
+   0.1989,
+   0.1508,
+   0.2485,
+   23
+  ],
+  "C5": {
+   "C5_assay_IC50_only": [
+    0.4485,
+    0.4187,
+    0.4858,
+    23
+   ],
+   "C5_assay_has_Ki_or_Kd": [
+    0.5485,
+    0.5118,
+    0.5786,
+    23
+   ],
+   "C5_assay_has_EC50": [
+    0.5077,
+    0.4972,
+    0.523,
+    23
+   ]
+  }
+ },
+ "I_v1_Ttan": {
+  "status": "NOT_VALID_BIASED",
+  "n_targets": 46,
+  "primary": {
+   "C1_atomlm_typicality": [
+    0.5031,
+    0.4578,
+    0.5495,
+    25
+   ],
+   "C2_multiproxy_leave_fold_out": [
+    0.5628,
+    0.5015,
+    0.6229,
+    25
+   ],
+   "C3_morgan_fp_leave_fold_out": [
+    0.5789,
+    0.5285,
+    0.6313,
+    26
+   ]
+  },
+  "biased": [
+   "primary:C3_morgan_fp_leave_fold_out",
+   "secondary:o_frac",
+   "secondary:has_halogen",
+   "secondary:C4_censored_label"
+  ],
+  "unverifiable": [],
+  "not_equivalent": [
+   "primary:C2_multiproxy_leave_fold_out",
+   "primary:C3_morgan_fp_leave_fold_out"
+  ],
+  "C4": [
+   0.206,
+   0.1592,
+   0.253,
+   26
+  ],
+  "C5": {
+   "C5_assay_IC50_only": [
+    0.4522,
+    0.4246,
+    0.4853,
+    26
+   ],
+   "C5_assay_has_Ki_or_Kd": [
+    0.5504,
+    0.5168,
+    0.5783,
+    26
+   ],
+   "C5_assay_has_EC50": [
+    0.5021,
+    0.4868,
+    0.5178,
+    26
+   ]
+  }
+ },
+ "M2_v1_Tall": {
+  "status": "NOT_VALID_BIASED",
+  "n_targets": 20,
+  "primary": {
+   "C1_atomlm_typicality": [
+    0.6649,
+    0.5513,
+    0.7723,
+    14
+   ],
+   "C2_multiproxy_leave_fold_out": [
+    0.743,
+    0.6392,
+    0.8351,
+    14
+   ],
+   "C3_morgan_fp_leave_fold_out": [
+    0.7388,
+    0.6232,
+    0.8454,
+    14
+   ]
+  },
+  "biased": [
+   "primary:C1_atomlm_typicality",
+   "primary:C2_multiproxy_leave_fold_out",
+   "primary:C3_morgan_fp_leave_fold_out",
+   "secondary:has_halogen",
+   "secondary:n_arom",
+   "secondary:fsp3"
+  ],
+  "unverifiable": [],
+  "not_equivalent": [
+   "primary:C1_atomlm_typicality",
+   "primary:C2_multiproxy_leave_fold_out",
+   "primary:C3_morgan_fp_leave_fold_out"
+  ],
+  "C4": null,
+  "C5": null
+ },
+ "M_v1_Tall": {
+  "status": "NOT_VALID_BIASED",
+  "n_targets": 299,
+  "primary": {
+   "C1_atomlm_typicality": [
+    0.4761,
+    0.4388,
+    0.5132,
+    114
+   ],
+   "C2_multiproxy_leave_fold_out": [
+    0.4986,
+    0.4584,
+    0.5375,
+    114
+   ],
+   "C3_morgan_fp_leave_fold_out": [
+    0.5146,
+    0.4802,
+    0.5487,
+    120
+   ]
+  },
+  "biased": [
+   "secondary:o_frac",
+   "secondary:has_halogen",
+   "secondary:ncaa_frac",
+   "secondary:hba",
+   "secondary:rotb",
+   "secondary:n_rings"
+  ],
+  "unverifiable": [],
+  "not_equivalent": [
+   "primary:C1_atomlm_typicality"
+  ],
+  "C4": null,
+  "C5": null
+ }
+}

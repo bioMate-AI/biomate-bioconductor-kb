@@ -10,6 +10,7 @@ Emits SSE events when QC gates are triggered.
 from __future__ import annotations
 import json
 import logging
+from galaxy.ai.qc_records import normalize_qc_events
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Callable, Optional
@@ -21,6 +22,19 @@ except ImportError:
     SUGGESTER_AVAILABLE = False
 
 log = logging.getLogger(__name__)
+
+
+class _ObservedMetrics(dict):
+    """Track real input metrics consulted by the selected rule, not defaults."""
+
+    def __init__(self, values):
+        super().__init__(values)
+        self.observed = set()
+
+    def get(self, key, default=None):
+        if key in self and super().get(key) is not None:
+            self.observed.add(key)
+        return super().get(key, default)
 
 
 # ---------------------------------------------------------------------------
@@ -1083,9 +1097,21 @@ class NextflowQCGateHandler:
         def _has(*keywords: str) -> bool:
             return any(k in p for k in keywords)
 
-        # Drug discovery / compound
-        if _has("admet", "docking", "pharmacokinetics", "nca", "toxicity", "drug"):
+        # ADMET / tox safety screen → hERG · DILI · Ames gates (admet_standard).
+        # MUST precede the generic drug-like / docking branch: admet_standard is
+        # the ONLY profile carrying the cardiotox (hERG) gate an ADMET screen
+        # exists to trigger — compound_druglike is Lipinski Ro5 only and would
+        # silently disable it (root cause of "hERG gate never fires on ADMET").
+        # Match specific safety keywords, NOT the bare "drug" category dir, which
+        # every drug_discovery/* path contains (that misrouted PK/NCA here too).
+        if _has("admet", "adme", "herg", "cardiotox", "hepatotox", "dili", "ames", "toxicity"):
+            return "admet_standard"
+
+        # Docking / structure-based small-molecule library QC → Lipinski Ro5.
+        if _has("docking"):
             return "compound_druglike"
+        # PK / NCA and other drug_discovery paths have no single named profile →
+        # fall through to None (platform default / assay-specific sub-profile).
 
         # Cryo-EM — check BEFORE genomics to avoid 'em' false matches
         if _has("cryoem", "cryo_em", "cryosparc", "relion", "ctf"):
@@ -1332,6 +1358,13 @@ class NextflowQCGateHandler:
 
         if not qc_metrics:
             log.debug(f"[QC Gate] No QC metrics calculated for {process_name}")
+            self.qc_event_log.append({
+                "type": "assessment", "process_name": process_name,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "status": "unavailable", "message": "QC metrics could not be read.",
+                "execution_control": "assessment_only",
+            })
+            self._persist_qc_report()
             return
 
         # Check if QC thresholds are met
@@ -1342,12 +1375,12 @@ class NextflowQCGateHandler:
         advisory_items = [f for f in all_failures if f.get("advisory", False)]
 
         # Emit SSE event based on whether hard (blocking) failures exist
-        if not qc_passed:
+        if qc_passed is False:
             log.warning(f"[QC Gate] TRIGGERED for {process_name}: {blocking_failures}")
             # Pass all_failures (blocking + advisory) so the gate modal can display full context.
             # Frontend distinguishes advisory items via the advisory=True flag for different styling.
             self._emit_qc_gate_event(process_name, qc_metrics, all_failures)
-        else:
+        elif qc_passed is True:
             log.info(f"[QC Gate] PASSED for {process_name}")
             # When no hard failures: advisory items + near-threshold warnings surface via warning event
             near_threshold = self._check_qc_warnings(process_name, qc_metrics)
@@ -1355,6 +1388,24 @@ class NextflowQCGateHandler:
             if all_warnings:
                 log.info(f"[QC Gate] Near-threshold/advisory warnings for {process_name}: {len(all_warnings)}")
                 self._emit_qc_warning_event(process_name, qc_metrics, all_warnings)
+            else:
+                self.qc_event_log.append({
+                    "type": "assessment", "process_name": process_name,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "status": "pass", "metrics": qc_metrics,
+                    "message": "No threshold violations in the available evaluated metrics.",
+                    "execution_control": "assessment_only",
+                    "active_profile": self.active_profile,
+                    "active_overrides": dict(self.qc_overrides),
+                })
+        else:
+            self.qc_event_log.append({
+                "type": "assessment", "process_name": process_name,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "status": "not_evaluated", "metrics": qc_metrics,
+                "message": "No supported QC rule evaluated the supplied metrics.",
+                "execution_control": "assessment_only",
+            })
 
         # ── Auto-loop enriched evaluation (drug discovery domains) ─────────────
         # Runs in addition to the existing QC gate system.  Produces autoloop_*
@@ -1390,6 +1441,19 @@ class NextflowQCGateHandler:
             )
         except Exception:
             pass  # fail-safe: never block the existing QC pipeline
+
+        self._persist_qc_report()
+
+    def _persist_qc_report(self):
+        """Keep observed results in the run outputs even after the monitor exits."""
+        try:
+            self.work_dir.mkdir(parents=True, exist_ok=True)
+            path = self.work_dir / "qc_events.json"
+            temporary = path.with_suffix(".json.tmp")
+            temporary.write_text(json.dumps(self.get_qc_report(), default=str, indent=2))
+            temporary.replace(path)
+        except Exception as exc:
+            log.warning("[QC] Could not persist assessment report: %s", exc)
 
     def _calculate_qc_metrics(
         self,
@@ -1526,6 +1590,13 @@ class NextflowQCGateHandler:
                                                "ABPP", "PULLDOWN")):
             return self._parse_pulldown_metrics(task_work_dir)
 
+        # --- Metabolomics (untargeted LC-MS: xcms → CAMERA → biosigner) ---
+        elif any(k in process_upper for k in ("XCMS", "CAMERA", "BIOSIGNER",
+                                               "METABOIGNITER", "ASICS",
+                                               "METABOANALYST", "METABOLOMICS",
+                                               "FEATURE_DETECTION", "PEAK_PICKING")):
+            return self._parse_metabolomics_metrics(task_work_dir)
+
         # --- Disease-state PBPK (renal/hepatic impairment dosing) ---
         elif any(k in process_upper for k in ("PBPK_DISEASE_STATE", "DISEASE_STATE_PK",
                                                "RENAL_IMPAIRMENT_PBPK", "HEPATIC_IMPAIRMENT_PBPK")):
@@ -1566,12 +1637,12 @@ class NextflowQCGateHandler:
 
         # --- PBPK simulation (PK-Sim, BioMate native, Simcyp fallback) ---
         elif any(k in process_upper for k in ("PK_SIM", "PKSIM", "PBPK_SIMULATION",
-                                               "PBPK_SIM", "NCA_ANALYSIS",
+                                               "PBPK_SIM",
                                                "PK_REPORT", "GENERATE_PK_REPORT")):
             return self._parse_pbpk_results(task_work_dir)
 
         # --- Non-compartmental analysis (PKNCA) ---
-        elif any(k in process_upper for k in ("NCA_PKNCA", "NONCOMPARTMENTAL", "PKNCA")):
+        elif any(k in process_upper for k in ("NCA_PKNCA", "NCA_ANALYSIS", "NONCOMPARTMENTAL", "PKNCA")):
             return self._parse_nca_results(task_work_dir)
 
         # --- Population pharmacokinetics (nlmixr2 / SAEM) ---
@@ -1665,6 +1736,11 @@ class NextflowQCGateHandler:
         "BIOMARKER_PATIENT_ENRICHMENT": ("*", "qc_metrics.json"),  # prev 0.10-0.50 (SILVER, FDA 2019), EF≥1.5 (BRONZE)
         "IVIVE_HEPATIC_CLEARANCE":   ("*", "qc_metrics.json"),  # ivive_fold_error ≤ 2 (GOLD, Obach 1999)
         "PREDICT_ADMET_PROPERTIES":  ("*", "qc_metrics.json"),  # hERG ≥10μM (GOLD, Redfern 2003) / Ames neg (SILVER, Kazius 2005) / DILI
+        # ADMET_pred (process ADMET_PRED) emits toxicity_report.json, NOT
+        # qc_metrics.json. Register the real filename so the Batch/S3 gate
+        # path can find it (root cause: hERG gate never materialised on dev
+        # because the S3 reader only looked for qc_metrics.json — 2026-09-08).
+        "ADMET_PRED":                ("*", "toxicity_report.json"),  # hERG ≥10μM (Aronov 2008) / DILI (Lammert 2010) / Ames (Kazius 2005)
         "DDI_RISK_ASSESSMENT":       ("*", "qc_metrics.json"),  # FDA 2020 DDI R1/R2 INVESTIGATE/CLINICAL_STUDY (GOLD)
         "NCA_PKNCA_ANALYSIS":        ("*", "qc_metrics.json"),  # auc_extrap_pct_max ≤ 20% (GOLD, FDA 2003 BA/BE)
         "PBPK_SIMULATION":           ("*", "qc_metrics.json"),  # tmax_fraction ≤ 0.8 (SILVER, FDA 2018 PBPK)
@@ -1791,18 +1867,25 @@ class NextflowQCGateHandler:
                 f"{prefix_base}/{prefix}/" if prefix_base else f"{prefix}/"
             )
 
-            s3 = make_s3_client()
+            s3 = make_s3_client(
+                region_name=__import__("os").environ.get("AWS_DEFAULT_REGION", "us-west-2")
+            )
+            # Report filenames to look for, in priority order. Most workflows
+            # emit qc_metrics.json; the ADMET_pred/PREDICT_ADMET workflows emit
+            # toxicity_report.json (nested {"toxicity": {...}} shape). Match
+            # either so the Batch/S3 gate path can find the hERG/DILI metrics.
+            _report_names = ("qc_metrics.json", "toxicity_report.json")
             paginator = s3.get_paginator("list_objects_v2")
             target_key: Optional[str] = None
             for page in paginator.paginate(Bucket=bucket, Prefix=list_prefix):
                 for obj in page.get("Contents", []) or []:
                     key = obj["Key"]
-                    # Match qc_metrics.json under any task dir whose name
+                    # Match a known report file under any task dir whose name
                     # starts with the abbreviated rest of the hash.
                     rel = key[len(list_prefix):]
                     if not rel.startswith(rest):
                         continue
-                    if rel.endswith("/qc_metrics.json"):
+                    if any(rel.endswith("/" + n) for n in _report_names):
                         target_key = key
                         break
                 if target_key:
@@ -1810,9 +1893,10 @@ class NextflowQCGateHandler:
 
             if not target_key:
                 log.info(
-                    "[QC-S3] No work-dir qc_metrics.json for %s at "
+                    "[QC-S3] No work-dir report (%s) for %s at "
                     "s3://%s/%s (hash=%s)",
-                    process_upper, bucket, list_prefix, process_hash,
+                    "|".join(_report_names), process_upper, bucket,
+                    list_prefix, process_hash,
                 )
                 return None
 
@@ -1911,6 +1995,46 @@ class NextflowQCGateHandler:
                     except (IndexError, ValueError):
                         pass
 
+        # ADMET toxicity_report.json — the safety metrics live nested under
+        # "toxicity" (not top-level), so the generic scalar passthrough below
+        # would drop them. Extract them explicitly so the hERG/DILI/Ames gates
+        # fire on Batch/S3 runs (root cause of the "gate did not materialise on
+        # dev" report — 2026-09-08). Matches the local _parse_admet_toxicity
+        # extraction so both paths behave identically.
+        elif any(k in process_upper for k in ("PREDICT_ADMET", "ADMET_PRED",
+                                              "ADMET_SAFETY", "ADMET_TOXICITY")):
+            tox = data.get("toxicity", data) if isinstance(data, dict) else {}
+            if isinstance(tox, dict):
+                if "herg_ic50_uM" in tox:
+                    try:
+                        metrics["herg_ic50_uM"] = float(tox["herg_ic50_uM"])
+                    except (TypeError, ValueError):
+                        pass
+                if "herg_inhibition_prob" in tox:
+                    try:
+                        metrics["herg_inhibition_prob"] = float(tox["herg_inhibition_prob"])
+                    except (TypeError, ValueError):
+                        pass
+                if "dili_risk" in tox:
+                    metrics["dili_risk"] = str(tox["dili_risk"]).lower()
+                if "dili_probability" in tox:
+                    try:
+                        metrics["dili_probability"] = float(tox["dili_probability"])
+                    except (TypeError, ValueError):
+                        pass
+                if "ames_positive" in tox:
+                    metrics["ames_positive"] = bool(tox["ames_positive"])
+                if "ames_probability" in tox:
+                    try:
+                        metrics["ames_probability"] = float(tox["ames_probability"])
+                    except (TypeError, ValueError):
+                        pass
+                if "clintox_probability" in tox:
+                    try:
+                        metrics["clintox_probability"] = float(tox["clintox_probability"])
+                    except (TypeError, ValueError):
+                        pass
+
         # Gate-only domains (HTS, ICH-S5/S7, BOIN, allometric, IVIVE, OpenFE,
         # p0_pkpd, pocket_detection, aizynthfinder) emit qc_metrics.json with
         # keys that already match gate thresholds (z_prime, signal_window, etc).
@@ -1919,6 +2043,16 @@ class NextflowQCGateHandler:
             for k, v in data.items():
                 if isinstance(v, (int, float, bool, str)):
                     metrics[k] = v
+
+        # Preserve DECLARED gates (a LIST) so the general declared-gate fallback in
+        # _check_qc_thresholds can evaluate them on the S3/Batch path. The scalar-only
+        # passthrough above drops non-scalars, which silently stripped a workflow's
+        # declared `gates` on Batch — the gates were read as a file but never evaluated
+        # (third-pass review H1; SNF declared gates were affected). Additive + safe: the
+        # fallback dedups by (metric, threshold) and only ADDS non-pass results.
+        for _gk in ("gates", "declared_gates"):
+            if isinstance(data.get(_gk), list) and _gk not in metrics:
+                metrics[_gk] = data[_gk]
 
         return metrics if metrics else None
 
@@ -2779,6 +2913,155 @@ class NextflowQCGateHandler:
             return None
         return metrics
 
+    def _parse_metabolomics_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse untargeted LC-MS metabolomics output (xcms → CAMERA → biosigner).
+
+        Primary sources (any that exist are used):
+          *.json / metabolomics_report.json — a summary report emitted by the
+             chain with pre-computed metrics (preferred; keys:
+             qc_cv_median_pct, feature_count, missing_value_pct)
+          xcms peak/feature table (dataMatrix.tsv, *feature*table*.tsv,
+             *peaktable*.csv, xcms*.tsv) — feature count = data rows;
+             per-feature CV across QC (pooled) sample columns and
+             missing-value fraction computed directly when a QC/pool
+             column group is present.
+
+        Metrics returned:
+          qc_cv_median_pct   — median coefficient of variation (%) of feature
+                               intensities across pooled-QC injections
+          feature_count      — number of detected features (aligned peaks)
+          missing_value_pct  — fraction (%) of missing/zero entries in the
+                               feature x sample matrix
+
+        Returns None when no metabolomics output files are found.
+        """
+        import csv as _csv
+        import json as _json
+        import statistics as _stats
+
+        metrics: Dict[str, Any] = {}
+
+        # --- Pre-computed summary report (preferred) ---
+        for report_file in (
+            list(task_work_dir.glob("**/metabolomics_report.json"))
+            + list(task_work_dir.glob("metabolomics_report.json"))
+            + list(task_work_dir.glob("*metabo*report*.json"))
+        ):
+            try:
+                data = _json.loads(report_file.read_text(errors="replace"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            for key, val in data.items():
+                key_l = str(key).lower()
+                try:
+                    if "cv" in key_l and ("median" in key_l or "qc" in key_l):
+                        metrics.setdefault("qc_cv_median_pct", round(float(val), 1))
+                    elif "feature" in key_l and "count" in key_l:
+                        metrics.setdefault("feature_count", int(val))
+                    elif "missing" in key_l:
+                        metrics.setdefault("missing_value_pct", round(float(val), 1))
+                except (ValueError, TypeError):
+                    pass
+            if metrics:
+                break
+
+        # --- xcms/CAMERA feature (data) matrix: compute metrics directly ---
+        if "feature_count" not in metrics or "qc_cv_median_pct" not in metrics:
+            table_candidates = (
+                list(task_work_dir.glob("**/dataMatrix.tsv"))
+                + list(task_work_dir.glob("dataMatrix.tsv"))
+                + list(task_work_dir.glob("*feature*table*.tsv"))
+                + list(task_work_dir.glob("*feature*table*.csv"))
+                + list(task_work_dir.glob("*peaktable*.tsv"))
+                + list(task_work_dir.glob("*peaktable*.csv"))
+                + list(task_work_dir.glob("xcms*.tsv"))
+                + list(task_work_dir.glob("xcms*.csv"))
+            )
+            for table_file in table_candidates:
+                delim = "\t" if table_file.suffix.lower() == ".tsv" else ","
+                try:
+                    with open(table_file, newline="", errors="replace") as f:
+                        reader = _csv.reader(f, delimiter=delim)
+                        rows = [r for r in reader if r]
+                except OSError:
+                    continue
+                if len(rows) < 2:
+                    continue
+
+                header = rows[0]
+                data_rows = rows[1:]
+
+                # feature_count = number of feature rows (one feature per row)
+                metrics.setdefault("feature_count", len(data_rows))
+
+                # Identify pooled-QC sample columns (Broadhurst 2018 convention:
+                # intersperse a pooled QC sample; column names contain "QC"/"pool").
+                qc_cols = [
+                    i for i, name in enumerate(header)
+                    if isinstance(name, str)
+                    and any(tok in name.lower() for tok in ("qc", "pool"))
+                ]
+                # Numeric sample columns = every column that parses as a float in
+                # the first data row (skip the leading id/label column at index 0).
+                numeric_cols = []
+                for i in range(1, len(header)):
+                    try:
+                        float(data_rows[0][i])
+                        numeric_cols.append(i)
+                    except (ValueError, IndexError):
+                        pass
+
+                # Missing-value fraction across the full numeric matrix.
+                if numeric_cols:
+                    total = 0
+                    missing = 0
+                    for row in data_rows:
+                        for i in numeric_cols:
+                            total += 1
+                            try:
+                                v = float(row[i])
+                                if v == 0.0:
+                                    missing += 1
+                            except (ValueError, IndexError):
+                                missing += 1
+                    if total > 0:
+                        metrics.setdefault(
+                            "missing_value_pct",
+                            round((missing / total) * 100.0, 1),
+                        )
+
+                # Median per-feature CV across pooled-QC injections.
+                if len(qc_cols) >= 2:
+                    cvs = []
+                    for row in data_rows:
+                        vals = []
+                        for i in qc_cols:
+                            try:
+                                v = float(row[i])
+                                if v > 0:
+                                    vals.append(v)
+                            except (ValueError, IndexError):
+                                pass
+                        if len(vals) >= 2:
+                            mean_v = _stats.mean(vals)
+                            if mean_v > 0:
+                                cv = (_stats.stdev(vals) / mean_v) * 100.0
+                                if 0 <= cv < 500:
+                                    cvs.append(cv)
+                    if cvs:
+                        metrics.setdefault(
+                            "qc_cv_median_pct", round(_stats.median(cvs), 1)
+                        )
+                break
+
+        if not metrics:
+            log.debug(f"[QC] No metabolomics metrics found in {task_work_dir}")
+            return None
+        return metrics
+
     def _parse_2d_classification_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
         """
         Parse CryoSPARC 2D classification output (class2d_report.json).
@@ -3418,7 +3701,10 @@ class NextflowQCGateHandler:
         salt_count = 0
         undefined_stereo_count = 0
         high_mw_count = 0
-        mw_limit = 900.0
+        # Honor the active profile / explicit qc_overrides (e.g. druglike Ro5 → 500 Da).
+        # Previously hardcoded 900.0, which silently ignored compound_mw_limit and made
+        # the MW gate never fire for a sub-900 Da compound even under a tighter profile.
+        mw_limit = self._get_threshold("compound_mw_limit", 900.0)
 
         for smi in smiles_list:
             mol = Chem.MolFromSmiles(smi, sanitize=False)
@@ -4163,7 +4449,7 @@ class NextflowQCGateHandler:
         self,
         process_name: str,
         qc_metrics: Dict[str, Any]
-    ) -> tuple[bool, list]:
+    ) -> tuple[Optional[bool], list]:
         """
         Check if QC metrics meet quality thresholds.
 
@@ -4177,6 +4463,14 @@ class NextflowQCGateHandler:
             operator  – ">" or "<" indicating the direction of violation
             message   – human-readable description
         """
+        if not qc_metrics:
+            return None, []
+        # Capture any workflow-DECLARED gates + the raw measured values BEFORE the
+        # dict is wrapped, so the general data-driven fallback at the end of this
+        # method can evaluate domains that have no hardcoded branch below.
+        _raw_metrics = dict(qc_metrics)
+        _declared_gates = _raw_metrics.get("gates") or _raw_metrics.get("declared_gates")
+        qc_metrics = _ObservedMetrics(qc_metrics)
         failures = []
         process_upper = process_name.upper()
 
@@ -5333,7 +5627,7 @@ class NextflowQCGateHandler:
                 })
 
         elif any(k in process_upper for k in ("PK_SIM", "PKSIM", "PBPK_SIMULATION",
-                                               "PBPK_SIM", "NCA_ANALYSIS",
+                                               "PBPK_SIM",
                                                "PK_REPORT", "GENERATE_PK_REPORT")):
             # ── PBPK simulation QC ──────────────────────────────────────────────
             # [GOLD] No terminal elimination phase — Tmax at end of simulation
@@ -5854,8 +6148,126 @@ class NextflowQCGateHandler:
                     ),
                 })
 
+        # --- Metabolomics (untargeted LC-MS: xcms → CAMERA → biosigner) ---
+        elif any(k in process_upper for k in ("XCMS", "CAMERA", "BIOSIGNER",
+                                              "METABOIGNITER", "ASICS",
+                                              "METABOANALYST", "METABOLOMICS",
+                                              "FEATURE_DETECTION", "PEAK_PICKING")):
+            # [GOLD metric / SILVER cutoff] Pooled-QC coefficient of variation.
+            # Dunn et al. 2011 Nat Protoc 6:1060 and Broadhurst et al. 2018
+            # Metabolomics 14:72 (mQACC): repeated injection of a pooled QC
+            # sample is the reference measure of analytical reproducibility;
+            # features with QC CV > 30% (RSD) are conventionally removed as
+            # unreliable. The metric is GOLD (both papers define QC-RSD as the
+            # analytical-quality readout); the specific 30% cutoff is the
+            # widely-used community operating point (SILVER). Advisory — a high
+            # median CV signals drift/prep issues but does not invalidate the
+            # run outright (features can still be RSD-filtered downstream).
+            cv_median = qc_metrics.get("qc_cv_median_pct")
+            _cv_t = self._get_threshold("qc_cv_median_pct", 30.0)
+            if cv_median is not None and cv_median > _cv_t:
+                failures.append({
+                    "metric": "qc_cv_median_pct",
+                    "value": cv_median,
+                    "threshold": _cv_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] Median pooled-QC CV {cv_median:.1f}% exceeds "
+                        f"{_cv_t:.0f}% (Dunn et al. 2011 Nat Protoc; Broadhurst "
+                        f"et al. 2018 mQACC). High analytical variability — apply "
+                        f"a QC-RSD feature filter, check LC/MS drift, or add "
+                        f"pooled-QC-based signal correction (e.g. LOESS) before "
+                        f"statistical analysis."
+                    ),
+                })
+
+            # [BRONZE advisory] Detected-feature count sanity band.
+            # Dunn et al. 2011 / Broadhurst 2018: a typical untargeted LC-MS
+            # assay yields thousands of aligned features; a run returning very
+            # few features usually indicates a peak-picking parameter problem
+            # (ppm/peakwidth/snthresh) or a failed injection rather than true
+            # low complexity. Community-operational floor (BRONZE), advisory.
+            feat_count = qc_metrics.get("feature_count")
+            _feat_t = self._get_threshold("feature_count_min", 500)
+            if feat_count is not None and feat_count < _feat_t:
+                failures.append({
+                    "metric": "feature_count",
+                    "value": feat_count,
+                    "threshold": _feat_t,
+                    "operator": "<",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] Only {feat_count} features detected (advised: "
+                        f"≥ {_feat_t}). Untargeted LC-MS runs typically yield "
+                        f"thousands of aligned features — check xcms peak-picking "
+                        f"parameters (ppm, peakwidth, snthresh) and verify the "
+                        f"injection succeeded."
+                    ),
+                })
+
+            # [SILVER] Missing-value fraction across the feature x sample matrix.
+            # Broadhurst et al. 2018: excessive missingness undermines
+            # downstream imputation and multivariate modelling; a > 20% overall
+            # missing fraction is a common data-quality cutoff for untargeted
+            # metabolomics feature matrices. Advisory (missing values can be
+            # imputed) — flags likely peak-detection/alignment gaps.
+            missing_pct = qc_metrics.get("missing_value_pct")
+            _miss_t = self._get_threshold("metab_missing_value_pct", 20.0)
+            if missing_pct is not None and missing_pct > _miss_t:
+                failures.append({
+                    "metric": "missing_value_pct",
+                    "value": missing_pct,
+                    "threshold": _miss_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] Missing-value fraction {missing_pct:.1f}% "
+                        f"exceeds {_miss_t:.0f}% (Broadhurst et al. 2018 mQACC). "
+                        f"High missingness weakens imputation and multivariate "
+                        f"models — revisit xcms alignment/fillPeaks or relax "
+                        f"peak-detection thresholds so features are consistently "
+                        f"integrated across samples."
+                    ),
+                })
+
+        # GENERAL FALLBACK (data-driven): evaluate any workflow-DECLARED gates via the
+        # general engine, so a domain with no hardcoded branch above still gets real
+        # gates from its own declared data. Additive — never alters a hardcoded branch.
+        _declared_evaluated = False
+        if _declared_gates:
+            try:
+                from galaxy.ai.qc_gate_engine import evaluate_gates
+                _measured = {k: v for k, v in _raw_metrics.items()
+                             if k not in ("gates", "declared_gates")}
+                _rep = evaluate_gates(_declared_gates, _measured)
+                # A gate counts as "evaluated" only when its metric was present (pass/
+                # advisory/halt), not when it was skipped for a missing metric. If at
+                # least one declared gate was evaluated, QC WAS run — so a clean pass
+                # must report (True, []), not (None, []) ("no QC").
+                _declared_evaluated = any(
+                    r.action in ("pass", "advisory", "halt") for r in _rep.results)
+                _seen = {(f.get("metric"), f.get("threshold")) for f in failures}
+                for r in _rep.results:
+                    if r.action in ("advisory", "halt") and (r.metric, r.threshold) not in _seen:
+                        failures.append({
+                            "metric": r.metric,
+                            "value": r.measured,
+                            "threshold": r.threshold,
+                            "operator": r.op,
+                            "message": f"{r.name}: {r.measured} {r.op} {r.threshold} (declared gate)",
+                            "advisory": (r.action == "advisory"),
+                            "evidence": r.evidence,
+                            "provenance": r.provenance,
+                        })
+            except Exception:
+                _declared_evaluated = False
+                pass  # declared-gate evaluation is best-effort; never break the hardcoded path
+
         # Advisory items (advisory=True) are informational only — they do not block the workflow.
         # qc_passed is determined solely by hard (non-advisory) failures.
+        if not qc_metrics.observed and not failures and not _declared_evaluated:
+            return None, []
         blocking_failures = [f for f in failures if not f.get("advisory", False)]
         return (len(blocking_failures) == 0, failures)
 
@@ -5897,6 +6309,8 @@ class NextflowQCGateHandler:
 
         event_data = {
             "invocation_id": self.invocation_id,
+            # This trace observer cannot stop consumers before they are scheduled.
+            "execution_control": "assessment_only",
             "process_name": process_name,
             "qc_metrics": qc_metrics,
             "failures": failures,
@@ -5938,7 +6352,7 @@ class NextflowQCGateHandler:
             metric = primary.get("metric") or "metric"
             value = primary.get("value")
             threshold = primary.get("threshold")
-            kind = "workflow.qc_gate_blocked" if blocking else "workflow.qc_gate_warning"
+            kind = "workflow.qc_gate_warning"
             _narrator_emit(
                 self.invocation_id,
                 kind,
@@ -6073,7 +6487,7 @@ class NextflowQCGateHandler:
                 f"({', '.join(e['process_name'] for e in gate_events)}). "
             )
         else:
-            gate_phrase = "All processes passed automated QC gates without intervention. "
+            gate_phrase = "No failed QC assessments were recorded; this does not establish that every check was evaluated. "
 
         methods_text = (
             f"Quality control was performed automatically by BioMate{profile_phrase}{override_phrase}. "
@@ -6089,7 +6503,8 @@ class NextflowQCGateHandler:
             "active_overrides": dict(self.qc_overrides) if self.qc_overrides else {},
             "gates_triggered": len(gate_events),
             "warnings_emitted": len(warn_events),
-            "events": list(self.qc_event_log),
+            "events": normalize_qc_events(self.qc_event_log),
+            "raw_events": list(self.qc_event_log),
             "methods_text": methods_text,
         }
 

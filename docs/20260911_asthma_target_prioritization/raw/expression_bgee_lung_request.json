@@ -1,0 +1,8 @@
+{
+  "query": "PREFIX genex: <http://purl.org/genex#> PREFIX obo: <http://purl.obolibrary.org/obo/> SELECT DISTINCT ?gene WHERE { VALUES ?gene { <http://omabrowser.org/ontology/oma#GENE_ENSG00000145777> <http://omabrowser.org/ontology/oma#GENE_ENSG00000137033> <http://omabrowser.org/ontology/oma#GENE_ENSG00000115602> } ?gene obo:RO_0002206 ?condition . ?condition genex:hasAnatomicalEntity obo:UBERON_0002048 } LIMIT 30",
+  "save_raw": true,
+  "raw_output_path": "/Users/kky/biomate-review/docs/20260911_asthma_target_prioritization/raw/expression_bgee_lung.json",
+  "max_items": 30,
+  "max_depth": 6,
+  "timeout_sec": 30
+}

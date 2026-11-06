@@ -1,0 +1,4229 @@
+{
+  "models": {
+    "openai": "openai/gpt-6.1-sol-pro",
+    "google": "google/gemini-3.1-pro-preview-customtools",
+    "anthropic": "anthropic/claude-opus-5.5"
+  },
+  "rows": [
+    {
+      "asset": "capabilities.png",
+      "uc": "unreferenced",
+      "cons": "minor",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "Bottom crop leaves partial cards visible."
+        ],
+        [
+          "openai",
+          "Correct 'all 7 approved payload classes' to distinguish individual payloads from payload classes."
+        ],
+        [
+          "openai",
+          "No manual page references this screenshot."
+        ],
+        [
+          "openai",
+          "[ui_elements] Header, CTA and visible cards are aligned and consistent; no broken components or placeholders visible."
+        ],
+        [
+          "google",
+          "Bottom row of 'Use-case clusters' cards is cut off by the crop."
+        ],
+        [
+          "google",
+          "[ui_elements] UI components are consistent and aligned. No broken elements, placeholders, or raw code visible."
+        ],
+        [
+          "anthropic",
+          "Unreferenced asset: not used by any manual page; either link it from an overview page or remove it."
+        ],
+        [
+          "anthropic",
+          "Bottom crop slices the second row of cards, showing empty clipped outlines; crop above the row or capture the full grid."
+        ],
+        [
+          "anthropic",
+          "ADC card's 'all 7 approved payload classes' list omits deruxtecan/DXd; verify the claim."
+        ],
+        [
+          "anthropic",
+          "'ready for FDA submission' is an overclaim; soften it in documentation context."
+        ],
+        [
+          "anthropic",
+          "[content] Copy is internally consistent; no stale report tabs or 'Download report' label. Two claims are questionable: 'all 7 approved payload classes' omits deruxtecan/DXd (Enhertu), and 'narrative ready for FDA submission' is an overclaim for a manual. The page is marketing-style rather than procedural."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Header (logo, Platform, theme toggle, account), 'Platform capabilities' badge, CTA button and three cards render cleanly and aligned. No undefined values or placeholders. Second-row cards are cut off, so their titles are not visible."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i00-1-runs-dashboard.png",
+      "uc": "unreferenced",
+      "cons": "minor",
+      "n_major": 0,
+      "issues": [
+        [
+          "openai",
+          "Excessive dead space; crop closer to the card."
+        ],
+        [
+          "openai",
+          "Unreferenced error-screen asset has no established documentation purpose."
+        ],
+        [
+          "openai",
+          "[ui_elements] Error card, icon, message, and recovery button are complete and aligned; no visible rendering defects."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible, with no clipping; excessive blank space around the error card."
+        ],
+        [
+          "openai",
+          "[clarity] Clear as an error screen, but unreferenced and without a specified target state, its manual purpose cannot be verified."
+        ],
+        [
+          "google",
+          "Excessive empty space around the central modal."
+        ],
+        [
+          "google",
+          "Unreferenced screenshot; unclear purpose in the manual."
+        ],
+        [
+          "google",
+          "[content] The content correctly displays a standard 'Page not found' (404) error message with a clear call-to-action button to return to the main application."
+        ],
+        [
+          "google",
+          "[clarity] The screen clearly communicates a 404 error state. However, as an unreferenced screenshot, its utility in a manual is questionable unless specifically illustrating error handling."
+        ],
+        [
+          "anthropic",
+          "Screenshot is unreferenced by any manual page; it is an orphan asset and should be removed or deliberately linked (e.g., in a troubleshooting section)."
+        ],
+        [
+          "anthropic",
+          "It likely indicates the capture script hit a dead or renamed route. Verify the intended target page exists and recapture it."
+        ],
+        [
+          "anthropic",
+          "If kept, crop tightly around the card to remove about 70% dead space."
+        ],
+        [
+          "anthropic",
+          "[content] Copy is correct and consistent ('Page not found', 'Back to BioMate'). No stale report tabs or wrong terminology are present."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] 404 card is complete and well aligned: compass icon, heading, body text and 'Back to BioMate' CTA. No broken, duplicated or placeholder elements. There is no app chrome (no nav/header), which is acceptable for a 404."
+        ],
+        [
+          "anthropic",
+          "[clarity] Self-explanatory as an error page. However, no manual page references it, so it serves no documented purpose. It may be an accidental capture of a broken route during screenshot generation."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i01-1-cold-start.png",
+      "uc": "modules:I01-getting-started-cold-start",
+      "cons": "minor",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "Crop excess whitespace for a more focused manual image."
+        ],
+        [
+          "openai",
+          "Use a clean demo workspace instead of diagnostic/E2E project names."
+        ],
+        [
+          "openai",
+          "Make the hERG example self-contained or explicitly indicate required molecule input."
+        ],
+        [
+          "openai",
+          "Clarify whether beginners should use the goal field or bottom composer."
+        ],
+        [
+          "openai",
+          "[content] Doorway labels are appropriate and Data analysis offers a prepared sample. The hERG placeholder references 'these molecules' without visible data; diagnostic/E2E projects clutter the sidebar."
+        ],
+        [
+          "openai",
+          "[ui_elements] Controls are intact with no clipping or overlap. Two prompt inputs compete for attention; lower cards have unequal heights."
+        ],
+        [
+          "google",
+          "Two chat input boxes are visible at the same time (center and bottom)."
+        ],
+        [
+          "google",
+          "Sidebar project list shows raw/test environment data rather than clean examples."
+        ],
+        [
+          "google",
+          "[ui_elements] Duplicated UI components: There are two separate prompt input boxes rendered simultaneously (one in the center, one at the bottom)."
+        ],
+        [
+          "anthropic",
+          "Internal test/diag/E2E project names visible in the sidebar"
+        ],
+        [
+          "anthropic",
+          "Four duplicate 'IL-17A Cyclic Peptide P\u2026' entries"
+        ],
+        [
+          "anthropic",
+          "Two competing prompt inputs (goal box + bottom composer) not explained"
+        ],
+        [
+          "anthropic",
+          "Partial user name/email shown in the footer (PII)"
+        ],
+        [
+          "anthropic",
+          "Run Manager badge '7' contradicts a cold-start/fresh-user state"
+        ],
+        [
+          "anthropic",
+          "Large dead space below the cards; consider cropping or using a clean demo account"
+        ],
+        [
+          "anthropic",
+          "Odd nesting of Import workflow/Connectors under Settings & API Keys"
+        ],
+        [
+          "anthropic",
+          "[content] Sidebar is full of internal test artifacts (diag-1791903785446, e2e-full-1791\u2026, E2E Team/Share/AUTHZ Test) and four identical truncated 'IL-17A Cyclic Peptide P\u2026' projects. 'No chats yet' sits beside 10 projects. Run Manager shows a stale badge of 7. The user identity is partly exposed ('WPM \u2026', 'lifeifei1\u2026'). The card wording itself is correct, and the Data analysis card mentions a prepared sample dataset, consistent with cold-start demo data."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Two prompt inputs on one screen: the 'Describe the goal\u2026' box and the bottom 'Ask BioMate to run a workflow\u2026' composer. Readers may not know which to use. 'Import workflow' and 'Connectors' are indented under 'Settings & API Keys', an odd hierarchy. The four intent cards are aligned and complete. No undefined or placeholder text."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i05-0-data-hub.png",
+      "uc": "tutorials:T10-exploring-your-datasets",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Capture a selected project with the left file tree and a result CSV open on the right, including its header and tabs."
+        ],
+        [
+          "openai",
+          "Repeated project labels make selection ambiguous; the top two cards appear identical."
+        ],
+        [
+          "openai",
+          "Crop excess empty space."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible with no clipping or overlap; excessive blank space below the project chooser."
+        ],
+        [
+          "openai",
+          "[clarity] Shows 'Choose a project', not a selected project with an open dataset; contradicts the intended state and alt text."
+        ],
+        [
+          "google",
+          "Wrong screen captured: shows project selection instead of the two-pane file explorer."
+        ],
+        [
+          "google",
+          "Missing file tree on the left."
+        ],
+        [
+          "google",
+          "Missing dataset object (e.g., de_results.csv) on the right."
+        ],
+        [
+          "google",
+          "Duplicated project names in the selection cards."
+        ],
+        [
+          "google",
+          "[ui_elements] Project cards display duplicated titles ('IL-17A Cyclic Peptide Pilot') across all entries, indicating a data rendering issue or poor mock data."
+        ],
+        [
+          "anthropic",
+          "Wrong state: no project selected, so the two-pane Data hub is not shown"
+        ],
+        [
+          "anthropic",
+          "Missing file tree and the open dataset object (header + tabs) for de_results.csv"
+        ],
+        [
+          "anthropic",
+          "Four projects share the identical name 'IL-17A Cyclic Peptide Pilot'; two cards are full duplicates, which is confusing demo data"
+        ],
+        [
+          "anthropic",
+          "Large empty area in the bottom half of the frame"
+        ],
+        [
+          "anthropic",
+          "Alt text does not describe what is actually shown"
+        ],
+        [
+          "anthropic",
+          "[content] Duplicate project names look like seeded or test data leaking into the manual. Two cards are exact duplicates (same title, description and date). No de_results.csv or any other dataset is visible."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i05-1-file-tree.png",
+      "uc": "modules:I05-files-and-dataset-object",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Missing per-run output folders required by the intended state."
+        ],
+        [
+          "openai",
+          "Quality dots are not present on every row as described."
+        ],
+        [
+          "openai",
+          "Large unselected detail pane dominates the screenshot."
+        ],
+        [
+          "openai",
+          "Use a reader-facing project name instead of 'E2E File Tree 1789241690756'."
+        ],
+        [
+          "google",
+          "File tree is missing the 'per-run output folders' required by the intended description."
+        ],
+        [
+          "google",
+          "[ui_elements] UI components are complete, aligned, and properly rendered. No broken elements or placeholders visible."
+        ],
+        [
+          "anthropic",
+          "Intended per-run output folders are missing; only the 'inputs' folder is shown"
+        ],
+        [
+          "anthropic",
+          "E2E test project name with a timestamp is visible in the breadcrumb ('E2E File Tree 1789241690756')"
+        ],
+        [
+          "anthropic",
+          "Test fixture filename 'e2e_sample.fastq' at 72 B is not a realistic demo dataset"
+        ],
+        [
+          "anthropic",
+          "Only one file row, with an amber dot; the range of quality dot states is not shown"
+        ],
+        [
+          "anthropic",
+          "Excessive empty space in the tree panel and the detail panel; consider a tighter crop or selecting a file"
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Components render correctly: FILES header with Upload and refresh, an expandable 'inputs' folder with count 1, and a file row with a quality dot and size. The empty-state panel is fine. Nothing is broken and no undefined values appear."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, legible full-page capture. Large dead space: the file tree uses about 10% of its panel, the right panel is an empty placeholder, and there is a blank band below the panels."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i05-2-dataset-header.png",
+      "uc": "modules:I05-files-and-dataset-object",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Use a dataset with a green quality pill instead of orange 'Watch'."
+        ],
+        [
+          "openai",
+          "Select a dataset with at least one version so the header version-count chip appears."
+        ],
+        [
+          "openai",
+          "Crop more tightly around the dataset header to remove excessive dead space."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible, with no clipping or overlap; excessive empty space below dilutes the header focus."
+        ],
+        [
+          "google",
+          "Dataset object header lacks the required green quality pill."
+        ],
+        [
+          "google",
+          "Dataset object header lacks the required version chip."
+        ],
+        [
+          "anthropic",
+          "Quality pill is orange 'Watch'; intended state requires a green pill"
+        ],
+        [
+          "anthropic",
+          "Version chip missing; the file has no versions"
+        ],
+        [
+          "anthropic",
+          "Content-type badge shows 'text/plain' for a .fastq file"
+        ],
+        [
+          "anthropic",
+          "E2E test project name 'E2E File Tree 1789241690756' visible in breadcrumb"
+        ],
+        [
+          "anthropic",
+          "Raw UUID shown in inner breadcrumb"
+        ],
+        [
+          "anthropic",
+          "Duplicated explanatory sentence (page subtitle and panel footer)"
+        ],
+        [
+          "anthropic",
+          "Large empty space; should crop to the dataset header"
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i05-3-quality-tab.png",
+      "uc": "modules:I05-files-and-dataset-object",
+      "cons": "major",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "English alt does not describe the displayed FASTQ metrics; align it with the Chinese alt."
+        ],
+        [
+          "openai",
+          "Change '1 reads scanned' to '1 read scanned'."
+        ],
+        [
+          "openai",
+          "Use reader-friendly demo names instead of E2E identifiers."
+        ],
+        [
+          "openai",
+          "Tighten the crop to reduce empty space."
+        ],
+        [
+          "openai",
+          "[content] FASTQ metrics and Watch verdict are consistent. Minor grammar error: '1 reads scanned'. Test-style project/file names are distracting."
+        ],
+        [
+          "openai",
+          "[ui_elements] Quality tab is selected; controls and verdict badges are complete and aligned. No broken elements visible."
+        ],
+        [
+          "anthropic",
+          "The English alt describes shape/effective N/class balance (tabular), but the screenshot shows FASTQ reads/read length; the EN and ZH alts contradict each other."
+        ],
+        [
+          "anthropic",
+          "An E2E test project name ('E2E File Tree 1789241690756') is visible in the breadcrumb."
+        ],
+        [
+          "anthropic",
+          "The breadcrumb exposes a raw UUID instead of a filename."
+        ],
+        [
+          "anthropic",
+          "Pluralization bug: '1 reads scanned'."
+        ],
+        [
+          "anthropic",
+          "The demo data is a toy file (72 B, 1 read, Phred 7.4) and is not a realistic example."
+        ],
+        [
+          "anthropic",
+          "Mean base quality, mentioned in the ZH alt, is not shown as a metric tile; it appears only in the summary text."
+        ],
+        [
+          "anthropic",
+          "There is large empty space below the panel and in the file tree, so the crop could be tighter."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Tabs, badges and action buttons are complete and aligned. The Quality tab is clearly active, and the header 'Watch' pill matches the panel's Watch verdict. Nothing is broken or undefined. However, the breadcrumb shows a raw UUID (c7328277-be43-\u2026) instead of a friendly path."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp and legible, with no clipping or overlap. The bottom third of the page and most of the Files panel are empty space. Cropping tighter to the detail panel would help."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i08-1-outputs-tab.png",
+      "uc": "modules:I08-outputs-viewers-interactive",
+      "cons": "major",
+      "n_major": 2,
+      "issues": [
+        [
+          "openai",
+          "Generating steps are not identifiable beyond 'run'."
+        ],
+        [
+          "openai",
+          "Use a shorter crop with fewer expanded previews and visible Outputs context."
+        ],
+        [
+          "openai",
+          "Preview text is clipped without a visible scroll cue in several panes."
+        ],
+        [
+          "openai",
+          "Replace 'dl' with 'Download' for clearer manual-facing actions."
+        ],
+        [
+          "openai",
+          "[content] Raw JSON/TXT is appropriate for file previews. Rows show only generic 'run' metadata, not an identifiable generating step."
+        ],
+        [
+          "google",
+          "Bottom line of text/code is horizontally clipped in all expanded file cards"
+        ],
+        [
+          "google",
+          "Broken/confusing rendering in the third card (mix of raw JSON and parsed string)"
+        ],
+        [
+          "google",
+          "Intended state alt text uses outdated 'Outputs' terminology instead of 'Results'"
+        ],
+        [
+          "google",
+          "[ui_elements] Every expanded file viewer card has its bottom line of text/code horizontally clipped (e.g., 'vd_lkg' in card 1, 'ClinTox' in card 2). The third card ('predict_admet_properties_results.json') displays a broken rendering, showing raw JSON followed by a floating 'result' label and a parsed text block."
+        ],
+        [
+          "google",
+          "[clarity] The consistent clipping of file contents and broken rendering in the third card make the UI appear buggy and unsuitable for official documentation."
+        ],
+        [
+          "anthropic",
+          "Shot shows all viewers expanded instead of the compact file-row list the intended alt describes"
+        ],
+        [
+          "anthropic",
+          "Step column shows generic 'run' for every file, so the per-file step is not distinguishable"
+        ],
+        [
+          "anthropic",
+          "Raw escaped JSON string with literal \\n in results.json, duplicated by the parsed 'result' block"
+        ],
+        [
+          "anthropic",
+          "Filename truncated 'predict_admet_properties_results.js\u2026'"
+        ],
+        [
+          "anthropic",
+          "Inconsistent icons: TXT row uses a different icon; versions.yml uses the JSON '{}' icon"
+        ],
+        [
+          "anthropic",
+          "'dl' abbreviation is unclear and inconsistent with the 'Download versions.yml' label"
+        ],
+        [
+          "anthropic",
+          "Preview panes clipped mid-line at the bottom throughout"
+        ],
+        [
+          "anthropic",
+          "Inconsistent action buttons across file types: no RStudio on TXT, no preview for YAML"
+        ],
+        [
+          "anthropic",
+          "Confirm 'Outputs' is a section within the current 'Results' tab, not the stale three-tab layout"
+        ],
+        [
+          "anthropic",
+          "[content] The step column shows only the generic 'run' for every file, so it does not convey which pipeline step produced each file. Values are broadly consistent across files: DILI 0.855, worst-compound hERG 0.974, PPB 99.1. The intended alt calls this the 'Outputs section'. That wording matches the stale three-tab layout, so it needs confirming that this sits inside the current 'Results' tab and not an old 'Outputs' tab. No 'undefined' or placeholder text is visible."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Each row header shows the file name, type badge, '\u00b7 run', and 'view'/'dl' links. Problems: (1) The terse 'dl' label is inconsistent with the 'Download versions.yml' wording. (2) The TXT row uses a different (image-like) icon from the '{}' icon on the others, including versions.yml, which is YAML, not JSON. (3) A filename is truncated as 'predict_admet_properties_results.js\u2026'. (4) The results.json viewer dumps the 'result' field as a raw escaped string with literal '\\n' sequences, then repeats it under a 'result' label (duplicated content). (5) Action sets differ by file: the TXT row has no RStudio button, and versions.yml has no preview, only a download link. (6) The badge reads 'YML' rather than 'YAML'."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i09-1-three-tabs.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Remove stale top-right 'Download report' action; retain 'Download findings'."
+        ],
+        [
+          "openai",
+          "Identify Compound 1 in summary badges or summarize both compounds."
+        ],
+        [
+          "openai",
+          "Tighten side margins and avoid clipping the bottom explanatory text."
+        ],
+        [
+          "openai",
+          "[ui_elements] Two tabs and Download findings are present; an additional stale Download report action remains at top right."
+        ],
+        [
+          "google",
+          "Top-right button uses deprecated 'Download report' label instead of 'Download findings'."
+        ],
+        [
+          "google",
+          "[content] Stale terminology present. Top-right button is labeled 'Download report' instead of the required 'Download findings'. Tabs correctly reflect the new two-tab structure."
+        ],
+        [
+          "google",
+          "[clarity] Clear layout but incorrect button label contradicts current product state."
+        ],
+        [
+          "anthropic",
+          "Stale 'Download report' link shown alongside 'Download findings'; old label should be removed"
+        ],
+        [
+          "anthropic",
+          "Headline chips show Compound 1 values only, unlabeled; misleading for a 2-compound run (Compound 2 hERG 0.974 elevated)"
+        ],
+        [
+          "anthropic",
+          "Footer caption clipped at bottom of crop"
+        ],
+        [
+          "anthropic",
+          "Raw 'runId:' debug line at top"
+        ],
+        [
+          "anthropic",
+          "No Compound column; repeated metric names rely on a text prefix"
+        ],
+        [
+          "anthropic",
+          "Inconsistent interpretation phrasing (judgement vs bare value); lowercase 'blood-brain'"
+        ],
+        [
+          "anthropic",
+          "Screenshot unreferenced by any manual page; orphan asset"
+        ],
+        [
+          "anthropic",
+          "Excess horizontal whitespace"
+        ],
+        [
+          "anthropic",
+          "[content] The summary chips show only Compound 1 values (hERG 0.003, DILI 0.855, Oral 0.873) with no compound label. This hides Compound 2's elevated hERG 0.974 and CYP2D6 0.817. Interpretation wording is inconsistent: some rows give an 'Acceptable/Elevated' judgement, others just restate the value (BBB, PPB, Caco-2, CYP3A4). Lowercase 'blood-brain' differs from the capitalised style of other rows. The caveat is appropriate."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Correct two tabs (Results, Reproducibility record). A stale 'Download report' link sits in the header alongside the new 'Download findings' button, giving two conflicting download actions. A raw 'runId:' debug-style line appears above the panel. The table has no Compound column, so metric names repeat and are told apart only by a '(Compound N)' text prefix."
+        ],
+        [
+          "anthropic",
+          "[clarity] Readable results view, but not referenced by any manual page, so it currently serves no documentation purpose. The duplicate download actions and unlabeled chips would confuse readers."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i09-2-reproducibility-record.png",
+      "uc": "modules:I09-reports-and-reproducibility",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Replace 'Download report' with 'Download findings'."
+        ],
+        [
+          "openai",
+          "Expand Resolved parameters to match the intended state."
+        ],
+        [
+          "openai",
+          "Compute checksums for a more informative SHA-256 example."
+        ],
+        [
+          "openai",
+          "Crop excess side margins."
+        ],
+        [
+          "openai",
+          "[content] Correct two-tab layout, but stale 'Download report' should be 'Download findings'. All SHA-256 values are uncomputed dashes."
+        ],
+        [
+          "google",
+          "Top-right button text is 'Download report' instead of 'Download findings'."
+        ],
+        [
+          "google",
+          "[content] Tabs correctly reflect the new two-tab layout ('Results', 'Reproducibility record'). However, the top-right button incorrectly says 'Download report' instead of the required 'Download findings'."
+        ],
+        [
+          "google",
+          "[clarity] Shows the intended tab, but the stale button text contradicts the updated terminology."
+        ],
+        [
+          "anthropic",
+          "Stale 'Download report' button; should be 'Download findings'"
+        ],
+        [
+          "anthropic",
+          "SHA-256 column all '\u2013'; run 'Compute checksums' before capture"
+        ],
+        [
+          "anthropic",
+          "'Resolved parameters' section collapsed despite alt text describing it"
+        ],
+        [
+          "anthropic",
+          "Input bindings (0) with 'predates input-binding capture' message contradicts the self-contained demo data"
+        ],
+        [
+          "anthropic",
+          "toolParameters shows raw '{}'; parameters are uninformative"
+        ],
+        [
+          "anthropic",
+          "Stray debug 'runId:' line at top; crop it out"
+        ],
+        [
+          "anthropic",
+          "Excess side whitespace; tighten the crop"
+        ],
+        [
+          "anthropic",
+          "dag.dot typed as 'binary' looks wrong"
+        ],
+        [
+          "anthropic",
+          "[content] The header action reads 'Download report', which is the OLD label; it should be 'Download findings'. Input bindings (0) says the 'run predates input-binding capture, or has none', which contradicts cold-start examples that attach demo data. Parameters show only version 1 / {}, which is near-empty. Questionable types: dag.dot is labelled binary and output.txt is labelled table."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i10-1-models.png",
+      "uc": "modules:I10-models",
+      "cons": "major",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "Replace the cold-start prompt 'train a potency predictor on our assay data' with a self-contained demo-data example or explicit dataset attachment instructions."
+        ],
+        [
+          "openai",
+          "[ui_elements] Tabs, count badge, panels, and model-family cards are aligned and consistent; no visibly broken components."
+        ],
+        [
+          "openai",
+          "[quality] Sharp, legible, fully framed; no clipping or overlap."
+        ],
+        [
+          "google",
+          "[ui_elements] UI components are complete, consistent, and aligned. No broken, missing, or duplicated elements. No raw code or placeholders visible."
+        ],
+        [
+          "google",
+          "[quality] Good resolution, clear text, appropriate cropping. No clipping or overlap issues. Layout is well-spaced."
+        ],
+        [
+          "anthropic",
+          "'5 registered' badge next to the 'hasn't trained a model yet' empty state reads as contradictory without context; the manual should explain that registered models can come from outside training, or use a consistent demo state."
+        ],
+        [
+          "anthropic",
+          "The empty Training runs card adds little; consider a demo project with one training run to show the run row."
+        ],
+        [
+          "anthropic",
+          "[content] Terminology is coherent: dataset \u2192 train \u2192 quality gate \u2192 register; the right-side note 'same compute, same gates, same tracking as a workflow run'; and four model families. One apparent inconsistency: the header badge says '5 registered' while Training runs says 'This project hasn't trained a model yet'. This may be valid if the models are pre-registered or imported, but the screen does not explain it."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Breadcrumb, title with count badge, and five-tab bar (Train active) are complete, with consistent icons and alignment. The numbered training-loop list and the 2x2 model-family cards are aligned and consistent. No undefined values, placeholders, or raw code."
+        ],
+        [
+          "anthropic",
+          "[quality] Crisp, high-resolution, well-cropped full panel; no clipping or overlap. The layout is generous but not wasteful, though the empty 'Training runs' card takes up a full band of space."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i10-2-registry.png",
+      "uc": "tutorials:T2-models-and-the-closed-loop",
+      "cons": "ok",
+      "n_major": 0,
+      "issues": [
+        [
+          "openai",
+          "[quality] Sharp, legible, fully framed; no clipping or overlap."
+        ],
+        [
+          "google",
+          "[ui_elements] All components are complete, consistent, and well-aligned. Table rows and navigation tabs are rendered correctly with no placeholders."
+        ],
+        [
+          "anthropic",
+          "Evo2 rows repeat the size as the version ('7B 7b', '40B 40b'); this looks like a data or label bug."
+        ],
+        [
+          "anthropic",
+          "Column headers are not aligned with their cell values (Family, Origin, Used by)."
+        ],
+        [
+          "anthropic",
+          "All models show 'Used by 0' and none is a trained or house model, which weakens the closed-loop narrative."
+        ],
+        [
+          "anthropic",
+          "Breadcrumb reads the generic 'Project / Models' with no project name."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Tabs (Train, House style, Rounds, Run a model, Registry) are complete, and Registry is clearly selected. The table is complete with row chevrons. Column headers (Family, Origin, Used by) are slightly offset from their cell values, so header and cell alignment looks inconsistent. Nothing is broken and there are no placeholders."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, legible, well-cropped. No clipping or overlap. A little dead space at the bottom and to the right of the tab bar."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i10-3-model-object.png",
+      "uc": "tutorials:T2-models-and-the-closed-loop",
+      "cons": "minor",
+      "n_major": 0,
+      "issues": [
+        [
+          "openai",
+          "Polish the verdict label from 'not_evaluated' to 'Not evaluated'."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible; no clipping or overlap."
+        ],
+        [
+          "google",
+          "[ui_elements] All UI components are complete, consistent, and properly aligned. No placeholders or broken elements."
+        ],
+        [
+          "google",
+          "[quality] Good resolution, clear crop, legible text, no clipping or overlap."
+        ],
+        [
+          "anthropic",
+          "Raw enum 'not_evaluated' displayed instead of a human label (e.g. 'Not evaluated')"
+        ],
+        [
+          "anthropic",
+          "Inconsistent empty-value dash glyphs between the Measured and Threshold columns"
+        ],
+        [
+          "anthropic",
+          "Generic placeholder-like gate name 'quality gate' with no metric or threshold"
+        ],
+        [
+          "anthropic",
+          "Evidence tab is empty, so it is a weak illustration for the T2 closed-loop tutorial; consider a model with an evaluated gate"
+        ],
+        [
+          "anthropic",
+          "'self-host' label lacks context (hosting mode?) and reads as stray text"
+        ],
+        [
+          "anthropic",
+          "[content] Model identity is consistent (Boltz-2 2.0, bionemo:boltz2, structure). No stale report tabs appear. The only evidence row is a generic 'quality gate' with no measured value, no threshold and no verdict, so it reads as a placeholder rather than real evidence."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, legible, well cropped; no clipping or overlap. Moderate empty space right of the tab bar and below the caption."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i10-4-rounds.png",
+      "uc": "tutorials:T2-models-and-the-closed-loop",
+      "cons": "minor",
+      "n_major": 0,
+      "issues": [
+        [
+          "openai",
+          "Empty-state instruction does not explain where or how to start a loop."
+        ],
+        [
+          "openai",
+          "[ui_elements] Rounds is clearly selected; tabs and panel are aligned, with no clipping, overlap, or broken values."
+        ],
+        [
+          "google",
+          "[content] Empty state copy is informative and uses appropriate domain terminology. No stale or contradictory content detected."
+        ],
+        [
+          "anthropic",
+          "Empty state shown instead of a populated closed-loop view; little illustrative value for T2. Recapture with demo data attached."
+        ],
+        [
+          "anthropic",
+          "Empty state has no 'Start loop' button or CTA despite instructing the user to start one."
+        ],
+        [
+          "anthropic",
+          "Mixed monospace/sans-serif typography in the card's lead text and breadcrumb looks unstyled."
+        ],
+        [
+          "anthropic",
+          "Excess dead space right of the tabs; could crop tighter."
+        ],
+        [
+          "anthropic",
+          "[content] Terminology is consistent and accurate: design\u00b7make\u00b7test\u00b7analyse, surrogate, refit as a tracked training run, censored IC50 > 30 \u00b5M fitted as an inequality, safety-gate reason. No stale report tabs or 'Download report' button appear. No 'undefined' values or raw code."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Breadcrumb, 'Models \u00b7 5 registered' badge, and the five-tab bar (Train, House style, Rounds, Run a model, Registry) are complete and aligned, with Rounds clearly active. Two problems: the empty-state card has no CTA to start a loop, even though the text says 'Start a design\u2013make\u2013test\u2013analyse loop'; and the lead paragraph and breadcrumb use a monospace font while the heading and bullets use sans-serif, which reads like unstyled placeholder text."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, legible, well cropped. Large empty margin on the right of the tab bar and below the card, but no clipping or overlap."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i11-1-design.png",
+      "uc": "modules:I11-design-and-generate",
+      "cons": "major",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "Property envelope claims range windows, but provides only maximum-value fields; revise the wording or show lower and upper bounds."
+        ],
+        [
+          "openai",
+          "[content] Property-envelope description contradicts the controls: 'a window, not a cut-off' shows only upper cut-offs (MW \u2264 500, logP \u2264 5, TPSA \u2264 140)."
+        ],
+        [
+          "openai",
+          "[ui_elements] Controls are aligned and consistently styled; no clipping, overlap, or broken elements visible."
+        ],
+        [
+          "google",
+          "[ui_elements] Form controls (segmented buttons, text inputs, textareas, primary button) are consistently styled, properly aligned, and fully rendered. No broken elements or raw code."
+        ]
+      ],
+      "errs": [
+        "anthropic"
+      ]
+    },
+    {
+      "asset": "i11-3-multi-objective.png",
+      "uc": "modules:I11-design-and-generate",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "BM-0001\u2013BM-0004 are Accepted despite property_envelope 0 failing the displayed \u22651 target."
+        ],
+        [
+          "openai",
+          "Intro denies a blended number, while the footnote defines score as a mean of normalised objective scores; distinguish ranking aggregation from optimisation."
+        ],
+        [
+          "openai",
+          "[ui_elements] Columns and rows are complete and aligned; no clipping or broken components visible."
+        ],
+        [
+          "google",
+          "Candidates accepted despite failing a stated objective requirement (0 vs \u2265 1)"
+        ],
+        [
+          "google",
+          "[content] Contradictory data: Candidates BM-0001 through BM-0004 are marked as 'Accepted' despite scoring '0' on the 'property_envelope' metric, which explicitly requires '(\u2265 1)'."
+        ],
+        [
+          "google",
+          "[clarity] The layout clearly shows multi-objective scoring, but the logically inconsistent verdicts make the screenshot confusing and unsuitable for documentation."
+        ],
+        [
+          "anthropic",
+          "property_envelope = 0 for all 8 candidates against target \u2265 1: degenerate or broken objective output"
+        ],
+        [
+          "anthropic",
+          "BM-0001 to BM-0004 'Accepted' despite failing the property_envelope target: verdict contradicts the displayed targets"
+        ],
+        [
+          "anthropic",
+          "drug_like values of exactly 1 and 0 look like normalised scores, not raw QED; the 'QED' unit label is likely wrong"
+        ],
+        [
+          "anthropic",
+          "score* = drug_like/2 in every row, so the ranking reflects one objective only and the example is uninformative"
+        ],
+        [
+          "anthropic",
+          "Excess whitespace in the property_envelope column; redundant unit text in every cell"
+        ],
+        [
+          "anthropic",
+          "[content] Internally contradictory. Every candidate shows property_envelope = 0 against a target of \u2265 1, so all fail that objective, yet BM-0001 to BM-0004 are marked 'Accepted'. drug_like values look min-max normalised (exactly 1 and exactly 0; score = drug_like/2 in every row) but are labelled as raw QED. An all-zero envelope column suggests a broken or degenerate computation or demo data."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Table, headers, verdict colours and 'why?' links are complete and aligned. Rejected rows are dimmed consistently. No undefined, placeholder or raw-code text."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i12-1-connectors-dialog.png",
+      "uc": "modules:I12-connectors-and-skills",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Tab label does not match intended state."
+        ],
+        [
+          "openai",
+          "Residency explanation conflicts with undeclared execution locations."
+        ],
+        [
+          "openai",
+          "Scope preview selectors and checked rows lack an explanation of their effect."
+        ],
+        [
+          "openai",
+          "Rightmost category and bottom row text are clipped."
+        ],
+        [
+          "google",
+          "Category filters clipped on right edge"
+        ],
+        [
+          "google",
+          "Pervasive 'not declared' placeholders in DECLARED FACTS column"
+        ],
+        [
+          "google",
+          "Tab name 'Public Databases' mismatches intended 'Scientific Databases'"
+        ],
+        [
+          "google",
+          "[content] Tab label 'Public Databases' mismatches intended 'Scientific Databases'. Placeholder data makes the feature look incomplete."
+        ],
+        [
+          "google",
+          "[ui_elements] Category filters overflow on the right ('Disease...'). The 'DECLARED FACTS' column is filled with 'not declared' placeholders for every row."
+        ],
+        [
+          "anthropic",
+          "Tab named 'Public Databases' vs intended 'Scientific Databases'; dialog titled 'Connectors reference'"
+        ],
+        [
+          "anthropic",
+          "Declared Facts column is 'not declared' for every row (placeholder-like data)"
+        ],
+        [
+          "anthropic",
+          "Intro says nothing to connect or switch on, but checkboxes and scope selectors are present (contradiction)"
+        ],
+        [
+          "anthropic",
+          "'Clear your stars' footer link with no star UI visible"
+        ],
+        [
+          "anthropic",
+          "Duplicate count badges (e.g. 6 and 6\u2713) unexplained"
+        ],
+        [
+          "anthropic",
+          "Category tab strip clipped at right ('Disease\u2026')"
+        ],
+        [
+          "anthropic",
+          "Ensembl row description truncated at the bottom"
+        ],
+        [
+          "anthropic",
+          "Only 'cloud' residency shown, so the badge variety in the legend is not demonstrated"
+        ],
+        [
+          "anthropic",
+          "Logo cropped and overlapping the BETA badge at top-left"
+        ],
+        [
+          "anthropic",
+          "[content] The tab is labelled 'Public Databases', not the 'Scientific Databases' the manual refers to. The dialog title is 'Connectors reference', not 'Connectors'. Every row's Declared Facts read 'not declared' for needs, produces and where it runs, which is placeholder-grade data. The intro says 'there is nothing to connect or switch on here', yet the rows carry checkboxes and scope selectors, which contradicts it. All visible residency badges are 'cloud', so the legend's other residency types (on-prem, mounted, this machine, prompt only) are never shown."
+        ],
+        [
+          "anthropic",
+          "[clarity] The screen broadly matches the intent: the Connectors dialog from the sidebar, with residency badges and scope selectors visible. However, the all-'not declared' facts, the unexplained checkboxes and stars, and the contradictory intro make it confusing as a manual illustration."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "i13-1-cro-library.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 2,
+      "issues": [
+        [
+          "openai",
+          "Page-not-found capture is unsuitable for workflow documentation unless explicitly illustrating error recovery."
+        ],
+        [
+          "openai",
+          "Large blank margins should be cropped."
+        ],
+        [
+          "openai",
+          "[content] Shows 'Page not found' rather than a product workflow; error copy and 'Back to BioMate' label are consistent."
+        ],
+        [
+          "openai",
+          "[ui_elements] Error card, icon, text and recovery button are complete and aligned."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible, with no clipping or overlap; excessive blank space surrounds the card."
+        ],
+        [
+          "openai",
+          "[clarity] Error and recovery action are clear, but this unreferenced image has no established manual purpose."
+        ],
+        [
+          "google",
+          "Excessive empty space"
+        ],
+        [
+          "google",
+          "Unreferenced 404 error page screenshot"
+        ],
+        [
+          "google",
+          "[content] Shows a 404 error page. Irrelevant to core BioMate workflows."
+        ],
+        [
+          "google",
+          "[clarity] Clear as an error page, but useless for a manual as it is unreferenced."
+        ],
+        [
+          "anthropic",
+          "Screenshot is unreferenced by any manual page; it is an orphan asset and a candidate for removal."
+        ],
+        [
+          "anthropic",
+          "It may indicate a capture-script route that 404'd. Verify that no intended screenshot was replaced by this page."
+        ],
+        [
+          "anthropic",
+          "Excessive empty space; crop tightly to the card if it is kept."
+        ],
+        [
+          "anthropic",
+          "[content] Generic not-found message. Nothing wrong or stale, and no report tabs or Download button are involved."
+        ],
+        [
+          "anthropic",
+          "[clarity] Self-explanatory as an error state. It is not referenced by any manual page, so it serves no documented use case. If it was captured in place of an intended page, that suggests a broken route during capture."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "m0-1-intent-bar.png",
+      "uc": "tutorials:T0-getting-started",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Lane-preview terminology does not match the intended 'Instant \u00b7 cited answer' state."
+        ],
+        [
+          "openai",
+          "Cloud-confirmation wording differs from the specified line."
+        ],
+        [
+          "openai",
+          "Crop includes unnecessary sidebar/account area and cuts tightly against suggestion chips."
+        ],
+        [
+          "openai",
+          "[ui_elements] Composer, preview, and send button are complete and aligned; no visible overlap or broken controls."
+        ],
+        [
+          "google",
+          "Lane preview text mismatch ('Answer here \u00b7 with sources' instead of 'Instant \u00b7 cited answer')"
+        ],
+        [
+          "google",
+          "Disclaimer text mismatch ('ask before starting any compute' instead of 'confirm before running anything cloud')"
+        ],
+        [
+          "google",
+          "Poor crop (too wide, excessive empty space, top elements cut off)"
+        ],
+        [
+          "google",
+          "[content] Stale or incorrect terminology: lane preview shows 'Answer here \u00b7 with sources' instead of the intended 'Instant \u00b7 cited answer'. The disclaimer reads 'BioMate will ask before starting any compute.' instead of the intended 'BioMate will confirm before running anything cloud'."
+        ],
+        [
+          "google",
+          "[ui_elements] Components appear intact, aligned, and functional. No broken elements or placeholders visible."
+        ],
+        [
+          "anthropic",
+          "Lane label mismatch: the screen shows 'Answer here \u00b7 with sources' but the intended and alt text say 'Instant \u00b7 cited answer'. Either the doc copy or the screenshot is stale."
+        ],
+        [
+          "anthropic",
+          "Consent line wording differs from intended: 'ask before starting any compute' vs 'confirm before running anything cloud'."
+        ],
+        [
+          "anthropic",
+          "Example chips are clipped at the top edge of the crop."
+        ],
+        [
+          "anthropic",
+          "The left sidebar adds dead space and shows a test-fixture account name and truncated email. Crop to the composer and lane strip, or use a clean demo account."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Composer is complete: attach, import and data icons, the filled input, and the send button. The Instructions/Experts toggles and the lane-preview strip render cleanly. No broken or placeholder elements are visible."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "m1-1-search-module.png",
+      "uc": "tutorials:M1-search-and-evidence",
+      "cons": "minor",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "Make quoted cold-start intents self-contained with named targets/chemotypes or explicit demo context."
+        ],
+        [
+          "openai",
+          "Resolve or disambiguate the four identically named sidebar projects."
+        ],
+        [
+          "openai",
+          "Use a tighter card-focused crop and avoid clipped branding."
+        ],
+        [
+          "google",
+          "Sidebar Projects list duplicates 'IL-17A Cyclic Peptide Pilot' four times."
+        ],
+        [
+          "google",
+          "[ui_elements] Target component renders correctly. Sidebar 'Projects' list shows duplicated entries."
+        ],
+        [
+          "anthropic",
+          "Logo wordmark clipped and overlapping the sidebar toggle icon"
+        ],
+        [
+          "anthropic",
+          "Four duplicate 'IL-17A Cyclic Peptide Pilot' project entries in the sidebar"
+        ],
+        [
+          "anthropic",
+          "Two composers visible (top goal bar and bottom chat bar), so it is ambiguous which one the example intents seed"
+        ],
+        [
+          "anthropic",
+          "Card subtitle omits 'Internal' despite the Internal tab"
+        ],
+        [
+          "anthropic",
+          "Inconsistent casing: 'Design & Generate' vs 'Design & generate'"
+        ],
+        [
+          "anthropic",
+          "Large empty area below the cards; consider cropping to the focus card"
+        ],
+        [
+          "anthropic",
+          "[content] Tab labels and example intents match the intended state, and nothing has been sent. The card subtitle 'literature, databases and patents' omits Internal, although Internal is a tab. Casing is inconsistent: the sidebar says 'Design & Generate' and the card says 'Design & generate'. Duplicate project names look like fixture junk."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "m2-1-data-analysis-module.png",
+      "uc": "tutorials:M2-data-analysis",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Select Validated workflows and capture a selected domain with workflow rows showing title, required inputs and time, including sample badges."
+        ],
+        [
+          "openai",
+          "Current cold-start examples do not visibly establish runnable demo inputs."
+        ],
+        [
+          "openai",
+          "Repeated project names and clipped branding distract from the tutorial focus."
+        ],
+        [
+          "google",
+          "'Ad-hoc compute' tab is selected instead of 'Validated workflows'."
+        ],
+        [
+          "google",
+          "Missing domain chips and workflow shapes."
+        ],
+        [
+          "google",
+          "Missing 'sample' badges."
+        ],
+        [
+          "google",
+          "Duplicated project names in the left sidebar."
+        ],
+        [
+          "google",
+          "[ui_elements] Left sidebar contains duplicated project entries ('IL-17A Cyclic Peptide Pilot' appears four times)."
+        ],
+        [
+          "google",
+          "[clarity] Fails to illustrate the intended state for the tutorial, as it shows the wrong track within the Data analysis module."
+        ],
+        [
+          "anthropic",
+          "Wrong track selected: Ad-hoc compute active instead of Validated workflows"
+        ],
+        [
+          "anthropic",
+          "Domain chips missing"
+        ],
+        [
+          "anthropic",
+          "Workflow shape rows (title \u00b7 needs \u00b7 time) missing"
+        ],
+        [
+          "anthropic",
+          "No 'sample' badges shown"
+        ],
+        [
+          "anthropic",
+          "Sidebar has 4 duplicate 'IL-17A Cyclic Peptide Pilot' projects (fixture data)"
+        ],
+        [
+          "anthropic",
+          "Logo 'AI' clipped and overlapped by collapse icon"
+        ],
+        [
+          "anthropic",
+          "Duplicate icons across nav and cards (flask, sparkle)"
+        ],
+        [
+          "anthropic",
+          "Not cropped to focus; large empty areas"
+        ],
+        [
+          "anthropic",
+          "[content] The card shows ad-hoc prompt examples ('Summarise this assay table\u2026', etc.) instead of the validated workflow shapes (title \u00b7 what it needs \u00b7 time). The duplicated project names look like fixture junk. 'Input your use case here' is an odd label above the example chips."
+        ],
+        [
+          "anthropic",
+          "[quality] Full-window capture is sharp and legible. There is lots of dead space, and the shot is not cropped to the focus card. The logo's 'AI' suffix is clipped and overlapped by the sidebar-collapse icon. A heavy black divider line sits above the composer."
+        ],
+        [
+          "anthropic",
+          "[clarity] Does not match the intended state. A reader following the Validated workflows tutorial step would see the wrong track and none of the elements the caption or alt text describes."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "r-fail-state.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Overall progress contradicts step progress."
+        ],
+        [
+          "openai",
+          "QC review, blocked/adjusting message, and Done status conflict."
+        ],
+        [
+          "openai",
+          "Analysis-plan preview starts mid-word."
+        ],
+        [
+          "openai",
+          "Lower QC settings are obscured by the bottom control bar."
+        ],
+        [
+          "openai",
+          "[content] Self-contained SMILES input. Inconsistent progress: overall 100% while Running, with steps at 50% (1/2). QC says Review Required while chat says blocked/adjusting and the affected step is Done."
+        ],
+        [
+          "google",
+          "Black action bar overlaps and hides QC GATES content."
+        ],
+        [
+          "google",
+          "Contradictory progress indicators (100% overall vs 50% steps while Running)."
+        ],
+        [
+          "google",
+          "Truncated text in Analysis plan."
+        ],
+        [
+          "google",
+          "[ui_elements] The black floating action bar ('Pause', 'Stop') overlaps and obscures the 'QC GATES' parameters. Top progress bar incorrectly shows 100% while workflow is still 'Running' and step progress is 50%."
+        ],
+        [
+          "google",
+          "[quality] Clear resolution, but significant layout overlap at the bottom right."
+        ],
+        [
+          "google",
+          "[clarity] The overlapping UI and contradictory progress indicators make this screenshot confusing and unsuitable for documentation."
+        ],
+        [
+          "anthropic",
+          "Progress 100% vs Running and steps 50% 1/2"
+        ],
+        [
+          "anthropic",
+          "Step 2 DONE while step 1 still RUNNING"
+        ],
+        [
+          "anthropic",
+          "Chat says admet-merge done while QC gate still requires review"
+        ],
+        [
+          "anthropic",
+          "QC message 'adjusting parameters' contradicts 'Pipeline continues in 0:10 unless you act'"
+        ],
+        [
+          "anthropic",
+          "Unlabeled checkbox/X icons in run header"
+        ],
+        [
+          "anthropic",
+          "'1 phase' vs phase card labeled 'Steps' with badge 2"
+        ],
+        [
+          "anthropic",
+          "Analysis plan text truncated mid-word"
+        ],
+        [
+          "anthropic",
+          "QC Gates list clipped behind Pause/Stop bar"
+        ],
+        [
+          "anthropic",
+          "Screenshot unreferenced by any manual page (orphan asset)"
+        ],
+        [
+          "anthropic",
+          "[content] Several states contradict each other. The top progress bar shows 100% while the run is 'Running' and the steps bar shows 50% (1/2). Step 2 'Predict Admet Properties' is DONE while step 1 'Admet Infer Shard' is still RUNNING, which breaks the step order. The chat log says 'PREDICT_ADMET_PROPERTIES (admet-merge) done', yet the QC gate for admet-merge still shows 'Review Required'. The chat's 'QC blocked\u2026 adjusting parameters' conflicts with the gate's 'Pipeline continues in 0:10 unless you act'."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] The header controls (two empty checkboxes and an X beside 'Running') are unlabeled and look like broken or placeholder icons. The phase card is titled with the generic 'Steps' and badge '2', while the header says '1 phase'. The QC Gates rows mix monospace and regular fonts. The third gate row is clipped behind the action bar."
+        ],
+        [
+          "anthropic",
+          "[clarity] The screen is busy and its states contradict each other, so readers cannot tell what is actually happening in the run. It is not referenced by any manual page, so it has no documented purpose."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "r-merged-results-view.png",
+      "uc": "tutorials:W2-after-run-panel",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Replace the stale top-right 'Download report' action with current terminology."
+        ],
+        [
+          "openai",
+          "versions.yml lacks the inline preview promised by the intended state."
+        ],
+        [
+          "openai",
+          "Crop empty side margins and use detail shots to keep text readable."
+        ],
+        [
+          "openai",
+          "[content] Correct two-tab structure and 'Download findings' button, but the header still shows stale 'Download report'."
+        ],
+        [
+          "google",
+          "Top right action link says 'Download report' instead of the updated 'Download findings' terminology."
+        ],
+        [
+          "google",
+          "[content] Stale UI present: The top right corner shows a 'Download report' link, which violates the new terminology rules (should be 'Download findings'). The correct 'Download findings' button is visible inside the Findings Summary, creating a contradiction."
+        ],
+        [
+          "google",
+          "[clarity] The screenshot successfully shows the merged Results tab and inline previews, but the stale terminology causes confusion."
+        ],
+        [
+          "anthropic",
+          "Stale '\u2193 Download report' link top-right (old UI); should be only 'Download findings'"
+        ],
+        [
+          "anthropic",
+          "Raw debug 'runId: \u2026' text visible above the panel"
+        ],
+        [
+          "anthropic",
+          "results.json preview shows the 'result' field twice: once as an escaped string with literal \\n, once formatted"
+        ],
+        [
+          "anthropic",
+          "Filename truncated: 'predict_admet_properties_results.js\u2026'"
+        ],
+        [
+          "anthropic",
+          "Inconsistent action buttons: .txt card lacks 'Analyze in RStudio'"
+        ],
+        [
+          "anthropic",
+          "versions.yml card has no inline preview, contrary to 'each output previewed inline'"
+        ],
+        [
+          "anthropic",
+          "Third-party 'Biomni' branding in output header"
+        ],
+        [
+          "anthropic",
+          "Overly tall capture with tiny, hard-to-read text; should be cropped or collapsed"
+        ],
+        [
+          "anthropic",
+          "[content] ADMET values are internally consistent across the banner, the Key Results table and the outputs (e.g. hERG 0.003/0.974, DILI 0.855/0.043). The 'Download report' link is old-UI terminology that contradicts 'Download findings'. The txt output carries a third-party 'Biomni: Predict ADMET Properties' header, which is off-brand. The Source column repeats the same filename on all 18 rows, which adds noise."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Two tabs (Results / Reproducibility record) are correct, and the Findings Summary banner, search box ('Outputs (6)', 'showing 6 of 6') and inline previews are all present. However, a raw debug line 'runId: c79a9ccc-\u2026' sits above the panel, and a stale '\u2193 Download report' link appears top-right alongside the 'Download findings' button. The predict_admet_properties_results.json preview renders the 'result' field twice: once as an escaped \\n-laden string, then again formatted. Its filename is truncated ('predict_admet_properties_results.js\u2026'). The .txt card lacks 'Analyze in RStudio' while the others have it. versions.yml shows no preview, only a download link."
+        ],
+        [
+          "anthropic",
+          "[clarity] Broadly matches the intended state: merged Results tab, Findings banner on top, outputs inline with search. The stale link, the debug runId and the excessive length dilute it as a tutorial illustration. A tighter crop (banner plus one or two collapsed outputs and the search box) would teach better."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "r1-prerun-param-strip.png",
+      "uc": "tutorials:T11-drug-development-end-to-end",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Wrong primary view: no generated candidates, rankings, or objective columns."
+        ],
+        [
+          "openai",
+          "Malformed required parameter 'CN1C' contains remaining molecule-string fragments."
+        ],
+        [
+          "openai",
+          "Pre-run confirmation contradicts the chat's background-run message."
+        ],
+        [
+          "openai",
+          "Long SMILES input is not fully visible; large dead space weakens the manual crop."
+        ],
+        [
+          "google",
+          "Truncated text under 'Analysis plan' ('ed drugs with known...')"
+        ],
+        [
+          "google",
+          "Floating, unlabeled checkbox and 'X' icon in the right panel"
+        ],
+        [
+          "google",
+          "Incorrect parameter name 'CN1C' due to parsing error"
+        ],
+        [
+          "google",
+          "[content] Parameter parsing error: 'CN1C' is listed as a parameter name in the right panel, but it is clearly part of the SMILES string input."
+        ],
+        [
+          "google",
+          "[ui_elements] Broken UI in the right panel: there is a floating, unlabeled checkbox and 'X' icon below '1 phase'."
+        ],
+        [
+          "google",
+          "[clarity] Matches the 'alt' intended state (pre-run ADMET parameters), but the UI bugs and parsing errors make it unsuitable for documentation."
+        ],
+        [
+          "anthropic",
+          "Screenshot does not match intent: need /design results with ranked candidates and per-objective columns (reuse/recapture the T1 i11-3 view)."
+        ],
+        [
+          "anthropic",
+          "Parameter-mapping bug: SMILES list split at a comma, producing a bogus 'CN1C' parameter holding 'NC2=C1C(=O)N(...), CC(C)Cc1ccc...'."
+        ],
+        [
+          "anthropic",
+          "Smiles List field appears to hold a partial or duplicated list alongside the bogus param."
+        ],
+        [
+          "anthropic",
+          "Green chip shows raw 'CN1C: \"NC2=...\"' mapping with an Undo button, which exposes the bug."
+        ],
+        [
+          "anthropic",
+          "Inconsistency: panel says '1 phase' while the chat card says '2 steps'."
+        ],
+        [
+          "anthropic",
+          "'You can keep chatting while this run continues in the background' appears before Confirm & Run; Run Manager shows 0."
+        ],
+        [
+          "anthropic",
+          "Analysis plan preview is truncated mid-word ('ed drugs with known...')."
+        ],
+        [
+          "anthropic",
+          "Large empty chat area; clipped SMILES in the input fields."
+        ],
+        [
+          "anthropic",
+          "[content] Wrong screen for this step. The intent is Design & Generate (/design) ranked generated candidates with per-objective columns; this shows the ADMET workflow pre-run in chat. The parameter values are corrupted: SMILES was split at a comma and the fragment became a bogus 'CN1C' param. There are also internal inconsistencies: '1 phase' vs '2 steps', and 'You can keep chatting while this run continues' before the run is confirmed (Run Manager shows 0)."
+        ],
+        [
+          "anthropic",
+          "[clarity] Does not match the intended state. It shows none of the ranked candidates or per-objective results needed at this point in T11. Even under the alt intent (ADMET pre-run strip), the broken parameter mapping would mislead readers."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "r2-running.png",
+      "uc": "tutorials:T11-drug-development-end-to-end",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "QC maximum-percentage gate shows \u2265 rather than an upper-bound comparison; verify label/operator."
+        ],
+        [
+          "openai",
+          "Analysis preview begins 'ed drugs', appearing clipped."
+        ],
+        [
+          "openai",
+          "Excess blank chat space and bottom-cropped composer reduce screenshot focus."
+        ],
+        [
+          "openai",
+          "[content] SMILES inputs make the example self-contained. 'Cipa Apd90 Prolongation Max Pct' displays \u2265 30, contradicting its maximum-limit label."
+        ],
+        [
+          "google",
+          "Empty checkboxes and stray 'x' next to 'Running' badge in right panel"
+        ],
+        [
+          "google",
+          "Broken/truncated text under 'Analysis plan' in chat ('ed drugs...')"
+        ],
+        [
+          "google",
+          "[content] The text under 'Analysis plan' in the chat response is broken or improperly truncated, starting with 'ed drugs with known ADMET profiles...'."
+        ],
+        [
+          "google",
+          "[ui_elements] Broken UI in the right panel header under '1 phase': there are empty checkboxes and a stray 'x' surrounding the 'Running' badge."
+        ],
+        [
+          "google",
+          "[clarity] Matches the alt intended state showing the ADMET workflow running with QC gates, but the broken UI elements and text make it unsuitable for a manual."
+        ],
+        [
+          "anthropic",
+          "Wrong screen: chat/ADMET running view instead of /design results with ranked candidates and per-objective columns (reuse T1 i11-3)."
+        ],
+        [
+          "anthropic",
+          "Alt text describes the ADMET run, so it is mismatched with the intended design-results state."
+        ],
+        [
+          "anthropic",
+          "Mangled SMILES chip 'CN1C: \"NC2=\u2026\"' at top suggests a parsing bug."
+        ],
+        [
+          "anthropic",
+          "Header icons render as blank checkboxes and an unlabeled \u2715."
+        ],
+        [
+          "anthropic",
+          "Step timer 18s vs wall time 16s inconsistency."
+        ],
+        [
+          "anthropic",
+          "QC gate thresholds and operators are ambiguous; labels are raw parameter names."
+        ],
+        [
+          "anthropic",
+          "Duplicate step-progress card above the phase card; phase title is the generic 'Steps'."
+        ],
+        [
+          "anthropic",
+          "Pause/Stop bar overlaps the Wall time/Started card."
+        ],
+        [
+          "anthropic",
+          "Analysis plan preview is truncated mid-word."
+        ],
+        [
+          "anthropic",
+          "Large dead space in the chat pane."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Header action icons render as blank squares and an unlabeled \u2715 beside 'Running', so they look like broken or missing icons. The green chip at top shows a mangled key/value 'CN1C: \"NC2=C1C(=O)\u2026, CC(C)Cc1ccc\u2026\"' with Undo, which looks like a SMILES list mis-parsed into a key. Step progress is duplicated: a summary card ('Admet Infer Shard' 0/2) sits above the expanded phase card. The phase is titled only with the generic 'Steps'. QC gate names are raw parameter keys (title-cased, monospace)."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, legible full-window capture. The left chat pane is mostly empty below y\u2248650. The black Pause/Stop bar overlaps the bottom of the Wall time/Started card. The Analysis plan preview is clipped mid-word ('ed drugs with known\u2026')."
+        ],
+        [
+          "anthropic",
+          "[clarity] The shot matches its alt text (ADMET running with phase cards and QC gates) but contradicts the intended state for T11's design-results focus. A reader expecting ranked candidates with per-objective columns gets an in-progress ADMET run. That is misleading at this point in the end-to-end tutorial."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "r2b-running-metrics.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Remove stale 'Generating workflow...' text once execution starts."
+        ],
+        [
+          "openai",
+          "Capture the complete opening description rather than starting mid-sentence."
+        ],
+        [
+          "openai",
+          "Remove literal backticks from code pills and use reader-friendly QC labels."
+        ],
+        [
+          "openai",
+          "Unreferenced screenshot has no established manual purpose."
+        ],
+        [
+          "openai",
+          "[content] Three SMILES inputs make the example self-contained. 'Generating workflow...' remains visible despite the workflow already running, creating contradictory status messaging."
+        ],
+        [
+          "google",
+          "Broken chat message rendering in left panel (missing bubble container for 'WF' message)"
+        ],
+        [
+          "google",
+          "[ui_elements] Broken chat message UI in the left panel; the 'WF' avatar and 'Got it \u2014 starting your workflow now.' text are floating without a proper message bubble container."
+        ],
+        [
+          "google",
+          "[clarity] The broken UI element makes the chat history look buggy and confusing."
+        ],
+        [
+          "anthropic",
+          "Contradictory chat status: 'I've generated a workflow' followed by 'Generating workflow\u2026'"
+        ],
+        [
+          "anthropic",
+          "Chat pane cropped mid-sentence; the user prompt is missing"
+        ],
+        [
+          "anthropic",
+          "Phase named generically 'Steps', with redundant 'STEPS \u00b7 2' / '1 phase' / '2' badge"
+        ],
+        [
+          "anthropic",
+          "Raw key-style labels (Smiles List, Admet Infer Shard, Cipa Ead Probability Halt)"
+        ],
+        [
+          "anthropic",
+          "QC gates are cardiac-only and a halt gate uses '\u2265', which is ambiguous or inverted"
+        ],
+        [
+          "anthropic",
+          "Unlabeled checkbox beside the Running status"
+        ],
+        [
+          "anthropic",
+          "Duplicate step markers (timeline dots plus circled numbers)"
+        ],
+        [
+          "anthropic",
+          "Large empty area in the right panel"
+        ],
+        [
+          "anthropic",
+          "Screenshot is unreferenced by any manual page: remove it or link it"
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Chat shows '\u2705 I've generated a workflow for you' followed by an italic 'Generating workflow\u2026', a stale or duplicated progress line. The single phase has the generic name 'Steps' with a '2' badge, under a 'STEPS \u00b7 2' header and beside '1 phase', which is redundant and confusing. The step rows show both timeline dots and circled-number icons. An unlabeled checkbox sits next to the 'Running' pill. The Pause/Stop bar is a heavy full-width black band. Parameter and step names look like auto-title-cased raw keys ('Smiles List', 'Admet Model Type', 'Admet Infer Shard', 'Cipa Qnet High Risk Threshold')."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "r5-outputs.png",
+      "uc": "tutorials:W2-after-run-panel",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Wrong screenshot focus: output-file previews instead of the populated Findings Summary card."
+        ],
+        [
+          "openai",
+          "Required summary, metric chips, expanded Key Results, and Download findings button are absent."
+        ],
+        [
+          "openai",
+          "Long, small-text capture with clipped preview content is difficult to scan."
+        ],
+        [
+          "google",
+          "Broken UI component in predict_admet_properties_results.json showing raw escaped strings and floating text."
+        ],
+        [
+          "google",
+          "Missing primary intended focus: Findings Summary card, metric chips, and Download findings button are absent."
+        ],
+        [
+          "google",
+          "Does not show the new two-tab structure (Results / Reproducibility record) to confirm correct terminology."
+        ],
+        [
+          "google",
+          "[ui_elements] Major rendering bug in the 'predict_admet_properties_results.json' card: it displays the raw JSON string with '\\n' escape characters, a floating 'result' label outside any container, and then the parsed text below it."
+        ],
+        [
+          "google",
+          "[clarity] Poor. The broken JSON rendering makes the UI look buggy, and it fails to illustrate the requested Findings Summary card for the manual."
+        ],
+        [
+          "anthropic",
+          "Wrong screen: shows expanded output file previews instead of the Results tab Findings Summary card"
+        ],
+        [
+          "anthropic",
+          "Missing intended elements: summary paragraph with clickable number, metric chips, Key Results, Download findings button"
+        ],
+        [
+          "anthropic",
+          "No report tab bar visible, so the Results / Reproducibility record structure is unconfirmed"
+        ],
+        [
+          "anthropic",
+          "Raw escaped \\n string in the results.json 'result' field, duplicated by the rendered block below it"
+        ],
+        [
+          "anthropic",
+          "Previews truncated mid-line in several files"
+        ],
+        [
+          "anthropic",
+          "Inconsistent icon for the TXT file (folder vs {})"
+        ],
+        [
+          "anthropic",
+          "Inconsistent action buttons: TXT lacks RStudio; versions.yml has no preview"
+        ],
+        [
+          "anthropic",
+          "'Biomni:' branding appears in output text"
+        ],
+        [
+          "anthropic",
+          "Excessively tall capture that is illegible at manual scale; alt text describes Outputs, contradicting the intended focus"
+        ],
+        [
+          "anthropic",
+          "[ui_elements] File-type icons are inconsistent: the TXT file uses a folder icon while the others use {}. Action buttons are inconsistent: the TXT file lacks 'Analyze in RStudio', and versions.yml shows no preview at all, only a download link. The terse 'view dl' links look unpolished. predict_admet_properties_results.json shows the raw 'result' string with literal \\n escapes and then repeats the same content rendered below it. No tab bar, findings card, or 'Download findings' button is visible."
+        ],
+        [
+          "anthropic",
+          "[clarity] Does not match the intended state: no summary paragraph with a clickable number, no headline metric chips, no expanded Key Results, no Download findings button. As a tutorial shot for W2 after-run it would confuse readers. It is a wall of raw JSON with no orientation."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "r6-reproducibility.png",
+      "uc": "tutorials:W2-after-run-panel",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Replace obsolete three-tab navigation with Results and Reproducibility record."
+        ],
+        [
+          "openai",
+          "Replace Download report with Download findings."
+        ],
+        [
+          "openai",
+          "Capture Results with the Findings Summary paragraph, clickable number, headline metric chips, and expanded Key Results; none are shown."
+        ],
+        [
+          "openai",
+          "Adjust the crop to avoid clipping the Trajectory accordion."
+        ],
+        [
+          "openai",
+          "[content] Stale Summary/Outputs/Reproducibility record tabs and Download report label; required labels are Results/Reproducibility record and Download findings."
+        ],
+        [
+          "google",
+          "Stale UI: Shows 3 tabs (Summary, Outputs, Reproducibility record) instead of the new 2-tab layout (Results, Reproducibility record)."
+        ],
+        [
+          "google",
+          "Stale UI: Shows 'Download report' button instead of 'Download findings'."
+        ],
+        [
+          "google",
+          "[content] CRITICAL ERROR: Contains stale UI. Shows the old three-tab layout ('Summary', 'Outputs', 'Reproducibility record') and 'Download report' button instead of the mandated new two-tab layout ('Results', 'Reproducibility record') and 'Download findings' button."
+        ],
+        [
+          "google",
+          "[ui_elements] UI components are aligned and render correctly, but reflect an outdated layout structure."
+        ],
+        [
+          "google",
+          "[quality] Clear, legible, and well-cropped with no clipping or overlap issues."
+        ],
+        [
+          "google",
+          "[clarity] Fails to match the current intended state due to outdated UI components, which will confuse users following the updated manual."
+        ],
+        [
+          "anthropic",
+          "Wrong tab captured: Reproducibility record shown instead of Results/Findings Summary card (focus=findings-card absent)"
+        ],
+        [
+          "anthropic",
+          "Stale UI: three tabs Summary/Outputs/Reproducibility instead of Results + Reproducibility record"
+        ],
+        [
+          "anthropic",
+          "Stale 'Download report' link; should be 'Download findings'"
+        ],
+        [
+          "anthropic",
+          "Alt text describes the reproducibility record, mismatched with the intended findings-card state"
+        ],
+        [
+          "anthropic",
+          "Input bindings note 'run predates input-binding capture' indicates a legacy run; inappropriate for a tutorial"
+        ],
+        [
+          "anthropic",
+          "Bottom clipped: Trajectory accordion cut off"
+        ],
+        [
+          "anthropic",
+          "Re-capture on current build: Results tab with populated findings card, Key Results expanded"
+        ],
+        [
+          "anthropic",
+          "[content] Shows the OLD three-tab layout (Summary / Outputs / Reproducibility record) and the 'Download report' link. Current UI is two tabs, 'Results' + 'Reproducibility record', with a 'Download findings' button. The type 'table' for predict_admet_properties_output.txt is questionable but plausible. Input bindings (0) shows the 'run predates input-binding capture' note, which suggests an older or legacy run."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Components render cleanly with no undefined values or raw code. Accordions are consistent. 'Compute checksums' link is present and the SHA-256 column shows '\u2013' placeholders, which is acceptable for on-demand checksums. 'Download record (JSON)' button renders correctly."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "r7-phases-completed.png",
+      "uc": "unreferenced",
+      "cons": "minor",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "Pavian is presented as a tool to explore ADMET/PK outputs despite its stated metagenomics scope."
+        ],
+        [
+          "openai",
+          "Bottom crop truncates predict_admet_properties_results.json and omits the rest of the file list."
+        ],
+        [
+          "openai",
+          "Large empty areas reduce screenshot efficiency."
+        ],
+        [
+          "google",
+          "Bottom card is clipped, obscuring the file details and actions."
+        ],
+        [
+          "google",
+          "The 'Other Files' list is cut off despite the badge indicating more items."
+        ],
+        [
+          "anthropic",
+          "Screenshot is unreferenced by any manual page; remove it or attach it to a page."
+        ],
+        [
+          "anthropic",
+          "Bottom crop truncates the predict_admet_properties_results.json card."
+        ],
+        [
+          "anthropic",
+          "'Other Files (4)' but only 2 files are visible."
+        ],
+        [
+          "anthropic",
+          "Pavian (metagenomics) is suggested for ADMET outputs, which is an irrelevant tool recommendation."
+        ],
+        [
+          "anthropic",
+          "Banner wording 'View Results and Download All' does not match the actual controls ('Hide results', 'Download all')."
+        ],
+        [
+          "anthropic",
+          "Left-edge misalignment of the 'Outputs' label; stray top border."
+        ],
+        [
+          "anthropic",
+          "Ambiguous 'Report' link may reference the stale report flow; verify it opens the Results/Reproducibility record report."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Components render cleanly with no undefined or placeholder text. The banner says 'View Results and Download All are available', but the action row offers 'Hide results' and 'Download all' (different wording and casing), with no 'View Results' control. 'Other Files' shows a count of 4, but only 2 cards are visible, one of them cut off. The 'Outputs found' badge next to 'Outputs' is redundant."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "r8-completed-chat-and-panel.png",
+      "uc": "tutorials:W2-after-run-panel",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Replace obsolete three-tab report navigation with Results and Reproducibility record."
+        ],
+        [
+          "openai",
+          "Both download controls say Download report, not Download findings."
+        ],
+        [
+          "openai",
+          "Show expanded Key Results and a visibly clickable summary number."
+        ],
+        [
+          "openai",
+          "Crop excessive lower whitespace to emphasize the findings card."
+        ],
+        [
+          "openai",
+          "[content] Stale after-run UI: Summary/Output files/Reproducibility record tabs and Download report labels instead of Results/Reproducibility record and Download findings. Chinese controls mix with English findings."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible, with no clipping or overlap; excessive blank space below findings weakens the crop."
+        ],
+        [
+          "google",
+          "Displays outdated three-tab structure (Summary/Outputs/Reproducibility)"
+        ],
+        [
+          "google",
+          "Uses 'Download report' instead of 'Download findings' (both top right and in card)"
+        ],
+        [
+          "google",
+          "Key Results section is collapsed, not expanded"
+        ],
+        [
+          "google",
+          "Large amount of dead space in the lower half of the screen"
+        ],
+        [
+          "google",
+          "[content] CRITICAL ERROR: Shows the stale three-tab layout (Summary/Outputs/Reproducibility) instead of the required two-tab layout (Results/Reproducibility record). Also incorrectly uses 'Download report' (\u4e0b\u8f7d\u62a5\u544a) instead of 'Download findings'."
+        ],
+        [
+          "google",
+          "[clarity] Does not match the intended state due to outdated UI architecture and collapsed elements, making it unsuitable for the current manual."
+        ],
+        [
+          "anthropic",
+          "Stale three-tab layout (\u6458\u8981/\u8f93\u51fa\u6587\u4ef6/\u53ef\u590d\u73b0\u8bb0\u5f55) instead of Results + Reproducibility record"
+        ],
+        [
+          "anthropic",
+          "'\u4e0b\u8f7d\u62a5\u544a'/Download report shown instead of 'Download findings'"
+        ],
+        [
+          "anthropic",
+          "Duplicate download buttons (header link and in-card button)"
+        ],
+        [
+          "anthropic",
+          "Key Results (\u5173\u952e\u7ed3\u679c) collapsed, not expanded as intended"
+        ],
+        [
+          "anthropic",
+          "No clickable number visible in the summary paragraph"
+        ],
+        [
+          "anthropic",
+          "hERG flagged as a liability despite a 0.003 value: contradictory or unclear metric semantics"
+        ],
+        [
+          "anthropic",
+          "Large empty dead space below the card; crop is too loose"
+        ],
+        [
+          "anthropic",
+          "Mixed-language UI (Chinese chrome, English findings)"
+        ],
+        [
+          "anthropic",
+          "[content] Shows the OLD after-run report: three sub-tabs \u6458\u8981/\u8f93\u51fa\u6587\u4ef6/\u53ef\u590d\u73b0\u8bb0\u5f55 and a '\u4e0b\u8f7d\u62a5\u544a' (Download report) button. The current UI has two tabs, Results + Reproducibility record, and a 'Download findings' button. The summary flags hERG inhibition as a liability while the chip shows hERG 0.003 (very low), which reads as contradictory. The UI is Chinese but the findings text is English."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Header, \u5df2\u5b8c\u6210 badge, metric chips and caution box render cleanly. Two '\u4e0b\u8f7d\u62a5\u544a' buttons appear (top-right link and in-card button), which is a duplicate. The \u5173\u952e\u7ed3\u679c section is collapsed (chevron down), not expanded as intended. The summary paragraph has no visible clickable number."
+        ],
+        [
+          "anthropic",
+          "[clarity] The findings card is readable, but the screenshot does not match the intended state: stale tabs and button, Key Results collapsed, no clickable number. It would mislead readers about the current report layout."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "s1-1-sidebar.png",
+      "uc": "tutorials:S1-sidebar-navigation",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Replace empty chat history with a few chats, including one coloured status dot, and show its section heading."
+        ],
+        [
+          "openai",
+          "Use distinguishable project names; four identical labels appear."
+        ],
+        [
+          "openai",
+          "Frame the full sidebar more tightly and prevent logo clipping."
+        ],
+        [
+          "openai",
+          "[content] Shows 'No chats yet', contradicting the required populated history. Repeated 'IL-17A Cyclic Peptide Pilot' names make projects indistinguishable."
+        ],
+        [
+          "google",
+          "Projects list contains duplicated entries ('IL-17A Cyclic Peptide Pilot' x4)"
+        ],
+        [
+          "google",
+          "Chat history is empty ('No chats yet'), missing the required historical chats"
+        ],
+        [
+          "google",
+          "Missing chat row with a coloured status dot"
+        ],
+        [
+          "anthropic",
+          "Chat history empty ('No chats yet'); intended state requires several chats with one coloured status dot"
+        ],
+        [
+          "anthropic",
+          "Four identical 'IL-17A Cyclic Peptide Pilot' project rows (duplicated fixture or bug)"
+        ],
+        [
+          "anthropic",
+          "Not cropped to the app-sidebar focus; main pane dominates the frame"
+        ],
+        [
+          "anthropic",
+          "Logo/wordmark clipped at top-left; BETA badge and collapse icon overlap 'BioMate AI' text"
+        ],
+        [
+          "anthropic",
+          "Test fixture account 'WPM Fixture' and a real-looking email exposed in the footer"
+        ],
+        [
+          "anthropic",
+          "Same flask icon used for Workflows and Design & Generate"
+        ],
+        [
+          "anthropic",
+          "Redundant settings gear in footer alongside 'Settings & API Keys'"
+        ],
+        [
+          "anthropic",
+          "[content] The account is a test fixture ('WPM Fixture' with a personal-looking email), which is not suitable for a manual. The duplicate project names are confusing. The Recent Tools and Design & Generate icons reuse the flask/wrench inconsistently: Design & Generate uses the same flask as Workflows."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] The sidebar renders Workspace nav, Projects, Settings and the account footer. The Projects list shows four identical 'IL-17A Cyclic Peptide Pilot' rows, which looks like duplicated fixture data or a rendering bug. The Chat history band is empty ('No chats yet'), so there is no chat row and no coloured status dot. The account email is truncated ('lifeifei163361...'). The footer has two settings entry points ('Settings & API Keys' and the gear next to Sign out)."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, high-res full-app capture, but the focus should be the sidebar column only. The main pane takes about 80% of the frame. The logo is clipped at the top-left, and the BETA badge and collapse icon overlap a truncated 'BioMate AI' wordmark ('Mate\u00b7A|' cut off)."
+        ],
+        [
+          "anthropic",
+          "[clarity] Does not match the intended state. Chat history has no chats and no status dot, so the third band cannot be explained. The duplicate projects undermine the Projects explanation. Without cropping to the sidebar, the reader's attention is diluted."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t10-0-dataset-object.png",
+      "uc": "unreferenced",
+      "cons": "minor",
+      "n_major": 0,
+      "issues": [
+        [
+          "openai",
+          "Crop excess lower whitespace."
+        ],
+        [
+          "openai",
+          "Expand the file tree to show the selected JSON file."
+        ],
+        [
+          "openai",
+          "Preview displays metadata only, limiting its usefulness as a file-preview illustration."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible, with no overlap; excessive blank space below the detail card and inside the file pane."
+        ],
+        [
+          "google",
+          "Duplicated descriptive text between page subtitle and file details panel footer"
+        ],
+        [
+          "google",
+          "Excessive empty space at the bottom"
+        ],
+        [
+          "google",
+          "[content] Noticeable duplication of descriptive copy. The page subtitle ('Every dataset is an object...') and the footer text inside the file details panel ('A dataset is an object...') are nearly identical variations of the same sentence."
+        ],
+        [
+          "anthropic",
+          "Shot is unreferenced by any manual page: remove it or link it from a page."
+        ],
+        [
+          "anthropic",
+          "JSON file labeled application/octet-stream: wrong MIME type detection."
+        ],
+        [
+          "anthropic",
+          "Preview tab shows only metadata, not the file contents."
+        ],
+        [
+          "anthropic",
+          "Breadcrumb ID and Reference path IDs differ, which is confusing without explanation."
+        ],
+        [
+          "anthropic",
+          "Duplicated explanatory sentence (header subtitle and card footer)."
+        ],
+        [
+          "anthropic",
+          "Reference path truncated."
+        ],
+        [
+          "anthropic",
+          "Large empty space below the card; collapsed tree hides the selected file."
+        ],
+        [
+          "anthropic",
+          "Unexplained 'Watch' status chip."
+        ],
+        [
+          "anthropic",
+          "[content] A .json results file is typed as 'application/octet-stream', both in the badge and the Type row. It should be application/json, and the wrong type likely explains why no preview appears. The breadcrumb ID (8f0a2fb9-\u2026) does not obviously match the IDs in the Reference path (fd5a73ac-\u2026/b56621a0), which may confuse readers. The 'dataset is an object, not a path in a chat message' text is shown twice: as the page subtitle and again as the card footer. No stale report tabs appear."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t10-1-dataset-preview.png",
+      "uc": "tutorials:T10-exploring-your-datasets",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Open a real results CSV and show meaningful column headers, first rows, and the 'First N rows of M' note."
+        ],
+        [
+          "openai",
+          "Crop more tightly around the dataset detail panel to remove dead space."
+        ],
+        [
+          "openai",
+          "[ui_elements] Preview is active; tabs, actions, and identity rows are aligned with no visible overlap or broken controls."
+        ],
+        [
+          "google",
+          "Shows JSON metadata instead of the requested CSV sample table"
+        ],
+        [
+          "google",
+          "Missing 'First N rows of M' note and data rows"
+        ],
+        [
+          "google",
+          "Duplicated helper text at the bottom of the Preview tab"
+        ],
+        [
+          "google",
+          "JSON file incorrectly typed as application/octet-stream"
+        ],
+        [
+          "google",
+          "[ui_elements] Components are aligned. However, the helper text at the bottom of the Preview tab ('A dataset is an object...') is a near-duplicate of the page header text, indicating a potential UI bug or placeholder."
+        ],
+        [
+          "anthropic",
+          "Intended CSV Preview table (headers + first rows) is missing"
+        ],
+        [
+          "anthropic",
+          "'First N rows of M' note is missing"
+        ],
+        [
+          "anthropic",
+          "JSON file used instead of a meaningful results CSV"
+        ],
+        [
+          "anthropic",
+          "MIME type for the .json file shows application/octet-stream"
+        ],
+        [
+          "anthropic",
+          "Reference path is truncated"
+        ],
+        [
+          "anthropic",
+          "Breadcrumb ID does not match the Reference path IDs (possibly confusing)"
+        ],
+        [
+          "anthropic",
+          "Large empty space at the bottom and in the left pane; crop is too loose"
+        ],
+        [
+          "anthropic",
+          "Folder name wraps in the file tree"
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t10-2-dataset-lineage.png",
+      "uc": "tutorials:T10-exploring-your-datasets",
+      "cons": "major",
+      "n_major": 2,
+      "issues": [
+        [
+          "openai",
+          "Missing required Status row."
+        ],
+        [
+          "openai",
+          "Live provenance is no longer retained for the displayed run."
+        ],
+        [
+          "openai",
+          "Large unused lower area; crop closer to the lineage panel."
+        ],
+        [
+          "openai",
+          "[content] Correct result file, run c40459b2\u2026 and workflow name. The notice says live provenance is no longer retained, so this is an incomplete lineage example."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible, with no overlap or clipping; excessive empty space below the detail panel weakens the crop."
+        ],
+        [
+          "openai",
+          "[clarity] Demonstrates the producing-run link, but only partially matches the intended state; use a result with retained provenance and a visible Status row."
+        ],
+        [
+          "google",
+          "Missing 'Status' row in Lineage tab"
+        ],
+        [
+          "google",
+          "Excessive empty space at bottom requiring a tighter crop"
+        ],
+        [
+          "google",
+          "[content] The 'Status' row is missing from the Lineage tab details, contradicting the intended focus requirements."
+        ],
+        [
+          "anthropic",
+          "Status row from intended state is absent"
+        ],
+        [
+          "anthropic",
+          "Footnote says live provenance no longer retained, undermining the clickable 'Produced by run' link and the tutorial point"
+        ],
+        [
+          "anthropic",
+          "MIME type application/octet-stream shown for a .json file"
+        ],
+        [
+          "anthropic",
+          "Excess empty space; crop to the detail card plus the expanded tree"
+        ],
+        [
+          "anthropic",
+          "Files tree collapsed; selected file not visible/highlighted"
+        ],
+        [
+          "anthropic",
+          "[content] Result file predict_admet_properties_results.json with run c40459b2\u2026, workflow 'Predict ADMET Properties (AI)' and step 'run' matches the alt text. The footnote 'live provenance is no longer retained for this run' contradicts showcasing a clickable run link, implying the link may be dead. The MIME badge shows application/octet-stream for a .json file, which is inconsistent."
+        ],
+        [
+          "anthropic",
+          "[clarity] Mostly communicates lineage of a run output. The degraded-provenance note and missing Status row weaken it as the reference example for T10 lineage. The collapsed tree hides where the file lives."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t10-3-dataset-consumers.png",
+      "uc": "tutorials:T10-exploring-your-datasets",
+      "cons": "minor",
+      "n_major": 0,
+      "issues": [
+        [
+          "openai",
+          "Crop the large unused lower area to emphasize the Consumers panel."
+        ],
+        [
+          "openai",
+          "Ensure the caption notes the empty state and explains that clickable runs appear once the dataset is read as input."
+        ],
+        [
+          "openai",
+          "[ui_elements] Consumers tab is clearly active; controls and tabs are complete and aligned. No visible broken UI."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible, with no overlap or clipping; excessive blank space below the dataset panel weakens the manual crop."
+        ],
+        [
+          "google",
+          "Excessive empty space at bottom of screen."
+        ],
+        [
+          "google",
+          "Left file browser does not highlight or show the file currently open in the right pane."
+        ],
+        [
+          "google",
+          "[ui_elements] Left file tree is collapsed and shows no active selection, contradicting the right pane which displays details for a specific file."
+        ],
+        [
+          "anthropic",
+          "Primary intended state (consumer 'reads' rows) not shown; the empty-state fallback is used, so the caption must state this"
+        ],
+        [
+          "anthropic",
+          "Large empty area below the detail card and in the Files panel; crop tighter"
+        ],
+        [
+          "anthropic",
+          "Files tree folder collapsed, so the selected file is not visible in context"
+        ],
+        [
+          "anthropic",
+          "MIME type shows application/octet-stream for a .json file"
+        ],
+        [
+          "anthropic",
+          "Breadcrumb exposes a raw UUID path segment"
+        ],
+        [
+          "anthropic",
+          "[content] This is the honest empty state ('No runs are recorded as reading this dataset yet.'), which matches the alt/fallback intent. The MIME badge reads 'application/octet-stream' for a .json file, which is mildly inconsistent (application/json expected). The inner breadcrumb shows a raw UUID folder (Outputs / 8f0a2fb9-\u2026), which is acceptable but noisy. No stale report-tab content appears."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] The header, tab strip (Preview/Quality/Lineage/Consumers/Versions/Origin) and action buttons (Export RO-Crate, Analyze, Download) are complete and aligned, and Consumers is clearly the active tab. However, the Files tree shows the 'Predict ADMET Properties (AI)' folder collapsed, so the open file is not visibly selected in the left pane. Nothing is broken or undefined."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t10-4-dataset-versions.png",
+      "uc": "tutorials:T10-exploring-your-datasets",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Missing required added version entry (v2), note, author, and timestamp."
+        ],
+        [
+          "openai",
+          "Excessive lower-page dead space; crop around the dataset panel."
+        ],
+        [
+          "openai",
+          "Redundant current label and current badge."
+        ],
+        [
+          "google",
+          "Missing version history: Only v1 is shown, but the intended state requires at least one added note so v1 + v2 both show, including author and timestamp."
+        ],
+        [
+          "anthropic",
+          "Intended state not met: only v1 is shown; there is no v2 or note entry with author/timestamp"
+        ],
+        [
+          "anthropic",
+          "Version entry is missing note, author and timestamp metadata"
+        ],
+        [
+          "anthropic",
+          "Duplicate 'current' label: inline text plus badge"
+        ],
+        [
+          "anthropic",
+          "JSON file is labeled application/octet-stream"
+        ],
+        [
+          "anthropic",
+          "Large empty dead space; crop should be tightened to the detail card"
+        ],
+        [
+          "anthropic",
+          "Folder name/date wraps in the Files list"
+        ],
+        [
+          "anthropic",
+          "[content] The MIME type for predict_admet_properties_results.json shows 'application/octet-stream' instead of 'application/json', which is a wrong or misleading value. Only v1 exists, so no note history is demonstrated. The 'Watch' quality badge (orange) is unexplained here."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Versions tab is active and visibly selected. The version row shows 'v1 \u00b7 current' plus a separate 'current' badge, which is a redundant duplicate. The row has no note, author or timestamp. The Add version button looks disabled (correct, since the input is empty). The append-only helper text is present."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t10-5-dataset-origin.png",
+      "uc": "unreferenced",
+      "cons": "minor",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "Crop the large empty lower region."
+        ],
+        [
+          "openai",
+          "Expand the file tree to show the selected output."
+        ],
+        [
+          "openai",
+          "Storage reference is ellipsized, limiting provenance readability."
+        ],
+        [
+          "openai",
+          "JSON file displays a generic MIME type."
+        ],
+        [
+          "openai",
+          "[content] Origin metadata is internally consistent. JSON is labeled application/octet-stream rather than application/json; no stale report UI shown."
+        ],
+        [
+          "google",
+          "Excessive empty space at the bottom of the viewport."
+        ],
+        [
+          "google",
+          "UI state mismatch: Right panel shows file details while left panel shows a collapsed folder without the file selected."
+        ],
+        [
+          "google",
+          "[ui_elements] The UI state is inconsistent: the right panel displays detailed information for a specific JSON file, but the left 'FILES' panel only shows a collapsed folder, meaning the file is neither visible nor selected in the navigation tree."
+        ],
+        [
+          "anthropic",
+          "Screenshot is unreferenced by any manual page (orphan)"
+        ],
+        [
+          "anthropic",
+          "Wrong-looking MIME type application/octet-stream for a .json file"
+        ],
+        [
+          "anthropic",
+          "Storage ref path truncated; full value not readable"
+        ],
+        [
+          "anthropic",
+          "Large dead space below the detail panel and in the tall, empty FILES panel; crop should be tightened"
+        ],
+        [
+          "anthropic",
+          "Tree folder collapsed, so the selected file is not shown or highlighted"
+        ],
+        [
+          "anthropic",
+          "Breadcrumb shows a raw UUID instead of a human-readable run name; its ID doesn't match the IDs in the storage path"
+        ],
+        [
+          "anthropic",
+          "Unexplained 'Watch' status badge"
+        ],
+        [
+          "anthropic",
+          "Inconsistent date formats between the tree and the Added field"
+        ],
+        [
+          "anthropic",
+          "Folder label wraps onto two lines"
+        ],
+        [
+          "anthropic",
+          "[content] The MIME badge reads 'application/octet-stream' for a .json file, which is inconsistent and should likely be application/json. The breadcrumb UUID differs from the IDs in the storage path (fd5a73ac\u2026/b56621a0), which may confuse readers. Date formats are mixed: 'Oct 2, 12:57 PM' versus '10/2/2026, 12:57:05 PM'. No stale report UI appears; the Results/Reproducibility tabs are not involved."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Components render without errors, placeholders or 'undefined'. The folder label wraps awkwardly to two lines. The tree shows the run folder collapsed (count 6) while one of its files is open, so the selected file isn't visible or highlighted. The 'Watch' badge with an orange dot has no explanation. The detail breadcrumb shows a raw UUID (8f0a2fb9-\u2026) instead of the run name shown in the tree."
+        ],
+        [
+          "anthropic",
+          "[clarity] Shows the Origin tab of a run-output file in the Data browser, which is understandable. However, no manual page references this screenshot, so it is an orphan asset with no instructional purpose. Either remove it or tie it to a data-provenance section."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t11-1-composer-goal.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "Replace the typographic dash in the seed SMILES with ASCII '-' to provide a valid example."
+        ],
+        [
+          "openai",
+          "Reconcile the 'interval' description with upper-limit-only property controls."
+        ],
+        [
+          "openai",
+          "Tighten empty-space usage and add top crop padding."
+        ],
+        [
+          "openai",
+          "[ui_elements] Controls are aligned and selected states are clear; no visible overlap or missing primary action."
+        ],
+        [
+          "google",
+          "Top-left label '\u4ece\u4ee5\u4e0b\u5f00\u59cb...' is clipped by the image edge."
+        ]
+      ],
+      "errs": [
+        "anthropic"
+      ]
+    },
+    {
+      "asset": "t11-2-design-candidates.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 2,
+      "issues": [
+        [
+          "openai",
+          "Pass labels conflict with the displayed property_envelope threshold; clarify whether this target is advisory or correct the conclusions."
+        ],
+        [
+          "openai",
+          "[ui_elements] Table columns and repeated actions are consistently aligned; no broken components visible."
+        ],
+        [
+          "openai",
+          "[quality] Sharp, legible, fully framed; no clipping or overlap."
+        ],
+        [
+          "google",
+          "Screenshot is marked as unreferenced by any manual page, making it an orphaned asset."
+        ],
+        [
+          "anthropic",
+          "Rows with property_envelope 0.725/0.5 < target \u22651 marked \u901a\u8fc7 \u2014 contradicts the stated target"
+        ],
+        [
+          "anthropic",
+          "No QED target shown, so the flag on BM-0012/13/19 is unexplained"
+        ],
+        [
+          "anthropic",
+          "Orange warning-colored values on passing rows"
+        ],
+        [
+          "anthropic",
+          "Mixed zh/en: 'score' vs \u8bc4\u5206*, untranslated objective names"
+        ],
+        [
+          "anthropic",
+          "Unit text redundantly repeated in every cell"
+        ],
+        [
+          "anthropic",
+          "Heavy black row borders; dead space in wide column"
+        ],
+        [
+          "anthropic",
+          "Screenshot unreferenced by any manual page \u2014 remove or link"
+        ],
+        [
+          "anthropic",
+          "[content] Scores check out as the mean of the normalized objectives (e.g., BM-0001 (0.8298+1)/2=0.9149). However, the \u901a\u8fc7/\u5df2\u6807\u8bb0 verdicts contradict the stated target. Several rows fail property_envelope \u2265 1 yet show \u901a\u8fc7: BM-0010/11/14\u201317 at 0.725 and BM-0018 at 0.5. Meanwhile BM-0012/13/19 meet the envelope target but are flagged, with no visible QED threshold. Localization is mixed: objective names are left in English, the subtitle and footnote say 'score' while the header says \u8bc4\u5206*, and the header units mix '/QED'."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Table is complete and aligned, and every row has an \u24d8 \u4e3a\u4ec0\u4e48? link. The unit 'fraction-in-window (\u2265 1)' is repeated in every cell, which is redundant with the column header. Status colors are inconsistent: orange values (0.725/0.5/0) appear on rows marked \u901a\u8fc7 (pass)."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t11-3-pareto.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "All plotted candidates are marked dominated with no nondominated frontier shown; verify classification/count."
+        ],
+        [
+          "openai",
+          "Missing numeric axis scales and vertical-axis range."
+        ],
+        [
+          "openai",
+          "Oversized container leaves substantial dead space."
+        ],
+        [
+          "google",
+          "Missing X and Y axes lines, ticks, and labels on the scatter plot."
+        ],
+        [
+          "google",
+          "Legend shows three categories, but only one (green) is present in the plot."
+        ],
+        [
+          "google",
+          "Text below chart looks like raw data/debug string."
+        ],
+        [
+          "google",
+          "Significant empty space on the right."
+        ],
+        [
+          "google",
+          "UI is in Chinese; verify if this matches the intended manual language."
+        ],
+        [
+          "anthropic",
+          "Pareto front count is 0 and no point is highlighted; front computation/highlighting is broken"
+        ],
+        [
+          "anthropic",
+          "Clearly non-dominated top-right points are rendered as dominated (green)"
+        ],
+        [
+          "anthropic",
+          "No axis titles or ticks; y-axis range not shown"
+        ],
+        [
+          "anthropic",
+          "Points sit on the plot frame and look clipped; overlapping markers"
+        ],
+        [
+          "anthropic",
+          "Large dead space; plot occupies a small part of the card"
+        ],
+        [
+          "anthropic",
+          "Raw metric identifiers shown in dropdowns"
+        ],
+        [
+          "anthropic",
+          "Screenshot is not referenced by any manual page; remove it or attach it to a page"
+        ],
+        [
+          "anthropic",
+          "[content] Logic bug: the legend says '\u4f4d\u4e8e\u524d\u6cbf (0)' (on the front: 0) and every point is green, i.e. dominated. A non-empty point set always has at least one non-dominated point. The top-right points (highest fraction-in-window and highest QED \u22480.83) must be on the Pareto front. Either the front computation failed (possibly an objective-direction error) or the highlight is not rendering. This contradicts the panel's own description that highlighted points are the non-dominated front. The UI is in Chinese; check that this matches the manual's language."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] The chart has no axis titles and no tick labels. Only the x-axis range is printed below the chart; there is no y-axis range readout. Several markers overlap, around x\u22480.6 on the top row and at x\u22481575 px on the middle row, with no jitter or count. The legend's red '\u88ab\u95f8\u95e8\u9a73\u56de' (gate-rejected) category has no points. The selects show raw metric identifiers ('property_envelope /fraction-in-window', 'drug_like /QED')."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t3-1-workflow-panel.png",
+      "uc": "tutorials:T3-running-a-workflow-and-reading-the-report",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Replace completed After run view with active Workflow settings in idle pre-run state."
+        ],
+        [
+          "openai",
+          "Show expanded Parameters strip, Required parameters, one flagged empty required field, and disabled Confirm-and-run."
+        ],
+        [
+          "openai",
+          "Update stale report tabs and download label."
+        ],
+        [
+          "openai",
+          "Output-access error prevents demonstrating report findings."
+        ],
+        [
+          "openai",
+          "Crop excessive blank space."
+        ],
+        [
+          "openai",
+          "Resolve completed-run alt versus pre-run state mismatch."
+        ],
+        [
+          "openai",
+          "[content] Stale report UI: Summary/Outputs/Reproducibility record and Download report should be Results/Reproducibility record and Download findings. Output files are unreadable, so findings are withheld."
+        ],
+        [
+          "openai",
+          "[clarity] Does not match the specified idle pre-run state. Shows a completed run with an output-access error; supplied completed-run alt also conflicts with the intended pre-run state."
+        ],
+        [
+          "google",
+          "Stale UI: Shows old 'Summary/Outputs/Reproducibility record' tabs instead of 'Results' and 'Reproducibility record'."
+        ],
+        [
+          "google",
+          "Stale UI: Shows 'Download report' instead of 'Download findings'."
+        ],
+        [
+          "google",
+          "State mismatch: Shows completed run on 'After run' tab instead of pre-run state on 'Workflow settings' tab."
+        ],
+        [
+          "google",
+          "Content: Displays an error message about unreadable output files, inappropriate for a standard tutorial."
+        ],
+        [
+          "google",
+          "Quality: Excessive empty white space."
+        ],
+        [
+          "google",
+          "[content] Violates current UI guidelines: shows the old three-tab layout (Summary/Outputs/Reproducibility) and 'Download report' instead of the new two-tab layout (Results/Reproducibility record) and 'Download findings'. Additionally, it displays an error state ('output files could not be read') rather than a successful run."
+        ],
+        [
+          "google",
+          "[ui_elements] Components are rendered cleanly, but represent an outdated version of the interface."
+        ],
+        [
+          "anthropic",
+          "Wrong state: the After run tab is shown instead of the Workflow settings tab in the pre-run idle state"
+        ],
+        [
+          "anthropic",
+          "Missing the Parameters strip with Required parameters and the flagged empty required field"
+        ],
+        [
+          "anthropic",
+          "Missing the disabled 'Confirm and run' button; 'Run again' is shown instead"
+        ],
+        [
+          "anthropic",
+          "Stale three-tab Summary/Outputs/Reproducibility layout instead of Results + Reproducibility record"
+        ],
+        [
+          "anthropic",
+          "Stale 'Download report' link instead of 'Download findings'"
+        ],
+        [
+          "anthropic",
+          "Error banner 'output files could not be read' captured in a manual screenshot; this is a real output-access failure"
+        ],
+        [
+          "anthropic",
+          "'Completed' status contradicts the withheld findings, and the footnote contradicts the error"
+        ],
+        [
+          "anthropic",
+          "Large empty dead space; the crop should be tightened"
+        ],
+        [
+          "anthropic",
+          "Alt text does not match the intended state"
+        ],
+        [
+          "anthropic",
+          "[content] Shows the OLD report layout, which is wrong: the current report has two tabs (Results + Reproducibility record) and a 'Download findings' button. The run says 'Completed', yet an error states that output files could not be read and findings are withheld. The footnote then says findings come from the workflow outputs, which contradicts the error. The shot documents a broken run rather than a working example."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] The After run tab is active and shows the stale three sub-tabs (Summary \u00b7 Outputs \u00b7 Reproducibility record) with a 'Download report' link. The intended Parameters strip, the flagged empty required field and the disabled 'Confirm and run' button are all absent; the footer shows 'Run again' and 'Reset to defaults' instead."
+        ],
+        [
+          "anthropic",
+          "[clarity] Does not match the intended pre-run state. The shot is post-run instead of idle, has the wrong active tab, and shows no parameter validation. The alt text 'A completed workflow run' also conflicts with the intended state. Not useful for teaching how to run a workflow or read the report."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t3-2-after-run-summary.png",
+      "uc": "tutorials:T3-running-a-workflow-and-reading-the-report",
+      "cons": "major",
+      "n_major": 2,
+      "issues": [
+        [
+          "openai",
+          "Actual findings are displayed instead of withheld; the intended withholding explanation is absent."
+        ],
+        [
+          "openai",
+          "Crop omits tab navigation, so the Results-tab context is not established."
+        ],
+        [
+          "openai",
+          "[content] Shows completed ADMET predictions and interpreted numerical findings for two compounds, contradicting the intended findings-withheld state. Download findings uses current terminology."
+        ],
+        [
+          "openai",
+          "[quality] Legible, tightly cropped panel; dense table but no obvious clipping or overlap."
+        ],
+        [
+          "google",
+          "Tab navigation is cropped out, failing to visually confirm the 'Results' tab context mentioned in the alt text and the new layout rules."
+        ],
+        [
+          "google",
+          "[content] Correctly uses the updated 'Download findings' button. Note that the summary badges at the top only display values for Compound 1, despite the text indicating results for 2 compounds, though this appears to be the actual UI behavior rather than a mock error."
+        ],
+        [
+          "google",
+          "[ui_elements] Visible components (table, badges, button, expandable section) are well-aligned, complete, and render correctly without placeholders."
+        ],
+        [
+          "anthropic",
+          "Screenshot contradicts its alt/intended state: shows full findings instead of findings withheld honestly"
+        ],
+        [
+          "anthropic",
+          "Tab bar (Results / Reproducibility record) cropped out, so the tab context is not shown"
+        ],
+        [
+          "anthropic",
+          "Summary chips show only Compound 1 values, unlabeled, and mask Compound 2's hERG 0.974 and CYP2D6 0.817 liabilities"
+        ],
+        [
+          "anthropic",
+          "No Compound column; duplicate metric rows are distinguishable only through the Interpretation text"
+        ],
+        [
+          "anthropic",
+          "Inconsistent interpretation style: some rows judged against thresholds, others only restate the value"
+        ],
+        [
+          "anthropic",
+          "Redundant identical Source value on every row adds width and noise"
+        ],
+        [
+          "anthropic",
+          "[content] Uses the current terminology ('Download findings'), with no stale three-tab UI or 'Download report'. The headline chips show only Compound 1 values (hERG 0.003, DILI 0.855, F 0.873) without saying so. This hides Compound 2's elevated hERG (0.974) and CYP2D6 (0.817) liabilities. Interpretations are inconsistent: some rows are judged (Acceptable/Elevated), while others just restate the value (BBB, PPB, Caco-2, CYP3A4)."
+        ],
+        [
+          "anthropic",
+          "[quality] Crisp, legible, tightly cropped card at good resolution. No clipping or overlap. The table is long and dense, and the repeated Source column wastes horizontal space."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t3-3-after-run-outputs.png",
+      "uc": "tutorials:T3-running-a-workflow-and-reading-the-report",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Missing visible step grouping; all artifacts show 'run'."
+        ],
+        [
+          "openai",
+          "No report heading or completion status establishes the intended context."
+        ],
+        [
+          "openai",
+          "Long, repetitive expanded previews obscure the output overview and truncate content."
+        ],
+        [
+          "openai",
+          "[content] Raw JSON/TXT is appropriate for artifact previews. Report tabs and 'Download findings' are outside the crop, so current report UI cannot be verified."
+        ],
+        [
+          "openai",
+          "[ui_elements] Output cards and controls are consistently aligned. No visible broken widgets; every artifact is labeled 'run' rather than grouped under step headings."
+        ],
+        [
+          "google",
+          "Missing required UI elements: 'Results' and 'Reproducibility record' tabs."
+        ],
+        [
+          "google",
+          "Missing required UI element: 'Download findings' button."
+        ],
+        [
+          "google",
+          "Alt text refers to 'Outputs section', which might indicate it's from the deprecated UI structure."
+        ],
+        [
+          "google",
+          "[content] The screenshot shows a list of output files (JSON, TXT, YML) from a run. However, the prompt mentions that the after-run report should have TWO tabs ('Results' + 'Reproducibility record') and a 'Download findings' button. This screenshot does not show the tab structure or the download button at all; it only shows the content of what might be an 'Outputs' section. The prompt explicitly states 'the OLD three-tab Summary/Outputs/Reproducibility + 'Download report' is WRONG'. While we don't see the tabs, the alt text says 'The Outputs section', which implies it might be from the old UI structure that had an 'Outputs' tab. Without seeing the tabs, it's hard to definitively say it's the old UI, but it lacks the required new UI elements (tabs, download button) to confirm it's the correct new state."
+        ],
+        [
+          "google",
+          "[ui_elements] UI components (file headers, code blocks, buttons like 'Analyze in RStudio', 'Open in Jupyter') appear consistent and well-aligned. No obvious broken elements or raw code placeholders."
+        ],
+        [
+          "anthropic",
+          "No step grouping visible; all files tagged '\u00b7 run', contradicting the intended state"
+        ],
+        [
+          "anthropic",
+          "Stale 'Outputs section' terminology vs the current Results / Reproducibility record tabs; no tab bar shown"
+        ],
+        [
+          "anthropic",
+          "results.json shows a raw escaped string with literal \\n and duplicates its content"
+        ],
+        [
+          "anthropic",
+          "'Biomni:' branding in the tool output header"
+        ],
+        [
+          "anthropic",
+          "All previews expanded; extremely long, illegible shot with clipped text"
+        ],
+        [
+          "anthropic",
+          "Inconsistent card affordances (missing RStudio button on .txt, folder icon, versions.yml has no preview, 'Show from start' on only one card)"
+        ],
+        [
+          "anthropic",
+          "Truncated filename; cryptic 'dl' link label"
+        ],
+        [
+          "anthropic",
+          "[content] Values are internally consistent: DILI 0.855/high, hERG 0.974 with herg_safe_above_10uM false, PPB 99.1% matching fu_plasma \u22480.01 for the worst compound. However, the output header reads 'Biomni: Predict ADMET Properties', which is non-BioMate branding and may be leaked or stale. The alt text says 'Outputs section', which is old three-tab terminology; the current report has 'Results' and 'Reproducibility record' tabs. No report tab or 'Download findings' button is visible for context."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Cards are inconsistent. The .txt card has a folder icon while the others use {}, and it lacks 'Analyze in RStudio'. versions.yml has no preview, only a download link. Only toxicity_report shows the '86 lines total / Show from start' control. results.json renders the raw escaped string with literal \\n characters, then repeats the same content in a separate 'result' block. The link label 'dl' is cryptic. Each expanded preview has an X but there is no collapsed state."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t3-4-after-run-reproducibility.png",
+      "uc": "tutorials:T3-running-a-workflow-and-reading-the-report",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Replace Summary/Outputs/Reproducibility record tabs with Results/Reproducibility record."
+        ],
+        [
+          "openai",
+          "Replace 'Download report' with 'Download findings'; the intended-state note is outdated."
+        ],
+        [
+          "openai",
+          "Neither 'Reproducibility bundle' nor 'Download all as ZIP' is shown."
+        ],
+        [
+          "openai",
+          "fratricide_check.json appears twice with different sizes (171 B and 970 B), without distinguishing paths or stages."
+        ],
+        [
+          "openai",
+          "The 'complete audit trail' claim is undermined by zero recorded input bindings and the legacy-capture caveat."
+        ],
+        [
+          "openai",
+          "[content] Stale three-tab layout and 'Download report' label; current UI requires Results + Reproducibility record and 'Download findings'."
+        ],
+        [
+          "google",
+          "Stale UI: Shows 3 tabs (Summary, Outputs, Reproducibility record) instead of the new 2-tab layout (Results, Reproducibility record)."
+        ],
+        [
+          "google",
+          "Stale UI: Shows 'Download report' instead of 'Download findings'."
+        ],
+        [
+          "google",
+          "Missing requested buttons: 'Reproducibility bundle' and 'Download all as ZIP' are not visible."
+        ],
+        [
+          "google",
+          "[content] CRITICAL: Shows the deprecated three-tab layout (Summary, Outputs, Reproducibility record) and 'Download report' button. Must be updated to the two-tab layout (Results, Reproducibility record) and 'Download findings' button."
+        ],
+        [
+          "google",
+          "[ui_elements] Components are rendered correctly but belong to an outdated version of the UI."
+        ],
+        [
+          "google",
+          "[clarity] Screenshot is unusable as it depicts stale UI. It also fails to show the 'Reproducibility bundle' and 'Download all as ZIP' buttons requested in the intended state."
+        ],
+        [
+          "anthropic",
+          "Stale 3-tab UI (Summary/Outputs/Reproducibility record); should be Results + Reproducibility record"
+        ],
+        [
+          "anthropic",
+          "'\u2193 Download report' should be 'Download findings'; intended-state spec also needs updating"
+        ],
+        [
+          "anthropic",
+          "Duplicate output 'fratricide_check.json' with conflicting sizes"
+        ],
+        [
+          "anthropic",
+          "Input bindings (0) / 'predates input-binding capture' contradicts demo-data cold start"
+        ],
+        [
+          "anthropic",
+          "Inactive tabs show dark underlines, so the active state is ambiguous"
+        ],
+        [
+          "anthropic",
+          "SHA-256 column all '\u2013'; compute checksums before capturing"
+        ],
+        [
+          "anthropic",
+          "'Reproducibility bundle' and 'Download all as ZIP' buttons not shown"
+        ],
+        [
+          "anthropic",
+          "Questionable type labels (.txt as table, .json as text)"
+        ],
+        [
+          "anthropic",
+          "Focus element is small and peripheral; consider a tighter crop or highlight"
+        ],
+        [
+          "anthropic",
+          "[content] Shows the stale three-tab layout (Summary/Outputs/Reproducibility record) and the old 'Download report' link instead of the two tabs 'Results' + 'Reproducibility record' and the 'Download findings' button. The intended-state note itself references the old UI. Outputs list 'fratricide_check.json' twice with different sizes (171 B vs 970 B). Input bindings (0), with the note 'run predates input-binding capture', contradicts the rule that cold-start examples attach demo data. Type labels are questionable: design_report.txt is listed as 'table', and the .json files as 'text'."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Inactive 'Summary' and 'Outputs' tabs carry dark grey underlines, so all three tabs look selected; only the blue underline should mark the active tab. Every SHA-256 cell shows '\u2013' because checksums were not computed. The intended '\u2193 Reproducibility bundle' and '\u2193 Download all as ZIP' buttons are not visible."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, legible, high resolution, no clipping. Tall crop is dominated by the reproducibility detail and the outputs table, so the focus element (top-right 'Download report' link) is small and peripheral."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t6-1-instruments-tab.png",
+      "uc": "tutorials:T6-connecting-instruments",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "My instruments shows 'No instruments registered yet' instead of the required instrument row with status and residency badges."
+        ],
+        [
+          "openai",
+          "Crop more tightly around the dialog to improve manual readability."
+        ],
+        [
+          "google",
+          "Missing instrument row with status and residency badges in the 'My instruments' section."
+        ],
+        [
+          "google",
+          "[content] The 'My instruments' list is empty, contradicting the requirement to show an instrument row with status and residency badges."
+        ],
+        [
+          "google",
+          "[ui_elements] UI components are rendered correctly, no broken elements or placeholders."
+        ],
+        [
+          "anthropic",
+          "Intended instrument row with status + residency badge is missing; My instruments is in its empty state"
+        ],
+        [
+          "anthropic",
+          "New data events is empty, so the workflow-launch suggestion is not demonstrated"
+        ],
+        [
+          "anthropic",
+          "Copy says 'Residency is shown on every row' but no rows are shown"
+        ],
+        [
+          "anthropic",
+          "Empty-state text 'Add one above' is misleading; the button is beside the heading, not above"
+        ],
+        [
+          "anthropic",
+          "Dialog intro paragraph omits the Instruments tab, though the tab bar includes it"
+        ],
+        [
+          "anthropic",
+          "Logo area clipped/overlapped by BETA badge and sidebar toggle (minor)"
+        ],
+        [
+          "anthropic",
+          "Recapture with a seeded demo instrument (e.g. online + on-prem badge) and at least one data event"
+        ],
+        [
+          "anthropic",
+          "[content] Dialog title is 'Connectors reference'. Intro copy says 'Residency is shown on every row', yet no row exists to demonstrate it. The intro paragraph describes only Public Databases, AI & Platforms and Your connections, and does not mention the Instruments tab. The empty-state copy 'Add one above' points up, but the Add instrument button sits on the same line, to the right. Background chat placeholder and chips are fine."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Dialog renders cleanly: 4 tabs, with Instruments active and underlined. The Instruments tab lacks the count badge the sibling tabs show (no count may be correct for zero). The '+ Add instrument' button is visible and aligned. Both sections render, but only as empty states. No undefined or placeholder text is visible."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, legible full-app capture. The modal is centered and the dimmed background is acceptable. The logo is clipped/overlapped at top-left (BETA badge and sidebar-toggle icon collide with the 'BioMate' wordmark). A lot of the frame is dimmed background rather than the dialog."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t6-2-add-instrument-form.png",
+      "uc": "tutorials:T6-connecting-instruments",
+      "cons": "minor",
+      "n_major": 0,
+      "issues": [
+        [
+          "openai",
+          "Crop closer to the Add-instrument form to reduce unrelated connector text and background UI."
+        ],
+        [
+          "google",
+          "[ui_elements] Form components are complete, aligned, and correctly rendered without placeholders or raw code."
+        ],
+        [
+          "anthropic",
+          "Not cropped to add-instrument-form; large dimmed background and sidebar"
+        ],
+        [
+          "anthropic",
+          "Logo clipped/overlapping BETA badge and collapse icon top-left"
+        ],
+        [
+          "anthropic",
+          "'+ Add instrument' button still shown while the form is open (redundant)"
+        ],
+        [
+          "anthropic",
+          "Modal intro text omits the Instruments tab; 'reference' title conflicts with editable tabs"
+        ],
+        [
+          "anthropic",
+          "Duplicate truncated project names in sidebar (fixture noise)"
+        ],
+        [
+          "anthropic",
+          "Fields empty so Register is disabled; consider showing example values"
+        ],
+        [
+          "anthropic",
+          "[content] Matches the intended state. The residency line reads 'on-prem \u2014 stays inside your network', consistent with the legend and the default Opentrons port. The modal intro covers only the Public Databases, AI & Platforms and Your connections tabs, not Instruments. The title 'Connectors reference' slightly contradicts the editable Instruments and Your connections tabs."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, high-res, fully legible. Full-window capture with a dimmed background; the form fills only about a quarter of the frame, so a tighter crop on the modal or form would help. The top-left BioMate logo is clipped and overlaps the BETA badge and sidebar-collapse icon."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t7-0-project-overview.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Standing instructions heading is partially obscured by the Members & Roles panel."
+        ],
+        [
+          "openai",
+          "BioMate branding is clipped at the sidebar's right edge."
+        ],
+        [
+          "openai",
+          "Right-panel explanatory text is cut off at the bottom."
+        ],
+        [
+          "openai",
+          "Repeated project names and fixture account details distract from documentation."
+        ],
+        [
+          "openai",
+          "Large empty file area reduces instructional value."
+        ],
+        [
+          "google",
+          "Right sidebar 'Standing instructions' header is bisected by a horizontal layout line."
+        ],
+        [
+          "anthropic",
+          "'Standing instructions' header clipped/overlapped at top of right panel (layout bug)"
+        ],
+        [
+          "anthropic",
+          "Logo 'AI' overlapped by sidebar toggle icon"
+        ],
+        [
+          "anthropic",
+          "Right panel content cut off at bottom edge"
+        ],
+        [
+          "anthropic",
+          "Four duplicate 'IL-17A Cyclic Peptide Pilot' entries in sidebar"
+        ],
+        [
+          "anthropic",
+          "'archived' project still shows enabled Upload/Analyze/Invite and 'you can' on all edit actions \u2014 contradictory state"
+        ],
+        [
+          "anthropic",
+          "Personal email address exposed in fixture account"
+        ],
+        [
+          "anthropic",
+          "Invite button appears disabled without explanation"
+        ],
+        [
+          "anthropic",
+          "Permissions table column too narrow; excessive text wrapping"
+        ],
+        [
+          "anthropic",
+          "Large empty dead space in Files pane"
+        ],
+        [
+          "anthropic",
+          "Screenshot unreferenced by any manual page \u2014 remove or assign purpose"
+        ],
+        [
+          "anthropic",
+          "[content] Project is tagged 'archived', yet Upload, Invite, Analyze with BioMate and all 'you can' permissions are shown as active. Archived-state semantics are unclear or contradictory. Fixture data is visible: 'WPM Fixture', 'S3-primary', and a real-looking personal email (lifeifei163361@163.com). No stale report tabs appear."
+        ],
+        [
+          "anthropic",
+          "[quality] High-res and legible, but there is clipping: the right panel's 'Standing instructions' header is cut off horizontally at the top. The logo 'AI' suffix is overlapped by the sidebar-collapse icon. The bottom note 'A control you may not use\u2026' runs off the bottom edge. The Files pane is mostly empty dead space."
+        ],
+        [
+          "anthropic",
+          "[clarity] Not referenced by any manual page, so it serves no doc purpose as-is. An empty archived project with duplicated sidebar projects is not instructive. If reused, it would need a clear intent (e.g., permissions panel or empty Files state)."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t7-1-standing-instructions.png",
+      "uc": "tutorials:T7-projects-and-collaboration",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Standing instructions lacks the required filled content and 'Read by the assistant on every chat in this project' subtitle."
+        ],
+        [
+          "openai",
+          "Members & roles appears immediately below Standing instructions; the expected empty Notes card and 'Private' label are absent."
+        ],
+        [
+          "openai",
+          "Excessive empty Files space weakens focus on the right rail; bottom explanatory text is clipped."
+        ],
+        [
+          "google",
+          "Standing instructions card is empty, missing required text and subtitle."
+        ],
+        [
+          "google",
+          "Notes card is missing from the right rail."
+        ],
+        [
+          "anthropic",
+          "Standing instructions card is collapsed/empty: no mouse-liver/paired-end/GRCm39 text shown"
+        ],
+        [
+          "anthropic",
+          "Missing subtitle 'Read by the assistant on every chat in this project'"
+        ],
+        [
+          "anthropic",
+          "Notes card (empty, 'Private' label) not present in the shot"
+        ],
+        [
+          "anthropic",
+          "Project is tagged 'archived', which is inappropriate for the tutorial state"
+        ],
+        [
+          "anthropic",
+          "Real personal email lifeifei163361@163.com exposed; should use demo data"
+        ],
+        [
+          "anthropic",
+          "Four duplicate 'IL-17A Cyclic Peptide Pilot' entries in the sidebar"
+        ],
+        [
+          "anthropic",
+          "Right rail clipped at the bottom; the footnote text is cut off"
+        ],
+        [
+          "anthropic",
+          "Large empty Files area is dead space; crop should focus on the right rail"
+        ],
+        [
+          "anthropic",
+          "Logo overlaps the sidebar-collapse icon"
+        ],
+        [
+          "anthropic",
+          "[ui_elements] The Standing instructions card is collapsed to just a header row with a pencil icon. It shows no body content and no 'Read by the assistant on every chat in this project' subtitle. The Notes card is absent entirely. The sidebar lists four identical 'IL-17A Cyclic Peptide Pilot' projects, which look like duplicate fixtures. The Invite button looks disabled or pale."
+        ],
+        [
+          "anthropic",
+          "[quality] High-resolution and legible, but the right rail is clipped at the bottom (the footnote 'A control you may not use\u2026' is cut off). The large empty Files panel takes up most of the frame as dead space. The BioMate logo overlaps the sidebar-collapse icon at the top left."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t7-2-members-roles.png",
+      "uc": "tutorials:T7-projects-and-collaboration",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Missing postdoc (Editor) and collaborator (Viewer), each with a role dropdown."
+        ],
+        [
+          "openai",
+          "Share link is not generated; Copy and Revoke controls are not shown."
+        ],
+        [
+          "openai",
+          "Permissions-card explanatory text is clipped at the bottom."
+        ],
+        [
+          "openai",
+          "Large empty files area distracts from the narrow collaboration panel."
+        ],
+        [
+          "google",
+          "Missing postdoc (Editor) and collaborator (Viewer) in the member list."
+        ],
+        [
+          "google",
+          "Sidebar PROJECTS list contains 4 identical entries for 'IL-17A Cyclic Peptide Pilot'."
+        ],
+        [
+          "google",
+          "[ui_elements] Sidebar shows duplicated project names. Right panel is missing the required member list entries."
+        ],
+        [
+          "anthropic",
+          "Member list lacks the postdoc (Editor) and collaborator (Viewer) rows and their role dropdowns"
+        ],
+        [
+          "anthropic",
+          "Share-link copy and revoke controls are not shown"
+        ],
+        [
+          "anthropic",
+          "Duplicate 'IL-17A Cyclic Peptide Pilot' entries in the sidebar; active project S3-primary is missing from the list"
+        ],
+        [
+          "anthropic",
+          "Project shows an 'archived' tag"
+        ],
+        [
+          "anthropic",
+          "Internal design-rationale text leaks into the permissions footnote, and the footnote is clipped"
+        ],
+        [
+          "anthropic",
+          "Personal email and test fixture name exposed (PII)"
+        ],
+        [
+          "anthropic",
+          "Logo clipped and overlapping the collapse icon"
+        ],
+        [
+          "anthropic",
+          "Large empty Files area wastes space"
+        ],
+        [
+          "anthropic",
+          "[content] The project is tagged 'archived', which is odd for a collaboration tutorial. Test fixture identity 'WPM Fixture' and a real-looking personal email (lifeifei163361@163.com) are exposed. The permissions footnote leaks an internal design note ('Hiding it makes the product feel broken\u2026') into the UI. The footer helper text is in monospace, inconsistent with the rest of the UI."
+        ],
+        [
+          "anthropic",
+          "[quality] High resolution and legible. The BioMate logo is clipped at top-left and the 'AI' suffix overlaps the sidebar-collapse icon. The permissions card's footnote is cut off at the bottom edge. The Files pane is mostly empty dead space."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "t9-1-connectors-dialog.png",
+      "uc": "tutorials:T9-connecting-data-and-tools",
+      "cons": "minor",
+      "n_major": 1,
+      "issues": [
+        [
+          "openai",
+          "ClinVar and ChEMBL are not visible."
+        ],
+        [
+          "openai",
+          "Category strip cuts off a label at the right edge; Ensembl is only partially visible."
+        ],
+        [
+          "openai",
+          "Repeated 'not declared' fields make the Declared facts column uninformative."
+        ],
+        [
+          "google",
+          "Sub-filter tabs row overflows, cutting off 'Diseas...' on the right edge."
+        ],
+        [
+          "google",
+          "Requested rows ClinVar and ChEMBL are not visible in the current scroll position."
+        ],
+        [
+          "anthropic",
+          "ClinVar and ChEMBL rows required by the intended state are not visible; scroll position or filter shows other sources"
+        ],
+        [
+          "anthropic",
+          "Declared Facts column is all 'not declared' placeholders on every row, reading like unpopulated data"
+        ],
+        [
+          "anthropic",
+          "'where it runs: not declared' contradicts the 'cloud' Residency badge in the same row"
+        ],
+        [
+          "anthropic",
+          "Category filter chips clipped at right edge ('Diseas\u2026')"
+        ],
+        [
+          "anthropic",
+          "Bottom row (Ensembl) partially cut off by the footer"
+        ],
+        [
+          "anthropic",
+          "Footer 'Clear your stars' does not match the checkbox icons in the rows"
+        ],
+        [
+          "anthropic",
+          "Duplicated count badges ('64 64\u2713') are ambiguous without explanation"
+        ],
+        [
+          "anthropic",
+          "[content] Every row's Declared Facts reads 'needs/produces/where it runs: not declared'. 'where it runs: not declared' contradicts the 'cloud' residency badge on the same row. The rows shown are UniProt, PDB, AlphaFold DB, EMDB, InterPro, STRING and Ensembl. ClinVar and ChEMBL, both called for in the intended state, are not visible."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] The four top tabs, the residency legend, the category chips, the column headers and the Account/Project/Request scope toggles all render consistently. Count chips show duplicated-looking pairs ('64 64\u2713', '6 6\u2713'). The footer says 'Clear your stars', but rows show checkbox icons, not stars. The filter row overflows with no visible scroll affordance."
+        ],
+        [
+          "anthropic",
+          "[clarity] The intro text and legend explain the screen well, and the Public Databases tab is clearly active, so it mostly fits the T9 intent. However, the wall of 'not declared' placeholders adds noise, and the specified example rows are missing."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "w1-0-panel-overview.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Replace obsolete after-run tabs and download label."
+        ],
+        [
+          "openai",
+          "Resolve workflow-name mismatch: Debug Workflow versus Untitled Workflow."
+        ],
+        [
+          "openai",
+          "Provide actionable guidance for repairing output access."
+        ],
+        [
+          "openai",
+          "Crop the large empty lower area."
+        ],
+        [
+          "openai",
+          "[content] Stale Summary/Outputs/Reproducibility record tabs and Download report label; should be Results/Reproducibility record and Download findings. Warning names Untitled Workflow while the header says Debug Workflow."
+        ],
+        [
+          "openai",
+          "[quality] Sharp and legible, with no clipping or overlap; excessive blank space below the content."
+        ],
+        [
+          "google",
+          "Excessive empty space at bottom"
+        ],
+        [
+          "google",
+          "Stale UI: Shows 3 tabs instead of 2"
+        ],
+        [
+          "google",
+          "Stale UI: Shows 'Download report' instead of 'Download findings'"
+        ],
+        [
+          "google",
+          "[content] Contains stale UI explicitly flagged as incorrect: shows the old three-tab layout (Summary, Outputs, Reproducibility record) instead of the new two-tab layout (Results, Reproducibility record), and uses 'Download report' instead of 'Download findings'."
+        ],
+        [
+          "google",
+          "[ui_elements] Structurally intact but reflects an outdated layout."
+        ],
+        [
+          "google",
+          "[clarity] Misleading due to outdated UI and poor cropping."
+        ],
+        [
+          "anthropic",
+          "Stale three-tab layout (Summary/Outputs/Reproducibility record) instead of Results + Reproducibility record"
+        ],
+        [
+          "anthropic",
+          "'Download report' should be 'Download findings'"
+        ],
+        [
+          "anthropic",
+          "Title 'Debug Workflow' vs 'Untitled Workflow' in the message"
+        ],
+        [
+          "anthropic",
+          "'Completed' badge contradicts 'output files could not be read' error"
+        ],
+        [
+          "anthropic",
+          "Debug/test workflow captured in manual assets"
+        ],
+        [
+          "anthropic",
+          "Large empty dead space in lower half; crop needed"
+        ],
+        [
+          "anthropic",
+          "Unreferenced screenshot: remove or replace"
+        ],
+        [
+          "anthropic",
+          "[content] The header says 'Debug Workflow' while the error message says 'Untitled Workflow', which is a name mismatch. The status badge reads 'Completed', yet output files could not be read and findings are withheld, so the success state contradicts the error. The italic footer claims numbers come from the workflow outputs while none are shown. The workflow name 'Debug Workflow' suggests a dev/test artifact."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Shows the OLD three-tab after-run report (Summary / Outputs / Reproducibility record) and a 'Download report' link. The current UI has two tabs (Results + Reproducibility record) and a 'Download findings' button. Tab underlines are slightly inconsistent: dark for the main tabs, blue for the sub-tabs."
+        ],
+        [
+          "anthropic",
+          "[clarity] Not referenced by any manual page, so it is orphaned. It shows an error/debug state with stale UI and has no instructional value."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "w1-1-phases.png",
+      "uc": "tutorials:W1-workflow-panel-tabs",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Capture after one step is DONE while another is RUNNING."
+        ],
+        [
+          "openai",
+          "Correct alt text: this is a live run, not finished results."
+        ],
+        [
+          "openai",
+          "Resolve inconsistent elapsed times (0s wall clock versus 6s active step)."
+        ],
+        [
+          "openai",
+          "Trim excess vertical whitespace while retaining the Pause/Stop bar."
+        ],
+        [
+          "openai",
+          "[content] Running state contradicts the supplied finished-run/output-results alt text. Wall-clock time shows 0s while the active step shows 6s."
+        ],
+        [
+          "google",
+          "Missing a DONE step; the steps shown are RUNNING and PENDING."
+        ],
+        [
+          "google",
+          "Intended state alt text contradicts the primary state description (finished vs. live run)."
+        ],
+        [
+          "google",
+          "[clarity] The image clearly depicts a running phase but fails the specific step status condition. Note: The provided alt text ('finished run... output results') completely contradicts the primary state description ('live run')."
+        ],
+        [
+          "anthropic",
+          "No step row in DONE state; recapture after step 1 completes so one step shows DONE and one shows RUNNING"
+        ],
+        [
+          "anthropic",
+          "Wall-clock time 0s conflicts with the 6s step timer"
+        ],
+        [
+          "anthropic",
+          "Phase badge '2' inconsistent with '1 \u4e2a\u9636\u6bb5' and the tab count of 1"
+        ],
+        [
+          "anthropic",
+          "All quality gates use '\u2265'; verify the operator for the Max/High-risk thresholds"
+        ],
+        [
+          "anthropic",
+          "Large dead space above the Pause/Stop bar; tighten the crop"
+        ],
+        [
+          "anthropic",
+          "Unexplained checkbox in the header"
+        ],
+        [
+          "anthropic",
+          "Raw JSON array displayed for Smiles List"
+        ],
+        [
+          "anthropic",
+          "[content] Wall-clock time '\u5899\u949f\u65f6\u95f4 0s' contradicts the step timer showing 6s. Progress is 0% / 0/2 with no completed step. Every gate uses '\u2265', which reads oddly for thresholds such as 'Qnet High Risk \u2265 -30' and 'Herg Safety Margin Min'; verify the operators. Tab 3 is labeled '\u8fd0\u884c\u7ed3\u679c'; this cannot confirm the new Results/Reproducibility report, but there is no sign of the stale three-tab report."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Phase card is expanded with a RUNNING spinner badge, and the dark Pause/Stop bar is visible. The phase badge reads '2' although the header says '1 \u4e2a\u9636\u6bb5' and the tab badge says '\u9636\u6bb5 1'. The unlabeled checkbox next to the header's \u8fd0\u884c\u4e2d pill is unexplained. Quality-gate rows use a monospace font, inconsistent with the rest of the panel. Smiles List is shown as a raw JSON array."
+        ],
+        [
+          "anthropic",
+          "[clarity] Partially matches the intended state. The live-run Phases tab and action bar are shown. However, the required step row showing DONE is missing: step 1 is RUNNING and step 2 is pending. The shot therefore does not illustrate a step transition. The numbering mismatch and the timer contradiction would confuse readers."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "w1-2-workflow-settings.png",
+      "uc": "tutorials:W1-workflow-panel-tabs",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Missing file field with Browse and AI-filled value with badge/Override."
+        ],
+        [
+          "openai",
+          "Missing 'Your permissions here' card described by the alt text."
+        ],
+        [
+          "openai",
+          "Required fields are empty despite Default badges; numeric control types are not apparent."
+        ],
+        [
+          "openai",
+          "Aligner appears as a plain text field rather than a dropdown."
+        ],
+        [
+          "openai",
+          "Overly tall capture with excessive empty space and slight left-edge clipping."
+        ],
+        [
+          "openai",
+          "[content] Four required fields show Default badges without visible values; Confirm and run is disabled. Parameter labels mix English with Chinese UI and use inconsistent acronym casing (Umi, Gpu, Fastqc)."
+        ],
+        [
+          "google",
+          "Missing dropdown control in parameters"
+        ],
+        [
+          "google",
+          "Missing file field with Browse button"
+        ],
+        [
+          "google",
+          "Missing AI-filled value badge/Override"
+        ],
+        [
+          "google",
+          "Missing 'Your permissions here' card"
+        ],
+        [
+          "anthropic",
+          "Missing dropdown control (Aligner rendered as text input)"
+        ],
+        [
+          "anthropic",
+          "Missing number box styling for Min/Max Reads"
+        ],
+        [
+          "anthropic",
+          "No file field with Browse button"
+        ],
+        [
+          "anthropic",
+          "No AI-filled value with badge/Override"
+        ],
+        [
+          "anthropic",
+          "'Default' badge on empty required fields is contradictory"
+        ],
+        [
+          "anthropic",
+          "'Gpu Acceleration' required text field should likely be a toggle; dubious param for rnaseq"
+        ],
+        [
+          "anthropic",
+          "Inputs-mapped card wrongly says no data inputs for nf-core/rnaseq"
+        ],
+        [
+          "anthropic",
+          "Alt text references a 'Your permissions here' card not in the shot"
+        ],
+        [
+          "anthropic",
+          "Mixed zh UI with untranslated English labels and badges"
+        ],
+        [
+          "anthropic",
+          "Run button disabled with no explanation of why (empty required fields)"
+        ],
+        [
+          "anthropic",
+          "[content] The '\u8f93\u5165\u5df2\u6620\u5c04' (inputs mapped) card claims nf-core/rnaseq takes only parameters with no data inputs, which is wrong because rnaseq needs a samplesheet/FASTQ input. Marking Umi Discard Read, Min Reads, Max Reads and Gpu Acceleration as required looks synthetic. 'Default' on empty fields is contradictory. The UI is in Chinese but parameter labels and badges are untranslated English. The alt text mentions a 'Your permissions here' card that is not shown."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "w2-failed-run.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Replace obsolete report tabs and download label."
+        ],
+        [
+          "openai",
+          "Failure panel shows only a Nextflow Graphviz WARN, not a clear failure cause."
+        ],
+        [
+          "openai",
+          "Crop substantial empty space below report content."
+        ],
+        [
+          "openai",
+          "[content] Stale Summary/Outputs/Reproducibility tabs and Download report label; required UI is Results/Reproducibility record with Download findings."
+        ],
+        [
+          "google",
+          "Shows deprecated 3-tab layout instead of required 2-tab layout"
+        ],
+        [
+          "google",
+          "Shows deprecated 'Download report' button instead of 'Download findings'"
+        ],
+        [
+          "google",
+          "Excessive dead space below content"
+        ],
+        [
+          "google",
+          "[content] Violates explicit product rules: shows the old 3-tab layout ('\u6458\u8981', '\u8f93\u51fa\u6587\u4ef6', '\u53ef\u590d\u73b0\u8bb0\u5f55') instead of the new 2-tab layout, and uses the old '\u4e0b\u8f7d\u62a5\u544a' (Download report) button instead of 'Download findings'."
+        ],
+        [
+          "google",
+          "[clarity] Poor, as it documents an outdated and incorrect UI state."
+        ],
+        [
+          "anthropic",
+          "Stale three-tab report (\u6458\u8981/\u8f93\u51fa\u6587\u4ef6/\u53ef\u590d\u73b0\u8bb0\u5f55) instead of the two tabs Results + Reproducibility record"
+        ],
+        [
+          "anthropic",
+          "'\u4e0b\u8f7d\u62a5\u544a' should be 'Download findings'"
+        ],
+        [
+          "anthropic",
+          "Error panel shows an irrelevant Graphviz WARN line rather than the real failure cause"
+        ],
+        [
+          "anthropic",
+          "Footnote claims findings and figures come from outputs, contradicting 'analysis unavailable'"
+        ],
+        [
+          "anthropic",
+          "Large dead whitespace in the lower half"
+        ],
+        [
+          "anthropic",
+          "Unreferenced screenshot: remove from the manual assets or recapture a successful run"
+        ],
+        [
+          "anthropic",
+          "[content] The surfaced 'error' is a Nextflow WARN about the missing Graphviz DAG renderer. It is a benign warning, not the actual cause of failure, so the failure banner is misleading. The footnote says findings and figures come from workflow outputs, yet the body says analysis is unavailable, which is contradictory. 'Download report' is available on a failed run with no findings. The ADMET AI run failed, likely a demo/environment issue, which undermines any cold-start example."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "w3-1-step-row.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 3,
+      "issues": [
+        [
+          "openai",
+          "Top parameter line and lower workflow row are clipped."
+        ],
+        [
+          "openai",
+          "Only a narrow workflow fragment is shown, making this unsuitable as a standalone manual screenshot."
+        ],
+        [
+          "openai",
+          "Mixed English and Chinese labels reduce documentation consistency."
+        ],
+        [
+          "openai",
+          "[content] Shows 'Admet Infer Shard' with Chinese status/actions and English labels; no visible evidence of stale report UI."
+        ],
+        [
+          "google",
+          "Extreme crop cuts off content at top and bottom"
+        ],
+        [
+          "google",
+          "Untranslated Chinese text in status badge and actions"
+        ],
+        [
+          "anthropic",
+          "Unreferenced asset: not used by any manual page; remove it, or reference it and re-capture"
+        ],
+        [
+          "anthropic",
+          "Top parameter line clipped mid-text"
+        ],
+        [
+          "anthropic",
+          "Bottom row ('Predict Admet Properties') clipped"
+        ],
+        [
+          "anthropic",
+          "Chinese UI labels (\u5df2\u5b8c\u6210/\u8be6\u60c5/\u91cd\u65b0\u8fd0\u884c) in what should be an English manual capture"
+        ],
+        [
+          "anthropic",
+          "Raw parameter label formatting (Smiles List, raw JSON array) and internal step name 'Admet Infer Shard'"
+        ],
+        [
+          "anthropic",
+          "Excess dead horizontal space; crop gives no workflow context"
+        ],
+        [
+          "anthropic",
+          "[content] The UI is mixed-language: Chinese status and action labels ('\u5df2\u5b8c\u6210' = Completed, '\u8be6\u60c5' = Details, '\u91cd\u65b0\u8fd0\u884c' = Rerun) sit beside English step names. This is inconsistent with an English manual. The parameter header shows raw snake-case-derived labels ('Smiles List', 'Admet Shard Size') and a raw JSON array. The step label 'Admet Infer Shard' is an internal/technical name."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Only one step row, 'Admet Infer Shard', is fully visible. It shows a green status dot, a numbered step icon, a green '\u5df2\u5b8c\u6210' badge, and '\u8be6\u60c5' and '\u91cd\u65b0\u8fd0\u884c' actions. Neighbouring rows are partial, so the timeline/list is fragmented. Nothing visibly broken."
+        ]
+      ],
+      "errs": []
+    },
+    {
+      "asset": "w3-2-fullstep-provenance.png",
+      "uc": "unreferenced",
+      "cons": "major",
+      "n_major": 2,
+      "issues": [
+        [
+          "openai",
+          "Capitalize ADMET correctly."
+        ],
+        [
+          "openai",
+          "Replace '0 not default' with '0 non-default parameters'."
+        ],
+        [
+          "openai",
+          "Missing run details limit instructional value; screenshot is not referenced by any manual page."
+        ],
+        [
+          "openai",
+          "[quality] Sharp, legible modal crop; no clipping or overlap."
+        ],
+        [
+          "google",
+          "Screenshot captures an empty/null state instead of a populated example."
+        ],
+        [
+          "google",
+          "Focus ring visible on the close button."
+        ],
+        [
+          "google",
+          "[clarity] Poor. Fails to demonstrate the feature because all data is missing or null. Not useful for a manual."
+        ],
+        [
+          "anthropic",
+          "Asset not referenced by any manual page; it is an orphan and should be removed or replaced."
+        ],
+        [
+          "anthropic",
+          "Step shows 'tool not reported (version n/a)', 0 outputs, no params and 'duration n/a'. This is a degenerate or possibly buggy provenance capture."
+        ],
+        [
+          "anthropic",
+          "Title casing 'Admet' should be 'ADMET'."
+        ],
+        [
+          "anthropic",
+          "'0 not default' badge is redundant when no parameters were recorded."
+        ],
+        [
+          "anthropic",
+          "Legend mentions 'unknown' badges, but none are shown."
+        ],
+        [
+          "anthropic",
+          "Inconsistent monospace font for empty-state messages."
+        ],
+        [
+          "anthropic",
+          "Prominent double focus ring on the close button captured in the shot."
+        ],
+        [
+          "anthropic",
+          "[content] The title 'Predict Admet Properties' looks auto-title-cased; the acronym should be 'ADMET'. Every provenance field is empty (no tool, version, outputs, params or duration) for a step that should have run a real ADMET tool. This suggests a capture or provenance-recording failure or a fake/stub run, not a representative state."
+        ],
+        [
+          "anthropic",
+          "[ui_elements] Components render without undefined or raw-code text. The provenance chain is all placeholders: 'upstream step output' \u2192 'tool not reported (version n/a)' \u2192 '0 outputs', plus 'duration n/a'. A '0 not default' badge sits next to 'No parameters were recorded', which is redundant. The badge legend refers to 'unknown' badges, but none are visible."
+        ],
+        [
+          "anthropic",
+          "[quality] Sharp, legible, and tightly cropped to the modal. The close (X) button shows a heavy double focus ring that draws the eye. Empty-state lines are monospace while the rest is sans-serif, which looks inconsistent."
+        ]
+      ],
+      "errs": []
+    }
+  ],
+  "byuc": {
+    "unreferenced": [
+      "capabilities.png",
+      "i00-1-runs-dashboard.png",
+      "i09-1-three-tabs.png",
+      "i13-1-cro-library.png",
+      "r-fail-state.png",
+      "r2b-running-metrics.png",
+      "r7-phases-completed.png",
+      "t10-0-dataset-object.png",
+      "t10-5-dataset-origin.png",
+      "t11-1-composer-goal.png",
+      "t11-2-design-candidates.png",
+      "t11-3-pareto.png",
+      "t7-0-project-overview.png",
+      "w1-0-panel-overview.png",
+      "w2-failed-run.png",
+      "w3-1-step-row.png",
+      "w3-2-fullstep-provenance.png"
+    ],
+    "modules:I01-getting-started-cold-start": [
+      "i01-1-cold-start.png"
+    ],
+    "tutorials:T10-exploring-your-datasets": [
+      "i05-0-data-hub.png",
+      "t10-1-dataset-preview.png",
+      "t10-2-dataset-lineage.png",
+      "t10-3-dataset-consumers.png",
+      "t10-4-dataset-versions.png"
+    ],
+    "modules:I05-files-and-dataset-object": [
+      "i05-1-file-tree.png",
+      "i05-2-dataset-header.png",
+      "i05-3-quality-tab.png"
+    ],
+    "modules:I08-outputs-viewers-interactive": [
+      "i08-1-outputs-tab.png"
+    ],
+    "modules:I09-reports-and-reproducibility": [
+      "i09-2-reproducibility-record.png"
+    ],
+    "modules:I10-models": [
+      "i10-1-models.png"
+    ],
+    "tutorials:T2-models-and-the-closed-loop": [
+      "i10-2-registry.png",
+      "i10-3-model-object.png",
+      "i10-4-rounds.png"
+    ],
+    "modules:I11-design-and-generate": [
+      "i11-1-design.png",
+      "i11-3-multi-objective.png"
+    ],
+    "modules:I12-connectors-and-skills": [
+      "i12-1-connectors-dialog.png"
+    ],
+    "tutorials:T0-getting-started": [
+      "m0-1-intent-bar.png"
+    ],
+    "tutorials:M1-search-and-evidence": [
+      "m1-1-search-module.png"
+    ],
+    "tutorials:M2-data-analysis": [
+      "m2-1-data-analysis-module.png"
+    ],
+    "tutorials:W2-after-run-panel": [
+      "r-merged-results-view.png",
+      "r5-outputs.png",
+      "r6-reproducibility.png",
+      "r8-completed-chat-and-panel.png"
+    ],
+    "tutorials:T11-drug-development-end-to-end": [
+      "r1-prerun-param-strip.png",
+      "r2-running.png"
+    ],
+    "tutorials:S1-sidebar-navigation": [
+      "s1-1-sidebar.png"
+    ],
+    "tutorials:T3-running-a-workflow-and-reading-the-report": [
+      "t3-1-workflow-panel.png",
+      "t3-2-after-run-summary.png",
+      "t3-3-after-run-outputs.png",
+      "t3-4-after-run-reproducibility.png"
+    ],
+    "tutorials:T6-connecting-instruments": [
+      "t6-1-instruments-tab.png",
+      "t6-2-add-instrument-form.png"
+    ],
+    "tutorials:T7-projects-and-collaboration": [
+      "t7-1-standing-instructions.png",
+      "t7-2-members-roles.png"
+    ],
+    "tutorials:T9-connecting-data-and-tools": [
+      "t9-1-connectors-dialog.png"
+    ],
+    "tutorials:W1-workflow-panel-tabs": [
+      "w1-1-phases.png",
+      "w1-2-workflow-settings.png"
+    ]
+  }
+}

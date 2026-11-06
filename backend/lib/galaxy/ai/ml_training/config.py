@@ -18,6 +18,7 @@ card with a parameter form — no new frontend code.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field, asdict
 from typing import Any, Optional
 
@@ -30,14 +31,44 @@ TASK_TYPES = ("classification", "regression", "text_generation")
 # trl_dpo = LLM preference optimization (DPO, TRL); trl_grpo = LLM reinforcement
 # learning (GRPO, TRL). Both run in the separate trl-training image (modern
 # torch+trl, no Ludwig) since TRL's deps conflict with Ludwig's pins.
-MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr", "ludwig_llm",
-               "trl_dpo", "trl_grpo")
+# sklearn_tabular = generic numeric feature-matrix learner (e.g. a gene-expression
+# matrix + a subtype/outcome label), with stratified k-fold cross-validation.
+# NOT molecule-specific — the general counterpart to the SMILES-only paths.
+MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr", "sklearn_tabular",
+               "ludwig_llm", "trl_dpo", "trl_grpo")
 LLM_MODEL_TYPES = ("ludwig_llm", "trl_dpo", "trl_grpo")   # text-generation family
 TRL_MODEL_TYPES = ("trl_dpo", "trl_grpo")                 # run in trl-training image
 FEATURIZERS = ("rdkit_2d", "morgan", "none")
 ADAPTERS = ("lora", "qlora", "none")
 # Built-in reward functions for GRPO (a real reward fn or a named built-in).
-REWARD_KINDS = ("length", "keyword", "numeric_answer")
+# "composite" = a user-declared, weighted multi-component reward (reward_spec),
+# letting a domain expert inject knowledge/rules into the RL run without code —
+# the same lever REINVENT4's multi-objective reward provides for generative RL.
+REWARD_KINDS = ("length", "keyword", "numeric_answer", "composite")
+
+# Declarative scoring components for reward="composite". Each component scores a
+# completion in [-1, 1] and is combined as a weighted sum. These are evaluated
+# by a fixed interpreter (no arbitrary code) so a reward spec is safe to accept
+# from a user / project rule.
+COMPOSITE_COMPONENT_KINDS = (
+    "contains_any",    # terms: [..]   → 1 if any term present      (desired content)
+    "contains_all",    # terms: [..]   → 1 only if all present
+    "banned",          # terms: [..]   → -1 if any present          (rule / guardrail)
+    "regex",           # pattern: str  → 1 if regex matches (case-insensitive)
+    "length_target",   # target: int   → peaks at target word count, negative away
+    "numeric",         #               → 1 if the completion contains a digit
+    "json_valid",      #               → 1 if the completion parses as JSON
+    # Gate-family extensions (docs/20261027_EXPERT_FEEDBACK_RULES_GUARDRAILS_RSI.md):
+    "numeric_threshold",  # value,op[,near] → +1 if a parsed number satisfies the op vs value,
+                          #                   -1 if it violates, 0 if no number found     (G1 threshold)
+    "implies",            # if_terms,then_terms → if any if_term present then all then_terms
+                          #                   must be present (+1), else -1; 0 if untriggered (G6 relational)
+    "order",              # before,after  → +1 if `before` precedes `after`, -1 if reversed,
+                          #                   0 if either absent                            (G7 ordering)
+)
+
+# Comparison operators accepted by the numeric_threshold component.
+NUMERIC_THRESHOLD_OPS = ("<", "<=", ">", ">=", "==", "!=")
 
 
 class ConfigError(ValueError):
@@ -82,9 +113,10 @@ class DatasetSpec:
     s3_uri: Optional[str] = None
     smiles_col: str = "smiles"
     target_col: str = "y"
-    split: str = "scaffold"        # scaffold | random
+    split: str = "scaffold"        # scaffold | random | kfold
     val_frac: float = 0.1
     test_frac: float = 0.1
+    cv_folds: int = 5              # k for split="kfold" (generic tabular path)
 
     def source_kind(self) -> str:
         provided = [k for k, v in (("name", self.name), ("path", self.path),
@@ -97,8 +129,10 @@ class DatasetSpec:
 
     def validate(self) -> None:
         self.source_kind()  # raises if not exactly one source
-        if self.split not in ("scaffold", "random"):
+        if self.split not in ("scaffold", "random", "kfold"):
             raise ConfigError(f"unknown split '{self.split}'")
+        if self.split == "kfold" and self.cv_folds < 2:
+            raise ConfigError("cv_folds must be >= 2 for split='kfold'")
         if not (0.0 <= self.val_frac < 1.0) or not (0.0 <= self.test_frac < 1.0):
             raise ConfigError("val_frac/test_frac must be in [0, 1)")
         if self.val_frac + self.test_frac >= 1.0:
@@ -125,8 +159,14 @@ class LLMSpec:
     # --- preference optimization (trl_dpo) / reinforcement learning (trl_grpo) ---
     beta: float = 0.1                           # DPO KL regularization strength
     num_generations: int = 4                    # GRPO: samples per prompt (group size)
-    reward: str = "length"                      # GRPO reward: length|keyword|numeric_answer
+    reward: str = "length"                      # GRPO reward: length|keyword|numeric_answer|composite
     reward_keyword: str = ""                    # for reward=keyword
+    # For reward="composite": a list of weighted scoring components that encode
+    # domain knowledge + rules, e.g.
+    #   [{"kind":"contains_all","terms":["dose","mg"],"weight":1.0},
+    #    {"kind":"banned","terms":["as an ai"],"weight":2.0},
+    #    {"kind":"numeric","weight":0.5}]
+    reward_spec: Optional[list] = None
 
     def validate(self) -> None:
         if not self.base_model or not self.base_model.strip():
@@ -143,6 +183,40 @@ class LLMSpec:
             raise ConfigError("llm.num_generations (GRPO) must be >= 2")
         if self.reward not in REWARD_KINDS:
             raise ConfigError(f"llm.reward must be one of {REWARD_KINDS}")
+        if self.reward == "composite":
+            spec = self.reward_spec
+            if not isinstance(spec, list) or not spec:
+                raise ConfigError("llm.reward='composite' requires a non-empty reward_spec list")
+            for i, comp in enumerate(spec):
+                if not isinstance(comp, dict):
+                    raise ConfigError(f"reward_spec[{i}] must be an object")
+                kind = comp.get("kind")
+                if kind not in COMPOSITE_COMPONENT_KINDS:
+                    raise ConfigError(f"reward_spec[{i}].kind must be one of {COMPOSITE_COMPONENT_KINDS}")
+                if kind in ("contains_any", "contains_all", "banned"):
+                    if not isinstance(comp.get("terms"), list) or not comp["terms"]:
+                        raise ConfigError(f"reward_spec[{i}] ({kind}) requires a non-empty 'terms' list")
+                if kind == "regex" and not comp.get("pattern"):
+                    raise ConfigError(f"reward_spec[{i}] (regex) requires a 'pattern'")
+                if kind == "numeric_threshold":
+                    if comp.get("op") not in NUMERIC_THRESHOLD_OPS:
+                        raise ConfigError(
+                            f"reward_spec[{i}] (numeric_threshold) requires 'op' in {NUMERIC_THRESHOLD_OPS}")
+                    try:
+                        float(comp.get("value"))
+                    except (TypeError, ValueError):
+                        raise ConfigError(f"reward_spec[{i}] (numeric_threshold) requires a numeric 'value'")
+                if kind == "implies":
+                    if not isinstance(comp.get("if_terms"), list) or not comp["if_terms"] \
+                       or not isinstance(comp.get("then_terms"), list) or not comp["then_terms"]:
+                        raise ConfigError(
+                            f"reward_spec[{i}] (implies) requires non-empty 'if_terms' and 'then_terms' lists")
+                if kind == "order" and (not comp.get("before") or not comp.get("after")):
+                    raise ConfigError(f"reward_spec[{i}] (order) requires 'before' and 'after'")
+                try:
+                    float(comp.get("weight", 1.0))
+                except (TypeError, ValueError):
+                    raise ConfigError(f"reward_spec[{i}].weight must be numeric")
 
 
 @dataclass
@@ -174,12 +248,23 @@ class TrainingConfig:
             raise ConfigError(f"featurizer must be one of {FEATURIZERS}")
         self.dataset.validate()
         self.hyperparams.validate()
+        if self.gate_threshold is not None:
+            try:
+                thr = float(self.gate_threshold)
+            except (TypeError, ValueError):
+                raise ConfigError(f"gate_threshold must be numeric, got {self.gate_threshold!r}")
+            if not math.isfinite(thr):
+                raise ConfigError(f"gate_threshold must be finite, got {self.gate_threshold!r}")
         if self.model_type in LLM_MODEL_TYPES:
             if self.llm is None:
                 raise ConfigError(f"model_type={self.model_type} requires an `llm` spec")
             self.llm.validate()
             if self.task_type != "text_generation":
                 raise ConfigError(f"{self.model_type} requires task_type=text_generation")
+            if self.dataset.split == "scaffold":
+                raise ConfigError(
+                    f"{self.model_type} trains on text; a Bemis-Murcko scaffold split "
+                    "cannot be applied. Use split='random'.")
         return self
 
     # -- (de)serialization ----------------------------------------------------

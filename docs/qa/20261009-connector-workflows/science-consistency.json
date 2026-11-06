@@ -1,0 +1,19 @@
+{
+  "checks": {
+    "workflow_success": true,
+    "three_compounds": true,
+    "exact_input_identity": true,
+    "reported_model_is_admet_ai": true,
+    "probabilities_finite_in_range": true,
+    "panel_dili_matches_max": true,
+    "dili_qc_failure_preserved": true,
+    "panel_derived_ic50_matches_min": true
+  },
+  "scope": "Identity and internal numerical consistency only; not biological accuracy or model calibration",
+  "limitations": [
+    "hERG IC50 is derived using a probability-to-potency heuristic, not measured potency",
+    "DILI classifier scores are not patient-level injury incidence",
+    "Generated analysis includes benchmark/error claims not independently verified for tutorial use"
+  ],
+  "recordingApproved": false
+}

@@ -237,7 +237,7 @@ with open("liftover_coordinates_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("liftover_coordinates_output.txt", "w") as f:
-    f.write("Biomni: Liftover Coordinates" + NL)
+    f.write("BioMate: Liftover Coordinates" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

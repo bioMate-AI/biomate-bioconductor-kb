@@ -1,0 +1,16 @@
+{
+  "InstanceId": "i-0a9ed4897fee6ffc2",
+  "State": "running",
+  "Type": "r5.4xlarge",
+  "Region": "us-west-2",
+  "PublicIp": "54.187.88.2",
+  "AvailabilityZone": "us-west-2a",
+  "SpotMaxPriceUSDPerHour": "1.00",
+  "ShutdownTerminatesAtUTC": "2026-09-12T20:20:03Z",
+  "BackupPrefix": "s3://biomate-models-399683337364/biomate-core-local-trial/20260912/",
+  "InstanceProfile": "biomate-core-trial-20260912",
+  "ModelRevision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+  "ScratchVolumeId": "vol-08e0f1ff09e9a2f62",
+  "ScratchThroughputMiBs": 500,
+  "ScratchIOPS": 6000
+}

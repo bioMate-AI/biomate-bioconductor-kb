@@ -1,0 +1,53 @@
+{
+  "version": "v3.1_multitarget",
+  "heldout_target": "PADI4",
+  "train_targets": [
+    "hPCSK9",
+    "FIKK13"
+  ],
+  "train_cyc": [
+    "photo_crosslink",
+    "thioether"
+  ],
+  "heldout_cyc": "thioether",
+  "same_chem_train": false,
+  "confounded_chem": false,
+  "n_sample": 400,
+  "n_heldout_rows": 370806,
+  "n_heldout_binders": 394,
+  "conditionings": {
+    "heldout_feats_hi": {
+      "validity": 0.995,
+      "pred_heldout_enrichment": 0.422,
+      "identity_to_ref_binder": 0.0,
+      "mean_max_identity_to_heldout_binders": 0.429,
+      "novelty_frac": 0.217
+    },
+    "heldout_feats_lo": {
+      "validity": 1.0,
+      "pred_heldout_enrichment": 0.436,
+      "identity_to_ref_binder": 0.0,
+      "mean_max_identity_to_heldout_binders": 0.432,
+      "novelty_frac": 0.618
+    },
+    "trainmean_feats_hi": {
+      "validity": 0.998,
+      "pred_heldout_enrichment": 0.409,
+      "identity_to_ref_binder": 0.0,
+      "mean_max_identity_to_heldout_binders": 0.421,
+      "novelty_frac": 0.287
+    }
+  },
+  "cross_target_deltas": {
+    "hi_vs_lo_pred_heldout_enr": -0.014,
+    "heldoutfeats_vs_trainmean_pred_heldout_enr": 0.013,
+    "heldoutfeats_vs_trainmean_ident_binders": 0.008
+  },
+  "verdict": {
+    "validity_ok": true,
+    "enrichment_conditioning_fires": false,
+    "target_features_matter": false,
+    "cross_target_transfer": "NULL",
+    "note": "v3.1 trains on 2 targets (varying prefix -> real gradient, unlike v3's n=1). If still NULL, the data wall is deeper than target count. If POSITIVE/WEAK, note the cyclization confound (train vs heldout chemistry) before claiming target transfer."
+  }
+}

@@ -21,8 +21,8 @@ function buildTagging(userId: string, extra: Record<string, string> = {}): strin
 }
 
 interface S3Config {
-  accessKeyId: string;
-  secretAccessKey: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
   region: string;
   bucket: string;
 }
@@ -57,17 +57,24 @@ export class S3Service {
   private bucket: string;
 
   constructor(config?: S3Config) {
-    const accessKeyId = config?.accessKeyId || process.env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = config?.secretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
+    const configSuppliesStaticCredentials =
+      config?.accessKeyId !== undefined || config?.secretAccessKey !== undefined;
+    const accessKeyId = configSuppliesStaticCredentials
+      ? config?.accessKeyId
+      : process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = configSuppliesStaticCredentials
+      ? config?.secretAccessKey
+      : process.env.AWS_SECRET_ACCESS_KEY;
     const region = config?.region || process.env.AWS_REGION || 'us-east-1';
     this.bucket = config?.bucket || process.env.S3_BUCKET_NAME || '';
 
-    if (!accessKeyId || !secretAccessKey) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[S3Service] AWS credentials not configured — S3 operations will fail at runtime (dev mode)');
-        return;
-      }
-      throw new Error('AWS credentials not configured');
+    // Supplying one half of a static credential is always a configuration
+    // error. Supplying neither is valid: the AWS SDK default provider chain
+    // then resolves an EC2/ECS role, web identity, or shared profile. This is
+    // essential for deployed services, where long-lived keys must not be
+    // required merely to generate presigned URLs.
+    if ((accessKeyId && !secretAccessKey) || (!accessKeyId && secretAccessKey)) {
+      throw new Error('AWS static credentials are incomplete');
     }
 
     if (!this.bucket) {
@@ -83,23 +90,38 @@ export class S3Service {
     // region-redirect feature (not applicable to MinIO). When absent: use the
     // default AWS S3 endpoint with region redirect for cross-region buckets.
     const endpointUrl = process.env.S3_ENDPOINT_URL;
-    this.s3Client = new S3Client({
-      region,
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-      ...(endpointUrl
-        ? { endpoint: endpointUrl, forcePathStyle: true }
-        : { followRegionRedirects: true }),
-    });
+    this.s3Client = this.createClient(region, accessKeyId && secretAccessKey
+      ? { accessKeyId, secretAccessKey }
+      : null, endpointUrl);
     this.configuredRegion = region;
-    this.configuredCredentials = { accessKeyId, secretAccessKey };
+    this.configuredCredentials = accessKeyId && secretAccessKey
+      ? { accessKeyId, secretAccessKey }
+      : null;
   }
 
   private configuredRegion: string = 'us-east-1';
   private configuredCredentials: { accessKeyId: string; secretAccessKey: string } | null = null;
   private bucketRegionEnsured = false;
+
+  private createClient(
+    region: string,
+    credentials: { accessKeyId: string; secretAccessKey: string } | null,
+    endpointUrl?: string,
+  ): S3Client {
+    return new S3Client({
+      region,
+      ...(credentials ? { credentials } : {}),
+      // On-prem MinIO: fixed endpoint, path-style addressing, no region redirect.
+      // AWS: if the bucket is actually in another region the SDK follows the 307
+      // redirect for non-presigned calls; presigned URLs are signed for THIS
+      // client's region, so ensureBucketRegion() rebuilds the client against the
+      // bucket's real region.
+      ...(endpointUrl
+        ? { endpoint: endpointUrl, forcePathStyle: true }
+        : { followRegionRedirects: true }),
+    });
+  }
+
   // Preserved from constructor so ensureBucketRegion can restore it when rebuilding.
   private configuredEndpoint: string | undefined = process.env.S3_ENDPOINT_URL;
 
@@ -126,16 +148,12 @@ export class S3Service {
       );
       // AWS legacy quirk: us-east-1 buckets return null/empty LocationConstraint.
       const actual = loc.LocationConstraint || 'us-east-1';
-      if (actual !== this.configuredRegion && this.configuredCredentials) {
+      if (actual !== this.configuredRegion) {
         console.log(
           `[S3Service] bucket ${this.bucket} is in ${actual}, ` +
           `not ${this.configuredRegion} — rebuilding client for presign correctness`
         );
-        this.s3Client = new S3Client({
-          region: actual,
-          credentials: this.configuredCredentials,
-          followRegionRedirects: true,
-        });
+        this.s3Client = this.createClient(actual, this.configuredCredentials);
         this.configuredRegion = actual;
       }
     } catch (err) {
@@ -319,6 +337,23 @@ export class S3Service {
 
     const response = await this.s3Client.send(command);
     return response.ContentLength || 0;
+  }
+
+  /** Read a bounded UTF-8 prefix for an already-authorized object. */
+  async readTextPrefix(key: string, maxBytes: number = 256 * 1024): Promise<string> {
+    if (!key) throw new Error('S3 object key is required');
+    const end = Math.max(0, Math.min(Math.floor(maxBytes), 1024 * 1024) - 1);
+    const response = await this.s3Client.send(new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Range: `bytes=0-${end}`,
+    }));
+    const body: any = response.Body;
+    if (!body) return '';
+    if (typeof body.transformToString === 'function') return body.transformToString('utf-8');
+    const chunks: Buffer[] = [];
+    for await (const chunk of body) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    return Buffer.concat(chunks).toString('utf8');
   }
 
   /**

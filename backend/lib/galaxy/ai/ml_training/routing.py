@@ -64,6 +64,32 @@ _REGRESSION_HINTS = re.compile(r"\b(ic50|ec50|value|potency|affinity|continuous|
 # Words that ask for a cheap non-GNN baseline.
 _BASELINE_HINTS = re.compile(r"\b(baseline|quick|fast|sklearn|gradient boost|simple)\b", re.I)
 
+# Generic NON-MOLECULAR tabular signal: an expression-matrix / feature-table
+# model (e.g. subtype prediction from gene expression), trained with k-fold CV.
+# This is the general path; it must NOT hijack molecular requests, so the caller
+# only consults it when no molecular dataset alias matched. English + Chinese.
+_TABULAR_HINTS = re.compile(
+    r"(expression\s*(matrix|data|profile)|gene\s*expression|feature\s*matrix|"
+    r"\bsubtype\b|\btabular\b|\bomics\b|microarray|transcriptom\w*|rna[- ]?seq\s*matrix|"
+    r"biomarker\s*panel|clinical\s*features?|"
+    r"表达矩阵|基因表达|亚型|分型|预后分组|特征矩阵|组学数据|交叉验证)",
+    re.I)
+# Infer the label column name from the request (else a neutral default).
+_TABULAR_TARGET = re.compile(
+    r"\b(subtype|outcome|response|label|class|group|status|grade|stage|prognosis)\b", re.I)
+_TABULAR_TARGET_ZH = {"亚型": "subtype", "分型": "subtype", "预后": "prognosis",
+                      "响应": "response", "分组": "group", "分级": "grade", "分期": "stage"}
+
+
+def _infer_tabular_target(text: str) -> str:
+    m = _TABULAR_TARGET.search(text)
+    if m:
+        return m.group(1).lower()
+    for zh, en in _TABULAR_TARGET_ZH.items():
+        if zh in text:
+            return en
+    return "label"
+
 
 def detect_training_intent(text: str) -> bool:
     """True when the text asks to train/build a model (rule-based)."""
@@ -115,6 +141,26 @@ def extract_training_config(
         ).validate()
 
     alias = _match_dataset(text)
+
+    # Generic TABULAR branch — a feature-matrix model (e.g. gene-expression →
+    # subtype) with stratified k-fold CV. Fires only when no molecular dataset
+    # alias matched, so it never hijacks a drug-discovery request.
+    if alias is None and _TABULAR_HINTS.search(text):
+        task_type = "regression" if _REGRESSION_HINTS.search(text) else "classification"
+        target = _infer_tabular_target(text)
+        if dataset_s3_uri:
+            dataset = DatasetSpec(s3_uri=dataset_s3_uri, target_col=target,
+                                  split="kfold", cv_folds=5)
+        else:
+            # No data yet — propose an editable card the user points at their matrix.
+            dataset = DatasetSpec(path="EXPRESSION_MATRIX.csv", target_col=target,
+                                  split="kfold", cv_folds=5)
+        return TrainingConfig(
+            name=default_name or f"{target} predictor", task_type=task_type,
+            model_type="sklearn_tabular", featurizer="none", dataset=dataset,
+            hyperparams=Hyperparams(),
+            metric="accuracy" if task_type == "classification" else "mae",
+        ).validate()
 
     # task type: alias decides; else regression hint; else classification
     if alias:

@@ -1,0 +1,141 @@
+{
+  "molecules": [
+    {
+      "atc_classifications": [],
+      "availability_type": null,
+      "biotherapeutic": {
+        "biocomponents": [
+          {
+            "component_id": 30598,
+            "component_type": "Protein",
+            "description": "Light chain",
+            "organism": null,
+            "sequence": "SYVLTQPPSVSVSPGQTASITCSGEGMGDKYAAWYQQKPGQSPVLVIYRDTKRPSGIPERFSGSNSGNTATLTISGTQAMDEADYYCGVIQDNTGVFGGGTKLTVLGQPKAAPSVTLFPPSSEELQANKATLVCLISDFYPGAVTVAWKADSSPVKAGVETTTPSKQSNNKYAASSYLSLTPEQWKSHRSYSCQVTHEGSTVEKTVAPTECS",
+            "tax_id": null
+          },
+          {
+            "component_id": 29674,
+            "component_type": null,
+            "description": "Glycosylation sites (N)",
+            "organism": null,
+            "sequence": "306 $ 306''''",
+            "tax_id": null
+          },
+          {
+            "component_id": 29409,
+            "component_type": "Protein",
+            "description": "Heavy chain",
+            "organism": null,
+            "sequence": "EVQLLESGGGLVQPGGSLRLSCAASGFTFSSYAMSWVRQAPGKGLEWVSGISAIDQSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCARQKFMQLWGGGLRYPFGYWGQGTMVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
+            "tax_id": null
+          },
+          {
+            "component_id": 30596,
+            "component_type": null,
+            "description": "Glycosylation sites (N)",
+            "organism": null,
+            "sequence": "306 $ 306''",
+            "tax_id": null
+          },
+          {
+            "component_id": 30597,
+            "component_type": null,
+            "description": "Disulfide bridges",
+            "organism": null,
+            "sequence": "22-96 $ 22''-96'' $ 22'-87' $ 22'''-87''' $ 134'-193' $ 134'''-193''' $ 153-209 $ 153''-209'' $ 229-211' $ 229''-211''' $ 235-235'' $ 238-238'' $ 270-330 $ 270''-330'' $ 376-434 $ 376''-434''",
+            "tax_id": null
+          }
+        ],
+        "description": null,
+        "helm_notation": null,
+        "molecule_chembl_id": "CHEMBL4650490"
+      },
+      "black_box_warning": 0,
+      "chemical_probe": 0,
+      "chirality": 1,
+      "cross_references": [
+        {
+          "xref_id": "https://searchusan.ama-assn.org/finder/usan/search/TOZORAKIMAB/relevant/1/",
+          "xref_name": "TOZORAKIMAB",
+          "xref_src": "USAN"
+        }
+      ],
+      "dosed_ingredient": false,
+      "first_approval": null,
+      "first_in_class": 0,
+      "helm_notation": null,
+      "inorganic_flag": 0,
+      "max_phase": "3.0",
+      "molecule_chembl_id": "CHEMBL4650490",
+      "molecule_hierarchy": {
+        "active_chembl_id": "CHEMBL4650490",
+        "molecule_chembl_id": "CHEMBL4650490",
+        "parent_chembl_id": "CHEMBL4650490"
+      },
+      "molecule_properties": null,
+      "molecule_structures": null,
+      "molecule_synonyms": [
+        {
+          "molecule_synonym": "Medi 3506",
+          "syn_type": "OTHER",
+          "synonyms": "MEDI 3506"
+        },
+        {
+          "molecule_synonym": "MEDI-3506",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "MEDI-3506"
+        },
+        {
+          "molecule_synonym": "Medi3506",
+          "syn_type": "OTHER",
+          "synonyms": "MEDI3506"
+        },
+        {
+          "molecule_synonym": "MEDI3506",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "MEDI3506"
+        },
+        {
+          "molecule_synonym": "Tozorakimab",
+          "syn_type": "INN",
+          "synonyms": "TOZORAKIMAB"
+        },
+        {
+          "molecule_synonym": "Tozorakimab",
+          "syn_type": "OTHER",
+          "synonyms": "TOZORAKIMAB"
+        },
+        {
+          "molecule_synonym": "Tozorakimab",
+          "syn_type": "USAN",
+          "synonyms": "TOZORAKIMAB"
+        }
+      ],
+      "molecule_type": "Antibody",
+      "natural_product": 0,
+      "oral": false,
+      "orphan": 0,
+      "parenteral": false,
+      "polymer_flag": 0,
+      "pref_name": "TOZORAKIMAB",
+      "prodrug": 0,
+      "score": 37.0,
+      "structure_type": "SEQ",
+      "therapeutic_flag": false,
+      "topical": false,
+      "usan_stem": "-mab",
+      "usan_stem_definition": "monoclonal antibodies",
+      "usan_substem": "-mab",
+      "usan_year": 2022,
+      "veterinary": 0,
+      "withdrawn_flag": false
+    }
+  ],
+  "page_meta": {
+    "limit": 10,
+    "next": null,
+    "offset": 0,
+    "previous": null,
+    "total_count": 1
+  }
+}

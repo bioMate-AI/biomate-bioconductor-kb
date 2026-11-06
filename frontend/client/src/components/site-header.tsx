@@ -45,11 +45,12 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
     main: [
       { name: "About", href: "/about" },
       { name: "Tutorials", href: "/tutorials" },
-      { name: "Pricing", href: "/pricing" },
+      // Pricing link commented out — pricing page content is disabled pending a
+      // verified pricing model (no fabricated billing figures). Restore with it.
+      // { name: "Pricing", href: "/pricing" },
       { name: "Blog", href: "/blog" },
     ],
     authenticated: [
-      // { name: "Dashboard", href: "/dashboard" }, // not ready
       { name: "Platform", href: "/" }
     ]
   }
@@ -69,7 +70,7 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
               onClick={() => handleNavigation(isAuthenticated ? '/' : '/register')}
               className="flex items-center space-x-2"
             >
-              <img src="/logo.png" alt="BioMate AI" className="h-12 w-auto" />
+              <img src="/biomate-logo.png" alt="BioMate AI" className="h-9 w-auto object-contain" />
             </button>
           </div>
 
@@ -118,9 +119,6 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
                     {user?.name || 'My Account'}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {/* <DropdownMenuItem onClick={() => handleNavigation('/dashboard')}>
-                    Dashboard
-                  </DropdownMenuItem> */}
                   <DropdownMenuItem onClick={() => handleNavigation('/')}>
                     Platform
                   </DropdownMenuItem>

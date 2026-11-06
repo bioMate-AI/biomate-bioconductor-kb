@@ -11,11 +11,23 @@ Example:
 
 import sqlite3
 import logging
+import threading
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import numpy as np
 
 log = logging.getLogger(__name__)
+
+# Side-channel so a caller/aggregator can tell "[] because the search ERRORED"
+# (embed server down, dtype/DB failure — an infra outage) from "[] no matches".
+# search() still returns a list; a caller reads this right after the call. Without
+# it, an outage surfaces to the user as "no tools match" (a fake content result).
+_vs_tls = threading.local()
+
+
+def last_vector_search_error() -> Optional[str]:
+    """Reason the most recent search() on THIS thread errored, or None (reset per call)."""
+    return getattr(_vs_tls, "error", None)
 
 # Try to import sentence-transformers, gracefully degrade if not available
 try:
@@ -539,8 +551,10 @@ class VectorToolSearch:
         Returns:
             List of tool dicts with similarity scores, sorted by relevance
         """
+        _vs_tls.error = None  # reset per-call; set only if THIS search errors
         if not self._initialized or self.embeddings is None:
-            log.warning("Vector search not initialized, returning empty results")
+            _vs_tls.error = "vector search not initialized"
+            log.error("Vector search not initialized — returning empty (DEGRADED, not 'no matches')")
             return []
 
         # Combine query with expanded terms
@@ -553,6 +567,8 @@ class VectorToolSearch:
             # Encode query (shared embed server if up, else in-process ST)
             query_embedding = self._encode_query(search_text)
             if query_embedding is None:
+                _vs_tls.error = "query embedding failed (embed server down?)"
+                log.error("Vector search: query embedding failed — returning empty (DEGRADED, not 'no matches')")
                 return []
 
             # Compute cosine similarity with all tools
@@ -577,7 +593,8 @@ class VectorToolSearch:
             return results
 
         except Exception as e:
-            log.error(f"Vector search failed: {e}")
+            _vs_tls.error = "%s: %s" % (type(e).__name__, e)
+            log.error(f"Vector search failed: {e} — returning empty (DEGRADED, not 'no matches')")
             return []
 
     def _fetch_tool_details(

@@ -19,6 +19,7 @@ Date: 2024-12-31
 """
 
 import json
+import os
 import sqlite3
 import logging
 import re
@@ -119,6 +120,31 @@ _WF_DENSE_BONUS_WEIGHT: float = 0.5
 # Both the workflows table AND the tools table contain Bioconductor entries:
 #   tools table      → package metadata, vignette steps, function lists (tool-level search)
 #   workflows table  → the runnable .nf workflow files (workflow-level search, ~1818 entries)
+# Input-kind mismatch (step 8a): the user's data kind is explicit and the workflow accepts ONLY the other
+# regime (raw instrument data vs processed table), so it cannot run on the user's data. The penalty must exceed
+# the lexical (FTS) gaps such a workflow can win by — 17–24 points measured for nf-core/proteomicslfq on a
+# MaxQuant proteinGroups request — so it is disqualifying in practice; it stays a penalty, not a filter,
+# because the kind labels carry ~4% inter-model disagreement. Offline A/B (docs 20261103 §13.3): −25 vs −4
+# leaves cross_domain_routing and bioc_method_selection unchanged and fixes EPIC beta values → beta-value
+# method (not IDAT-only methylarray) and Cell Ranger output → scdownstream (not FASTQ-only scrnaseq).
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, default))
+    except (TypeError, ValueError):  # a malformed override must not break Galaxy startup
+        log.warning("[WorkflowSearch] ignoring malformed %s=%r", name, os.environ.get(name))
+        return default
+
+
+_INPUT_KIND_MISMATCH_PENALTY: float = _env_float("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", 25.0)
+
+
+def _enforce_executable() -> bool:
+    """executable=0 rows are excluded from search results when on. Default OFF until the stale flags are corrected
+    from execution evidence (9 nf-core pipelines disabled for a 2026-10-01 stub that no longer runs — §15.3);
+    flipped to default ON in the commit that applies those corrections."""
+    return os.environ.get("BIOMATE_ENFORCE_EXECUTABLE", "0").strip().lower() in ("1", "true", "on", "yes")
+
+
 SOURCE_PRIORITY = {
     "nfcore":           100,  # Full nf-core pipelines (rnaseq, sarek, chipseq, …)
     "nfcore_subwf":      95,  # nf-core composite subworkflows (multi-tool analysis steps)
@@ -133,6 +159,13 @@ SOURCE_PRIORITY = {
     "nfcore_module":     10,  # Should be in tools table; low priority if found here
     "biomni":             5,  # Fully superseded legacy
 }
+
+
+_GENERIC_PATH_SEGMENTS = frozenset({
+    "main", "workflow", "workflows", "subworkflow", "subworkflows", "module", "modules",
+    "local", "nf_core", "nfcore", "nextflow", "nextflow_nfcore", "bin", "lib", "conf",
+    "assets", "templates", "tests", "test",
+})
 
 
 def _is_component_subworkflow(filename: str, source: str = "") -> bool:
@@ -559,7 +592,17 @@ class UnifiedWorkflowSearch:
 
     def _get_connection(self) -> sqlite3.Connection:
         """Get database connection."""
-        return sqlite3.connect(str(self.db_path))
+        conn = sqlite3.connect(str(self.db_path))
+        try:
+            # Read-perf pragmas for the ~300MB read-heavy workflow DB (per-connection, no file
+            # change): a bigger page cache + memory-mapped I/O speed up cold reads and concurrent
+            # readers; sorts/temp tables in RAM. Best-effort — never fail a search over a pragma.
+            conn.execute("PRAGMA cache_size=-65536")    # ~64 MB page cache
+            conn.execute("PRAGMA mmap_size=268435456")  # 256 MB memory-map
+            conn.execute("PRAGMA temp_store=MEMORY")
+        except Exception:
+            pass
+        return conn
 
     def _ensure_workflows_table(self):
         """Create the workflows table if it doesn't exist (prevents crash on fresh/empty DB)."""
@@ -610,6 +653,7 @@ class UnifiedWorkflowSearch:
             ("real_exec_provisional",       "INTEGER DEFAULT 0"),
             ("workflow_correctness_score",  "REAL"),
             ("workflow_correctness_verdict","TEXT"),
+            ("input_kinds",                 "TEXT"),  # closed-vocabulary input kinds (input_kinds_classifier)
         ]:
             if col not in existing_cols:
                 cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {definition}")
@@ -671,10 +715,13 @@ class UnifiedWorkflowSearch:
         """Create FTS index for workflows."""
         cursor = conn.cursor()
 
-        # Create FTS table if not exists
+        # Create FTS table if not exists.
+        # annotation_v2 is the enriched annotation column (~1300 chars avg vs
+        # ~180 for annotation): key_parameters, alternatives, when_to_use, keywords.
+        # Indexing it makes well-annotated workflows findable by parameter/intent terms.
         cursor.execute("""
             CREATE VIRTUAL TABLE IF NOT EXISTS workflows_fts USING fts5(
-                name, description, annotation, tags, domain, tools_used,
+                name, description, annotation, annotation_v2, tags, domain, tools_used,
                 content='workflows',
                 content_rowid='id'
             )
@@ -682,8 +729,8 @@ class UnifiedWorkflowSearch:
 
         # Populate FTS index
         cursor.execute("""
-            INSERT INTO workflows_fts(rowid, name, description, annotation, tags, domain, tools_used)
-            SELECT id, name, description, annotation, tags, domain, tools_used FROM workflows
+            INSERT INTO workflows_fts(rowid, name, description, annotation, annotation_v2, tags, domain, tools_used)
+            SELECT id, name, description, annotation, annotation_v2, tags, domain, tools_used FROM workflows
         """)
 
         conn.commit()
@@ -738,7 +785,13 @@ class UnifiedWorkflowSearch:
             fts_query = self._build_fts_query(query)
             cursor.execute(
                 """
-                SELECT w.id, w.name, COALESCE(w.description, '') as description,
+                -- Fall back to the grounded `annotation` blob when description is empty: 16 custom
+                -- BioMate workflows (spatial/multi-omics/CITE-seq) have no description but a rich
+                -- annotation. Empty descriptions here made the routing LLM pick a wrong sibling; adding
+                -- the description lifts base-9B routing 0.68->0.885 (+20.5pp) on RealBio. annotation is
+                -- already FTS-indexed. See docs/20260912_onprem_llm/20261004_CLOSE_THE_GAP_ROUTING.md.
+                SELECT w.id, w.name,
+                       COALESCE(NULLIF(TRIM(w.description), ''), w.annotation, '') as description,
                        w.source, w.filename
                 FROM workflows w
                 JOIN workflows_fts ON w.id = workflows_fts.rowid
@@ -772,7 +825,12 @@ class UnifiedWorkflowSearch:
         }
         catalog_lines = []
         for wf_id, name, desc, source, filename in rows:
-            short_desc = (desc or "")[:120].replace("\n", " ")
+            # Show more of the description: the distinguishing fact (platform/tool/modality — e.g. "Oxford
+            # Nanopore" for scnanoseq, "MetaPhlAn/Kraken2" for taxprofiler, "Affymetrix .CEL" for
+            # differentialabundance) frequently lives past char 120 in the real description/annotation, so a
+            # 120-char window hid it and the LLM picked a sibling. Widening surfaces facts that already exist
+            # (no benchmark-derived editing). See docs/20260912_onprem_llm/20261004_CLOSE_THE_GAP_ROUTING.md.
+            short_desc = (desc or "")[:240].replace("\n", " ")
             base_label = SOURCE_LABELS.get(source or "", "pipeline")
             # Only GENUINE components are labelled as such to the LLM (nf-core
             # subworkflows + bioconductor subtree). BioMate's complete domain
@@ -838,6 +896,35 @@ class UnifiedWorkflowSearch:
             log.debug("[Pass-0] LLM catalog browse failed: %s", _exc)
             return []
 
+    def _non_executable_ids(self) -> frozenset:
+        """Ids of catalog rows marked executable=0, per DB file version (main + WAL mtimes).
+
+        The flag was stored but never enforced: WorkflowMatch has no `executable` field, so the routing check
+        (`getattr(match, 'executable', 1)`) always saw 1 and disabled or placeholder workflows were routed
+        (2026-11-05, docs §15.3). Rows are disabled only on evidence (failed execution, placeholder code)."""
+        try:
+            db = Path(str(self.db_path)); wal = Path(str(db) + "-wal")
+            key = (db.stat().st_mtime, wal.stat().st_mtime if wal.exists() else 0.0)
+        except OSError:
+            return frozenset()
+        cached = getattr(self, "_non_exec_cache", None)
+        if cached and cached[0] == key:
+            return cached[1]
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            try:
+                ids = frozenset(r[0] for r in conn.execute("SELECT id FROM workflows WHERE executable = 0"))
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            log.warning("[WorkflowSearch] executable-flag load failed (not enforced this call): %s", exc)
+            return frozenset()
+        self._non_exec_cache = (key, ids)
+        return ids
+
+    def _executable_or_none(self, match):
+        return None if (match is not None and _enforce_executable() and match.id in self._non_executable_ids()) else match
+
     def _apply_scope_filter(self, results):
         """On-prem deployment-scope filter: drop out-of-scope workflows from results.
 
@@ -845,6 +932,10 @@ class UnifiedWorkflowSearch:
         Matches each WorkflowMatch by its .filename (nextflow_path) and .name.
         See galaxy.ai.scope_guard / docs/20261005_ONPREM_SCOPE_LAYER_PLAN.md (slice 2).
         """
+        if _enforce_executable() and results:
+            _off = self._non_executable_ids()
+            if _off:
+                results = [m for m in results if getattr(m, "id", None) not in _off]
         try:
             from galaxy.ai import scope_guard as _scope_guard
             if not _scope_guard.enforcement_enabled():
@@ -874,7 +965,8 @@ class UnifiedWorkflowSearch:
                user_profile: Optional[Dict[str, Any]] = None,
                preferred_domains: Optional[List[str]] = None,
                penalized_domains: Optional[List[str]] = None,
-               key_terms: Optional[List[str]] = None) -> List[WorkflowMatch]:
+               key_terms: Optional[List[str]] = None,
+               user_input_kinds: Optional[List[str]] = None) -> List[WorkflowMatch]:
         """
         Search for workflows matching the query.
 
@@ -955,6 +1047,13 @@ class UnifiedWorkflowSearch:
             sql += " ORDER BY fts_score LIMIT ?"
             params.append(max(limit * 10, 50))  # Get many more for re-ranking (min 50)
 
+            # Perf: the candidate fetch only needs workflow_json when the caller asked for it
+            # (include_workflow_json). On the hot search path (default False) it is discarded to
+            # None in _create_match (see ~line 1701), so skip reading the ~6.5KB blob per candidate
+            # — up to max(limit*10,50) rows. Equivalent result, less I/O + no wasted string alloc.
+            if not include_workflow_json:
+                sql = sql.replace("w.workflow_json,", "NULL AS workflow_json,", 1)
+
             cursor.execute(sql, params)
             rows = cursor.fetchall()
 
@@ -962,7 +1061,8 @@ class UnifiedWorkflowSearch:
             results = []
             for row in rows:
                 match = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
-                                           preferred_domains=preferred_domains, penalized_domains=penalized_domains)
+                                           preferred_domains=preferred_domains, penalized_domains=penalized_domains,
+                                           user_input_kinds=user_input_kinds)
                 bonus = 0.0
                 # ── Pass-0 boost: workflows the LLM ranked get a graded bonus ──
                 # rank 0 → +3.0, rank 1 → +2.7, ..., rank 9 → +0.3
@@ -1025,7 +1125,8 @@ class UnifiedWorkflowSearch:
                         rescue_conn.close()
                         for row in rescued_rows:
                             m = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
-                                                   preferred_domains=preferred_domains, penalized_domains=penalized_domains)
+                                                   preferred_domains=preferred_domains, penalized_domains=penalized_domains,
+                                                   user_input_kinds=user_input_kinds)
                             rank = llm_rank_map.get(row[0], len(llm_ranked_ids))
                             # Synthetic score: 2.8 − 0.3*rank (one notch below top FTS+LLM hits)
                             m = WorkflowMatch(
@@ -1438,16 +1539,19 @@ class UnifiedWorkflowSearch:
     def _compute_workflow_db_signature(self) -> tuple:
         """Compute (row_count, sha256_hex) over the DB's workflow rows.
 
-        Hashes the same (id, name, description, annotation) tuples
-        _build_workflow_embeddings reads, so any change that would
-        affect the encoded text shows up as a different signature.
+        Hashes the same (id, name, description, domain, tags, annotation,
+        annotation_v2) tuples _build_workflow_embeddings reads, so any change
+        that would affect the encoded text shows up as a different signature.
+        Including annotation_v2 ensures the dense .npz regenerates on the deploy
+        that first indexes the enriched annotation column.
         """
         import hashlib as _hashlib
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id, COALESCE(name,''), COALESCE(description,''), "
-            "COALESCE(domain,''), COALESCE(tags,''), COALESCE(annotation,'') "
+            "COALESCE(domain,''), COALESCE(tags,''), COALESCE(annotation,''), "
+            "COALESCE(annotation_v2,'') "
             "FROM workflows ORDER BY id"
         )
         rows = cursor.fetchall()
@@ -1524,7 +1628,7 @@ class UnifiedWorkflowSearch:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id, name, COALESCE(description,''), COALESCE(domain,''), "
-            "COALESCE(tags,''), COALESCE(annotation,'') FROM workflows"
+            "COALESCE(tags,''), COALESCE(annotation,''), COALESCE(annotation_v2,'') FROM workflows"
         )
         rows = cursor.fetchall()
         conn.close()
@@ -1534,7 +1638,7 @@ class UnifiedWorkflowSearch:
             return
 
         ids, texts = [], []
-        for wf_id, name, desc, domain, tags, annotation in rows:
+        for wf_id, name, desc, domain, tags, annotation, annotation_v2 in rows:
             ids.append(int(wf_id))
             # Build rich text: combine all textual fields (same strategy as VectorToolSearch)
             parts = []
@@ -1548,6 +1652,12 @@ class UnifiedWorkflowSearch:
                 parts.append(f"Tags: {tags}")
             if annotation and annotation != desc:
                 parts.append(annotation[:300])
+            # Enriched annotation (key_parameters / alternatives / when_to_use /
+            # keywords). Averages ~1300 chars, so truncate to 500 — enough to carry
+            # the distinctive intent/parameter vocabulary without swamping the
+            # name/description signal that drives exact-match ranking.
+            if annotation_v2 and annotation_v2 != annotation:
+                parts.append(annotation_v2[:500])
             texts.append(". ".join(parts))
 
         log.info("[WorkflowEmbed] Encoding %d workflows with %s …", len(texts), _WORKFLOW_EMBED_MODEL_NAME)
@@ -1656,7 +1766,8 @@ class UnifiedWorkflowSearch:
     def _create_match(self, row: tuple, query: str, include_json: bool,
                       user_profile: Optional[Dict[str, Any]] = None,
                       preferred_domains: Optional[List[str]] = None,
-                      penalized_domains: Optional[List[str]] = None) -> WorkflowMatch:
+                      penalized_domains: Optional[List[str]] = None,
+                      user_input_kinds: Optional[List[str]] = None) -> WorkflowMatch:
         """Create WorkflowMatch from database row."""
         # Unpack length-tolerantly: the first 14 fields are always present; the
         # trailing execution-quality columns (real_exec_status,
@@ -1691,6 +1802,7 @@ class UnifiedWorkflowSearch:
         # workflows under nextflow_nfcore/subworkflows/<domain>/ are NOT components
         # and must be retrievable as first-class complete workflows.
         is_subworkflow = _is_component_subworkflow(filename, source)
+        input_kinds = self._input_kinds_map().get(id_)
 
         # Calculate custom score — use LLM-derived domain lists when provided
         score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score,
@@ -1698,6 +1810,8 @@ class UnifiedWorkflowSearch:
                                       preferred_domains=preferred_domains,
                                       penalized_domains=penalized_domains,
                                       input_types=input_types,
+                                      input_kinds=input_kinds,
+                                      user_input_kinds=user_input_kinds,
                                       is_subworkflow=is_subworkflow,
                                       real_exec_status=real_exec_status,
                                       workflow_correctness_verdict=workflow_correctness_verdict,
@@ -1762,6 +1876,8 @@ class UnifiedWorkflowSearch:
                          preferred_domains: Optional[List[str]] = None,
                          penalized_domains: Optional[List[str]] = None,
                          input_types: Optional[List[str]] = None,
+                         input_kinds: Optional[frozenset] = None,
+                         user_input_kinds: Optional[List[str]] = None,
                          is_subworkflow: bool = False,
                          real_exec_status: Optional[str] = None,
                          workflow_correctness_verdict: Optional[str] = None,
@@ -1833,8 +1949,14 @@ class UnifiedWorkflowSearch:
         if is_subworkflow and "bam_stringtie_merge" not in name.lower():
             if source in ("nfcore", "nfcore_subwf"):
                 score -= 12.0  # nf-core internal components are never standalone pipelines
-            else:
-                score -= 8.0   # bioconductor/biomni subworkflows are executable but partial
+            elif self._detect_pipeline_intent(query):
+                score -= 8.0   # bioconductor/biomni methods: penalize ONLY when the user wants a
+                               # raw-data PIPELINE. For method-level queries (gene list / count matrix /
+                               # ranked statistic / processed object) the specific executable method IS the
+                               # right answer — burying it under the flat -8 demoted the entire bioconductor
+                               # catalog below generic pipelines (retrieval@1 0.375, recall@8 0.825 on
+                               # bioc_method_selection). Extends PR #188's domain-catalog exemption to the
+                               # bioconductor subtree. See docs/20261004_BIOC_SELECTION_MATRIX_RESULTS.md.
 
         # 5c. Pipeline intent boost: when user signals raw data to process,
         # boost full pipelines and penalise package-level Bioconductor tools further.
@@ -1866,9 +1988,24 @@ class UnifiedWorkflowSearch:
                 if domain_value in profile_domains:
                     score += 2.0
 
-        # 8. Input-type compatibility scoring (soft boost/penalty using DB input_types field).
-        # Only applied when the workflow has clean, non-channel input_types (skip "ch_*" names).
-        if input_types:
+        # 8. Input-type compatibility scoring.
+        # 8a. Preferred: the closed-vocabulary input_kinds (LLM-labelled per workflow). input_types holds
+        # free-form names — channel names or placeholders such as ["input"] for many nf-core pipelines —
+        # so a raw-spectra pipeline was never penalised for a processed protein table (2026-11-05).
+        # A workflow that accepts both raw and processed kinds is never penalised.
+        if input_kinds:
+            # The intent classifier's input_kinds (what the user HAS — not outputs wanted, not data said to be
+            # missing) when supplied; [] means "states no input data". The text regex only as a fallback: it
+            # cannot tell mentions from possession or handle negation (committee review 2026-11-05).
+            user_kinds = (self._valid_kinds(user_input_kinds) if user_input_kinds is not None
+                          else self._query_input_kinds(query))
+            if user_kinds:
+                if user_kinds & input_kinds:
+                    score += 3.0  # user has exactly the right input kind
+                elif self._kinds_mismatch(user_kinds, input_kinds):
+                    score -= _INPUT_KIND_MISMATCH_PENALTY  # cannot run on the user's data
+        # 8b. Legacy: rows without input_kinds use input_types when they are clean, non-channel names.
+        elif input_types:
             # Normalise: lowercase, strip whitespace; skip Nextflow channel names (ch_*)
             wf_types = frozenset(
                 t.lower().strip() for t in input_types
@@ -1975,6 +2112,55 @@ class UnifiedWorkflowSearch:
         finally:
             conn.close()
 
+    @staticmethod
+    def _workflow_slug(text: str) -> str:
+        """Canonical identifier form: lowercase, runs of non-alphanumerics -> '_'."""
+        return re.sub(r'[^a-z0-9]+', '_', (text or '').lower()).strip('_')
+
+    def resolve_named_workflow(self, identifier: str) -> Optional[WorkflowMatch]:
+        """Resolve an explicit workflow identifier to ONE catalog row, or None.
+
+        Matches exactly (no fuzzy search) on any of the forms a workflow is named by:
+        its directory slug (``.../<slug>/main.nf``), its file stem (``.../<slug>.nf``),
+        or its display name in slug form ("Perform Chipseq Peak Calling With Macs2" ==
+        ``perform_chipseq_peak_calling_with_macs2``). The same workflow is often indexed
+        twice (e.g. a ``nextflow`` and a ``biomni_nextflow`` row), so ties are broken
+        deterministically: SOURCE_PRIORITY, then real-execution evidence, then lowest id.
+        """
+        slug = self._workflow_slug(identifier)
+        # Path segments shared by many workflows ("main" is every main.nf's stem) identify none.
+        if len(slug) < 3 or slug in _GENERIC_PATH_SEGMENTS:
+            return None
+        conn = self._get_connection()
+        try:
+            # instr() rather than LIKE: '_' is a LIKE wildcard and slugs are full of them.
+            rows = conn.execute("""
+                SELECT id, name, description, domain, source, format,
+                       step_count, tools_used, tags, filename, workflow_json,
+                       0.0 as fts_score, input_types, output_types,
+                       real_exec_status, workflow_correctness_verdict, real_exec_provisional
+                FROM workflows
+                WHERE instr(lower(filename), ?) > 0 OR instr(lower(name), ?) > 0
+                   OR instr(lower(name), ?) > 0
+            """, (slug, slug, slug.replace('_', ' '))).fetchall()
+        finally:
+            conn.close()
+
+        def _exact(row) -> bool:
+            name, filename = row[1] or '', (row[9] or '').lower()
+            parts = filename.split('/')
+            return (self._workflow_slug(name) == slug
+                    or (len(parts) >= 2 and parts[-1] == 'main.nf' and parts[-2] == slug)
+                    or parts[-1] == f'{slug}.nf')
+
+        hits = [r for r in rows if _exact(r)]
+        if not hits:
+            return None
+        hits.sort(key=lambda r: (-SOURCE_PRIORITY.get(r[4] or 'unknown', 0),
+                                 0 if (r[14] if len(r) > 14 else None) in ('ok', 'ok_warnings') else 1,
+                                 r[0]))
+        return self._executable_or_none(self._create_match(hits[0], "", True))
+
     def get_workflow(self, workflow_id: int) -> Optional[WorkflowMatch]:
         """Get a specific workflow by ID."""
         conn = self._get_connection()
@@ -1994,7 +2180,7 @@ class UnifiedWorkflowSearch:
             if not row:
                 return None
 
-            return self._create_match(row, "", True)
+            return self._executable_or_none(self._create_match(row, "", True))
 
         finally:
             conn.close()
@@ -2016,7 +2202,7 @@ class UnifiedWorkflowSearch:
             row = cursor.fetchone()
             if not row:
                 return None
-            return self._create_match(row, "", True)
+            return self._executable_or_none(self._create_match(row, "", True))
         finally:
             conn.close()
 
@@ -2037,7 +2223,7 @@ class UnifiedWorkflowSearch:
             row = cursor.fetchone()
             if not row:
                 return None
-            return self._create_match(row, "", True)
+            return self._executable_or_none(self._create_match(row, "", True))
         finally:
             conn.close()
 
@@ -2064,7 +2250,7 @@ class UnifiedWorkflowSearch:
             row = cursor.fetchone()
             if not row:
                 return None
-            return self._create_match(row, "", True)
+            return self._executable_or_none(self._create_match(row, "", True))
         finally:
             conn.close()
 
@@ -2362,10 +2548,14 @@ class UnifiedWorkflowSearch:
         def _format_inputs(c: "WorkflowChain") -> str:
             if not c.required_inputs:
                 return "unspecified"
-            return ", ".join(
-                f"{inp.get('name','')} ({inp.get('type','')})"
-                for inp in c.required_inputs[:3]
-            )
+            # required_inputs may be a list of dicts OR a list of plain strings
+            # (legacy bioc_*_v2 chains store strings) — guard both, mirroring
+            # the _inp_tokens helper used in the chain-embedding path.
+            def _fmt(inp):
+                if isinstance(inp, str):
+                    return inp
+                return f"{inp.get('name','')} ({inp.get('type','')})"
+            return ", ".join(_fmt(inp) for inp in c.required_inputs[:3])
 
         prompt = (
             f"You are a bioinformatics workflow router validating a chain match.\n\n"
@@ -2429,9 +2619,12 @@ class UnifiedWorkflowSearch:
                 s.get("workflow_name", "") or s.get("name", "")
                 for s in (c.steps or [])[:5]
             )
+            def _fmt_inp(inp):
+                if isinstance(inp, str):
+                    return inp
+                return f"{inp.get('name', '')} ({inp.get('type', '')})"
             inputs = ", ".join(
-                f"{inp.get('name', '')} ({inp.get('type', '')})"
-                for inp in (c.required_inputs or [])[:3]
+                _fmt_inp(inp) for inp in (c.required_inputs or [])[:3]
             ) or "unspecified"
             return (
                 f"  Name: {c.name}\n"
@@ -2523,6 +2716,92 @@ class UnifiedWorkflowSearch:
         "count_matrix", "counts_matrix", "loom", "rds",
     })
 
+    # Closed vocabulary of workflow input kinds (galaxy.ai.chain_composer.input_kinds_classifier.INPUT_KINDS).
+    _RAW_KINDS: frozenset = frozenset({"fastq", "bam", "raw_spectra", "idat", "bcl", "nanopore_signal", "raw_images"})
+    _PROCESSED_KINDS: frozenset = frozenset({
+        "counts_matrix", "h5ad", "cellranger_output", "protein_table", "peptide_table",
+        "metabolite_table", "beta_values",
+    })
+    # Query data types (from _detect_query_data_types) → input kinds
+    _QUERY_TYPE_TO_KIND: Dict[str, str] = {
+        "fastq": "fastq", "bam": "bam", "cram": "bam", "vcf": "vcf", "counts_matrix": "counts_matrix",
+        "h5ad": "h5ad", "cellranger_output": "cellranger_output", "pdb": "structure", "smiles": "molecules",
+        "raw_spectra": "raw_spectra", "protein_table": "protein_table", "peptide_table": "peptide_table",
+        "idat": "idat", "beta_values": "beta_values", "metabolite_table": "metabolite_table",
+    }
+
+    @classmethod
+    def _query_input_kinds(cls, query: str) -> frozenset:
+        return frozenset(cls._QUERY_TYPE_TO_KIND[t] for t in cls._detect_query_data_types(query)
+                         if t in cls._QUERY_TYPE_TO_KIND)
+
+    @classmethod
+    def _kinds_mismatch(cls, user_kinds: frozenset, wf_kinds: frozenset) -> bool:
+        """True when the user's data is in one regime only (raw instrument data vs processed table/object)
+        and the workflow accepts only the other — it cannot run on the user's data. Shared by the step-8a
+        score and the card-swap guard (workflow_by_name input_compatible)."""
+        user_raw, user_proc = user_kinds & cls._RAW_KINDS, user_kinds & cls._PROCESSED_KINDS
+        wf_raw, wf_proc = wf_kinds & cls._RAW_KINDS, wf_kinds & cls._PROCESSED_KINDS
+        if user_kinds & wf_kinds:
+            return False
+        return bool((user_proc and not user_raw and wf_raw and not wf_proc)
+                    or (user_raw and not user_proc and wf_proc and not wf_raw))
+
+    _ALL_KINDS: frozenset = frozenset({
+        "fastq", "bam", "raw_spectra", "idat", "bcl", "nanopore_signal", "raw_images", "counts_matrix", "h5ad",
+        "cellranger_output", "protein_table", "peptide_table", "metabolite_table", "beta_values", "vcf", "peaks",
+        "gene_list", "fasta", "annotation", "structure", "molecules", "tabular",
+    })
+
+    @classmethod
+    def _valid_kinds(cls, kinds: Optional[List[str]]) -> frozenset:
+        return frozenset(str(k).strip().lower() for k in (kinds or []) if str(k).strip().lower() in cls._ALL_KINDS)
+
+    def input_compatible(self, query: str, workflow_id: int,
+                         user_input_kinds: Optional[List[str]] = None) -> Optional[bool]:
+        """False when the request's data kind cannot feed the workflow; None when either side is unknown.
+        The classifier's `user_input_kinds` take precedence over detecting the kind from the text."""
+        wf_kinds = self._input_kinds_map().get(int(workflow_id))
+        user_kinds = (self._valid_kinds(user_input_kinds) if user_input_kinds is not None
+                      else self._query_input_kinds(query or ""))
+        if not wf_kinds or not user_kinds:
+            return None
+        return not self._kinds_mismatch(user_kinds, wf_kinds)
+
+    def _input_kinds_map(self) -> Dict[int, frozenset]:
+        """{workflow id: input kinds}, loaded once per DB file version (mtime) — the candidate SELECTs
+        are unchanged, so the column is looked up here rather than threaded through every query shape."""
+        try:
+            # WAL mode: committed writes land in the -wal file until a checkpoint, so key on both files.
+            db = Path(str(self.db_path))
+            wal = Path(str(db) + "-wal")
+            mtime = (db.stat().st_mtime, wal.stat().st_mtime if wal.exists() else 0.0)
+        except OSError:
+            return {}
+        cached = getattr(self, "_input_kinds_cache", None)
+        if cached and cached[0] == mtime:
+            return cached[1]
+        kinds: Dict[int, frozenset] = {}
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            try:
+                cols = {r[1] for r in conn.execute("PRAGMA table_info(workflows)")}
+                if "input_kinds" in cols:
+                    for wid, raw in conn.execute("SELECT id, input_kinds FROM workflows WHERE input_kinds IS NOT NULL"):
+                        try:
+                            ks = frozenset(json.loads(raw) or [])
+                        except (TypeError, ValueError):
+                            continue
+                        if ks:
+                            kinds[int(wid)] = ks
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            log.warning("[WorkflowSearch] input_kinds load failed (retried on the next search): %s", exc)
+            return kinds  # not cached: a transient error must not disable the term until the file changes
+        self._input_kinds_cache = (mtime, kinds)
+        return kinds
+
     @staticmethod
     def _detect_query_data_types(query: str) -> frozenset:
         """Return the set of data types the user appears to have from query text.
@@ -2566,6 +2845,22 @@ class UnifiedWorkflowSearch:
             types.add("pdb")
         if re.search(r'\bsmiles\b|compound.?library|ligand.?library|\.sdf\b', q):
             types.add("smiles")
+        # Proteomics / methylation / metabolomics data the user HAS (file formats and named exports).
+        if re.search(r'\.mzml\b|\.mzxml\b|\bmzml\b|\.raw files?|thermo raw|\.wiff\b|raw (?:ms|mass[- ]spec\w*) (?:files?|data)'
+                     r'|mass spectra (?:files?)|spectra files?', q):
+            types.add("raw_spectra")
+        if re.search(r'proteingroups|protein ?groups\.txt|pg_matrix|protein[- ](?:level )?(?:table|matrix|intensit\w*|abundance (?:table|matrix)|quantification table)'
+                     r'|protein expression (?:table|matrix)|lfq intensit\w*', q):
+            types.add("protein_table")
+        if re.search(r'peptides\.txt|evidence\.txt|peptide[- ]level (?:intensit\w*|table|data|quant\w*)|peptide (?:table|intensit\w*)'
+                     r'|psm (?:table|sheet|report)|precursor (?:report|table|matrix)|dia-?nn (?:main )?report', q):
+            types.add("peptide_table")
+        if re.search(r'\.idat\b|\bidat files?', q):
+            types.add("idat")
+        if re.search(r'beta[- ]values?|\bm[- ]values?\b|beta (?:value )?matri[cx]', q):
+            types.add("beta_values")
+        if re.search(r'metabolite (?:table|matrix|intensit\w*)|feature (?:table|matrix) from (?:lc|gc)-?ms|peak (?:intensity )?table', q):
+            types.add("metabolite_table")
         return frozenset(types)
 
     @classmethod

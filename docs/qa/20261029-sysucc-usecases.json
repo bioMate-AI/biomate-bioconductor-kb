@@ -1,0 +1,655 @@
+{
+  "scope": "real local BioMate services and optional live dev execution; not chat/UI E2E",
+  "fixture_kind": "synthetic software fixtures, not experimental evidence",
+  "started_at": "2026-10-30T01:43:20Z",
+  "python": "3.14.7",
+  "checks": [
+    {
+      "name": "normalization",
+      "case": "file_comparison",
+      "expected": {
+        "A": 0.001,
+        "B": 0.01,
+        "C": 0.1
+      },
+      "actual": {
+        "A": 0.001,
+        "B": 0.01,
+        "C": 0.1
+      },
+      "status": "passed"
+    },
+    {
+      "name": "two_files_change_decision",
+      "case": "file_comparison",
+      "expected": "A initially; B after measured safety",
+      "actual": [
+        "A",
+        "B"
+      ],
+      "status": "passed"
+    },
+    {
+      "name": "compound_identity_and_persistence",
+      "case": "file_comparison",
+      "expected": "six rows; exact A/B/C IDs after reload",
+      "actual": {
+        "rows": 6,
+        "ids": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "campaign_isolation",
+      "case": "file_comparison",
+      "expected": [],
+      "actual": [],
+      "status": "passed"
+    },
+    {
+      "name": "incomplete_safety_not_unqualified_best",
+      "case": "file_comparison",
+      "expected": "D must not become an unqualified best candidate with no safety measurement",
+      "actual": {
+        "top": {
+          "compound_id": "D",
+          "combined_score": 1.0,
+          "rank": 1
+        },
+        "warning_fields": {
+          "ingested": 1,
+          "errors": [],
+          "newly_failed": [
+            "C"
+          ],
+          "newly_passed": []
+        }
+      },
+      "status": "failed"
+    },
+    {
+      "name": "unsupported_unit",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [],
+        "errors": [
+          "Row 2: unsupported unit 'mg/mL'. Supported: nM, mM, uM"
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "nonfinite",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [],
+        "errors": [
+          "Row 2: value must be finite."
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "negative_potency",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [
+          {
+            "compound_id": "A",
+            "smiles": "CCO",
+            "assay_type": "IC50",
+            "value": -10.0,
+            "value_uM": -0.01,
+            "unit": "nM",
+            "unit_normalized": "uM",
+            "operator": "=",
+            "operator_note": "",
+            "assay_date": "2026-10-01"
+          }
+        ],
+        "errors": []
+      },
+      "status": "failed"
+    },
+    {
+      "name": "negative_Kd",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [],
+        "errors": [
+          "Row 2: Kd must be positive."
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "bad_date",
+      "case": "failure_recovery",
+      "expected": "reject row with an explanatory error",
+      "actual": {
+        "valid_rows": [],
+        "errors": [
+          "Row 2: assay_date '2026-99-01' must be YYYY-MM-DD."
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "correct_and_resume",
+      "case": "failure_recovery",
+      "expected": "bad row not persisted; corrected row ingested once",
+      "actual": {
+        "bad": {
+          "ingested": 0,
+          "errors": [
+            "Row 2: unsupported unit 'mg/mL'. Supported: nM, mM, uM"
+          ],
+          "updated_ranks": [],
+          "newly_failed": [],
+          "newly_passed": []
+        },
+        "fixed": {
+          "ingested": 1,
+          "errors": [],
+          "updated_ranks": [
+            {
+              "compound_id": "A",
+              "combined_score": 0.5,
+              "rank": 1
+            }
+          ],
+          "newly_failed": [],
+          "newly_passed": []
+        }
+      },
+      "status": "passed"
+    },
+    {
+      "name": "conflicting_structure_identity",
+      "case": "failure_recovery",
+      "expected": "reject or flag one compound ID mapped to distinct structures",
+      "actual": {
+        "ingested": 2,
+        "errors": [],
+        "updated_ranks": [
+          {
+            "compound_id": "A",
+            "combined_score": 0.5,
+            "rank": 1
+          }
+        ],
+        "newly_failed": [],
+        "newly_passed": []
+      },
+      "status": "failed"
+    },
+    {
+      "name": "real_chemical_features",
+      "case": "experimental_learning",
+      "expected": "RDKit available, no random-vector fallback",
+      "actual": true,
+      "status": "passed"
+    },
+    {
+      "name": "campaign_proposals_created",
+      "case": "experimental_learning",
+      "expected": "two nonempty persisted proposals",
+      "actual": 2,
+      "status": "passed"
+    },
+    {
+      "name": "campaign_uses_measured_labels",
+      "case": "experimental_learning",
+      "expected": "predictions reflect nonconstant observed combined_score, not fallback 0.5 labels",
+      "actual": {
+        "observed_ranks": [
+          {
+            "compound_id": "B",
+            "combined_score": 0.9545454545454546,
+            "rank": 1,
+            "smiles": "CCN"
+          },
+          {
+            "compound_id": "C",
+            "combined_score": 0.24489795918367346,
+            "rank": 2,
+            "smiles": "CCC"
+          },
+          {
+            "compound_id": "A",
+            "combined_score": 0.2,
+            "rank": 3,
+            "smiles": "CCO"
+          }
+        ],
+        "proposal_scores": [
+          0.0,
+          0.0
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "name": "direct_gp_responds_to_labels",
+      "case": "experimental_learning",
+      "expected": "different predictions on unchanged unseen SMILES",
+      "actual": [
+        [
+          0.43333333333333335,
+          0.43333333333333335
+        ],
+        [
+          0.43333333333333335,
+          0.43333333333333335
+        ]
+      ],
+      "status": "failed"
+    },
+    {
+      "name": "missing_metric_gate",
+      "case": "experimental_learning",
+      "expected": {
+        "passed": false
+      },
+      "actual": {
+        "passed": true,
+        "value": "None"
+      },
+      "status": "failed"
+    },
+    {
+      "name": "infinite_metric_gate",
+      "case": "experimental_learning",
+      "expected": {
+        "passed": false
+      },
+      "actual": {
+        "passed": true,
+        "value": "inf"
+      },
+      "status": "failed"
+    },
+    {
+      "name": "valid_metric_gate",
+      "case": "experimental_learning",
+      "expected": {
+        "passed": true
+      },
+      "actual": {
+        "passed": true,
+        "value": "0.8"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "poor_metric_gate",
+      "case": "experimental_learning",
+      "expected": {
+        "passed": false
+      },
+      "actual": {
+        "passed": false,
+        "value": "0.6"
+      },
+      "status": "passed"
+    },
+    {
+      "name": "extracted_half_life",
+      "case": "evidence_package",
+      "expected": 8,
+      "actual": 8.0,
+      "status": "passed"
+    },
+    {
+      "name": "herg_unit_conversion",
+      "case": "evidence_package",
+      "expected": 5,
+      "actual": 5.0,
+      "status": "passed"
+    },
+    {
+      "name": "source_reference",
+      "case": "evidence_package",
+      "expected": "SYNTHETIC:QA-RAT-001",
+      "actual": "SYNTHETIC:QA-RAT-001",
+      "status": "passed"
+    },
+    {
+      "name": "study_species_fidelity",
+      "case": "evidence_package",
+      "expected": "rat, not default human",
+      "actual": "human",
+      "status": "failed"
+    },
+    {
+      "name": "cmax_auc_not_dropped",
+      "case": "evidence_package",
+      "expected": {
+        "cmax": 250,
+        "auc_inf": 1500
+      },
+      "actual": {
+        "cmax": null,
+        "auc_inf": null
+      },
+      "status": "failed"
+    },
+    {
+      "name": "predicted_not_relabelled_measured",
+      "case": "evidence_package",
+      "expected": "no measured half-life",
+      "actual": {
+        "drug_name": "",
+        "smiles": "",
+        "nda_number": "",
+        "source_document": "SYNTHETIC:PREDICTED-ONLY",
+        "ingested_at": "2026-10-30T01:43:35.145184+00:00",
+        "t_half_h": {
+          "value": 8.0,
+          "unit": "h",
+          "source": "measured_wetlab",
+          "reference": "SYNTHETIC:PREDICTED-ONLY",
+          "species": "human",
+          "study_type": "",
+          "confidence": "HIGH"
+        },
+        "auc_inf_ngmlh": null,
+        "cmax_ngml": null,
+        "vd_lkg": null,
+        "cl_mlminkg": null,
+        "fu_plasma": null,
+        "bioavailability_pct": null,
+        "tmax_h": null,
+        "t_half_h_preclinical": null,
+        "vd_lkg_preclinical": null,
+        "herg_ic50_uM_measured": null,
+        "ames_in_vitro": null,
+        "chromosomal_aberration": null,
+        "micronucleus": null,
+        "noael_mg_kg_day": null,
+        "noael_species": "",
+        "noael_study_duration": "",
+        "repeat_dose_tox_summary": "",
+        "genotox_battery_result": "incomplete",
+        "glp_certified": true,
+        "study_sponsor": "",
+        "ctd_sections_covered": []
+      },
+      "status": "failed"
+    },
+    {
+      "name": "unknown_glp_not_certified",
+      "case": "evidence_package",
+      "expected": "no affirmative GLP claim without evidence",
+      "actual": true,
+      "status": "failed"
+    },
+    {
+      "name": "pk_method_retrieval",
+      "case": "pk_analysis",
+      "expected": "PKNCA/NCA workflow in top five, explicitly not execution-verified",
+      "actual": {
+        "names": [
+          "Nca Pknca",
+          "nlmixr2_population_pk"
+        ],
+        "execution_verified": false
+      },
+      "status": "passed"
+    }
+  ],
+  "observations": {
+    "two_file_comparison": {
+      "initial": {
+        "ingested": 3,
+        "errors": [],
+        "updated_ranks": [
+          {
+            "compound_id": "A",
+            "combined_score": 1.0,
+            "rank": 1
+          },
+          {
+            "compound_id": "B",
+            "combined_score": 0.9090909090909091,
+            "rank": 2
+          },
+          {
+            "compound_id": "C",
+            "combined_score": 0.0,
+            "rank": 3
+          }
+        ],
+        "newly_failed": [],
+        "newly_passed": []
+      },
+      "with_safety": {
+        "ingested": 3,
+        "errors": [],
+        "updated_ranks": [
+          {
+            "compound_id": "B",
+            "combined_score": 0.9545454545454546,
+            "rank": 1
+          },
+          {
+            "compound_id": "C",
+            "combined_score": 0.24489795918367346,
+            "rank": 2
+          },
+          {
+            "compound_id": "A",
+            "combined_score": 0.2,
+            "rank": 3
+          }
+        ],
+        "newly_failed": [
+          "A"
+        ],
+        "newly_passed": [
+          "B"
+        ]
+      }
+    },
+    "campaign_refit": {
+      "before": {
+        "id": 1,
+        "campaign_id": "qa-learn",
+        "round_number": 1,
+        "proposed_smiles": [
+          "CCCC",
+          "CCCl"
+        ],
+        "scores": {
+          "composite_score": [
+            0.0,
+            0.0
+          ]
+        },
+        "confidence_intervals": {
+          "composite_score": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0
+            ]
+          ]
+        },
+        "ad_statuses": [
+          "in_domain",
+          "in_domain"
+        ],
+        "triggered_by": "manual",
+        "created_at": "2026-10-30T01:43:31.842419+00:00"
+      },
+      "after": {
+        "id": 2,
+        "campaign_id": "qa-learn",
+        "round_number": 1,
+        "proposed_smiles": [
+          "CCCC",
+          "CCCl"
+        ],
+        "scores": {
+          "composite_score": [
+            0.0,
+            0.0
+          ]
+        },
+        "confidence_intervals": {
+          "composite_score": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0
+            ]
+          ]
+        },
+        "ad_statuses": [
+          "in_domain",
+          "in_domain"
+        ],
+        "triggered_by": "manual",
+        "created_at": "2026-10-30T01:43:35.117672+00:00"
+      }
+    },
+    "holdout_scope": "synthetic feature sensitivity only; no biological accuracy improvement claim",
+    "study_extraction": {
+      "drug_name": "",
+      "smiles": "",
+      "nda_number": "",
+      "source_document": "SYNTHETIC:QA-RAT-001",
+      "ingested_at": "2026-10-30T01:43:35.143989+00:00",
+      "t_half_h": {
+        "value": 8.0,
+        "unit": "h",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "human",
+        "study_type": "",
+        "confidence": "HIGH"
+      },
+      "auc_inf_ngmlh": null,
+      "cmax_ngml": null,
+      "vd_lkg": null,
+      "cl_mlminkg": null,
+      "fu_plasma": {
+        "value": 0.035,
+        "unit": "dimensionless",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "human",
+        "study_type": "plasma_protein_binding",
+        "confidence": "HIGH"
+      },
+      "bioavailability_pct": null,
+      "tmax_h": null,
+      "t_half_h_preclinical": null,
+      "vd_lkg_preclinical": null,
+      "herg_ic50_uM_measured": {
+        "value": 5.0,
+        "unit": "\u00b5M",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "human",
+        "study_type": "herg_patch_clamp",
+        "confidence": "HIGH"
+      },
+      "ames_in_vitro": "negative",
+      "chromosomal_aberration": "negative",
+      "micronucleus": null,
+      "noael_mg_kg_day": {
+        "value": 25.0,
+        "unit": "mg/kg/day",
+        "source": "measured_wetlab",
+        "reference": "SYNTHETIC:QA-RAT-001",
+        "species": "rat",
+        "study_type": "repeat_dose_tox",
+        "confidence": "HIGH"
+      },
+      "noael_species": "rat",
+      "noael_study_duration": "",
+      "repeat_dose_tox_summary": "",
+      "genotox_battery_result": "complete_negative",
+      "glp_certified": true,
+      "study_sponsor": "",
+      "ctd_sections_covered": []
+    },
+    "pk_method_retrieval": {
+      "tools": [],
+      "workflows": [
+        {
+          "id": 10642,
+          "name": "Nca Pknca",
+          "filename": "nextflow_nfcore/subworkflows/drug_discovery/nca_pknca/main.nf",
+          "description": "drug_discovery/nca_pknca Non-Compartmental Analysis (NCA) pharmacokinetics pipeline using the PKNCA R package. Pipeline Steps: 1. NCA_INPUT_VALIDATION  \u2014 Validate concentration-time CSV format and required columns (time, conc, subject_id, dose, route); emit a validated, normalised CSV for downstream steps. 2. NCA_PKNCA_ANALYSIS    \u2014 R/PKNCA: compute standard NCA parameters per subject: AUClast, AUCinf, Cmax, Tmax, t\u00bd, CL/F, Vd/F.  Emits nca_results.csv (per-subject) and nca_summary.json (populat",
+          "domain": "drug_discovery",
+          "input_types": "[\"mock_mode\", \"input_csv\", \"dose\", \"route\", \"time_unit\", \"conc_unit\"]",
+          "output_types": "[\"csv\", \"json\", \"html\"]",
+          "params_schema": null,
+          "executable": 1,
+          "real_exec_status": null,
+          "truncated_fields": []
+        },
+        {
+          "id": 12892,
+          "name": "nlmixr2_population_pk",
+          "filename": "pharmacology/nlmixr2_population_pk/main.nf",
+          "description": "Population pharmacokinetic / pharmacodynamic (PopPK/PD) analysis using nlmixr2 (SAEM + FOCE+, equivalent to Monolix/NONMEM). Validated against NONMEM (Fidler et al. 2019 CPT:PSP). Open-source, Nextflow-native R container. Supports 1- and 2-compartment oral/IV models with covariate testing (WT, AGE, CRCL, ALB). Outputs: parameter_estimates.csv (THETA, OMEGA, SIGMA), individual_estimates.csv (EBEs), VPC plot, GOF diagnostics. Individual AUC estimates from this workflow feed directly into exposure_response_modeling for the full PK\u2192E-R\u2192dose chain. Input: pk_data_csv (columns: ID, TIME, DV, AMT, EVID, CMT + optional covariates). Output: popPK_report.html, nlmixr2_results.json (OFV, AIC, RSE%), VPC + GOF PDFs. References: Fidler et al. 2019, Beal & Sheiner NONMEM, Monolix 2023.",
+          "domain": "pharmacology",
+          "input_types": "[\"csv\"]",
+          "output_types": "[\"html\", \"csv\", \"json\", \"pdf\"]",
+          "params_schema": null,
+          "executable": 1,
+          "real_exec_status": null,
+          "truncated_fields": []
+        }
+      ],
+      "source": "local_knowledge_database",
+      "execution_verified": false,
+      "note": "Catalogue records are retrieval evidence; availability and successful execution require separate checks."
+    }
+  },
+  "blocked": [
+    {
+      "case": "pk_analysis",
+      "layer": "indexed PKNCA workflow execution",
+      "reason": "not launched: authenticated project/dataset workflow journey unavailable; local Python is not a substitute for indexed R execution"
+    },
+    {
+      "case": "all four",
+      "layer": "authenticated chat/UI journey",
+      "reason": "E2E_FIXTURE_PASSWORD unset; saved localhost session expired. No login bypass or account reset attempted."
+    }
+  ],
+  "fixture_hashes": {
+    "assays_initial.csv": "b466456fc514025bf4aaca5e59bf21730b37e9bfbf71d898842d58b42d99c6d7",
+    "assays_safety.csv": "0b1a988f060f34caeb9a9412aca1ad07e0443fdea972e9962c3e4222ae2fb167",
+    "study_report.txt": "ee9e372d4b0d3404a83abd719833afa099dcbb40154cfdfd27af13337475333d"
+  },
+  "durations_s": {
+    "file_comparison_and_recovery": 6.419,
+    "experimental_learning": 7.978,
+    "evidence_package_and_pk": 0.016
+  },
+  "summary": {
+    "passed": 18,
+    "failed": 10,
+    "error": 0
+  },
+  "finished_at": "2026-10-30T01:43:35Z"
+}

@@ -1,0 +1,28 @@
+{
+ "n_shuffles": 30,
+ "rule_active_counts_all_lab_fit": {
+  "tpsa": 0,
+  "hbd": 2,
+  "logp": 0,
+  "veber_pass": 0,
+  "N-Me added (with minus without)": 0,
+  "D flip (D minus L)": 0
+ },
+ "held_out_median_spearman": {
+  "K_phys": {
+   "mean": -0.04805033520238713,
+   "sd": 0.05727592982840113,
+   "n_finite": 3
+  },
+  "K_nme": {
+   "mean": NaN,
+   "sd": NaN,
+   "n_finite": 0
+  },
+  "K_total": {
+   "mean": -0.04805033520238713,
+   "sd": 0.05727592982840113,
+   "n_finite": 3
+  }
+ }
+}

@@ -52,7 +52,7 @@ with open("mass_action_kinetics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("mass_action_kinetics_output.txt", "w") as f:
-    f.write("Biomni: Mass Action Kinetics Results" + NL)
+    f.write("BioMate: Mass Action Kinetics Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

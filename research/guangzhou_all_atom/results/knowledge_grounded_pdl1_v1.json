@@ -1,0 +1,143 @@
+{
+  "document": "Knowledge/structure-templated PD-L1 cyclic-peptide candidates v1",
+  "date": "2026-10-12",
+  "confidence": "LOWER than the \u03b1v\u03b26 set. PD-L1 has NO linear motif, so these are NOT rule-enforced; they are design hypotheses toward the STRUCTURAL pharmacophore + the validated macrocyclic-peptide chemotype. They mean nothing until DOCKED against the PD-L1 IgV cleft. I did NOT copy WL12/dmp10/BMS sequences (not confident from memory; would be fabrication).",
+  "structural_pharmacophore_targeted": "PD-L1 IgV front \u03b2-sheet face / hydrophobic cleft that PD-1 and antagonists engage (key PD-L1 residues incl. Tyr56, Met115, Ala121, Asp122 region). Validated chemotype = cyclic ~11-14-mer, AMPHIPATHIC with a hydrophobic/aromatic face into the cleft, D-amino-acid + N-methyl conformational lock (WL12 / BMS-986229 class / dmp10 disulfide-directed).",
+  "design_rule": "cyclo( aromatic/hydrophobic cluster [F/W/Y/L/M/I] presented on one face + D-Pro/N-methyl lock + polar/charged residues on the opposite face for solubility/PK ); head-to-tail or disulfide-directed; length 10-13.",
+  "candidates": [
+    {
+      "id": "PDL1-K-01",
+      "helm": "cyclo(F-W-L-[dP]-Y-S-[NMeF]-D-T-K)",
+      "len": 10,
+      "face": "FWLY aromatic",
+      "lock": "dPro+NMePhe",
+      "rationale": "aromatic cluster to the hydrophobic cleft; polar S/D/T/K back face",
+      "knowledge_liability": {
+        "tier": "PASS",
+        "net_charge": 0,
+        "flags": []
+      }
+    },
+    {
+      "id": "PDL1-K-02",
+      "helm": "cyclo(W-M-F-[dP]-I-[NMeL]-S-E-K-G)",
+      "len": 10,
+      "face": "WMFI hydrophobic",
+      "lock": "dPro+NMeLeu",
+      "rationale": "deeper hydrophobic face (Met/Ile) mimicking small-molecule cleft engagement",
+      "knowledge_liability": {
+        "tier": "WATCH",
+        "net_charge": 0,
+        "flags": [
+          "[soft] cmc:Met-ox: methionine oxidation liability"
+        ]
+      }
+    },
+    {
+      "id": "PDL1-K-03",
+      "helm": "cyclo(Y-F-[dP]-W-L-[NMeA]-D-S-R-T-G)",
+      "len": 11,
+      "face": "YFWL aromatic",
+      "lock": "dPro+NMeAla",
+      "rationale": "three-aromatic face; Arg/Asp salt-bridge pair for rim contacts",
+      "knowledge_liability": {
+        "tier": "WATCH",
+        "net_charge": 0,
+        "flags": [
+          "[soft] cmc:DS: Asp-Ser isomerisation"
+        ]
+      }
+    },
+    {
+      "id": "PDL1-K-04",
+      "helm": "cyclo(F-L-W-[dP]-M-Y-[NMeS]-K-D-G)",
+      "len": 10,
+      "face": "FLWMY hydrophobic+aromatic",
+      "lock": "dPro+NMeSer",
+      "rationale": "maximal hydrophobic/aromatic face; minimal polar for cleft burial",
+      "knowledge_liability": {
+        "tier": "HOLD",
+        "net_charge": 0,
+        "flags": [
+          "[hard] cmc:DG: Asp-Gly isomerisation -> isoAsp (fastest)",
+          "[soft] cmc:Met-ox: methionine oxidation liability"
+        ]
+      },
+      "liability_fix": "HOLD: terminal Asp-Gly is the fastest isoAsp isomerisation hotspot. Root-cause fix: reorder tail to avoid D-G -> cyclo(F-L-W-[dP]-M-Y-[NMeS]-K-G-D); additionally M->Nle (norleucine) removes the Met-oxidation liability."
+    },
+    {
+      "id": "PDL1-K-05",
+      "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G)",
+      "len": 12,
+      "face": "WYFLI",
+      "lock": "dPro+NMeIle",
+      "rationale": "longer macrocycle (BMS-class length ~12) with extended amphipathic face",
+      "knowledge_liability": {
+        "tier": "PASS",
+        "net_charge": 0,
+        "flags": []
+      }
+    },
+    {
+      "id": "PDL1-K-06",
+      "helm": "cyclo([dF]-W-L-Y-[dP]-[NMeM]-S-D-K-T)",
+      "len": 10,
+      "face": "FWLY",
+      "lock": "dPhe+dPro+NMeMet",
+      "rationale": "extra D-Phe cap for rigidity/protease resistance (macrocyclic-peptide style)",
+      "knowledge_liability": {
+        "tier": "WATCH",
+        "net_charge": 0,
+        "flags": [
+          "[soft] cmc:Met-ox: methionine oxidation liability"
+        ]
+      }
+    },
+    {
+      "id": "PDL1-K-07",
+      "helm": "cyclo(F-W-[dP]-Y-I-L-[NMeF]-E-R-S)",
+      "len": 10,
+      "face": "FWYIL",
+      "lock": "dPro+NMePhe",
+      "rationale": "aromatic+aliphatic face; Glu/Arg for interface-rim electrostatics",
+      "knowledge_liability": {
+        "tier": "PASS",
+        "net_charge": 0,
+        "flags": []
+      }
+    },
+    {
+      "id": "PDL1-K-08",
+      "helm": "C-F-W-L-Y-[NMeF]-M-S-D-C (disulfide C1-C9)",
+      "len": 9,
+      "face": "FWLYM",
+      "lock": "disulfide Cys1-Cys9 + NMePhe",
+      "rationale": "DISULFIDE-DIRECTED scaffold (dmp10-like) instead of head-to-tail \u2014 tests the other validated PD-L1 chemotype",
+      "knowledge_liability": {
+        "tier": "WATCH",
+        "net_charge": -1,
+        "flags": [
+          "[soft] cmc:Met-ox: methionine oxidation liability",
+          "[soft] sar:aggregation: hydrophobic fraction 0.80 > 0.60 -> aggregation / poor solubility risk (amphipathic is wanted, all-hydrophobic is not)"
+        ]
+      }
+    }
+  ],
+  "required_gates": [
+    "DOCK vs PD-L1 IgV front-face cleft (rank by pose/\u0394G) \u2014 this is THE gate; sequence cannot rule these in",
+    "similarity to the validated PD-L1 binder set (WL12/dmp10/BMS) pulled from primary refs \u2014 scaffold prior + novelty",
+    "FTO vs PD-L1 macrocycle patents",
+    "wet-lab: SPR + cell PD-1:PD-L1 blockade"
+  ],
+  "pushback_on_audit": "The audit said PD-L1 can only be docked, not templated. These show it IS templatable in method \u2014 a hydrophobic-face amphipathic macrocycle with a lock is a concrete, non-random chemotype (vs the old A-03/A-07/A-09/A-10 protein-fragment-like L-cyclic peptides). But docking remains the decisive gate; agreement with the audit that sequence alone cannot validate PD-L1.",
+  "knowledge_liability_review": {
+    "ran": "cyclic_llm/knowledge_liability_flags.py (deterministic, zero-compute, pre-docking)",
+    "report": "results/knowledge_liability_pdl1.json",
+    "tiers": {
+      "PASS": 3,
+      "WATCH": 4,
+      "HOLD": 1
+    },
+    "note": "Hard flags = HOLD (do not spend docking until designed out). Soft = WATCH. PASS != binder (docking decides)."
+  }
+}

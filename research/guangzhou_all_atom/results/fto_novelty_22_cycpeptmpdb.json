@@ -1,0 +1,622 @@
+{
+  "reference": "CycPeptMPDB",
+  "library_size": 8466,
+  "verdicts": [
+    {
+      "candidate_id": "PDL1-A-01",
+      "modality": "peptide",
+      "smiles": "CC(C)[C@@H]1NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CO)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](C)NC(=O)CNC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+      "seq": "GAYTSKSTGVTF",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6712,
+      "nearest_known_id": "1097",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC(=O)CNC(=O)[C@H](C(C)C)NC(=O)[C@H](Cc2ccc(O)cc2)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "Compound.54"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-02",
+      "modality": "peptide",
+      "smiles": "CC(C)[C@@H]1NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CO)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CCCCN)NC(=O)[C@H](Cc2ccccc2)NC1=O",
+      "seq": "SSPFPVFKEFSP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6667,
+      "nearest_known_id": "7309",
+      "nearest_known_smiles": "CC(C)[C@@H]1NC(=O)[C@H]2CCCN2C(=O)[C@@H](C(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]2CCCN2C(=O)[C@@H](C(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C(C)C)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "D10.27"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-03",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CCCCN)NC(=O)[C@H](C(C)C)NC(=O)CNC(=O)[C@H](C(C)C)NC(=O)[C@H](C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)CNC(=O)[C@H](CC(N)=O)NC(=O)[C@H](CO)NC1=O",
+      "seq": "SNGPAELEEAVGVKI",
+      "structure_status": "ok",
+      "max_tanimoto": 0.4845,
+      "nearest_known_id": "8110",
+      "nearest_known_smiles": "CC[C@@H](C)[C@H]1NC(=O)[C@@H](CCCCN)NC(=O)[C@@H](C)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H](CC(C)C)NC(=O)[C@@H](C(C)C)NC(=O)[C@H](Cc2ccccc2)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "2"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-04",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](CO)NC(=O)[C@H](CCCCN)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(N)=O)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CCCNC(=N)N)NC1=O",
+      "seq": "SAPEVLRPYSSNPK",
+      "structure_status": "ok",
+      "max_tanimoto": 0.5208,
+      "nearest_known_id": "1823",
+      "nearest_known_smiles": "CC(C)C[C@H]1NC(=O)[C@H](CO)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccccc2)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "cyclo[PS-DLeu-FFA] (2)"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-05",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CCCNC(=N)N)NC1=O",
+      "seq": "AAPEVLRKYTSLP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.5532,
+      "nearest_known_id": "2343",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H]2CCCN2C(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(C)C)NC(=O)[C@@H](C)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "1NMe3perNH-2Ala6Y(50)"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-06",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](Cc2c[nH]cn2)NC(=O)[C@H](CCCCN)NC(=O)[C@H](C)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(N)=O)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@H](CCSC)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(=O)O)NC1=O",
+      "seq": "SSNPAAKHIDPM",
+      "structure_status": "ok",
+      "max_tanimoto": 0.4779,
+      "nearest_known_id": "7323",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@@H](Cc2ccccc2)NC(=O)[C@@H](C)NC(=O)[C@@H](C(C)C)NC(=O)[C@H](CCSC)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@@H]2CCCN2C(=O)[C@@H](C)N(C)C(=O)[C@@H](CC(C)C)N(C)C1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "D10.45"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-07",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C(C)C)NC(=O)[C@H](C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CCC(=O)O)NC1=O",
+      "seq": "ARTPEDLEEAVRTGKP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.4655,
+      "nearest_known_id": "772",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](C)NC(=O)C[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](C(C)C)NC(=O)[C@H](C)N(C)C(=O)[C@H](CC(C)C)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CC(C)C)N(C)C(=O)[C@@H]2CCCN2C1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "DP-808"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-08",
+      "modality": "peptide",
+      "smiles": "CC(C)[C@@H]1NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](C)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)CNC(=O)CNC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+      "seq": "GGYTSSATGVTF",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7424,
+      "nearest_known_id": "1097",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC(=O)CNC(=O)[C@H](C(C)C)NC(=O)[C@H](Cc2ccc(O)cc2)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "Compound.54"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-09",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(N)=O)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](C(C)C)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCSC)NC(=O)[C@H](CCCCN)NC(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](C)NC1=O",
+      "seq": "LGVETSNPAIAELAKM",
+      "structure_status": "ok",
+      "max_tanimoto": 0.4831,
+      "nearest_known_id": "7323",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@@H](Cc2ccccc2)NC(=O)[C@@H](C)NC(=O)[C@@H](C(C)C)NC(=O)[C@H](CCSC)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@@H]2CCCN2C(=O)[C@@H](C)N(C)C(=O)[C@@H](CC(C)C)N(C)C1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "D10.45"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-10",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H](CCC(=O)O)NC(=O)CNC(=O)[C@H](CO)NC(=O)CNC(=O)CNC(=O)[C@H](CCCCN)NC1=O",
+      "seq": "GGSGEGKKLAEELGLK",
+      "structure_status": "ok",
+      "max_tanimoto": 0.5,
+      "nearest_known_id": "2375",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CC(C)C)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "ribifolin (1)"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "AVB6-B-01",
+      "modality": "peptide",
+      "smiles": "N=C(N)NCCC[C@@H]1NC(=O)CNC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC1=O",
+      "seq": "GRGRNKYYP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.5556,
+      "nearest_known_id": "1092",
+      "nearest_known_smiles": "N=C(N)NCCC[C@@H]1NC(=O)[C@H](Cc2cc3ccccc3[nH]2)NC(=O)[C@H]2CCCN2C(=O)[C@H](CCCCN)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@@H](CCCNC(=N)N)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "Compound.49"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-02",
+      "modality": "peptide",
+      "smiles": "N=C(N)NCCC[C@@H]1NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H](CCCCN)NC(=O)CNC1=O",
+      "seq": "NKYRSRRGK",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6567,
+      "nearest_known_id": "1890",
+      "nearest_known_smiles": "NCCCC[C@@H]1NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CO)NC(=O)[C@H](CC(N)=O)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "LB51"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-03",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC1=O",
+      "seq": "GSLASLGIGRR",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6508,
+      "nearest_known_id": "2375",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CC(C)C)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "ribifolin (1)"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-04",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(N)=O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC1=O",
+      "seq": "ARRGNLAPLG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.5875,
+      "nearest_known_id": "1130",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](Cc2ccccc2)NC(=O)CNC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "Compound.30"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-05",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)CNC(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC1=O",
+      "seq": "KGLRGRSG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.5323,
+      "nearest_known_id": "2375",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CC(C)C)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "ribifolin (1)"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-06",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)CNC(=O)[C@H](Cc2ccccc2)NC1=O",
+      "seq": "GLFGGRGRR",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6164,
+      "nearest_known_id": "8111",
+      "nearest_known_smiles": "CC[C@@H](C)[C@H]1NC(=O)[C@@H](CCCNC(=N)N)NC(=O)[C@@H](C)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H](CC(C)C)NC(=O)[C@@H](C(C)C)NC(=O)[C@H](Cc2ccccc2)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "3"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-07",
+      "modality": "peptide",
+      "smiles": "CSCC[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@@H]2CCCN2C1=O",
+      "seq": "RGKLMPGRG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.5393,
+      "nearest_known_id": "1092",
+      "nearest_known_smiles": "N=C(N)NCCC[C@@H]1NC(=O)[C@H](Cc2cc3ccccc3[nH]2)NC(=O)[C@H]2CCCN2C(=O)[C@H](CCCCN)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@@H](CCCNC(=N)N)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "Compound.49"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-08",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC1=O",
+      "seq": "GTGTGSLGRLR",
+      "structure_status": "ok",
+      "max_tanimoto": 0.5645,
+      "nearest_known_id": "2375",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CC(C)C)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "ribifolin (1)"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-09",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@H](Cc2c[nH]cn2)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)CNC1=O",
+      "seq": "SSRSSLGHLLG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.4648,
+      "nearest_known_id": "2375",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CC(C)C)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "ribifolin (1)"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-10",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CCCCN)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@@H]2CCCN2C(=O)CNC(=O)[C@H](CCCCN)NC(=O)[C@H](C(C)C)NC1=O",
+      "seq": "SRKGIVKGP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.481,
+      "nearest_known_id": "2375",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CC(C)C)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "ribifolin (1)"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-11",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)CNC1=O",
+      "seq": "GTGIGSLGKLL",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7193,
+      "nearest_known_id": "2375",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CC(C)C)NC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "ribifolin (1)"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-12",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H](C)NC1=O",
+      "seq": "APRGALASLG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6026,
+      "nearest_known_id": "1130",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](Cc2ccccc2)NC(=O)CNC1=O",
+      "nearest_known_tag": {
+        "Original_Name_in_Source_Literature": "Compound.30"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    }
+  ]
+}

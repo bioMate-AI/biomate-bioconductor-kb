@@ -1,0 +1,29 @@
+{
+  "design": "design",
+  "methylate_positions": [
+    1,
+    2,
+    6,
+    7,
+    9
+  ],
+  "baseline": {
+    "dG": -52.43,
+    "Ecom": -3825.8,
+    "Erec": -3387.8,
+    "Elig": -385.6,
+    "nrec_atom": 3249,
+    "ncom_atom": 3388
+  },
+  "methylated": {
+    "dG": -57.07,
+    "Ecom": -3677.7,
+    "Erec": -3389.6,
+    "Elig": -231.0,
+    "nrec_atom": 3249,
+    "ncom_atom": 3403
+  },
+  "ddG_bind": -4.64,
+  "verdict": "binding PRESERVED (ddG<=+3)",
+  "note": "ddG_bind = dG(methyl)-dG(baseline); single-trajectory minimized GBn2 MM-GBSA, CHARMM36m + N-methyl NMET patch (approx tertiary-amide charges). RELATIVE, entropy omitted. Positions were v1-selected as NON-interface-H-bonding, so ddG~0 confirms binding-safe permeability redesign."
+}

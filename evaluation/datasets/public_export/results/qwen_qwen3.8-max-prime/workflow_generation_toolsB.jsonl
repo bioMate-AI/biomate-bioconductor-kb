@@ -1,0 +1,20 @@
+{"id": "wg_B01", "prediction": ["fastp", "STAR", "samtools", "ribotricer", "xtail"], "recall": 0.8, "hit": true}
+{"id": "wg_B02", "prediction": ["bowtie2", "samtools", "picard", "MACS2", "IDR", "bedtools"], "recall": 0.667, "hit": true}
+{"id": "wg_B03", "prediction": ["m6anet", "Guppy", "minimap2", "nanopolish", "samtools"], "recall": 0.75, "hit": true}
+{"id": "wg_B04", "prediction": ["DELLY", "Manta", "Sniffles2", "SURVIVOR"], "recall": 0.667, "hit": true}
+{"id": "wg_B05", "prediction": ["STAR", "samtools", "TEtranscripts"], "recall": 0.75, "hit": true}
+{"id": "wg_B06", "prediction": ["SLAM-DUNK", "GRAND-SLAM"], "recall": 0.5, "hit": true}
+{"id": "wg_B07", "prediction": ["XCMS", "LipidBlast"], "recall": 0.5, "hit": true}
+{"id": "wg_B08", "prediction": ["WASP", "WhatsHap", "BWA", "STAR", "GATK", "samtools", "bcftools", "Picard"], "recall": 1.0, "hit": true}
+{"id": "wg_B09", "prediction": ["FastQC", "fastp", "BWA-MEM", "samtools", "Picard", "DELFI", "ichorCNA"], "recall": 0.75, "hit": true}
+{"id": "wg_B10", "prediction": ["NucleATAC", "danpos"], "recall": 0.2, "hit": false}
+{"id": "wg_B11", "prediction": ["STAR", "StringTie", "TransDecoder", "customProDB", "MS-GF+"], "recall": 0.6, "hit": true}
+{"id": "wg_B12", "prediction": ["CRISPResso2"], "recall": 0.333, "hit": false}
+{"id": "wg_B13", "prediction": ["TOBIAS"], "recall": 0.2, "hit": false}
+{"id": "wg_B14", "prediction": [], "recall": 0.0, "hit": false}
+{"id": "wg_B15", "prediction": ["ArchR", "scVelo"], "recall": 0.5, "hit": true}
+{"id": "wg_B16", "prediction": ["HiC-Pro", "cooler", "cooltools", "mustache", "FIMO"], "recall": 0.4, "hit": false}
+{"id": "wg_B17", "prediction": ["Bismark", "SNPsplit", "samtools", "bcftools"], "recall": 0.5, "hit": true}
+{"id": "wg_B18", "prediction": ["MinKNOW", "Guppy", "NanoPlot", "NanoStat", "pycoQC", "Porechop", "minimap2", "samtools", "mosdepth", "bedtools", "Clair3", "bcftools", "Medaka"], "recall": 1.0, "hit": true}
+{"id": "wg_B19", "prediction": ["Cell Ranger", "Seurat", "scRepertoire"], "recall": 0.2, "hit": false}
+{"id": "wg_B20", "prediction": ["ASHLAR", "MCMICRO", "CellProfiler", "Cellpose", "StarDist", "DeepCell", "ilastik", "QuPath", "FlowSOM", "PhenoGraph", "Seurat", "Scanpy", "Squidpy", "histoCAT", "CytoMAP"], "recall": 0.25, "hit": false}

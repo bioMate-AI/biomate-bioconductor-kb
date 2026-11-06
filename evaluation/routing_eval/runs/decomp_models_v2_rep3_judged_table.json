@@ -1,0 +1,35 @@
+[
+ {
+  "model": "z-ai/glm-5.2",
+  "n": 23,
+  "failed": 2,
+  "node_f1": 0.6162525879917184,
+  "edge_f1": 0.36542443064182195,
+  "structure": 0.34782608695652173,
+  "usd_per_call": 0.01059794819047619,
+  "median_secs": 7.82,
+  "chain_hint_acc": 0.8235294117647058
+ },
+ {
+  "model": "moonshotai/kimi-k3",
+  "n": 23,
+  "failed": 2,
+  "node_f1": 0.5249482401656315,
+  "edge_f1": 0.2712215320910973,
+  "structure": 0.21739130434782608,
+  "usd_per_call": 0.03264330666666666,
+  "median_secs": 11.189,
+  "chain_hint_acc": 0.6470588235294118
+ },
+ {
+  "model": "google/gemini-3.8-flash",
+  "n": 23,
+  "failed": 2,
+  "node_f1": 0.5119047619047619,
+  "edge_f1": 0.1987577639751553,
+  "structure": 0.17391304347826086,
+  "usd_per_call": 0.026019635714285717,
+  "median_secs": 13.146,
+  "chain_hint_acc": 0.6470588235294118
+ }
+]

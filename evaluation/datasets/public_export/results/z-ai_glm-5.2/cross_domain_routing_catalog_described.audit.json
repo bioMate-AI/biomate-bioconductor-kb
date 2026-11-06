@@ -1,0 +1,8 @@
+{
+  "model": "z-ai/glm-5.2",
+  "n": 200,
+  "empty": 0,
+  "hallucination": 0,
+  "max_tokens": 2000,
+  "menu": "described"
+}

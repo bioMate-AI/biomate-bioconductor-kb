@@ -1,0 +1,2331 @@
+{
+  "dataset": "macroconf",
+  "repository": "bigginlab/Macroconf",
+  "source_revision": "1fa6a74345334bae2235b3775180f209a1c923ed",
+  "source_revision_kind": "git commit SHA",
+  "file_count": 331,
+  "uncompressed_bytes": 3560410,
+  "s3_uri": "s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/dataset.tar.gz",
+  "sha256": "b5001fc4c5560210c820f0a9500e31d703ffe915fe7e921fc07ab02caf3668e9",
+  "s3_readback_verified": true,
+  "qualification": "Collected for evaluation; original assay semantics and individual source rights require provenance review before downstream release.",
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 18092,
+      "git_blob_sha1": "d159169d1050894d3ea3b98e1c965c4058208fe1",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/LICENSE"
+    },
+    {
+      "path": "README.md",
+      "bytes": 13185,
+      "git_blob_sha1": "b3dfd522d15556f51ead1df7b5c0a722c6e45822",
+      "sha256": "f31a87f5c0731c96722e600245c0fb6ed1dd5c9846b9d56f565d6cffd2ea3335",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/README.md"
+    },
+    {
+      "path": "data/dataset.csv",
+      "bytes": 63627,
+      "git_blob_sha1": "7d4c694bd99003ca6f3f563d9185b55ddf7afabf",
+      "sha256": "87d9d002bbebc80e5a0e72a702900927d235bc56583ec574733f9bb045daeb7d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/dataset.csv"
+    },
+    {
+      "path": "data/inputs/1_1_in.json",
+      "bytes": 207,
+      "git_blob_sha1": "c7807de833feb08349815565ffdd42b1c70ea1c6",
+      "sha256": "31255b7696fdf2c890e6c8c76267f5d5fb61fc311773f67e2db1516273301b98",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/1_1_in.json"
+    },
+    {
+      "path": "data/inputs/22_in.json",
+      "bytes": 197,
+      "git_blob_sha1": "94e423875f83ac347b28bada40c7006a9f12fc48",
+      "sha256": "797460fd09d5cd8974bbd1bf58613a4df7b0fe896b28de72dbbca608fd719e81",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/22_in.json"
+    },
+    {
+      "path": "data/inputs/24_in.json",
+      "bytes": 265,
+      "git_blob_sha1": "4c70472798ce796428bca6c159268acd5b418264",
+      "sha256": "453c02c8846aa672d52002196b6753e6f416d5deb0775ed1ccc3fc8f1eddc0d4",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/24_in.json"
+    },
+    {
+      "path": "data/inputs/27_in.json",
+      "bytes": 201,
+      "git_blob_sha1": "e586a66608834c212da8e97e30f60a078c59cda8",
+      "sha256": "48a5538e31a4a0ef91e0d29d21c9f49b23bd80e078e3880693647f9045cc874a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/27_in.json"
+    },
+    {
+      "path": "data/inputs/28_in.json",
+      "bytes": 182,
+      "git_blob_sha1": "91da50eef24161c146e60ae3e6f0d814e024c190",
+      "sha256": "b3adc7cdce68c680b5a3dce7aff114051ca35f1bfdda26487817ef751f95d180",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/28_in.json"
+    },
+    {
+      "path": "data/inputs/29_in.json",
+      "bytes": 182,
+      "git_blob_sha1": "578433b732467628e238709f7e28f625ce1c0892",
+      "sha256": "a8c9f6b4e380f3d65444ac39ba6365447ead21e7969f2acc962dcc6b27b3f8c8",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/29_in.json"
+    },
+    {
+      "path": "data/inputs/30_in.json",
+      "bytes": 182,
+      "git_blob_sha1": "7981e53da4a2cf2c155a543989c45df3f9d2a8dd",
+      "sha256": "7add4e831153efe6a326d2755978f76f81dc844a9ba079780b7f0cd5c2669d5d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/30_in.json"
+    },
+    {
+      "path": "data/inputs/31_in.json",
+      "bytes": 182,
+      "git_blob_sha1": "b9796ff557723032c26a5c9061a96760380be906",
+      "sha256": "1aa2fc3ec2518d3663f08df50a20a8d147b76ee98cdf106d9375a81defea20f3",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/31_in.json"
+    },
+    {
+      "path": "data/inputs/32_in.json",
+      "bytes": 182,
+      "git_blob_sha1": "f69dc2633150fb218f39c11f12aede821ca232c7",
+      "sha256": "7594a846c7603ae9cc05d337bddf6b4fda5c17d5b30d973a9864c8316baf875e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/32_in.json"
+    },
+    {
+      "path": "data/inputs/33_in.json",
+      "bytes": 187,
+      "git_blob_sha1": "e4b0155797dc45c74ad3f7dacc57bdd661c5ab3d",
+      "sha256": "7f5886826995fb4dfd7775f66f7470a66b1c8ec1927ec510cd5b689df980a726",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/33_in.json"
+    },
+    {
+      "path": "data/inputs/35_in.json",
+      "bytes": 176,
+      "git_blob_sha1": "052ff468d5fedab4f96cee326b8f64d46b9089b7",
+      "sha256": "86987252480614acd678479a51fcf3071fdcbedf152755c5d0daecfa7691ed32",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/35_in.json"
+    },
+    {
+      "path": "data/inputs/36_in.json",
+      "bytes": 176,
+      "git_blob_sha1": "9ce37920cc168d34cc75be5c43b9d208a9fb9159",
+      "sha256": "557648561c5c4d9f40e26a34ca386a9379e9bcbdc8cd2f90bddcdf985555b1d0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/36_in.json"
+    },
+    {
+      "path": "data/inputs/38_in.json",
+      "bytes": 176,
+      "git_blob_sha1": "def8ed2b6e9b2d13c0da2b8167e979e18f909606",
+      "sha256": "2f7d7ee0701888586c3f8125bcbb174f0fbcaa409a7a0c4cec3f63c8b94a83f9",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/38_in.json"
+    },
+    {
+      "path": "data/inputs/39_in.json",
+      "bytes": 177,
+      "git_blob_sha1": "0f2592f121181d7d961324095e6f0fd3641a9c1d",
+      "sha256": "42cd513e6f8618f709f2fec810e531f79e5489bf0fedf7375a09b8e9d0f627fc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/39_in.json"
+    },
+    {
+      "path": "data/inputs/40_in.json",
+      "bytes": 177,
+      "git_blob_sha1": "c7a88ee619fc48081c9c8cfdbc1837a02ed9b565",
+      "sha256": "622b15f44bf207d8abc29629f03ae8c66bbb769e4ec49cd7e7e745d6d271411a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/40_in.json"
+    },
+    {
+      "path": "data/inputs/41_in.json",
+      "bytes": 177,
+      "git_blob_sha1": "f6813fc359aea6e64ac7dbac4b96a5a51f7662a0",
+      "sha256": "40a8cd0d3f69d727b770899c3a28900cee863461a240b9f7b455e65483e5eb4e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/41_in.json"
+    },
+    {
+      "path": "data/inputs/42_in.json",
+      "bytes": 176,
+      "git_blob_sha1": "ef55c7169d3a5e7212a0ffdbc0a40c073c7e1676",
+      "sha256": "cdaf56267b446a53781f00f8268e211f59d6a2c2b4c5d502ac1b3d97bd9aab05",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/42_in.json"
+    },
+    {
+      "path": "data/inputs/49_in.json",
+      "bytes": 256,
+      "git_blob_sha1": "23d5555717d96b74343c065ebfaed7b6bbadf4f4",
+      "sha256": "14691e3a03bc15e2e328e2f0f973a3bca7e267498d7721885d4d878d0925e2bf",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/49_in.json"
+    },
+    {
+      "path": "data/inputs/50_in.json",
+      "bytes": 256,
+      "git_blob_sha1": "281f6aa67d2dfc4669cbbdc24fa8640fe317d5ad",
+      "sha256": "9ab0a5f090ec8b7c2bbf5aaadeb1c3fd1d501ccd3b15f7bb412a8c369e582d9a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/50_in.json"
+    },
+    {
+      "path": "data/inputs/51_in.json",
+      "bytes": 199,
+      "git_blob_sha1": "3fac6abda99a616330ee4c53735f6ff147fae3d8",
+      "sha256": "6b9dba577298fc6c932dc3875e2cc1c80e4709973e88f1208fff22141d2e8f50",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/51_in.json"
+    },
+    {
+      "path": "data/inputs/52_in.json",
+      "bytes": 266,
+      "git_blob_sha1": "a8c546a5358dd24040d51cea055ee699ab1efe43",
+      "sha256": "a7b9b1b5d8ca3f7899110c00efd93802ab508a3770cf5127c2af1685efd64b6e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/52_in.json"
+    },
+    {
+      "path": "data/inputs/54_in.json",
+      "bytes": 199,
+      "git_blob_sha1": "04d02a4788fc03c884bbfc5e1f3fc9d51385662d",
+      "sha256": "4d7b14fbaf3ac93c7b167c8e1225b4b33b7d3737e22c85f87edb455e7d2f570a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/54_in.json"
+    },
+    {
+      "path": "data/inputs/55_in.json",
+      "bytes": 220,
+      "git_blob_sha1": "c5e81edfd0e47a727cbe8fd9b351632b98c5d36a",
+      "sha256": "234e307a0ac2d81d8c3707f951801c979b90a4e16bff3007360ab068e2024735",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/55_in.json"
+    },
+    {
+      "path": "data/inputs/56_in.json",
+      "bytes": 217,
+      "git_blob_sha1": "2daa6c1fd47ef346d45e2cfc50aa2e64050b1a73",
+      "sha256": "90e6c5e6f6742a4744d0f362ca607956995e31d79b7a2e0bad3e958770d6b89f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/56_in.json"
+    },
+    {
+      "path": "data/inputs/57_in.json",
+      "bytes": 188,
+      "git_blob_sha1": "3bfc24dfd4b385494127adb3a8b3ccfb88baa7a6",
+      "sha256": "6d73aa1b1ec1922b913d1d7d1fb458076b4ae72fb9a0a25b3235d26245e51547",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/57_in.json"
+    },
+    {
+      "path": "data/inputs/58_in.json",
+      "bytes": 196,
+      "git_blob_sha1": "91c0df8b4437c60b3fbda92dd6a338b013fe2fc9",
+      "sha256": "80a187f296b538e6d559bd5d2bb415877cc0bfcd4a5bf486a680aea790a78c0c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/58_in.json"
+    },
+    {
+      "path": "data/inputs/59_in.json",
+      "bytes": 190,
+      "git_blob_sha1": "ad8528762a0fec008c771f34ccaa6184a8cc138b",
+      "sha256": "ac9100986d08b3a59d8df834a5b29262328653b5f08d44cdac0e3d0453859719",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/59_in.json"
+    },
+    {
+      "path": "data/inputs/60_in.json",
+      "bytes": 194,
+      "git_blob_sha1": "8b97a69b43ada980ea8f139557a7d23b25e4d829",
+      "sha256": "bf2c5b48ef653ef59b3d627416012e2d996e7b547d178b60d6c3be0758e17ad5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/60_in.json"
+    },
+    {
+      "path": "data/inputs/61_in.json",
+      "bytes": 192,
+      "git_blob_sha1": "1d4d87d5f000f8df15c6ba278abd959ef83d2b91",
+      "sha256": "fd720d6c4ae1b319bf5e732eb9e17645c08ff168c62de65fa3c5e30913772018",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/61_in.json"
+    },
+    {
+      "path": "data/inputs/62_in.json",
+      "bytes": 207,
+      "git_blob_sha1": "9b25e04049372587d936d02369519a7ce0df0972",
+      "sha256": "65a07054e339190d9ad56d820bf43722ddf167fa035d7e784022c47757622ea0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/62_in.json"
+    },
+    {
+      "path": "data/inputs/63_in.json",
+      "bytes": 188,
+      "git_blob_sha1": "46a01b72201a6e800009cfcea2829a0cec2cfd20",
+      "sha256": "17152755ec44d3b48bdbced09b3b231b07aa9fefd44454619b2477ffbbdb1981",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/63_in.json"
+    },
+    {
+      "path": "data/inputs/64_in.json",
+      "bytes": 199,
+      "git_blob_sha1": "e6df4c9c8740389ff4aa61360c8ae37e4734a3f3",
+      "sha256": "2ee1c609e86d3a6b84cf22fb3ddd957fb95f7498e0fff11a1715ff0e57d5a7e3",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/64_in.json"
+    },
+    {
+      "path": "data/inputs/65_in.json",
+      "bytes": 534,
+      "git_blob_sha1": "53d95e030f705f65444d59b2a339652341fb10bb",
+      "sha256": "b8ca1177780747278bd54c2faa2c6f8d8ee63f3965f8c361b377ad0cf6a2251e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/65_in.json"
+    },
+    {
+      "path": "data/inputs/66_in.json",
+      "bytes": 188,
+      "git_blob_sha1": "8587c89f13d42a7b7b6668274688aab4167c6540",
+      "sha256": "e03d91a58146f8b2e0e3aab330108544729f9766befcc981991cfb8e9b2c9890",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/66_in.json"
+    },
+    {
+      "path": "data/inputs/67_in.json",
+      "bytes": 515,
+      "git_blob_sha1": "9119d55624cafad4bd2d1e3ba54801b64d181ce8",
+      "sha256": "f0fd7d62fd4069fa4bf0d8a8ba87d145bcae6e517818bb93fa2c4a574b5b0a75",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/67_in.json"
+    },
+    {
+      "path": "data/inputs/68_in.json",
+      "bytes": 448,
+      "git_blob_sha1": "64f0cf7a1faeebd446bad46be3282b7ba9c2a168",
+      "sha256": "20e47bb5eebe48f6529e539a7ace796f8a44b4718325670e8970bcbf2d2fc60a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/inputs/68_in.json"
+    },
+    {
+      "path": "data/processed_NOEs/1_1_NOE.json",
+      "bytes": 1595,
+      "git_blob_sha1": "592b88f95943eb87434e957d75217d7ceeb556a2",
+      "sha256": "ca399658c77d4b775d9b228057e935431d4d5b41ab52f3c0ae3bc44287ef532a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/1_1_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/22_NOE.json",
+      "bytes": 2398,
+      "git_blob_sha1": "906e2b6ec96d36df74391c5e71013c1e2db9455a",
+      "sha256": "054a01da0b983d2d1eb78bfc8b8fa868ba5d81bdc4ba576e361c170a982cc30e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/22_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/24_NOE.json",
+      "bytes": 9418,
+      "git_blob_sha1": "bebe61eb16e26c167c0b1c6f92e5ee443b60ad6e",
+      "sha256": "5c66c31061ed18fe77c4b5570d8eb215504709c27096e18059afba33f2d97d8f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/24_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/27_NOE.json",
+      "bytes": 2776,
+      "git_blob_sha1": "f20497242f3611f5ea2ecb07925425b347b3abba",
+      "sha256": "2dd476262c7e40f1e35dc76032f15a3acac91dcd529357bba5f185927223560b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/27_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/28_NOE.json",
+      "bytes": 3646,
+      "git_blob_sha1": "07d594954319766843c1f8d7109175ae053f2d08",
+      "sha256": "9062d2babe518402f08179165be88fcd11e1fdf501f36846d644bc51e31bd5b5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/28_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/29_NOE.json",
+      "bytes": 3488,
+      "git_blob_sha1": "dced5a25a47a46dab862be954dc0ef01f3b0f20d",
+      "sha256": "1fd0cfa77736f402a78235c2e80b8a60b833c6af647998ec974177e9d08179f8",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/29_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/30_NOE.json",
+      "bytes": 3793,
+      "git_blob_sha1": "a84d5ef8f5e79e420a408ae658c40774d80db7f0",
+      "sha256": "be5ee5a69ee58ec8aee94c8c0173ea72c988303785b5e0575abd30e0d0f4c1c2",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/30_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/31_NOE.json",
+      "bytes": 2953,
+      "git_blob_sha1": "8955168bfcf12223110c9f6617952b5faf950e3a",
+      "sha256": "32bcd064ce174ec77c52c82e8d9951ec54cb1abe5dc00879f08f5a37b20364b6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/31_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/32_NOE.json",
+      "bytes": 3695,
+      "git_blob_sha1": "0c677459f544be7d452d4b3b5a9f249573d5847a",
+      "sha256": "afa91eb9b01805c448a621912db6a96ddf5031a6b41801982ffd02d26b3216b9",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/32_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/33_NOE.json",
+      "bytes": 2685,
+      "git_blob_sha1": "b044040958041d5172f254ee5cbc9187cb56cd4e",
+      "sha256": "ac3df121443c44996bad7b980e8ac7b0537d186ba0a0b986587a59d0001da1e5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/33_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/35_NOE.json",
+      "bytes": 3240,
+      "git_blob_sha1": "475818dc3efc2667e0d59a77f7a662fb99b3e4c0",
+      "sha256": "cdf8cf40653bc57f9477cfb0b2dde622177ea6f2f607c4b4cafba3eabb1cdd91",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/35_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/36_NOE.json",
+      "bytes": 2609,
+      "git_blob_sha1": "7c7630e0d52c190072b51bb08b3a8d71c788c044",
+      "sha256": "b599ca8c352117c6b8066906eab80e0ebfd48d17734927141f316f16c963c996",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/36_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/38_NOE.json",
+      "bytes": 4684,
+      "git_blob_sha1": "8c09544513e9f39854f2212256d47c9f35021946",
+      "sha256": "71e81066e3e78c4379bd3e88e7300a8ab050dca1d327a1c6221d9f90896576c1",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/38_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/39_NOE.json",
+      "bytes": 3696,
+      "git_blob_sha1": "7929654ed84d62d46246b08b168a16a99a2457f2",
+      "sha256": "a3313fb543edbc391ed90fadd6b49667234eda4db6a3e02b8ee892386aad18b2",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/39_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/40_NOE.json",
+      "bytes": 3342,
+      "git_blob_sha1": "024061af658ac9c309e9104f1025bf766159a462",
+      "sha256": "3a410cd0892a7433b35a698033360162eb902ef8ab6bacceb63d734f18e39021",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/40_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/41_NOE.json",
+      "bytes": 4354,
+      "git_blob_sha1": "774cf25cf7875f651c459be48094abbc1795881d",
+      "sha256": "765d4474ff40ba44654233f31b59a31f41dee399731bb9dbb0886a3384ce750f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/41_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/42_NOE.json",
+      "bytes": 3367,
+      "git_blob_sha1": "c4ce417978b8716b54da73de201642697c472396",
+      "sha256": "804ea670f490d94454dc0851daf8c3aec65a7258cca5c03c0a4ee2c7ad987405",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/42_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/49_NOE.json",
+      "bytes": 5056,
+      "git_blob_sha1": "a542d9e2f5fab90edcec1bcf1867d7406dffa35a",
+      "sha256": "a1cf0c97bdb0ef62958594094fefbaaf413d38b5c9637a4b0ed4f953182a5524",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/49_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/50_NOE.json",
+      "bytes": 5176,
+      "git_blob_sha1": "90265e7554ab4e1265571c31e0c223052675ff43",
+      "sha256": "fc3d13035434bd31c4649c69f88dbcd24909b8b0bfc2d25360a15044b0ac0494",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/50_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/51_NOE.json",
+      "bytes": 2080,
+      "git_blob_sha1": "a3f42b4ed54742a683c8ca0590e003c4b65217ba",
+      "sha256": "9774310f1949e7ae01068f131e099d4d5eb635279408f2e87a7dabfc34c7e58f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/51_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/52_NOE.json",
+      "bytes": 2884,
+      "git_blob_sha1": "c9453130b6d73eec7a2ea04caf46c4ad31d10a52",
+      "sha256": "1e84f213cb5bab11b766674822ffaaf79f6d2c20e6c23dc8923245be00fd28ed",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/52_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/54_NOE.json",
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/54_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/55_NOE.json",
+      "bytes": 4292,
+      "git_blob_sha1": "f9c424a8dee4fb3d9558c2955bd577f4a19cdbb0",
+      "sha256": "cfb5487d37a6835b727f23f19d330ff4f6175a721d88387c5a933d59a9c0c76d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/55_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/56_NOE.json",
+      "bytes": 4826,
+      "git_blob_sha1": "6e6d0bf0e753531a493cb79eb70b356de68469a3",
+      "sha256": "b7e6aaaaa638d4d74962303e835dd6cfd785b2bd6c91cad557bd86f4f84df050",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/56_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/57_NOE.json",
+      "bytes": 7581,
+      "git_blob_sha1": "00ccb800d59cd7a1bad5cf61fb889b66f3b8112e",
+      "sha256": "f87e514e9cdc44911af7cdd609d6b49c1c92e10fd56fa9d6c02a2fbe06211429",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/57_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/58_NOE.json",
+      "bytes": 6699,
+      "git_blob_sha1": "ea910cb856283ec1c59c7140e0ffaed8bd18f2ca",
+      "sha256": "ffb43c98cb334ca02292632bd8af520ca6f33579f9529f0f679ea71f9e16b075",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/58_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/59_NOE.json",
+      "bytes": 17985,
+      "git_blob_sha1": "7d5bbb4897ea6da3b63dfdc6e346612fdbb36929",
+      "sha256": "ff113f86ca51337e6fc3f1dd019b010412f6a888e552478552750a5be70c3ea0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/59_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/60_NOE.json",
+      "bytes": 9283,
+      "git_blob_sha1": "0cddc3d9673adc001caa8b47e2e1514ffeea317d",
+      "sha256": "788f9ae9725b9dced6f938ef890b132e0725f5228e450be999c6ece5fa794107",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/60_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/61_NOE.json",
+      "bytes": 9714,
+      "git_blob_sha1": "46ca0d878ed13243f48c73ca9f1bcdd5c024a5e5",
+      "sha256": "97a6d300db3c71baa88eeaf453d101b7445b9554db03a17e159ad29c444200a0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/61_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/62_NOE.json",
+      "bytes": 21768,
+      "git_blob_sha1": "adfe6e39bfecf344b8a3c32a978eb2b04a26e326",
+      "sha256": "aed152d8e7240cc5e786433e4361615f30d1aeba3f63b983b48816ddad96a7a4",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/62_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/63_NOE.json",
+      "bytes": 6956,
+      "git_blob_sha1": "1511908044a0d4704badcec079f573413af33c95",
+      "sha256": "0c78370cb68e16b5da0cad890fea57c7ce771f69a3ddcacc4d3ebaa41b7776c6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/63_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/64_NOE.json",
+      "bytes": 10753,
+      "git_blob_sha1": "ee84460008e3b814daf6b4f32177e7087efe8fad",
+      "sha256": "aa5ebd35b276d3aaf8ee1cb01b03fcf81f153de299b2b031e0c767cb4ee2061b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/64_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/65_NOE.json",
+      "bytes": 11140,
+      "git_blob_sha1": "29d5e285e7433a42498667a81b9981c464867792",
+      "sha256": "25519b7c5e840fa436824681901b5213e43074b91a6cb83632e02c58881e0f62",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/65_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/66_NOE.json",
+      "bytes": 4889,
+      "git_blob_sha1": "f2d2587e5399b25ba48fd229c5b20baa08007498",
+      "sha256": "7b7e59368c4565b645b840f2216003b658b7df8b9df4afda647a51979de0b2b5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/66_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/67_NOE.json",
+      "bytes": 22915,
+      "git_blob_sha1": "09462f329f8051c176642548205580608bfb6b6f",
+      "sha256": "5fbd01b3f369d974195c5041f5b545ff8a5ce31027c0c480e1199833bc6aa580",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/67_NOE.json"
+    },
+    {
+      "path": "data/processed_NOEs/68_NOE.json",
+      "bytes": 9105,
+      "git_blob_sha1": "5091b543ad31de30c40ac7880b1ab98939faf91a",
+      "sha256": "8836fcb8376663600916321897346e063105f1657da91c497ce6071e9bb064af",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/processed_NOEs/68_NOE.json"
+    },
+    {
+      "path": "data/properties/1_1_data.json",
+      "bytes": 373,
+      "git_blob_sha1": "a255799e95644c6ba4b34e3faa99f459d20babd3",
+      "sha256": "bfc7cc27325f918ea8af78a5c4ae1d6e688de343668f84a951b0d84363b65f5b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/1_1_data.json"
+    },
+    {
+      "path": "data/properties/1_2_data.json",
+      "bytes": 367,
+      "git_blob_sha1": "b30de8af8dcfd14e322b0ba60374faf0c72906f6",
+      "sha256": "85c49d5bf5fa2d6d50014694a8da804a17708e4bfb13be6a92654f7814cf1ebf",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/1_2_data.json"
+    },
+    {
+      "path": "data/properties/22_data.json",
+      "bytes": 328,
+      "git_blob_sha1": "c155494c6254055f1c36bedfd5801f78f6028c8a",
+      "sha256": "73d575a222f1d0d98136ee3a7b0d1df7b683bd58bcc32ef45b370a9ff8dbc471",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/22_data.json"
+    },
+    {
+      "path": "data/properties/24_data.json",
+      "bytes": 420,
+      "git_blob_sha1": "56201d5a5b0a2ad49dc11136d01806c3fe570910",
+      "sha256": "5db2a1e4f16a41e9fab7f2275fe03495417296fb73360b8d3c30ac4edef78187",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/24_data.json"
+    },
+    {
+      "path": "data/properties/27_data.json",
+      "bytes": 322,
+      "git_blob_sha1": "b96223c25a4835acd83024ebb600f07cc6fd523c",
+      "sha256": "5612a1f88a8c3ec545186417174e695f5c741ad9f524aef08612b1dab5b02fbe",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/27_data.json"
+    },
+    {
+      "path": "data/properties/28_data.json",
+      "bytes": 303,
+      "git_blob_sha1": "f3b9f9c9ca3b2b235df91daeb8c3dcce3b550459",
+      "sha256": "8f6a4104f4e430005643eb855324582584e2013e33110d7da736e62d21b08973",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/28_data.json"
+    },
+    {
+      "path": "data/properties/29_data.json",
+      "bytes": 303,
+      "git_blob_sha1": "63fddd209eabe59585ce2067a928e7e43f764be5",
+      "sha256": "a6b7091817eb65651dc7aff9586ab64acb22074ab405fdcc47b4ba9311e02e30",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/29_data.json"
+    },
+    {
+      "path": "data/properties/30_data.json",
+      "bytes": 303,
+      "git_blob_sha1": "a085a520ca00784ff627aa89ce5335f6cdb2fdbe",
+      "sha256": "4041afa9c8fa537a6df4a3dba4f9b024c6b2ae091744186ea55563cc44c636bc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/30_data.json"
+    },
+    {
+      "path": "data/properties/31_data.json",
+      "bytes": 302,
+      "git_blob_sha1": "54eb86fe2ae9b9f698a2744c42c9c63cc4b9639e",
+      "sha256": "050dfaa456e87774c097bc4d8b913e4591f256cac65aa9a2af1511f8eaf1c2b5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/31_data.json"
+    },
+    {
+      "path": "data/properties/32_data.json",
+      "bytes": 305,
+      "git_blob_sha1": "c681129eea5e1e4ffa2c4458eeda32c33f34ee90",
+      "sha256": "aa96e396f2835aca6e4f8e9fc5ea6ab6499b9cf14090668a1a2faec587f0a546",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/32_data.json"
+    },
+    {
+      "path": "data/properties/33_data.json",
+      "bytes": 311,
+      "git_blob_sha1": "622db7cc83ea8fb4f9daa2c3273ed150558f8bec",
+      "sha256": "d29074d446a2b1d55c550de3084a2f3685f30e0d86ef8dd03793a8c02b86126c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/33_data.json"
+    },
+    {
+      "path": "data/properties/35_data.json",
+      "bytes": 295,
+      "git_blob_sha1": "602d71be85e2bc403e5ef96e584dd9bc8cc3ec79",
+      "sha256": "0a0af44abcc04ac546f1afb790d3a4a2ea406687894c6defcf615f338cb22786",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/35_data.json"
+    },
+    {
+      "path": "data/properties/36_data.json",
+      "bytes": 295,
+      "git_blob_sha1": "dcc057252004cf08a01a8e7cb225acc1f3df99a2",
+      "sha256": "53061da667c2e62a2957a45d9bad3498b6af3475eda754b4c629d914adb338eb",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/36_data.json"
+    },
+    {
+      "path": "data/properties/38_data.json",
+      "bytes": 310,
+      "git_blob_sha1": "c6421f6ee6c15f1f43604264e026a1947ee3b667",
+      "sha256": "20f6aff6c2cb87e3e9ce35382fea75ce7582b731b09e5a3414c952054fe05b62",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/38_data.json"
+    },
+    {
+      "path": "data/properties/39_data.json",
+      "bytes": 300,
+      "git_blob_sha1": "8d3e8b8f33b84d9eef105c8b1e1a02b07f635fb4",
+      "sha256": "5e39e97a870dbdcf67d4c37ca6ed684f35388f92305c561c2b06755d0edea749",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/39_data.json"
+    },
+    {
+      "path": "data/properties/40_data.json",
+      "bytes": 296,
+      "git_blob_sha1": "bf6ac30717902d52e59049c0f704e0bd9d131527",
+      "sha256": "e59972e6d97d01913d1ba7fd9a498b8221b623cb3bc9b19524c07581efc25b9f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/40_data.json"
+    },
+    {
+      "path": "data/properties/41_data.json",
+      "bytes": 311,
+      "git_blob_sha1": "b4a2396423232649ffbfbdba6a716acafe56d9e9",
+      "sha256": "a38f3a708cf24ea431dca353a10d538e59b4c6b608fdb3a495f7410d9b138b84",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/41_data.json"
+    },
+    {
+      "path": "data/properties/42_data.json",
+      "bytes": 299,
+      "git_blob_sha1": "d47948fdc057031a079233851d0d779a43bd0e63",
+      "sha256": "143f371925e5f627c1163109a30619ed4dffab420142f31a3ae5a9ad877cea5c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/42_data.json"
+    },
+    {
+      "path": "data/properties/49_data.json",
+      "bytes": 388,
+      "git_blob_sha1": "a8d1dee6a2270cc3bdeea5ab14aa1ef2af0e2fd8",
+      "sha256": "fcf30f2601eb147830937e9f7019bca01c5a531e15bb0196afe1afbce3dd7427",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/49_data.json"
+    },
+    {
+      "path": "data/properties/50_data.json",
+      "bytes": 400,
+      "git_blob_sha1": "e19a1d94115bdf8ac58124b94eef5fc7c6d8dc74",
+      "sha256": "9e7ae5cf8d0ed4197223e5acf6908fa565ec5dbde995fd7b30429f4adfe73cdc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/50_data.json"
+    },
+    {
+      "path": "data/properties/51_data.json",
+      "bytes": 311,
+      "git_blob_sha1": "b51149469a384566e29b530d390410ac84377baf",
+      "sha256": "18125e9099ff50809e5527c4e06cbe640c27653e429cd2df811e901df4deb22b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/51_data.json"
+    },
+    {
+      "path": "data/properties/52_data.json",
+      "bytes": 396,
+      "git_blob_sha1": "c6f85b5f8c93e816906f687eb1e8dd733f3d075c",
+      "sha256": "fba474771b93458edff8b1e0dfacf3f4dc6fac81ab447ebe1019b6b4c84afab0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/52_data.json"
+    },
+    {
+      "path": "data/properties/54_data.json",
+      "bytes": 400,
+      "git_blob_sha1": "9c3d995caca0cea19b3de4b455ba5b700ad2cb56",
+      "sha256": "ef5fb257de75565d9204934f7f0907d15afc80d434d6d714992d83b2a6336c61",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/54_data.json"
+    },
+    {
+      "path": "data/properties/55_data.json",
+      "bytes": 481,
+      "git_blob_sha1": "d3ba8c1874e9f1b0384b043d7c81cf2143d54db9",
+      "sha256": "ce1214ae749006539f9e0eea0be320a1df3c0a31013fffa898c60d3370caec6d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/55_data.json"
+    },
+    {
+      "path": "data/properties/56_data.json",
+      "bytes": 450,
+      "git_blob_sha1": "e0de87f314f60641de934da953f2945c3b6e0480",
+      "sha256": "0d0fe2daeb6ebf3fe91919b08fecdc7a55a08debd267dce3aa066786e308e254",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/56_data.json"
+    },
+    {
+      "path": "data/properties/57_data.json",
+      "bytes": 382,
+      "git_blob_sha1": "aa258d881d4666d0d1b20e967d6c33b38f134bbb",
+      "sha256": "8f50aca86f553c9db895ebe4383c692de139ad3249a1f886ddc254adccfe911b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/57_data.json"
+    },
+    {
+      "path": "data/properties/58_data.json",
+      "bytes": 377,
+      "git_blob_sha1": "757cd8a6d015734c37c75a8a5fbea4f47e244fac",
+      "sha256": "5d9a3199dffddf7d592ed94204832ca34289aa1137d06898cc834678b8bb1f83",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/58_data.json"
+    },
+    {
+      "path": "data/properties/59_data.json",
+      "bytes": 408,
+      "git_blob_sha1": "9022d957f5a679d9f06392218e39b805e1196441",
+      "sha256": "a46687e064caff25b2633fc0e01dd70041e51bf1564b893dfdd8bc7b4e3ea509",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/59_data.json"
+    },
+    {
+      "path": "data/properties/60_data.json",
+      "bytes": 410,
+      "git_blob_sha1": "6d7b38fade97a4b56fd65b9553daec6874b096b9",
+      "sha256": "c62793db484d0f18397a1a36e4e2c6696fad3225b12698e6010ae253dcbee395",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/60_data.json"
+    },
+    {
+      "path": "data/properties/61_data.json",
+      "bytes": 429,
+      "git_blob_sha1": "7a99460e76e691acb748a8a1cddf89c89a6efbd6",
+      "sha256": "bc5826b49e8fca69624468af25dbe709f220a58beec5ce7c9c79dbb72fce49ea",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/61_data.json"
+    },
+    {
+      "path": "data/properties/62_data.json",
+      "bytes": 457,
+      "git_blob_sha1": "61e00cfecbe953c0a1969556c1affb74a3ddd498",
+      "sha256": "80fb42e13e84f3379953b5fd103fe0f19a56150b114b953972f75ed42cc97c87",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/62_data.json"
+    },
+    {
+      "path": "data/properties/63_data.json",
+      "bytes": 375,
+      "git_blob_sha1": "45105c42728446bb4a9ddd2a11233faefdcc6503",
+      "sha256": "296576b8cc2255e1572f2768b9d5e0d305265b53b6123521f4746c1a80b009f0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/63_data.json"
+    },
+    {
+      "path": "data/properties/64_data.json",
+      "bytes": 454,
+      "git_blob_sha1": "38355f1814d380ce093954261b4a24f8c0cbc9dd",
+      "sha256": "cd288193b2b881521d86bb1935a0f9e0d167cf77819e6b890cc6c2054c800e0e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/64_data.json"
+    },
+    {
+      "path": "data/properties/65_data.json",
+      "bytes": 837,
+      "git_blob_sha1": "3672a14afbae7320b3bca2679b925cb625e057e9",
+      "sha256": "3535a3142ad7dfc4e4026f3b73632b3b82a45f3ec6e10ec1db1b9eed21682feb",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/65_data.json"
+    },
+    {
+      "path": "data/properties/66_data.json",
+      "bytes": 376,
+      "git_blob_sha1": "e87e3ac0ba5130b873e98e8c973472a7bda6fe32",
+      "sha256": "b7efcde71257014c77bddcab5d81f3820ad85fa1b7f6874ee47fac0d43f65fe9",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/66_data.json"
+    },
+    {
+      "path": "data/properties/67_data.json",
+      "bytes": 787,
+      "git_blob_sha1": "92aff57dec9ffaf898ac9278e910ae4d300b70ee",
+      "sha256": "92b9a6b9590ab90b2a8baf9e89f422c7abf55be1fe01e9ee7b9d8b1b32647023",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/67_data.json"
+    },
+    {
+      "path": "data/properties/68_data.json",
+      "bytes": 658,
+      "git_blob_sha1": "f518106ac3f29a51b4577c535bc362296d14dcb4",
+      "sha256": "8c090f3dd3891c16dd5e3ee6623829d777908584a66631b2adf78f58c7295405",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/properties/68_data.json"
+    },
+    {
+      "path": "data/raw_noes/10_4_2.csv",
+      "bytes": 575,
+      "git_blob_sha1": "65899185a5418647a9ad2c7828d3dab09754a120",
+      "sha256": "12a51bc501ea7b482c616bf6d5260a4c0b8339dd052e7bbdac8e19daf5c51ab6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/10_4_2.csv"
+    },
+    {
+      "path": "data/raw_noes/11_4_11.csv",
+      "bytes": 652,
+      "git_blob_sha1": "65e452590de31787f0e352527d21ddf9607ca1ec",
+      "sha256": "aab903e9bc16c99a7a8da9955b63a7ab5436e2be7bd9397bb6c4f41ea680f6c6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/11_4_11.csv"
+    },
+    {
+      "path": "data/raw_noes/12_4_12.csv",
+      "bytes": 529,
+      "git_blob_sha1": "8b26cd93f32aa126f49bdb5c274b93e663ef8bb7",
+      "sha256": "820ac5115c23b85e985780e2c0f38f4e79e1984e19fc8ecb8507ecb779bd8b4a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/12_4_12.csv"
+    },
+    {
+      "path": "data/raw_noes/13_5_4a.csv",
+      "bytes": 322,
+      "git_blob_sha1": "071bdff6c979d005d01f0c19769d7a525b763949",
+      "sha256": "0b5d47cfcaa520a13cf9d232b1506616602b20f71c0c31666344a9e9cfcafafc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/13_5_4a.csv"
+    },
+    {
+      "path": "data/raw_noes/14_5_4b.csv",
+      "bytes": 181,
+      "git_blob_sha1": "0bbe9baf5e0349c5123710d21dbd8e90082c056e",
+      "sha256": "69e634d84594ec6d773b28a3354d6e69fa3c4e6d2ee0c551f01127c85f6c3500",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/14_5_4b.csv"
+    },
+    {
+      "path": "data/raw_noes/15_5_5.csv",
+      "bytes": 390,
+      "git_blob_sha1": "b8b3556bf3d10f1503c04dfac8f1171c60abe49d",
+      "sha256": "f455f5190ecaa4fe18272f082477626b54f74e019e1cada077a28a3fda09a1a9",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/15_5_5.csv"
+    },
+    {
+      "path": "data/raw_noes/16_6_1_CDCL3.csv",
+      "bytes": 1207,
+      "git_blob_sha1": "fb9ff67aebd0b4aded0be4001ed620c3d26f9c5c",
+      "sha256": "72bc6a9233bcbf0cd964929fdee914ca7a0adae7edec6d0acf309c20d51999fc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/16_6_1_CDCL3.csv"
+    },
+    {
+      "path": "data/raw_noes/16_6_1_DMSO.csv",
+      "bytes": 1222,
+      "git_blob_sha1": "c9333ecfec35c02ec961c98598811cef94bcee6d",
+      "sha256": "2663250edb7fe8503aebb2b03b0b4e5f6ce3e74c864b04b01a0c2308a6a53bdc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/16_6_1_DMSO.csv"
+    },
+    {
+      "path": "data/raw_noes/17_6_2_CDCl3.csv",
+      "bytes": 1549,
+      "git_blob_sha1": "a58280ef0ec9d8f2c591c431972c77524ba04133",
+      "sha256": "0def0656ba897f1248a26bae8e6983f4acd03d13e31a3a682b3c3c42acb80afe",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/17_6_2_CDCl3.csv"
+    },
+    {
+      "path": "data/raw_noes/17_6_2_DMSO.csv",
+      "bytes": 1542,
+      "git_blob_sha1": "9885b911f4c9296b54fdaf0c2b26917a74ef9123",
+      "sha256": "84c745567dfe0031bdbf19274abaee0896896dd4dbaff95a8e90b3914034bff9",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/17_6_2_DMSO.csv"
+    },
+    {
+      "path": "data/raw_noes/18_6_3_CDCl3.csv",
+      "bytes": 703,
+      "git_blob_sha1": "02f49fd5b9c8d8686b7c6d0a255e4461a02a4905",
+      "sha256": "490423a3cc88f6b586c284d3dfa4a3a2e74f8740087cf66b00c766422319a781",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/18_6_3_CDCl3.csv"
+    },
+    {
+      "path": "data/raw_noes/18_6_3_DMSO.csv",
+      "bytes": 672,
+      "git_blob_sha1": "eebfe5dbe6ed88e7231f471cb254e5fa68d508bc",
+      "sha256": "26704d0b9c1071281c6aef4d6ca1fe2508c93f378a4a7c201ac4b53cb6f42a2c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/18_6_3_DMSO.csv"
+    },
+    {
+      "path": "data/raw_noes/19_7_1.csv",
+      "bytes": 348,
+      "git_blob_sha1": "48fe5a7b3cb7f9670776ef7aa25d76de32029f75",
+      "sha256": "e35566a0aa63763661a314d80b15b8f1f84900eaf5ba091424a8cf5c4c42bd33",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/19_7_1.csv"
+    },
+    {
+      "path": "data/raw_noes/1_1_1_phepropetin.csv",
+      "bytes": 268,
+      "git_blob_sha1": "e478cb531d0fd444288f63dadb94b2dd49671fe5",
+      "sha256": "b15a972a4c45c775274df5f8f418d9a1de91dfbde0c0d3341d6ffa81a55b402c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/1_1_1_phepropetin.csv"
+    },
+    {
+      "path": "data/raw_noes/1_2_1_phepropetin.csv",
+      "bytes": 185,
+      "git_blob_sha1": "bc816b208ebcc9fd60053482607a03c4db81ca09",
+      "sha256": "d116dfefa51cb7e0114eaa5ae5d9193d986c409589807375247d8bdd11c9b50f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/1_2_1_phepropetin.csv"
+    },
+    {
+      "path": "data/raw_noes/20_7_24.csv",
+      "bytes": 450,
+      "git_blob_sha1": "4d35c1576c27cb5bd26ceec88f6a7d764fa08e43",
+      "sha256": "b38a973a6999254c4d0c8ac3b0f21dc2952d677131f1b203ece53d466860eede",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/20_7_24.csv"
+    },
+    {
+      "path": "data/raw_noes/21_8_1.csv",
+      "bytes": 819,
+      "git_blob_sha1": "b7dba683e67a8bf32140b33f6b26047a9212b901",
+      "sha256": "e35b20eb8267c7118551067a0dafc27402edaf77854925a8d37c106897e8f718",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/21_8_1.csv"
+    },
+    {
+      "path": "data/raw_noes/22_8_2.csv",
+      "bytes": 629,
+      "git_blob_sha1": "82767356536d8485f39fc1d3240392fdb45edb26",
+      "sha256": "784820a946a2aa21458f1b424b367b9ce55302d0b8f15891cba092080e31272f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/22_8_2.csv"
+    },
+    {
+      "path": "data/raw_noes/23_8_3.csv",
+      "bytes": 919,
+      "git_blob_sha1": "428e09549784a0c3ad2efa786bd38d0aeefaa587",
+      "sha256": "64d45ab1b81ea3ab29ed5ab4352b4de84c5136042558393abfa87232ccf1f7af",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/23_8_3.csv"
+    },
+    {
+      "path": "data/raw_noes/24_8_4a.csv",
+      "bytes": 1318,
+      "git_blob_sha1": "0bcb155e00a6ddd2a4ad38553034140924a62127",
+      "sha256": "931587f40be3f0a70bf56c78bf3dbe6ebad955d34f1792057ab400105310c38e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/24_8_4a.csv"
+    },
+    {
+      "path": "data/raw_noes/24_8_4b.csv",
+      "bytes": 1128,
+      "git_blob_sha1": "e01f3ec5d1232f36edb30dd0a4c5a30c3ad26114",
+      "sha256": "2ca03d6af55d01f701e453451d1994e4854a45b3846b28c035029525b0e37460",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/24_8_4b.csv"
+    },
+    {
+      "path": "data/raw_noes/25_8_5.csv",
+      "bytes": 1070,
+      "git_blob_sha1": "e7c884d022d1bdd25a7734397b80ba66c1c24290",
+      "sha256": "3ad6da13cd974f277abf525ee0e1f31ab0f7aff6adcedc36d9358ef4a5c9f30b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/25_8_5.csv"
+    },
+    {
+      "path": "data/raw_noes/26_8_6.csv",
+      "bytes": 1109,
+      "git_blob_sha1": "8c961bb076a7bfda801ea0d793cf450081833fab",
+      "sha256": "e5b027672e906d3724a47e3815e4613c5ea42ac549e779065239052c6aea547a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/26_8_6.csv"
+    },
+    {
+      "path": "data/raw_noes/27_9_RI1.csv",
+      "bytes": 780,
+      "git_blob_sha1": "40301c1631c7ac78181139cc0f167f195a375ea1",
+      "sha256": "d887cbab6a2292fe56ffd0e0ed1cc82812c25c31bc65b5cd73fe3650ce2371a2",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/27_9_RI1.csv"
+    },
+    {
+      "path": "data/raw_noes/28_9_RI2.csv",
+      "bytes": 992,
+      "git_blob_sha1": "163427c2f36c37459d85dfc746d0c237280fa239",
+      "sha256": "9562857ce6fe8eb19274ea5bf316b54754ac52779961fc7ec3b5d1ec7c5afbb0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/28_9_RI2.csv"
+    },
+    {
+      "path": "data/raw_noes/29_9_RI3.csv",
+      "bytes": 956,
+      "git_blob_sha1": "2a0ec9e5c8a410324a657637bf5946438b4b7e79",
+      "sha256": "2503f157f01b724d35aa0cc778b70696483a91ecdece233bbdac481a825d2d48",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/29_9_RI3.csv"
+    },
+    {
+      "path": "data/raw_noes/2_2_6R_DMSO.csv",
+      "bytes": 598,
+      "git_blob_sha1": "8e70229eb8a05b1939c6cc0e6aa6f307912a7423",
+      "sha256": "f89cabdefa857ae4ec5ee16b368eb17787823193fe5dc6b5bdce5d31c28a58b5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/2_2_6R_DMSO.csv"
+    },
+    {
+      "path": "data/raw_noes/2_2_6R_H2O.csv",
+      "bytes": 454,
+      "git_blob_sha1": "b6fb5ea412c7990621a50caa7ed5984e40bf2934",
+      "sha256": "fb30e33e4873db08efd75f660df60d217df5c6a6eec4612270aad744d7b94fc6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/2_2_6R_H2O.csv"
+    },
+    {
+      "path": "data/raw_noes/30_9_RI4.csv",
+      "bytes": 1025,
+      "git_blob_sha1": "8916dda8fcd2cf183dce7bc4b2b2bc65f08b1470",
+      "sha256": "fe582f1ba1f243034312fde4b458b7b28bdaca393fd2669aca394ba9b22c8b9c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/30_9_RI4.csv"
+    },
+    {
+      "path": "data/raw_noes/31_9_RI5.csv",
+      "bytes": 760,
+      "git_blob_sha1": "9a87a35e3e4540cbd7931f65d5a77fe91a62e211",
+      "sha256": "d581d72d2798a9521c1236b994224ea09061d9be24a36091d45e069e2765bbaf",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/31_9_RI5.csv"
+    },
+    {
+      "path": "data/raw_noes/32_9_P3.csv",
+      "bytes": 968,
+      "git_blob_sha1": "9ab19958f3856d28d64aab2d2f4b0e4ec710baa7",
+      "sha256": "db34c56af4e8aba1a47361e540d007a2027e478323f48e8e491c97465fcaa76d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/32_9_P3.csv"
+    },
+    {
+      "path": "data/raw_noes/33_9_p5.csv",
+      "bytes": 719,
+      "git_blob_sha1": "7fff584d8fb8ab500e3c5d06996c5f3cb5850f92",
+      "sha256": "37640e1189c6c40ff934db5629a5f8f7f5d24d88effa1d60640b4c372bf6e253",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/33_9_p5.csv"
+    },
+    {
+      "path": "data/raw_noes/34_10_1.csv",
+      "bytes": 644,
+      "git_blob_sha1": "9a82495ac9755d44ecee2784cb373cb526dd9388",
+      "sha256": "dd9999168b97ece0e5515522ad563ee135c9f9227efa858801507f2c2ff3a43b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/34_10_1.csv"
+    },
+    {
+      "path": "data/raw_noes/35_11_P2.csv",
+      "bytes": 839,
+      "git_blob_sha1": "f35967d66a08e11e745e84c6f8ec3b7eca673af8",
+      "sha256": "cc157ecece104c7f6180b19a8ce7c69d385b92099418c46cca4d7398e1cffb79",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/35_11_P2.csv"
+    },
+    {
+      "path": "data/raw_noes/36_11_P3.csv",
+      "bytes": 678,
+      "git_blob_sha1": "67fdecdb154f260f0478d2acfc0ab1cc9a7f3675",
+      "sha256": "752a15cdebab3c95c8c526d469a7fd52170162945ddffd1950b1d63f7bf7598c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/36_11_P3.csv"
+    },
+    {
+      "path": "data/raw_noes/37_11_P5.csv",
+      "bytes": 884,
+      "git_blob_sha1": "066fe69a7e055a7f415940e8bfd6ce481b753285",
+      "sha256": "bb946526cafb331772b51ce9d6ae92d930a87148d1f2f84b3e74471a2740e389",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/37_11_P5.csv"
+    },
+    {
+      "path": "data/raw_noes/38_11_P6.csv",
+      "bytes": 1242,
+      "git_blob_sha1": "c64aa4908b2d41291090991d55f7538b2becea1e",
+      "sha256": "dcf1e99c294aead02e1ca134473dd05c0ee3139223765b493b3fbadc7e310c17",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/38_11_P6.csv"
+    },
+    {
+      "path": "data/raw_noes/39_11_P8.csv",
+      "bytes": 945,
+      "git_blob_sha1": "832b642a6c3281fa5d1a4ef3fcf86616a810d6c3",
+      "sha256": "57ae83de03e1ecf9ea3ec352ad0d330049902f821cb7a582e59ee058ece74cad",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/39_11_P8.csv"
+    },
+    {
+      "path": "data/raw_noes/3_2_6S_DMSO.csv",
+      "bytes": 543,
+      "git_blob_sha1": "ce53eddb4d16569a1e8084f0286a8a1f2a8230f6",
+      "sha256": "8b0630936a7d6f2c02e5763f496ad5be10607631eeb914183133b4a271dc6bad",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/3_2_6S_DMSO.csv"
+    },
+    {
+      "path": "data/raw_noes/40_11_P15.csv",
+      "bytes": 863,
+      "git_blob_sha1": "2e2047261674549ddbab33a52d84f2404f2fd4d2",
+      "sha256": "1e93139b0078912afbed5af42b3014b00f24bcd42e4595306c953a6d13131210",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/40_11_P15.csv"
+    },
+    {
+      "path": "data/raw_noes/41_11_P18.csv",
+      "bytes": 1125,
+      "git_blob_sha1": "f2d75561725435194991c9fea55319d596a911eb",
+      "sha256": "770cbda20e6ede1ef353a2210eff9c0f50e68f007e19a7f53f258fa9f757f4d5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/41_11_P18.csv"
+    },
+    {
+      "path": "data/raw_noes/42_11_P20.csv",
+      "bytes": 869,
+      "git_blob_sha1": "d8061b302a998057c30c00851f44833b376c17dc",
+      "sha256": "e1a205050d485de775f6079dd203288e5b3f7c87e262f3e4620bad5b51ec4f4d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/42_11_P20.csv"
+    },
+    {
+      "path": "data/raw_noes/43_12_PA1.csv",
+      "bytes": 1601,
+      "git_blob_sha1": "b91fcb0415abc0f9ffee6805759d1524d1ef6f3d",
+      "sha256": "441af769189f7523e632468743d2e8dacdbf4fcecb53e9950417ec737e3d9d8b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/43_12_PA1.csv"
+    },
+    {
+      "path": "data/raw_noes/44_12_PA2.csv",
+      "bytes": 1542,
+      "git_blob_sha1": "0ff8191a0f35b996809518096c64abd733ac5146",
+      "sha256": "b0196f5ebfcddf8a12ac42d1a81c20e650d8657f9e3ffbc104934bf4ab5eb4c5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/44_12_PA2.csv"
+    },
+    {
+      "path": "data/raw_noes/45_12_PA3.csv",
+      "bytes": 1248,
+      "git_blob_sha1": "c83543696d013e25828e5b7f71f5581ff8c48b91",
+      "sha256": "8f0ac6f4a84fa84a8c826ee46b3e51b66e11caf84f4e5a49f4cd2f0ae6fb275b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/45_12_PA3.csv"
+    },
+    {
+      "path": "data/raw_noes/46_12_PA4.csv",
+      "bytes": 1242,
+      "git_blob_sha1": "d4dc485e0e5583cc426eb681d9691129bae22504",
+      "sha256": "f20c3456fd05978416426dba196ef82a24aae7684ae552fe45abec75069816a8",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/46_12_PA4.csv"
+    },
+    {
+      "path": "data/raw_noes/47_12_PA5.csv",
+      "bytes": 1744,
+      "git_blob_sha1": "18365e3efd1fd4222e659302883b7f8b175d54ac",
+      "sha256": "b6f57d86cb39c3bb8ce312125dac5d6d5867ad33db9cfb27abb0106e5d079ec6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/47_12_PA5.csv"
+    },
+    {
+      "path": "data/raw_noes/48_12_PA6.csv",
+      "bytes": 1502,
+      "git_blob_sha1": "3ca83bb96606dfb49b5c13d56e4384b02142cba8",
+      "sha256": "e753e74514219865325b51922d6a4e4d0ccf7356cccaf3ac1e4050874b472ae1",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/48_12_PA6.csv"
+    },
+    {
+      "path": "data/raw_noes/49_cis.csv",
+      "bytes": 735,
+      "git_blob_sha1": "fc8ca518b7ead2e970f336db2be553be23c1c85b",
+      "sha256": "03b3d95ee23b682bf0b04c05713153245c1060ed13ea9ef4f536a2ca1508f507",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/49_cis.csv"
+    },
+    {
+      "path": "data/raw_noes/49_trans.csv",
+      "bytes": 741,
+      "git_blob_sha1": "e3f2de07294c975687fd62c2344a91da30be4368",
+      "sha256": "536423a506e7995e78fcf7e669d6a9e3c916053e784a2d06d482ba883daecdf3",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/49_trans.csv"
+    },
+    {
+      "path": "data/raw_noes/4_3_3_tabula.csv",
+      "bytes": 468,
+      "git_blob_sha1": "69b0b171d1126e00d811c1cd4aae5f1b5f1655d0",
+      "sha256": "89ae3ca2a5f7b238b53c52e0f20ac6d9e1dd17c5af86052ce1540b4b59f6baa1",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/4_3_3_tabula.csv"
+    },
+    {
+      "path": "data/raw_noes/50_cis.csv",
+      "bytes": 801,
+      "git_blob_sha1": "c939c38ece04ab4857f55b98f79225713ecb5033",
+      "sha256": "854841dddde3e8a7db523492a07f6991d3602105ab9ccae1432206c5eb59cb44",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/50_cis.csv"
+    },
+    {
+      "path": "data/raw_noes/50_trans.csv",
+      "bytes": 649,
+      "git_blob_sha1": "b737ac386cfe1d07603fbb8412f7af61bfe0a7bb",
+      "sha256": "e713107fbe17975f178802a9b389a8c79cc31bb2a0c45eef8b005f491f4a525a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/50_trans.csv"
+    },
+    {
+      "path": "data/raw_noes/51_14.csv",
+      "bytes": 642,
+      "git_blob_sha1": "7f6737c61b78226034814df328b23bb3c0fe577d",
+      "sha256": "c1f0e836354aa872216abe4ff9d293338ed723e03d426266c163e68f42839941",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/51_14.csv"
+    },
+    {
+      "path": "data/raw_noes/52_15_1_CIS.csv",
+      "bytes": 484,
+      "git_blob_sha1": "6bf7fbf545d130b5af6213da974c8b1adaa0b516",
+      "sha256": "15c3830a7750de08775f9ef4c7465486507ab702caf4ab7d7ab939df9b948639",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/52_15_1_CIS.csv"
+    },
+    {
+      "path": "data/raw_noes/52_15_1_TRANS.csv",
+      "bytes": 268,
+      "git_blob_sha1": "2a7a1b3a29121349bcd3ff6537363ec07a0df201",
+      "sha256": "4bd07acf27662f8c9c3b3618fb8342b46f19ed1bc8c3dfbed348604e0ae0052c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/52_15_1_TRANS.csv"
+    },
+    {
+      "path": "data/raw_noes/53_15_2.csv",
+      "bytes": 189,
+      "git_blob_sha1": "5a2c817401b2688f1cdad92f1d2e2f13c1b6954f",
+      "sha256": "7a799da75ef18484018272c3075edd9418ce5ab9b004313a59b4828585a7b472",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/53_15_2.csv"
+    },
+    {
+      "path": "data/raw_noes/55_16.csv",
+      "bytes": 1113,
+      "git_blob_sha1": "221dd1a169162e744a0066a735598e25bce853a0",
+      "sha256": "a83a93df340776ece8b3107ffcba465313776095493d7976ac59694b3f433f83",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/55_16.csv"
+    },
+    {
+      "path": "data/raw_noes/56_17.csv",
+      "bytes": 1314,
+      "git_blob_sha1": "64fdceb7cbafd74784eae5a92c688b45aa8b71c1",
+      "sha256": "a01e73dd3851788b423f8a21b3a818cac37dacd39f5335ce14c711e88069b9f2",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/56_17.csv"
+    },
+    {
+      "path": "data/raw_noes/57_6be9.csv",
+      "bytes": 3834,
+      "git_blob_sha1": "126fea52f6099d1f5191058de891e908c4c4c6b0",
+      "sha256": "4a9da6298d2cb2e1ad3246daced8c17e3e2ce6483374073ba4873d247d02ce2a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/57_6be9.csv"
+    },
+    {
+      "path": "data/raw_noes/58_6bew.csv",
+      "bytes": 3407,
+      "git_blob_sha1": "50d4446c8acfe2cd7e7bac7e314463a4a8b9c7c8",
+      "sha256": "66301434bac97a696a02602b5e1bc800ec829f1bf3e60434db08a8a5c4d07d73",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/58_6bew.csv"
+    },
+    {
+      "path": "data/raw_noes/59_6be7.csv",
+      "bytes": 9033,
+      "git_blob_sha1": "688b6201d44c5cd89b5b103c198f0a3440c4fd77",
+      "sha256": "561bcc22c22c6cd7aefdc54cb0002135f2c091e17a1aae75f2747d8db79e3997",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/59_6be7.csv"
+    },
+    {
+      "path": "data/raw_noes/5_3_4_tabula.csv",
+      "bytes": 495,
+      "git_blob_sha1": "f23600a479a2ec38dc794109974263586c78b8da",
+      "sha256": "98aef5ca92c4ddd6a4b857284a73d7fe44e008cc632a5781af56f572dc88e27b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/5_3_4_tabula.csv"
+    },
+    {
+      "path": "data/raw_noes/60_6ben.csv",
+      "bytes": 4678,
+      "git_blob_sha1": "954df1beace6f67b2e63c5b03c6a509a7ebe1323",
+      "sha256": "6a3d361f7069bb0c770c81f1cc47471de839d851a18150a94e7007c1a9e046df",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/60_6ben.csv"
+    },
+    {
+      "path": "data/raw_noes/61_6beo.csv",
+      "bytes": 4836,
+      "git_blob_sha1": "34711fb0e3ad6a9c06ebdd89e3d92bb4ca9a67dc",
+      "sha256": "4f50d585f97cd6224b7682f346ea362c9e10e598c24415fb45c20944006a6392",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/61_6beo.csv"
+    },
+    {
+      "path": "data/raw_noes/62_6ber.csv",
+      "bytes": 10727,
+      "git_blob_sha1": "7173207a018c05eb83dfb3c889e1ac43a3d9ca86",
+      "sha256": "134db582a8f6fbae8b0430a4d7717694618b271f44af921f71fa0d00bf7ac1ed",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/62_6ber.csv"
+    },
+    {
+      "path": "data/raw_noes/63_6bf3.csv",
+      "bytes": 3502,
+      "git_blob_sha1": "cc0b0c307ca613e91f6f1ec4d0a7d794fef41aff",
+      "sha256": "e38ff52375165f9c4ccd8fe34fcc68716e059d95805f1629e0aff7f30ac277b9",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/63_6bf3.csv"
+    },
+    {
+      "path": "data/raw_noes/64_6beq.csv",
+      "bytes": 5308,
+      "git_blob_sha1": "58fc4b2ebb7a75497db64e218e1fe89bb6310733",
+      "sha256": "e12ab902153d12822cb9fc092b5253e5912d6f71c292ad77a41cf95aca671c42",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/64_6beq.csv"
+    },
+    {
+      "path": "data/raw_noes/65_6bet.csv",
+      "bytes": 5517,
+      "git_blob_sha1": "2ba897c1b9e0de6c87ad4eb5b7a031c95bae5324",
+      "sha256": "3e8463138e715f8f5f81a57bc7a1fd6f553e78f5df97571bec1e9ea3f9ed4485",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/65_6bet.csv"
+    },
+    {
+      "path": "data/raw_noes/66_6bf5.csv",
+      "bytes": 2485,
+      "git_blob_sha1": "03df91ebb5d4e7adcfc5ea2945743d143f53f75e",
+      "sha256": "e002650f88ec6774e548950546c58fffb2ef1b87a716f50a772ccfc4ab3c4e20",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/66_6bf5.csv"
+    },
+    {
+      "path": "data/raw_noes/67_6beu.csv",
+      "bytes": 11119,
+      "git_blob_sha1": "53ebb286bc2d2675fd12600d804e748bf21cd214",
+      "sha256": "c1f9e7eb34f8c59369bc5beebf5bf42f8c90a1a90ee239e8f98ddfb686c3bbc6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/67_6beu.csv"
+    },
+    {
+      "path": "data/raw_noes/68_6bes.csv",
+      "bytes": 4574,
+      "git_blob_sha1": "caf5ff41db562b06cfecec71787d268d1d33e53c",
+      "sha256": "df583e2d40c4f9c8a14fb98bbb873cdf6b2824ee38a736e63c81f6dae6306e2d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/68_6bes.csv"
+    },
+    {
+      "path": "data/raw_noes/6_3_5_tabula.csv",
+      "bytes": 536,
+      "git_blob_sha1": "2ed74ca1c715f2f2bbfc9c994cac98e64fb4a364",
+      "sha256": "e2a503f7d900a0521f3db2a2d8e16fdd64037c7c45f97768b15ee5e4baa8da04",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/6_3_5_tabula.csv"
+    },
+    {
+      "path": "data/raw_noes/7_3_6_tabula.csv",
+      "bytes": 388,
+      "git_blob_sha1": "47d234d0f4f996aa2273860a60cdde7d8f6c6192",
+      "sha256": "e1c7a0c302b38aac029decb6b183df2e78b56e845048d21865318cfdc7f9fd3d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/7_3_6_tabula.csv"
+    },
+    {
+      "path": "data/raw_noes/8_3_7_tabula.csv",
+      "bytes": 539,
+      "git_blob_sha1": "b9c7613834b4ce1fdcbb3f8bffea0e1bc235ce3a",
+      "sha256": "3ce53de85d7636be96ad0b7fda4c90cc6a0d22e03dbe28b4fe479f28ca4015ff",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/8_3_7_tabula.csv"
+    },
+    {
+      "path": "data/raw_noes/9_3_8_tabula.csv",
+      "bytes": 461,
+      "git_blob_sha1": "57ed7dd96b5ce973a0d507e2fe11dece5c2ce5b1",
+      "sha256": "11dd9798d9b1d93cc6dfdabba6aad625bdd9da060679f1d82094e707ee691892",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/raw_noes/9_3_8_tabula.csv"
+    },
+    {
+      "path": "data/topologies/1_1/mc_gas.mol2",
+      "bytes": 10767,
+      "git_blob_sha1": "42ef7499a2c2920bc1fdf3a46466ca5a1b7c7b02",
+      "sha256": "59de32207392e8e39e3886a672b1813e8ebfdeaac8802012379cc63c3c7a0a85",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/1_1/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/1_1/mc_gas.pdb",
+      "bytes": 7384,
+      "git_blob_sha1": "e0806a6c187d3c04d8b93f3bf7240747d4b7c361",
+      "sha256": "9172e57a2fd40d0c5a586c7592e5da6d24a91a3409c2fa5a6f3af4604501e029",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/1_1/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/1_1/mc_gas.prmtop",
+      "bytes": 64459,
+      "git_blob_sha1": "1b2030b2b5a68f71c0038933240a76ca29417c76",
+      "sha256": "323c3920b807dc2ebb212a923e274ca9eb0422d9de0c1793659db9ea4cff841c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/1_1/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/22/mc_gas.inpcrd",
+      "bytes": 2575,
+      "git_blob_sha1": "ea7f961eb2427d2d183506e52b3a02061d3dd3bd",
+      "sha256": "972cd9ab9d397151bb9f617f0c3e390ad87b4375a0c12388c7f05de641759bb2",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/22/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/22/mc_gas.mol2",
+      "bytes": 6966,
+      "git_blob_sha1": "39f921ce929a89ee5c8cdb248901ee477e49e3fb",
+      "sha256": "6a2da835babec92f8537d8bdda471c288a572a633f4e2387f8c8098bbe394681",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/22/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/22/mc_gas.pdb",
+      "bytes": 4704,
+      "git_blob_sha1": "09d71328f9a69e296ad953398c2f3ecf311926c2",
+      "sha256": "b4fb87f4e6ef2402fec971ec55364f616705137da2ddabf9149daaed6c77818c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/22/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/22/mc_gas.prmtop",
+      "bytes": 48668,
+      "git_blob_sha1": "8cfc43d26f554a26f51febceea2d69734bf2780d",
+      "sha256": "4be693fefac8392b07ad27279fba0c2d8b756d46dd82e44245f3f411af78f580",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/22/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/24/mc_gas.inpcrd",
+      "bytes": 3159,
+      "git_blob_sha1": "311e143c4fd62ab6c49161cdbf875445ab8a150d",
+      "sha256": "183b1d14d3ef39e54e398d9a73b5529054650df481751bf12505cd277587a173",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/24/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/24/mc_gas.mol2",
+      "bytes": 8515,
+      "git_blob_sha1": "a23f0856e4648248eda93884b384a9c0be6a87ae",
+      "sha256": "13b0b0f2d31a7a25cd16edbf81b12788bd6eae13ad85151e77725b2dc0c84cb9",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/24/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/24/mc_gas.pdb",
+      "bytes": 5776,
+      "git_blob_sha1": "571f36f0b36e118e0bed20b374ddbf633429961c",
+      "sha256": "33b8c2c21180c5e68bba107a53543016f7a3da69942edadce9c543ddb112ea7c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/24/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/24/mc_gas.prmtop",
+      "bytes": 56331,
+      "git_blob_sha1": "6524a2cb26c960b8c2478a8579edc6aeedcfecb6",
+      "sha256": "bb1efa6e2e742ca9f444948353764eb8ed0ed730cf7dcef3216319b1da63aa5a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/24/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/27/mc_gas.inpcrd",
+      "bytes": 2940,
+      "git_blob_sha1": "46db38603ef1d8c53c18e1c3825e3d9c3f2dd6a5",
+      "sha256": "62bbf1cbcf4c7ae8951fb4227e75da75cc2f49e6ee2c2689da2517a5ab88d453",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/27/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/27/mc_gas.mol2",
+      "bytes": 7896,
+      "git_blob_sha1": "b48e7c8eb61577a8c3a2105c21aea6454478146a",
+      "sha256": "45976343c08e6bbe9ca8949fdd51228469f57daa75e06c11104f06062f916b08",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/27/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/27/mc_gas.pdb",
+      "bytes": 5374,
+      "git_blob_sha1": "4502f7563be0f4585f9427304588267a003cd24e",
+      "sha256": "e5b70efdd2aaf6290885c2ed434a51d2ae0d8aed1febff8cd08f4ff1b3503f1e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/27/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/27/mc_gas.prmtop",
+      "bytes": 51641,
+      "git_blob_sha1": "4e00c12c1163a01b03202f01d8f919f4bc1e5a22",
+      "sha256": "aec2b9e5477bef87162d1b9b476ded97bc25babe3867db27f2a4c76d57d16e9d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/27/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/28/mc_gas.inpcrd",
+      "bytes": 2940,
+      "git_blob_sha1": "47656cf6f4f7e888409e16847490b1f15b44ffca",
+      "sha256": "50f8a7b1781f7f74dbf06cf9ef19c4deb3c03a77185e460cf81badf64852d466",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/28/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/28/mc_gas.mol2",
+      "bytes": 7896,
+      "git_blob_sha1": "d787a47d66a944f2dc1320ff07e72949764a178b",
+      "sha256": "52be5ae19168481bd3798f728bd926270135ebf0de90d62e61cd4a8009b16c9d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/28/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/28/mc_gas.pdb",
+      "bytes": 5374,
+      "git_blob_sha1": "148720420399a1c7411f9d267fb94a4c2e51ad97",
+      "sha256": "f85097acb25c33d51786cbc82f2e33ba598a056abb9a67e8825ab30632a01889",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/28/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/28/mc_gas.prmtop",
+      "bytes": 51641,
+      "git_blob_sha1": "c5e800cb8306c426ca1950aa834d610748db35a5",
+      "sha256": "37cfb99309a11f728a22c399b0c6fef40a4314fe84015fc16a207df495d0bb7e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/28/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/29/mc_gas.inpcrd",
+      "bytes": 2940,
+      "git_blob_sha1": "cae96631f6a6479760ec871de117cf6dc5b4bd7d",
+      "sha256": "b1aaae0057bd35bfd1b3d863ed64bddd4051cfde734a8c0ea35df57f3e9d6139",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/29/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/29/mc_gas.mol2",
+      "bytes": 7896,
+      "git_blob_sha1": "fe4d384c268ab64e9b8ca41d08ccaddc3225babe",
+      "sha256": "4d935cd1a4b4d8057afa4c3d83dd7d504f6bf4cb7d2c641c388338aede66bfa3",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/29/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/29/mc_gas.pdb",
+      "bytes": 5374,
+      "git_blob_sha1": "7d9cde4f50a5e285bcea98e26875e6319812fe73",
+      "sha256": "c127d15f94c1af29caaad5620193efa86f803e0d42db7c7a17075934f83482f8",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/29/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/29/mc_gas.prmtop",
+      "bytes": 51641,
+      "git_blob_sha1": "45cbaaee979473df4635e6e645440b7528c903e4",
+      "sha256": "11f9c006e0702b522f89bfb2adb8dd89af159473a965a7bddfb47e0ea145725c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/29/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/30/mc_gas.inpcrd",
+      "bytes": 2940,
+      "git_blob_sha1": "e963e7008f4656e2749342785f335b40e8265683",
+      "sha256": "531b8aaa5371679742c293463482c7ad797e0bfb2a09c8602e7d35636b3a9031",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/30/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/30/mc_gas.mol2",
+      "bytes": 7896,
+      "git_blob_sha1": "b8417bdbb423fc3a4fbed16cc6e46ddecc3c0f19",
+      "sha256": "8bd84816fb0ec49822d582a0f422577d1a4919a1b13743e8dd03d7a62fe2e19c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/30/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/30/mc_gas.pdb",
+      "bytes": 5374,
+      "git_blob_sha1": "42b9851b77ca94bc8001bf7fe42626ef5db00840",
+      "sha256": "03a4c775c8cc8666b6ea2f47b52542f50e1214bb2f6768c4a94ca6fc6b3c6625",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/30/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/30/mc_gas.prmtop",
+      "bytes": 51641,
+      "git_blob_sha1": "595ef94f5abc8b71856df41b224b179ec847f360",
+      "sha256": "63e4bfcbb2d0dcf5ff131462615908f414ec8a3e98d087f8e9165aa659f6aa94",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/30/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/31/mc_gas.inpcrd",
+      "bytes": 2940,
+      "git_blob_sha1": "74d38bf659d8262d532dbfdcf40aeca328dd7760",
+      "sha256": "b44afc736878912757acd32c29e26f241008ce8fe5545f4d629a4c1baa5c3d20",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/31/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/31/mc_gas.mol2",
+      "bytes": 7896,
+      "git_blob_sha1": "4ca121b0cf634511f9b7f0d9523813835ffe484e",
+      "sha256": "27848be9dabb56489e728f08fe323e819464fc6a6063375a9ccf3c36eb34eb41",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/31/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/31/mc_gas.pdb",
+      "bytes": 5374,
+      "git_blob_sha1": "5b39cf6dbf8ec344849ecf45fa38146ee0ef428d",
+      "sha256": "cefc13d778d6c73ab70de208797a2cd40fd733b2be51f0735d98507be702b524",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/31/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/31/mc_gas.prmtop",
+      "bytes": 51641,
+      "git_blob_sha1": "d45bcb176a7fb2e03b17de650d0b4822bae84d25",
+      "sha256": "163f31a300f0847f5111125a07d5ab7401cd291594eb147d8d68a2e2b1f8eef3",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/31/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/32/mc_gas.inpcrd",
+      "bytes": 2940,
+      "git_blob_sha1": "47d3a3ee086f30e677f9de515d53a36fcdb4f7e0",
+      "sha256": "7faefe2f6a5d02407ebacd8754a4c814266cfcbf1d137513fb1bdc1ac3d822b6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/32/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/32/mc_gas.mol2",
+      "bytes": 7896,
+      "git_blob_sha1": "f31cba42a71f742137eb4528ef00398b32b61a19",
+      "sha256": "82491d2c1ccac34da96c1b9be026517781db63eb00d75b3719d80f44e12f3515",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/32/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/32/mc_gas.pdb",
+      "bytes": 5374,
+      "git_blob_sha1": "f591a3c53b163de1b57e7a176e4370b854f11cae",
+      "sha256": "fe1e6d858e18b25459c34be0e98ea2ccdbf1851a962b46045825aee895d18db7",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/32/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/32/mc_gas.prmtop",
+      "bytes": 51641,
+      "git_blob_sha1": "8975c675bba5efe7809400c5baa52a715ef8b764",
+      "sha256": "991652e2f3a3f3845644b27b91af412e4aaa21b66d6b0d8974c0e5a84ada4dc6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/32/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/33/mc_gas.inpcrd",
+      "bytes": 2904,
+      "git_blob_sha1": "db110ac16972b6e939c7fb2c690c18001647693e",
+      "sha256": "4a2ec4585bbf0edd660512155bbcd5f005492ffdb4c6c1553bdadc3c522c6432",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/33/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/33/mc_gas.mol2",
+      "bytes": 7803,
+      "git_blob_sha1": "a50e5846cebbaa3d1e70644b3e043506026eb4ff",
+      "sha256": "dff324cf60ec6dd6b7c121c92cd12ef3813215ebd81c3a685b4dc00b39714778",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/33/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/33/mc_gas.pdb",
+      "bytes": 5307,
+      "git_blob_sha1": "008a0081895fb75014b580edeb778000387ab2f8",
+      "sha256": "6eeac02509ea5daa68e05a1dce982557e461243466bdb73dc3ee018486535183",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/33/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/33/mc_gas.prmtop",
+      "bytes": 49497,
+      "git_blob_sha1": "3e51da60706062ee6d56038c1d4fcc701e60756b",
+      "sha256": "d5545d107b860857c926f93e8a26dfe1bc52c899cb257e1a9b5f9cd7189a58b0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/33/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/35/mc_gas.inpcrd",
+      "bytes": 2977,
+      "git_blob_sha1": "32b1c857d7c28875ea1baef1adb503f7fd9165ee",
+      "sha256": "146978e033f1d46fc27de9bf193b7afe0b246423cd07089032ef8f071dc1a669",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/35/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/35/mc_gas.mol2",
+      "bytes": 7969,
+      "git_blob_sha1": "083e9d3892600ed64bb3932d829e3f351458f278",
+      "sha256": "ec685eef680db70bc861594ffb020d30853f0e7006a1f88fe74a8107aecab982",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/35/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/35/mc_gas.pdb",
+      "bytes": 5441,
+      "git_blob_sha1": "277f4024fca85425821af299156cd06fc8603d21",
+      "sha256": "8e5dc55937430ac45d18d97251216e2b93f7f7b29c7d8000e0908d2747f10954",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/35/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/35/mc_gas.prmtop",
+      "bytes": 50860,
+      "git_blob_sha1": "76cac19acb99f278a8f49ed80d8c7834dc62d443",
+      "sha256": "61691b431dbef38fddeca32bfc9201879454a96a1de4c31054ce14fea8c0b510",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/35/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/36/mc_gas.inpcrd",
+      "bytes": 2721,
+      "git_blob_sha1": "1a28caf747e7c8d12dd195693d8b9917ae70828d",
+      "sha256": "66828f886a2f2afd92a419f0dc6e44c98c9c97c784de485cf94351dfde7edee7",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/36/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/36/mc_gas.mol2",
+      "bytes": 7338,
+      "git_blob_sha1": "fca784d1cc6a42e6d5eb18df3c64f3f2f66685bd",
+      "sha256": "c1ef2ded37889d0d32da894514b536645fc5ca92f88449f04f8626ee689c5d17",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/36/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/36/mc_gas.pdb",
+      "bytes": 4972,
+      "git_blob_sha1": "460350db9dbc11e0fa54b0138b9f954f13c7b726",
+      "sha256": "a86e811d80c3f1650a522a87b5083848ff08e794ca9317210b02553f6c17e1e5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/36/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/36/mc_gas.prmtop",
+      "bytes": 48526,
+      "git_blob_sha1": "dc493c5b911e4b673235787adffd12d8edfe8556",
+      "sha256": "ec996ffc3cf605da580f37d1418089d26bbe15caa9c4cdc9c4318e965069a4e8",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/36/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/38/mc_gas.inpcrd",
+      "bytes": 3086,
+      "git_blob_sha1": "e0ce650e2106293fe79e97fc38ecd1f7298b891c",
+      "sha256": "1a26329a2bb33fc7bf2ec72c21ac7e6246aa82495c96097d4ca34baad04bd4cc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/38/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/38/mc_gas.mol2",
+      "bytes": 8288,
+      "git_blob_sha1": "7990e944bde7833913866b9ba134963f741b1839",
+      "sha256": "eca4d5bcb295f3d0219bd06b19f5f57225503d708fa672d56d30bb0bf054fb0f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/38/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/38/mc_gas.pdb",
+      "bytes": 5642,
+      "git_blob_sha1": "e35e2be742daf73d20294fd29fb5b71541c94d53",
+      "sha256": "6f9738654c81238c8c515c575bfde576bae256b1c08e58ce422417bd41b1f92f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/38/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/38/mc_gas.prmtop",
+      "bytes": 55564,
+      "git_blob_sha1": "1f346bd174d6d2f8afe7be0366891ad2014d2d4f",
+      "sha256": "c763099fa8fbac91b8100cfb23c209e1c3dd1ba7bedf0b9d945946a8a6d932aa",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/38/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/39/mc_gas.inpcrd",
+      "bytes": 3123,
+      "git_blob_sha1": "0828a4003e43de36bb5d449a29ade1f1f6732f78",
+      "sha256": "54853eb29d5a07b874a4db664cc567c04c82f09697433b3aea04380af406e9a3",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/39/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/39/mc_gas.mol2",
+      "bytes": 8361,
+      "git_blob_sha1": "c926064b1fdd69aa3f8d668d60f163728de2404f",
+      "sha256": "7da11be1d6d8c672624c6142becededfb9b29a69f226e993e90e903e6c55c0de",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/39/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/39/mc_gas.pdb",
+      "bytes": 5709,
+      "git_blob_sha1": "b6a21ec1dcd2182d8be9a477db123dd89380bb30",
+      "sha256": "22dae708e198990abe4393e1b0daa905417c887037aa68795365847926fa7ffc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/39/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/39/mc_gas.prmtop",
+      "bytes": 53204,
+      "git_blob_sha1": "c4e3f5f3ac6cfc17b00f17642daf258834b4a16a",
+      "sha256": "fc05e980a15d37a0d9779c5669bac5c575e222a80963ddcf66562d1c216eb9a4",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/39/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/40/mc_gas.inpcrd",
+      "bytes": 2977,
+      "git_blob_sha1": "75bee4c130a853124d93f6317e9f8fc0248fc632",
+      "sha256": "66f750c4c596b7005dfa2cf637cce09cb96f8a46121e2618cbc7b09a9eeb067a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/40/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/40/mc_gas.mol2",
+      "bytes": 7969,
+      "git_blob_sha1": "79763001cf08e7458e89746d8c9257248ad91703",
+      "sha256": "468129e63ec3734e0bbf5638366cc2d12b11b280c53e8e5ccc3b88f460e992f5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/40/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/40/mc_gas.pdb",
+      "bytes": 5441,
+      "git_blob_sha1": "381c98bcadfe68f823ca538c6393c9823274fd9e",
+      "sha256": "31046c59c59726da181f40ae3859941592693043a6adc7326250fb4f932ab66f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/40/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/40/mc_gas.prmtop",
+      "bytes": 50860,
+      "git_blob_sha1": "a57558da65b8d4158bb771fab89294e71682a6a4",
+      "sha256": "4cd4bacacffafbd4b46436ce31b57715f9fe874f074a1bfc7a8533ac25a86425",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/40/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/41/mc_gas.inpcrd",
+      "bytes": 3086,
+      "git_blob_sha1": "f20db4fb16bd8a3c1c4927b19c87e1cf719e0d12",
+      "sha256": "00a3feedc996c26e70ca1e152b08884cb98922b627f85a940a9aebac40df738b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/41/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/41/mc_gas.mol2",
+      "bytes": 8288,
+      "git_blob_sha1": "c1fec65edc2ae2dabbb83215d18c7246357027d5",
+      "sha256": "ac6e54818b0131a32d88b79fbcf6e78ce9f34652cfe47712478b6ddc51fab5f7",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/41/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/41/mc_gas.pdb",
+      "bytes": 5642,
+      "git_blob_sha1": "4916bf63a82f4a0c31cb216d978f6ca398efae4a",
+      "sha256": "6d93f22e956354488cb2a23ae5666eabcf708ff938d35e46b2f5058c1c19aa8e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/41/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/41/mc_gas.prmtop",
+      "bytes": 55564,
+      "git_blob_sha1": "956e530a5e89a3357a83e7f8fb047210484d630b",
+      "sha256": "27cb9d7dd6f88c33721d01ba5463e3c297a5526bbc6cd6fe0b6ccaeb19455a81",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/41/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/42/mc_gas.inpcrd",
+      "bytes": 3123,
+      "git_blob_sha1": "26b33d18e7397c19a2c489bc3c43a2033eb9385d",
+      "sha256": "c4250b0c25249b409676ee2c2b9829ae42c978b1d4f796de6aab948ff00d70ae",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/42/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/42/mc_gas.mol2",
+      "bytes": 8361,
+      "git_blob_sha1": "b283a6a1058621d223305c3aa3086440ccb6b2ad",
+      "sha256": "c759d52ad9afe169f7e6af92cae8f7a94cf19121ffdd11cbf970f1c23eb0b6b4",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/42/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/42/mc_gas.pdb",
+      "bytes": 5709,
+      "git_blob_sha1": "27deb97e8a92f53746bc0e10fd742b5dd44bb10e",
+      "sha256": "efdf6f65944ae9ebb2498537b03aac190647e67a5727998ef15afb25cde18b62",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/42/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/42/mc_gas.prmtop",
+      "bytes": 53204,
+      "git_blob_sha1": "a52848aa77b32c39c28d37000edc5b5c72190c91",
+      "sha256": "c36186df7ce7cf7fee1bdf6e4d5a82fe437b679f1a8733297907fa12da716a3b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/42/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/49/mc_gas.inpcrd",
+      "bytes": 3086,
+      "git_blob_sha1": "8fe21d024bd95f4e6f9f7c4297c0ff3b81ee12ca",
+      "sha256": "8b892853bff15deec69d8c4ceb03ac6581733bcde8c9431baa7aee6a321f4e89",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/49/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/49/mc_gas.mol2",
+      "bytes": 8349,
+      "git_blob_sha1": "e1a2fc08008aa3821a395e14628e632525f044a2",
+      "sha256": "67cddd12d9ddb9da3238bbf41e0a52d3081195bebdea5fe49bc73a27bfc61f2b",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/49/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/49/mc_gas.pdb",
+      "bytes": 5642,
+      "git_blob_sha1": "6216809fe8b301ce853e0fc91a9bfd2ad8e808a8",
+      "sha256": "26e8f45a41bdf3cd9e8f1bf46da7a0c499010d279240e323dc5c4b754e322b93",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/49/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/49/mc_gas.prmtop",
+      "bytes": 51536,
+      "git_blob_sha1": "b71547a43361b6c9882f6887e74abc7c17c68d33",
+      "sha256": "ea31321631b0a6536ffb1389ff8ae785ff6b29779983bc3b2de9675a46ed7d71",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/49/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/50/mc_gas.inpcrd",
+      "bytes": 3196,
+      "git_blob_sha1": "830cbe0c091e1803693acd081032f66941cac020",
+      "sha256": "79d2dcf4924b845a61ae0d10b92a098848e157a1467831d83777b6adb1609ec0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/50/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/50/mc_gas.mol2",
+      "bytes": 8628,
+      "git_blob_sha1": "0c0f51ee13a02c4d9e0dab5ce0aa36ed28221e63",
+      "sha256": "fc4ffcf539be58952aaf9ba4641ed4a76c1a696455457aefe5dd5d9ee11babb6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/50/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/50/mc_gas.pdb",
+      "bytes": 5843,
+      "git_blob_sha1": "ebe9e9d8a3aa9594feaa13e98e910c992e7ad905",
+      "sha256": "be88516e54fc8863a43c0702e6e5c2a46e6a5722e7ea40d2cfb09b4fccd9a626",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/50/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/50/mc_gas.prmtop",
+      "bytes": 52827,
+      "git_blob_sha1": "d794cc04093a117c5b1ce343dd7b5003e6240f3d",
+      "sha256": "7be9cd313d5a400dea017b02324dc61f99be15e58d23cc79dc35c28382a10611",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/50/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/51/mc_gas.inpcrd",
+      "bytes": 1991,
+      "git_blob_sha1": "fb00ac503ae0e4264199ea9e49fa9240974cc014",
+      "sha256": "d64c1006193cb2644b4697678ff9564a36641383bd8f5ca499a4dbbf24c3bd50",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/51/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/51/mc_gas.mol2",
+      "bytes": 5478,
+      "git_blob_sha1": "88fe12403ba342cba05f9ddbf5b818d14284a0be",
+      "sha256": "a6ba53193612c4c64bdaf04f9eea0def7697cdd91aa15859817e863456a075dc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/51/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/51/mc_gas.pdb",
+      "bytes": 3632,
+      "git_blob_sha1": "ceee7dfc240d4bfa683b6ec287ed8b17e68d5ff9",
+      "sha256": "a723b9fc3e20071c25899f2f3b76743a013492b37affd8b2c5bc9846d77635c4",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/51/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/51/mc_gas.prmtop",
+      "bytes": 35017,
+      "git_blob_sha1": "b27b0b17f161e98db481e84d19848dc86661bc12",
+      "sha256": "54e6eab1843ba1191f72e0bc756ba924a3e374eb9d5a3ea84888c181ded3aec6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/51/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/52/mc_gas.inpcrd",
+      "bytes": 2648,
+      "git_blob_sha1": "5c19f5b574cbc297433262dfa35b94faebc7bd1a",
+      "sha256": "75839ac0fcdb4c08636ce063fb0590d9e9bc3f5f3095c259f195fa24637396cf",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/52/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/52/mc_gas.mol2",
+      "bytes": 7152,
+      "git_blob_sha1": "4b65642bbf3550a144960b4ca7afdf78df5f9a97",
+      "sha256": "c3681b1b8cb359813d65d0861fd7d11ba98d8b4e57671842649145f9e5c9a63c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/52/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/52/mc_gas.pdb",
+      "bytes": 4838,
+      "git_blob_sha1": "e7e8fe5eed7df09899d78bbf4bcf8cfc247ed68c",
+      "sha256": "c2900194c2afe9a9af4646c278432da53a70d02cf17c55ff336550250b0dba8e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/52/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/52/mc_gas.prmtop",
+      "bytes": 49079,
+      "git_blob_sha1": "ba84df3bf0e985da430c597d9193220785092952",
+      "sha256": "d7768d115db53212defc3edf207361f5d40a6f3f6ea7f937a5f28f6babf7e669",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/52/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/54/mc_gas.inpcrd",
+      "bytes": 5130,
+      "git_blob_sha1": "dc11885a0f5138351baaf17b58a4387eef1d624d",
+      "sha256": "7e1986ab97fd0ce9d3961cc67dbd60bf531401770fb6583aa109b46879d6af90",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/54/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/54/mc_gas.mol2",
+      "bytes": 13617,
+      "git_blob_sha1": "9a45c4a798861295ec5d54da203a5dc010b27ffa",
+      "sha256": "355b7b065cbe0d2080a170da5aa420a5c568251f8944374c638d4ca790096c13",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/54/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/54/mc_gas.pdb",
+      "bytes": 9394,
+      "git_blob_sha1": "86db3492f2a79bc6a7cfe83cdbca8d9bde9e02b6",
+      "sha256": "f875ddf81a6446f66c5ba25d20b769c58c5a773b9cfb00c722974755344d3055",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/54/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/54/mc_gas.prmtop",
+      "bytes": 75270,
+      "git_blob_sha1": "b95af5d5f98e56adc176937eebbcf96de290386f",
+      "sha256": "9a252f18f825750ea8c052afb1a5f0653e967b1b6e046f2930edb7d155de2f85",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/54/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/55/mc_gas.inpcrd",
+      "bytes": 6116,
+      "git_blob_sha1": "fd0e07c78a9da82e1124eb6db7447e2c6842f082",
+      "sha256": "30757799b8c42a406312478afd9a7d4c79d6a6d1c0ef31871c50df4b418542a3",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/55/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/55/mc_gas.mol2",
+      "bytes": 16372,
+      "git_blob_sha1": "9666bea5a0f365e601af145031e0c7db0dd151e0",
+      "sha256": "9458e8309f0e2d010b667fc7d84fad2dc701494933484f8b9e43333952506d7f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/55/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/55/mc_gas.pdb",
+      "bytes": 11203,
+      "git_blob_sha1": "5a7ee16518a86f06af0ca34a962697a2b72aee01",
+      "sha256": "8900464509a76b1fcf2189863e3f71d93fd95e1cf61d2949f0ce1f2f42a4fa4a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/55/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/55/mc_gas.prmtop",
+      "bytes": 96366,
+      "git_blob_sha1": "41c7113db7d58719def29876c9ceb6ff0977cbee",
+      "sha256": "f94cd00527300e2857b6af012e2b2bf654ba3a7f18eccd9e23e1b13b3aae26f4",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/55/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/56/mc_gas.inpcrd",
+      "bytes": 5714,
+      "git_blob_sha1": "3733c0841c076bc06c0c7a9c77c61f2cf8e88981",
+      "sha256": "a6409b0fc86ad37f442cc8e36f341a698d450f9cd4934581bd358e7b43ec2269",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/56/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/56/mc_gas.mol2",
+      "bytes": 15280,
+      "git_blob_sha1": "6e76c36f4ab0d2eced775714ce02f5d192e5a489",
+      "sha256": "592fd7c1fb7b0f76f5820b23b638571085f99ef22757aa3f8e6fcd0fc2c7db88",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/56/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/56/mc_gas.pdb",
+      "bytes": 10466,
+      "git_blob_sha1": "41a8b9cd396168b08a63cace8f56503ed2ad5412",
+      "sha256": "b3a86458ee31e95d2db05ae93fa3cbb1f35acf7cf8385dedfb9ed4652b8cd1b9",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/56/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/56/mc_gas.prmtop",
+      "bytes": 87212,
+      "git_blob_sha1": "574bfd1d8287b27461c5cf63ed9134e2bbe576a1",
+      "sha256": "dc2a65b923d0a4bb0ab3e2b47398e685a0af3a46dd8dfb5f2eb1d752f0ad4847",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/56/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/57/mc_gas.inpcrd",
+      "bytes": 3816,
+      "git_blob_sha1": "4df46b062c4a108b55cd9b1b36f1ea590686916a",
+      "sha256": "f5f9df669700644f614dbd9fa91fec4bcd02e887180294a0ad437fbc1b4362af",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/57/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/57/mc_gas.mol2",
+      "bytes": 10250,
+      "git_blob_sha1": "e3882d86b9f8a3c7ffa79c34019be842a344d7f0",
+      "sha256": "3d11d1b9ea3406a2a58af3f82de4abda912b8d33e2c8d066c27eb8af9e3f6165",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/57/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/57/mc_gas.pdb",
+      "bytes": 6982,
+      "git_blob_sha1": "a9d8fa02b020573e25cd4b89643050e70adceb1f",
+      "sha256": "90534002b2b16b9856935afa1a52ccbd7f65b2c0d286d3543ab4f2d795ab7856",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/57/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/57/mc_gas.prmtop",
+      "bytes": 64801,
+      "git_blob_sha1": "c3b1072b09e504942b4ee099d07449b258b381fc",
+      "sha256": "f51fe02c6bea5c7a96f5f42727139e9b07a8ed4e7582187b873c40e461d709e8",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/57/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/58/mc_gas.inpcrd",
+      "bytes": 3707,
+      "git_blob_sha1": "efee652da543cefff75882a050381e0ecb00fb56",
+      "sha256": "d238898c8d3fec9b2e44795389be86c112b6555ad94bf32f77f56f524572ce89",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/58/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/58/mc_gas.mol2",
+      "bytes": 10011,
+      "git_blob_sha1": "9e6a069aca6605c06af779792fdb577ee5292117",
+      "sha256": "325f7b97acdf89de0844565bf616356afcfc467f8e4bf289fd59b03ab3844c94",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/58/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/58/mc_gas.pdb",
+      "bytes": 6781,
+      "git_blob_sha1": "0a4c9d8fd67bbcffb680f902aa505a71746f4e75",
+      "sha256": "b68e37300360e0333d9f73e209393a4f9b8b7c9d77320d7eb63a5a7eb6a33880",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/58/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/58/mc_gas.prmtop",
+      "bytes": 65397,
+      "git_blob_sha1": "1aaedf9e65e331bd0f987cca28704edd3c58c3f0",
+      "sha256": "cd7711340364640e4ec46f8726d79e13d0b1d5df78662597300e3b255e81b57c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/58/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/59/mc_gas.inpcrd",
+      "bytes": 4546,
+      "git_blob_sha1": "3756795dc9f3769ba9c8e018d336015ae5070383",
+      "sha256": "812d9da458fb6538cd467636cd3926bc889c886f881c8c43857f83f846c8db9d",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/59/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/59/mc_gas.mol2",
+      "bytes": 12191,
+      "git_blob_sha1": "e266c5fdd3ea03635786e4d19d93ef8c53203a20",
+      "sha256": "22a9a6ad9260dc506e4735212acbbddc255a2fa92da56d4861d2f607feda96f6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/59/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/59/mc_gas.pdb",
+      "bytes": 8322,
+      "git_blob_sha1": "4b052bbe61b4a3585829c65d43bd41d094c2925f",
+      "sha256": "db74d33f4e09374d210db61d389baba257d904f8f6525efca44c404aa3b5fae6",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/59/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/59/mc_gas.prmtop",
+      "bytes": 73796,
+      "git_blob_sha1": "b4053e03780d37b8cb13450e47908447c464cd94",
+      "sha256": "899030a67520d77cceb164b8cc4e7810aaff0a13ac944222fca315639f7eb2a5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/59/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/60/mc_gas.inpcrd",
+      "bytes": 5203,
+      "git_blob_sha1": "effbf44ca8692ede9769001c46fd1cae79639d8a",
+      "sha256": "a2b99f3afd4aaa3b338ff5055f6057b1aae7439c7e9aae764b7628558f59ce78",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/60/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/60/mc_gas.mol2",
+      "bytes": 13865,
+      "git_blob_sha1": "219c57e08797b48c54465606d6613d7d17409fd1",
+      "sha256": "3966bd6f895d083e48e8b77e128eb78e2d20b84cbb6a2baad30680cded13c94c",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/60/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/60/mc_gas.pdb",
+      "bytes": 9528,
+      "git_blob_sha1": "164261ed893d1a804ba71a1611a6268ac2fa12ee",
+      "sha256": "6cc675d31998326f8c87b14046eca55d651d8930b50cff4706c6a37c19890e2f",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/60/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/60/mc_gas.prmtop",
+      "bytes": 76663,
+      "git_blob_sha1": "8ebfe2f27921c22fb781fe0289b7d7409e2e1430",
+      "sha256": "a930b6e80f86198105abecff60af54860c009414b793410b6f2af541bc72032a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/60/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/61/mc_gas.inpcrd",
+      "bytes": 5532,
+      "git_blob_sha1": "571e177eb95a65008372a65d6433be2e534730d1",
+      "sha256": "525ee94413cbcffeec3cf3209223b1111e7f2aeb1eaed1b6f8482fba2365933e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/61/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/61/mc_gas.mol2",
+      "bytes": 14823,
+      "git_blob_sha1": "ba9ecba483f943edac3cdb104faec2fae9f88efe",
+      "sha256": "d1e2ccce1ef1c3cefe4ea0dffd405db6a6f18e8895b4ecdba02e246839a1cf5e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/61/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/61/mc_gas.pdb",
+      "bytes": 10131,
+      "git_blob_sha1": "9a692843073eb023d27411f1f8e335d2686c3686",
+      "sha256": "4a274d356e04c4bc31a3e2e30ccd133b5ef54fdb38bbc9fa224fd7fb11ac7487",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/61/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/61/mc_gas.prmtop",
+      "bytes": 89275,
+      "git_blob_sha1": "7a4e266cc42ea6e3a568d6aa64e97818ca5c66de",
+      "sha256": "ea91ec32c2975bbfcb73e418d0da89f1103e5923368454d35c02775c00cb82c7",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/61/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/62/mc_gas.inpcrd",
+      "bytes": 5203,
+      "git_blob_sha1": "3d82b378908475e8b12a2f822216d83c8eb46aac",
+      "sha256": "b20f21215d59b5178225de6041198341ce1a39ff988ee9e2218479a40b4544d3",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/62/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/62/mc_gas.mol2",
+      "bytes": 14027,
+      "git_blob_sha1": "2466762aa33d17e642c7a5236e64360fde95fcba",
+      "sha256": "38e51d6af75ecccddd2b206c7478720f05048cf1fb30817aa1d694c6861373c0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/62/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/62/mc_gas.pdb",
+      "bytes": 9528,
+      "git_blob_sha1": "66f1faf913c3b32dd2528c30be0919e0686368fa",
+      "sha256": "60142fe4248ba2656d3e6bb1a3eb65268abbcf9c7383e4c383bcc6b06db96001",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/62/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/62/mc_gas.prmtop",
+      "bytes": 82157,
+      "git_blob_sha1": "73aff50eadcb36704e9941a87fe4805579a36181",
+      "sha256": "1e6e6cc2a2d5d1f0f3ec67ff12adee976bcd3101b0c9da36591dada7017860d2",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/62/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/63/mc_gas.inpcrd",
+      "bytes": 3853,
+      "git_blob_sha1": "52ad17f05081e1d84342d924129a4016d7570030",
+      "sha256": "8649e0c1cf04ab46d149de8e837fc07bb95e59aa703db594fc9a7d3b6ad45b98",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/63/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/63/mc_gas.mol2",
+      "bytes": 10363,
+      "git_blob_sha1": "f9fed6e841edabf99e7ca550dee0c4a9be828170",
+      "sha256": "02d4ec2dc3c6d3335c309a285d3106a4bc1bffa8d1ebed100dbc7d62bc906dec",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/63/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/63/mc_gas.pdb",
+      "bytes": 7049,
+      "git_blob_sha1": "616741e8166cc26907c805087c7c563497b7b4a0",
+      "sha256": "be77e52c76559019abc77c1970d35a08f127d875262fc81744b391ba159ccb9e",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/63/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/63/mc_gas.prmtop",
+      "bytes": 65730,
+      "git_blob_sha1": "6c9718d9947f3ca9f14947d0cba6241471f9c204",
+      "sha256": "6483d682a2a164b3d41da690d5a8ab0cd451074f8a5c805f1640dee16f6610e8",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/63/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/64/mc_gas.inpcrd",
+      "bytes": 5860,
+      "git_blob_sha1": "5e35be9438a89b8b93b26f292cd1ce80f292c2fa",
+      "sha256": "7dae1ed175e5dcef873f0a9d6f932dbe2c5e74fa7ecf278916296878ffc12231",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/64/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/64/mc_gas.mol2",
+      "bytes": 15661,
+      "git_blob_sha1": "e6f8451007949fa8b1b4ec3d114cc065859775de",
+      "sha256": "9b40f6f9cecdbe7e6e8aab09a7507725660df3572aeca211bd07ea6e9d63508a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/64/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/64/mc_gas.pdb",
+      "bytes": 10734,
+      "git_blob_sha1": "f38e4dc6b8558d72219e6be45eca5c4ffe547831",
+      "sha256": "4cfbc2bdc2a7acfbac2ae88af40bc6f8235af4c76e2ef3a472fcb668b40c978a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/64/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/64/mc_gas.prmtop",
+      "bytes": 87611,
+      "git_blob_sha1": "e644484282367469dfd98c70c80ef62c337976ee",
+      "sha256": "0c80340bb489c6eeb144034a49357936a614a2a066f7caa88aaed7c04c8d16e0",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/64/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/65/mc_gas.inpcrd",
+      "bytes": 6700,
+      "git_blob_sha1": "c3650da6bff95a8c1f8807b40e74a885d219e8ba",
+      "sha256": "c93e86116f74e2dbf72ddfa775049561b53d9732c8236ff1a618522ae3a4b134",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/65/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/65/mc_gas.mol2",
+      "bytes": 17982,
+      "git_blob_sha1": "1552e912fcade5d21a89185c7857f86a22818a03",
+      "sha256": "d3199a95ae4241a15df83025405fea4803f5c4a287c28fafa49b0c83d175dcd8",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/65/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/65/mc_gas.pdb",
+      "bytes": 12275,
+      "git_blob_sha1": "0ef49ebb2f30ffe3cf855aaf58ef21e9d0f72662",
+      "sha256": "fd324c852bcc087515b98070380b77b76e8afa28717f9944803421d4ef9dcedc",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/65/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/65/mc_gas.prmtop",
+      "bytes": 102819,
+      "git_blob_sha1": "80aef958fbe9da8ae2179a48729527ff6ad74fd7",
+      "sha256": "fe410c2059cb57c21e5a4804673454af75dc24c6a1e8a10e90c036173b5c5536",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/65/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/66/mc_gas.inpcrd",
+      "bytes": 3853,
+      "git_blob_sha1": "69ad0119bd46a98f3d9c55942f45f1a9de391cca",
+      "sha256": "674bb677375a5b9043b4bf65501e345700cdb082dc7a7e403299e46a5cf29bd5",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/66/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/66/mc_gas.mol2",
+      "bytes": 10363,
+      "git_blob_sha1": "a24ec4364c37bbe029b1e88178d3b0eb999c1a95",
+      "sha256": "b6b77bfbc20f0749b06a33928d01c93b914ea9c88a50d04c6910dd451a00f10a",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/66/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/66/mc_gas.pdb",
+      "bytes": 7049,
+      "git_blob_sha1": "61a8348627e46af271fb605eb2898c23f02f850f",
+      "sha256": "a7a75a52ceb382cd074d13f09b4182823558063b01a2f7537c63a8e00e61d3ff",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/66/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/66/mc_gas.prmtop",
+      "bytes": 65730,
+      "git_blob_sha1": "2f3e28f9046433dc99b5446ba1cbe6d1562db751",
+      "sha256": "afef2ed409e8dfcf5c1fab4bc98a12b53065ca13b42f50321cfe1c7172c82f76",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/66/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/67/mc_gas.inpcrd",
+      "bytes": 7831,
+      "git_blob_sha1": "47724f8159ff81f895279f045ccd19e56a3cc938",
+      "sha256": "20ea3a246756b2fd476a3585ed2cbcb190618bfc590ef572603ef667d4b60184",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/67/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/67/mc_gas.mol2",
+      "bytes": 21007,
+      "git_blob_sha1": "efc3530a299e828dc5d889572965876ad02d554d",
+      "sha256": "61e3c16726282fc9ded78203f5d0d52c6076f2de2c68198dd5edc7741f0ba441",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/67/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/67/mc_gas.pdb",
+      "bytes": 14352,
+      "git_blob_sha1": "084df81bc5f4efa5988424036a6554a0b3db4145",
+      "sha256": "8046747cb96c6c720e365ef932cdcb782fabe9e6d83a51f28f6c5d1b6afe6136",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/67/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/67/mc_gas.prmtop",
+      "bytes": 116107,
+      "git_blob_sha1": "9d63a516b3fb0b007f602b545a70f670bb2f339d",
+      "sha256": "7517619a000c8c158cf9eeab1a676fc8ed708e11b20a3dedd886af3ea4d8dad4",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/67/mc_gas.prmtop"
+    },
+    {
+      "path": "data/topologies/68/mc_gas.inpcrd",
+      "bytes": 5568,
+      "git_blob_sha1": "8a4b40edbf1f10556fe592dd26d8ddd9dd3c8b93",
+      "sha256": "56ec05b9d2dfea765bbf8720799808ea6a4e7e46c7c0b0896159a3f13a20e514",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/68/mc_gas.inpcrd"
+    },
+    {
+      "path": "data/topologies/68/mc_gas.mol2",
+      "bytes": 15018,
+      "git_blob_sha1": "0b08b13b4de2c4c705d625a5b46171d48d50440e",
+      "sha256": "e6f415ac4630097215524df84ec48f1748ba908eb9c0a257d4658867dab47768",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/68/mc_gas.mol2"
+    },
+    {
+      "path": "data/topologies/68/mc_gas.pdb",
+      "bytes": 10198,
+      "git_blob_sha1": "8399a2f71c05b145e4043ad90999ba0fe87a3403",
+      "sha256": "ddc6c2762447e1f4517704729d7c39c0a4ea5af90c3610f32a3e127a8d712edf",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/68/mc_gas.pdb"
+    },
+    {
+      "path": "data/topologies/68/mc_gas.prmtop",
+      "bytes": 89443,
+      "git_blob_sha1": "43875fcbcc101782e53e20efaa3ec93a0341db0c",
+      "sha256": "1792730f4e379f101209185d4735f6098909a95401e742783560381cb3c2df15",
+      "source_url": "https://raw.githubusercontent.com/bigginlab/Macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/data/topologies/68/mc_gas.prmtop"
+    }
+  ]
+}

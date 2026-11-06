@@ -1,0 +1,53 @@
+{
+  "what": "RULE-CONSTRAINED verified-reward generator-close on the COLLECTED v4 model + COLLECTED CycPeptMPDB measured permeability",
+  "signal": "permeability",
+  "target": null,
+  "kb_rule_constraint": {
+    "enabled": true,
+    "resolver": "experience_kb.resolve",
+    "gate_target": null,
+    "provenance_entries": 2,
+    "kb_admissible_before": 1.0,
+    "kb_admissible_after": 1.0
+  },
+  "reward": "oracle_A trained on CycPeptMPDB measured permeability (disjoint half); CHOSEN must pass the KB gate",
+  "evaluator": "oracle_B trained on the OTHER disjoint half (anti-circular)",
+  "oracle_stats": {
+    "n_A": 4256,
+    "n_B": 4206,
+    "oracleA_on_B_r2": 0.275
+  },
+  "n_pairs": 521,
+  "dpo": {
+    "steps": 150,
+    "beta": 0.1,
+    "lr": 1e-05
+  },
+  "before": {
+    "n": 398,
+    "n_unique": 383,
+    "oracle_mean": -5.6688,
+    "oracle_p50": -5.6635,
+    "oracle_p90": -5.1636,
+    "validity": 1.0,
+    "novelty": 0.29,
+    "diversity": 0.962,
+    "kb_admissible": 1.0
+  },
+  "after": {
+    "n": 395,
+    "n_unique": 351,
+    "oracle_mean": -5.4175,
+    "oracle_p50": -5.4164,
+    "oracle_p90": -4.8646,
+    "validity": 1.0,
+    "novelty": 0.242,
+    "diversity": 0.889,
+    "kb_admissible": 1.0
+  },
+  "reward_oracleA_before": -5.6435,
+  "reward_oracleA_after": -5.3959,
+  "delta_independent_evaluatorB": 0.2513,
+  "delta_reward_oracleA": 0.2476,
+  "verdict": "LOOP IMPROVES GENERATOR (independent evaluator rose, diversity held)"
+}

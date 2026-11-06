@@ -180,7 +180,7 @@ with open("save_image_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("save_image_output.txt", "w") as f:
-    f.write("Biomni: Save Image" + NL)
+    f.write("BioMate: Save Image" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

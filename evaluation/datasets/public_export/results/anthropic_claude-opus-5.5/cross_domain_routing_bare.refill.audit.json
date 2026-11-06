@@ -1,0 +1,9 @@
+{
+  "model": "anthropic/claude-opus-5.5",
+  "refilled_empties": 14,
+  "still_empty_after": 14,
+  "method": "openrouter bare max_tokens=2000 retry=5",
+  "note": "only previously-empty items were regenerated; non-empty originals preserved",
+  "cause": "finish_reason=content_filter \u2014 opus-5.5 SAFETY FILTER blocks these bare drug-discovery routing queries (e.g. 'generate novel drug-like molecules with RL'); persists at max_tokens=6000. NOT a truncation artifact.",
+  "disposition": "left as-is; empty=real refusal = legitimate routing failure for a bioinformatics router. Documented, not 'fixed'."
+}

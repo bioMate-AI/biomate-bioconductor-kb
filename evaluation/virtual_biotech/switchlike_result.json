@@ -1,0 +1,80 @@
+{
+ "n_drugs": 1884,
+ "n_targets": 595,
+ "mapping_rate_pct": 41.2,
+ "tau_cutoff": 0.988528336491947,
+ "outcomes": {
+  "O1": {
+   "label": "reached Phase 2+",
+   "base_rate_low": 0.8480161398789509,
+   "rate_high": 0.9093198992443325,
+   "risk_ratio": 1.072290793161239,
+   "rr_ci95": [
+    1.025762774098748,
+    1.1201235294387015
+   ],
+   "shuffled_null_rr_mean": 1.0009498169679862,
+   "shuffled_null_p_ge": 0.008,
+   "adjusted_logit": {
+    "OR": 1.8892985357293304,
+    "ci": [
+     1.1976750629563286,
+     2.980315001548251
+    ],
+    "p": 0.006227096414197692
+   }
+  },
+  "O2": {
+   "label": "reached Phase 3+",
+   "base_rate_low": 0.5534633490248824,
+   "rate_high": 0.6523929471032746,
+   "risk_ratio": 1.1787464305499018,
+   "rr_ci95": [
+    1.0511148369469347,
+    1.3261079680388843
+   ],
+   "shuffled_null_rr_mean": 1.0029284429173824,
+   "shuffled_null_p_ge": 0.016,
+   "adjusted_logit": {
+    "OR": 1.6045209249119436,
+    "ci": [
+     1.1511570012480559,
+     2.2364346441789293
+    ],
+    "p": 0.005257120770080511
+   }
+  },
+  "O3": {
+   "label": "approved",
+   "base_rate_low": 0.43039677202420984,
+   "rate_high": 0.5037783375314862,
+   "risk_ratio": 1.1704974811083122,
+   "rr_ci95": [
+    0.9841113798989493,
+    1.369840869205003
+   ],
+   "shuffled_null_rr_mean": 0.9995377708990256,
+   "shuffled_null_p_ge": 0.059,
+   "adjusted_logit": {
+    "OR": 1.4382699815701516,
+    "ci": [
+     1.0009685739655756,
+     2.0666188666547947
+    ],
+    "p": 0.049391241532992
+   }
+  }
+ },
+ "secondary_enriched_flag_rr": {
+  "O1": 1.2776968272620446,
+  "O2": 1.7893857493857492,
+  "O3": 2.1870270270270273
+ },
+ "caveats": [
+  "Drugs are restricted to those in Open Targets (mostly ChEMBL-known), so drugs that failed early and were never curated are under-represented: survivorship bias.",
+  "Exact-name matching only; unmatched interventions are dropped (mapping rate above).",
+  "Correlational. Targets differ by disease area and modality; only drug type, start year and trial count are adjusted.",
+  "HPA single-cell types are healthy-tissue cell types, a proxy for the paper's atlases (CELLxGENE, Tabula Sapiens).",
+  "The paper reports +40% (Phase1->2) and +48% (to market); compare risk ratios only loosely: definitions and data differ."
+ ]
+}

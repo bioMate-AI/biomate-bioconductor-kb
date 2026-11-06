@@ -1,0 +1,262 @@
+{
+  "1BXL.fasta": {
+    "bytes": 325,
+    "sha256": "4c901adf0329cbecc2740275432357f622057581298cf44543bca484fdf172e6"
+  },
+  "1BXL.pdb": {
+    "bytes": 270702,
+    "sha256": "b80e528ace8b6c893c714782b658637de28ca2cc2a4a9591aec2d2429b289864"
+  },
+  "1HZH.fasta": {
+    "bytes": 864,
+    "sha256": "ea3d01e3f5f53dad878a66846d6888ecc84472d47d7124c116086f00a797534d"
+  },
+  "1IEP.fasta": {
+    "bytes": 378,
+    "sha256": "8739da5a0f7419a810ca4bf4ed487decee708f2bca0ef4b89339156c6febeb9b"
+  },
+  "1IEP.pdb": {
+    "bytes": 434565,
+    "sha256": "577386b4b8bc58a570facba0c8a843386842caef5ed7b60106c685d0f68d4218"
+  },
+  "1LYZ.fasta": {
+    "bytes": 190,
+    "sha256": "bd71bd464c5247807690c913b1183b196c3ac97c76175d6c00a56a98cf6a8c50"
+  },
+  "1LYZ.pdb": {
+    "bytes": 145962,
+    "sha256": "28e95e819d4e0fc48acdf44209e37ba06f5c9d5d93d9950d67a760b32964326e"
+  },
+  "3J7H.pdb": {
+    "bytes": 2747763,
+    "sha256": "1b30ccff34f571904e6a5412d063d94779b27f39fa43ab6681e157fda9cdad64"
+  },
+  "6Z43.fasta": {
+    "bytes": 1615,
+    "sha256": "41077d42f28d11c4ce082cf531617735a3ad7629c411f508ec9efee1f1e71d4a"
+  },
+  "6Z43.pdb": {
+    "bytes": 2443527,
+    "sha256": "df70e9be8bf4bf6bb2122291cb9d3cae29850dbf01a1062c1e50914fec4b297b"
+  },
+  "Strelka_1234N_variants.vcf.gz": {
+    "bytes": 3189,
+    "sha256": "f34e2a4131998274499d9d43f61fd2b37d65d237dacb9fe38a224376a670ac9a"
+  },
+  "Strelka_9876T_variants.vcf.gz": {
+    "bytes": 3035,
+    "sha256": "493e1358ea202654867e67d7795ea7e234d901ab318635cd50a8e71c1692cd6d"
+  },
+  "airway_counts.csv": {
+    "bytes": 2287688,
+    "sha256": "81301319ad4e25d7864dbf30af3b7e8637ff2310c2c5deda102ce0080397d004"
+  },
+  "airway_metadata.csv": {
+    "bytes": 212,
+    "sha256": "d2db2903c5b7d61b46f987302478f3303693c46043854132ea02954af3a2584c"
+  },
+  "bace.csv": {
+    "bytes": 3897767,
+    "sha256": "f3fb9ce90bada3e2bd6148b0df13f8f8145a357bf87df0dd5b391ede974fc737"
+  },
+  "bace_assays.csv": {
+    "bytes": 194475,
+    "sha256": "dbed76beb16ec561c278a3c799ee24c1c3ea73aa8d534d9208e35c10310af9ca"
+  },
+  "candidate_library.csv": {
+    "bytes": 40761,
+    "sha256": "e338dac82f72033f845cc0b5eb210c78c70f6591b5ce3977e99c5380b748de2e"
+  },
+  "clinical_cohort.csv": {
+    "bytes": 7252,
+    "sha256": "4045e3fee76936bb8bd9312243d7b81b36ed224a12800fcef12e8a361883cfb6"
+  },
+  "clinical_dictionary.json": {
+    "bytes": 442,
+    "sha256": "4f3ffa84d078c41aeb297a9060ce93cc96ffb75b76d8a06800ca4fb8a17ab53a"
+  },
+  "crispr_counts.tsv": {
+    "bytes": 39411,
+    "sha256": "9a4b6322272d3f1eb3cc3c0ca0e89c68b7f9f61260992ace131494eef9efddcb"
+  },
+  "crispr_design.csv": {
+    "bytes": 118,
+    "sha256": "81e69b97b82f4f2eec52fe371138549635364bebea4e69aafe3e9a36e415721d"
+  },
+  "cryo_inputs.json": {
+    "bytes": 809,
+    "sha256": "2f7f6ec285e775d03fe9cb9b37b2a94db1b5a7f627e2bd7a2a1ebe52f0a8e4ed"
+  },
+  "demo_notes.md": {
+    "bytes": 1370,
+    "sha256": "d212c76ce695254ce10f6d1626fd1b5e95dc5affd12e0e3401cde4e17ed11f69"
+  },
+  "enzyme_candidates.fasta": {
+    "bytes": 3656,
+    "sha256": "20788993b930d82a29214bdbac059036b9ac143145aa337dd2cc503537375dca"
+  },
+  "enzyme_constraints.json": {
+    "bytes": 292,
+    "sha256": "212b1e4a79ab0c02ba0b737e53e1e5cf9d241934cd5db29c4bd29789d082e0ab"
+  },
+  "example_smiles.csv": {
+    "bytes": 117,
+    "sha256": "99e7cc0e91068bfbf34709b71f1aa4debf94b624c1e2099297c9adaca1d10f4f"
+  },
+  "herg.csv": {
+    "bytes": 28282,
+    "sha256": "84d16d19f89799d8edaa0eefdb5143aacb35fd73a91b4ade18f2c25848781129"
+  },
+  "macrocycle_constraints.json": {
+    "bytes": 364,
+    "sha256": "fca2e5886e657f6ff7129995975b3ebf852632c73bbfead25b47ba714fe044ab"
+  },
+  "macrocycles.csv": {
+    "bytes": 17580,
+    "sha256": "aecf98fa9fb062af0c1e42bb4b7fa7f579ecf1d2aea16a50f3e7107faa0a2ac7"
+  },
+  "map_inputs.json": {
+    "bytes": 271,
+    "sha256": "8dd5ecbde42c8ab6672de02d3470811f592022a40f8623a882712a0290786f3f"
+  },
+  "nanobody_candidates.fasta": {
+    "bytes": 3619,
+    "sha256": "5de2cc61b61b988e27e96633ea4ac2404e3a2896b3fc221d043e5f393202e152"
+  },
+  "nanobody_constraints.json": {
+    "bytes": 535,
+    "sha256": "22f3fb7243ad50543835385c89494e4c396f378ba56aeb08d412c560ea6c00d5"
+  },
+  "normal_R1.fastq.gz": {
+    "bytes": 45010,
+    "sha256": "f30c6fc07ec1e0b39fcb75b10993bafba5c15fa8f921cda8420bfd50480968a1"
+  },
+  "normal_R2.fastq.gz": {
+    "bytes": 47703,
+    "sha256": "72992beff1ed767f98c925473c7859f0372847dcac994035bfdd1de0a651d114"
+  },
+  "nutrimouse_gene.csv": {
+    "bytes": 29123,
+    "sha256": "38291a3b3accbe90c9c7d09f1d8dd5ba741972ce887fd4be6ae00e7b1fe8f6b8"
+  },
+  "nutrimouse_lipid.csv": {
+    "bytes": 4679,
+    "sha256": "3d6742905849ae261be58466cc4921b4bf64b8f8e9eeaeb6a23e4d80982aea92"
+  },
+  "nutrimouse_metadata.csv": {
+    "bytes": 709,
+    "sha256": "23dfc33bccc62faff22925f4409a8d3618bd14622ea50d93a48278ca5b5f268b"
+  },
+  "pbmc3k_raw.h5ad": {
+    "bytes": 5855727,
+    "sha256": "89a96f1beaa2dd83a687666d3f19a4513ac27a2a2d12581fcd77afed7ea653a1"
+  },
+  "peptide_candidates.fasta": {
+    "bytes": 1186,
+    "sha256": "5b755f8fab3c8c7e7c6f4576ad9ad82e42d820901e6ebe818c93fe97b89f6094"
+  },
+  "peptide_constraints.json": {
+    "bytes": 472,
+    "sha256": "1db9c0dfeddcc24e0802a43b5b17a0380d2e5e56f8a7fc233cf238e0413ef68a"
+  },
+  "pilot_README.md": {
+    "bytes": 1777,
+    "sha256": "9fe8e92797780d193707b6e95906966f1ff76611837e6b3c160ccf90b8e47df0"
+  },
+  "pilot_assay_results_arm3.csv": {
+    "bytes": 1205,
+    "sha256": "8c636fae0803b4926e4dc951c28614eec6865a764c3a9eef4e6b8a4b51ccc41e"
+  },
+  "pilot_compounds.csv": {
+    "bytes": 2603,
+    "sha256": "0dcbd8e46f090f25a1bd8591b1e936e398feb070f443c5a02403142d03987e4f"
+  },
+  "pilot_reference_actives.smi": {
+    "bytes": 277,
+    "sha256": "eb2a5fcb1f40025a7f6ff1747f1554ea643e6f7b75b2a267319a494c4f50cfe0"
+  },
+  "pilot_target_info.json": {
+    "bytes": 1104,
+    "sha256": "427157bfe44b985181539bd322206809295fbe6a50c80537f7025126268b959a"
+  },
+  "plate_compounds.csv": {
+    "bytes": 9203,
+    "sha256": "34b0f4304b826c16dca2b9e8bda78e7c47b22ddab3068d630ded437d2563a8c6"
+  },
+  "plate_layout.csv": {
+    "bytes": 1810,
+    "sha256": "f87a0e06e8cb305a988b9e5bd6326f1644fc4128e29d92e5e9e66dd920279557"
+  },
+  "predicted_measured.csv": {
+    "bytes": 145351,
+    "sha256": "d8c75878a9dfed0e20d4b9e8970be31767b40e19be7f818de15110e3afd8d006"
+  },
+  "prediction_method.json": {
+    "bytes": 311,
+    "sha256": "10e2fd832a903fc1003544b3513f0d89b09541fc83c2ef1d5da33ecbbe508c15"
+  },
+  "proteinGroups.txt": {
+    "bytes": 1913304,
+    "sha256": "bf13e11f41f37ae06b2f8447b6576c1a566c1646e6be3881527158c5a79fe167"
+  },
+  "proteomics_design.csv": {
+    "bytes": 298,
+    "sha256": "2c9c6f1cd15d66d7c00da17614255cff04ca1b821db7fa788efcf084ff2019b3"
+  },
+  "reference_grch37.fasta": {
+    "bytes": 818613,
+    "sha256": "e6da32e7a11739023a513ec4f4bf32a96d13a0cb7cbb2b64c2367bca3ca550ff"
+  },
+  "sequencing_samples.csv": {
+    "bytes": 166,
+    "sha256": "afeb5b61b4ed6f54c0a90e7d2d55677aadaea8dd14666a4b4266428aaa14dba0"
+  },
+  "solubility.csv": {
+    "bytes": 96699,
+    "sha256": "8c06a76f0c6487d29ab0f903e6a7a7139f189ab3c1178f159c8be8964602f189"
+  },
+  "sources.json": {
+    "bytes": 2885,
+    "sha256": "3e899b4fbb550e15d063d56f13e3442ca760f7c5ca26c3893a6b1183399ac9d4"
+  },
+  "submission_contrasts.csv": {
+    "bytes": 84,
+    "sha256": "cd62b1f4b652a2c058377e40a185bcfc3f5aba188721d3de419e23197c787011"
+  },
+  "submission_counts_matrix.csv": {
+    "bytes": 23382,
+    "sha256": "714bb4418ea7f582a41a0c7c4d4f96afff1c15c0172979fbe3f910198548ed0f"
+  },
+  "submission_records.json": {
+    "bytes": 437,
+    "sha256": "e6d66cedafd2789c8f708dbb55f7e8578c8ef8dd17b2acf1bb49b1db10b6e6d5"
+  },
+  "submission_sample_metadata.csv": {
+    "bytes": 360,
+    "sha256": "1b2cd91ef7fc812a2e30f0e975d8ab5d53dafebd07f8100189082ab2e3856816"
+  },
+  "tcga_metadata.csv": {
+    "bytes": 1560,
+    "sha256": "95fb95bba2f6447f0667522c132b8cfbe712d1d489f74578d098407671d810b1"
+  },
+  "tcga_mrna.csv": {
+    "bytes": 546156,
+    "sha256": "801d33edcd76324cf3746ab951602b5912c5751934d4b0e5c558d92c5cc5cde3"
+  },
+  "tcga_protein.csv": {
+    "bytes": 397395,
+    "sha256": "35728c264c6b768f26c37d74368c43575eff61a37752734975c93029a95b3c22"
+  },
+  "tumor_R1.fastq.gz": {
+    "bytes": 27427,
+    "sha256": "54a9eff63b668f74f0d574894c1653fbb5a42c9eaaee8a37ca97595d9a29ce8d"
+  },
+  "tumor_R2.fastq.gz": {
+    "bytes": 26833,
+    "sha256": "bf275c32d15b749647c69984f7df7d1495e625541b0974db5609026859f0eaac"
+  },
+  "variant_samples.csv": {
+    "bytes": 102,
+    "sha256": "2929bcd0f48b3f4cded79a49a662a85520738110cf708952f9f9abf4ba25ccd7"
+  }
+}

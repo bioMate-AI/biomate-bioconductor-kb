@@ -135,7 +135,7 @@ with open("patched_torch_load_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("patched_torch_load_output.txt", "w") as f:
-    f.write("Biomni: Patched Torch Load" + NL)
+    f.write("BioMate: Patched Torch Load" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

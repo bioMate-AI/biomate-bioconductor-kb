@@ -1,0 +1,8 @@
+{
+  "model": "BAAI/bge-base-en-v1.5",
+  "n_vectors": 151367,
+  "dim": 768,
+  "index": "IndexFlatIP",
+  "level": "abstract",
+  "max_chars": 2000
+}

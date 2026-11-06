@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 13 — Run cards by domain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Run cards by domain</h1>
+<p class="docmeta"><span>BioMate · Spec 13 · addendum to Specs 06 &amp; 07</span><span>Status: built</span><span>Surface: run panel</span></p>
+
+<p class="lede">The composer promised a lane and a domain, then opened one hard-coded RNA-seq panel for everything. A biologics design request was answered with "Which reference build?" and a GENCODE licence gate. This addendum makes the run card a function of the routed domain and the request's modality, so the panel can never contradict the preview that produced it.</p>
+
+<h2><span class="num">13.1</span>The rule this enforces</h2>
+<div class="rule"><span class="lbl">Rule</span><p>The lane preview, the routed domain and the surface that opens are one decision with one source. If the chip says <em>Protein &amp; biologic design</em>, the panel is a design run; if it says <em>Data analysis</em>, the panel is a sandbox. A preview that cannot be honoured is a lie told confidently.</p></div>
+
+<h2><span class="num">13.2</span>Where a request lands</h2>
+<table class="st prose">
+<thead><tr><th>Lane</th><th>Surface</th></tr></thead>
+<tbody>
+<tr><td>Instant · search</td><td>The search answer surface (Spec 09) — no run object.</td></tr>
+<tr><td>Instant · compute</td><td>The sandbox card: code written from your sentence, shown before it runs.</td></tr>
+<tr><td>Cloud · models</td><td>The model use-case page (Spec 10) when a worked case matches; otherwise the training run card.</td></tr>
+<tr><td>Cloud · design</td><td>The design run card for the routed domain, with the request's modality applied.</td></tr>
+<tr><td>Cloud · workflow</td><td>The validated pipeline card for that domain.</td></tr>
+</tbody>
+</table>
+<p>Clicking an example and typing the same sentence reach the same surface. That parity is the acceptance test for this spec.</p>
+
+<h2><span class="num">13.3</span>The cards</h2>
+<table class="st prose">
+<thead><tr><th>Domain</th><th>Card</th><th>Kind · version</th></tr></thead>
+<tbody>
+<tr><td>Molecular design, Property optimisation, Activity prediction, Candidate ranking, Peptide design, Protein &amp; biologic design</td><td>De novo candidate design, Multi-objective property optimisation, Activity prediction on a candidate set, Candidate triage, Peptide design &amp; optimisation, Protein / biologic design</td><td>Design run · design pipeline v3.1</td></tr>
+<tr><td>Data analysis</td><td>Ad-hoc analysis in a sandbox</td><td>Ad-hoc · sandbox</td></tr>
+<tr><td>Drug discovery</td><td>ADMET liability screen</td><td>Workflow · v2.4</td></tr>
+<tr><td>Transcriptomics</td><td>Bulk RNA-seq Differential Expression <span class="tag ship">shipped</span></td><td>Workflow · v1.4.2</td></tr>
+<tr><td>Genomics</td><td>Variant calling &amp; annotation</td><td>Workflow · v5.0</td></tr>
+<tr><td>Proteomics</td><td>Differential protein abundance</td><td>Workflow · v3.3</td></tr>
+<tr><td>Clinical</td><td>Cohort stratification &amp; endpoint test</td><td>Workflow · v2.1</td></tr>
+<tr><td>Structural biology</td><td>Map &amp; model assessment</td><td>Workflow · v4.2</td></tr>
+<tr><td>Assay quality</td><td>Run-to-run quality assessment</td><td>Workflow · v1.9</td></tr>
+<tr><td>Models &amp; training (and the four model domains)</td><td>Model training run</td><td>Training run · harness v2.0</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">13.4</span>What a card overrides</h2>
+<ul class="deck">
+<li><b>kicker + name</b><span>Domain and run kind — "Design · Design run", "Sandbox · Ad-hoc · sandbox" — never "Workflow" for a run that is not one.</span></li>
+<li><b>version</b><span>Its own pipeline version. Inheriting v1.4.2 made every card read as the transcriptomics pipeline.</span></li>
+<li><b>slots</b><span>The inputs that domain actually needs, each with what resolves it. Design: target or epitope, scaffold/motif/framework to stay on, property envelope, exclusion rules.</span></li>
+<li><b>params</b><span>Four resolved parameters with provenance and a "why". Design cards carry Modality, count, hard constraints, scoring models.</span></li>
+<li><b>phases</b><span>Four phases with domain-true steps. Design: input &amp; constraints → generation → scoring &amp; constraints → shortlist &amp; report. Training: input &amp; split → fit → held-out evaluation → gate &amp; offer.</span></li>
+<li><b>clarifications</b><span>Its own questions. Design asks the hard constraint, the count and which scorers may gate; training asks how the split is made and what the model must clear; sandbox asks which file version and whether the result is kept.</span></li>
+</ul>
+<p>Step detail (the full step view, Spec 08) remains fixtured only for the shipped transcriptomics run: a phase from another domain does not borrow its evidence.</p>
+
+<h2><span class="num">13.5</span>Credentials</h2>
+<p>The licence gate appears only where a slot needs one — <code>slots.some(s =&gt; s.license)</code> — in all three places it is expressed: the input slot, the phases banner and the panel footer. Confirm-and-run is gated on <code>needsLicence &amp;&amp; !licensed</code>, so a card with no licensed input starts enabled instead of being permanently unstartable.</p>
+<div class="rule"><span class="lbl">Rule</span><p>A blocked primary action must always have its unblocking affordance on the same screen. Hiding the affordance without ungating the button turns a run panel into a dead end with no explanation.</p></div>
+
+<h2><span class="num">13.6</span>The sandbox card</h2>
+<table class="el">
+<thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Environment</td><td>Python 3.12 · pandas, numpy, matplotlib — pinned, so the same code gives the same numbers next month.</td></tr>
+<tr><td>Network</td><td>Isolated. The sandbox cannot reach the internet or another project's files.</td></tr>
+<tr><td>Code</td><td>Shown before it runs. An ad-hoc number is only as trustworthy as the code behind it, so the code is part of the answer.</td></tr>
+<tr><td>Provenance</td><td>A saved output becomes a file object with a version — not an image in a transcript.</td></tr>
+</tbody>
+</table>
+<p>Phases: read the data → write the code → run in the sandbox → keep or discard. The last phase has no duration, because it is a decision.</p>
+
+<h2><span class="num">13.7</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Whether the sandbox should have a run panel at all, or answer inline in the conversation with the code folded.</li>
+<li><span class="tag open">open</span> Step-level detail for design and training phases — currently only the transcriptomics run has it.</li>
+<li><span class="tag open">open</span> Whether a card should be able to declare a phase optional per modality (expression / manufacturability for biologics).</li>
+</ul>
+
+<p class="docfoot"><span>Spec 13 · Run cards by domain</span><span>Amends: 06, 07</span><span>Next: 14 — Panes, and previewing outputs</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

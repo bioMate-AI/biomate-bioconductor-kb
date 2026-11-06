@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { uploadFile as uploadFileShared } from '@/lib/upload';
+import { t } from "@/lib/i18n";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronRight, ChevronLeft, Search, Database, Clock, HardDrive, Link2, Upload, Info, FolderArchive, Lightbulb } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, Search, Database, Clock, HardDrive, Link2, Upload, Info, FolderArchive, Folder } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SessionDataset {
@@ -46,6 +47,7 @@ interface GalaxyDatasetBrowserProps {
   sessionDatasets?: SessionDataset[];
   onSelect: (value: string, name: string) => void;
   paramLabel?: string;
+  projectId?: string | null;
 }
 
 function formatBytes(bytes: number): string {
@@ -129,11 +131,50 @@ function SessionTab({
     setIsDragging(true);
   };
   const handleDragLeave = () => setIsDragging(false);
-  const handleDrop = (e: React.DragEvent) => {
+  // Accept BOTH files and folders on drop. A dropped folder has no entry in
+  // `dataTransfer.files`, so we walk `dataTransfer.items` via the (non-standard
+  // but universally-shipped) webkitGetAsEntry API and recurse directories.
+  // `webkitGetAsEntry()` must be called synchronously while the drop event is
+  // live, so we collect the top-level entries first, then await the walk.
+  const collectEntryFiles = async (entries: any[]): Promise<File[]> => {
+    const out: File[] = [];
+    const walk = (entry: any): Promise<void> =>
+      new Promise((resolve) => {
+        if (!entry) return resolve();
+        if (entry.isFile) {
+          entry.file((f: File) => { out.push(f); resolve(); }, () => resolve());
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          const readBatch = () =>
+            reader.readEntries(async (batch: any[]) => {
+              if (!batch.length) return resolve();
+              await Promise.all(batch.map(walk));
+              readBatch(); // directory reads are paginated; keep going until empty
+            }, () => resolve());
+          readBatch();
+        } else resolve();
+      });
+    await Promise.all(entries.map(walk));
+    return out;
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    handleFiles(files);
+    const items = e.dataTransfer.items;
+    const canTraverse = items && items.length > 0 &&
+      typeof (items[0] as any).webkitGetAsEntry === 'function';
+    if (canTraverse) {
+      const entries: any[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = (items[i] as any).webkitGetAsEntry?.();
+        if (entry) entries.push(entry);
+      }
+      const files = await collectEntryFiles(entries);
+      handleFiles(files.length ? files : Array.from(e.dataTransfer.files));
+    } else {
+      handleFiles(Array.from(e.dataTransfer.files));
+    }
   };
 
   const filtered = datasets.filter(ds => {
@@ -168,30 +209,20 @@ function SessionTab({
             : <Upload className="h-4 w-4 text-muted-foreground" />
           }
           <span className="text-xs text-muted-foreground">
-            {uploading ? 'Uploading…' : isDragging ? 'Drop files here' : 'Drop files here or click to browse'}
+            {uploading ? 'Uploading…' : isDragging ? 'Drop files or folders here' : 'Drop files or folders here, or click to browse'}
           </span>
           {!uploading && (
-            <span className="text-[11px] text-muted-foreground/60">Multiple files supported</span>
+            <span className="text-[11px] text-muted-foreground/60">Files and folders supported</span>
           )}
         </div>
       </div>
       {uploadError && <p className="text-xs text-destructive px-1">{uploadError}</p>}
 
-      {/* Tips */}
-      <div className="rounded-md border border-muted bg-muted/30 text-xs text-muted-foreground divide-y divide-muted mb-3">
-        <div className="flex gap-2 px-2.5 py-2">
-          <Info className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
-          <span><span className="font-medium text-foreground">50 GB limit</span> per local file (chunked S3 multipart with resume) · For data already hosted on S3/HTTP/FTP, switch to the <span className="font-medium text-foreground">From URL</span> tab — no transfer at all.</span>
-        </div>
-        <div className="flex gap-2 px-2.5 py-2">
-          <FolderArchive className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
-          <span><span className="font-medium text-foreground">Folders:</span> zip first (<code className="font-mono bg-background/60 px-1 rounded">zip -r data.zip folder/</code>), then upload the <code className="font-mono bg-background/60 px-1 rounded">.zip</code>. Or paste an S3 prefix in From URL.</span>
-        </div>
-        <div className="flex gap-2 px-2.5 py-2">
-          <Lightbulb className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
-          <span><span className="font-medium text-foreground">Accepted:</span> FASTQ, BAM, VCF, FASTA, CSV, H5AD, MRC, ZIP/TAR.GZ, IPYNB, and 40+ more.</span>
-        </div>
-      </div>
+      {/* One-line hint — full limits/formats live in docs, not this dialog */}
+      <p className="flex items-start gap-2 text-[11px] text-muted-foreground px-1 mb-3">
+        <Info className="h-3 w-3 mt-0.5 shrink-0" />
+        <span>Up to 50 GB per file; drop a folder to upload its files. Already on S3/HTTP/FTP? Use <span className="font-medium text-foreground">From URL</span>.</span>
+      </p>
 
       {datasets.length === 0 && !uploading && (
         <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
@@ -249,6 +280,7 @@ function HistoryTab({
   const [loading, setLoading] = useState(false);
   const [datasetsLoading, setDatasetsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [datasetsError, setDatasetsError] = useState<string | null>(null);
   const [loadTick, setLoadTick] = useState(0);
 
   // Load histories on mount (or on retry)
@@ -256,25 +288,46 @@ function HistoryTab({
     setLoading(true);
     setError(null);
     fetch('/api/galaxy/histories', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(async r => {
+        // A non-2xx means Galaxy or the DB failed — surface the real cause instead
+        // of rendering an empty list that looks like "no histories".
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body?.message || body?.error || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then(data => {
         setHistories(data.histories || []);
       })
-      .catch(() => setError('Could not load histories'))
+      .catch((e: any) => setError(e?.message || 'Could not load histories'))
       .finally(() => setLoading(false));
   }, [loadTick]);
 
-  // Load datasets when a history is selected
-  const openHistory = useCallback((history: GalaxyHistory) => {
-    setSelectedHistory(history);
+  // Load datasets when a history is selected (or on retry)
+  const loadDatasets = useCallback((history: GalaxyHistory) => {
     setDatasetsLoading(true);
+    setDatasetsError(null);
     setDatasets([]);
     fetch(`/api/galaxy/histories/${history.id}/datasets`)
-      .then(r => r.json())
+      .then(async r => {
+        // A non-2xx means Galaxy/DB/S3 failed — surface it instead of rendering
+        // an empty list that looks like "no datasets in this history".
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body?.message || body?.error || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then(data => setDatasets(data.datasets || []))
-      .catch(() => setDatasets([]))
+      .catch((e: any) => setDatasetsError(e?.message || 'Could not load datasets'))
       .finally(() => setDatasetsLoading(false));
   }, []);
+
+  const openHistory = useCallback((history: GalaxyHistory) => {
+    setSelectedHistory(history);
+    loadDatasets(history);
+  }, [loadDatasets]);
 
   if (loading) {
     return (
@@ -314,14 +367,23 @@ function HistoryTab({
         <div className="flex items-center gap-2 pb-1 border-b">
           <Database className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-sm font-medium truncate">{selectedHistory.name}</span>
-          <Badge variant="outline" className="text-xs ml-auto shrink-0">
-            {selectedHistory.count} items
-          </Badge>
         </div>
 
         {datasetsLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : datasetsError ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            <p>{datasetsError}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={() => selectedHistory && loadDatasets(selectedHistory)}
+            >
+              Retry
+            </Button>
           </div>
         ) : filteredDs.length === 0 ? (
           <p className="text-sm text-center text-muted-foreground py-6">
@@ -400,11 +462,6 @@ function HistoryTab({
               )}
             </div>
             <div className="flex items-center gap-3 mt-0.5">
-              {h.source !== 'run' && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Database className="h-3 w-3" />{h.count} datasets
-                </span>
-              )}
               {h.size > 0 && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <HardDrive className="h-3 w-3" />{formatBytes(h.size)}
@@ -479,10 +536,11 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
             </code>
           </div>
           <div>
-            <p className="font-medium text-foreground/80 mb-0.5">FTP with credentials:</p>
+            <p className="font-medium text-foreground/80 mb-0.5">Public FTP:</p>
             <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              ftp://username:password@ftp.example.com/path/to/file.fastq.gz
+              ftp://ftp.ncbi.nlm.nih.gov/path/to/file.fastq.gz
             </code>
+            <p className="mt-1">Do not place credentials in a URL. Authenticated storage requires a managed connection.</p>
           </div>
           <div>
             <p className="font-medium text-foreground/80 mb-0.5">AWS S3 single file (uses your Account Settings credentials):</p>
@@ -493,11 +551,9 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
           <div>
             <p className="font-medium text-foreground/80 mb-0.5 flex items-center gap-1">
               <FolderArchive className="h-3 w-3 text-amber-500" />
-              S3 folder — one reference covers all files under the prefix:
+              S3 folder:
             </p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              s3://my-bucket/project/samples/
-            </code>
+            <p>Browse a configured S3 workspace folder and select individual files. This importer accepts one object URI, not a folder prefix.</p>
           </div>
         </div>
       </div>
@@ -523,14 +579,40 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
   );
 }
 
+function ProjectFilesTab({ projectId, search, onSelect }: { projectId: string; search: string; onSelect: (value: string, name: string) => void }) {
+  const [files, setFiles] = useState<Array<{ id: string; name: string; size?: number }>>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/projects/${projectId}/files`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setFiles(data.files || []))
+      .catch(() => setFiles([]))
+      .finally(() => setLoading(false));
+  }, [projectId]);
+  const filtered = files.filter(file => file.name.toLowerCase().includes(search.toLowerCase()));
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>;
+  if (!filtered.length) return <p className="text-sm text-center text-muted-foreground py-6">{search ? `No project files match "${search}"` : 'No files in this project'}</p>;
+  return <div className="space-y-1">{filtered.map(file => (
+    <div key={file.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md hover:bg-accent/60">
+      <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{file.name}</p><span className="text-xs text-muted-foreground">{formatBytes(Number(file.size || 0))}</span></div>
+      {/* Always send the project_files.id — the server authoritatively resolves
+          it to the exact, authorized s3_key at chat time. Never send a URI the
+          server would have to trust. */}
+      <Button size="sm" variant="secondary" className="h-7 text-xs shrink-0" onClick={() => onSelect(file.id, file.name)}>Use</Button>
+    </div>
+  ))}</div>;
+}
+
 export function GalaxyDatasetBrowser({
   open,
   onClose,
   sessionDatasets = [],
   onSelect,
   paramLabel,
+  projectId,
 }: GalaxyDatasetBrowserProps) {
-  const [activeTab, setActiveTab] = useState<'session' | 'history' | 'url'>('session');
+  const [activeTab, setActiveTab] = useState<'session' | 'project' | 'history' | 'url'>('session');
   const [search, setSearch] = useState('');
   // Locally uploaded files in this dialog instance (appended to sessionDatasets)
   const [localUploads, setLocalUploads] = useState<SessionDataset[]>([]);
@@ -552,7 +634,8 @@ export function GalaxyDatasetBrowser({
   };
 
   const tabs = [
-    { id: 'session' as const, label: `This session${allSessionDatasets.length > 0 ? ` (${allSessionDatasets.length})` : ''}` },
+    { id: 'session' as const, label: 'This session' },
+    ...(projectId ? [{ id: 'project' as const, label: 'Project files', icon: <Folder className="h-3 w-3 mr-1" /> }] : []),
     { id: 'history' as const, label: 'BioMate history' },
     { id: 'url' as const, label: 'From URL', icon: <Link2 className="h-3 w-3 mr-1" /> },
   ];
@@ -590,7 +673,7 @@ export function GalaxyDatasetBrowser({
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search datasets..."
+                placeholder={t('file_tree.search_datasets')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="h-8 pl-8 text-sm"
@@ -612,18 +695,12 @@ export function GalaxyDatasetBrowser({
           {activeTab === 'history' && (
             <HistoryTab search={search} onSelect={handleSelect} />
           )}
+          {activeTab === 'project' && projectId && (
+            <ProjectFilesTab projectId={projectId} search={search} onSelect={handleSelect} />
+          )}
           {activeTab === 'url' && (
             <UrlImportForm onImported={(id, name) => { handleSelect(id, name); }} />
           )}
-        </div>
-
-        {/* Footer: 32-ref cap reminder */}
-        <div className="px-4 py-2.5 border-t bg-muted/20 flex items-start gap-2">
-          <Lightbulb className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Up to <strong>32</strong> file references are visible to the AI per conversation.
-            For 33+ files, zip them or use an S3 prefix URL — one reference covers the whole collection.
-          </p>
         </div>
       </DialogContent>
     </Dialog>

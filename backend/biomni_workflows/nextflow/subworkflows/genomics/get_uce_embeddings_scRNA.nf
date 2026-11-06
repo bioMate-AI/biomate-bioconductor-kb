@@ -54,7 +54,7 @@ with open("get_uce_embeddings_scRNA_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("get_uce_embeddings_scRNA_output.txt", "w") as f:
-    f.write("Biomni: Get Uce Embeddings Scrna Results" + NL)
+    f.write("BioMate: Get Uce Embeddings Scrna Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

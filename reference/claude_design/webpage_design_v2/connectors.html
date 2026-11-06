@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>BioMate Connectors — MCP Server for Claude Code, Cursor, Codex CLI &amp; More</title>
-  <meta name="description" content="Official BioMate MCP connector documentation. Connect Claude Code, Claude Desktop, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu to BioMate's 2,455 biomedical research pipelines. Includes install guides, API reference, and auth setup."/>
+  <title>BioMate Connectors — User Guide</title>
+  <meta name="description" content="Learn how to connect BioMate to your AI assistant, find workflows, run analyses, check progress, and export findings."/>
   <meta name="keywords" content="BioMate MCP server, Model Context Protocol biomedical research, Claude Code RNA-seq, Cursor biomedical research MCP, Codex CLI biomedical, ChatGPT biomedical workflows, MCP tools biomedical, AWS Batch Nextflow MCP, BioMate API"/>
   <meta name="author" content="BioMate AI"/>
   <link rel="canonical" href="https://biomate.ai/connectors.html"/>
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website"/>
-  <meta property="og:title"       content="BioMate Connectors — MCP Server for Claude Code, Cursor, Codex CLI &amp; More"/>
-  <meta property="og:description" content="Connect any AI client to BioMate's biomedical research execution engine. One MCP server, 19 tools, 2,455 pipelines. Supports Claude Code, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu."/>
+  <meta property="og:title"       content="BioMate Connectors — User Guide"/>
+  <meta property="og:description" content="Learn how to connect BioMate to your AI assistant, find workflows, run analyses, check progress, and export findings."/>
   <meta property="og:url"         content="https://biomate.ai/connectors.html"/>
   <meta property="og:image"       content="https://biomate.ai/images/biomate-logo-512.png"/>
   <meta property="og:site_name"   content="BioMate AI"/>
@@ -20,95 +20,75 @@
   <!-- Twitter card -->
   <meta name="twitter:card"        content="summary_large_image"/>
   <meta name="twitter:site"        content="@biomateai"/>
-  <meta name="twitter:title"       content="BioMate MCP Connector Docs"/>
-  <meta name="twitter:description" content="Connect Claude Code, Cursor, Codex CLI, ChatGPT, Slack, and Feishu to 2,455 biomedical research pipelines via BioMate's MCP server."/>
+  <meta name="twitter:title"       content="BioMate Connector User Guide"/>
+  <meta name="twitter:description" content="Learn how to connect BioMate to your AI assistant, find workflows, run analyses, check progress, and export findings."/>
   <meta name="twitter:image"       content="https://biomate.ai/images/biomate-logo-512.png"/>
 
   <!-- Structured data: SoftwareApplication + HowTo + FAQPage (GEO) -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "SoftwareApplication",
-        "name": "BioMate MCP Server",
-        "description": "An MCP (Model Context Protocol) server that connects AI clients — including Claude Code, Claude Science, Cursor, and Codex CLI — to BioMate's biomedical research execution engine. Provides 19 tools for searching, executing, and monitoring 2,455 biomedical pipelines running on AWS Batch via Nextflow.",
-        "url": "https://biomate.ai/connectors.html",
-        "applicationCategory": "Scientific Software",
-        "applicationSubCategory": "Biomedical Research Tools",
-        "operatingSystem": "macOS, Windows, Linux",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "publisher": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
-        "downloadUrl": "https://github.com/bioMate-AI/biomate-connector",
-        "softwareVersion": "1.0",
-        "featureList": [
-          "stdio JSON-RPC 2.0 transport for Claude Code, Claude Desktop, Cursor, Codex CLI",
-          "Streamable HTTP + OAuth 2.1 + PKCE for Claude Science",
-          "REST Actions and webhooks for ChatGPT, Slack, Feishu",
-          "19 MCP tools: biomate_session, search_workflow, get_workflow_spec, run_workflow, watch_run, get_run, cancel_run, list_runs, resolve_accession, browse_data, fetch_public_data, upload_file, query_database, search_literature, preview_file, export_report, analyze_results, explain_error, recall_memory",
-          "2,455 indexed biomedical research workflows on AWS Batch",
-          "Real-time SSE streaming of run progress"
-        ]
-      },
-      {
-        "@type": "HowTo",
-        "name": "How to connect Claude Code to BioMate via MCP",
-        "description": "Install the BioMate MCP server for Claude Code to run biomedical research workflows from the command line.",
-        "estimatedCost": { "@type": "MonetaryAmount", "currency": "USD", "value": "0" },
-        "totalTime": "PT2M",
-        "step": [
-          { "@type": "HowToStep", "name": "Get a BioMate API key", "text": "Log in at biomate.ai → Settings → API Keys → Create key. The key looks like bm_live_…" },
-          { "@type": "HowToStep", "name": "Install the connector", "text": "Run: npx @biomate/connect claude-code" },
-          { "@type": "HowToStep", "name": "Set environment variable", "text": "Set BIOMATE_API_KEY=your_key_here in your shell profile or in the .mcp.json env block." },
-          { "@type": "HowToStep", "name": "Verify the connection", "text": "Open Claude Code and ask: 'Search BioMate for RNA-seq differential expression workflows.' Claude Code will call search_workflow and return matching pipelines." }
-        ]
-      },
-      {
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "What is BioMate's MCP connector?",
-            "acceptedAnswer": { "@type": "Answer", "text": "BioMate's MCP connector is a Model Context Protocol server that exposes 19 tools for biomedical research. It lets AI clients — Claude Code, Claude Desktop, Claude Science, Cursor, Codex CLI, ChatGPT, Slack, and Feishu — search, configure, and execute biomedical research pipelines on BioMate's AWS Batch infrastructure. The connector uses a single canonical tool manifest (tools_manifest.py) shared across all surfaces." }
-          },
-          {
-            "@type": "Question",
-            "name": "What MCP tools does BioMate expose?",
-            "acceptedAnswer": { "@type": "Answer", "text": "BioMate exposes 19 MCP tools: biomate_session (end-to-end streaming orchestration), search_workflow, get_workflow_spec, run_workflow, watch_run, get_run, cancel_run, list_runs, resolve_accession, browse_data, fetch_public_data, upload_file, query_database, search_literature, preview_file, export_report, analyze_results, explain_error, and recall_memory." }
-          },
-          {
-            "@type": "Question",
-            "name": "What transports does the BioMate MCP server support?",
-            "acceptedAnswer": { "@type": "Answer", "text": "BioMate supports three MCP transports: (1) stdio JSON-RPC 2.0 for Claude Code, Claude Desktop, Cursor IDE, and Codex CLI — the server binary is spawned as a child process with BIOMATE_API_KEY set as an environment variable; (2) Streamable HTTP with OAuth 2.1 + PKCE for Claude Science, requiring the remote_mcp/ package; (3) REST Actions and webhooks for ChatGPT Custom GPTs, Slack bots, and Feishu/Lark, using chatgpt_adapter.py and the openapi.json schema." }
-          },
-          {
-            "@type": "Question",
-            "name": "How do I install BioMate for Cursor IDE?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Run: npx @biomate/connect cursor. This writes the BioMate MCP server entry into Cursor's MCP configuration. Cursor has full MCP stdio support since late 2025. The server uses the same biomate_mcp_server.py binary as Claude Code — no additional infrastructure is needed." }
-          },
-          {
-            "@type": "Question",
-            "name": "How do I install BioMate for Codex CLI?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Run: npx @biomate/connect codex. This writes the BioMate MCP server entry into ~/.codex/config.yaml. Codex CLI (OpenAI, 2026, backed by GPT-5.5) supports MCP over stdio. Once configured, Codex can search workflows, submit AWS Batch jobs, and stream run updates from the terminal." }
-          },
-          {
-            "@type": "Question",
-            "name": "What biomedical research pipelines can I run via BioMate's MCP connector?",
-            "acceptedAnswer": { "@type": "Answer", "text": "BioMate has 2,455 indexed pipelines accessible via MCP across 34 domains: RNA-seq differential expression (DESeq2, nf-core/rnaseq), whole-genome sequencing variant calling (nf-core/sarek, GATK4, DeepVariant), ADMET drug property prediction, single-cell RNA-seq (Seurat, Scanpy), protein structure prediction (AlphaFold), molecular docking (AutoDock Vina), cryo-EM single-particle analysis (CryoSPARC), PBPK pharmacokinetic modeling, epigenomics (minfi, DMRcate), and metagenomics (QIIME 2)." }
-          }
-        ]
-      },
-      {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Home",       "item": "https://biomate.ai/" },
-          { "@type": "ListItem", "position": 2, "name": "Developers", "item": "https://biomate.ai/connectors.html" },
-          { "@type": "ListItem", "position": 3, "name": "Connectors", "item": "https://biomate.ai/connectors.html" }
-        ]
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "BioMate does not appear in my app. What should I do?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Close and reopen your app after setup. If BioMate is still missing, rerun the command for that app and make sure browser sign-in completes."
       }
-    ]
-  }
-  </script>
+    },
+    {
+      "@type": "Question",
+      "name": "The terminal says \u201cnpx\u201d is not found.",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Install Node.js 18 or later with npm, open a new terminal window, and run the setup command again."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Sign-in does not complete.",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Rerun the setup command and complete sign-in in the browser window it opens. If your account requires multi-factor authentication, contact BioMate for help; this connector sign-in flow does not currently support it."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why has the progress message not changed?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Progress is retrieved when you ask for it. Ask your assistant to check the run again using its run ID."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "My run has finished. Why is the report pending?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Preparing findings can take additional time after the analysis finishes. Check again later and ask your assistant to export the findings once they are ready."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I export a PDF or Word document?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The connector exports prepared findings as Markdown. Open the exported text in a compatible editor if you need to format it for another document type."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I revise a report?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Export the Markdown findings and edit the text in your preferred editor. Asking your assistant to rewrite its answer does not save a revision to the report in BioMate."
+      }
+    }
+  ]
+}
+</script>
 
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
@@ -120,7 +100,7 @@
   </script>
 
   <link rel="stylesheet" href="fonts/fonts.css"/>
-  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="styles.css?v=20261010-ui2"/>
   <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -193,6 +173,9 @@
   .token-key  { color: var(--code-key); }
   .token-cmt  { color: var(--code-cmt); }
 
+  ol.guide-steps { padding-left: 1.4rem; margin-bottom: 1rem; }
+  ol.guide-steps li { margin-bottom: .65rem; }
+  .doc-content { min-width: 0; }
   ul { padding-left: 1.4rem; margin-bottom: 1rem; }
   ul li { margin-bottom: .35rem; color: var(--ink); }
 
@@ -236,7 +219,9 @@
   </style>
 </head>
 <body>
-<div id="bm-nav"></div>
+<!-- bm-static-nav:start -->
+<div id="bm-nav"><header class="bm-nav"> <div class="bm-nav-inner"> <a href="index.html" class="bm-brand" aria-label="BioMate AI"> <img src="assets/logo.png?v=3" alt="BioMate AI" /> </a> <nav aria-label="Primary navigation" class="bm-primary-nav"><ul class="bm-nav-links" id="bmNavLinks"> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-company">Company<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-company" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="about.html">About BioMate</a></h2><p>Our mission and approach to AI-powered science.</p><ul><li><a href="compare.html">BioMate vs. the alternatives &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="blog.html?cat=news">Newsroom</a></h2><p>Company news and the latest from our team.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="contact.html">Contact</a></h2><p>Discuss your research and working with BioMate.</p><ul></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-services">Services<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-services" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="features.html">Biomedical Research Platform</a></h2><p>From scientific questions to reproducible analyses.</p><ul><li><a href="services.html">Explore applications &rarr;</a></li><li><a href="connectors.html">Connectors & developer docs &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="drug-discovery.html">Drug Discovery</a></h2><p>Target intelligence, molecular design and candidate evaluation.</p><ul><li><a href="drug-discovery.html">Explore the workbench &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="tutorials.html">Getting Started</a></h2><p>Practical guidance for your research team.</p><ul><li><a href="tutorials.html">Tutorials &rarr;</a></li><li><a href="pricing.html">Pricing &rarr;</a></li></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-engines">Research Engines<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-engines" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="research-engines.html">Our Research Programs</a></h2><p>Advancing biological understanding and molecular design.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="research-engines.html#virtual-cell">Virtual Cell LLM</a></h2><p>Research into cellular states, responses and disease mechanisms.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="research-engines.html#cyclic-peptides">Cyclic-Peptide Generation</a></h2><p>Research into structure-aware generation and optimization.</p><ul></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-research">Evidence<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-research" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="benchmarks.html">Benchmarks & Evaluations</a></h2><p>Inspect performance, methods and evaluation criteria.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="surveys.html">Research Perspectives</a></h2><p>Explore approaches, comparisons and scientific limitations.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="publications.html">Scientific Publishing</a></h2><p>Follow the research and its applications.</p><ul><li><a href="publications.html">Publications &rarr;</a></li><li><a href="blog.html?cat=science">Scientific articles &rarr;</a></li></ul></section> </div> </div> </div> </li> <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li> <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li> </ul></nav> <button class="bm-mobile-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="bmNavLinks" id="bmMobileToggle"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg> </button> </div> </header><noscript><style>.bm-nav{display:none}</style><nav class="bm-static-nav" aria-label="Primary navigation without JavaScript"><a href="index.html">BioMate AI</a><a href="about.html">Company</a><a href="features.html">Research Platform</a><a href="drug-discovery.html">Drug Discovery</a><a href="research-engines.html">Research Engines</a><a href="benchmarks.html">Evidence</a><a href="pricing.html">Pricing</a><a href="contact.html">Contact</a></nav></noscript></div>
+<!-- bm-static-nav:end -->
 
 <div class="breadcrumb">
   <a href="index.html">Home</a><span>›</span><a href="connectors.html">Developers</a><span>›</span>Connectors
@@ -248,425 +233,112 @@
   <aside class="sidenav">
     <div class="sidenav-group">
       <div class="sidenav-group-label">Overview</div>
-      <a href="#overview" class="active">What are connectors?</a>
-      <a href="#surfaces">Supported surfaces</a>
-      <a href="#tools">Available tools</a>
+      <a href="#overview" class="active">What you can do</a>
+      <a href="#surfaces">Choose your app</a>
+      <a href="#tools">Everyday requests</a>
     </div>
     <div class="sidenav-group">
       <div class="sidenav-group-label">Use cases</div>
-      <a href="#use-cases">End-to-end flows</a>
+      <a href="#use-cases">Your first analysis</a>
     </div>
     <div class="sidenav-group">
       <div class="sidenav-group-label">Install</div>
       <a href="#claude-code">Claude Code</a>
       <a href="#claude-desktop">Claude Desktop</a>
+      <a href="#cursor">Cursor</a>
+      <a href="#codex">Codex CLI</a>
       <a href="#chatgpt">ChatGPT</a>
       <a href="#slack">Slack</a>
       <a href="#feishu">Feishu / Lark</a>
     </div>
     <div class="sidenav-group">
       <div class="sidenav-group-label">Reference</div>
-      <a href="#auth">Authentication</a>
-      <a href="#manual-config">Manual config</a>
+      <a href="#auth">Your connection</a>
+      <a href="#manual-config">Organization setup</a>
       <a href="#faq">FAQ</a>
     </div>
     <div class="sidenav-group">
       <div class="sidenav-group-label">Resources</div>
-      <a href="https://github.com/bioMate-AI/biomate-connector" target="_blank" rel="noopener">GitHub repo ↗</a>
-      <a href="blog-connectors.html">Architecture blog post ↗</a>
-      <a href="legal/privacy.html">Privacy policy ↗</a>
+      <a href="blog-connectors.html">Using BioMate with your assistant ↗</a>
+      <a href="privacy.html">Privacy policy ↗</a>
     </div>
   </aside>
 
   <!-- Main content -->
   <main class="doc-content">
-
     <div class="page-hero">
-      <p class="page-eyebrow">Connectors · Developer Docs</p>
-      <h1>Connect any AI client to BioMate</h1>
-      <p>BioMate exposes a single MCP server with 19 tools. Install once, run from Claude Code, Claude Desktop, ChatGPT, Slack, or Feishu — every surface shares the same tool interface, the same workflow catalog, and the same runs history.</p>
+      <p class="page-eyebrow">User guide · Connectors</p>
+      <h1>Use BioMate with your AI assistant</h1>
+      <p>Connect your account, find an analysis workflow, and work with your results from the assistant you already use.</p>
     </div>
-
-    <!-- Overview -->
     <section class="doc-section" id="overview">
-      <h2>What are connectors?</h2>
-      <p>BioMate connectors let AI assistants call BioMate's scientific-workflow platform on your behalf. When you ask Claude Code to "run RNA-seq on these FASTQs," it calls the <code>run_workflow</code> tool rather than generating code — the run executes on BioMate cloud, and live phase and step updates stream back into the chat.</p>
-      <p>The connector stack has two transport families:</p>
-      <ul>
-        <li><strong>MCP stdio</strong> — Claude Code, Claude Desktop, Cursor, and Codex CLI use a local proxy process. The AI client speaks JSON-RPC over stdio to a BioMate-issued binary that relays calls to <code>dev-public.biomate.ai</code>.</li>
-        <li><strong>REST/webhook</strong> — ChatGPT, Slack, and Feishu call BioMate's REST API at <code>dev-public.biomate.ai</code> directly over HTTPS. No local installation needed.</li>
-      </ul>
-      <p>All surfaces authenticate with the same OAuth 2.1 + PKCE flow against <code>dev-public.biomate.ai/oauth</code>. Your BioMate account, runs history, and workflow catalog are shared across every surface.</p>
+      <h2>What you can do</h2>
+      <p>Ask your assistant to search BioMate workflows, help plan an analysis, start a run, check its progress, and explain the results. You can also search literature, look up public datasets, and export prepared findings.</p><p>You can make these requests in ordinary language. Your assistant uses the BioMate connector to carry them out.</p>
     </section>
-
-    <!-- Surfaces -->
     <section class="doc-section" id="surfaces">
-      <h2>Supported surfaces</h2>
-      <div class="surface-grid">
-        <div class="surface-card">
-          <div class="surf-name">Claude Code <span class="badge badge-green">MCP stdio</span></div>
-          <div class="surf-transport">Terminal · CLI</div>
-          <p>Run BioMate workflows from your terminal. Results stream back inline as tool-use progress.</p>
-        </div>
-        <div class="surface-card">
-          <div class="surf-name">Claude Desktop <span class="badge badge-green">MCP stdio</span></div>
-          <div class="surf-transport">macOS · Windows</div>
-          <p>Integrate BioMate into the Claude Desktop app. Same tool set, same runs history.</p>
-        </div>
-        <div class="surface-card">
-          <div class="surf-name">Claude Science <span class="badge badge-green">HTTP+OAuth</span></div>
-          <div class="surf-transport">Research workbench</div>
-          <p>Anthropic's scientific AI workbench. Uses Streamable HTTP + OAuth 2.1 + PKCE.</p>
-        </div>
-        <div class="surface-card">
-          <div class="surf-name">Cursor <span class="badge badge-green">MCP stdio</span></div>
-          <div class="surf-transport">IDE · Marketplace</div>
-          <p>BioMate appears as an MCP server in Cursor IDE alongside your other development tools.</p>
-        </div>
-        <div class="surface-card">
-          <div class="surf-name">Codex CLI <span class="badge badge-green">MCP stdio</span></div>
-          <div class="surf-transport">Terminal · OpenAI</div>
-          <p>OpenAI's Codex CLI backed by GPT-5.5. Install via <code>npx @biomate/connect codex</code>.</p>
-        </div>
-        <div class="surface-card">
-          <div class="surf-name">ChatGPT <span class="badge badge-mid">REST</span></div>
-          <div class="surf-transport">Plugin / GPT Action</div>
-          <p>Register BioMate as a custom GPT action. OAuth handled by ChatGPT's built-in flow.</p>
-        </div>
-        <div class="surface-card">
-          <div class="surf-name">Slack <span class="badge badge-mid">REST</span></div>
-          <div class="surf-transport">Bot · Webhook</div>
-          <p>Add the BioMate bot to your workspace. Mention <code>@BioMate</code> to start a workflow from any channel.</p>
-        </div>
-        <div class="surface-card">
-          <div class="surf-name">Feishu / Lark <span class="badge badge-mid">REST</span></div>
-          <div class="surf-transport">Bot · Webhook</div>
-          <p>Integrate via Feishu's open-platform bot API. Supports message cards with run status.</p>
-        </div>
-      </div>
+      <h2>Choose your app</h2>
+      <p>The setup commands below are for Claude Code, Claude Desktop, Cursor, and Codex CLI. You will need a BioMate account, your chosen app, and Node.js 18 or later with npm installed.</p><p>For ChatGPT or a team messaging app, see <a href="#chatgpt">Other integrations</a>.</p>
     </section>
-
-    <!-- Tools -->
-    <section class="doc-section" id="tools">
-      <h2>Available tools (19)</h2>
-      <p>All surfaces expose the same tool set, sourced from a single canonical manifest (<code>tools_manifest.py</code>). Tools are annotated with read-only and destructive hints so the AI client can present appropriate confirmation prompts.</p>
-
-      <h3>Streaming agentic tool</h3>
-      <table class="tool-table">
-        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>biomate_session</code></td><td class="desc">Natural-language goal in, BioMate orchestrates: selects workflow, fills params, submits to cloud, streams phase + step + QC + finding events back as progress notifications.</td></tr>
-        </tbody>
-      </table>
-
-      <h3>Workflow primitives</h3>
-      <table class="tool-table">
-        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>search_workflow</code></td><td class="desc">Ranked catalog search across 2,455 workflows and 34 biological domains.</td></tr>
-          <tr><td><code>get_workflow_spec</code></td><td class="desc">Required + optional params, allowed values, default QC profile, cost estimate.</td></tr>
-          <tr><td><code>run_workflow</code></td><td class="desc">Start a run. Use <code>stream: true</code> for inline phase/step events.</td></tr>
-          <tr><td><code>watch_run</code></td><td class="desc">Stream phase/step progress from a running job until completion.</td></tr>
-          <tr><td><code>get_run</code></td><td class="desc">Single call: status + phases + steps + findings + output files.</td></tr>
-          <tr><td><code>cancel_run</code></td><td class="desc">Cancel an in-flight run.</td></tr>
-          <tr><td><code>list_runs</code></td><td class="desc">History with experiment, workflow, and status filters.</td></tr>
-        </tbody>
-      </table>
-
-      <h3>Data and knowledge</h3>
-      <table class="tool-table">
-        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>resolve_accession</code></td><td class="desc">Identify GEO, SRA, ENA, DDBJ accessions and return the matching BioMate workflow with pre-filled params.</td></tr>
-          <tr><td><code>browse_data</code></td><td class="desc">List files in a public repository (EBI, NCBI, Ensembl, UCSC) or your S3 workspace by path prefix.</td></tr>
-          <tr><td><code>fetch_public_data</code></td><td class="desc">Stage a public file from EBI / NCBI / Ensembl / UCSC into the BioMate workspace and return an S3 URI.</td></tr>
-          <tr><td><code>upload_file</code></td><td class="desc">Get a signed S3 PUT URL for local file uploads (&gt;5 MB).</td></tr>
-          <tr><td><code>query_database</code></td><td class="desc">UniProt / PDB / AlphaFold / NCBI / ChEMBL / KEGG lookup by accession or query.</td></tr>
-          <tr><td><code>search_literature</code></td><td class="desc">Iterative depth-first search across PubMed, EuropePMC, Semantic Scholar, and OpenAlex.</td></tr>
-        </tbody>
-      </table>
-
-      <h3>Outputs, analysis, reporting</h3>
-      <table class="tool-table">
-        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>preview_file</code></td><td class="desc">Server-side preview of FASTA / VCF / CSV / MRC / images / PDF.</td></tr>
-          <tr><td><code>export_report</code></td><td class="desc">Render methods + QC + findings as PDF or Markdown (IND/CRO-ready).</td></tr>
-          <tr><td><code>analyze_results</code></td><td class="desc">AI interpretation — free-form questions about a run's outputs.</td></tr>
-          <tr><td><code>explain_error</code></td><td class="desc">Root-cause diagnosis when a run fails.</td></tr>
-          <tr><td><code>recall_memory</code></td><td class="desc">Retrieve relevant prior runs, findings, and procedures.</td></tr>
-        </tbody>
-      </table>
-
+    <section class="doc-section" id="install">
+      <h2>Connect your account</h2>
+      <ol class="guide-steps"><li>Open Terminal on macOS or PowerShell on Windows.</li><li>Copy and run the command for your app below.</li><li>When your browser opens, sign in to BioMate and review the requested access.</li><li>Return to your app and restart it to load the connector.</li><li>Start a conversation and ask: <em>“Search BioMate for RNA-seq differential expression workflows.”</em></li></ol><p>If your app asks whether BioMate may use a tool, review the request and allow it to continue.</p><div class="callout callout-note"><strong>Choose the right account</strong>These commands connect to BioMate’s development service. If your organization uses a separate BioMate service, ask your administrator for its setup instructions.</div>
     </section>
-
-    <hr class="divider">
-
-    <!-- Use cases -->
-    <section class="doc-section" id="use-cases">
-      <h2>End-to-end use cases</h2>
-      <p>Each example below shows the full information flow — from a natural-language prompt to a delivered result — across a specific connector surface. Every call is a real API call against <code>dev-public.biomate.ai</code>.</p>
-
-      <!-- Use case 1 -->
-      <h3>RNA-seq differential expression — Claude Code</h3>
-      <p>A researcher asks Claude Code to run a differential expression analysis on uploaded FASTQ files stored in S3.</p>
-      <pre><code><span class="token-cmt"># User types in Claude Code terminal:</span>
-<span class="token-str">Run RNA-seq differential expression on
-s3://biomate-demo/treated_R1.fq.gz vs s3://biomate-demo/control_R1.fq.gz.
-Use GRCh38, DESeq2. Return a volcano plot and the top 50 DEGs.</span></code></pre>
-      <p><strong>Information flow:</strong></p>
-      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
-        <li style="margin-bottom:.5rem"><strong>Search</strong> — Claude Code calls <code>search_workflow("RNA-seq differential expression DESeq2")</code> → BioMate returns ranked matches; top hit is <code>nf-core/rnaseq</code> with DESeq2 post-processing.</li>
-        <li style="margin-bottom:.5rem"><strong>Spec</strong> — Claude calls <code>get_workflow_spec("nf-core/rnaseq")</code> → receives required params (<code>input</code>, <code>genome</code>, <code>contrasts</code>), optional params, default QC thresholds, and cost estimate (~$0.40 on AWS Batch).</li>
-        <li style="margin-bottom:.5rem"><strong>Run</strong> — Claude calls <code>run_workflow({ workflow: "nf-core/rnaseq", params: { input: "s3://biomate-demo/…", genome: "GRCh38", contrasts: "treated_vs_control" }, stream: true })</code> → BioMate queues the job on AWS Batch and returns a <code>run_id</code>.</li>
-        <li style="margin-bottom:.5rem"><strong>Stream</strong> — <code>watch_run(run_id)</code> emits <code>notifications/progress</code> events: FASTQC → STAR alignment → featureCounts → DESeq2 → MultiQC. Claude renders each phase inline as it completes.</li>
-        <li style="margin-bottom:.5rem"><strong>Results</strong> — <code>get_run(run_id)</code> returns output file list (volcano.png, degs.csv, multiqc_report.html). Claude calls <code>preview_file("s3://…/volcano.png")</code> and displays the plot inline.</li>
-        <li style="margin-bottom:.5rem"><strong>Report</strong> — <code>export_report(run_id, format="pdf")</code> → signed S3 URL to a methods PDF with QC metrics and DEG table, ready for the lab notebook.</li>
-      </ol>
-      <div class="callout">
-        <strong>Total wall time:</strong> ~12 min for a 2×2 comparison on a 6 GB FASTQ pair. Claude shows live phase cards throughout — no waiting at a dashboard.
-      </div>
-
-      <!-- Use case 2 -->
-      <h3>ADMET screening with auto-loop QC — Claude Code</h3>
-      <p>A medicinal chemist screens a compound library and lets BioMate's auto-loop correct hERG-failing structures.</p>
-      <pre><code><span class="token-cmt"># User types:</span>
-<span class="token-str">Screen these SMILES for hERG, CYP3A4, and oral bioavailability.
-Retry any hERG-failing compounds with reduced lipophilicity.
-
-CC1=CC=C(C=C1)S(=O)(=O)N   aspirin-like
-CN1C=NC2=C1C(=O)N(C(=O)N2C)C   caffeine</span></code></pre>
-      <p><strong>Information flow:</strong></p>
-      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
-        <li style="margin-bottom:.5rem"><strong>Search</strong> — <code>search_workflow("ADMET hERG CYP3A4 oral bioavailability")</code> → returns <code>admet_prediction_suite</code>.</li>
-        <li style="margin-bottom:.5rem"><strong>Run</strong> — <code>run_workflow({ workflow: "admet_prediction_suite", params: { smiles_list: ["CC1=CC=C…", "CN1C=NC2…"], endpoints: ["hERG","CYP3A4","Foral"] } })</code>.</li>
-        <li style="margin-bottom:.5rem"><strong>QC gate fires</strong> — Compound 2 exceeds hERG IC₅₀ threshold (0.41 µM vs 1.0 µM limit). BioMate auto-loop triggers: <code>explain_error(run_id, gate="hERG")</code> returns root-cause + suggested param change (reduce cLogP by 1.2).</li>
-        <li style="margin-bottom:.5rem"><strong>Auto-retry</strong> — BioMate resubmits with modified SMILES (desethyl analog). Claude shows a diff card: <span style="color:#c0392b;text-decoration:line-through">original</span> → <span style="color:#0B8A67">revised</span>.</li>
-        <li style="margin-bottom:.5rem"><strong>Results</strong> — <code>get_run(run_id)</code> → all endpoints pass. <code>export_report(run_id, format="pdf")</code> → CRO-ready ADMET dossier.</li>
-      </ol>
-
-      <!-- Use case 3 -->
-      <h3>GEO accession → scRNA-seq — Slack</h3>
-      <p>A bioinformatics team member pastes a GEO accession in Slack and BioMate runs the full pipeline automatically.</p>
-      <pre><code><span class="token-cmt">@BioMate</span> <span class="token-str">Analyze GSE142256 — MG patient PBMCs, 10x Chromium.
-Cluster by cell type and find differentially expressed genes in T cells.</span></code></pre>
-      <p><strong>Information flow:</strong></p>
-      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
-        <li style="margin-bottom:.5rem"><strong>Slack event</strong> — Slack posts the <code>app_mention</code> event to the BioMate bot endpoint at <code>dev-public.biomate.ai/integrations/slack/command</code>. The bot verifies the Slack signing secret and responds <code>200 OK</code> immediately (async processing).</li>
-        <li style="margin-bottom:.5rem"><strong>Accession resolve</strong> — Bot calls <code>resolve_accession("GSE142256")</code> → BioMate identifies this as a 10x scRNA-seq dataset, returns pre-filled workflow params: <code>nf-core/scrnaseq</code> + <code>input: "s3://biomate-staging/geo/GSE142256/"</code>, <code>genome: GRCh38</code>.</li>
-        <li style="margin-bottom:.5rem"><strong>Data stage</strong> — <code>fetch_public_data("GSE142256")</code> pulls raw FASTQ files from GEO/SRA into the BioMate S3 workspace. Bot posts "Staging data…" card update in the Slack thread.</li>
-        <li style="margin-bottom:.5rem"><strong>Run</strong> — <code>run_workflow({ workflow: "nf-core/scrnaseq", … })</code> → queued on AWS Batch. Bot posts "Run started" card with run ID and estimated completion time.</li>
-        <li style="margin-bottom:.5rem"><strong>Completion</strong> — On completion, bot calls <code>get_run(run_id)</code> and <code>analyze_results(run_id, question="Top markers per cluster, DEGs in T cells")</code>. Bot posts a summary card with cluster UMAP, top markers table, and an <strong>Open in BioMate</strong> button deep-linking into the run panel.</li>
-      </ol>
-
-      <!-- Use case 4 -->
-      <h3>Literature + database query — ChatGPT</h3>
-      <p>A scientist uses the BioMate Custom GPT to look up a gene target, search the literature, then run a pathway analysis — all in one conversation.</p>
-      <pre><code><span class="token-str">Tell me everything about CD40LG as an autoimmune drug target.
-Then run a pathway enrichment on the top 50 CD40L-correlated genes from GTEx.</span></code></pre>
-      <p><strong>Information flow:</strong></p>
-      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
-        <li style="margin-bottom:.5rem"><strong>Database lookup</strong> — ChatGPT calls <code>query_database({ db: "UniProt", query: "CD40LG human" })</code> → returns UniProt entry P29965: gene aliases, function, 12 disease associations, 3 known inhibitors.</li>
-        <li style="margin-bottom:.5rem"><strong>Literature search</strong> — <code>search_literature({ query: "CD40LG autoimmune disease target 2020-2025", sources: ["PubMed","Semantic Scholar"] })</code> → returns 8 high-relevance papers with abstracts; ChatGPT summarizes mechanism and clinical evidence.</li>
-        <li style="margin-bottom:.5rem"><strong>Data fetch</strong> — <code>fetch_public_data("GTEx v10 CD40LG expression")</code> → stages the GTEx expression matrix into BioMate workspace.</li>
-        <li style="margin-bottom:.5rem"><strong>Workflow search</strong> — <code>search_workflow("pathway enrichment clusterProfiler")</code> → returns <code>clusterProfiler_enrichGO</code> workflow.</li>
-        <li style="margin-bottom:.5rem"><strong>Run</strong> — <code>run_workflow({ workflow: "clusterProfiler_enrichGO", params: { gene_list: top50, organism: "human", ont: "BP" } })</code> → AWS Batch job.</li>
-        <li style="margin-bottom:.5rem"><strong>Report</strong> — <code>export_report(run_id, format="markdown")</code> → ChatGPT embeds the top GO terms directly into its reply with a download link to the full PDF.</li>
-      </ol>
-
-      <!-- Use case 5 -->
-      <h3>PBPK modeling for IND submission — Claude Desktop</h3>
-      <p>A pharmacokineticist builds a full IND evidence package: ADMET → PBPK → regulatory narrative, all from Claude Desktop.</p>
-      <pre><code><span class="token-cmt"># User in Claude Desktop:</span>
-<span class="token-str">Run ADMET on our lead compound (SMILES: CC(C)Cc1ccc(cc1)C(C)C(=O)O),
-then PBPK in a 70 kg adult at 100 mg oral dose,
-then generate a CTD §2.6.1 PK narrative for IND filing.</span></code></pre>
-      <p><strong>Information flow:</strong></p>
-      <ol style="padding-left:1.4rem;margin-bottom:1rem;">
-        <li style="margin-bottom:.5rem"><strong>ADMET run</strong> — <code>run_workflow("admet_prediction_suite", { smiles: "CC(C)Cc1ccc…" })</code> → returns Foral 68%, hERG IC₅₀ 8.4 µM (pass), CYP3A4 substrate (yes). Results stored as <code>admet_run_id</code>.</li>
-        <li style="margin-bottom:.5rem"><strong>PBPK run</strong> — <code>run_workflow("pbpk_11compartment", { smiles: "…", dose_mg: 100, route: "oral", bw_kg: 70, fu: 0.23 })</code> → 11-compartment ODE model; Cmax 3.2 µg/mL at 1.4 h, AUC₀–₂₄ 18.4 µg·h/mL. Results as <code>pbpk_run_id</code>.</li>
-        <li style="margin-bottom:.5rem"><strong>Memory</strong> — <code>recall_memory({ context: "PBPK similar compounds" })</code> → retrieves prior runs for structurally similar compounds to cite precedent in the narrative.</li>
-        <li style="margin-bottom:.5rem"><strong>Narrative generation</strong> — <code>run_workflow("ctd_261_narrative_generator", { admet_run: admet_run_id, pbpk_run: pbpk_run_id })</code> → LLM drafts the §2.6.1 PK summary using actual computed values, formats citations, writes Methods and Results subsections.</li>
-        <li style="margin-bottom:.5rem"><strong>Export</strong> — <code>export_report(narrative_run_id, format="pdf")</code> → IND-ready DOCX/PDF with SHA-256 audit manifest (<code>claims_index.json</code>) for traceability. Signed S3 URL returned; Claude Desktop renders a download link inline.</li>
-      </ol>
-      <div class="callout">
-        <strong>Full chain wall time:</strong> ~8 min. All three sub-workflows run on AWS Batch; the narrative generation is the final LLM step. The SHA-256 manifest links every numerical claim back to the source run ID and output file.
-      </div>
-
-    </section>
-
-    <hr class="divider">
-
-    <!-- Claude Code -->
     <section class="doc-section" id="claude-code">
       <h2>Claude Code</h2>
-      <p>The Claude Code connector runs as a local MCP server (stdio transport). It installs in 30 seconds and writes its config into <code>~/.mcp.json</code>.</p>
-
-      <h4>Install via CLI</h4>
-      <pre><code><span class="token-str">npx @biomate/connect claude-code</span></code></pre>
-      <p>The installer opens your browser, completes the OAuth 2.1 + PKCE flow against <code>dev-public.biomate.ai</code>, and writes the server entry into your Claude Code config. Restart Claude Code to activate.</p>
-
-      <h4>Try it</h4>
-      <pre><code><span class="token-cmt"># ADMET screening</span>
-<span class="token-str">Screen aspirin and caffeine for hERG inhibition and CYP3A4 metabolism.</span>
-
-<span class="token-cmt"># RNA-seq differential expression</span>
-<span class="token-str">Run RNA-seq differential expression on s3://biomate-demo/treated_R1.fq.gz
-and s3://biomate-demo/control_R1.fq.gz. Compare treated vs control, GRCh38.</span>
-
-<span class="token-cmt"># Cryo-EM refinement</span>
-<span class="token-str">Refine s3://biomate-demo/particles.cs with CryoSPARC homogeneous refinement.
-Apply C2 symmetry.</span></code></pre>
-
-      <div class="callout">
-        <strong>Live streaming</strong>
-        Results are not delivered as a final answer — phase and step events stream back as <code>notifications/progress</code> and Claude renders the live timeline inline, just like the BioMate web UI.
-      </div>
+      <pre><code>npx @biomate/connect@0.1.1 claude-code</code></pre><p>Follow the browser sign-in prompts, then restart Claude Code.</p>
     </section>
-
-    <!-- Claude Desktop -->
     <section class="doc-section" id="claude-desktop">
       <h2>Claude Desktop</h2>
-      <p>Claude Desktop supports MCP stdio servers via the <code>claude_desktop_config.json</code> file.</p>
-
-      <h4>Install via CLI</h4>
-      <pre><code><span class="token-str">npx @biomate/connect claude-desktop</span></code></pre>
-      <p>The installer handles OAuth and writes the server entry into <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows). Restart Claude Desktop to activate.</p>
-
-      <h4>Manual config</h4>
-      <p>If you prefer to configure manually, add this entry under <code>mcpServers</code> in <code>claude_desktop_config.json</code>:</p>
-      <pre><code>{
-  <span class="token-key">"mcpServers"</span>: {
-    <span class="token-key">"biomate"</span>: {
-      <span class="token-key">"command"</span>: <span class="token-str">"npx"</span>,
-      <span class="token-key">"args"</span>: [<span class="token-str">"-y"</span>, <span class="token-str">"@biomate/mcp-server"</span>],
-      <span class="token-key">"env"</span>: {
-        <span class="token-key">"BIOMATE_API_KEY"</span>: <span class="token-str">"&lt;your-api-key&gt;"</span>
-      }
-    }
-  }
-}</code></pre>
+      <pre><code>npx @biomate/connect@0.1.1 claude-desktop</code></pre><p>Follow the browser sign-in prompts, then restart Claude Desktop.</p>
     </section>
-
-    <!-- ChatGPT -->
+    <section class="doc-section" id="cursor">
+      <h2>Cursor</h2>
+      <pre><code>npx @biomate/connect@0.1.1 cursor</code></pre><p>Follow the browser sign-in prompts, then restart Cursor.</p>
+    </section>
+    <section class="doc-section" id="codex">
+      <h2>Codex CLI</h2>
+      <pre><code>npx @biomate/connect@0.1.1 codex</code></pre><p>Follow the browser sign-in prompts, then restart Codex CLI.</p>
+    </section>
+    <section class="doc-section" id="use-cases">
+      <h2>Run your first analysis</h2>
+      <h3>1. Find a suitable workflow</h3><pre><code>Search BioMate for RNA-seq differential expression workflows.</code></pre><p>Review the suggested workflows. Ask your assistant to explain the required inputs and help choose an approach for your study.</p><h3>2. Prepare the inputs</h3><pre><code>Show me the required inputs for the workflow I selected.
+Help me check my sample groups and analysis settings before starting.</code></pre><p>Provide files or data locations that BioMate can access. For RNA-seq, confirm the organism, reference, sample groups, biological replicates, and comparison you want to make.</p><h3>3. Start the run</h3><pre><code>Start the selected workflow using the inputs and settings we reviewed.</code></pre><p>A suggested plan does not start an analysis. When you are ready, ask your assistant to submit it. Keep the run ID returned by BioMate so you can refer to the same analysis later.</p><h3>4. Check progress</h3><pre><code>Check the status of my BioMate run.</code></pre><p>Each request retrieves the latest status. Ask again when you want an update; progress does not refresh continuously in the conversation.</p><h3>5. Review the results</h3><pre><code>Show the output files and available findings for this run.
+Explain the quality-control results before summarizing the biological findings.</code></pre><p>Check the quality-control results and supporting output files before drawing conclusions.</p><h3>6. Export your findings</h3><pre><code>Export the findings for this run as Markdown.</code></pre><p>Markdown is a text format with headings and lists. You can open it in a compatible editor and revise it for your report. If BioMate says the findings are still being prepared, try again later.</p>
+    </section>
+    <section class="doc-section" id="tools">
+      <h2>Everyday requests</h2>
+      <p>Replace the example topic with your own question. Include the run ID when referring to a specific analysis.</p><div class="bm-table-scroll" tabindex="0" role="region" aria-label="Example requests for BioMate"><table class="tool-table"><thead><tr><th>Task</th><th>What to ask</th></tr></thead><tbody><tr><td>Find a workflow</td><td>“Search BioMate for single-cell RNA-seq workflows.”</td></tr><tr><td>Plan an analysis</td><td>“Help me plan an analysis for this study. Ask me for any missing information.”</td></tr><tr><td>Find public data</td><td>“Look up this dataset accession and explain what data are available.”</td></tr><tr><td>Search literature</td><td>“Find publications about this research question and include the sources.”</td></tr><tr><td>Review previous work</td><td>“List my recent BioMate runs.”</td></tr><tr><td>Inspect outputs</td><td>“Show the output files for this run.”</td></tr><tr><td>Understand a failure</td><td>“Explain why this run failed and what I should check next.”</td></tr><tr><td>Cancel a run</td><td>“Cancel this BioMate run.” Include the run ID to identify it.</td></tr><tr><td>Export findings</td><td>“Export this run’s findings as Markdown.”</td></tr></tbody></table></div>
+    </section>
+    <section class="doc-section" id="auth">
+      <h2>Manage your connection</h2>
+      <p>Use your own BioMate account when connecting. The connector keeps you signed in automatically. If you are asked to sign in again, rerun the setup command for your app and follow the browser prompts.</p><p>If you connected with an older installer, run the command above once to reconnect, then restart your app.</p><p>Your assistant receives the information you send and the results BioMate returns. Choose data that your organization permits you to use with that assistant.</p>
+    </section>
+    <section class="doc-section" id="manual-config">
+      <h2>Organization-managed setup</h2>
+      <p>If your organization provides a BioMate connection or personal API key, follow your administrator’s instructions. Use an API key only in the app’s designated connection settings; do not paste it into a conversation.</p>
+    </section>
     <section class="doc-section" id="chatgpt">
       <h2>ChatGPT</h2>
-      <p>BioMate integrates with ChatGPT as a custom GPT action. The <code>/tools/*</code> adapter routes run on <code>dev-public.biomate.ai</code> — no local installation needed.</p>
-
-      <div class="steps">
-        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Open the GPT editor</strong><p>Go to <strong>ChatGPT → Explore GPTs → Create</strong>.</p></div></div>
-        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Add an action</strong><p>Click <strong>Add actions → Import from URL</strong> and paste: <code>https://dev-public.biomate.ai/connectors/chatgpt/openapi.json</code>. This schema is served directly from the BioMate API and always reflects the current server URL. Alternatively, use the canonical GitHub source: <code>https://raw.githubusercontent.com/bioMate-AI/biomate-connector/main/connectors/chatgpt/openapi.json</code>.</p></div></div>
-        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Authenticate</strong><p>Two options:<br>
-          <strong>Option A — API key (simple):</strong> Set auth type to <strong>API key</strong>, paste your BioMate personal API key (<code>bm_live_xxx</code>) from <a href="https://dev-public.biomate.ai/account/api-keys">account/api-keys</a>. ChatGPT sends it as <code>Authorization: Bearer bm_live_xxx</code>.<br>
-          <strong>Option B — OAuth:</strong> Set auth type to <strong>OAuth</strong>. Authorization URL: <code>https://dev-public.biomate.ai/oauth/authorize</code>. Token URL: <code>https://dev-public.biomate.ai/oauth/token</code>.</p></div></div>
-        <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Save and test</strong><p>Save the GPT and ask: <em>"What RNA-seq workflows are available in BioMate?"</em> or <em>"Search for ADMET screening workflows."</em></p></div></div>
-      </div>
+      <p>Setup for this app is separate from the commands above. <a href="contact.html">Contact BioMate</a> for availability and setup guidance for your account.</p>
     </section>
-
-    <!-- Slack -->
     <section class="doc-section" id="slack">
       <h2>Slack</h2>
-      <p>The BioMate Slack integration adds a bot to your workspace. Mention <code>@BioMate</code> in any channel to start a workflow, check run status, or query the database.</p>
-
-      <div class="steps">
-        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Add to Slack</strong><p>Visit <a href="https://dev-public.biomate.ai/integrations/slack">biomate.ai/integrations/slack</a> and click <strong>Add to Slack</strong>. You'll be redirected through Slack's OAuth to authorize the bot.</p></div></div>
-        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Connect your BioMate account</strong><p>After adding the bot, run <code>/biomate connect</code> in any channel. The bot sends a one-time link to authenticate with your BioMate account.</p></div></div>
-        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Start using it</strong><p>Mention the bot with a natural-language task. Run status updates appear in the same thread as interactive cards.</p></div></div>
-      </div>
-
-      <h4>Example interactions</h4>
-      <pre><code><span class="token-cmt">@BioMate</span> <span class="token-str">Run GATK variant calling on s3://my-bucket/sample.bam, hg38</span>
-
-<span class="token-cmt">@BioMate</span> <span class="token-str">What's the status of my last run?</span>
-
-<span class="token-cmt">@BioMate</span> <span class="token-str">Look up UniProt P04637 and summarize cancer mutations</span></code></pre>
-
-      <div class="callout callout-note">
-        The Slack bot posts run progress as message updates in the originating thread. For long-running workflows (30+ minutes), it posts a final summary when the run completes.
-      </div>
+      <p>Setup for this app is separate from the commands above. <a href="contact.html">Contact BioMate</a> for availability and setup guidance for your account.</p>
     </section>
-
-    <!-- Feishu -->
     <section class="doc-section" id="feishu">
       <h2>Feishu / Lark</h2>
-      <p>The BioMate Feishu integration connects as a Feishu open-platform bot. It supports interactive message cards that display run status and findings inline.</p>
-
-      <div class="steps">
-        <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Add the bot</strong><p>Search for <strong>BioMate</strong> in the Feishu app directory, or visit <a href="https://dev-public.biomate.ai/integrations/feishu">biomate.ai/integrations/feishu</a>.</p></div></div>
-        <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Authorize</strong><p>Click <strong>Add to organization</strong> and complete the Feishu OAuth flow. The bot is added to your organization's workspace.</p></div></div>
-        <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Connect BioMate account</strong><p>Send a direct message to the bot: <code>/connect</code>. It will send a one-time authentication link.</p></div></div>
-        <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Start using it</strong><p>Mention <code>@BioMate</code> in a group or send it a DM. Progress cards update in-thread as phases complete.</p></div></div>
-      </div>
+      <p>Setup for this app is separate from the commands above. <a href="contact.html">Contact BioMate</a> for availability and setup guidance for your account.</p>
     </section>
-
-    <hr class="divider">
-
-    <!-- Auth -->
-    <section class="doc-section" id="auth">
-      <h2>Authentication</h2>
-      <p>All surfaces use OAuth 2.1 + PKCE. No shared secrets or passwords are stored by the connector — only short-lived access tokens (30 min) and hashed refresh tokens.</p>
-
-      <h4>Scopes</h4>
-      <table class="tool-table">
-        <thead><tr><th>Scope</th><th>Grants</th></tr></thead>
-        <tbody>
-          <tr><td><code>workflows:read</code></td><td class="desc">Search catalog, get specs, list runs.</td></tr>
-          <tr><td><code>workflows:write</code></td><td class="desc">Start and cancel runs.</td></tr>
-          <tr><td><code>files:read</code></td><td class="desc">Preview and download output files.</td></tr>
-          <tr><td><code>files:write</code></td><td class="desc">Upload input files.</td></tr>
-          <tr><td><code>account:read</code></td><td class="desc">Account info and quota.</td></tr>
-        </tbody>
-      </table>
-
-      <p>Revoke any surface's access at any time at <a href="https://dev-public.biomate.ai/account/connectors">biomate.ai/account/connectors</a>. Revoking one surface does not affect others.</p>
-
-      <h4>API keys</h4>
-      <p>For server-to-server use (no browser), generate a long-lived API key at <a href="https://dev-public.biomate.ai/account/api-keys">biomate.ai/account/api-keys</a>. Pass it as <code>Authorization: Bearer &lt;key&gt;</code> or set it in the <code>BIOMATE_API_KEY</code> environment variable.</p>
-    </section>
-
-    <!-- Manual config -->
-    <section class="doc-section" id="manual-config">
-      <h2>Manual configuration</h2>
-      <p>If <code>npx @biomate/connect</code> is unavailable, set the server entry by hand. For Claude Code, add this to <code>~/.mcp.json</code>:</p>
-      <pre><code>{
-  <span class="token-key">"mcpServers"</span>: {
-    <span class="token-key">"biomate"</span>: {
-      <span class="token-key">"type"</span>: <span class="token-str">"stdio"</span>,
-      <span class="token-key">"command"</span>: <span class="token-str">"npx"</span>,
-      <span class="token-key">"args"</span>: [<span class="token-str">"-y"</span>, <span class="token-str">"@biomate/mcp-server"</span>],
-      <span class="token-key">"env"</span>: {
-        <span class="token-key">"BIOMATE_API_KEY"</span>: <span class="token-str">"bm_sk_..."</span>
-      }
-    }
-  }
-}</code></pre>
-      <p>The <code>BIOMATE_API_KEY</code> value can be found at <a href="https://dev-public.biomate.ai/account/api-keys">biomate.ai/account/api-keys</a>.</p>
-    </section>
-
-    <!-- FAQ -->
     <section class="doc-section" id="faq">
-      <h2>FAQ</h2>
-
-      <h4>Does the connector send my data to Anthropic?</h4>
-      <p>No. The connector calls BioMate's API directly. Anthropic (Claude Code / Claude Desktop) only sees the tool names, their inputs, and their outputs — the same data visible in your chat session. See the <a href="legal/privacy.html">privacy policy</a> for full details.</p>
-
-      <h4>Can I use the connector with a self-hosted BioMate instance?</h4>
-      <p>Yes. Set <code>BIOMATE_API_URL=https://your-instance.example.com</code> in the environment before running <code>npx @biomate/connect</code>.</p>
-
-      <h4>Is the connector open source?</h4>
-      <p>Yes. The server code and all surface adapters are at <a href="https://github.com/bioMate-AI/biomate-connector">github.com/bioMate-AI/biomate-connector</a> under the MIT license.</p>
-
-      <h4>What happens if a run exceeds my quota?</h4>
-      <p>The <code>run_workflow</code> tool returns an error with the quota details. The AI client surfaces this as a readable message. Upgrade your plan at <a href="https://dev-public.biomate.ai/billing">biomate.ai/billing</a>.</p>
-
-      <h4>Can multiple team members share the same BioMate connector?</h4>
-      <p>Each team member authenticates with their own BioMate account. Runs, files, and project membership are governed by BioMate's project-level access controls — not the connector.</p>
+      <h2>Troubleshooting and questions</h2>
+      <h3>BioMate does not appear in my app. What should I do?</h3><p>Close and reopen your app after setup. If BioMate is still missing, rerun the command for that app and make sure browser sign-in completes.</p><h3>The terminal says “npx” is not found.</h3><p>Install Node.js 18 or later with npm, open a new terminal window, and run the setup command again.</p><h3>Sign-in does not complete.</h3><p>Rerun the setup command and complete sign-in in the browser window it opens. If your account requires multi-factor authentication, contact BioMate for help; this connector sign-in flow does not currently support it.</p><h3>Why has the progress message not changed?</h3><p>Progress is retrieved when you ask for it. Ask your assistant to check the run again using its run ID.</p><h3>My run has finished. Why is the report pending?</h3><p>Preparing findings can take additional time after the analysis finishes. Check again later and ask your assistant to export the findings once they are ready.</p><h3>Can I export a PDF or Word document?</h3><p>The connector exports prepared findings as Markdown. Open the exported text in a compatible editor if you need to format it for another document type.</p><h3>How do I revise a report?</h3><p>Export the Markdown findings and edit the text in your preferred editor. Asking your assistant to rewrite its answer does not save a revision to the report in BioMate.</p><p>Still need help? <a href="contact.html">Contact BioMate support</a>.</p>
     </section>
-
   </main>
 </div><!-- /.page-wrap -->
 
-<div id="bm-foot"></div>
+<!-- bm-static-foot:start -->
+<div id="bm-foot"><section class="bm-cta-bar"> <div class="bm-cta-bar-inner"> <p class="bm-cta-bar-eyebrow">BioMate AI</p> <h2 class="bm-cta-bar-head">Try BioMate free.</h2> <p class="bm-cta-bar-sub">Move faster from scientific question to actionable results.</p> <div class="bm-cta-bar-btns"> <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-on-ink-primary bm-btn-lg"> Start free <span class="bm-btn-arrow">&rarr;</span> </a> <a href="contact.html?topic=General%20inquiry" class="bm-btn bm-btn-ink bm-btn-lg">Contact us</a> </div> </div> </section> <footer class="bm-footer"> <div class="bm-footer-inner"> <div class="bm-footer-grid"> <div class="bm-footer-brand"> <a href="index.html" class="bm-brand"> <img src="assets/logo.png?v=3" alt="BioMate AI" /> </a> <p>A biomedical research platform for drug discovery.</p> </div> <div class="bm-footer-col"> <h4>Platform</h4> <ul> <li><a href="features.html">Research Workbench</a></li> <li><a href="drug-discovery.html">Drug Discovery</a></li> <li><a href="research-engines.html">Research Engines</a></li> <li><a href="features.html">Features</a></li> <li><a href="benchmarks.html">Benchmarks</a></li> <li><a href="pricing.html">Pricing</a></li> <li><a href="https://dev-public.biomate.ai/register">Start free</a></li> </ul> </div> <div class="bm-footer-col"> <h4>Science</h4> <ul> <li><a href="services.html#drug-discovery">Drug Discovery</a></li> <li><a href="services.html#genomics">Genomics &amp; Multi-Omics</a></li> <li><a href="services.html#structural-biology">Structural Biology</a></li> <li><a href="surveys.html">Research Perspectives</a></li> <li><a href="blog.html">Newsroom &rarr;</a></li> </ul> </div> <div class="bm-footer-col"> <h4>Company</h4> <ul> <li><a href="about.html">About</a></li> <li><a href="tutorials.html">Tutorials</a></li> <li><a href="glossary.html">Glossary</a></li> <li><a href="blog.html">Newsroom</a></li> <li><a href="contact.html">Contact</a></li> <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li> </ul> </div> </div> <div class="bm-footer-bottom"> <span>&copy; 2026 BioMate AI &middot; contact@biomate.ai</span> <span class="links"> <a href="privacy.html">Privacy</a> <a href="terms.html">Terms</a> </span> </div> </div> </footer></div>
+<!-- bm-static-foot:end -->
 <script src="shell.js?v=20260609b"></script>
 <script>renderShell({ active: 'developers' });</script>
 </body>

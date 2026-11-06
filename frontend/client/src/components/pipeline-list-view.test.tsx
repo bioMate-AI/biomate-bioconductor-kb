@@ -89,3 +89,30 @@ describe('PipelineListView — S4 approval gate', () => {
     expect(screen.queryByTestId('pipeline-approve-step-s3')).not.toBeInTheDocument()
   })
 })
+it('renders blocked and submitting states without treating them as pending', () => {
+  render(<PipelineListView steps={[
+    makeStep({ id: 'blocked', status: 'blocked', errorMessage: 'Upstream failed' }),
+    makeStep({ id: 'submitting', status: 'submitting' }),
+  ]} />)
+  expect(screen.getByText('BLOCKED')).toBeInTheDocument()
+  expect(screen.getByText('SUBMITTING')).toBeInTheDocument()
+  expect(screen.getByText(/Upstream failed/)).toBeInTheDocument()
+})
+it('shows whole-plan scope, dependencies and case identities before submission', () => {
+  const onConfirmRun = vi.fn()
+  render(<PipelineListView steps={[
+    makeStep({ id: 'a', dependsOn: [], dimensions: { target: 'A' } }),
+    makeStep({ id: 'b', dependsOn: [1] }),
+  ]} onConfirmRun={onConfirmRun} />)
+  expect(screen.getByText(/Confirm to run all steps/)).toBeInTheDocument()
+  expect(screen.getByText('Requires steps 1')).toBeInTheDocument()
+  expect(screen.getByText('target: A')).toBeInTheDocument()
+  fireEvent.click(screen.getByTestId('pipeline-confirm-run'))
+  expect(onConfirmRun).toHaveBeenCalledOnce()
+})
+it('shows partial parent status without allowing resubmission of the same graph', () => {
+  render(<PipelineListView steps={[makeStep({ id: 'a', dependsOn: [], status: 'failed' })]}
+    chainRunId="existing" chainStatus="partial" />)
+  expect(screen.getByTestId('pipeline-parent-status')).toHaveTextContent('partial')
+  expect(screen.queryByTestId('pipeline-confirm-run')).not.toBeInTheDocument()
+})

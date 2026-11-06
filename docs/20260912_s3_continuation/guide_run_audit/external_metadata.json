@@ -1,0 +1,1202 @@
+{
+  "ShifrutMarson2018": {
+    "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ShifrutMarson2018.h5ad",
+    "size": 871481676,
+    "etag": "\"d706da80f6e1e7203bd0cf2d6baddc95-104\"",
+    "obs": {
+      "_index": {
+        "dtype": "object",
+        "shape": [
+          52236
+        ]
+      },
+      "cancer": {
+        "dtype": "bool",
+        "shape": [
+          52236
+        ]
+      },
+      "celltype": {
+        "categories": [
+          "T cells"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "T cells": 52236
+        },
+        "missing": 0
+      },
+      "disease": {
+        "categories": [
+          "healthy"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "healthy": 52236
+        },
+        "missing": 0
+      },
+      "guide_counts": {
+        "dtype": "int64",
+        "shape": [
+          52236
+        ]
+      },
+      "guide_id": {
+        "categories": [
+          "ES.sg0.ARID1A",
+          "ES.sg1.ARID1A",
+          "ES.sg2.BTLA",
+          "ES.sg3.BTLA",
+          "ES.sg4.C10orf54",
+          "ES.sg5.C10orf54",
+          "ES.sg6.CBLB",
+          "ES.sg7.CBLB",
+          "ES.sg8.CD3D",
+          "ES.sg9.CD3D",
+          "ES.sg10.CD5",
+          "ES.sg11.CD5",
+          "ES.sg12.CDKN1B",
+          "ES.sg13.CDKN1B",
+          "ES.sg14.DGKA",
+          "ES.sg15.DGKA",
+          "ES.sg16.DGKZ",
+          "ES.sg17.DGKZ",
+          "ES.sg18.HAVCR2",
+          "ES.sg19.HAVCR2",
+          "ES.sg20.LAG3",
+          "ES.sg21.LAG3",
+          "ES.sg22.LCP2",
+          "ES.sg23.LCP2",
+          "ES.sg24.MEF2D",
+          "ES.sg25.MEF2D",
+          "ES.sg26.PDCD1",
+          "ES.sg27.PDCD1",
+          "ES.sg28.RASA2",
+          "ES.sg29.RASA2",
+          "ES.sg30.SOCS1",
+          "ES.sg31.SOCS1",
+          "ES.sg32.STAT6",
+          "ES.sg33.STAT6",
+          "ES.sg34.TCEB2",
+          "ES.sg35.TCEB2",
+          "ES.sg36.TMEM222",
+          "ES.sg37.TMEM222",
+          "ES.sg38.TNFRSF9",
+          "ES.sg39.TNFRSF9",
+          "ES.sg40.NonTarget.CTRL170",
+          "ES.sg41.NonTarget.CTRL198",
+          "ES.sg42.NonTarget.CTRL125",
+          "ES.sg43.NonTarget.CTRL108",
+          "ES.sg44.NonTarget.CTRL41",
+          "ES.sg45.NonTarget.CTRL232",
+          "ES.sg46.NonTarget.CTRL214",
+          "ES.sg47.NonTarget.CTRL241",
+          "NA"
+        ],
+        "n_categories": 49,
+        "counts": {
+          "ES.sg0.ARID1A": 586,
+          "ES.sg1.ARID1A": 39,
+          "ES.sg2.BTLA": 1215,
+          "ES.sg3.BTLA": 197,
+          "ES.sg4.C10orf54": 811,
+          "ES.sg5.C10orf54": 247,
+          "ES.sg6.CBLB": 609,
+          "ES.sg7.CBLB": 718,
+          "ES.sg8.CD3D": 439,
+          "ES.sg9.CD3D": 417,
+          "ES.sg10.CD5": 599,
+          "ES.sg11.CD5": 481,
+          "ES.sg12.CDKN1B": 320,
+          "ES.sg13.CDKN1B": 429,
+          "ES.sg14.DGKA": 913,
+          "ES.sg15.DGKA": 1383,
+          "ES.sg16.DGKZ": 852,
+          "ES.sg17.DGKZ": 168,
+          "ES.sg18.HAVCR2": 496,
+          "ES.sg19.HAVCR2": 859,
+          "ES.sg20.LAG3": 258,
+          "ES.sg21.LAG3": 582,
+          "ES.sg22.LCP2": 671,
+          "ES.sg23.LCP2": 310,
+          "ES.sg24.MEF2D": 558,
+          "ES.sg25.MEF2D": 468,
+          "ES.sg26.PDCD1": 1111,
+          "ES.sg27.PDCD1": 373,
+          "ES.sg28.RASA2": 728,
+          "ES.sg29.RASA2": 177,
+          "ES.sg30.SOCS1": 500,
+          "ES.sg31.SOCS1": 335,
+          "ES.sg32.STAT6": 284,
+          "ES.sg33.STAT6": 288,
+          "ES.sg34.TCEB2": 352,
+          "ES.sg35.TCEB2": 577,
+          "ES.sg36.TMEM222": 702,
+          "ES.sg37.TMEM222": 724,
+          "ES.sg38.TNFRSF9": 216,
+          "ES.sg39.TNFRSF9": 561,
+          "ES.sg40.NonTarget.CTRL170": 243,
+          "ES.sg41.NonTarget.CTRL198": 284,
+          "ES.sg42.NonTarget.CTRL125": 405,
+          "ES.sg43.NonTarget.CTRL108": 1092,
+          "ES.sg44.NonTarget.CTRL41": 225,
+          "ES.sg45.NonTarget.CTRL232": 465,
+          "ES.sg46.NonTarget.CTRL214": 378,
+          "ES.sg47.NonTarget.CTRL241": 449,
+          "NA": 27142
+        },
+        "missing": 0
+      },
+      "ncounts": {
+        "dtype": "float32",
+        "shape": [
+          52236
+        ]
+      },
+      "ngenes": {
+        "dtype": "int32",
+        "shape": [
+          52236
+        ]
+      },
+      "nperts": {
+        "dtype": "int64",
+        "shape": [
+          52236
+        ]
+      },
+      "organism": {
+        "categories": [
+          "human"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "human": 52236
+        },
+        "missing": 0
+      },
+      "patient": {
+        "categories": [
+          "D1",
+          "D2"
+        ],
+        "n_categories": 2,
+        "counts": {
+          "D1": 26934,
+          "D2": 25302
+        },
+        "missing": 0
+      },
+      "percent_mito": {
+        "dtype": "float32",
+        "shape": [
+          52236
+        ]
+      },
+      "percent_ribo": {
+        "dtype": "float32",
+        "shape": [
+          52236
+        ]
+      },
+      "perturbation": {
+        "categories": [
+          "ARID1A",
+          "BTLA",
+          "C10orf54",
+          "CBLB",
+          "CD3D",
+          "CD5",
+          "CDKN1B",
+          "DGKA",
+          "DGKZ",
+          "HAVCR2",
+          "LAG3",
+          "LCP2",
+          "MEF2D",
+          "PDCD1",
+          "RASA2",
+          "SOCS1",
+          "STAT6",
+          "TCEB2",
+          "TMEM222",
+          "TNFRSF9",
+          "control"
+        ],
+        "n_categories": 21,
+        "counts": {
+          "ARID1A": 625,
+          "BTLA": 1412,
+          "C10orf54": 1058,
+          "CBLB": 1327,
+          "CD3D": 856,
+          "CD5": 1080,
+          "CDKN1B": 749,
+          "DGKA": 2296,
+          "DGKZ": 1020,
+          "HAVCR2": 1355,
+          "LAG3": 840,
+          "LCP2": 981,
+          "MEF2D": 1026,
+          "PDCD1": 1484,
+          "RASA2": 905,
+          "SOCS1": 835,
+          "STAT6": 572,
+          "TCEB2": 929,
+          "TMEM222": 1426,
+          "TNFRSF9": 777,
+          "control": 3541
+        },
+        "missing": 27142
+      },
+      "perturbation_2": {
+        "categories": [
+          "control",
+          "stim"
+        ],
+        "n_categories": 2,
+        "counts": {
+          "control": 22591,
+          "stim": 29645
+        },
+        "missing": 0
+      },
+      "perturbation_type": {
+        "categories": [
+          "CRISPR"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "CRISPR": 52236
+        },
+        "missing": 0
+      },
+      "perturbation_type_2": {
+        "categories": [
+          "TCR stimulation"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "TCR stimulation": 52236
+        },
+        "missing": 0
+      },
+      "sample": {
+        "categories": [
+          "D1_nostim",
+          "D1_stim",
+          "D2_nostim",
+          "D2_stim"
+        ],
+        "n_categories": 4,
+        "counts": {
+          "D1_nostim": 11105,
+          "D1_stim": 15829,
+          "D2_nostim": 11486,
+          "D2_stim": 13816
+        },
+        "missing": 0
+      },
+      "target": {
+        "categories": [
+          "ARID1A",
+          "BTLA",
+          "C10orf54",
+          "CBLB",
+          "CD3D",
+          "CD5",
+          "CDKN1B",
+          "DGKA",
+          "DGKZ",
+          "HAVCR2",
+          "LAG3",
+          "LCP2",
+          "MEF2D",
+          "NonTarget",
+          "PDCD1",
+          "RASA2",
+          "SOCS1",
+          "STAT6",
+          "TCEB2",
+          "TMEM222",
+          "TNFRSF9"
+        ],
+        "n_categories": 21,
+        "counts": {
+          "ARID1A": 625,
+          "BTLA": 1412,
+          "C10orf54": 1058,
+          "CBLB": 1327,
+          "CD3D": 856,
+          "CD5": 1080,
+          "CDKN1B": 749,
+          "DGKA": 2296,
+          "DGKZ": 1020,
+          "HAVCR2": 1355,
+          "LAG3": 840,
+          "LCP2": 981,
+          "MEF2D": 1026,
+          "NonTarget": 3541,
+          "PDCD1": 1484,
+          "RASA2": 905,
+          "SOCS1": 835,
+          "STAT6": 572,
+          "TCEB2": 929,
+          "TMEM222": 1426,
+          "TNFRSF9": 777
+        },
+        "missing": 27142
+      },
+      "tissue_type": {
+        "categories": [
+          "primary"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "primary": 52236
+        },
+        "missing": 0
+      }
+    },
+    "var_fields": [
+      "_index",
+      "ncells",
+      "ncounts"
+    ],
+    "X_encoding": "csr_matrix",
+    "X_shape": [
+      52236,
+      33694
+    ],
+    "layers": [],
+    "raw_available": false
+  },
+  "CuiHacohen2023": {
+    "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/CuiHacohen2023.h5ad",
+    "size": 472111867,
+    "etag": "\"9fa2dee833dcf5e27aa6614aac41f5ee-57\"",
+    "obs": {
+      "MULTI_ID": {
+        "categories": [
+          "tag01",
+          "tag02",
+          "tag03",
+          "tag04",
+          "tag05",
+          "tag06",
+          "tag07",
+          "tag08"
+        ],
+        "n_categories": 8,
+        "counts": {
+          "tag01": 15967,
+          "tag02": 16381,
+          "tag03": 15523,
+          "tag04": 15947,
+          "tag05": 15520,
+          "tag06": 15025,
+          "tag07": 1640,
+          "tag08": 31
+        },
+        "missing": 0
+      },
+      "MULTI_classification": {
+        "categories": [
+          "tag01-ACCCACCAGTAAGAC",
+          "tag02-GGTCGAGAGCATTCA",
+          "tag03-CTTGCCGCATGTCAT",
+          "tag04-AAAGCATTCTTCACG",
+          "tag05-CTTTGTCTTTGTGAG",
+          "tag06-TATGCTGCCACGGTA",
+          "tag07-GAGTCTGCCAGTATC",
+          "tag08-TATAGAACGCCAGGC"
+        ],
+        "n_categories": 8,
+        "counts": {
+          "tag01-ACCCACCAGTAAGAC": 15967,
+          "tag02-GGTCGAGAGCATTCA": 16381,
+          "tag03-CTTGCCGCATGTCAT": 15523,
+          "tag04-AAAGCATTCTTCACG": 15947,
+          "tag05-CTTTGTCTTTGTGAG": 15520,
+          "tag06-TATGCTGCCACGGTA": 15025,
+          "tag07-GAGTCTGCCAGTATC": 1640,
+          "tag08-TATAGAACGCCAGGC": 31
+        },
+        "missing": 0
+      },
+      "RNA_snn_res.1.5": {
+        "dtype": "int64",
+        "shape": [
+          96034
+        ]
+      },
+      "bio_replicate": {
+        "categories": [
+          "rep1",
+          "rep2",
+          "rep3",
+          "rep4",
+          "rep5",
+          "rep6",
+          "rep7",
+          "rep8",
+          "rep9",
+          "rep10",
+          "rep11",
+          "rep12",
+          "rep13",
+          "rep14"
+        ],
+        "n_categories": 14,
+        "counts": {
+          "rep1": 35977,
+          "rep2": 31467,
+          "rep3": 27427,
+          "rep4": 98,
+          "rep5": 84,
+          "rep6": 133,
+          "rep7": 125,
+          "rep8": 132,
+          "rep9": 62,
+          "rep10": 135,
+          "rep11": 155,
+          "rep12": 101,
+          "rep13": 57,
+          "rep14": 81
+        },
+        "missing": 0
+      },
+      "cancer": {
+        "dtype": "bool",
+        "shape": [
+          96034
+        ]
+      },
+      "cell_barcode": {
+        "dtype": "object",
+        "shape": [
+          96034
+        ],
+        "n_unique": 96034,
+        "examples": [
+          "AAACCCAAGAATGTTG-34",
+          "AAACCCAAGACCCGCT-41",
+          "AAACCCAAGACCCTTA-25",
+          "AAACCCAAGACTCGAG-36",
+          "AAACCCAAGCACACCC-18",
+          "AAACCCAAGCAGCCCT-40",
+          "AAACCCAAGCCATTGT-05",
+          "AAACCCAAGCGAAACC-24",
+          "AAACCCAAGCGTCTGC-42",
+          "AAACCCAAGCGTTCCG-05",
+          "AAACCCAAGCTCCATA-27",
+          "AAACCCAAGCTCTGTA-21",
+          "AAACCCAAGGACGGAG-39",
+          "AAACCCAAGGCCGCTT-31",
+          "AAACCCAAGGCGAACT-10",
+          "AAACCCAAGGCGAACT-28",
+          "AAACCCAAGGTCGCCT-19",
+          "AAACCCAAGGTTATAG-11",
+          "AAACCCAAGTCCGTCG-03",
+          "AAACCCAAGTTCATGC-44",
+          "AAACCCAAGTTGAAGT-44",
+          "AAACCCAAGTTGCTGT-17",
+          "AAACCCAAGTTGTCGT-22",
+          "AAACCCACAACCGATT-37",
+          "AAACCCACAAGCAATA-15",
+          "AAACCCACAAGGCTTT-31",
+          "AAACCCACAAGGTCTT-08",
+          "AAACCCACAAGTAGTA-39",
+          "AAACCCACAATGAACA-14",
+          "AAACCCACACCCTAAA-18",
+          "AAACCCACACGGCGTT-21",
+          "AAACCCACACTCTGCT-27",
+          "AAACCCACACTGCGAC-13",
+          "AAACCCACAGACACAG-32",
+          "AAACCCACAGACGATG-05",
+          "AAACCCACAGACGATG-19",
+          "AAACCCACAGTTGAAA-01",
+          "AAACCCACAGTTGGTT-22",
+          "AAACCCACATACCATG-05",
+          "AAACCCACATCATTGG-43",
+          "AAACCCACATCCGCGA-35",
+          "AAACCCACATCGAACT-04",
+          "AAACCCACATGAAGGC-42",
+          "AAACCCACATGAATCC-20",
+          "AAACCCACATGCGGTC-34",
+          "AAACCCAGTACACGTT-23",
+          "AAACCCAGTACTAGCT-39",
+          "AAACCCAGTAGCGTAG-33",
+          "AAACCCAGTAGCGTCC-09",
+          "AAACCCAGTAGGTTTC-19"
+        ]
+      },
+      "celltype": {
+        "categories": [
+          "B_cell",
+          "ILC",
+          "Macrophage",
+          "MigDC",
+          "Monocyte",
+          "NK_cell",
+          "Neutrophil",
+          "T_cell_CD4",
+          "T_cell_CD8",
+          "T_cell_gd",
+          "Treg",
+          "cDC1",
+          "cDC2",
+          "eTAC",
+          "pDC"
+        ],
+        "n_categories": 15,
+        "counts": {
+          "B_cell": 8086,
+          "ILC": 1378,
+          "Macrophage": 8697,
+          "MigDC": 8700,
+          "Monocyte": 2094,
+          "NK_cell": 8556,
+          "Neutrophil": 1309,
+          "T_cell_CD4": 8700,
+          "T_cell_CD8": 8700,
+          "T_cell_gd": 8700,
+          "Treg": 8700,
+          "cDC1": 8102,
+          "cDC2": 5726,
+          "eTAC": 1231,
+          "pDC": 7355
+        },
+        "missing": 0
+      },
+      "channel": {
+        "categories": [
+          "ln-hash-cytokine01",
+          "ln-hash-cytokine02",
+          "ln-hash-cytokine03",
+          "ln-hash-cytokine04",
+          "ln-hash-cytokine05",
+          "ln-hash-cytokine06",
+          "ln-hash-cytokine07",
+          "ln-hash-cytokine08",
+          "ln-hash-cytokine09",
+          "ln-hash-cytokine10",
+          "ln-hash-cytokine11",
+          "ln-hash-cytokine13",
+          "ln-hash-cytokine14",
+          "ln-hash-cytokine15",
+          "ln-hash-cytokine16",
+          "ln-hash-cytokine17",
+          "ln-hash-cytokine18",
+          "ln-hash-cytokine19",
+          "ln-hash-cytokine20",
+          "ln-hash-cytokine21",
+          "ln-hash-cytokine22",
+          "ln-hash-cytokine23",
+          "ln-hash-cytokine24",
+          "ln-hash-cytokine25",
+          "ln-hash-cytokine26",
+          "ln-hash-cytokine27",
+          "ln-hash-cytokine28",
+          "ln-hash-cytokine29",
+          "ln-hash-cytokine30",
+          "ln-hash-cytokine31",
+          "ln-hash-cytokine32",
+          "ln-hash-cytokine33",
+          "ln-hash-cytokine34",
+          "ln-hash-cytokine35",
+          "ln-hash-cytokine36",
+          "ln-hash-cytokine37",
+          "ln-hash-cytokine38",
+          "ln-hash-cytokine39",
+          "ln-hash-cytokine40",
+          "ln-hash-cytokine41",
+          "ln-hash-cytokine42",
+          "ln-hash-cytokine43",
+          "ln-hash-cytokine44",
+          "ln-hash-cytokine45"
+        ],
+        "n_categories": 44,
+        "counts": {
+          "ln-hash-cytokine01": 3617,
+          "ln-hash-cytokine02": 2422,
+          "ln-hash-cytokine03": 3161,
+          "ln-hash-cytokine04": 3032,
+          "ln-hash-cytokine05": 2561,
+          "ln-hash-cytokine06": 2905,
+          "ln-hash-cytokine07": 2448,
+          "ln-hash-cytokine08": 1944,
+          "ln-hash-cytokine09": 2294,
+          "ln-hash-cytokine10": 2134,
+          "ln-hash-cytokine11": 2665,
+          "ln-hash-cytokine13": 2353,
+          "ln-hash-cytokine14": 2119,
+          "ln-hash-cytokine15": 2088,
+          "ln-hash-cytokine16": 2740,
+          "ln-hash-cytokine17": 2779,
+          "ln-hash-cytokine18": 2055,
+          "ln-hash-cytokine19": 2411,
+          "ln-hash-cytokine20": 2250,
+          "ln-hash-cytokine21": 1679,
+          "ln-hash-cytokine22": 2313,
+          "ln-hash-cytokine23": 2663,
+          "ln-hash-cytokine24": 2446,
+          "ln-hash-cytokine25": 1733,
+          "ln-hash-cytokine26": 2187,
+          "ln-hash-cytokine27": 2340,
+          "ln-hash-cytokine28": 2764,
+          "ln-hash-cytokine29": 2171,
+          "ln-hash-cytokine30": 2183,
+          "ln-hash-cytokine31": 2083,
+          "ln-hash-cytokine32": 1805,
+          "ln-hash-cytokine33": 2115,
+          "ln-hash-cytokine34": 1682,
+          "ln-hash-cytokine35": 1582,
+          "ln-hash-cytokine36": 2120,
+          "ln-hash-cytokine37": 2161,
+          "ln-hash-cytokine38": 1284,
+          "ln-hash-cytokine39": 1660,
+          "ln-hash-cytokine40": 2211,
+          "ln-hash-cytokine41": 1317,
+          "ln-hash-cytokine42": 1789,
+          "ln-hash-cytokine43": 1377,
+          "ln-hash-cytokine44": 1656,
+          "ln-hash-cytokine45": 735
+        },
+        "missing": 0
+      },
+      "channel_hashtag": {
+        "categories": [
+          "ln-hash-cytokine01_tag01",
+          "ln-hash-cytokine01_tag02",
+          "ln-hash-cytokine01_tag03",
+          "ln-hash-cytokine01_tag04",
+          "ln-hash-cytokine01_tag05",
+          "ln-hash-cytokine01_tag06",
+          "ln-hash-cytokine01_tag07",
+          "ln-hash-cytokine01_tag08",
+          "ln-hash-cytokine02_tag01",
+          "ln-hash-cytokine02_tag02",
+          "ln-hash-cytokine02_tag03",
+          "ln-hash-cytokine02_tag04",
+          "ln-hash-cytokine02_tag05",
+          "ln-hash-cytokine02_tag06",
+          "ln-hash-cytokine03_tag01",
+          "ln-hash-cytokine03_tag02",
+          "ln-hash-cytokine03_tag03",
+          "ln-hash-cytokine03_tag04",
+          "ln-hash-cytokine03_tag05",
+          "ln-hash-cytokine03_tag06",
+          "ln-hash-cytokine04_tag01",
+          "ln-hash-cytokine04_tag02",
+          "ln-hash-cytokine04_tag03",
+          "ln-hash-cytokine04_tag04",
+          "ln-hash-cytokine04_tag05",
+          "ln-hash-cytokine04_tag06",
+          "ln-hash-cytokine04_tag07",
+          "ln-hash-cytokine05_tag01",
+          "ln-hash-cytokine05_tag02",
+          "ln-hash-cytokine05_tag03",
+          "ln-hash-cytokine05_tag04",
+          "ln-hash-cytokine05_tag05",
+          "ln-hash-cytokine05_tag06",
+          "ln-hash-cytokine05_tag07",
+          "ln-hash-cytokine06_tag01",
+          "ln-hash-cytokine06_tag02",
+          "ln-hash-cytokine06_tag03",
+          "ln-hash-cytokine06_tag04",
+          "ln-hash-cytokine06_tag05",
+          "ln-hash-cytokine06_tag06",
+          "ln-hash-cytokine06_tag07",
+          "ln-hash-cytokine07_tag01",
+          "ln-hash-cytokine07_tag02",
+          "ln-hash-cytokine07_tag03",
+          "ln-hash-cytokine07_tag04",
+          "ln-hash-cytokine07_tag05",
+          "ln-hash-cytokine07_tag06",
+          "ln-hash-cytokine07_tag07",
+          "ln-hash-cytokine08_tag01",
+          "ln-hash-cytokine08_tag02",
+          "ln-hash-cytokine08_tag03",
+          "ln-hash-cytokine08_tag04",
+          "ln-hash-cytokine08_tag05",
+          "ln-hash-cytokine08_tag06",
+          "ln-hash-cytokine08_tag07",
+          "ln-hash-cytokine09_tag01",
+          "ln-hash-cytokine09_tag02",
+          "ln-hash-cytokine09_tag03",
+          "ln-hash-cytokine09_tag04",
+          "ln-hash-cytokine09_tag05",
+          "ln-hash-cytokine09_tag06",
+          "ln-hash-cytokine09_tag07",
+          "ln-hash-cytokine10_tag01",
+          "ln-hash-cytokine10_tag02",
+          "ln-hash-cytokine10_tag03",
+          "ln-hash-cytokine10_tag04",
+          "ln-hash-cytokine10_tag05",
+          "ln-hash-cytokine10_tag06",
+          "ln-hash-cytokine10_tag07",
+          "ln-hash-cytokine11_tag01",
+          "ln-hash-cytokine11_tag02",
+          "ln-hash-cytokine11_tag03",
+          "ln-hash-cytokine11_tag04",
+          "ln-hash-cytokine11_tag05",
+          "ln-hash-cytokine11_tag06",
+          "ln-hash-cytokine11_tag07",
+          "ln-hash-cytokine13_tag01",
+          "ln-hash-cytokine13_tag02",
+          "ln-hash-cytokine13_tag03",
+          "ln-hash-cytokine13_tag04",
+          "ln-hash-cytokine13_tag05",
+          "ln-hash-cytokine13_tag06",
+          "ln-hash-cytokine13_tag07",
+          "ln-hash-cytokine14_tag01",
+          "ln-hash-cytokine14_tag02",
+          "ln-hash-cytokine14_tag03",
+          "ln-hash-cytokine14_tag04",
+          "ln-hash-cytokine14_tag05",
+          "ln-hash-cytokine14_tag06",
+          "ln-hash-cytokine14_tag07",
+          "ln-hash-cytokine15_tag01",
+          "ln-hash-cytokine15_tag02",
+          "ln-hash-cytokine15_tag03",
+          "ln-hash-cytokine15_tag04",
+          "ln-hash-cytokine15_tag05",
+          "ln-hash-cytokine15_tag06",
+          "ln-hash-cytokine15_tag07",
+          "ln-hash-cytokine16_tag01",
+          "ln-hash-cytokine16_tag02",
+          "ln-hash-cytokine16_tag03"
+        ],
+        "n_categories": 301,
+        "counts": {},
+        "missing": 0
+      },
+      "cluster_manual": {
+        "categories": [
+          "B_cell_1",
+          "B_cell_2",
+          "B_cell_3",
+          "B_cell_4",
+          "B_cell_5",
+          "B_cell_6",
+          "ILC",
+          "Macrophage_1",
+          "Macrophage_2",
+          "Macrophage_3",
+          "Macrophage_4",
+          "Macrophage_5",
+          "MigDC_1",
+          "MigDC_2",
+          "MigDC_4",
+          "MigDC_5",
+          "MigDC_6",
+          "MigDC_7",
+          "Monocyte",
+          "NK_cell_1",
+          "NK_cell_2",
+          "Neutrophil",
+          "T_cell_CD4_1",
+          "T_cell_CD4_2",
+          "T_cell_CD4_3",
+          "T_cell_CD4_4",
+          "T_cell_CD4_5",
+          "T_cell_CD8_1",
+          "T_cell_CD8_2",
+          "T_cell_CD8_3",
+          "T_cell_CD8_4",
+          "T_cell_CD8_5",
+          "T_cell_CD8_6",
+          "T_cell_CD8_7",
+          "T_cell_CD8_8",
+          "T_cell_gd_1",
+          "T_cell_gd_2",
+          "T_cell_gd_3",
+          "T_cell_gd_4",
+          "T_cell_gd_5",
+          "Treg_1",
+          "Treg_2",
+          "cDC1_1",
+          "cDC1_2",
+          "cDC1_3",
+          "cDC2_1",
+          "cDC2_2",
+          "eTAC",
+          "pDC_1",
+          "pDC_2",
+          "pDC_3"
+        ],
+        "n_categories": 51,
+        "counts": {
+          "B_cell_1": 6893,
+          "B_cell_2": 442,
+          "B_cell_3": 344,
+          "B_cell_4": 199,
+          "B_cell_5": 160,
+          "B_cell_6": 48,
+          "ILC": 1378,
+          "Macrophage_1": 3188,
+          "Macrophage_2": 2454,
+          "Macrophage_3": 1687,
+          "Macrophage_4": 800,
+          "Macrophage_5": 568,
+          "MigDC_1": 3470,
+          "MigDC_2": 2452,
+          "MigDC_4": 2012,
+          "MigDC_5": 337,
+          "MigDC_6": 290,
+          "MigDC_7": 139,
+          "Monocyte": 2094,
+          "NK_cell_1": 6140,
+          "NK_cell_2": 2416,
+          "Neutrophil": 1309,
+          "T_cell_CD4_1": 6337,
+          "T_cell_CD4_2": 1073,
+          "T_cell_CD4_3": 868,
+          "T_cell_CD4_4": 329,
+          "T_cell_CD4_5": 93,
+          "T_cell_CD8_1": 4281,
+          "T_cell_CD8_2": 1255,
+          "T_cell_CD8_3": 798,
+          "T_cell_CD8_4": 728,
+          "T_cell_CD8_5": 667,
+          "T_cell_CD8_6": 348,
+          "T_cell_CD8_7": 351,
+          "T_cell_CD8_8": 272,
+          "T_cell_gd_1": 3795,
+          "T_cell_gd_2": 3503,
+          "T_cell_gd_3": 891,
+          "T_cell_gd_4": 380,
+          "T_cell_gd_5": 131,
+          "Treg_1": 4746,
+          "Treg_2": 3954,
+          "cDC1_1": 5576,
+          "cDC1_2": 1827,
+          "cDC1_3": 699,
+          "cDC2_1": 5205,
+          "cDC2_2": 521,
+          "eTAC": 1231,
+          "pDC_1": 7225,
+          "pDC_2": 101,
+          "pDC_3": 29
+        },
+        "missing": 0
+      },
+      "cytokine_family": {
+        "categories": [
+          "Common beta chain",
+          "Common beta chain/IL13/TSLP",
+          "Complement",
+          "Control",
+          "Growth factor",
+          "IL-1",
+          "IL-6/IL-12",
+          "IL-10",
+          "IL-17",
+          "Interferon",
+          "Other",
+          "TNF"
+        ],
+        "n_categories": 12,
+        "counts": {
+          "Common beta chain": 3445,
+          "Common beta chain/IL13/TSLP": 9304,
+          "Complement": 2188,
+          "Control": 1296,
+          "Growth factor": 10416,
+          "IL-1": 7907,
+          "IL-6/IL-12": 13446,
+          "IL-10": 5468,
+          "IL-17": 6409,
+          "Interferon": 6688,
+          "Other": 11070,
+          "TNF": 18397
+        },
+        "missing": 0
+      },
+      "disease": {
+        "categories": [
+          "healthy"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "healthy": 96034
+        },
+        "missing": 0
+      },
+      "nFeature_HTO": {
+        "dtype": "int64",
+        "shape": [
+          96034
+        ]
+      },
+      "ncounts": {
+        "dtype": "int64",
+        "shape": [
+          96034
+        ]
+      },
+      "ncounts_tags": {
+        "dtype": "int64",
+        "shape": [
+          96034
+        ]
+      },
+      "ngenes": {
+        "dtype": "int64",
+        "shape": [
+          96034
+        ]
+      },
+      "nperts": {
+        "dtype": "int64",
+        "shape": [
+          96034
+        ]
+      },
+      "organism": {
+        "categories": [
+          "mouse"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "mouse": 96034
+        },
+        "missing": 0
+      },
+      "percent_mito": {
+        "dtype": "float64",
+        "shape": [
+          96034
+        ]
+      },
+      "percent_ribo": {
+        "dtype": "float64",
+        "shape": [
+          96034
+        ]
+      },
+      "perturbation": {
+        "categories": [
+          "41BBL",
+          "APRIL",
+          "Adiponectin",
+          "BAFF",
+          "C3a",
+          "C5a",
+          "CD27L",
+          "CD30L",
+          "CD40L",
+          "Cardiotrophin-1",
+          "Decorin",
+          "EGF",
+          "FGF-basic",
+          "FasL",
+          "Flt3l",
+          "G-CSF",
+          "GDNF",
+          "GITRL",
+          "GM-CSF",
+          "HGF",
+          "IFNa1",
+          "IFNb",
+          "IFNe",
+          "IFNg",
+          "IFNk",
+          "IFNl2",
+          "IGF-I",
+          "IL1a",
+          "IL1b",
+          "IL1ra",
+          "IL2",
+          "IL3",
+          "IL4",
+          "IL5",
+          "IL6",
+          "IL7",
+          "IL9",
+          "IL10",
+          "IL11",
+          "IL12",
+          "IL13",
+          "IL15",
+          "IL17A",
+          "IL17B",
+          "IL17C",
+          "IL17D",
+          "IL17E",
+          "IL17F",
+          "IL18",
+          "IL19",
+          "IL20",
+          "IL21",
+          "IL22",
+          "IL23",
+          "IL24",
+          "IL27",
+          "IL30",
+          "IL31",
+          "IL33",
+          "IL34",
+          "IL36RA",
+          "IL36a",
+          "IL-Y",
+          "LIF",
+          "LIGHT",
+          "LTA1-B2",
+          "LTA2-B1",
+          "Leptin",
+          "M-CSF",
+          "Neuropoietin",
+          "Noggin",
+          "OSM",
+          "OX40L",
+          "Persephin",
+          "Prolactin",
+          "RANKL",
+          "Resistin",
+          "SCF",
+          "TGF-beta-1",
+          "TL1A",
+          "TNFa",
+          "TPO",
+          "TRAIL",
+          "TSLP",
+          "TWEAK",
+          "VEGF",
+          "control"
+        ],
+        "n_categories": 87,
+        "counts": {
+          "41BBL": 1030,
+          "APRIL": 1141,
+          "Adiponectin": 1086,
+          "BAFF": 1207,
+          "C3a": 1056,
+          "C5a": 1132,
+          "CD27L": 1053,
+          "CD30L": 1136,
+          "CD40L": 960,
+          "Cardiotrophin-1": 1135,
+          "Decorin": 1020,
+          "EGF": 1133,
+          "FGF-basic": 953,
+          "FasL": 1096,
+          "Flt3l": 1108,
+          "G-CSF": 984,
+          "GDNF": 1088,
+          "GITRL": 1095,
+          "GM-CSF": 1134,
+          "HGF": 1035,
+          "IFNa1": 1217,
+          "IFNb": 1089,
+          "IFNe": 1137,
+          "IFNg": 1069,
+          "IFNk": 1104,
+          "IFNl2": 1072,
+          "IGF-I": 1133,
+          "IL1a": 1073,
+          "IL1b": 1197,
+          "IL1ra": 1076,
+          "IL2": 1244,
+          "IL3": 1243,
+          "IL4": 1024,
+          "IL5": 1068,
+          "IL6": 1149,
+          "IL7": 1211,
+          "IL9": 1144,
+          "IL10": 1255,
+          "IL11": 1171,
+          "IL12": 1040,
+          "IL13": 1125,
+          "IL15": 1258,
+          "IL17A": 1095,
+          "IL17B": 1015,
+          "IL17C": 1044,
+          "IL17D": 1145,
+          "IL17E": 1024,
+          "IL17F": 1086,
+          "IL18": 1142,
+          "IL19": 1017,
+          "IL20": 976,
+          "IL21": 1163,
+          "IL22": 1177,
+          "IL23": 1037,
+          "IL24": 1043,
+          "IL27": 1160,
+          "IL30": 1105,
+          "IL31": 1165,
+          "IL33": 1046,
+          "IL34": 982,
+          "IL36RA": 1163,
+          "IL36a": 1210,
+          "IL-Y": 1091,
+          "LIF": 1200,
+          "LIGHT": 1088,
+          "LTA1-B2": 980,
+          "LTA2-B1": 1047,
+          "Leptin": 1113,
+          "M-CSF": 1118,
+          "Neuropoietin": 1079,
+          "Noggin": 1140,
+          "OSM": 1114,
+          "OX40L": 1144,
+          "Persephin": 1121,
+          "Prolactin": 1166,
+          "RANKL": 1088,
+          "Resistin": 1168,
+          "SCF": 944,
+          "TGF-beta-1": 1073,
+          "TL1A": 1120,
+          "TNFa": 1093,
+          "TPO": 1095,
+          "TRAIL": 998,
+          "TSLP": 1135,
+          "TWEAK": 1121,
+          "VEGF": 1026,
+          "control": 1296
+        },
+        "missing": 0
+      },
+      "perturbation_type": {
+        "categories": [
+          "cytokines"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "cytokines": 96034
+        },
+        "missing": 0
+      },
+      "seurat_clusters": {
+        "dtype": "int64",
+        "shape": [
+          96034
+        ]
+      },
+      "tissue_type": {
+        "categories": [
+          "primary"
+        ],
+        "n_categories": 1,
+        "counts": {
+          "primary": 96034
+        },
+        "missing": 0
+      }
+    },
+    "var_fields": [
+      "genes",
+      "ncells",
+      "ncounts"
+    ],
+    "X_encoding": "csr_matrix",
+    "X_shape": [
+      96034,
+      31053
+    ],
+    "layers": [],
+    "raw_available": false
+  }
+}

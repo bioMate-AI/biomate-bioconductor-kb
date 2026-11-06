@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-10T02:53:45.524Z",
+  "packageVersion": "0.1.1",
+  "clientEntry": "/private/tmp/biomate-published-connector-011/node_modules/@biomate/mcp-server/dist/index.js",
+  "scope": "Deployed OAuth gateway with real test account and existing run; no workflow execution",
+  "results": [
+    {
+      "step": "deployed-service-reachable",
+      "passed": true
+    },
+    {
+      "step": "dynamic-client-registration",
+      "passed": true
+    },
+    {
+      "step": "real-account-login-and-consent",
+      "passed": true
+    },
+    {
+      "step": "oauth-state-preserved",
+      "passed": true
+    },
+    {
+      "step": "pkce-code-exchange",
+      "passed": true
+    },
+    {
+      "step": "nineteen-supported-tools",
+      "passed": true
+    },
+    {
+      "step": "oauth-read-real-owned-run",
+      "passed": true
+    },
+    {
+      "step": "owned-run-output-inventory",
+      "passed": true
+    },
+    {
+      "step": "markdown-report-export",
+      "passed": true
+    },
+    {
+      "step": "refresh-rotated-and-persisted",
+      "passed": true
+    },
+    {
+      "step": "old-refresh-token-rejected",
+      "passed": true
+    },
+    {
+      "step": "write-without-scope-denied",
+      "passed": true
+    },
+    {
+      "step": "credentials-survive-client-restart",
+      "passed": true
+    },
+    {
+      "step": "revoke-temporary-personal-key",
+      "passed": true
+    }
+  ]
+}

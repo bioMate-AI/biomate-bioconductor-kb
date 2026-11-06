@@ -55,7 +55,7 @@ process PARSE_SPLIT_SEQ_SCRNA {
     export PARAM_MIN_GENES='${params.min_genes}'
 
     python3 << 'PYEOF'
-import json, os, csv, random
+import json, os, csv, sys
 
 def pi(v, d=50000):
     try: return int(float(v))
@@ -71,12 +71,14 @@ kit      = os.environ.get('PARAM_KIT', 'WT')
 min_umi  = pf(os.environ.get('PARAM_MIN_UMIS'), 100)
 min_g    = pf(os.environ.get('PARAM_MIN_GENES'), 50)
 
-random.seed(42)
+# integrity: was an RNG stub fabricating results; honest-fail until wired to parsetools / STARsolo.
+sys.stderr.write("ERROR: parse_split_seq_scrna is a stub with no real implementation — it requires parsetools (Parse Biosciences CLI) or STARsolo for split-pool barcode parsing, UMI dedup, and gene counting, plus real Parse Evercode FASTQ input data. Refusing to emit fabricated results.\\n")
+sys.exit(1)
 
-doublet_rate = 0.001  # very low for split-pool
-n_pass = int(n_cells * random.uniform(0.88, 0.96))
-median_umis = random.gauss(900, 250)   # slightly lower sensitivity than 10x
-median_genes = random.gauss(700, 180)
+doublet_rate = 0
+n_pass = 0
+median_umis = 0
+median_genes = 0
 
 qc = {
     'status': 'completed',
@@ -109,8 +111,8 @@ with open('cell_stats.csv', 'w', newline='') as f:
     w = csv.writer(f)
     w.writerow(['cell_id','umis','genes','pass_qc'])
     for i in range(min(n_pass, 100)):
-        u = max(min_umi, round(random.gauss(median_umis, 250)))
-        g = max(min_g, round(random.gauss(median_genes, 180)))
+        u = 0
+        g = 0
         w.writerow([f'Cell_{i+1}', u, g, True])
 
 lines = [

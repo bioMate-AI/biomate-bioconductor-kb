@@ -1,0 +1,17 @@
+.F.......                                                                [100%]
+=================================== FAILURES ===================================
+____________________________ test_prior_only_world _____________________________
+
+    def test_prior_only_world():
+        r = run(prior_strength=1.0, cluster_strength=0.0)
+        print("prior-only world", {k: {m: round(v, 3) for m, v in d.items()} for k, d in r.items()})
+>       assert r[5]["F"] >= 0.8 * r[5]["K"], r[5]
+E       AssertionError: {'K': 0.7166761004636093, 'A': 0.0008252821128491561, 'F': 0.5709892635797025, 'F2': 0.6651513009683029}
+E       assert 0.5709892635797025 >= (0.8 * 0.7166761004636093)
+
+test_fusion.py:39: AssertionError
+----------------------------- Captured stdout call -----------------------------
+prior-only world {5: {'K': 0.717, 'A': 0.001, 'F': 0.571, 'F2': 0.665}, 10: {'K': 0.717, 'A': 0.003, 'F': 0.428, 'F2': 0.608}, 25: {'K': 0.716, 'A': -0.014, 'F': 0.181, 'F2': 0.662}}
+=========================== short test summary info ============================
+FAILED test_fusion.py::test_prior_only_world - AssertionError: {'K': 0.716676...
+1 failed, 8 passed in 3.52s

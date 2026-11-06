@@ -1,0 +1,58 @@
+{
+  "recordVersion": "1.0",
+  "runId": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc",
+  "workflowName": "Predict ADMET Properties (AI)",
+  "status": "completed",
+  "createdAt": "2026-10-02T15:33:30.532Z",
+  "completedAt": "2026-10-02T15:36:11.952Z",
+  "parameters": {
+    "version": 1,
+    "toolParameters": {}
+  },
+  "inputBindings": [],
+  "outputs": [
+    {
+      "id": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc:nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b56621a0/run/pk_summary.json",
+      "name": "pk_summary.json",
+      "fileType": "text",
+      "sizeBytes": 1656,
+      "sha256": null
+    },
+    {
+      "id": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc:nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b56621a0/run/predict_admet_properties_output.txt",
+      "name": "predict_admet_properties_output.txt",
+      "fileType": "table",
+      "sizeBytes": 1524,
+      "sha256": null
+    },
+    {
+      "id": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc:nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b56621a0/run/predict_admet_properties_results.json",
+      "name": "predict_admet_properties_results.json",
+      "fileType": "text",
+      "sizeBytes": 1574,
+      "sha256": null
+    },
+    {
+      "id": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc:nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b56621a0/run/qc_metrics.json",
+      "name": "qc_metrics.json",
+      "fileType": "text",
+      "sizeBytes": 563,
+      "sha256": null
+    },
+    {
+      "id": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc:nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b56621a0/run/toxicity_report.json",
+      "name": "toxicity_report.json",
+      "fileType": "text",
+      "sizeBytes": 3252,
+      "sha256": null
+    },
+    {
+      "id": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc:nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/b56621a0/run/versions.yml",
+      "name": "versions.yml",
+      "fileType": "text",
+      "sizeBytes": 159,
+      "sha256": null
+    }
+  ],
+  "outputCount": 6
+}

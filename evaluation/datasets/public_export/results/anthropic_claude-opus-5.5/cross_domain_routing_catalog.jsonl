@@ -1,0 +1,200 @@
+{"id": "rna_001", "prediction": "nf-core/rnaseq", "prompt_tokens": 917, "completion_tokens": 12, "latency_ms": 2793}
+{"id": "rna_002", "prediction": "nf-core/rnaseq", "prompt_tokens": 915, "completion_tokens": 12, "latency_ms": 7468}
+{"id": "rna_003", "prediction": "nf-core/rnaseq", "prompt_tokens": 918, "completion_tokens": 12, "latency_ms": 2706}
+{"id": "rna_004", "prediction": "nf-core/rnaseq", "prompt_tokens": 915, "completion_tokens": 12, "latency_ms": 2409}
+{"id": "rna_005", "prediction": "nf-core/rnaseq", "prompt_tokens": 913, "completion_tokens": 12, "latency_ms": 3514}
+{"id": "rna_006", "prediction": "nf-core/bam_stringtie_merge", "prompt_tokens": 912, "completion_tokens": 17, "latency_ms": 3681}
+{"id": "rna_007", "prediction": "nf-core/rnaseq", "prompt_tokens": 916, "completion_tokens": 12, "latency_ms": 2321}
+{"id": "rna_008", "prediction": "nf-core/rnaseq", "prompt_tokens": 916, "completion_tokens": 12, "latency_ms": 2679}
+{"id": "rna_009", "prediction": "nf-core/rnaseq", "prompt_tokens": 918, "completion_tokens": 12, "latency_ms": 2279}
+{"id": "rna_010", "prediction": "nf-core/differentialabundance", "prompt_tokens": 913, "completion_tokens": 13, "latency_ms": 2899}
+{"id": "rna_011", "prediction": "nf-core/differentialabundance", "prompt_tokens": 916, "completion_tokens": 13, "latency_ms": 2779}
+{"id": "rna_012", "prediction": "nf-core/rnaseq", "prompt_tokens": 913, "completion_tokens": 12, "latency_ms": 2406}
+{"id": "rna_013", "prediction": "nf-core/differentialabundance", "prompt_tokens": 915, "completion_tokens": 13, "latency_ms": 3785}
+{"id": "rna_014", "prediction": "nf-core/rnaseq", "prompt_tokens": 911, "completion_tokens": 162, "latency_ms": 6337}
+{"id": "rna_015", "prediction": "nf-core/lncpipe", "prompt_tokens": 912, "completion_tokens": 12, "latency_ms": 2399}
+{"id": "sc_001", "prediction": "nf-core/scrnaseq", "prompt_tokens": 918, "completion_tokens": 13, "latency_ms": 3652}
+{"id": "sc_002", "prediction": "nf-core/scrnaseq", "prompt_tokens": 919, "completion_tokens": 13, "latency_ms": 2408}
+{"id": "sc_003", "prediction": "nf-core/scrnaseq", "prompt_tokens": 915, "completion_tokens": 13, "latency_ms": 2311}
+{"id": "sc_004", "prediction": "nf-core/scrnaseq", "prompt_tokens": 912, "completion_tokens": 13, "latency_ms": 2291}
+{"id": "sc_005", "prediction": "nf-core/scrnaseq", "prompt_tokens": 914, "completion_tokens": 13, "latency_ms": 2456}
+{"id": "sc_006", "prediction": "scrnaseq_standard_endtoend", "prompt_tokens": 923, "completion_tokens": 140, "latency_ms": 5681}
+{"id": "sc_007", "prediction": "scrna_doublet_qc", "prompt_tokens": 909, "completion_tokens": 12, "latency_ms": 2428}
+{"id": "sc_008", "prediction": "nf-core/scrnaseq", "prompt_tokens": 923, "completion_tokens": 13, "latency_ms": 3248}
+{"id": "sc_009", "prediction": "nf-core/spatialvi", "prompt_tokens": 909, "completion_tokens": 138, "latency_ms": 5354}
+{"id": "sc_010", "prediction": "nf-core/spatialvi", "prompt_tokens": 917, "completion_tokens": 125, "latency_ms": 9983}
+{"id": "sc_011", "prediction": "nf-core/spatialvi", "prompt_tokens": 913, "completion_tokens": 12, "latency_ms": 3473}
+{"id": "sc_012", "prediction": "scrnaseq_standard_endtoend", "prompt_tokens": 912, "completion_tokens": 117, "latency_ms": 5878}
+{"id": "var_001", "prediction": "nf-core/sarek", "prompt_tokens": 913, "completion_tokens": 10, "latency_ms": 2424}
+{"id": "var_002", "prediction": "nf-core/sarek", "prompt_tokens": 917, "completion_tokens": 93, "latency_ms": 5378}
+{"id": "var_003", "prediction": "nf-core/sarek", "prompt_tokens": 918, "completion_tokens": 10, "latency_ms": 4375}
+{"id": "var_004", "prediction": "nf-core/sarek", "prompt_tokens": 909, "completion_tokens": 10, "latency_ms": 2331}
+{"id": "var_005", "prediction": "nf-core/sarek", "prompt_tokens": 911, "completion_tokens": 10, "latency_ms": 3283}
+{"id": "var_006", "prediction": "nf-core/raredisease", "prompt_tokens": 911, "completion_tokens": 11, "latency_ms": 2549}
+{"id": "var_007", "prediction": "nf-core/raredisease", "prompt_tokens": 914, "completion_tokens": 11, "latency_ms": 5028}
+{"id": "var_008", "prediction": "nf-core/raredisease", "prompt_tokens": 917, "completion_tokens": 11, "latency_ms": 5150}
+{"id": "var_009", "prediction": "nf-core/raredisease", "prompt_tokens": 907, "completion_tokens": 11, "latency_ms": 3872}
+{"id": "var_010", "prediction": "nf-core/sarek", "prompt_tokens": 912, "completion_tokens": 10, "latency_ms": 19669}
+{"id": "var_011", "prediction": "nf-core/raredisease", "prompt_tokens": 914, "completion_tokens": 172, "latency_ms": 6223}
+{"id": "var_012", "prediction": "nf-core/sarek", "prompt_tokens": 916, "completion_tokens": 10, "latency_ms": 2384}
+{"id": "var_013", "prediction": "nf-core/raredisease", "prompt_tokens": 915, "completion_tokens": 11, "latency_ms": 2359}
+{"id": "var_014", "prediction": "nf-core/raredisease", "prompt_tokens": 912, "completion_tokens": 11, "latency_ms": 2511}
+{"id": "var_015", "prediction": "nf-core/sarek", "prompt_tokens": 909, "completion_tokens": 10, "latency_ms": 2445}
+{"id": "epi_001", "prediction": "nf-core/chipseq", "prompt_tokens": 915, "completion_tokens": 11, "latency_ms": 2495}
+{"id": "epi_002", "prediction": "nf-core/chipseq", "prompt_tokens": 915, "completion_tokens": 11, "latency_ms": 2490}
+{"id": "epi_003", "prediction": "nf-core/chipseq", "prompt_tokens": 915, "completion_tokens": 11, "latency_ms": 2860}
+{"id": "epi_004", "prediction": "nf-core/atacseq", "prompt_tokens": 911, "completion_tokens": 11, "latency_ms": 4430}
+{"id": "epi_005", "prediction": "nf-core/atacseq", "prompt_tokens": 912, "completion_tokens": 11, "latency_ms": 5485}
+{"id": "epi_006", "prediction": "nf-core/atacseq", "prompt_tokens": 911, "completion_tokens": 11, "latency_ms": 2464}
+{"id": "epi_007", "prediction": "nf-core/cutandrun", "prompt_tokens": 917, "completion_tokens": 12, "latency_ms": 2646}
+{"id": "epi_008", "prediction": "nf-core/cutandrun", "prompt_tokens": 912, "completion_tokens": 12, "latency_ms": 2708}
+{"id": "epi_009", "prediction": "nf-core/methylseq", "prompt_tokens": 915, "completion_tokens": 11, "latency_ms": 2449}
+{"id": "epi_010", "prediction": "nf-core/methylseq", "prompt_tokens": 915, "completion_tokens": 11, "latency_ms": 3056}
+{"id": "epi_011", "prediction": "nf-core/methylseq", "prompt_tokens": 913, "completion_tokens": 11, "latency_ms": 2433}
+{"id": "epi_012", "prediction": "nf-core/methylarray", "prompt_tokens": 911, "completion_tokens": 11, "latency_ms": 2441}
+{"id": "epi_013", "prediction": "nf-core/chipseq", "prompt_tokens": 915, "completion_tokens": 11, "latency_ms": 3592}
+{"id": "epi_014", "prediction": "nf-core/cutandrun", "prompt_tokens": 914, "completion_tokens": 150, "latency_ms": 6165}
+{"id": "epi_015", "prediction": "nf-core/cutandrun", "prompt_tokens": 913, "completion_tokens": 12, "latency_ms": 2776}
+{"id": "meta_001", "prediction": "nf-core/ampliseq", "prompt_tokens": 916, "completion_tokens": 12, "latency_ms": 2861}
+{"id": "meta_002", "prediction": "nf-core/ampliseq", "prompt_tokens": 908, "completion_tokens": 12, "latency_ms": 2770}
+{"id": "meta_003", "prediction": "nf-core/ampliseq", "prompt_tokens": 914, "completion_tokens": 12, "latency_ms": 2942}
+{"id": "meta_004", "prediction": "nf-core/ampliseq", "prompt_tokens": 916, "completion_tokens": 12, "latency_ms": 3172}
+{"id": "meta_005", "prediction": "nf-core/taxprofiler", "prompt_tokens": 917, "completion_tokens": 13, "latency_ms": 2886}
+{"id": "meta_006", "prediction": "nf-core/taxprofiler", "prompt_tokens": 915, "completion_tokens": 13, "latency_ms": 2402}
+{"id": "meta_007", "prediction": "nf-core/taxprofiler", "prompt_tokens": 910, "completion_tokens": 13, "latency_ms": 2571}
+{"id": "meta_008", "prediction": "nf-core/mag", "prompt_tokens": 914, "completion_tokens": 9, "latency_ms": 2419}
+{"id": "meta_009", "prediction": "nf-core/mag", "prompt_tokens": 910, "completion_tokens": 9, "latency_ms": 2352}
+{"id": "meta_010", "prediction": "nf-core/mag", "prompt_tokens": 911, "completion_tokens": 9, "latency_ms": 2531}
+{"id": "meta_011", "prediction": "nf-core/mag", "prompt_tokens": 914, "completion_tokens": 9, "latency_ms": 2482}
+{"id": "meta_012", "prediction": "nf-core/taxprofiler", "prompt_tokens": 925, "completion_tokens": 13, "latency_ms": 2937}
+{"id": "prot_001", "prediction": "nf-core/proteomicslfq", "prompt_tokens": 914, "completion_tokens": 14, "latency_ms": 2737}
+{"id": "prot_002", "prediction": "nf-core/proteomicslfq", "prompt_tokens": 912, "completion_tokens": 14, "latency_ms": 5967}
+{"id": "prot_003", "prediction": "nf-core/proteomicslfq", "prompt_tokens": 906, "completion_tokens": 196, "latency_ms": 6464}
+{"id": "prot_004", "prediction": "nf-core/proteomicslfq", "prompt_tokens": 911, "completion_tokens": 14, "latency_ms": 3737}
+{"id": "prot_005", "prediction": "nf-core/diaproteomics", "prompt_tokens": 916, "completion_tokens": 13, "latency_ms": 2480}
+{"id": "prot_006", "prediction": "nf-core/diaproteomics", "prompt_tokens": 911, "completion_tokens": 13, "latency_ms": 2741}
+{"id": "prot_007", "prediction": "nf-core/diaproteomics", "prompt_tokens": 914, "completion_tokens": 13, "latency_ms": 2372}
+{"id": "prot_008", "prediction": "", "latency_ms": 2412}
+{"id": "prot_009", "prediction": "nf-core/mhcquant", "prompt_tokens": 920, "completion_tokens": 12, "latency_ms": 2482}
+{"id": "prot_010", "prediction": "nf-core/mhcquant", "prompt_tokens": 911, "completion_tokens": 12, "latency_ms": 6854}
+{"id": "prot_011", "prediction": "nf-core/proteinfold", "prompt_tokens": 914, "completion_tokens": 12, "latency_ms": 2552}
+{"id": "prot_012", "prediction": "nf-core/proteomicslfq", "prompt_tokens": 914, "completion_tokens": 14, "latency_ms": 3222}
+{"id": "tx_001", "prediction": "nf-core/rnafusion", "prompt_tokens": 925, "completion_tokens": 12, "latency_ms": 2358}
+{"id": "tx_002", "prediction": "nf-core/rnafusion", "prompt_tokens": 918, "completion_tokens": 12, "latency_ms": 2307}
+{"id": "tx_003", "prediction": "nf-core/rnafusion", "prompt_tokens": 922, "completion_tokens": 12, "latency_ms": 4256}
+{"id": "tx_004", "prediction": "nf-core/differentialabundance", "prompt_tokens": 911, "completion_tokens": 13, "latency_ms": 9020}
+{"id": "tx_005", "prediction": "nf-core/differentialabundance", "prompt_tokens": 909, "completion_tokens": 13, "latency_ms": 9097}
+{"id": "tx_006", "prediction": "nf-core/differentialabundance", "prompt_tokens": 906, "completion_tokens": 13, "latency_ms": 7504}
+{"id": "tx_007", "prediction": "nf-core/smrnaseq", "prompt_tokens": 907, "completion_tokens": 13, "latency_ms": 2782}
+{"id": "tx_008", "prediction": "nf-core/smrnaseq", "prompt_tokens": 919, "completion_tokens": 13, "latency_ms": 6899}
+{"id": "tx_009", "prediction": "nf-core/lncpipe", "prompt_tokens": 912, "completion_tokens": 12, "latency_ms": 2761}
+{"id": "tx_010", "prediction": "nf-core/smrnaseq", "prompt_tokens": 908, "completion_tokens": 13, "latency_ms": 3174}
+{"id": "gen_001", "prediction": "nf-core/nanoseq", "prompt_tokens": 915, "completion_tokens": 12, "latency_ms": 2759}
+{"id": "gen_002", "prediction": "nf-core/nanoseq", "prompt_tokens": 915, "completion_tokens": 12, "latency_ms": 2214}
+{"id": "gen_003", "prediction": "nf-core/nanoseq", "prompt_tokens": 913, "completion_tokens": 12, "latency_ms": 2908}
+{"id": "gen_004", "prediction": "nf-core/hic", "prompt_tokens": 912, "completion_tokens": 9, "latency_ms": 2288}
+{"id": "gen_005", "prediction": "nf-core/hic", "prompt_tokens": 916, "completion_tokens": 9, "latency_ms": 2354}
+{"id": "gen_006", "prediction": "nf-core/nanoseq", "prompt_tokens": 913, "completion_tokens": 12, "latency_ms": 3706}
+{"id": "imm_001", "prediction": "nf-core/airrflow", "prompt_tokens": 914, "completion_tokens": 11, "latency_ms": 2465}
+{"id": "imm_002", "prediction": "nf-core/airrflow", "prompt_tokens": 910, "completion_tokens": 11, "latency_ms": 2320}
+{"id": "imm_003", "prediction": "nf-core/airrflow", "prompt_tokens": 916, "completion_tokens": 11, "latency_ms": 2567}
+{"id": "imm_004", "prediction": "nf-core/airrflow", "prompt_tokens": 913, "completion_tokens": 11, "latency_ms": 2436}
+{"id": "imm_005", "prediction": "nf-core/epitopeprediction", "prompt_tokens": 911, "completion_tokens": 14, "latency_ms": 2582}
+{"id": "dd_001", "prediction": "Structure Prediction Docking", "prompt_tokens": 921, "completion_tokens": 12, "latency_ms": 2406}
+{"id": "dd_002", "prediction": "Structure Prediction Docking", "prompt_tokens": 909, "completion_tokens": 12, "latency_ms": 3692}
+{"id": "dd_003", "prediction": "GROMACS Protein-Ligand MD + MM-GBSA", "prompt_tokens": 914, "completion_tokens": 25, "latency_ms": 2968}
+{"id": "dd_004", "prediction": "GROMACS Protein-Ligand MD + MM-GBSA", "prompt_tokens": 921, "completion_tokens": 25, "latency_ms": 2528}
+{"id": "dd_005", "prediction": "GROMACS Protein-Ligand MD + MM-GBSA", "prompt_tokens": 913, "completion_tokens": 25, "latency_ms": 2720}
+{"id": "dd_006", "prediction": "", "latency_ms": 2100}
+{"id": "dd_007", "prediction": "", "latency_ms": 2350}
+{"id": "dd_008", "prediction": "", "latency_ms": 1857}
+{"id": "adv_001", "prediction": "nf-core/raredisease", "prompt_tokens": 914, "completion_tokens": 11, "latency_ms": 3120}
+{"id": "adv_002", "prediction": "nf-core/sarek", "prompt_tokens": 912, "completion_tokens": 10, "latency_ms": 2653}
+{"id": "adv_003", "prediction": "scrnaseq_standard_endtoend", "prompt_tokens": 912, "completion_tokens": 130, "latency_ms": 5740}
+{"id": "adv_004", "prediction": "nf-core/chipseq", "prompt_tokens": 924, "completion_tokens": 11, "latency_ms": 2690}
+{"id": "adv_005", "prediction": "nf-core/cutandrun", "prompt_tokens": 912, "completion_tokens": 12, "latency_ms": 2903}
+{"id": "adv_006", "prediction": "nf-core/taxprofiler", "prompt_tokens": 913, "completion_tokens": 13, "latency_ms": 3144}
+{"id": "adv_007", "prediction": "nf-core/diaproteomics", "prompt_tokens": 918, "completion_tokens": 13, "latency_ms": 2483}
+{"id": "adv_008", "prediction": "nf-core/airrflow", "prompt_tokens": 923, "completion_tokens": 11, "latency_ms": 2766}
+{"id": "adv_009", "prediction": "nf-core/proteinfold", "prompt_tokens": 911, "completion_tokens": 12, "latency_ms": 2480}
+{"id": "adv_010", "prediction": "nf-core/differentialabundance", "prompt_tokens": 914, "completion_tokens": 64, "latency_ms": 4631}
+{"id": "vc_001", "prediction": "cipa_cardiac_safety_ode", "prompt_tokens": 923, "completion_tokens": 16, "latency_ms": 2387}
+{"id": "vc_002", "prediction": "", "latency_ms": 1796}
+{"id": "vc_003", "prediction": "ode_signaling_simulation", "prompt_tokens": 923, "completion_tokens": 12, "latency_ms": 2641}
+{"id": "vc_004", "prediction": "ode_signaling_simulation", "prompt_tokens": 920, "completion_tokens": 12, "latency_ms": 2915}
+{"id": "vc_005", "prediction": "", "latency_ms": 1798}
+{"id": "vc_006", "prediction": "transcriptomic_moa_lincs", "prompt_tokens": 925, "completion_tokens": 15, "latency_ms": 4554}
+{"id": "vc_007", "prediction": "gears_perturbation_prediction", "prompt_tokens": 912, "completion_tokens": 13, "latency_ms": 2630}
+{"id": "vc_008", "prediction": "synergyfinder", "prompt_tokens": 921, "completion_tokens": 8, "latency_ms": 2608}
+{"id": "vc_009", "prediction": "physicell_tumor_tgi", "prompt_tokens": 927, "completion_tokens": 142, "latency_ms": 6186}
+{"id": "vc_010", "prediction": "virtual_patient_cohort", "prompt_tokens": 925, "completion_tokens": 12, "latency_ms": 2422}
+{"id": "vc_011", "prediction": "transcriptformer_cell_state", "prompt_tokens": 916, "completion_tokens": 103, "latency_ms": 4814}
+{"id": "vc_012", "prediction": "transcriptomic_moa_lincs", "prompt_tokens": 910, "completion_tokens": 15, "latency_ms": 2961}
+{"id": "vc_013", "prediction": "cipa_cardiac_safety_ode", "prompt_tokens": 917, "completion_tokens": 16, "latency_ms": 2643}
+{"id": "vc_014", "prediction": "physicell_tumor_tgi", "prompt_tokens": 914, "completion_tokens": 13, "latency_ms": 2765}
+{"id": "vc_015", "prediction": "virtual_patient_cohort", "prompt_tokens": 912, "completion_tokens": 77, "latency_ms": 4845}
+{"id": "sc_013", "prediction": "cite_seq_preprocessing", "prompt_tokens": 923, "completion_tokens": 80, "latency_ms": 4344}
+{"id": "sc_014", "prediction": "multiome_rna_atac", "prompt_tokens": 921, "completion_tokens": 11, "latency_ms": 2511}
+{"id": "sc_015", "prediction": "scrna_doublet_qc", "prompt_tokens": 922, "completion_tokens": 12, "latency_ms": 2497}
+{"id": "sc_016", "prediction": "bd_rhapsody_scrna", "prompt_tokens": 913, "completion_tokens": 14, "latency_ms": 2486}
+{"id": "sc_017", "prediction": "parse_split_seq_scrna", "prompt_tokens": 920, "completion_tokens": 13, "latency_ms": 2569}
+{"id": "sc_018", "prediction": "merfish_spatial_analysis", "prompt_tokens": 922, "completion_tokens": 13, "latency_ms": 2754}
+{"id": "sc_019", "prediction": "cite_seq_preprocessing", "prompt_tokens": 917, "completion_tokens": 132, "latency_ms": 5015}
+{"id": "sc_020", "prediction": "multiome_rna_atac", "prompt_tokens": 918, "completion_tokens": 11, "latency_ms": 2670}
+{"id": "sc_021", "prediction": "scrna_doublet_qc", "prompt_tokens": 920, "completion_tokens": 12, "latency_ms": 2453}
+{"id": "sc_022", "prediction": "merfish_spatial_analysis", "prompt_tokens": 921, "completion_tokens": 424, "latency_ms": 7873}
+{"id": "sc_023", "prediction": "parse_split_seq_scrna", "prompt_tokens": 924, "completion_tokens": 13, "latency_ms": 2446}
+{"id": "sc_024", "prediction": "bd_rhapsody_scrna", "prompt_tokens": 919, "completion_tokens": 14, "latency_ms": 2639}
+{"id": "dd_101", "prediction": "", "latency_ms": 1973}
+{"id": "dd_102", "prediction": "", "latency_ms": 2167}
+{"id": "dd_103", "prediction": "", "latency_ms": 1599}
+{"id": "dd_104", "prediction": "", "latency_ms": 1721}
+{"id": "dd_105", "prediction": "", "latency_ms": 2603}
+{"id": "dd_106", "prediction": "", "latency_ms": 1826}
+{"id": "dd_107", "prediction": "", "latency_ms": 2587}
+{"id": "dd_108", "prediction": "", "latency_ms": 2368}
+{"id": "sc2_001", "prediction": "scrnaseq_standard_endtoend", "prompt_tokens": 922, "completion_tokens": 106, "latency_ms": 5705}
+{"id": "sc2_002", "prediction": "nf-core/scdownstream", "prompt_tokens": 930, "completion_tokens": 131, "latency_ms": 5327}
+{"id": "sc2_003", "prediction": "scrna_doublet_qc", "prompt_tokens": 926, "completion_tokens": 12, "latency_ms": 2630}
+{"id": "sc2_004", "prediction": "scrnaseq_trajectory_pseudotime", "prompt_tokens": 922, "completion_tokens": 19, "latency_ms": 6046}
+{"id": "sc2_005", "prediction": "nf-core/scrnaseq", "prompt_tokens": 919, "completion_tokens": 13, "latency_ms": 2573}
+{"id": "sc2_006", "prediction": "nf-core/hadge", "prompt_tokens": 914, "completion_tokens": 10, "latency_ms": 2337}
+{"id": "sc2_007", "prediction": "nf-core/scnanoseq", "prompt_tokens": 920, "completion_tokens": 13, "latency_ms": 2457}
+{"id": "sc2_008", "prediction": "nf-core/scdownstream", "prompt_tokens": 920, "completion_tokens": 147, "latency_ms": 5668}
+{"id": "sc2_009", "prediction": "scrna_doublet_qc", "prompt_tokens": 923, "completion_tokens": 12, "latency_ms": 2494}
+{"id": "sc2_010", "prediction": "scrnaseq_trajectory_pseudotime", "prompt_tokens": 914, "completion_tokens": 19, "latency_ms": 9536}
+{"id": "sc2_011", "prediction": "scthi_tme_classification", "prompt_tokens": 915, "completion_tokens": 213, "latency_ms": 5965}
+{"id": "sc2_012", "prediction": "scrnaseq_standard_endtoend", "prompt_tokens": 927, "completion_tokens": 121, "latency_ms": 5469}
+{"id": "sc2_013", "prediction": "scrna_doublet_qc", "prompt_tokens": 921, "completion_tokens": 367, "latency_ms": 7357}
+{"id": "sc2_014", "prediction": "parse_split_seq_scrna", "prompt_tokens": 919, "completion_tokens": 13, "latency_ms": 2458}
+{"id": "sc2_015", "prediction": "nf-core/marsseq", "prompt_tokens": 915, "completion_tokens": 11, "latency_ms": 2818}
+{"id": "sp_001", "prediction": "nf-core/spatialvi", "prompt_tokens": 922, "completion_tokens": 12, "latency_ms": 2312}
+{"id": "sp_002", "prediction": "visium_voyager_spatial_esda", "prompt_tokens": 913, "completion_tokens": 74, "latency_ms": 4653}
+{"id": "sp_003", "prediction": "spatial_visium_banksy", "prompt_tokens": 919, "completion_tokens": 12, "latency_ms": 2638}
+{"id": "sp_004", "prediction": "spatial_deconvolution_rctd", "prompt_tokens": 919, "completion_tokens": 15, "latency_ms": 2427}
+{"id": "sp_005", "prediction": "nf-core/spatialxe", "prompt_tokens": 922, "completion_tokens": 12, "latency_ms": 4071}
+{"id": "sp_006", "prediction": "visium_voyager_spatial_esda", "prompt_tokens": 932, "completion_tokens": 15, "latency_ms": 2735}
+{"id": "sp_007", "prediction": "nf-core/spatialvi", "prompt_tokens": 920, "completion_tokens": 12, "latency_ms": 2867}
+{"id": "sp_008", "prediction": "spatial_visium_banksy", "prompt_tokens": 915, "completion_tokens": 12, "latency_ms": 2635}
+{"id": "sp_009", "prediction": "spatial_ligand_receptor_liana", "prompt_tokens": 917, "completion_tokens": 16, "latency_ms": 2402}
+{"id": "sp_010", "prediction": "visium_voyager_spatial_esda", "prompt_tokens": 910, "completion_tokens": 15, "latency_ms": 2697}
+{"id": "sp_011", "prediction": "nf-core/molkart", "prompt_tokens": 907, "completion_tokens": 10, "latency_ms": 3157}
+{"id": "sp_012", "prediction": "spatial_visium_banksy", "prompt_tokens": 915, "completion_tokens": 160, "latency_ms": 6564}
+{"id": "sp_013", "prediction": "spatial_deconvolution_rctd", "prompt_tokens": 914, "completion_tokens": 15, "latency_ms": 2551}
+{"id": "sp_014", "prediction": "visium_voyager_spatial_esda", "prompt_tokens": 912, "completion_tokens": 93, "latency_ms": 5316}
+{"id": "sp_015", "prediction": "visium_voyager_spatial_esda", "prompt_tokens": 920, "completion_tokens": 15, "latency_ms": 2504}
+{"id": "mo_001", "prediction": "cite_seq_preprocessing", "prompt_tokens": 930, "completion_tokens": 164, "latency_ms": 6336}
+{"id": "mo_002", "prediction": "cite_seq_preprocessing", "prompt_tokens": 921, "completion_tokens": 13, "latency_ms": 2689}
+{"id": "mo_003", "prediction": "multiome_rna_atac", "prompt_tokens": 922, "completion_tokens": 11, "latency_ms": 2826}
+{"id": "mo_004", "prediction": "nipalsmcia_single_cell_cite_seq_mcia", "prompt_tokens": 915, "completion_tokens": 24, "latency_ms": 2612}
+{"id": "mo_005", "prediction": "multiome_rna_atac", "prompt_tokens": 931, "completion_tokens": 11, "latency_ms": 6093}
+{"id": "mo_006", "prediction": "multiome_rna_atac", "prompt_tokens": 919, "completion_tokens": 11, "latency_ms": 2391}
+{"id": "mo_007", "prediction": "multiome_rna_atac", "prompt_tokens": 921, "completion_tokens": 11, "latency_ms": 2685}
+{"id": "mo_008", "prediction": "nipalsmcia_single_cell_cite_seq_mcia", "prompt_tokens": 912, "completion_tokens": 206, "latency_ms": 6970}
+{"id": "mo_009", "prediction": "cite_seq_preprocessing", "prompt_tokens": 908, "completion_tokens": 107, "latency_ms": 5127}
+{"id": "mo_010", "prediction": "spatial_multiomics_integration", "prompt_tokens": 914, "completion_tokens": 164, "latency_ms": 6879}
+{"id": "mo_011", "prediction": "nipalsmcia_single_cell_cite_seq_mcia", "prompt_tokens": 923, "completion_tokens": 384, "latency_ms": 7754}
+{"id": "mo_012", "prediction": "nf-core/atacseq", "prompt_tokens": 916, "completion_tokens": 11, "latency_ms": 2452}
+{"id": "mo_013", "prediction": "nf-core/hic", "prompt_tokens": 916, "completion_tokens": 9, "latency_ms": 2560}
+{"id": "mo_014", "prediction": "nf-core/hic", "prompt_tokens": 916, "completion_tokens": 9, "latency_ms": 4760}
+{"id": "mo_015", "prediction": "nipalsmcia_single_cell_cite_seq_mcia", "prompt_tokens": 927, "completion_tokens": 298, "latency_ms": 6839}

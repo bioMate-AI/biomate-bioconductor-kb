@@ -33,7 +33,8 @@ from typing import Any, Optional
 
 log = logging.getLogger(__name__)
 
-_REPO_ROOT = Path(__file__).resolve().parents[5]
+from ._data_root import data_root  # deploy-layout-independent writable data root
+_REPO_ROOT = data_root().parent
 _PIPELINE_DATA_DIR = _REPO_ROOT / "data" / "ind_demo" / "registry" / "pipeline_data"
 _AUDIT_LOG = _REPO_ROOT / "data" / "ind_demo" / "registry" / "pipeline_data_audit.jsonl"
 

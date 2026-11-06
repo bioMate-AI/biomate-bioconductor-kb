@@ -1,0 +1,16 @@
+{
+  "task": "param_prefill",
+  "mode": null,
+  "model": "anthropic/claude-opus-5.5",
+  "n": 170,
+  "n_with_usage": 148,
+  "input_tokens_total": 27631,
+  "output_tokens_total": 20581,
+  "input_tokens_mean": 186.69594594594594,
+  "output_tokens_mean": 139.0608108108108,
+  "latency_ms_p50": 5269,
+  "latency_ms_p95": 8884,
+  "latency_ms_mean": 5237.7764705882355,
+  "n_with_latency": 170,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

@@ -1,0 +1,51 @@
+{
+  "param_source": "Li-Merz 12-6 CM set, TIP3P (Li,Roberts,Chakravorty,Merz JCTC 2013,9,2733); Rmin/2=1.407 A eps=0.016867 kcal/mol",
+  "admissible": false,
+  "gate": "A2: both controls dG<=-5.0 AND clustered within 30 kcal/mol",
+  "results": {
+    "CTRL-TRIVEHEXIN": {
+      "dG_bind_kcal_mol": -7.21,
+      "E_complex": -4495.4,
+      "E_receptor_incl_Mn": -4076.2,
+      "E_ligand": -412.0,
+      "npep": 9,
+      "n_mn": 3,
+      "ring_closed": true,
+      "ok": true
+    },
+    "CTRL-AVEBEHEXIN": {
+      "dG_bind_kcal_mol": -122.22,
+      "E_complex": -5274.0,
+      "E_receptor_incl_Mn": -4797.6,
+      "E_ligand": -354.1,
+      "npep": 9,
+      "n_mn": 3,
+      "ring_closed": true,
+      "ok": true
+    },
+    "AVB6-SH-M7-01": {
+      "dG_bind_kcal_mol": -113.62,
+      "E_complex": -5590.5,
+      "E_receptor_incl_Mn": -5064.7,
+      "E_ligand": -412.2,
+      "npep": 7,
+      "n_mn": 3,
+      "ring_closed": true,
+      "ok": true
+    },
+    "AVB6-SH-M11-01": {
+      "dG_bind_kcal_mol": -123.87,
+      "E_complex": -5406.7,
+      "E_receptor_incl_Mn": -4911.7,
+      "E_ligand": -371.1,
+      "npep": 11,
+      "n_mn": 3,
+      "ring_closed": true,
+      "ok": true
+    }
+  },
+  "ranking": null,
+  "note": "RELATIVE within-avb6 MM-GBSA, receptor-side Mn, CHARMM36m/GBn2. A fixed-charge non-bonded +2 metal gives enormous distance-sensitive electrostatics; a 12-6-4 or bonded/CaDA Mn model is needed for an admissible energy step. The geometric site-fidelity gate (metal_mmgbsa_prep.py) is the defensible metal-aware result. Ground truth = wet-lab assay.",
+  "control_spread_kcal": 115.0,
+  "reason": "controls DIVERGE by 115 kcal/mol (Trivehexin -7.2 vs avebehexin -122.2): two comparable known avb6 binders cannot differ this much; dG is dominated by the artifactual distance-sensitive Asp-Mn2+ electrostatic (fixed-charge non-bonded metal), NOT recoverable binding. INADMISSIBLE."
+}

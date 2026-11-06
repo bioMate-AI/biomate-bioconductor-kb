@@ -1,0 +1,290 @@
+{
+  "verified": 57,
+  "checks": [
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "rna_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "rna_kg_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "rna_protein_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "full_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "full_shuffled_kg_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "rna_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "rna_kg_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "rna_protein_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "full_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "full_shuffled_kg_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "rna_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "rna_kg_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "rna_protein_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "full_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "checkpoint": "full_shuffled_kg_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_rna_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_full_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_full_shuffled_kg_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_full_plus_GSE_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_rna_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_full_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_full_shuffled_kg_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_full_plus_GSE_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_rna_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_full_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_full_shuffled_kg_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "log1p_full_plus_GSE_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_rna_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_full_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_full_shuffled_kg_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_full_plus_GSE_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_rna_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_full_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_full_shuffled_kg_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_full_plus_GSE_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_rna_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_full_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_full_shuffled_kg_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "checkpoint": "centered_log1p_full_plus_GSE_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "checkpoint": "extra_RNA_only_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "checkpoint": "ATAC_paired_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "checkpoint": "ATAC_shuffled_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "checkpoint": "extra_RNA_only_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "checkpoint": "ATAC_paired_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "checkpoint": "ATAC_shuffled_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "checkpoint": "extra_RNA_only_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "checkpoint": "ATAC_paired_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "checkpoint": "ATAC_shuffled_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "checkpoint": "encoder_features_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "checkpoint": "random_features_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "checkpoint": "shuffled_training_effects_seed0",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "checkpoint": "encoder_features_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "checkpoint": "random_features_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "checkpoint": "shuffled_training_effects_seed1",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "checkpoint": "encoder_features_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "checkpoint": "random_features_seed2",
+      "all_saved_test_predictions": "pass"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "checkpoint": "shuffled_training_effects_seed2",
+      "all_saved_test_predictions": "pass"
+    }
+  ]
+}

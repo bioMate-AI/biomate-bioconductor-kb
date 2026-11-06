@@ -1,0 +1,12 @@
+[Unit]
+Description=BioMate isolated HTTP application acceptance check
+After=biomate-local-llm.service biomate-trial-backend.service biomate-trial-frontend.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/biomate-trial
+ExecStart=/usr/bin/python3 /opt/biomate-trial/evaluate-application.py
+TimeoutStartSec=1800
+TimeoutStopSec=10
+RemainAfterExit=yes

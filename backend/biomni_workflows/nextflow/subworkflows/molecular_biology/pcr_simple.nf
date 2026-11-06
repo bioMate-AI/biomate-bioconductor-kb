@@ -54,7 +54,7 @@ with open("pcr_simple_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("pcr_simple_output.txt", "w") as f:
-    f.write("Biomni: Pcr Simple Results" + NL)
+    f.write("BioMate: Pcr Simple Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

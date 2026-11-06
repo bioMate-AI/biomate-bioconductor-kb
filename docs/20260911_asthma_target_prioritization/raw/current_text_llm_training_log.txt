@@ -1,0 +1,28 @@
+[immuno-llm] base=openai/gpt-oss-20b  quantization=auto (4bit=False)
+[immuno-llm] loading ontology retriever (/opt/il/data/ontology_dict.csv)...
+[immuno-llm] 68784 ontology entries indexed
+Traceback (most recent call last):
+  File "/opt/il/train_immuno_llm.py", line 748, in <module>
+    main()
+  File "/opt/il/train_immuno_llm.py", line 589, in main
+    rag = RagIndex(args.rag_dir, device=dev)
+  File "/opt/il/train_immuno_llm.py", line 216, in __init__
+    from sentence_transformers import SentenceTransformer
+  File "/opt/venv/lib64/python3.9/site-packages/sentence_transformers/__init__.py", line 10, in <module>
+    from sentence_transformers.backend import (
+  File "/opt/venv/lib64/python3.9/site-packages/sentence_transformers/backend/__init__.py", line 3, in <module>
+    from .load import load_onnx_model, load_openvino_model
+  File "/opt/venv/lib64/python3.9/site-packages/sentence_transformers/backend/load.py", line 7, in <module>
+    from transformers.configuration_utils import PretrainedConfig
+  File "/opt/venv/lib64/python3.9/site-packages/transformers/__init__.py", line 27, in <module>
+    from . import dependency_versions_check
+  File "/opt/venv/lib64/python3.9/site-packages/transformers/dependency_versions_check.py", line 57, in <module>
+    require_version_core(deps[pkg])
+  File "/opt/venv/lib64/python3.9/site-packages/transformers/utils/versions.py", line 117, in require_version_core
+    return require_version(requirement, hint)
+  File "/opt/venv/lib64/python3.9/site-packages/transformers/utils/versions.py", line 111, in require_version
+    _compare_versions(op, got_ver, want_ver, requirement, pkg, hint)
+  File "/opt/venv/lib64/python3.9/site-packages/transformers/utils/versions.py", line 44, in _compare_versions
+    raise ImportError(
+ImportError: huggingface-hub>=0.34.0,<1.0 is required for a normal functioning of this module, but found huggingface-hub==1.8.0.
+Try: `pip install transformers -U` or `pip install -e '.[dev]'` if you're working with git main

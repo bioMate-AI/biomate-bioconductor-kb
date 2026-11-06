@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, waitFor, cleanup, act } from "@testing-library/react";
 import { WorkflowArtifact } from "./workflow-artifact";
 
 vi.mock("./parameter-dialog", () => ({
@@ -29,17 +29,23 @@ vi.mock("./qc-gate-modal", () => ({
 }));
 
 class MockEventSource {
+  static instances: MockEventSource[] = [];
+  listeners = new Map<string, (event: any) => void>();
+  constructor() { MockEventSource.instances.push(this); }
   onopen: ((this: EventSource, ev: Event) => any) | null = null;
   onmessage: ((this: EventSource, ev: MessageEvent) => any) | null = null;
   onerror: ((this: EventSource, ev: Event) => any) | null = null;
-  addEventListener() {}
+  addEventListener(kind: string, listener: (event: any) => void) { this.listeners.set(kind, listener); }
   removeEventListener() {}
   close() {}
 }
 
 describe("WorkflowArtifact QC summary panel", () => {
+  afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    MockEventSource.instances = [];
     vi.stubGlobal("EventSource", MockEventSource as unknown as typeof EventSource);
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -109,6 +115,118 @@ describe("WorkflowArtifact QC summary panel", () => {
     expect(globalThis.navigator.clipboard.writeText).toHaveBeenCalledWith(
       "QC was applied with rnaseq_ribodepleted profile."
     );
+  });
+
+  it("does not rerun or edit parameters for a late post-process finding", async () => {
+    const onRun = vi.fn();
+    const onParameterChange = vi.fn();
+    render(<WorkflowArtifact workflow={{ name: "ADMET" }} steps={[]} isCompleted
+      invocationId="inv-1" onRun={onRun} onParameterChange={onParameterChange} />);
+    await waitFor(() => expect(MockEventSource.instances.length).toBeGreaterThan(0));
+    const event = { data: JSON.stringify({ process_name: "ADMET", execution_control: "assessment_only",
+      failures: [{ metric: "DILI", value: 0.875, threshold: 0.5 }],
+      suggestions: [{ parameter: "logp_max", suggestedValue: 4, confidence: 0.9 }] }) };
+    act(() => MockEventSource.instances[0].listeners.get('qc_gate_triggered')?.(event));
+    expect(onRun).not.toHaveBeenCalled();
+    expect(onParameterChange).not.toHaveBeenCalled();
+    expect(screen.queryByText(/apply suggestions/i)).not.toBeInTheDocument();
+  });
+
+  // Audit gap #8 (2026-09-09): the happy-path test above never exercised the
+  // honest-hide branch (workflow-artifact.tsx ~L1454:
+  //   qcReport && (gates_triggered > 0 || warnings_emitted > 0)
+  // ). A qcReport that IS present but reports zero gates and zero warnings must
+  // NOT render a "QC Summary" panel — showing an empty QC panel would imply QC
+  // ran and found something. This test proves the gating condition, not a null
+  // report: the fetch returns a truthy object with zeros so setQCReport fires.
+  it("HIDES the QC Summary panel when no gates fired and no warnings were emitted", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/invocations/inv-empty/qc-events")) {
+        return {
+          ok: true,
+          json: async () => ({
+            gates_triggered: 0,
+            warnings_emitted: 0,
+            active_profile: "rnaseq_ribodepleted",
+            events: [],
+            methods_text: "",
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({}) } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    render(
+      <WorkflowArtifact
+        workflow={{ name: "RNA workflow" }}
+        steps={[]}
+        isCompleted={true}
+        invocationId="inv-empty"
+      />
+    );
+
+    // Wait until the qc-events fetch has resolved (report is set), so the
+    // absence assertion isn't just racing the effect.
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([u]) =>
+          String(u).includes("/api/invocations/inv-empty/qc-events")
+        )
+      ).toBe(true);
+    });
+    // qcReport is truthy but zero on both counters → panel stays hidden.
+    expect(screen.queryByText("QC Summary")).not.toBeInTheDocument();
+  });
+
+  // Plural-branch coverage: gates_triggered=2 must render "2 gates" (not
+  // "2 gate"). The single happy path only ever exercised the singular label.
+  it("pluralises the gate count when multiple gates fired", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/invocations/inv-plural/qc-events")) {
+        return {
+          ok: true,
+          json: async () => ({
+            gates_triggered: 2,
+            warnings_emitted: 0,
+            active_profile: "rnaseq_ribodepleted",
+            events: [
+              {
+                type: "gate",
+                process_name: "STAR_ALIGN",
+                failures: [{ metric: "alignment_rate", value: 8, message: "Fail A" }],
+              },
+              {
+                type: "gate",
+                process_name: "SALMON_QUANT",
+                failures: [{ metric: "mapping_rate", value: 12, message: "Fail B" }],
+              },
+            ],
+            methods_text: "Two gates fired.",
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({}) } as Response;
+    }) as unknown as typeof fetch);
+
+    render(
+      <WorkflowArtifact
+        workflow={{ name: "RNA workflow" }}
+        steps={[]}
+        isCompleted={true}
+        invocationId="inv-plural"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("QC Summary")).toBeInTheDocument();
+    });
+    // Plural label (not "2 gate").
+    expect(screen.getByText("2 gates")).toBeInTheDocument();
+    // A zero-warning report must NOT render the warnings pill.
+    expect(screen.queryByText(/\bwarning\b/)).not.toBeInTheDocument();
   });
 });
 

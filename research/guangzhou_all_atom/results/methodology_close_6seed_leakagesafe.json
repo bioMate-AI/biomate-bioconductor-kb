@@ -1,0 +1,36 @@
+{
+  "what": "generator-DPO verified-reward close \u2014 STATISTICAL replication (leakage-safe cluster-disjoint oracles)",
+  "signal": "permeability (CycPeptMPDB measured, collected)",
+  "split": "cluster-disjoint(monomer-Tanimoto>=0.6)",
+  "n_seeds": 6,
+  "delta_independent_evaluatorB": [
+    0.1162,
+    0.1351,
+    0.0893,
+    0.0564,
+    0.1077,
+    0.0856
+  ],
+  "delta_reward_oracleA": [
+    0.0678,
+    0.175,
+    0.1875,
+    0.1188,
+    0.1631,
+    0.093
+  ],
+  "oracleA_on_B_r2": [
+    0.073,
+    0.073,
+    0.17,
+    0.121,
+    0.071,
+    0.103
+  ],
+  "mean_dB": 0.0984,
+  "se_dB": 0.0112,
+  "n_improved": 6,
+  "wilcoxon_p": 0.0312,
+  "anticircular_corr_dB_dA": 0.192,
+  "note": "6/6 seeds positive on the INDEPENDENT (leakage-safe) evaluator; honest +0.098 vs the inflated +0.251 from the earlier leaky hash-split. Display-binding instances excluded: oracle cross-split R2<=0 (noise reward)."
+}

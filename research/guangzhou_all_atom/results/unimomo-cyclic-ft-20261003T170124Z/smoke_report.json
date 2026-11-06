@@ -1,0 +1,9 @@
+{
+  "mode": "real_cuda_one_epoch_smoke",
+  "successful_updates": 502,
+  "expected_updates": 502,
+  "frozen_ae_unchanged": true,
+  "changed_trainable_parameters": 199,
+  "checkpoint": "./ckpts/cyclic_ft/version_0/checkpoint/epoch0_step502.ckpt",
+  "passed": true
+}

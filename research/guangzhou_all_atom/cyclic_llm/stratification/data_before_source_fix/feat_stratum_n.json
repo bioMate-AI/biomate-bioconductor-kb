@@ -1,0 +1,17 @@
+{
+ "topology:head_to_tail": 4660,
+ "topology:lariat_sc_cterm": 1521,
+ "topology:lariat_nterm_sc": 779,
+ "length:<=5": 193,
+ "length:6": 1975,
+ "length:7": 1904,
+ "length:8": 102,
+ "length:>=9": 2786,
+ "n_D:0": 965,
+ "n_D:1-2": 3048,
+ "n_D:>=3": 2947,
+ "n_methyl:0": 916,
+ "n_methyl:1-2": 3350,
+ "n_methyl:3-4": 1817,
+ "n_methyl:>=5": 877
+}

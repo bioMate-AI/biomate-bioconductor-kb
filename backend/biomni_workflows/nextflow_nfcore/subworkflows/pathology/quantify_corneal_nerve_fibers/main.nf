@@ -78,6 +78,52 @@ def auto_convert(val):
 
 
 
+def _resolve_image_path(p):
+    # Resolve the input image to a real local file (no fabrication of results).
+    #  - missing/placeholder -> a DETERMINISTIC synthetic IF image (drawn nerve
+    #    fibers on a dark background; no RNG) so the param-less demo runs the REAL
+    #    thresholding/skeletonization pipeline on genuine image content.
+    #  - http(s)://, s3:// URI -> downloaded to a local file (BioMate stages user
+    #    uploads as s3://; the executor bind-mounts the aws CLI at /opt/aws-cli).
+    #  - local path -> returned as-is (the analysis raises if it cannot load it).
+    import os
+    if p in (None, "", "null", "mock_corneal_nerve.png"):
+        import numpy as np
+        from skimage import io as _sio
+        from skimage.draw import line as _line
+        demo = np.zeros((512, 512), dtype=np.uint8)
+        for (r0, c0, r1, c1) in [(40,60,470,420),(60,420,460,70),(20,250,500,260),(250,20,260,500),(120,80,420,450)]:
+            rr, cc = _line(r0, c0, r1, c1)
+            demo[rr, cc] = 255
+        dest = os.path.join(os.getcwd(), "corneal_nerve_synthetic_demo.png")
+        _sio.imsave(dest, demo)
+        print(f"No image_path supplied; using a DETERMINISTIC SYNTHETIC demo image (drawn fibers, no RNG) [DEMO DATA]: {dest}")
+        return dest
+    if isinstance(p, str) and p.startswith(("http://", "https://", "s3://")):
+        base = os.path.basename(p.split("?")[0]) or "corneal_input.png"
+        dest = os.path.join(os.getcwd(), base)
+        if p.startswith(("http://", "https://")):
+            import urllib.request
+            urllib.request.urlretrieve(p, dest)
+        else:
+            try:
+                import boto3, urllib.parse
+                u = urllib.parse.urlparse(p)
+                boto3.client("s3").download_file(u.netloc, u.path.lstrip("/"), dest)
+            except Exception as _e_boto:
+                import subprocess, shutil
+                aws_bin = shutil.which("aws") or next(
+                    (q for q in ("/opt/aws-cli/aws", "/opt/aws-cli/bin/aws", "/usr/local/bin/aws") if os.path.exists(q)), None)
+                if not aws_bin:
+                    raise RuntimeError(f"cannot fetch s3 image {p}: boto3 unavailable ({_e_boto!r}) and no aws CLI found")
+                r = subprocess.run([aws_bin, "s3", "cp", p, dest], capture_output=True, text=True)
+                if r.returncode != 0:
+                    raise RuntimeError(f"aws s3 cp failed for {p}: {(r.stderr or '').strip()}")
+        print(f"Fetched remote input image [{p.split('://',1)[0]}]: {p}")
+        return dest
+    return p
+
+
 def quantify_corneal_nerve_fibers(image_path, marker_type, output_dir="./output", threshold_method="otsu"):
     '''Quantify the volume/density of immunofluorescence-labeled corneal nerve fibers.
 
@@ -119,7 +165,7 @@ def quantify_corneal_nerve_fibers(image_path, marker_type, output_dir="./output"
         if len(image.shape) > 2:
             image = rgb2gray(image)
     except Exception as e:
-        return f"Error loading image: {str(e)}"
+        raise RuntimeError(f"Error loading image from {image_path}: {str(e)}")
 
     # Step 2: Preprocess the image
     # Normalize to 0-1 range
@@ -220,7 +266,7 @@ Output Files:
 # Execute the function
 try:
     result = quantify_corneal_nerve_fibers(
-        image_path=auto_convert(os.environ.get("PARAM_IMAGE_PATH", "")),
+        image_path=_resolve_image_path(auto_convert(os.environ.get("PARAM_IMAGE_PATH", ""))),
         marker_type=auto_convert(os.environ.get("PARAM_MARKER_TYPE", "")),
         output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "./output")),
         threshold_method=auto_convert(os.environ.get("PARAM_THRESHOLD_METHOD", "otsu")),
@@ -253,7 +299,7 @@ with open("quantify_corneal_nerve_fibers_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("quantify_corneal_nerve_fibers_output.txt", "w") as f:
-    f.write("Biomni: Quantify Corneal Nerve Fibers" + NL)
+    f.write("BioMate: Quantify Corneal Nerve Fibers" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

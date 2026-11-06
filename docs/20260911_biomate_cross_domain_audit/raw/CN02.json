@@ -1,0 +1,267 @@
+{
+  "id": "CN02",
+  "base_url": "https://dev-public.biomate.ai",
+  "prompt": "Fictional cancer immunotherapy research QA, interpret only: a peptide has predicted HLA binding percentile 0.2 and its source gene is expressed in tumor single-cell RNA data. There is no immunopeptidomics, T-cell reactivity assay, normal-tissue specificity assessment or efficacy evidence. Does this establish a presented, immunogenic, safe therapeutic target? Keep prediction, expression, presentation, immune recognition and efficacy distinct. Do not invent measurements or launch a workflow.",
+  "checks": [
+    "binding prediction not confirmed presentation",
+    "expression not immunogenicity or tumor specificity",
+    "no therapeutic safety or efficacy conclusion"
+  ],
+  "events": [
+    {
+      "event": "ready",
+      "data": {
+        "ok": true
+      }
+    },
+    {
+      "event": "tool_event",
+      "data": {
+        "type": "status",
+        "tool_use_id": "research_agent",
+        "name": "research_query",
+        "message": "Searching relevant literature and databases\u2026"
+      }
+    },
+    {
+      "event": "tool_event",
+      "data": {
+        "type": "status",
+        "tool_use_id": "research_agent",
+        "name": "research_query",
+        "message": "Synthesizing findings and generating response\u2026"
+      }
+    },
+    {
+      "event": "delta",
+      "data": {
+        "text": "# Interpretation: Peptide HLA Binding + Tumor Expression \u2260 Validated Immunogenic Target\n\n**No.** The data establishes a *computational candidate* only. It does not prove presentation, immunogenicity, safety, or efficacy.\n\n## Distinctions\n\n**Prediction (0.2 percentile HLA binding):** Strong *in silico* affinity. Does not guarantee the peptide is actually generated, processed, or loaded onto MHC molecules.\n\n**Expression (tumor single-cell RNA):** Confirms the source gene is transcribed in tumor cells. Does not establish that the peptide epitope is proteolytically generated or that the HLA-peptide complex reaches the cell surface.\n\n**Presentation (immunopeptidomics):** Requires direct empirical validation via tandem mass spectrometry (LC-MS/MS). This step is absent.\n\n**Immune recognition (T-cell reactivity assay):** Even if presented, the peptide-HLA complex must bind T-cell receptors (TCR) and trigger effector function. Binding affinity alone does not prove TCR recognition. This assay is absent.\n\n**Efficacy (functional tumor kill):** Requires evidence that targeting this epitope eliminates tumor cells *in vitro* or *in vivo*. This is absent.\n\n## Safety\n\nWithout normal-tissue expression profiling (e.g., GTEx, RNA-seq of healthy tissues), the risk of on-target, off-tumor toxicity is unmeasured. A tumor-specific peptide is not guaranteed.\n\n---\n\n**Summary:** HLA-binding prediction + tumor transcription = a prioritized *screening candidate* for immunopeptidomics and TCR discovery experiments. It is not a validated therapeutic target."
+      }
+    },
+    {
+      "event": "final",
+      "data": {
+        "response": "# Interpretation: Peptide HLA Binding + Tumor Expression \u2260 Validated Immunogenic Target\n\n**No.** The data establishes a *computational candidate* only. It does not prove presentation, immunogenicity, safety, or efficacy.\n\n## Distinctions\n\n**Prediction (0.2 percentile HLA binding):** Strong *in silico* affinity. Does not guarantee the peptide is actually generated, processed, or loaded onto MHC molecules.\n\n**Expression (tumor single-cell RNA):** Confirms the source gene is transcribed in tumor cells. Does not establish that the peptide epitope is proteolytically generated or that the HLA-peptide complex reaches the cell surface.\n\n**Presentation (immunopeptidomics):** Requires direct empirical validation via tandem mass spectrometry (LC-MS/MS). This step is absent.\n\n**Immune recognition (T-cell reactivity assay):** Even if presented, the peptide-HLA complex must bind T-cell receptors (TCR) and trigger effector function. Binding affinity alone does not prove TCR recognition. This assay is absent.\n\n**Efficacy (functional tumor kill):** Requires evidence that targeting this epitope eliminates tumor cells *in vitro* or *in vivo*. This is absent.\n\n## Safety\n\nWithout normal-tissue expression profiling (e.g., GTEx, RNA-seq of healthy tissues), the risk of on-target, off-tumor toxicity is unmeasured. A tumor-specific peptide is not guaranteed.\n\n---\n\n**Summary:** HLA-binding prediction + tumor transcription = a prioritized *screening candidate* for immunopeptidomics and TCR discovery experiments. It is not a validated therapeutic target.",
+        "state": "chat_only",
+        "suggestions": [
+          "Show me the RNA-seq workflow",
+          "What quality controls are needed?",
+          "How do I interpret the results?",
+          "Can you customize this pipeline?"
+        ],
+        "workflow": null,
+        "prerequisitesValidation": null,
+        "metadata": {
+          "intentType": "data_interpretation",
+          "inlineParameters": {
+            "binding_percentile": "0.2",
+            "has_expression_data": "true",
+            "has_immunopeptidomics": "false",
+            "has_tcell_assay": "false",
+            "has_normal_tissue_assessment": "false",
+            "has_efficacy_evidence": "false"
+          },
+          "workflowSuggestion": {
+            "shouldGenerate": false,
+            "userIntent": "Fictional cancer immunotherapy research QA, interpret only: a peptide has predicted HLA binding percentile 0.2 and its source gene is expressed in tumor single-cell RNA data. There is no immunopeptidomics, T-cell reactivity assay, normal-tissue specificity assessment or efficacy evidence. Does this establish a presented, immunogenic, safe therapeutic target? Keep prediction, expression, presentation, immune recognition and efficacy distinct. Do not invent measurements or launch a workflow.",
+            "confidence": 0,
+            "reasoning": "Intent type \"data_interpretation\" \u2014 workflow generation not flagged"
+          },
+          "sources": {
+            "toolSearchUsed": false,
+            "datasetRAGUsed": false,
+            "workflowGenerated": false,
+            "thinkingUsed": false,
+            "researchAgentUsed": true,
+            "benchmarkAgentUsed": false
+          },
+          "memoryUsed": false,
+          "workflowGenerationDiagnostics": null,
+          "llm_usage": {
+            "model": "gpt-5.6-luna",
+            "input_tokens": 124,
+            "output_tokens": 388,
+            "cost_usd": 0.006192,
+            "duration_ms": 34383
+          }
+        },
+        "isMultiIntent": false,
+        "researchResponse": {
+          "success": true,
+          "query": "Fictional cancer immunotherapy research QA, interpret only: a peptide has predicted HLA binding percentile 0.2 and its source gene is expressed in tumor single-cell RNA data. There is no immunopeptidomics, T-cell reactivity assay, normal-tissue specificity assessment or efficacy evidence. Does this establish a presented, immunogenic, safe therapeutic target? Keep prediction, expression, presentation, immune recognition and efficacy distinct. Do not invent measurements or launch a workflow.",
+          "answer": "No, this data does not establish a presented, immunogenic, or safe therapeutic target; it only identifies a preliminary computational candidate. \n\nWhile single-cell RNA data confirms that the source gene is transcribed in the tumor and the 0.2 percentile score predicts strong HLA binding affinity, these metrics do not guarantee physical presentation on the cell surface. Actual presentation must be empirically validated using immunopeptidomics (mass spectrometry). Furthermore, HLA binding is distinct from immune recognition; even if presented, the peptide-HLA complex may not be recognized by the immune system. T-cell reactivity assays are required to prove that specific T-cells can bind the complex and mount an immune response [35, 37].\n\nFinally, safety and efficacy remain entirely unproven. Without normal-tissue specificity assessments (such as GTEx expression profiling), the risk of fatal on-target, off-tumor toxicity is unknown. Efficacy cannot be established without functional evidence demonstrating that targeting this peptide actually eliminates tumor cells.",
+          "citations": [
+            {
+              "title": "Abstracts from the 2024 Annual Meeting of the Society of General Internal Medicine",
+              "authors": [],
+              "year": 2024,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": null
+            },
+            {
+              "title": "Abstracts from the 52nd European Society of Human Genetics (ESHG) Conference: Posters",
+              "authors": [],
+              "year": 2019,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": null
+            },
+            {
+              "title": "Program Abstracts from The GSA 2021 Annual Scientific Meeting, \"Disruption to Transformation: Aging in the \"New Normal\"\".",
+              "authors": [],
+              "year": 2021,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": "34926835"
+            },
+            {
+              "title": "Abstracts",
+              "authors": [],
+              "year": 2020,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": null
+            },
+            {
+              "title": "Posters",
+              "authors": [],
+              "year": 2010,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": null
+            }
+          ],
+          "benchmark_evidence": null,
+          "confidence": 0.8,
+          "follow_up_questions": [],
+          "methods_used": [
+            "intent",
+            "key_terms",
+            "domain",
+            "is_tool_comparison",
+            "is_method_question"
+          ],
+          "source": "research_agent"
+        }
+      }
+    },
+    {
+      "event": "done",
+      "data": {
+        "ok": true
+      }
+    }
+  ],
+  "http_status": 200,
+  "transport": "complete",
+  "elapsed_seconds": 34.67,
+  "response_text": "# Interpretation: Peptide HLA Binding + Tumor Expression \u2260 Validated Immunogenic Target\n\n**No.** The data establishes a *computational candidate* only. It does not prove presentation, immunogenicity, safety, or efficacy.\n\n## Distinctions\n\n**Prediction (0.2 percentile HLA binding):** Strong *in silico* affinity. Does not guarantee the peptide is actually generated, processed, or loaded onto MHC molecules.\n\n**Expression (tumor single-cell RNA):** Confirms the source gene is transcribed in tumor cells. Does not establish that the peptide epitope is proteolytically generated or that the HLA-peptide complex reaches the cell surface.\n\n**Presentation (immunopeptidomics):** Requires direct empirical validation via tandem mass spectrometry (LC-MS/MS). This step is absent.\n\n**Immune recognition (T-cell reactivity assay):** Even if presented, the peptide-HLA complex must bind T-cell receptors (TCR) and trigger effector function. Binding affinity alone does not prove TCR recognition. This assay is absent.\n\n**Efficacy (functional tumor kill):** Requires evidence that targeting this epitope eliminates tumor cells *in vitro* or *in vivo*. This is absent.\n\n## Safety\n\nWithout normal-tissue expression profiling (e.g., GTEx, RNA-seq of healthy tissues), the risk of on-target, off-tumor toxicity is unmeasured. A tumor-specific peptide is not guaranteed.\n\n---\n\n**Summary:** HLA-binding prediction + tumor transcription = a prioritized *screening candidate* for immunopeptidomics and TCR discovery experiments. It is not a validated therapeutic target.",
+  "final": [
+    {
+      "response": "# Interpretation: Peptide HLA Binding + Tumor Expression \u2260 Validated Immunogenic Target\n\n**No.** The data establishes a *computational candidate* only. It does not prove presentation, immunogenicity, safety, or efficacy.\n\n## Distinctions\n\n**Prediction (0.2 percentile HLA binding):** Strong *in silico* affinity. Does not guarantee the peptide is actually generated, processed, or loaded onto MHC molecules.\n\n**Expression (tumor single-cell RNA):** Confirms the source gene is transcribed in tumor cells. Does not establish that the peptide epitope is proteolytically generated or that the HLA-peptide complex reaches the cell surface.\n\n**Presentation (immunopeptidomics):** Requires direct empirical validation via tandem mass spectrometry (LC-MS/MS). This step is absent.\n\n**Immune recognition (T-cell reactivity assay):** Even if presented, the peptide-HLA complex must bind T-cell receptors (TCR) and trigger effector function. Binding affinity alone does not prove TCR recognition. This assay is absent.\n\n**Efficacy (functional tumor kill):** Requires evidence that targeting this epitope eliminates tumor cells *in vitro* or *in vivo*. This is absent.\n\n## Safety\n\nWithout normal-tissue expression profiling (e.g., GTEx, RNA-seq of healthy tissues), the risk of on-target, off-tumor toxicity is unmeasured. A tumor-specific peptide is not guaranteed.\n\n---\n\n**Summary:** HLA-binding prediction + tumor transcription = a prioritized *screening candidate* for immunopeptidomics and TCR discovery experiments. It is not a validated therapeutic target.",
+      "state": "chat_only",
+      "suggestions": [
+        "Show me the RNA-seq workflow",
+        "What quality controls are needed?",
+        "How do I interpret the results?",
+        "Can you customize this pipeline?"
+      ],
+      "workflow": null,
+      "prerequisitesValidation": null,
+      "metadata": {
+        "intentType": "data_interpretation",
+        "inlineParameters": {
+          "binding_percentile": "0.2",
+          "has_expression_data": "true",
+          "has_immunopeptidomics": "false",
+          "has_tcell_assay": "false",
+          "has_normal_tissue_assessment": "false",
+          "has_efficacy_evidence": "false"
+        },
+        "workflowSuggestion": {
+          "shouldGenerate": false,
+          "userIntent": "Fictional cancer immunotherapy research QA, interpret only: a peptide has predicted HLA binding percentile 0.2 and its source gene is expressed in tumor single-cell RNA data. There is no immunopeptidomics, T-cell reactivity assay, normal-tissue specificity assessment or efficacy evidence. Does this establish a presented, immunogenic, safe therapeutic target? Keep prediction, expression, presentation, immune recognition and efficacy distinct. Do not invent measurements or launch a workflow.",
+          "confidence": 0,
+          "reasoning": "Intent type \"data_interpretation\" \u2014 workflow generation not flagged"
+        },
+        "sources": {
+          "toolSearchUsed": false,
+          "datasetRAGUsed": false,
+          "workflowGenerated": false,
+          "thinkingUsed": false,
+          "researchAgentUsed": true,
+          "benchmarkAgentUsed": false
+        },
+        "memoryUsed": false,
+        "workflowGenerationDiagnostics": null,
+        "llm_usage": {
+          "model": "gpt-5.6-luna",
+          "input_tokens": 124,
+          "output_tokens": 388,
+          "cost_usd": 0.006192,
+          "duration_ms": 34383
+        }
+      },
+      "isMultiIntent": false,
+      "researchResponse": {
+        "success": true,
+        "query": "Fictional cancer immunotherapy research QA, interpret only: a peptide has predicted HLA binding percentile 0.2 and its source gene is expressed in tumor single-cell RNA data. There is no immunopeptidomics, T-cell reactivity assay, normal-tissue specificity assessment or efficacy evidence. Does this establish a presented, immunogenic, safe therapeutic target? Keep prediction, expression, presentation, immune recognition and efficacy distinct. Do not invent measurements or launch a workflow.",
+        "answer": "No, this data does not establish a presented, immunogenic, or safe therapeutic target; it only identifies a preliminary computational candidate. \n\nWhile single-cell RNA data confirms that the source gene is transcribed in the tumor and the 0.2 percentile score predicts strong HLA binding affinity, these metrics do not guarantee physical presentation on the cell surface. Actual presentation must be empirically validated using immunopeptidomics (mass spectrometry). Furthermore, HLA binding is distinct from immune recognition; even if presented, the peptide-HLA complex may not be recognized by the immune system. T-cell reactivity assays are required to prove that specific T-cells can bind the complex and mount an immune response [35, 37].\n\nFinally, safety and efficacy remain entirely unproven. Without normal-tissue specificity assessments (such as GTEx expression profiling), the risk of fatal on-target, off-tumor toxicity is unknown. Efficacy cannot be established without functional evidence demonstrating that targeting this peptide actually eliminates tumor cells.",
+        "citations": [
+          {
+            "title": "Abstracts from the 2024 Annual Meeting of the Society of General Internal Medicine",
+            "authors": [],
+            "year": 2024,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": null
+          },
+          {
+            "title": "Abstracts from the 52nd European Society of Human Genetics (ESHG) Conference: Posters",
+            "authors": [],
+            "year": 2019,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": null
+          },
+          {
+            "title": "Program Abstracts from The GSA 2021 Annual Scientific Meeting, \"Disruption to Transformation: Aging in the \"New Normal\"\".",
+            "authors": [],
+            "year": 2021,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": "34926835"
+          },
+          {
+            "title": "Abstracts",
+            "authors": [],
+            "year": 2020,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": null
+          },
+          {
+            "title": "Posters",
+            "authors": [],
+            "year": 2010,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": null
+          }
+        ],
+        "benchmark_evidence": null,
+        "confidence": 0.8,
+        "follow_up_questions": [],
+        "methods_used": [
+          "intent",
+          "key_terms",
+          "domain",
+          "is_tool_comparison",
+          "is_method_question"
+        ],
+        "source": "research_agent"
+      }
+    }
+  ]
+}

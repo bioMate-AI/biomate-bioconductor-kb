@@ -50,7 +50,7 @@ with open("zero_order_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("zero_order_output.txt", "w") as f:
-    f.write("Biomni: Zero Order Results" + NL)
+    f.write("BioMate: Zero Order Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

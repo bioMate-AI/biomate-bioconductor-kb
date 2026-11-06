@@ -1,0 +1,23 @@
+{
+ "mode": "smoke",
+ "submitted": [
+  {
+   "id": "B000",
+   "is_binder": 1,
+   "jobId": "2eb297b8-3627-44c0-99c8-894e47957c7c",
+   "out_s3": "s3://biomate-nextflow-work/cyclic_peptide/batch_cofold/fikk13-xtarget-slice0-B000/complexes/"
+  },
+  {
+   "id": "B001",
+   "is_binder": 1,
+   "jobId": "df02e0d5-0c99-4074-9c91-1894b311e08b",
+   "out_s3": "s3://biomate-nextflow-work/cyclic_peptide/batch_cofold/fikk13-xtarget-slice0-B001/complexes/"
+  },
+  {
+   "id": "N000",
+   "is_binder": 0,
+   "jobId": "a99502bf-4661-4de7-9828-8267bc496094",
+   "out_s3": "s3://biomate-nextflow-work/cyclic_peptide/batch_cofold/fikk13-xtarget-slice0-N000/complexes/"
+  }
+ ]
+}

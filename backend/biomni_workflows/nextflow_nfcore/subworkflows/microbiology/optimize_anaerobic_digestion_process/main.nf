@@ -368,7 +368,7 @@ with open("optimize_anaerobic_digestion_process_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("optimize_anaerobic_digestion_process_output.txt", "w") as f:
-    f.write("Biomni: Optimize Anaerobic Digestion Process" + NL)
+    f.write("BioMate: Optimize Anaerobic Digestion Process" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

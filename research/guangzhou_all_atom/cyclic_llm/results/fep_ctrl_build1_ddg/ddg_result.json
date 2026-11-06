@@ -1,0 +1,10 @@
+{
+  "solvent": {
+    "n": 12,
+    "total_line": "total      0 -     11,   DG 146.45 +/-  0.28"
+  },
+  "complex": {
+    "n": 12,
+    "total_line": "total      0 -     11,   DG 145.71 +/-  0.56"
+  }
+}

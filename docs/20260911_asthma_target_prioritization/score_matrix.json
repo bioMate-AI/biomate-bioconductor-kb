@@ -1,0 +1,54 @@
+{
+  "targets": [
+    "TSLP",
+    "IL33",
+    "IL1RL1"
+  ],
+  "lanes": [
+    "genetics",
+    "cohorts",
+    "disease_context",
+    "clinical",
+    "literature",
+    "expression"
+  ],
+  "scores": [
+    [
+      4,
+      5,
+      4
+    ],
+    [
+      5,
+      4,
+      4
+    ],
+    [
+      4,
+      4,
+      4
+    ],
+    [
+      5,
+      3,
+      3
+    ],
+    [
+      4,
+      4,
+      4
+    ],
+    [
+      4,
+      4,
+      4
+    ]
+  ],
+  "rank": [
+    "TSLP",
+    "IL33",
+    "IL1RL1"
+  ],
+  "ranking_scope": "Strength of asthma target validation, not commercial novelty or patient treatment selection",
+  "scoring": "Ordinal reviewer assessment; correlated lanes are not summed"
+}

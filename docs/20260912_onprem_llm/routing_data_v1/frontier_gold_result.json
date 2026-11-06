@@ -1,0 +1,23 @@
+{
+  "claude-opus-4-8": {
+    "model": "claude-opus-4-8",
+    "n": 279,
+    "accept_set_accuracy": 0.978,
+    "exact_gold_accuracy": 0.91,
+    "empty_responses": 0
+  },
+  "gpt-6-luna": {
+    "model": "gpt-6-luna",
+    "n": 279,
+    "accept_set_accuracy": 0.964,
+    "exact_gold_accuracy": 0.914,
+    "empty_responses": 3
+  },
+  "gemini-3.8-flash": {
+    "model": "gemini-3.8-flash",
+    "n": 279,
+    "accept_set_accuracy": 0.978,
+    "exact_gold_accuracy": 0.925,
+    "empty_responses": 0
+  }
+}

@@ -288,7 +288,7 @@ with open("compare_protein_structures_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("compare_protein_structures_output.txt", "w") as f:
-    f.write("Biomni: Compare Protein Structures" + NL)
+    f.write("BioMate: Compare Protein Structures" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

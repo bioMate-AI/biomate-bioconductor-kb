@@ -147,7 +147,7 @@ with open("get_rna_seq_archs4_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("get_rna_seq_archs4_output.txt", "w") as f:
-    f.write("Biomni: Get Rna Seq Archs4" + NL)
+    f.write("BioMate: Get Rna Seq Archs4" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

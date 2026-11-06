@@ -1,0 +1,7437 @@
+{
+ "script": "paper1_cluster.py",
+ "n_ladder_files": 115,
+ "n_l7_groups": 39,
+ "thr": 1.0842231852525561,
+ "rows": [
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R1-R0",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 4.8,
+   "seed_t": [
+    1.864,
+    7.736
+   ],
+   "seed_boot": [
+    2.3,
+    7.1
+   ],
+   "cluster_t": [
+    -0.225,
+    9.825
+   ],
+   "cluster_boot": [
+    1.4,
+    10.2
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 14,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.48,
+   "est_without_top": 2.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R1-R0",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.007,
+   "seed_t": [
+    -0.05,
+    0.069
+   ],
+   "seed_boot": [
+    -0.028,
+    0.065
+   ],
+   "cluster_t": [
+    -0.056,
+    0.069
+   ],
+   "cluster_boot": [
+    -0.035,
+    0.053
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.472,
+   "est_without_top": -0.014,
+   "seeds_per_lab": [
+    4,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R2-R1",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -0.6,
+   "seed_t": [
+    -4.313,
+    3.113
+   ],
+   "seed_boot": [
+    -3.6,
+    2.5
+   ],
+   "cluster_t": [
+    -4.301,
+    3.101
+   ],
+   "cluster_boot": [
+    -3.8,
+    3.1
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 15,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.212,
+   "est_without_top": -1.7,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R2-R1",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": -0.016,
+   "seed_t": [
+    -0.034,
+    0.026
+   ],
+   "seed_boot": [
+    -0.03,
+    0.02
+   ],
+   "cluster_t": [
+    -0.113,
+    0.081
+   ],
+   "cluster_boot": [
+    -0.093,
+    0.033
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.656,
+   "est_without_top": 0.021,
+   "seeds_per_lab": [
+    4,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R3-R2",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 9.0,
+   "seed_t": [
+    5.26,
+    12.74
+   ],
+   "seed_boot": [
+    5.998,
+    12.1
+   ],
+   "cluster_t": [
+    0.119,
+    17.881
+   ],
+   "cluster_boot": [
+    2.2,
+    18.0
+   ],
+   "n_clusters": 21,
+   "n_nonzero": 17,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.38,
+   "est_without_top": 5.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R3-R2",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.118,
+   "seed_t": [
+    0.061,
+    0.146
+   ],
+   "seed_boot": [
+    0.069,
+    0.139
+   ],
+   "cluster_t": [
+    0.042,
+    0.193
+   ],
+   "cluster_boot": [
+    0.067,
+    0.17
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.293,
+   "est_without_top": 0.1,
+   "seeds_per_lab": [
+    4,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R4-R3",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 0.4,
+   "seed_t": [
+    -1.543,
+    2.343
+   ],
+   "seed_boot": [
+    -1.2,
+    2.0
+   ],
+   "cluster_t": [
+    -2.176,
+    2.976
+   ],
+   "cluster_boot": [
+    -1.7,
+    3.0
+   ],
+   "n_clusters": 21,
+   "n_nonzero": 9,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.417,
+   "est_without_top": -0.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R4-R3",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": -0.024,
+   "seed_t": [
+    -0.052,
+    0.01
+   ],
+   "seed_boot": [
+    -0.047,
+    0.004
+   ],
+   "cluster_t": [
+    -0.083,
+    0.036
+   ],
+   "cluster_boot": [
+    -0.064,
+    0.015
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.423,
+   "est_without_top": -0.009,
+   "seeds_per_lab": [
+    4,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R4-gbm_aware",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -2.8,
+   "seed_t": [
+    -7.708,
+    2.108
+   ],
+   "seed_boot": [
+    -6.9,
+    1.1
+   ],
+   "cluster_t": [
+    -8.102,
+    2.502
+   ],
+   "cluster_boot": [
+    -8.3,
+    1.5
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 16,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.281,
+   "est_without_top": -1.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R4-knn",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 4.7,
+   "seed_t": [
+    -0.37,
+    9.77
+   ],
+   "seed_boot": [
+    0.8,
+    9.1
+   ],
+   "cluster_t": [
+    -1.53,
+    10.93
+   ],
+   "cluster_boot": [
+    -0.3,
+    11.0
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 20,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.301,
+   "est_without_top": 2.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R4-gp",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -5.3,
+   "seed_t": [
+    -9.606,
+    -0.994
+   ],
+   "seed_boot": [
+    -8.9,
+    -1.9
+   ],
+   "cluster_t": [
+    -17.18,
+    6.58
+   ],
+   "cluster_boot": [
+    -18.0,
+    2.5
+   ],
+   "n_clusters": 21,
+   "n_nonzero": 17,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.535,
+   "est_without_top": 0.1,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R4-rule_kphys",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 9.1,
+   "seed_t": [
+    5.104,
+    13.096
+   ],
+   "seed_boot": [
+    5.5,
+    12.1
+   ],
+   "cluster_t": [
+    -6.807,
+    25.007
+   ],
+   "cluster_boot": [
+    -3.2,
+    25.7
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 18,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.34,
+   "est_without_top": 3.7,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "dev 0-9",
+   "contrast": "R1-R1_kshuf",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 2.2,
+   "seed_t": [
+    -2.661,
+    7.061
+   ],
+   "seed_boot": [
+    -1.202,
+    6.6
+   ],
+   "cluster_t": [
+    -4.049,
+    8.449
+   ],
+   "cluster_boot": [
+    -3.2,
+    8.4
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 16,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.375,
+   "est_without_top": -0.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R1-R0",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 8.2,
+   "seed_t": [
+    4.781,
+    11.619
+   ],
+   "seed_boot": [
+    5.3,
+    10.9
+   ],
+   "cluster_t": [
+    -3.412,
+    19.812
+   ],
+   "cluster_boot": [
+    0.2,
+    20.7
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 12,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.553,
+   "est_without_top": 3.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R1-R0",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": -0.01,
+   "seed_t": [
+    -0.057,
+    0.04
+   ],
+   "seed_boot": [
+    -0.048,
+    0.031
+   ],
+   "cluster_t": [
+    -0.069,
+    0.049
+   ],
+   "cluster_boot": [
+    -0.05,
+    0.032
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.272,
+   "est_without_top": 0.003,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R2-R1",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -0.9,
+   "seed_t": [
+    -4.28,
+    2.48
+   ],
+   "seed_boot": [
+    -3.6,
+    1.902
+   ],
+   "cluster_t": [
+    -4.814,
+    3.014
+   ],
+   "cluster_boot": [
+    -4.5,
+    2.7
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 14,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.255,
+   "est_without_top": 0.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R2-R1",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.006,
+   "seed_t": [
+    -0.075,
+    0.079
+   ],
+   "seed_boot": [
+    -0.06,
+    0.066
+   ],
+   "cluster_t": [
+    -0.054,
+    0.066
+   ],
+   "cluster_boot": [
+    -0.038,
+    0.044
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.33,
+   "est_without_top": 0.025,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R3-R2",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 8.1,
+   "seed_t": [
+    4.047,
+    12.153
+   ],
+   "seed_boot": [
+    4.7,
+    11.3
+   ],
+   "cluster_t": [
+    -1.019,
+    17.219
+   ],
+   "cluster_boot": [
+    0.8,
+    17.4
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 15,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.385,
+   "est_without_top": 4.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R3-R2",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.049,
+   "seed_t": [
+    0.001,
+    0.13
+   ],
+   "seed_boot": [
+    0.01,
+    0.115
+   ],
+   "cluster_t": [
+    -0.01,
+    0.109
+   ],
+   "cluster_boot": [
+    0.005,
+    0.087
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.284,
+   "est_without_top": 0.036,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R4-R3",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -0.0,
+   "seed_t": [
+    -2.262,
+    2.262
+   ],
+   "seed_boot": [
+    -1.9,
+    1.8
+   ],
+   "cluster_t": [
+    -1.635,
+    1.635
+   ],
+   "cluster_boot": [
+    -1.6,
+    1.4
+   ],
+   "n_clusters": 17,
+   "n_nonzero": 10,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.25,
+   "est_without_top": 0.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R4-R3",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.015,
+   "seed_t": [
+    -0.016,
+    0.046
+   ],
+   "seed_boot": [
+    -0.009,
+    0.042
+   ],
+   "cluster_t": [
+    -0.035,
+    0.064
+   ],
+   "cluster_boot": [
+    -0.015,
+    0.052
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.521,
+   "est_without_top": -0.002,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R4-gbm_aware",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -3.6,
+   "seed_t": [
+    -6.26,
+    -0.94
+   ],
+   "seed_boot": [
+    -5.8,
+    -1.5
+   ],
+   "cluster_t": [
+    -10.493,
+    3.293
+   ],
+   "cluster_boot": [
+    -10.7,
+    1.6
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 15,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.392,
+   "est_without_top": -0.7,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R4-knn",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 4.5,
+   "seed_t": [
+    0.88,
+    8.12
+   ],
+   "seed_boot": [
+    1.5,
+    7.4
+   ],
+   "cluster_t": [
+    -0.046,
+    9.046
+   ],
+   "cluster_boot": [
+    0.6,
+    8.7
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 16,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.192,
+   "est_without_top": 3.1,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R4-gp",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -7.2,
+   "seed_t": [
+    -11.797,
+    -2.603
+   ],
+   "seed_boot": [
+    -10.9,
+    -3.5
+   ],
+   "cluster_t": [
+    -22.499,
+    8.099
+   ],
+   "cluster_boot": [
+    -22.9,
+    2.6
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 13,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.583,
+   "est_without_top": -0.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R4-rule_kphys",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 8.1,
+   "seed_t": [
+    3.508,
+    12.692
+   ],
+   "seed_boot": [
+    4.5,
+    11.8
+   ],
+   "cluster_t": [
+    -6.994,
+    23.194
+   ],
+   "cluster_boot": [
+    -3.2,
+    23.8
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 15,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.369,
+   "est_without_top": 2.9,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "A",
+   "seeds": "conf 10-19",
+   "contrast": "R1-R1_kshuf",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 6.9,
+   "seed_t": [
+    3.99,
+    9.81
+   ],
+   "seed_boot": [
+    4.5,
+    9.2
+   ],
+   "cluster_t": [
+    -0.757,
+    14.557
+   ],
+   "cluster_boot": [
+    1.2,
+    14.7
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 17,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.392,
+   "est_without_top": 3.8,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R1-R0",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 1.7,
+   "seed_t": [
+    0.942,
+    2.458
+   ],
+   "seed_boot": [
+    1.1,
+    2.3
+   ],
+   "cluster_t": [
+    0.109,
+    3.291
+   ],
+   "cluster_boot": [
+    0.3,
+    3.2
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 17,
+   "top_lab": "2015_Wang",
+   "top_share": 0.138,
+   "est_without_top": 1.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R1-R0",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.069,
+   "seed_t": [
+    0.004,
+    0.131
+   ],
+   "seed_boot": [
+    0.014,
+    0.118
+   ],
+   "cluster_t": [
+    -0.019,
+    0.156
+   ],
+   "cluster_boot": [
+    0.01,
+    0.136
+   ],
+   "n_clusters": 7,
+   "n_nonzero": 7,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.403,
+   "est_without_top": 0.046,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R2-R1",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -1.3,
+   "seed_t": [
+    -3.268,
+    0.668
+   ],
+   "seed_boot": [
+    -2.8,
+    0.5
+   ],
+   "cluster_t": [
+    -3.782,
+    1.182
+   ],
+   "cluster_boot": [
+    -3.6,
+    1.0
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 16,
+   "top_lab": "2024_Faris",
+   "top_share": 0.146,
+   "est_without_top": -0.7,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R2-R1",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": -0.085,
+   "seed_t": [
+    -0.124,
+    -0.011
+   ],
+   "seed_boot": [
+    -0.116,
+    -0.025
+   ],
+   "cluster_t": [
+    -0.185,
+    0.016
+   ],
+   "cluster_boot": [
+    -0.167,
+    -0.019
+   ],
+   "n_clusters": 7,
+   "n_nonzero": 7,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.44,
+   "est_without_top": -0.049,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R3-R2",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 3.7,
+   "seed_t": [
+    1.566,
+    5.834
+   ],
+   "seed_boot": [
+    2.0,
+    5.5
+   ],
+   "cluster_t": [
+    -0.852,
+    8.252
+   ],
+   "cluster_boot": [
+    0.2,
+    8.502
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 16,
+   "top_lab": "2024_Faris",
+   "top_share": 0.358,
+   "est_without_top": 1.8,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R3-R2",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.141,
+   "seed_t": [
+    0.054,
+    0.178
+   ],
+   "seed_boot": [
+    0.061,
+    0.161
+   ],
+   "cluster_t": [
+    0.056,
+    0.226
+   ],
+   "cluster_boot": [
+    0.082,
+    0.206
+   ],
+   "n_clusters": 7,
+   "n_nonzero": 7,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.31,
+   "est_without_top": 0.113,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R4-R3",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 0.3,
+   "seed_t": [
+    -0.289,
+    0.889
+   ],
+   "seed_boot": [
+    -0.2,
+    0.8
+   ],
+   "cluster_t": [
+    -0.389,
+    0.989
+   ],
+   "cluster_boot": [
+    -0.3,
+    0.9
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 11,
+   "top_lab": "2015_Ahlbach",
+   "top_share": 0.091,
+   "est_without_top": 0.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R4-R3",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.014,
+   "seed_t": [
+    -0.019,
+    0.04
+   ],
+   "seed_boot": [
+    -0.013,
+    0.034
+   ],
+   "cluster_t": [
+    -0.018,
+    0.045
+   ],
+   "cluster_boot": [
+    -0.008,
+    0.039
+   ],
+   "n_clusters": 7,
+   "n_nonzero": 6,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.421,
+   "est_without_top": 0.003,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R4-gbm_aware",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 2.2,
+   "seed_t": [
+    -0.978,
+    5.378
+   ],
+   "seed_boot": [
+    -0.302,
+    4.8
+   ],
+   "cluster_t": [
+    -0.947,
+    5.347
+   ],
+   "cluster_boot": [
+    -0.3,
+    5.4
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 16,
+   "top_lab": "2024_Faris",
+   "top_share": 0.31,
+   "est_without_top": 0.9,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R4-knn",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 9.3,
+   "seed_t": [
+    7.451,
+    11.149
+   ],
+   "seed_boot": [
+    7.8,
+    10.8
+   ],
+   "cluster_t": [
+    2.302,
+    16.298
+   ],
+   "cluster_boot": [
+    3.8,
+    16.8
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 19,
+   "top_lab": "2024_Faris",
+   "top_share": 0.303,
+   "est_without_top": 6.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R4-gp",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 2.9,
+   "seed_t": [
+    0.13,
+    5.67
+   ],
+   "seed_boot": [
+    0.6,
+    5.2
+   ],
+   "cluster_t": [
+    -1.273,
+    7.073
+   ],
+   "cluster_boot": [
+    -0.7,
+    7.1
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 18,
+   "top_lab": "2024_Faris",
+   "top_share": 0.2,
+   "est_without_top": 1.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R4-rule_kphys",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 0.1,
+   "seed_t": [
+    -1.634,
+    1.834
+   ],
+   "seed_boot": [
+    -1.3,
+    1.5
+   ],
+   "cluster_t": [
+    -4.387,
+    4.587
+   ],
+   "cluster_boot": [
+    -3.7,
+    4.5
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 17,
+   "top_lab": "2024_Faris",
+   "top_share": 0.271,
+   "est_without_top": -1.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "dev 0-9",
+   "contrast": "R1-R1_kshuf",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 2.3,
+   "seed_t": [
+    0.546,
+    4.054
+   ],
+   "seed_boot": [
+    0.9,
+    3.8
+   ],
+   "cluster_t": [
+    -0.262,
+    4.862
+   ],
+   "cluster_boot": [
+    -0.0,
+    4.7
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 19,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.156,
+   "est_without_top": 1.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R1-R0",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 2.5,
+   "seed_t": [
+    0.708,
+    4.292
+   ],
+   "seed_boot": [
+    1.0,
+    4.0
+   ],
+   "cluster_t": [
+    -0.231,
+    5.231
+   ],
+   "cluster_boot": [
+    0.3,
+    5.2
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 16,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.244,
+   "est_without_top": 1.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R1-R0",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.029,
+   "seed_t": [
+    -0.003,
+    0.049
+   ],
+   "seed_boot": [
+    0.004,
+    0.046
+   ],
+   "cluster_t": [
+    -0.015,
+    0.073
+   ],
+   "cluster_boot": [
+    -0.001,
+    0.07
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2018_Naylor",
+   "top_share": 0.46,
+   "est_without_top": 0.012,
+   "seeds_per_lab": [
+    5,
+    8,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R2-R1",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -2.7,
+   "seed_t": [
+    -5.133,
+    -0.267
+   ],
+   "seed_boot": [
+    -4.7,
+    -0.7
+   ],
+   "cluster_t": [
+    -4.77,
+    -0.63
+   ],
+   "cluster_boot": [
+    -4.6,
+    -0.8
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 15,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.162,
+   "est_without_top": -2.1,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R2-R1",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": -0.062,
+   "seed_t": [
+    -0.079,
+    -0.006
+   ],
+   "seed_boot": [
+    -0.073,
+    -0.014
+   ],
+   "cluster_t": [
+    -0.163,
+    0.038
+   ],
+   "cluster_boot": [
+    -0.15,
+    0.009
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2018_Naylor",
+   "top_share": 0.403,
+   "est_without_top": -0.027,
+   "seeds_per_lab": [
+    5,
+    8,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R3-R2",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 3.4,
+   "seed_t": [
+    0.024,
+    6.776
+   ],
+   "seed_boot": [
+    0.5,
+    6.0
+   ],
+   "cluster_t": [
+    -0.981,
+    7.781
+   ],
+   "cluster_boot": [
+    0.1,
+    7.8
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 19,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.339,
+   "est_without_top": 1.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R3-R2",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.112,
+   "seed_t": [
+    0.059,
+    0.158
+   ],
+   "seed_boot": [
+    0.068,
+    0.148
+   ],
+   "cluster_t": [
+    0.022,
+    0.202
+   ],
+   "cluster_boot": [
+    0.037,
+    0.183
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2015_Wang",
+   "top_share": 0.226,
+   "est_without_top": 0.092,
+   "seeds_per_lab": [
+    5,
+    8,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R4-R3",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 0.7,
+   "seed_t": [
+    -1.054,
+    2.454
+   ],
+   "seed_boot": [
+    -0.8,
+    2.1
+   ],
+   "cluster_t": [
+    -0.356,
+    1.756
+   ],
+   "cluster_boot": [
+    -0.2,
+    1.7
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 10,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.2,
+   "est_without_top": 0.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R4-R3",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.007,
+   "seed_t": [
+    -0.03,
+    0.03
+   ],
+   "seed_boot": [
+    -0.023,
+    0.026
+   ],
+   "cluster_t": [
+    -0.043,
+    0.056
+   ],
+   "cluster_boot": [
+    -0.03,
+    0.048
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.298,
+   "est_without_top": -0.007,
+   "seeds_per_lab": [
+    5,
+    8,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R4-gbm_aware",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 1.3,
+   "seed_t": [
+    -1.502,
+    4.102
+   ],
+   "seed_boot": [
+    -1.0,
+    3.6
+   ],
+   "cluster_t": [
+    -1.356,
+    3.956
+   ],
+   "cluster_boot": [
+    -1.1,
+    3.8
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 17,
+   "top_lab": "2022_Taechalertpaisarn",
+   "top_share": 0.128,
+   "est_without_top": 0.7,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R4-knn",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 8.9,
+   "seed_t": [
+    5.658,
+    12.142
+   ],
+   "seed_boot": [
+    6.3,
+    11.6
+   ],
+   "cluster_t": [
+    2.831,
+    14.969
+   ],
+   "cluster_boot": [
+    3.7,
+    14.9
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 19,
+   "top_lab": "2024_Faris",
+   "top_share": 0.184,
+   "est_without_top": 7.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R4-gp",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 3.2,
+   "seed_t": [
+    0.528,
+    5.872
+   ],
+   "seed_boot": [
+    0.9,
+    5.3
+   ],
+   "cluster_t": [
+    -0.806,
+    7.206
+   ],
+   "cluster_boot": [
+    -0.3,
+    7.1
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 15,
+   "top_lab": "2022_Taechalertpaisarn",
+   "top_share": 0.194,
+   "est_without_top": 2.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R4-rule_kphys",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -3.7,
+   "seed_t": [
+    -5.887,
+    -1.513
+   ],
+   "seed_boot": [
+    -5.3,
+    -1.8
+   ],
+   "cluster_t": [
+    -6.688,
+    -0.712
+   ],
+   "cluster_boot": [
+    -6.7,
+    -1.1
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 16,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.216,
+   "est_without_top": -2.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "B",
+   "seeds": "conf 10-19",
+   "contrast": "R1-R1_kshuf",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 2.1,
+   "seed_t": [
+    -0.045,
+    4.245
+   ],
+   "seed_boot": [
+    0.4,
+    3.9
+   ],
+   "cluster_t": [
+    0.205,
+    3.995
+   ],
+   "cluster_boot": [
+    0.4,
+    3.9
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 14,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.194,
+   "est_without_top": 1.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R1-R0",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 2.8,
+   "seed_t": [
+    -1.907,
+    7.507
+   ],
+   "seed_boot": [
+    -0.8,
+    6.8
+   ],
+   "cluster_t": [
+    -5.451,
+    11.051
+   ],
+   "cluster_boot": [
+    -2.8,
+    11.2
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 7,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.661,
+   "est_without_top": -0.9,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R1-R0",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.05,
+   "seed_t": [
+    -0.012,
+    0.132
+   ],
+   "seed_boot": [
+    0.004,
+    0.122
+   ],
+   "cluster_t": [
+    0.005,
+    0.095
+   ],
+   "cluster_boot": [
+    0.014,
+    0.086
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2020_Furukawa",
+   "top_share": 0.283,
+   "est_without_top": 0.037,
+   "seeds_per_lab": [
+    3,
+    6,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R2-R1",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -0.1,
+   "seed_t": [
+    -4.223,
+    4.023
+   ],
+   "seed_boot": [
+    -3.2,
+    3.5
+   ],
+   "cluster_t": [
+    -1.709,
+    1.509
+   ],
+   "cluster_boot": [
+    -1.5,
+    1.4
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 17,
+   "top_lab": "2015_Bockus_1",
+   "top_share": 0.111,
+   "est_without_top": -0.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R2-R1",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": -0.025,
+   "seed_t": [
+    -0.078,
+    0.054
+   ],
+   "seed_boot": [
+    -0.073,
+    0.038
+   ],
+   "cluster_t": [
+    -0.117,
+    0.068
+   ],
+   "cluster_boot": [
+    -0.099,
+    0.049
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2020_Furukawa",
+   "top_share": 0.32,
+   "est_without_top": 0.002,
+   "seeds_per_lab": [
+    3,
+    6,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R3-R2",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 12.1,
+   "seed_t": [
+    6.473,
+    17.727
+   ],
+   "seed_boot": [
+    7.6,
+    16.8
+   ],
+   "cluster_t": [
+    -5.467,
+    29.667
+   ],
+   "cluster_boot": [
+    -0.4,
+    29.8
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 15,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.489,
+   "est_without_top": 5.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R3-R2",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.077,
+   "seed_t": [
+    -0.018,
+    0.111
+   ],
+   "seed_boot": [
+    -0.01,
+    0.095
+   ],
+   "cluster_t": [
+    0.007,
+    0.148
+   ],
+   "cluster_boot": [
+    0.022,
+    0.135
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2024_Koch",
+   "top_share": 0.27,
+   "est_without_top": 0.059,
+   "seeds_per_lab": [
+    3,
+    6,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R4-R3",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 0.0,
+   "seed_t": [
+    -2.262,
+    2.262
+   ],
+   "seed_boot": [
+    -1.9,
+    1.8
+   ],
+   "cluster_t": [
+    -1.93,
+    1.93
+   ],
+   "cluster_boot": [
+    -1.6,
+    1.9
+   ],
+   "n_clusters": 17,
+   "n_nonzero": 6,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.438,
+   "est_without_top": -0.7,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R4-R3",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.006,
+   "seed_t": [
+    -0.013,
+    0.04
+   ],
+   "seed_boot": [
+    -0.008,
+    0.034
+   ],
+   "cluster_t": [
+    -0.028,
+    0.04
+   ],
+   "cluster_boot": [
+    -0.022,
+    0.032
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2022_Taechalertpaisarn",
+   "top_share": 0.239,
+   "est_without_top": -0.003,
+   "seeds_per_lab": [
+    3,
+    6,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R4-gbm_aware",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -4.9,
+   "seed_t": [
+    -7.868,
+    -1.932
+   ],
+   "seed_boot": [
+    -7.4,
+    -2.5
+   ],
+   "cluster_t": [
+    -11.823,
+    2.023
+   ],
+   "cluster_boot": [
+    -11.9,
+    0.3
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 13,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.418,
+   "est_without_top": -2.1,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R4-knn",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -5.1,
+   "seed_t": [
+    -8.862,
+    -1.338
+   ],
+   "seed_boot": [
+    -8.2,
+    -2.0
+   ],
+   "cluster_t": [
+    -13.2,
+    3.0
+   ],
+   "cluster_boot": [
+    -13.6,
+    0.4
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 12,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.554,
+   "est_without_top": -1.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R4-gp",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -9.3,
+   "seed_t": [
+    -13.026,
+    -5.574
+   ],
+   "seed_boot": [
+    -12.6,
+    -6.5
+   ],
+   "cluster_t": [
+    -24.329,
+    5.729
+   ],
+   "cluster_boot": [
+    -25.4,
+    0.7
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 13,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.604,
+   "est_without_top": -2.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R4-rule_kphys",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 14.8,
+   "seed_t": [
+    7.149,
+    22.451
+   ],
+   "seed_boot": [
+    8.0,
+    20.7
+   ],
+   "cluster_t": [
+    -12.994,
+    42.594
+   ],
+   "cluster_boot": [
+    -4.8,
+    43.0
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 14,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.514,
+   "est_without_top": 3.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "dev 0-9",
+   "contrast": "R1-R1_kshuf",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 4.2,
+   "seed_t": [
+    0.213,
+    8.187
+   ],
+   "seed_boot": [
+    1.1,
+    7.6
+   ],
+   "cluster_t": [
+    -8.988,
+    17.388
+   ],
+   "cluster_boot": [
+    -4.3,
+    17.8
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 15,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.652,
+   "est_without_top": -1.8,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R1-R0",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 7.3,
+   "seed_t": [
+    3.995,
+    10.605
+   ],
+   "seed_boot": [
+    4.4,
+    10.0
+   ],
+   "cluster_t": [
+    -4.149,
+    18.749
+   ],
+   "cluster_boot": [
+    1.1,
+    18.6
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 14,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.714,
+   "est_without_top": 1.8,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R1-R0",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": -0.003,
+   "seed_t": [
+    -0.048,
+    0.058
+   ],
+   "seed_boot": [
+    -0.041,
+    0.045
+   ],
+   "cluster_t": [
+    -0.088,
+    0.083
+   ],
+   "cluster_boot": [
+    -0.08,
+    0.046
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2018_Naylor",
+   "top_share": 0.504,
+   "est_without_top": 0.033,
+   "seeds_per_lab": [
+    4,
+    5,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R2-R1",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -1.6,
+   "seed_t": [
+    -4.563,
+    1.363
+   ],
+   "seed_boot": [
+    -4.1,
+    0.8
+   ],
+   "cluster_t": [
+    -3.251,
+    0.051
+   ],
+   "cluster_boot": [
+    -3.2,
+    -0.2
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 17,
+   "top_lab": "2015_Wang",
+   "top_share": 0.214,
+   "est_without_top": -1.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R2-R1",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.029,
+   "seed_t": [
+    -0.03,
+    0.086
+   ],
+   "seed_boot": [
+    -0.018,
+    0.078
+   ],
+   "cluster_t": [
+    -0.028,
+    0.085
+   ],
+   "cluster_boot": [
+    -0.018,
+    0.073
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.161,
+   "est_without_top": 0.02,
+   "seeds_per_lab": [
+    4,
+    5,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R3-R2",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 9.5,
+   "seed_t": [
+    6.244,
+    12.756
+   ],
+   "seed_boot": [
+    6.9,
+    12.3
+   ],
+   "cluster_t": [
+    -3.999,
+    22.999
+   ],
+   "cluster_boot": [
+    -0.1,
+    22.8
+   ],
+   "n_clusters": 15,
+   "n_nonzero": 11,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.486,
+   "est_without_top": 4.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R3-R2",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": 0.092,
+   "seed_t": [
+    0.007,
+    0.125
+   ],
+   "seed_boot": [
+    0.018,
+    0.114
+   ],
+   "cluster_t": [
+    0.002,
+    0.182
+   ],
+   "cluster_boot": [
+    0.024,
+    0.166
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2021_Comeau",
+   "top_share": 0.311,
+   "est_without_top": 0.063,
+   "seeds_per_lab": [
+    4,
+    5,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R4-R3",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -1.8,
+   "seed_t": [
+    -3.846,
+    0.246
+   ],
+   "seed_boot": [
+    -3.5,
+    -0.1
+   ],
+   "cluster_t": [
+    -4.967,
+    1.367
+   ],
+   "cluster_boot": [
+    -4.9,
+    0.2
+   ],
+   "n_clusters": 13,
+   "n_nonzero": 7,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.583,
+   "est_without_top": -0.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R4-R3",
+   "metric": "E-AUROC per lab",
+   "n_seeds": 10,
+   "estimate": -0.019,
+   "seed_t": [
+    -0.037,
+    0.015
+   ],
+   "seed_boot": [
+    -0.034,
+    0.01
+   ],
+   "cluster_t": [
+    -0.048,
+    0.01
+   ],
+   "cluster_boot": [
+    -0.043,
+    0.003
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2021_Comeau",
+   "top_share": 0.302,
+   "est_without_top": -0.012,
+   "seeds_per_lab": [
+    4,
+    5,
+    10
+   ]
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R4-gbm_aware",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -8.0,
+   "seed_t": [
+    -12.99,
+    -3.01
+   ],
+   "seed_boot": [
+    -12.1,
+    -3.9
+   ],
+   "cluster_t": [
+    -18.122,
+    2.122
+   ],
+   "cluster_boot": [
+    -18.3,
+    -1.6
+   ],
+   "n_clusters": 17,
+   "n_nonzero": 14,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.533,
+   "est_without_top": -3.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R4-knn",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -1.7,
+   "seed_t": [
+    -7.532,
+    4.132
+   ],
+   "seed_boot": [
+    -6.5,
+    3.0
+   ],
+   "cluster_t": [
+    -6.139,
+    2.739
+   ],
+   "cluster_boot": [
+    -6.1,
+    1.7
+   ],
+   "n_clusters": 15,
+   "n_nonzero": 13,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.4,
+   "est_without_top": 0.1,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R4-gp",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": -10.2,
+   "seed_t": [
+    -15.301,
+    -5.099
+   ],
+   "seed_boot": [
+    -14.1,
+    -5.798
+   ],
+   "cluster_t": [
+    -27.446,
+    7.046
+   ],
+   "cluster_boot": [
+    -27.0,
+    0.2
+   ],
+   "n_clusters": 15,
+   "n_nonzero": 15,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.656,
+   "est_without_top": -2.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R4-rule_kphys",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 11.5,
+   "seed_t": [
+    4.83,
+    18.17
+   ],
+   "seed_boot": [
+    6.0,
+    17.0
+   ],
+   "cluster_t": [
+    -12.308,
+    35.308
+   ],
+   "cluster_boot": [
+    -5.9,
+    36.0
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 16,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.429,
+   "est_without_top": 2.8,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "ladder",
+   "group": "ihlm_ladder zc k=5",
+   "regime": "L",
+   "seeds": "conf 10-19",
+   "contrast": "R1-R1_kshuf",
+   "metric": "yield (hits/500)",
+   "n_seeds": 10,
+   "estimate": 9.0,
+   "seed_t": [
+    6.522,
+    11.478
+   ],
+   "seed_boot": [
+    7.0,
+    11.1
+   ],
+   "cluster_t": [
+    -4.513,
+    22.513
+   ],
+   "cluster_boot": [
+    0.9,
+    23.0
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 14,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.64,
+   "est_without_top": 2.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "chemberta",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 4.3,
+   "seed_t": [
+    0.961,
+    7.639
+   ],
+   "seed_boot": [
+    1.8,
+    7.2
+   ],
+   "cluster_t": [
+    -5.258,
+    13.858
+   ],
+   "cluster_boot": [
+    -0.8,
+    13.7
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 8,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.818,
+   "est_without_top": -0.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "chemberta",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.042,
+   "seed_t": [
+    -0.008,
+    0.099
+   ],
+   "seed_boot": [
+    0.004,
+    0.092
+   ],
+   "cluster_t": [
+    -0.012,
+    0.096
+   ],
+   "cluster_boot": [
+    -0.004,
+    0.088
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2024_Koch",
+   "top_share": 0.222,
+   "est_without_top": 0.029,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "chemberta",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 19.5,
+   "seed_t": [
+    4.73,
+    34.27
+   ],
+   "seed_boot": [
+    8.0,
+    32.3
+   ],
+   "cluster_t": [
+    -41.822,
+    80.822
+   ],
+   "cluster_boot": [
+    -16.4,
+    78.6
+   ],
+   "n_clusters": 13,
+   "n_nonzero": 11,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.772,
+   "est_without_top": -7.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "chemberta",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.033,
+   "seed_t": [
+    -0.013,
+    0.052
+   ],
+   "seed_boot": [
+    -0.007,
+    0.046
+   ],
+   "cluster_t": [
+    -0.008,
+    0.075
+   ],
+   "cluster_boot": [
+    -0.003,
+    0.066
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2024_Koch",
+   "top_share": 0.168,
+   "est_without_top": 0.026,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "chemberta",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 155.8,
+   "seed_t": [
+    142.623,
+    168.977
+   ],
+   "seed_boot": [
+    144.7,
+    166.5
+   ],
+   "cluster_t": [
+    -146.685,
+    458.285
+   ],
+   "cluster_boot": [
+    -3.7,
+    457.8
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 19,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.882,
+   "est_without_top": 11.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "chemberta",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.7,
+   "seed_t": [
+    -0.779,
+    4.179
+   ],
+   "seed_boot": [
+    -0.3,
+    3.8
+   ],
+   "cluster_t": [
+    -2.062,
+    5.462
+   ],
+   "cluster_boot": [
+    -1.2,
+    5.5
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 10,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.485,
+   "est_without_top": 0.1,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "chemberta",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.0,
+   "seed_t": [
+    -0.016,
+    0.024
+   ],
+   "seed_boot": [
+    -0.013,
+    0.02
+   ],
+   "cluster_t": [
+    -0.013,
+    0.014
+   ],
+   "cluster_boot": [
+    -0.01,
+    0.012
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Le Roux",
+   "top_share": 0.239,
+   "est_without_top": -0.004,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "chemberta",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 11.4,
+   "seed_t": [
+    6.962,
+    15.838
+   ],
+   "seed_boot": [
+    7.6,
+    14.8
+   ],
+   "cluster_t": [
+    -9.469,
+    32.269
+   ],
+   "cluster_boot": [
+    -0.1,
+    32.1
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 10,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.811,
+   "est_without_top": 1.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "chemberta",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.07,
+   "seed_t": [
+    0.05,
+    0.141
+   ],
+   "seed_boot": [
+    0.059,
+    0.133
+   ],
+   "cluster_t": [
+    -0.013,
+    0.152
+   ],
+   "cluster_boot": [
+    0.006,
+    0.144
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2015_Wang",
+   "top_share": 0.323,
+   "est_without_top": 0.042,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 8.0,
+   "seed_t": [
+    2.5,
+    13.5
+   ],
+   "seed_boot": [
+    3.5,
+    12.6
+   ],
+   "cluster_t": [
+    -2.054,
+    18.054
+   ],
+   "cluster_boot": [
+    0.8,
+    18.7
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 15,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.479,
+   "est_without_top": 3.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.236,
+   "seed_t": [
+    0.184,
+    0.274
+   ],
+   "seed_boot": [
+    0.191,
+    0.265
+   ],
+   "cluster_t": [
+    0.141,
+    0.332
+   ],
+   "cluster_boot": [
+    0.176,
+    0.296
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.215,
+   "est_without_top": 0.223,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 4.7,
+   "seed_t": [
+    2.437,
+    6.963
+   ],
+   "seed_boot": [
+    2.8,
+    6.6
+   ],
+   "cluster_t": [
+    0.913,
+    8.487
+   ],
+   "cluster_boot": [
+    1.6,
+    8.6
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 14,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.264,
+   "est_without_top": 3.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.002,
+   "seed_t": [
+    -0.054,
+    0.059
+   ],
+   "seed_boot": [
+    -0.048,
+    0.045
+   ],
+   "cluster_t": [
+    -0.016,
+    0.019
+   ],
+   "cluster_boot": [
+    -0.011,
+    0.014
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.291,
+   "est_without_top": 0.007,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 21.3,
+   "seed_t": [
+    14.266,
+    28.334
+   ],
+   "seed_boot": [
+    15.8,
+    27.3
+   ],
+   "cluster_t": [
+    -13.093,
+    55.693
+   ],
+   "cluster_boot": [
+    -0.802,
+    58.4
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 20,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.649,
+   "est_without_top": 5.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.293,
+   "seed_t": [
+    0.212,
+    0.36
+   ],
+   "seed_boot": [
+    0.227,
+    0.348
+   ],
+   "cluster_t": [
+    0.171,
+    0.415
+   ],
+   "cluster_boot": [
+    0.203,
+    0.369
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.231,
+   "est_without_top": 0.271,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.5,
+   "seed_t": [
+    -2.55,
+    5.55
+   ],
+   "seed_boot": [
+    -1.8,
+    4.9
+   ],
+   "cluster_t": [
+    -3.185,
+    6.185
+   ],
+   "cluster_boot": [
+    -2.802,
+    5.9
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 17,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.254,
+   "est_without_top": 0.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.21,
+   "seed_t": [
+    0.193,
+    0.315
+   ],
+   "seed_boot": [
+    0.202,
+    0.302
+   ],
+   "cluster_t": [
+    0.035,
+    0.385
+   ],
+   "cluster_boot": [
+    0.058,
+    0.338
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.201,
+   "est_without_top": 0.174,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 4.8,
+   "seed_t": [
+    1.963,
+    7.637
+   ],
+   "seed_boot": [
+    2.5,
+    7.2
+   ],
+   "cluster_t": [
+    1.14,
+    8.46
+   ],
+   "cluster_boot": [
+    1.5,
+    8.3
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 17,
+   "top_lab": "2021_Comeau",
+   "top_share": 0.156,
+   "est_without_top": 3.8,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.039,
+   "seed_t": [
+    -0.021,
+    0.06
+   ],
+   "seed_boot": [
+    -0.014,
+    0.053
+   ],
+   "cluster_t": [
+    -0.023,
+    0.1
+   ],
+   "cluster_boot": [
+    -0.007,
+    0.093
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2020_Le Roux",
+   "top_share": 0.354,
+   "est_without_top": 0.019,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 0.9,
+   "seed_t": [
+    -1.495,
+    3.295
+   ],
+   "seed_boot": [
+    -1.1,
+    2.8
+   ],
+   "cluster_t": [
+    -2.01,
+    3.81
+   ],
+   "cluster_boot": [
+    -1.7,
+    3.7
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 19,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.2,
+   "est_without_top": 0.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.284,
+   "seed_t": [
+    0.261,
+    0.348
+   ],
+   "seed_boot": [
+    0.27,
+    0.342
+   ],
+   "cluster_t": [
+    0.165,
+    0.402
+   ],
+   "cluster_boot": [
+    0.198,
+    0.388
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.242,
+   "est_without_top": 0.242,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 8.4,
+   "seed_t": [
+    5.058,
+    11.742
+   ],
+   "seed_boot": [
+    5.7,
+    11.2
+   ],
+   "cluster_t": [
+    -5.553,
+    22.353
+   ],
+   "cluster_boot": [
+    -0.4,
+    23.1
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 9,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.681,
+   "est_without_top": 2.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.075,
+   "seed_t": [
+    -0.0,
+    0.105
+   ],
+   "seed_boot": [
+    0.002,
+    0.087
+   ],
+   "cluster_t": [
+    0.028,
+    0.122
+   ],
+   "cluster_boot": [
+    0.037,
+    0.116
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Le Roux",
+   "top_share": 0.222,
+   "est_without_top": 0.064,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 47.3,
+   "seed_t": [
+    32.47,
+    62.13
+   ],
+   "seed_boot": [
+    34.2,
+    58.2
+   ],
+   "cluster_t": [
+    -53.011,
+    147.611
+   ],
+   "cluster_boot": [
+    -3.0,
+    142.202
+   ],
+   "n_clusters": 14,
+   "n_nonzero": 14,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.887,
+   "est_without_top": 0.9,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.073,
+   "seed_t": [
+    0.019,
+    0.096
+   ],
+   "seed_boot": [
+    0.026,
+    0.09
+   ],
+   "cluster_t": [
+    0.006,
+    0.14
+   ],
+   "cluster_boot": [
+    0.018,
+    0.128
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Furukawa",
+   "top_share": 0.2,
+   "est_without_top": 0.058,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 186.1,
+   "seed_t": [
+    178.046,
+    194.154
+   ],
+   "seed_boot": [
+    179.697,
+    192.8
+   ],
+   "cluster_t": [
+    -185.322,
+    557.522
+   ],
+   "cluster_boot": [
+    -0.8,
+    547.7
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 19,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.918,
+   "est_without_top": 9.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": -1.4,
+   "seed_t": [
+    -4.792,
+    1.992
+   ],
+   "seed_boot": [
+    -4.1,
+    1.5
+   ],
+   "cluster_t": [
+    -5.058,
+    2.258
+   ],
+   "cluster_boot": [
+    -5.1,
+    1.4
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 11,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.389,
+   "est_without_top": -0.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.043,
+   "seed_t": [
+    -0.012,
+    0.098
+   ],
+   "seed_boot": [
+    -0.004,
+    0.088
+   ],
+   "cluster_t": [
+    -0.032,
+    0.118
+   ],
+   "cluster_boot": [
+    -0.018,
+    0.108
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.334,
+   "est_without_top": 0.017,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 29.3,
+   "seed_t": [
+    24.424,
+    34.176
+   ],
+   "seed_boot": [
+    25.3,
+    33.3
+   ],
+   "cluster_t": [
+    -14.623,
+    73.223
+   ],
+   "cluster_boot": [
+    -0.2,
+    75.9
+   ],
+   "n_clusters": 16,
+   "n_nonzero": 10,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.604,
+   "est_without_top": 11.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.033,
+   "seed_t": [
+    0.005,
+    0.111
+   ],
+   "seed_boot": [
+    0.017,
+    0.104
+   ],
+   "cluster_t": [
+    -0.075,
+    0.142
+   ],
+   "cluster_boot": [
+    -0.063,
+    0.12
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.232,
+   "est_without_top": 0.068,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_confirm",
+   "regime": "A",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 20,
+   "estimate": 2.75,
+   "seed_t": [
+    0.438,
+    5.062
+   ],
+   "seed_boot": [
+    0.649,
+    4.85
+   ],
+   "cluster_t": [
+    0.579,
+    4.921
+   ],
+   "cluster_boot": [
+    1.0,
+    4.95
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 20,
+   "top_lab": "2024_Faris",
+   "top_share": 0.254,
+   "est_without_top": 1.85,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_confirm",
+   "regime": "A",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 20,
+   "estimate": -0.002,
+   "seed_t": [
+    -0.028,
+    0.03
+   ],
+   "seed_boot": [
+    -0.024,
+    0.028
+   ],
+   "cluster_t": [
+    -0.049,
+    0.046
+   ],
+   "cluster_boot": [
+    -0.03,
+    0.034
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2024_Faris",
+   "top_share": 0.428,
+   "est_without_top": -0.019,
+   "seeds_per_lab": [
+    11,
+    20,
+    20
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_confirm",
+   "regime": "B",
+   "seeds": "seeds 10-29 (n=14)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 14,
+   "estimate": 3.714,
+   "seed_t": [
+    1.734,
+    5.694
+   ],
+   "seed_boot": [
+    2.0,
+    5.5
+   ],
+   "cluster_t": [
+    0.885,
+    6.543
+   ],
+   "cluster_boot": [
+    1.5,
+    6.643
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 18,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.304,
+   "est_without_top": 2.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_confirm",
+   "regime": "B",
+   "seeds": "seeds 10-29 (n=14)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 14,
+   "estimate": 0.005,
+   "seed_t": [
+    -0.025,
+    0.03
+   ],
+   "seed_boot": [
+    -0.023,
+    0.024
+   ],
+   "cluster_t": [
+    -0.028,
+    0.039
+   ],
+   "cluster_boot": [
+    -0.022,
+    0.031
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2015_Wang",
+   "top_share": 0.229,
+   "est_without_top": -0.002,
+   "seeds_per_lab": [
+    4,
+    14,
+    14
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 5.0,
+   "seed_t": [
+    2.949,
+    7.051
+   ],
+   "seed_boot": [
+    3.4,
+    6.8
+   ],
+   "cluster_t": [
+    -0.869,
+    10.869
+   ],
+   "cluster_boot": [
+    0.6,
+    11.2
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 14,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.419,
+   "est_without_top": 2.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.04,
+   "seed_t": [
+    0.001,
+    0.075
+   ],
+   "seed_boot": [
+    0.005,
+    0.065
+   ],
+   "cluster_t": [
+    -0.032,
+    0.112
+   ],
+   "cluster_boot": [
+    -0.005,
+    0.091
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2024_Faris",
+   "top_share": 0.518,
+   "est_without_top": 0.016,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 4.7,
+   "seed_t": [
+    2.437,
+    6.963
+   ],
+   "seed_boot": [
+    2.8,
+    6.6
+   ],
+   "cluster_t": [
+    0.913,
+    8.487
+   ],
+   "cluster_boot": [
+    1.6,
+    8.5
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 14,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.264,
+   "est_without_top": 3.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.002,
+   "seed_t": [
+    -0.054,
+    0.059
+   ],
+   "seed_boot": [
+    -0.047,
+    0.044
+   ],
+   "cluster_t": [
+    -0.016,
+    0.019
+   ],
+   "cluster_boot": [
+    -0.011,
+    0.014
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.291,
+   "est_without_top": 0.007,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.9,
+   "seed_t": [
+    -0.164,
+    3.964
+   ],
+   "seed_boot": [
+    0.2,
+    3.6
+   ],
+   "cluster_t": [
+    -1.176,
+    4.976
+   ],
+   "cluster_boot": [
+    -0.5,
+    5.0
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 15,
+   "top_lab": "2024_Faris",
+   "top_share": 0.333,
+   "est_without_top": 0.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.014,
+   "seed_t": [
+    -0.031,
+    0.033
+   ],
+   "seed_boot": [
+    -0.026,
+    0.026
+   ],
+   "cluster_t": [
+    -0.041,
+    0.069
+   ],
+   "cluster_boot": [
+    -0.017,
+    0.063
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2020_Le Roux",
+   "top_share": 0.605,
+   "est_without_top": -0.009,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 4.8,
+   "seed_t": [
+    1.963,
+    7.637
+   ],
+   "seed_boot": [
+    2.6,
+    7.2
+   ],
+   "cluster_t": [
+    1.14,
+    8.46
+   ],
+   "cluster_boot": [
+    1.6,
+    8.3
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 17,
+   "top_lab": "2021_Comeau",
+   "top_share": 0.156,
+   "est_without_top": 3.8,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.039,
+   "seed_t": [
+    -0.021,
+    0.06
+   ],
+   "seed_boot": [
+    -0.014,
+    0.053
+   ],
+   "cluster_t": [
+    -0.023,
+    0.1
+   ],
+   "cluster_boot": [
+    -0.006,
+    0.091
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2020_Le Roux",
+   "top_share": 0.354,
+   "est_without_top": 0.019,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.8,
+   "seed_t": [
+    -2.821,
+    6.421
+   ],
+   "seed_boot": [
+    -1.8,
+    5.9
+   ],
+   "cluster_t": [
+    -0.739,
+    4.339
+   ],
+   "cluster_boot": [
+    -0.2,
+    4.4
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 11,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.333,
+   "est_without_top": 0.8,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.008,
+   "seed_t": [
+    -0.034,
+    0.064
+   ],
+   "seed_boot": [
+    -0.024,
+    0.057
+   ],
+   "cluster_t": [
+    -0.038,
+    0.055
+   ],
+   "cluster_boot": [
+    -0.028,
+    0.049
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2024_Koch",
+   "top_share": 0.291,
+   "est_without_top": -0.007,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": -1.4,
+   "seed_t": [
+    -4.792,
+    1.992
+   ],
+   "seed_boot": [
+    -4.0,
+    1.5
+   ],
+   "cluster_t": [
+    -5.058,
+    2.258
+   ],
+   "cluster_boot": [
+    -5.1,
+    1.4
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 11,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.389,
+   "est_without_top": -0.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.043,
+   "seed_t": [
+    -0.012,
+    0.098
+   ],
+   "seed_boot": [
+    -0.002,
+    0.088
+   ],
+   "cluster_t": [
+    -0.032,
+    0.118
+   ],
+   "cluster_boot": [
+    -0.016,
+    0.108
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.334,
+   "est_without_top": 0.017,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "A",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 20,
+   "estimate": 4.95,
+   "seed_t": [
+    2.763,
+    7.137
+   ],
+   "seed_boot": [
+    2.9,
+    6.9
+   ],
+   "cluster_t": [
+    0.003,
+    9.897
+   ],
+   "cluster_boot": [
+    1.2,
+    10.2
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 17,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.376,
+   "est_without_top": 2.9,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "A",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 20,
+   "estimate": -0.018,
+   "seed_t": [
+    -0.046,
+    0.014
+   ],
+   "seed_boot": [
+    -0.042,
+    0.014
+   ],
+   "cluster_t": [
+    -0.054,
+    0.017
+   ],
+   "cluster_boot": [
+    -0.045,
+    0.004
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.525,
+   "est_without_top": -0.007,
+   "seeds_per_lab": [
+    11,
+    20,
+    20
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "A",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 20,
+   "estimate": 2.75,
+   "seed_t": [
+    0.438,
+    5.062
+   ],
+   "seed_boot": [
+    0.65,
+    4.85
+   ],
+   "cluster_t": [
+    0.579,
+    4.921
+   ],
+   "cluster_boot": [
+    1.0,
+    4.9
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 20,
+   "top_lab": "2024_Faris",
+   "top_share": 0.254,
+   "est_without_top": 1.85,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "A",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 20,
+   "estimate": -0.002,
+   "seed_t": [
+    -0.028,
+    0.03
+   ],
+   "seed_boot": [
+    -0.025,
+    0.028
+   ],
+   "cluster_t": [
+    -0.049,
+    0.046
+   ],
+   "cluster_boot": [
+    -0.03,
+    0.035
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2024_Faris",
+   "top_share": 0.428,
+   "est_without_top": -0.019,
+   "seeds_per_lab": [
+    11,
+    20,
+    20
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "B",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 20,
+   "estimate": 4.85,
+   "seed_t": [
+    2.414,
+    7.286
+   ],
+   "seed_boot": [
+    2.7,
+    7.15
+   ],
+   "cluster_t": [
+    -0.569,
+    10.269
+   ],
+   "cluster_boot": [
+    0.95,
+    10.8
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 20,
+   "top_lab": "2024_Faris",
+   "top_share": 0.412,
+   "est_without_top": 2.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "B",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 20,
+   "estimate": 0.005,
+   "seed_t": [
+    -0.011,
+    0.039
+   ],
+   "seed_boot": [
+    -0.009,
+    0.036
+   ],
+   "cluster_t": [
+    -0.053,
+    0.062
+   ],
+   "cluster_boot": [
+    -0.043,
+    0.053
+   ],
+   "n_clusters": 10,
+   "n_nonzero": 10,
+   "top_lab": "2024_Faris",
+   "top_share": 0.265,
+   "est_without_top": -0.012,
+   "seeds_per_lab": [
+    3,
+    20,
+    20
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "B",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 20,
+   "estimate": 3.65,
+   "seed_t": [
+    2.092,
+    5.208
+   ],
+   "seed_boot": [
+    2.25,
+    5.1
+   ],
+   "cluster_t": [
+    1.215,
+    6.085
+   ],
+   "cluster_boot": [
+    1.7,
+    6.2
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 20,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.253,
+   "est_without_top": 2.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "B",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 20,
+   "estimate": -0.006,
+   "seed_t": [
+    -0.015,
+    0.033
+   ],
+   "seed_boot": [
+    -0.013,
+    0.03
+   ],
+   "cluster_t": [
+    -0.07,
+    0.059
+   ],
+   "cluster_boot": [
+    -0.066,
+    0.034
+   ],
+   "n_clusters": 10,
+   "n_nonzero": 10,
+   "top_lab": "2024_Koch",
+   "top_share": 0.465,
+   "est_without_top": 0.021,
+   "seeds_per_lab": [
+    3,
+    20,
+    20
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "L",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 20,
+   "estimate": 4.9,
+   "seed_t": [
+    3.468,
+    6.332
+   ],
+   "seed_boot": [
+    3.6,
+    6.2
+   ],
+   "cluster_t": [
+    -1.476,
+    11.276
+   ],
+   "cluster_boot": [
+    0.3,
+    11.75
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 10,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.5,
+   "est_without_top": 2.25,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "L",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 20,
+   "estimate": 0.001,
+   "seed_t": [
+    -0.018,
+    0.041
+   ],
+   "seed_boot": [
+    -0.017,
+    0.037
+   ],
+   "cluster_t": [
+    -0.045,
+    0.047
+   ],
+   "cluster_boot": [
+    -0.037,
+    0.039
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2024_Faris",
+   "top_share": 0.241,
+   "est_without_top": -0.012,
+   "seeds_per_lab": [
+    3,
+    13,
+    20
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "L",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 20,
+   "estimate": 1.25,
+   "seed_t": [
+    -0.507,
+    3.007
+   ],
+   "seed_boot": [
+    -0.301,
+    2.9
+   ],
+   "cluster_t": [
+    -0.265,
+    2.765
+   ],
+   "cluster_boot": [
+    -0.1,
+    2.65
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 13,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.178,
+   "est_without_top": 0.85,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_detK_confirm",
+   "regime": "L",
+   "seeds": "seeds 10-29 (n=20)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 20,
+   "estimate": -0.011,
+   "seed_t": [
+    -0.022,
+    0.033
+   ],
+   "seed_boot": [
+    -0.02,
+    0.03
+   ],
+   "cluster_t": [
+    -0.057,
+    0.035
+   ],
+   "cluster_boot": [
+    -0.052,
+    0.025
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2024_Koch",
+   "top_share": 0.269,
+   "est_without_top": 0.003,
+   "seeds_per_lab": [
+    3,
+    13,
+    20
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_srcmatch",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 139.7,
+   "seed_t": [
+    126.257,
+    153.143
+   ],
+   "seed_boot": [
+    128.0,
+    150.2
+   ],
+   "cluster_t": [
+    -117.045,
+    396.445
+   ],
+   "cluster_boot": [
+    -0.2,
+    400.003
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 21,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.842,
+   "est_without_top": 16.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_srcmatch",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 5.6,
+   "seed_t": [
+    -2.558,
+    13.758
+   ],
+   "seed_boot": [
+    -1.1,
+    12.2
+   ],
+   "cluster_t": [
+    -3.739,
+    14.939
+   ],
+   "cluster_boot": [
+    -3.0,
+    14.1
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 23,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.129,
+   "est_without_top": 3.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_aware_srcmatch",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 186.1,
+   "seed_t": [
+    178.046,
+    194.154
+   ],
+   "seed_boot": [
+    179.7,
+    192.9
+   ],
+   "cluster_t": [
+    -185.322,
+    557.522
+   ],
+   "cluster_boot": [
+    -0.9,
+    546.605
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 19,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.918,
+   "est_without_top": 9.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 8.5,
+   "seed_t": [
+    5.332,
+    11.668
+   ],
+   "seed_boot": [
+    5.9,
+    11.1
+   ],
+   "cluster_t": [
+    -0.985,
+    17.985
+   ],
+   "cluster_boot": [
+    1.5,
+    18.2
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 15,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.452,
+   "est_without_top": 4.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.134,
+   "seed_t": [
+    0.086,
+    0.196
+   ],
+   "seed_boot": [
+    0.094,
+    0.184
+   ],
+   "cluster_t": [
+    0.024,
+    0.244
+   ],
+   "cluster_boot": [
+    0.062,
+    0.208
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.336,
+   "est_without_top": 0.107,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 2.4,
+   "seed_t": [
+    -0.639,
+    5.439
+   ],
+   "seed_boot": [
+    -0.2,
+    4.8
+   ],
+   "cluster_t": [
+    0.107,
+    4.693
+   ],
+   "cluster_boot": [
+    0.5,
+    4.7
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 14,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.25,
+   "est_without_top": 1.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.008,
+   "seed_t": [
+    -0.038,
+    0.026
+   ],
+   "seed_boot": [
+    -0.033,
+    0.02
+   ],
+   "cluster_t": [
+    -0.028,
+    0.013
+   ],
+   "cluster_boot": [
+    -0.021,
+    0.005
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.311,
+   "est_without_top": -0.003,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 23.6,
+   "seed_t": [
+    19.495,
+    27.705
+   ],
+   "seed_boot": [
+    20.3,
+    27.0
+   ],
+   "cluster_t": [
+    -15.24,
+    62.44
+   ],
+   "cluster_boot": [
+    0.1,
+    64.7
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 19,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.706,
+   "est_without_top": 5.1,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.278,
+   "seed_t": [
+    0.222,
+    0.348
+   ],
+   "seed_boot": [
+    0.234,
+    0.336
+   ],
+   "cluster_t": [
+    0.139,
+    0.417
+   ],
+   "cluster_boot": [
+    0.188,
+    0.367
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.258,
+   "est_without_top": 0.248,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.4,
+   "seed_t": [
+    -2.235,
+    5.035
+   ],
+   "seed_boot": [
+    -1.8,
+    4.2
+   ],
+   "cluster_t": [
+    -2.762,
+    5.562
+   ],
+   "cluster_boot": [
+    -2.6,
+    5.2
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 19,
+   "top_lab": "2024_Faris",
+   "top_share": 0.2,
+   "est_without_top": 2.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.235,
+   "seed_t": [
+    0.19,
+    0.282
+   ],
+   "seed_boot": [
+    0.205,
+    0.279
+   ],
+   "cluster_t": [
+    0.124,
+    0.345
+   ],
+   "cluster_boot": [
+    0.147,
+    0.326
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2020_Le Roux",
+   "top_share": 0.201,
+   "est_without_top": 0.211,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 4.9,
+   "seed_t": [
+    1.99,
+    7.81
+   ],
+   "seed_boot": [
+    2.4,
+    7.2
+   ],
+   "cluster_t": [
+    2.409,
+    7.391
+   ],
+   "cluster_boot": [
+    2.7,
+    7.3
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 19,
+   "top_lab": "2015_Bockus_2",
+   "top_share": 0.127,
+   "est_without_top": 4.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.006,
+   "seed_t": [
+    -0.018,
+    0.031
+   ],
+   "seed_boot": [
+    -0.014,
+    0.026
+   ],
+   "cluster_t": [
+    -0.048,
+    0.037
+   ],
+   "cluster_boot": [
+    -0.04,
+    0.028
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2022_Taechalertpaisarn",
+   "top_share": 0.281,
+   "est_without_top": 0.006,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.4,
+   "seed_t": [
+    -1.959,
+    4.759
+   ],
+   "seed_boot": [
+    -1.1,
+    4.5
+   ],
+   "cluster_t": [
+    -1.776,
+    4.576
+   ],
+   "cluster_boot": [
+    -1.3,
+    4.6
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 18,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.192,
+   "est_without_top": 0.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.254,
+   "seed_t": [
+    0.23,
+    0.308
+   ],
+   "seed_boot": [
+    0.234,
+    0.298
+   ],
+   "cluster_t": [
+    0.111,
+    0.398
+   ],
+   "cluster_boot": [
+    0.139,
+    0.37
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.232,
+   "est_without_top": 0.22,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 3.1,
+   "seed_t": [
+    -1.517,
+    7.717
+   ],
+   "seed_boot": [
+    -0.9,
+    6.8
+   ],
+   "cluster_t": [
+    -1.554,
+    7.754
+   ],
+   "cluster_boot": [
+    -0.5,
+    7.7
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 9,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.356,
+   "est_without_top": 1.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.011,
+   "seed_t": [
+    -0.052,
+    0.083
+   ],
+   "seed_boot": [
+    -0.039,
+    0.072
+   ],
+   "cluster_t": [
+    -0.081,
+    0.104
+   ],
+   "cluster_boot": [
+    -0.07,
+    0.08
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.272,
+   "est_without_top": 0.044,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 13.2,
+   "seed_t": [
+    0.298,
+    26.102
+   ],
+   "seed_boot": [
+    2.7,
+    23.8
+   ],
+   "cluster_t": [
+    -7.306,
+    33.706
+   ],
+   "cluster_boot": [
+    -0.9,
+    34.6
+   ],
+   "n_clusters": 16,
+   "n_nonzero": 15,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.537,
+   "est_without_top": 4.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.004,
+   "seed_t": [
+    -0.078,
+    0.062
+   ],
+   "seed_boot": [
+    -0.065,
+    0.049
+   ],
+   "cluster_t": [
+    -0.054,
+    0.046
+   ],
+   "cluster_boot": [
+    -0.047,
+    0.035
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2024_Faris",
+   "top_share": 0.24,
+   "est_without_top": 0.011,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 165.0,
+   "seed_t": [
+    152.865,
+    177.135
+   ],
+   "seed_boot": [
+    156.4,
+    176.0
+   ],
+   "cluster_t": [
+    -155.928,
+    485.928
+   ],
+   "cluster_boot": [
+    0.4,
+    479.8
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 18,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.902,
+   "est_without_top": 11.9,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": -0.1,
+   "seed_t": [
+    -4.209,
+    4.009
+   ],
+   "seed_boot": [
+    -3.2,
+    3.5
+   ],
+   "cluster_t": [
+    -2.434,
+    2.234
+   ],
+   "cluster_boot": [
+    -2.4,
+    1.8
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 12,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.241,
+   "est_without_top": 0.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.002,
+   "seed_t": [
+    -0.046,
+    0.044
+   ],
+   "seed_boot": [
+    -0.036,
+    0.035
+   ],
+   "cluster_t": [
+    -0.044,
+    0.041
+   ],
+   "cluster_boot": [
+    -0.037,
+    0.035
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.237,
+   "est_without_top": -0.014,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 32.7,
+   "seed_t": [
+    28.125,
+    37.275
+   ],
+   "seed_boot": [
+    29.0,
+    36.6
+   ],
+   "cluster_t": [
+    -20.685,
+    86.085
+   ],
+   "cluster_boot": [
+    -0.4,
+    90.002
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 17,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.704,
+   "est_without_top": 8.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.071,
+   "seed_t": [
+    0.057,
+    0.199
+   ],
+   "seed_boot": [
+    0.073,
+    0.19
+   ],
+   "cluster_t": [
+    -0.086,
+    0.228
+   ],
+   "cluster_boot": [
+    -0.078,
+    0.183
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.258,
+   "est_without_top": 0.132,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 6.0,
+   "seed_t": [
+    3.713,
+    8.287
+   ],
+   "seed_boot": [
+    4.1,
+    7.8
+   ],
+   "cluster_t": [
+    0.215,
+    11.785
+   ],
+   "cluster_boot": [
+    1.7,
+    12.0
+   ],
+   "n_clusters": 21,
+   "n_nonzero": 12,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.406,
+   "est_without_top": 3.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.016,
+   "seed_t": [
+    -0.045,
+    0.038
+   ],
+   "seed_boot": [
+    -0.036,
+    0.032
+   ],
+   "cluster_t": [
+    -0.087,
+    0.054
+   ],
+   "cluster_boot": [
+    -0.071,
+    0.023
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.591,
+   "est_without_top": 0.01,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 2.4,
+   "seed_t": [
+    -0.639,
+    5.439
+   ],
+   "seed_boot": [
+    -0.2,
+    4.8
+   ],
+   "cluster_t": [
+    0.107,
+    4.693
+   ],
+   "cluster_boot": [
+    0.5,
+    4.7
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 14,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.25,
+   "est_without_top": 1.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.008,
+   "seed_t": [
+    -0.038,
+    0.026
+   ],
+   "seed_boot": [
+    -0.032,
+    0.02
+   ],
+   "cluster_t": [
+    -0.028,
+    0.013
+   ],
+   "cluster_boot": [
+    -0.022,
+    0.005
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2022_Bhardwaj",
+   "top_share": 0.311,
+   "est_without_top": -0.003,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 4.1,
+   "seed_t": [
+    1.753,
+    6.447
+   ],
+   "seed_boot": [
+    2.0,
+    5.9
+   ],
+   "cluster_t": [
+    1.016,
+    7.184
+   ],
+   "cluster_boot": [
+    1.2,
+    7.0
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 16,
+   "top_lab": "2024_Faris",
+   "top_share": 0.164,
+   "est_without_top": 3.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.003,
+   "seed_t": [
+    -0.03,
+    0.037
+   ],
+   "seed_boot": [
+    -0.024,
+    0.03
+   ],
+   "cluster_t": [
+    -0.042,
+    0.035
+   ],
+   "cluster_boot": [
+    -0.033,
+    0.027
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2024_Faris",
+   "top_share": 0.254,
+   "est_without_top": -0.015,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 4.9,
+   "seed_t": [
+    1.99,
+    7.81
+   ],
+   "seed_boot": [
+    2.4,
+    7.2
+   ],
+   "cluster_t": [
+    2.409,
+    7.391
+   ],
+   "cluster_boot": [
+    2.7,
+    7.3
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 19,
+   "top_lab": "2015_Bockus_2",
+   "top_share": 0.127,
+   "est_without_top": 4.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.006,
+   "seed_t": [
+    -0.018,
+    0.031
+   ],
+   "seed_boot": [
+    -0.014,
+    0.026
+   ],
+   "cluster_t": [
+    -0.048,
+    0.037
+   ],
+   "cluster_boot": [
+    -0.039,
+    0.028
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2022_Taechalertpaisarn",
+   "top_share": 0.281,
+   "est_without_top": 0.006,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 5.2,
+   "seed_t": [
+    0.542,
+    9.858
+   ],
+   "seed_boot": [
+    1.6,
+    9.3
+   ],
+   "cluster_t": [
+    -4.882,
+    15.282
+   ],
+   "cluster_boot": [
+    -0.2,
+    15.1
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 7,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.828,
+   "est_without_top": 0.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.009,
+   "seed_t": [
+    -0.026,
+    0.062
+   ],
+   "seed_boot": [
+    -0.024,
+    0.047
+   ],
+   "cluster_t": [
+    -0.028,
+    0.046
+   ],
+   "cluster_boot": [
+    -0.023,
+    0.041
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2024_Faris",
+   "top_share": 0.242,
+   "est_without_top": -0.001,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": -0.1,
+   "seed_t": [
+    -4.209,
+    4.009
+   ],
+   "seed_boot": [
+    -3.2,
+    3.5
+   ],
+   "cluster_t": [
+    -2.434,
+    2.234
+   ],
+   "cluster_boot": [
+    -2.4,
+    1.8
+   ],
+   "n_clusters": 19,
+   "n_nonzero": 12,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.241,
+   "est_without_top": 0.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_blind_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.002,
+   "seed_t": [
+    -0.046,
+    0.044
+   ],
+   "seed_boot": [
+    -0.037,
+    0.036
+   ],
+   "cluster_t": [
+    -0.044,
+    0.041
+   ],
+   "cluster_boot": [
+    -0.036,
+    0.035
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.237,
+   "est_without_top": -0.014,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 0.9,
+   "seed_t": [
+    -2.937,
+    4.737
+   ],
+   "seed_boot": [
+    -2.2,
+    4.1
+   ],
+   "cluster_t": [
+    -1.326,
+    3.126
+   ],
+   "cluster_boot": [
+    -1.0,
+    3.0
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 13,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.226,
+   "est_without_top": 0.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.142,
+   "seed_t": [
+    0.095,
+    0.225
+   ],
+   "seed_boot": [
+    0.109,
+    0.214
+   ],
+   "cluster_t": [
+    -0.012,
+    0.297
+   ],
+   "cluster_boot": [
+    0.041,
+    0.253
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.375,
+   "est_without_top": 0.104,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 15.0,
+   "seed_t": [
+    -2.594,
+    32.594
+   ],
+   "seed_boot": [
+    1.3,
+    30.3
+   ],
+   "cluster_t": [
+    -12.055,
+    42.055
+   ],
+   "cluster_boot": [
+    -2.9,
+    44.4
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 13,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.606,
+   "est_without_top": 3.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.064,
+   "seed_t": [
+    0.012,
+    0.122
+   ],
+   "seed_boot": [
+    0.02,
+    0.11
+   ],
+   "cluster_t": [
+    -0.022,
+    0.15
+   ],
+   "cluster_boot": [
+    0.009,
+    0.129
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2024_Faris",
+   "top_share": 0.43,
+   "est_without_top": 0.038,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 123.8,
+   "seed_t": [
+    111.192,
+    136.408
+   ],
+   "seed_boot": [
+    112.6,
+    133.3
+   ],
+   "cluster_t": [
+    -82.957,
+    330.557
+   ],
+   "cluster_boot": [
+    2.1,
+    336.402
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 20,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.758,
+   "est_without_top": 24.7,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.2,
+   "seed_t": [
+    -2.522,
+    4.922
+   ],
+   "seed_boot": [
+    -1.9,
+    4.2
+   ],
+   "cluster_t": [
+    -1.797,
+    4.197
+   ],
+   "cluster_boot": [
+    -1.6,
+    4.0
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 14,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.263,
+   "est_without_top": 0.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.012,
+   "seed_t": [
+    -0.015,
+    0.032
+   ],
+   "seed_boot": [
+    -0.011,
+    0.028
+   ],
+   "cluster_t": [
+    -0.009,
+    0.034
+   ],
+   "cluster_boot": [
+    -0.001,
+    0.028
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.384,
+   "est_without_top": 0.007,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 20.1,
+   "seed_t": [
+    12.167,
+    28.033
+   ],
+   "seed_boot": [
+    13.6,
+    26.5
+   ],
+   "cluster_t": [
+    -9.908,
+    50.108
+   ],
+   "cluster_boot": [
+    0.6,
+    51.0
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 19,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.595,
+   "est_without_top": 6.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.267,
+   "seed_t": [
+    0.203,
+    0.344
+   ],
+   "seed_boot": [
+    0.217,
+    0.333
+   ],
+   "cluster_t": [
+    0.146,
+    0.387
+   ],
+   "cluster_boot": [
+    0.19,
+    0.356
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.288,
+   "est_without_top": 0.228,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 3.2,
+   "seed_t": [
+    1.046,
+    5.354
+   ],
+   "seed_boot": [
+    1.5,
+    5.0
+   ],
+   "cluster_t": [
+    -0.255,
+    6.655
+   ],
+   "cluster_boot": [
+    0.3,
+    6.6
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 16,
+   "top_lab": "2024_Faris",
+   "top_share": 0.231,
+   "est_without_top": 2.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.292,
+   "seed_t": [
+    0.264,
+    0.369
+   ],
+   "seed_boot": [
+    0.277,
+    0.363
+   ],
+   "cluster_t": [
+    0.081,
+    0.502
+   ],
+   "cluster_boot": [
+    0.133,
+    0.467
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2018_Naylor",
+   "top_share": 0.274,
+   "est_without_top": 0.235,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 9.3,
+   "seed_t": [
+    6.136,
+    12.464
+   ],
+   "seed_boot": [
+    6.6,
+    11.9
+   ],
+   "cluster_t": [
+    1.605,
+    16.995
+   ],
+   "cluster_boot": [
+    3.0,
+    17.2
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 20,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.252,
+   "est_without_top": 6.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.175,
+   "seed_t": [
+    0.15,
+    0.269
+   ],
+   "seed_boot": [
+    0.159,
+    0.257
+   ],
+   "cluster_t": [
+    -0.031,
+    0.38
+   ],
+   "cluster_boot": [
+    0.019,
+    0.348
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2018_Naylor",
+   "top_share": 0.321,
+   "est_without_top": 0.115,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 20.0,
+   "seed_t": [
+    14.438,
+    25.562
+   ],
+   "seed_boot": [
+    15.6,
+    24.6
+   ],
+   "cluster_t": [
+    1.068,
+    38.932
+   ],
+   "cluster_boot": [
+    3.6,
+    39.5
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 21,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.262,
+   "est_without_top": 12.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.7,
+   "seed_t": [
+    -0.662,
+    4.062
+   ],
+   "seed_boot": [
+    -0.3,
+    3.5
+   ],
+   "cluster_t": [
+    -0.548,
+    3.948
+   ],
+   "cluster_boot": [
+    -0.2,
+    4.0
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 13,
+   "top_lab": "2021_Comeau",
+   "top_share": 0.276,
+   "est_without_top": 0.9,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.04,
+   "seed_t": [
+    -0.072,
+    0.017
+   ],
+   "seed_boot": [
+    -0.067,
+    0.007
+   ],
+   "cluster_t": [
+    -0.098,
+    0.018
+   ],
+   "cluster_boot": [
+    -0.091,
+    0.0
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2020_Le Roux",
+   "top_share": 0.479,
+   "est_without_top": -0.017,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 5.9,
+   "seed_t": [
+    3.235,
+    8.565
+   ],
+   "seed_boot": [
+    3.6,
+    8.0
+   ],
+   "cluster_t": [
+    1.749,
+    10.051
+   ],
+   "cluster_boot": [
+    2.2,
+    9.8
+   ],
+   "n_clusters": 24,
+   "n_nonzero": 21,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.16,
+   "est_without_top": 4.6,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.389,
+   "seed_t": [
+    0.32,
+    0.482
+   ],
+   "seed_boot": [
+    0.338,
+    0.469
+   ],
+   "cluster_t": [
+    0.234,
+    0.543
+   ],
+   "cluster_boot": [
+    0.264,
+    0.508
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2018_Naylor",
+   "top_share": 0.181,
+   "est_without_top": 0.358,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 3.1,
+   "seed_t": [
+    0.705,
+    5.495
+   ],
+   "seed_boot": [
+    1.3,
+    5.2
+   ],
+   "cluster_t": [
+    -6.905,
+    13.105
+   ],
+   "cluster_boot": [
+    -3.3,
+    13.2
+   ],
+   "n_clusters": 17,
+   "n_nonzero": 9,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.714,
+   "est_without_top": -1.4,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.077,
+   "seed_t": [
+    -0.001,
+    0.158
+   ],
+   "seed_boot": [
+    0.022,
+    0.15
+   ],
+   "cluster_t": [
+    0.016,
+    0.138
+   ],
+   "cluster_boot": [
+    0.028,
+    0.13
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.247,
+   "est_without_top": 0.061,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 4.9,
+   "seed_t": [
+    -6.348,
+    16.148
+   ],
+   "seed_boot": [
+    -4.6,
+    13.9
+   ],
+   "cluster_t": [
+    -7.118,
+    16.918
+   ],
+   "cluster_boot": [
+    -1.8,
+    16.402
+   ],
+   "n_clusters": 13,
+   "n_nonzero": 11,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.684,
+   "est_without_top": -0.5,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-frozen",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.087,
+   "seed_t": [
+    -0.015,
+    0.15
+   ],
+   "seed_boot": [
+    0.008,
+    0.142
+   ],
+   "cluster_t": [
+    -0.005,
+    0.179
+   ],
+   "cluster_boot": [
+    0.015,
+    0.169
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.33,
+   "est_without_top": 0.054,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 153.2,
+   "seed_t": [
+    143.346,
+    163.054
+   ],
+   "seed_boot": [
+    145.4,
+    161.6
+   ],
+   "cluster_t": [
+    -150.463,
+    456.863
+   ],
+   "cluster_boot": [
+    -2.2,
+    450.803
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 17,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.909,
+   "est_without_top": 9.1,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": -0.8,
+   "seed_t": [
+    -3.736,
+    2.136
+   ],
+   "seed_boot": [
+    -3.5,
+    1.3
+   ],
+   "cluster_t": [
+    -4.281,
+    2.681
+   ],
+   "cluster_boot": [
+    -4.4,
+    1.9
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 12,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.306,
+   "est_without_top": 0.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.017,
+   "seed_t": [
+    -0.039,
+    0.055
+   ],
+   "seed_boot": [
+    -0.028,
+    0.048
+   ],
+   "cluster_t": [
+    -0.036,
+    0.069
+   ],
+   "cluster_boot": [
+    -0.026,
+    0.061
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.249,
+   "est_without_top": 0.001,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 22.1,
+   "seed_t": [
+    17.231,
+    26.969
+   ],
+   "seed_boot": [
+    18.6,
+    26.6
+   ],
+   "cluster_t": [
+    -11.288,
+    55.488
+   ],
+   "cluster_boot": [
+    0.498,
+    57.602
+   ],
+   "n_clusters": 17,
+   "n_nonzero": 10,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.656,
+   "est_without_top": 7.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.155,
+   "seed_t": [
+    0.113,
+    0.267
+   ],
+   "seed_boot": [
+    0.127,
+    0.251
+   ],
+   "cluster_t": [
+    0.053,
+    0.256
+   ],
+   "cluster_boot": [
+    0.073,
+    0.244
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2015_Wang",
+   "top_share": 0.242,
+   "est_without_top": 0.126,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "M",
+   "seeds": "seeds 0-9 (n=7)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 7,
+   "estimate": 3.0,
+   "seed_t": [
+    -2.445,
+    8.445
+   ],
+   "seed_boot": [
+    -0.857,
+    7.143
+   ],
+   "cluster_t": [
+    -3.601,
+    9.601
+   ],
+   "cluster_boot": [
+    -1.429,
+    10.143
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 14,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.512,
+   "est_without_top": 0.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "M",
+   "seeds": "seeds 0-9 (n=7)",
+   "contrast": "loop_sub-frozen_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 7,
+   "estimate": 0.098,
+   "seed_t": [
+    0.015,
+    0.165
+   ],
+   "seed_boot": [
+    0.034,
+    0.144
+   ],
+   "cluster_t": [
+    0.006,
+    0.189
+   ],
+   "cluster_boot": [
+    0.03,
+    0.179
+   ],
+   "n_clusters": 10,
+   "n_nonzero": 10,
+   "top_lab": "2022_Taechalertpaisarn",
+   "top_share": 0.356,
+   "est_without_top": 0.065,
+   "seeds_per_lab": [
+    3,
+    5,
+    5
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "M",
+   "seeds": "seeds 0-9 (n=7)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 7,
+   "estimate": 156.857,
+   "seed_t": [
+    143.6,
+    170.114
+   ],
+   "seed_boot": [
+    147.143,
+    166.714
+   ],
+   "cluster_t": [
+    -124.968,
+    438.682
+   ],
+   "cluster_boot": [
+    0.571,
+    442.007
+   ],
+   "n_clusters": 21,
+   "n_nonzero": 18,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.836,
+   "est_without_top": 21.857,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "M",
+   "seeds": "seeds 0-9 (n=7)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 7,
+   "estimate": 0.429,
+   "seed_t": [
+    -3.937,
+    4.795
+   ],
+   "seed_boot": [
+    -3.143,
+    3.286
+   ],
+   "cluster_t": [
+    -2.518,
+    3.375
+   ],
+   "cluster_boot": [
+    -2.429,
+    2.861
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 14,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.207,
+   "est_without_top": 1.286,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "M",
+   "seeds": "seeds 0-9 (n=7)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 7,
+   "estimate": -0.004,
+   "seed_t": [
+    -0.051,
+    0.059
+   ],
+   "seed_boot": [
+    -0.038,
+    0.044
+   ],
+   "cluster_t": [
+    -0.057,
+    0.05
+   ],
+   "cluster_boot": [
+    -0.053,
+    0.037
+   ],
+   "n_clusters": 10,
+   "n_nonzero": 10,
+   "top_lab": "2020_Furukawa",
+   "top_share": 0.353,
+   "est_without_top": 0.015,
+   "seeds_per_lab": [
+    3,
+    5,
+    5
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "M",
+   "seeds": "seeds 0-9 (n=7)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 7,
+   "estimate": 21.286,
+   "seed_t": [
+    12.197,
+    30.374
+   ],
+   "seed_boot": [
+    14.711,
+    27.857
+   ],
+   "cluster_t": [
+    -13.414,
+    55.986
+   ],
+   "cluster_boot": [
+    0.714,
+    57.857
+   ],
+   "n_clusters": 21,
+   "n_nonzero": 13,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.742,
+   "est_without_top": 4.857,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem",
+   "regime": "M",
+   "seeds": "seeds 0-9 (n=7)",
+   "contrast": "loop_sub-shuffled_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 7,
+   "estimate": 0.238,
+   "seed_t": [
+    0.073,
+    0.413
+   ],
+   "seed_boot": [
+    0.113,
+    0.366
+   ],
+   "cluster_t": [
+    0.039,
+    0.437
+   ],
+   "cluster_boot": [
+    0.073,
+    0.4
+   ],
+   "n_clusters": 10,
+   "n_nonzero": 10,
+   "top_lab": "2015_Wang",
+   "top_share": 0.229,
+   "est_without_top": 0.187,
+   "seeds_per_lab": [
+    3,
+    5,
+    5
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 2.9,
+   "seed_t": [
+    -0.463,
+    6.263
+   ],
+   "seed_boot": [
+    0.2,
+    5.7
+   ],
+   "cluster_t": [
+    -1.247,
+    7.047
+   ],
+   "cluster_boot": [
+    -0.1,
+    7.4
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 13,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.442,
+   "est_without_top": 1.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.016,
+   "seed_t": [
+    -0.046,
+    0.009
+   ],
+   "seed_boot": [
+    -0.04,
+    0.004
+   ],
+   "cluster_t": [
+    -0.048,
+    0.016
+   ],
+   "cluster_boot": [
+    -0.04,
+    0.004
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2024_Faris",
+   "top_share": 0.469,
+   "est_without_top": -0.006,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.2,
+   "seed_t": [
+    -2.522,
+    4.922
+   ],
+   "seed_boot": [
+    -1.8,
+    4.2
+   ],
+   "cluster_t": [
+    -1.797,
+    4.197
+   ],
+   "cluster_boot": [
+    -1.5,
+    4.0
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 14,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.263,
+   "est_without_top": 0.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.012,
+   "seed_t": [
+    -0.015,
+    0.032
+   ],
+   "seed_boot": [
+    -0.01,
+    0.028
+   ],
+   "cluster_t": [
+    -0.009,
+    0.034
+   ],
+   "cluster_boot": [
+    -0.001,
+    0.028
+   ],
+   "n_clusters": 6,
+   "n_nonzero": 6,
+   "top_lab": "2013_CHUGAI",
+   "top_share": 0.384,
+   "est_without_top": 0.007,
+   "seeds_per_lab": [
+    5,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 0.1,
+   "seed_t": [
+    -2.67,
+    2.87
+   ],
+   "seed_boot": [
+    -2.1,
+    2.4
+   ],
+   "cluster_t": [
+    -1.472,
+    1.672
+   ],
+   "cluster_boot": [
+    -1.3,
+    1.6
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 15,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.16,
+   "est_without_top": -0.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.049,
+   "seed_t": [
+    -0.064,
+    -0.001
+   ],
+   "seed_boot": [
+    -0.061,
+    -0.01
+   ],
+   "cluster_t": [
+    -0.1,
+    0.001
+   ],
+   "cluster_boot": [
+    -0.093,
+    -0.013
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2020_Le Roux",
+   "top_share": 0.387,
+   "est_without_top": -0.033,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 1.7,
+   "seed_t": [
+    -0.662,
+    4.062
+   ],
+   "seed_boot": [
+    -0.3,
+    3.6
+   ],
+   "cluster_t": [
+    -0.548,
+    3.948
+   ],
+   "cluster_boot": [
+    -0.1,
+    4.0
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 13,
+   "top_lab": "2021_Comeau",
+   "top_share": 0.276,
+   "est_without_top": 0.9,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": -0.04,
+   "seed_t": [
+    -0.072,
+    0.017
+   ],
+   "seed_boot": [
+    -0.067,
+    0.007
+   ],
+   "cluster_t": [
+    -0.098,
+    0.018
+   ],
+   "cluster_boot": [
+    -0.09,
+    -0.001
+   ],
+   "n_clusters": 9,
+   "n_nonzero": 9,
+   "top_lab": "2020_Le Roux",
+   "top_share": 0.479,
+   "est_without_top": -0.017,
+   "seeds_per_lab": [
+    3,
+    10,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 0.5,
+   "seed_t": [
+    -2.976,
+    3.976
+   ],
+   "seed_boot": [
+    -2.4,
+    3.3
+   ],
+   "cluster_t": [
+    -1.361,
+    2.361
+   ],
+   "cluster_boot": [
+    -1.3,
+    2.1
+   ],
+   "n_clusters": 21,
+   "n_nonzero": 12,
+   "top_lab": "2021_Kelly",
+   "top_share": 0.185,
+   "est_without_top": 1.0,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_kshuf_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.01,
+   "seed_t": [
+    -0.042,
+    0.041
+   ],
+   "seed_boot": [
+    -0.034,
+    0.034
+   ],
+   "cluster_t": [
+    -0.022,
+    0.042
+   ],
+   "cluster_boot": [
+    -0.018,
+    0.036
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2022_Taechalertpaisarn",
+   "top_share": 0.199,
+   "est_without_top": 0.019,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": -0.8,
+   "seed_t": [
+    -3.736,
+    2.136
+   ],
+   "seed_boot": [
+    -3.5,
+    1.3
+   ],
+   "cluster_t": [
+    -4.281,
+    2.681
+   ],
+   "cluster_boot": [
+    -4.4,
+    1.8
+   ],
+   "n_clusters": 20,
+   "n_nonzero": 12,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.306,
+   "est_without_top": 0.3,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_detK",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop_kphys_sub-loop_sub",
+   "metric": "E source-rho (within lab)",
+   "n_seeds": 10,
+   "estimate": 0.017,
+   "seed_t": [
+    -0.039,
+    0.055
+   ],
+   "seed_boot": [
+    -0.03,
+    0.048
+   ],
+   "cluster_t": [
+    -0.036,
+    0.069
+   ],
+   "cluster_boot": [
+    -0.026,
+    0.061
+   ],
+   "n_clusters": 11,
+   "n_nonzero": 11,
+   "top_lab": "2020_Barlow",
+   "top_share": 0.249,
+   "est_without_top": 0.001,
+   "seeds_per_lab": [
+    3,
+    7,
+    10
+   ]
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_srcmatch",
+   "regime": "A",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 123.8,
+   "seed_t": [
+    111.192,
+    136.408
+   ],
+   "seed_boot": [
+    113.198,
+    133.3
+   ],
+   "cluster_t": [
+    -82.957,
+    330.557
+   ],
+   "cluster_boot": [
+    1.1,
+    335.5
+   ],
+   "n_clusters": 22,
+   "n_nonzero": 20,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.758,
+   "est_without_top": 24.7,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_srcmatch",
+   "regime": "B",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 20.0,
+   "seed_t": [
+    14.438,
+    25.562
+   ],
+   "seed_boot": [
+    15.5,
+    24.7
+   ],
+   "cluster_t": [
+    1.068,
+    38.932
+   ],
+   "cluster_boot": [
+    3.9,
+    39.3
+   ],
+   "n_clusters": 23,
+   "n_nonzero": 21,
+   "top_lab": "2016_Furukawa",
+   "top_share": 0.262,
+   "est_without_top": 12.2,
+   "hit_recompute_mismatches": 0
+  },
+  {
+   "analysis": "L7",
+   "group": "gbm_physchem_srcmatch",
+   "regime": "L",
+   "seeds": "seeds 0-9 (n=10)",
+   "contrast": "loop-random_fb",
+   "metric": "yield (hits)",
+   "n_seeds": 10,
+   "estimate": 153.2,
+   "seed_t": [
+    143.346,
+    163.054
+   ],
+   "seed_boot": [
+    145.5,
+    161.4
+   ],
+   "cluster_t": [
+    -150.463,
+    456.863
+   ],
+   "cluster_boot": [
+    -2.3,
+    451.602
+   ],
+   "n_clusters": 18,
+   "n_nonzero": 17,
+   "top_lab": "2020_Townsend",
+   "top_share": 0.909,
+   "est_without_top": 9.1,
+   "hit_recompute_mismatches": 0
+  }
+ ],
+ "hit_recompute_mismatches_total": 0
+}

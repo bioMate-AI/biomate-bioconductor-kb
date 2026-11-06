@@ -52,7 +52,7 @@ with open("create_rigid_transform_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("create_rigid_transform_output.txt", "w") as f:
-    f.write("Biomni: Create Rigid Transform Results" + NL)
+    f.write("BioMate: Create Rigid Transform Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

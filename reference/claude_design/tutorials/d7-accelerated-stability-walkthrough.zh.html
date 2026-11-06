@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 加速稳定性 — 在时钟走完之前预测货架期</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">加速稳定性 — 用一项短期高应力研究预测长期货架期，并为制剂排序</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>加速稳定性 · Arrhenius</b></div>
+    <div class="kicker">献给要决定把哪个处方往下推进的制剂研究人员</div>
+    <h2>这个制剂能稳定多久？加速稳定性在货架期时钟走完之前就把它预测出来。</h2>
+    <p class="caption">一个药品在整个货架期内都必须保持足量且纯净——但一项实时研究要耗上两年才有定论。加速稳定性借用了一条物理捷径：在更高的温度与湿度下对制剂施加应力，测量它降解的速率，再外推回实时贮存条件。BioMate 将这一过程作为 <b>Analyze Accelerated Stability Of Pharmaceutical Formulations</b> 工作流来运行——领域为 <code>drug_discovery</code>——采用 Arrhenius 温度加速并叠加一个经验湿度因子，遵循 ICH Q1A 加速稳定性研究设计的逻辑。本讲中，我们把这套思路从头搭起，再展示这条工作流究竟做了什么。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>制剂 + 贮存条件</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Arrhenius + 湿度模型</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>预测的含量 / 降解物曲线</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>按稳健性排序</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>设计正式研究</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">它解决的问题</div>
+    <h2>货架期是一个"等待"问题——而你不可能对每一个候选处方都等上两年。</h2>
+    <p class="caption">在开发早期，同一个活性成分你往往握有好几个候选处方——不同的辅料体系、不同的浓度。每一个都需要一个货架期，而那个确凿的答案来自标示贮存条件下的实时研究，它要跑完产品宣称的整个有效期。对于那些你可能最终弃用的处方，你耗不起这么长的等待，因此你需要一个站得住脚的早期判断：哪些处方稳健、哪些会降解。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">抉择</div><h4>哪个处方能挺住？</h4><p>围绕同一个活性成分有好几套辅料体系。你不可能对它们全部开展完整的实时稳定性研究。</p></div>
+          <div class="tile"><div class="n">时钟</div><h4>实时研究很慢</h4><p>一个标示货架期的声称，依赖于一项在贮存条件下跑完产品整个宣称有效期的研究——这对早期决策来说实在太漫长。</p></div>
+          <div class="tile"><div class="n">成本</div><h4>白耗稳定性箱时间</h4><p>稳定性箱、取样和检测都是有限资源。把它们花在一个后期才失败的处方上，就白白烧掉整个项目的时间与预算。</p></div>
+          <div class="tile"><div class="n">需求</div><h4>一个以物理为根基的预测</h4><p>一个系于反应动力学的外推，准到足以为制剂排序、并在时钟走完之前设计好正式研究。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>需求：尽早预测长期稳定性，准到足以为制剂分流、并规划那项确凿的研究</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker">你需要先懂的几个概念</div>
+    <h2>四个概念，整套方法就顺理成章。</h2>
+    <p class="caption">你不需要懂全部的物理化学——只要这四个概念，按顺序。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 降解</div><h4>含量随时间下降</h4><p>活性成分会分解，降解物随之累积。货架期就是含量保持在标准之内、且降解物保持在限度之下的那段时间。</p></div>
+            <div class="tile"><div class="n">2 · ARRHENIUS</div><h4>升温加快反应</h4><p>一个温度激活的反应在更热时跑得更快，且快一个可预测的倍数。正是这个倍数，让一项短期的高温研究能够顶替一项漫长的低温研究。</p></div>
+            <div class="tile"><div class="n">3 · 湿度</div><h4>水分也举足轻重</h4><p>相对湿度——RH——驱动水解与吸湿。一个经验湿度因子与温度并肩，对降解速率加以校正。</p></div>
+            <div class="tile"><div class="n">4 · 外推</div><h4>外推到实时条件</h4><p>把这两个因子合在一起，将受应力下的速率换算回标示贮存条件，并沿着所请求的时间点外推出含量。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">整套方法就是：测量它在应力下降解有多快，用 <b>Arrhenius</b> 校正温度、用<b>湿度因子</b>校正水分，再在你所关心的贮存条件下外推出实时行为。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲余下部分会用到的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 目标 &rarr; 工作流</div>
+    <h2>说出目标；BioMate 路由到加速稳定性工作流，并填好标准条件。</h2>
+    <p class="caption">用大白话提出"在应力下预测某个制剂的稳定性"，BioMate 就会打开真实的 <b>Analyze Accelerated Stability Of Pharmaceutical Formulations</b> 工作流——制剂与贮存条件已映射、标准时间点已就绪，离开跑只差一键。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate 中的加速稳定性分析</span>
+        <div class="frame"><img src="assets/live/stability-live-panel.png" alt="BioMate workflow panel for the accelerated stability analysis workflow"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话即可路由。</b>"预测我的布洛芬片剂处方在 40&deg;C / 75% RH 下 6 个月的加速稳定性"就落到 <b>Analyze Accelerated Stability</b> 工作流——领域 <code>drug_discovery</code>。</span></li>
+          <li><span class="b"></span><span><b>你要带来的输入。</b>三个参数：<code>formulations</code>、<code>storage_conditions</code> 和 <code>time_points</code>——各为一份 JSON 列表，已用标准的 ICH 式集合预填，于是你只需改动有差异的部分。</span></li>
+          <li><span class="b"></span><span><b>算力，已为你安排好。</b>外推计算跑在 BioMate 的托管云端算力上；输出默认存入 BioMate 托管存储。</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run。</b>你是 Owner——单击即可在云端启动这项真实的分析。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的稳定性工作流，已为你配置就绪</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">输入</span> · 你要带来什么</div>
+    <h2>三样输入：制剂、贮存条件，以及时间点。</h2>
+    <p class="caption">这项分析是跨处方、跨条件的比较，所以输入是三份 JSON 列表。你描述制剂与环境；BioMate 以标准加速研究集合作为默认值，于是你只需改动你产品特有的那部分。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">formulations</div><h4>待比较的处方</h4><p>一份 JSON 列表；每一项有一个 <code>name</code>、一个 <code>active_ingredient</code>、一个 <code>concentration</code> 以及它的 <code>excipients</code>。相互竞争的处方就从这里进入——同一个活性成分，几套辅料体系。</p></div>
+          <div class="tile"><div class="n">storage_conditions</div><h4>各个环境</h4><p>每一项有一个以 &deg;C 计的 <code>temperature</code>、一个以 % RH 计的 <code>humidity</code>，以及一段描述。标准集合为：25&deg;C / 60% RH 长期、40&deg;C / 75% RH 加速、50&deg;C / 90% RH 应力。</p></div>
+          <div class="tile"><div class="n">time_points</div><h4>在何时外推</h4><p>以天计的报告时点，例如 <code>[0, 30, 60, 90, 180, 365]</code>——外推曲线在这些取样点上被评估，与实际研究的取样相对应。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">参数：<code>formulations</code>、<code>storage_conditions</code>、<code>time_points</code>。每一个制剂都在每一个条件下、于每一个时间点上被评估。</p>
+        <div><span class="verdict ok"><span class="mk"></span>处方、条件与时间点进去——一整张外推矩阵出来</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE METHOD -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">方法</span> · 它究竟在建什么模</div>
+    <h2>以温度加速，以湿度校正，再沿着时间点外推。</h2>
+    <p class="caption">对于每一个与某个条件配对的制剂，模型都走完三个步骤——正是这套逻辑，让一项短期高应力研究得以估计长期的实时行为。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · 加速</div><h4>Arrhenius 温度因子</h4><p>通过 Arrhenius 加速因子，对降解速率随温度的增加建模，于是一次 40&deg;C 或 50&deg;C 下的运行能映射回 25&deg;C 下的速率。</p></div>
+          <div class="tile"><div class="n">2 · 校正</div><h4>经验湿度因子</h4><p>针对该条件的相对湿度对那个速率加以校正，与温度并肩，刻画出水分对降解的贡献。</p></div>
+          <div class="tile"><div class="n">3 · 外推</div><h4>含量随时间变化</h4><p>施加这个合成后的速率，逐制剂、逐条件地沿着所请求的时间点外推出活性成分的含量与降解物水平。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">标准条件：25&deg;C / 60% RH 长期、40&deg;C / 75% RH 加速、50&deg;C / 90% RH 应力。标准时间点，以天计：<code>[0, 30, 60, 90, 180, 365]</code>。方法基础：Arrhenius 加速 + 经验湿度因子，遵循 ICH Q1A 逻辑。</p>
+        <div><span class="verdict ok"><span class="mk"></span>一个以动力学为根基的外推——用一项短期应力研究顶替那项漫长的实时研究</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">输出</span> · 曲线与一个排序</div>
+    <h2>逐制剂、逐条件的预测含量与降解曲线——外加一个稳健性排序。</h2>
+    <p class="caption">结果是一组预测曲线：对于每一个制剂在每一个贮存条件下，活性成分的含量与降解物水平在所请求的时间点上的走势。曲线之上还坐着一个比较性的排序，回答那个实际问题——哪套辅料体系挺得最久。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.4fr 1fr">
+          <div class="tile"><div class="n">外推曲线</div><h4>含量与降解物随时间变化</h4><p>逐制剂、逐条件给出预测的活性成分含量与降解物水平在时间点上的走势。一条下降的含量曲线与一条上升的降解物曲线，展示出每个处方在长期、加速与应力条件下的行为。</p></div>
+          <div class="tile"><div class="n">稳健性排序</div><h4>哪个处方挺得住</h4><p>从曲线中得出的一个制剂稳健性的比较性排序，于是最能抵抗降解的那套辅料体系被直接辨认出来。</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b gr"></span><span><b>每个条件，并排对照。</b>同一个处方在长期、加速与应力条件下分别外推，于是你看清它在哪里挺住、又在哪里崩掉。</span></li>
+          <li><span class="b am"></span><span><b>一个你能据以行动的排序。</b>稳健性次序把曲线化为一个决策——哪个制剂往下推进、哪个该弃掉。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>预测曲线外加一个制剂排序——一个你能据以行动的比较</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">用好这个结果</span> · 先分流，再在稳定性箱里确认</div>
+    <h2>优先决定把哪些制剂往下推进——并围绕它们设计正式的稳定性研究。</h2>
+    <p class="caption">这项外推靠重塑稳定性项目赚回它的成本：把它排为稳健的处方往下推进，把脆弱的降低优先级，并让这个预测去指导你的实际研究该把力气投到哪里。它是一个外推，所以那个确凿的答案仍要来自一项实时 ICH 研究。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">优先排序</div><h4>把稳健的处方往下推进</h4><p>推进排序标记为稳定的那些制剂；搁置预测会降解的那些。稳定性箱时间与检测力气，就花在动力学说它会有回报的地方。</p></div>
+          <div class="tile"><div class="n">设计研究</div><h4>布置条件与取样点</h4><p>借助预测曲线来挑选哪些贮存条件、哪些时间点对正式研究最为关键——一个由外推来指导的研究设计。</p></div>
+          <div class="tile"><div class="n">验证</div><h4>在实时条件下确认</h4><p>实时与加速稳定性箱数据才是基准真相。外推收窄了范围；正式的 ICH 研究确认货架期。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">这项外推为制剂排序、分流并指导研究设计；它并不替代一个货架期声称所依赖的稳定性箱数据。</p>
+        <div><span class="verdict ok"><span class="mk"></span>一个更锐利的制剂决策——在稳定性箱里确认，而非盲目信任</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker">你确切得到什么</div>
+    <h2>把范围讲清楚，好让你确切知道自己得到了什么。</h2>
+    <p class="caption">Arrhenius 外推是一条强有力的捷径，但它建立在一些假设之上。确切知道它在何处成立，正是它值得信赖用于分流决策、并始终摆在实际稳定性研究旁边正确位置上的原因。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">只假定一条途径</div><h4>单一主导机理</h4><p>Arrhenius 外推假定存在单一主导的、温度激活的降解途径。对于相变、非 Arrhenius 动力学，或湿度项之外的水分驱动机理，它便会失效。</p></div>
+          <div class="tile"><div class="n">经验湿度</div><h4>水分项是一个模型</h4><p>湿度因子是经验性的，而非第一性原理。当水分通过该项未能刻画的机理驱动降解时，这个外推可能误导你。</p></div>
+          <div class="tile"><div class="n">是估计，而非声称</div><h4>用于分流，而非监管替代</h4><p>这是一个用于分流和为制剂排序、并设计研究的计算机模拟估计——而不是一项实时 ICH 稳定性研究的监管替代。</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>具体而诚实——一条带有明示假设的动力学捷径，而非一纸货架期证书</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">用动力学外推货架期。为处方排序。在稳定性箱里确认。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">要点就一句话：<b>在你花掉两年和一个稳定性箱之前，这条工作流告诉你哪个制剂值得往下推进。</b>BioMate 把你的目标路由到 <b>Analyze Accelerated Stability</b> 工作流，通过 Arrhenius 加速因子对降解速率随温度的增加建模，针对湿度加以校正，再沿着你的时间点外推出活性成分的含量与降解物水平——交回逐制剂、逐条件的曲线和一个稳健性排序，遵循 ICH Q1A 的逻辑。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>把你的制剂、贮存条件和时间点作为 JSON 列表带来</li>
+            <li><span class="k">2</span>BioMate 路由到 <code>drug_discovery</code> 加速稳定性工作流</li>
+            <li><span class="k">3</span>它外推出含量 / 降解物曲线，并为制剂稳健性排序</li>
+            <li><span class="k">4</span>为处方分流并设计研究；在实时条件下确认货架期</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>它回答什么</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">哪个制剂挺得住</span></td></tr>
+            <tr><td>方法</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Arrhenius + 湿度因子</span></td></tr>
+            <tr><td>输出</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">曲线 + 稳健性排序</span></td></tr>
+            <tr><td>标准</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">ICH Q1A 研究逻辑</span></td></tr>
+            <tr><td>诚实的边界</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">单一途径 · 经验 · 估计</span></td></tr>
+          </table>
+          <p class="footnote">从候选处方，到一个以动力学为根基、关于该把哪个往下推进的排序——外加它所指导的研究设计。稳定性箱的力气，花在它有回报的地方。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

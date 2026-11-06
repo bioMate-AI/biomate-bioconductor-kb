@@ -37,119 +37,13 @@ process VALIDATE_SAFETY_INPUTS {
     path "validated_safety_params.json", emit: validated_params
     path "herg_margin_check.json",       emit: herg_check
 
+    // integrity: was an RNG stub fabricating results; honest-fail (no real implementation).
     script:
     """
     python3 << 'PYEOF'
-import json, math, random
-
-def pf(v, d=10.0):
-    try: return float(v)
-    except: return d
-
-smiles         = '${params.smiles}'
-compound_name  = '${params.compound_name}'
-dose_mg_kg     = pf('${params.dose_mg_kg}', 10.0)
-cmax_ng_mL     = pf('${params.exposure_cmax_ng_mL}', 500.0)
-route          = '${params.route}'
-safety_margin_target = pf('${params.safety_margin}', 10.0)
-indication     = '${params.indication}'
-
-random.seed(42)
-
-warnings = []
-
-if cmax_ng_mL <= 0:
-    warnings.append('Cmax must be > 0; set to 500')
-    cmax_ng_mL = 500.0
-if dose_mg_kg <= 0:
-    warnings.append('dose_mg_kg must be > 0; set to 10')
-    dose_mg_kg = 10.0
-
-def _estimate_mw_from_smiles(smi):
-    if not smi or smi == 'null':
-        return 400.0
-    atom_weights = {'C': 12.011, 'N': 14.007, 'O': 15.999, 'S': 32.06,
-                    'F': 18.998, 'Cl': 35.45, 'Br': 79.904, 'I': 126.90,
-                    'P': 30.974, 'H': 1.008}
-    mw = 0.0
-    i = 0
-    while i < len(smi):
-        if i + 2 <= len(smi) and smi[i:i+2] in atom_weights:
-            mw += atom_weights[smi[i:i+2]]
-            i += 2
-        elif smi[i].upper() in atom_weights:
-            ch = smi[i].upper()
-            mw += atom_weights[ch]
-            i += 1
-        else:
-            i += 1
-    mw += atom_weights['H'] * max(2, len([c for c in smi if c.isalpha()]) * 0.8)
-    return round(max(100.0, mw), 1)
-
-def _estimate_logP(smi):
-    if not smi or smi == 'null':
-        return round(random.gauss(2.5, 1.5), 2)
-    n_rings   = smi.count('c') + smi.count('1') + smi.count('2')
-    n_O       = smi.count('O') + smi.count('o')
-    n_N       = smi.count('N') + smi.count('n')
-    n_Cl      = smi.count('Cl')
-    n_F       = smi.count('F')
-    n_S       = smi.count('S') + smi.count('s')
-    n_hbond_d = smi.count('[NH') + smi.count('OH')
-    logP = (n_rings * 0.35) - (n_O * 0.56) - (n_N * 0.48) + \
-           (n_Cl * 0.72) + (n_F * 0.53) + (n_S * 0.39) - (n_hbond_d * 0.28) + 1.1
-    return round(logP + random.gauss(0, 0.3), 2)
-
-mw_da  = _estimate_mw_from_smiles(smiles)
-logP   = _estimate_logP(smiles)
-
-# cmax nM
-cmax_nM    = (cmax_ng_mL / mw_da) * 1000.0
-fu_plasma  = round(random.uniform(0.05, 0.30), 3)
-cmax_free_nM = round(cmax_nM * fu_plasma, 2)
-
-# Estimate hERG IC50 for margin check
-indication_hERG_modifier = {
-    'oncology': 1.8, 'autoimmune': 1.2, 'cns': 2.1, 'cardiovascular': 0.9,
-}
-mod = indication_hERG_modifier.get(indication, 1.2)
-hERG_IC50_uM = round(10 ** (1.2 - 0.35 * logP) * mod * random.uniform(0.7, 1.4), 2)
-hERG_IC50_nM = round(hERG_IC50_uM * 1000, 1)
-hERG_safety_margin = round(hERG_IC50_nM / max(cmax_free_nM, 0.01), 1)
-
-out = {
-    'smiles': smiles,
-    'compound_name': compound_name,
-    'dose_mg_kg': dose_mg_kg,
-    'cmax_ng_mL': cmax_ng_mL,
-    'cmax_nM': round(cmax_nM, 2),
-    'route': route,
-    'safety_margin_target': safety_margin_target,
-    'indication': indication,
-    'mw_da': mw_da,
-    'logP': logP,
-    'fu_plasma': fu_plasma,
-    'cmax_free_nM': cmax_free_nM,
-    'bbb_penetrant': (logP > 1.0) and (mw_da < 500),
-    'validation_warnings': warnings,
-}
-
-with open('validated_safety_params.json', 'w') as f:
-    json.dump(out, f, indent=2)
-
-herg_check = {
-    'hERG_IC50_uM': hERG_IC50_uM,
-    'hERG_IC50_nM': hERG_IC50_nM,
-    'safety_margin_x': hERG_safety_margin,
-    'safety_margin_flag': 'RED' if hERG_safety_margin < 10 else ('YELLOW' if hERG_safety_margin < 30 else 'GREEN'),
-    'cipa_tier2_required': hERG_safety_margin < 30.0,
-}
-
-with open('herg_margin_check.json', 'w') as f:
-    json.dump(herg_check, f, indent=2)
-
-print('Safety validation: hERG margin={}x, flag={}'.format(
-    hERG_safety_margin, herg_check['safety_margin_flag']))
+import sys
+sys.stderr.write("ERROR: ich_s7a_safety_pharmacology is not implemented against real measurement/tool — it requires real hERG patch-clamp electrophysiology + in vivo cardiovascular telemetry (QTc/MAP/HR) + a functional-observational/Irwin battery per ICH S7A. Refusing to emit fabricated results.\\n")
+sys.exit(1)
 PYEOF
     """
 }
@@ -174,102 +68,13 @@ process ICH_S7A_ASSESS_CV {
     path "herg_analysis.csv",  emit: herg_csv
     path "qc_metrics.json",    emit: qc_metrics
 
+    // integrity: was an RNG stub fabricating results; honest-fail (no real implementation).
     script:
     """
     python3 << 'PYEOF'
-import json, csv, math, random
-
-with open('${validated_params}') as f:
-    vp = json.load(f)
-with open('${herg_check}') as f:
-    hc = json.load(f)
-
-random.seed(43)
-
-cmax_nM       = vp['cmax_nM']
-indication    = vp['indication']
-route         = vp['route']
-logP          = vp['logP']
-fu_plasma     = vp['fu_plasma']
-cmax_free_nM  = vp['cmax_free_nM']
-
-hERG_IC50_uM  = hc['hERG_IC50_uM']
-hERG_IC50_nM  = hc['hERG_IC50_nM']
-hERG_safety_margin = hc['safety_margin_x']
-cipa_tier2_required = hc['cipa_tier2_required']
-
-hERG_inhibition_pct = round(100.0 / (1.0 + hERG_IC50_nM / max(cmax_nM, 0.01)), 1)
-delta_QTc_ms = round(0.025 * hERG_inhibition_pct * random.uniform(0.8, 1.3), 1)
-qtc_flag = 'RED' if delta_QTc_ms > 20 else ('YELLOW' if delta_QTc_ms > 5 else 'GREEN')
-
-base_map = {'oral': random.gauss(-3.0, 5.0), 'iv': random.gauss(-6.0, 8.0)}
-map_change_pct = round(base_map.get(route, random.gauss(-3.0, 5.0)) *
-                       (1.1 if indication == 'cardiovascular' else 1.0), 1)
-map_flag = 'RED' if abs(map_change_pct) > 20 else ('YELLOW' if abs(map_change_pct) > 10 else 'GREEN')
-
-hr_change_bpm = round(random.gauss(-2.0, 8.0) * (1.2 if indication == 'cns' else 1.0), 1)
-hr_flag = 'RED' if abs(hr_change_bpm) > 25 else ('YELLOW' if abs(hr_change_bpm) > 12 else 'GREEN')
-
-cipa_reason = (
-    'hERG margin {}x < 30x threshold; multi-ion channel + AP modelling recommended (CiPA Tier 2)'.format(hERG_safety_margin)
-    if cipa_tier2_required else 'Not required (hERG margin >= 30x)'
-)
-
-cv_flags_all = [qtc_flag, map_flag, hr_flag, hc['safety_margin_flag']]
-cv_composite = 'RED' if 'RED' in cv_flags_all else ('YELLOW' if 'YELLOW' in cv_flags_all else 'GREEN')
-
-cv_assessment = {
-    'hERG_IC50_uM': hERG_IC50_uM,
-    'hERG_IC50_nM': hERG_IC50_nM,
-    'hERG_inhibition_at_Cmax_pct': hERG_inhibition_pct,
-    'hERG_safety_margin_x': hERG_safety_margin,
-    'hERG_safety_margin_flag': hc['safety_margin_flag'],
-    'delta_QTc_ms_Fridericia': delta_QTc_ms,
-    'qtc_prolongation_flag': qtc_flag,
-    'map_change_pct': map_change_pct,
-    'map_flag': map_flag,
-    'hr_change_bpm': hr_change_bpm,
-    'hr_flag': hr_flag,
-    'fu_plasma': fu_plasma,
-    'cmax_free_nM': cmax_free_nM,
-    'CiPA_tier2_required': cipa_tier2_required,
-    'CiPA_escalation_rationale': cipa_reason,
-    'composite_flag': cv_composite,
-    'reason': '{} composite (hERG={}, QTc={}, MAP={}, HR={})'.format(
-        cv_composite, hc['safety_margin_flag'], qtc_flag, map_flag, hr_flag),
-}
-
-with open('cv_assessment.json', 'w') as f:
-    json.dump(cv_assessment, f, indent=2)
-
-# qc_metrics.json — gate metrics consumed by the QC monitor's
-# ich_s7b_herg_margin gate (≥10× free Cmax, GOLD-anchored to ICH S7B
-# and Redfern 2003 — both the metric AND the value are stated in the
-# guidance/literature). herg_safety_margin_x is the canonical key the
-# gate reader expects (lowercase, distinct from cv_assessment's
-# hERG_safety_margin_x camelcase).
-qc_metrics = {
-    "herg_safety_margin_x": float(hERG_safety_margin),
-    "herg_ic50_um": hERG_IC50_uM,
-    "delta_qtc_ms": delta_QTc_ms,
-    "cipa_tier2_required": bool(cipa_tier2_required),
-    "composite_flag": cv_composite,
-    "map_change_pct": map_change_pct,
-    "hr_change_bpm": hr_change_bpm,
-}
-with open('qc_metrics.json', 'w') as f:
-    json.dump(qc_metrics, f, indent=2)
-
-with open('herg_analysis.csv', 'w', newline='') as f:
-    w = csv.writer(f)
-    w.writerow(['parameter', 'value', 'unit', 'flag', 'threshold_yellow', 'threshold_red'])
-    w.writerow(['hERG_IC50', hERG_IC50_uM, 'uM', hc['safety_margin_flag'], 30.0, 10.0])
-    w.writerow(['hERG_safety_margin', hERG_safety_margin, 'x', hc['safety_margin_flag'], 30.0, 10.0])
-    w.writerow(['delta_QTc', delta_QTc_ms, 'ms', qtc_flag, 5.0, 20.0])
-    w.writerow(['MAP_change', map_change_pct, '%', map_flag, 10.0, 20.0])
-    w.writerow(['HR_change', hr_change_bpm, 'bpm', hr_flag, 12.0, 25.0])
-
-print('CV assessment: composite={}'.format(cv_composite))
+import sys
+sys.stderr.write("ERROR: ich_s7a_safety_pharmacology (cardiovascular assessment) is not implemented against real measurement/tool — it requires real hERG patch-clamp IC50 + in vivo cardiovascular telemetry (QTc/MAP/HR). Refusing to emit fabricated results.\\n")
+sys.exit(1)
 PYEOF
     """
 }
@@ -291,97 +96,13 @@ process ICH_S7A_ASSESS_CNS_RESP {
     output:
     path "cns_respiratory_assessment.json", emit: cns_resp_json
 
+    // integrity: was an RNG stub fabricating results; honest-fail (no real implementation).
     script:
     """
     python3 << 'PYEOF'
-import json, math, random
-
-with open('${validated_params}') as f:
-    vp = json.load(f)
-
-random.seed(44)
-
-indication    = vp['indication']
-logP          = vp['logP']
-mw_da         = vp['mw_da']
-bbb_penetrant = vp['bbb_penetrant']
-smiles        = vp['smiles']
-
-cns_modifier = 1.8 if (indication == 'cns' or bbb_penetrant) else 0.7
-
-irwin_base  = random.gauss(1.5, 0.8) * cns_modifier
-irwin_score = round(max(0.0, min(6.0, irwin_base)), 1)
-irwin_flag  = 'RED' if irwin_score >= 4.0 else ('YELLOW' if irwin_score >= 2.0 else 'GREEN')
-
-sed_prob      = 1.0 / (1.0 + math.exp(-(irwin_score - 2.5) * 1.2))
-sedation_pct  = round(sed_prob * 100, 1)
-sedation_flag = 'RED' if sedation_pct > 60 else ('YELLOW' if sedation_pct > 30 else 'GREEN')
-
-tremor_prob         = 1.0 / (1.0 + math.exp(-(irwin_score - 3.0) * 1.5)) * 0.6
-tremor_risk_pct     = round(tremor_prob * 100, 1)
-convulsion_risk_pct = round(tremor_prob * 0.3 * random.uniform(0.5, 1.5) * 100, 1)
-tremor_flag = 'RED' if tremor_risk_pct > 30 else ('YELLOW' if tremor_risk_pct > 10 else 'GREEN')
-
-tpsa_est = round(max(0, 140 - logP * 15 + random.gauss(0, 8)), 1) if smiles != 'null' \
-           else round(random.gauss(60, 20), 1)
-cns_mpo_score = round(min(6.0, max(0.0,
-    (1 if logP <= 5 else 0) +
-    (1 if logP <= 3 else 0) +
-    (1 if mw_da <= 360 else 0.5 if mw_da <= 500 else 0) +
-    (1 if tpsa_est <= 90 else 0.5 if tpsa_est <= 120 else 0) +
-    (1 if bbb_penetrant else 0) +
-    random.uniform(0, 1)
-)), 1)
-cns_mpo_flag = 'GREEN' if cns_mpo_score >= 4 else ('YELLOW' if cns_mpo_score >= 2.5 else 'RED')
-
-cns_composite = 'RED' if 'RED' in [irwin_flag, sedation_flag, tremor_flag] else \
-                ('YELLOW' if 'YELLOW' in [irwin_flag, sedation_flag, tremor_flag] else 'GREEN')
-
-# Respiratory
-resp_cns_link = irwin_score * cns_modifier * 0.4
-rr_change_pct  = round(random.gauss(-resp_cns_link * 3.5, 4.0), 1)
-tv_change_pct  = round(random.gauss(-resp_cns_link * 2.5, 3.5), 1)
-spo2_change_pct = round(min(0.0, random.gauss(-resp_cns_link * 0.8, 0.5)), 2)
-
-rr_flag   = 'RED' if abs(rr_change_pct) > 20 else ('YELLOW' if abs(rr_change_pct) > 10 else 'GREEN')
-tv_flag   = 'RED' if abs(tv_change_pct) > 20 else ('YELLOW' if abs(tv_change_pct) > 10 else 'GREEN')
-spo2_flag = 'RED' if spo2_change_pct < -3.0 else ('YELLOW' if spo2_change_pct < -1.5 else 'GREEN')
-
-resp_composite = 'RED' if 'RED' in [rr_flag, tv_flag, spo2_flag] else \
-                 ('YELLOW' if 'YELLOW' in [rr_flag, tv_flag, spo2_flag] else 'GREEN')
-
-out = {
-    'cns': {
-        'bbb_penetrant_estimated': bbb_penetrant,
-        'irwin_score_0_to_6': irwin_score,
-        'irwin_flag': irwin_flag,
-        'irwin_interpretation': {0:'normal',1:'minimal',2:'mild',3:'moderate',4:'marked',5:'severe',6:'life-threatening'
-                                 }.get(int(irwin_score), 'marked'),
-        'sedation_risk_pct': sedation_pct,
-        'sedation_flag': sedation_flag,
-        'tremor_risk_pct': tremor_risk_pct,
-        'convulsion_risk_pct': convulsion_risk_pct,
-        'tremor_flag': tremor_flag,
-        'CNS_MPO_score': cns_mpo_score,
-        'CNS_MPO_flag': cns_mpo_flag,
-        'TPSA_estimated': tpsa_est,
-        'composite_flag': cns_composite,
-    },
-    'respiratory': {
-        'rr_change_pct': rr_change_pct,
-        'rr_flag': rr_flag,
-        'tv_change_pct': tv_change_pct,
-        'tv_flag': tv_flag,
-        'spo2_change_abs_pct': spo2_change_pct,
-        'spo2_flag': spo2_flag,
-        'composite_flag': resp_composite,
-    },
-}
-
-with open('cns_respiratory_assessment.json', 'w') as f:
-    json.dump(out, f, indent=2)
-
-print('CNS/Resp assessment: CNS={}, Resp={}'.format(cns_composite, resp_composite))
+import sys
+sys.stderr.write("ERROR: ich_s7a_safety_pharmacology (CNS/respiratory assessment) is not implemented against real measurement/tool — it requires a real functional-observational/Irwin battery in vivo plus whole-body plethysmography respiratory measurements. Refusing to emit fabricated results.\\n")
+sys.exit(1)
 PYEOF
     """
 }

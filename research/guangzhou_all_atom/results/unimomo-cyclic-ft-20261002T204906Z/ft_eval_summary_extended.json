@@ -1,0 +1,36 @@
+{
+  "benchmark": "PepBDB-cyclic test (UniMoMo pepbench harness), cyclic co-design",
+  "test_split": "peptide-disjoint + complex-disjoint; receptor-disjoint subset excludes 4kel,5iop,5t1m,5t90,5th2",
+  "aggregation": "mean over targets; oracle=per-target max over candidates; pick1=per-target max* (flow-likelihood selected)",
+  "base": {
+    "n_targets": 88,
+    "dockq_oracle": 0.4029,
+    "dockq_pick1": 0.1997,
+    "dockq_oracle_receptor_disjoint": 0.3936,
+    "dockq_pick1_receptor_disjoint": 0.1896,
+    "n_receptor_disjoint": 83,
+    "aar_oracle": 0.2777,
+    "designability_scRMSD": null,
+    "frac_designable": null,
+    "designability_note": "requires independent folder (ESMFold/Boltz) not in UniMoMo env; run separately"
+  },
+  "ft": {
+    "n_targets": 88,
+    "dockq_oracle": 0.4126,
+    "dockq_pick1": 0.2195,
+    "dockq_oracle_receptor_disjoint": 0.4025,
+    "dockq_pick1_receptor_disjoint": 0.2093,
+    "n_receptor_disjoint": 83,
+    "aar_oracle": 0.2895,
+    "designability_scRMSD": null,
+    "frac_designable": null,
+    "designability_note": "requires independent folder (ESMFold/Boltz) not in UniMoMo env; run separately"
+  },
+  "delta_ft_minus_base": {
+    "dockq_oracle": 0.0097,
+    "dockq_pick1": 0.0198,
+    "dockq_oracle_receptor_disjoint": 0.0089,
+    "dockq_pick1_receptor_disjoint": 0.0197,
+    "aar_oracle": 0.0118
+  }
+}

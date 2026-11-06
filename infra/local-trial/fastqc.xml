@@ -1,0 +1,18 @@
+<tool id="biomate_trial_fastqc" name="BioMate trial FastQC" version="0.12.1" profile="23.0">
+  <description>Read quality control with explicit HTML and ZIP artifacts</description>
+  <command detect_errors="exit_code"><![CDATA[
+mkdir -p qc_output &&
+fastqc --format fastq --threads $threads --outdir qc_output '$reads' &&
+cp qc_output/*_fastqc.html '$html' &&
+cp qc_output/*_fastqc.zip '$archive'
+  ]]></command>
+  <inputs>
+    <param name="reads" type="data" format="fastqsanger,fastqsanger.gz,fastq,fastq.gz" label="FASTQ reads" optional="false"/>
+    <param name="threads" type="integer" value="1" min="1" max="4" label="Threads"/>
+  </inputs>
+  <outputs>
+    <data name="html" format="html" label="FastQC report"/>
+    <data name="archive" format="zip" label="FastQC metrics archive"/>
+  </outputs>
+  <help>Functional trial wrapper. A completed execution can contain QC warnings or failures; inspect the report before interpreting data quality.</help>
+</tool>

@@ -52,7 +52,7 @@ with open("split_modalities_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("split_modalities_output.txt", "w") as f:
-    f.write("Biomni: Split Modalities Results" + NL)
+    f.write("BioMate: Split Modalities Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

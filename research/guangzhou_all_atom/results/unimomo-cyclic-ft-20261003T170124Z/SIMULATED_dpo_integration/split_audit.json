@@ -1,0 +1,131 @@
+{
+  "counts": {
+    "train": 502,
+    "valid": 55,
+    "test": 88
+  },
+  "train_vs_valid": {
+    "shared_pdb_ids": [],
+    "receptor": {
+      "shared_unique_sequences": 6,
+      "right_complex_ids_matching_left": [
+        "3ODI",
+        "4OIQ",
+        "4X1Q",
+        "5IVZ",
+        "7F0F",
+        "8B58"
+      ],
+      "unknown_sequences": {
+        "left": 0,
+        "right": 0
+      }
+    },
+    "peptide": {
+      "shared_unique_sequences": 17,
+      "right_complex_ids_matching_left": [
+        "1S7P",
+        "1XQ7",
+        "2OJU",
+        "3CQZ",
+        "3ODI",
+        "3P8F",
+        "3WDD",
+        "4IOI",
+        "4JJM",
+        "4OIQ",
+        "4OIR",
+        "4XVJ",
+        "5DJA",
+        "5DK0",
+        "5DVK",
+        "7B4U",
+        "7B4W",
+        "7F0F",
+        "7QVM",
+        "7XMS",
+        "7Z5Z",
+        "8B58",
+        "8I82",
+        "9I8W",
+        "9UPJ"
+      ],
+      "unknown_sequences": {
+        "left": 0,
+        "right": 0
+      }
+    },
+    "complex_sequence": {
+      "shared_unique_sequences": 2,
+      "right_complex_ids_matching_left": [
+        "3ODI",
+        "4OIQ"
+      ],
+      "unknown_sequences": {
+        "left": 0,
+        "right": 0
+      }
+    }
+  },
+  "train_vs_test": {
+    "shared_pdb_ids": [],
+    "receptor": {
+      "shared_unique_sequences": 3,
+      "right_complex_ids_matching_left": [
+        "4kel_B",
+        "5iop_E",
+        "5t1m_E",
+        "5t90_F",
+        "5th2_E"
+      ],
+      "unknown_sequences": {
+        "left": 0,
+        "right": 6
+      }
+    },
+    "peptide": {
+      "shared_unique_sequences": 0,
+      "right_complex_ids_matching_left": [],
+      "unknown_sequences": {
+        "left": 0,
+        "right": 8
+      }
+    },
+    "complex_sequence": {
+      "shared_unique_sequences": 0,
+      "right_complex_ids_matching_left": [],
+      "unknown_sequences": {
+        "left": 0,
+        "right": 9
+      }
+    }
+  },
+  "valid_vs_test": {
+    "shared_pdb_ids": [],
+    "receptor": {
+      "shared_unique_sequences": 0,
+      "right_complex_ids_matching_left": [],
+      "unknown_sequences": {
+        "left": 0,
+        "right": 6
+      }
+    },
+    "peptide": {
+      "shared_unique_sequences": 0,
+      "right_complex_ids_matching_left": [],
+      "unknown_sequences": {
+        "left": 0,
+        "right": 8
+      }
+    },
+    "complex_sequence": {
+      "shared_unique_sequences": 0,
+      "right_complex_ids_matching_left": [],
+      "unknown_sequences": {
+        "left": 0,
+        "right": 9
+      }
+    }
+  },
+  "limitation": "Exact sequences only, excluding unknown X/? sequences; family/pocket/temporal and base-pretraining leakage remain unverified."
+}

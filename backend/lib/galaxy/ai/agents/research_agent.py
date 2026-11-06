@@ -27,6 +27,30 @@ import json
 log = logging.getLogger(__name__)
 
 
+# Appended to the synthesis instructions so the model can OPTIONALLY report
+# genuine source disagreements. This is the only reliable, non-fabricated signal
+# for conflicts: the same model that reads the numbered literature is asked to
+# flag, in a machine-parseable block, only pairs of retrieved sources whose
+# findings materially disagree on the same point — and to emit NOTHING when it
+# found none. We parse this block out of the answer (and strip it from the
+# displayed text) in _synthesize_response. If the model omits the block, or emits
+# an empty one, response.conflicts stays empty (honest-empty, never invented).
+_CONFLICT_MARKER = "<<<CONFLICTS_JSON>>>"
+_CONFLICT_INSTRUCTION = (
+    "\n## Source disagreements (only if REAL)\n"
+    "If — and ONLY if — two or more of the numbered Retrieved Literature sources "
+    "materially disagree on the SAME point (opposite conclusions, incompatible "
+    "magnitudes/directions, or contradictory claims), append AFTER your answer a "
+    "single line beginning with the exact marker " + _CONFLICT_MARKER + " followed "
+    "by a JSON array. Each element: {\"topic\": short label, \"positions\": "
+    "[{\"claim\": what this source found, \"source\": the source's short label or "
+    "[N]}, ...]}. Include at least two positions per conflict, each resting on a "
+    "different real source from the list. If there is NO genuine disagreement, do "
+    "NOT emit the marker or any JSON at all — silence means no conflict. Never "
+    "manufacture a disagreement to fill the section."
+)
+
+
 # ── Biomedical DB live lookups ─────────────────────────────────────────────────
 # All APIs below are free REST services, no API key required.
 # Called BEFORE the LLM synthesis so Claude receives real facts, not guesses.
@@ -1160,6 +1184,13 @@ class Citation:
     pmid: Optional[str] = None
     abstract: Optional[str] = None
     relevance_score: float = 0.0
+    # Search & evidence answer anatomy (Spec 01 §1.2 / §1.3.2).
+    # All optional and default None — populate ONLY when the retrieval path
+    # actually provides them. Never fabricate a locus or recency value; an
+    # absent field simply does not render in the citation panel.
+    locus: Optional[str] = None            # the specific figure/table/claim/section relied on, e.g. "Fig 3B", "Table 2"
+    retrieval_date: Optional[str] = None   # ISO date the source was retrieved (recency), e.g. "2026-09-01"
+    corpus_version: Optional[str] = None   # database/corpus version for record-shaped sources, e.g. "Ensembl 110"
 
 
 @dataclass
@@ -1172,6 +1203,28 @@ class ResearchResponse:
     methods_used: List[str] = field(default_factory=list)
     benchmark_evidence: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    # Retrieval transparency ("How this was searched"). One entry per source that
+    # was GENUINELY queried, with REAL counts: `found` = records that source
+    # contributed to the retrieved candidate pool, `kept` = how many of those
+    # survived into the papers the answer actually cites. NEVER fabricated and
+    # NEVER derived from the citation list alone — computed in _synthesize_response
+    # from the source-tagged pool. Empty when no source-tagged retrieval occurred.
+    retrieval: List[Dict[str, Any]] = field(default_factory=list)
+    # Source conflicts ("Sources disagree"). Only populated when the LLM synthesis
+    # step, given the numbered literature, explicitly reports two or more retrieved
+    # sources that materially disagree on the same point. Empty when none were
+    # reported — we never invent a disagreement. Shape: [{topic, positions:[{claim, source}]}].
+    conflicts: List[Dict[str, Any]] = field(default_factory=list)
+    # Citation existence check (gap T8, citation_check.py). evidence_status is one of
+    # grounded / partially_grounded / insufficient (None = check not run). The rows
+    # list each citation's PMID/DOI verdict, including ones dropped as non-existent.
+    evidence_status: Optional[str] = None
+    citation_verification: List[Dict[str, Any]] = field(default_factory=list)
+    # The synthesis model's own verdict on whether the retrieved papers answer the question
+    # (True / False; None = not stated). Lets the chat keep a useful non-literature answer instead
+    # of replacing it with "the provided literature does not contain …" when retrieval missed
+    # (external-user replay 2026-11-04: support questions, dataset searches, imatinib ADMET).
+    evidence_answers_question: Optional[bool] = None
 
 
 class ResearchAgent:
@@ -1972,8 +2025,21 @@ class ResearchAgent:
             return None
 
         try:
-            # Use semantic search on the question
-            results = self.benchmark_db.query_semantic(question, top_k=5)
+            # Use semantic search on the question.
+            results = self.benchmark_db.query_semantic(question, top_k=5, min_similarity=0.5)
+
+            # Relevance floor (defensive): the keyword-search fallback used when no
+            # embedding model is available returns low-similarity hits that ignore
+            # query_semantic's own threshold — e.g. a crop-pangenome tool (rrBLUP)
+            # surfacing for a cardiotoxicity question at similarity ~0.33. Never
+            # present a benchmark tool the query doesn't actually match: drop
+            # anything below the floor, and if nothing clears it, return no
+            # benchmark evidence rather than an off-domain distractor.
+            RELEVANCE_FLOOR = 0.5
+            results = [
+                r for r in (results or [])
+                if float(r.get('similarity', 0) or 0) >= RELEVANCE_FLOOR
+            ]
 
             if results:
                 return {
@@ -2150,27 +2216,53 @@ class ResearchAgent:
 
             # Parse the response
             parsed = self._parse_llm_response(response)
+            answer_text = parsed.get('answer', response)
+            answer_text, evidence_verdict = self._split_evidence_verdict(answer_text)
 
-            # Build citations from literature search and benchmark evidence
+            # ── Conflict extraction ───────────────────────────────────────────
+            # Pull the optional machine-parseable conflicts block BEFORE citation
+            # grounding, so its embedded [N] tokens don't pollute the grounding
+            # marker scan, and strip it from the displayed answer. Empty unless the
+            # model genuinely reported disagreeing sources (never fabricated here).
+            answer_text, conflicts = self._parse_conflicts_block(answer_text)
+
+            # ── Citation-grounding guard ──────────────────────────────────────
+            # _build_synthesis_prompt numbers the FULL retrieved pool [1..N] and
+            # the model cites by those numbers. Returning only the first
+            # max_citations (relevance-ranked) leaves the answer's [N] markers
+            # pointing at papers we dropped, and surfaces uncited papers as
+            # "references". Instead keep EXACTLY the papers the answer cites and
+            # renumber them contiguously in both the text and the returned list,
+            # so every [N] maps to a real citation and nothing uncited is shown.
+            pool = list(evidence.get('citations') or [])
+            answer_text, grounded_pool = self._ground_citations(answer_text, pool)
+            if grounded_pool is not None:
+                lit_pool = grounded_pool
+            else:
+                # Retrieved candidates are not citations unless synthesis actually
+                # uses them. Clarification replies must not inherit search results.
+                lit_pool = []
+
+            # ── Retrieval transparency ────────────────────────────────────────
+            # Per-source found/kept from the REAL source-tagged pool: `found` =
+            # candidates that source contributed to the retrieved pool, `kept` =
+            # how many of those the answer actually cites. Honest-empty when the
+            # pool carries no source tags.
+            retrieval_stats = self._compute_retrieval_stats(pool, lit_pool)
+
+            # Build citations from the grounded literature pool.
             citations = []
-
-            # Add citations from literature search (LiteratureCitation -> Citation).
-            # For deep evidence-review queries surface more than max_citations (=5) —
-            # the downstream chat model builds the user-facing table from these, and 5
-            # relevance-ranked hits is too few for a real review.
-            _cite_cap = max(self.max_citations, 15) if _deep_synth else self.max_citations
-            if evidence.get('citations'):
-                for lit_citation in evidence['citations'][:_cite_cap]:
-                    citations.append(Citation(
-                        title=lit_citation.title,
-                        authors=lit_citation.authors,
-                        year=lit_citation.year or 2023,
-                        journal=lit_citation.journal or "Unknown",
-                        doi=lit_citation.doi,
-                        pmid=lit_citation.pmid,
-                        abstract=lit_citation.abstract,
-                        relevance_score=lit_citation.relevance_score
-                    ))
+            for lit_citation in lit_pool:
+                citations.append(Citation(
+                    title=lit_citation.title,
+                    authors=lit_citation.authors,
+                    year=lit_citation.year,
+                    journal=lit_citation.journal,
+                    doi=lit_citation.doi,
+                    pmid=lit_citation.pmid,
+                    abstract=lit_citation.abstract,
+                    relevance_score=lit_citation.relevance_score
+                ))
 
             # Add citations from benchmark evidence
             if evidence.get('benchmark_results'):
@@ -2187,13 +2279,40 @@ class ResearchAgent:
                                 doi=result.get('doi')
                             ))
 
+            confidence = parsed.get('confidence', 0.8)
+            # Existence check + explicit refusal when nothing is grounded (gap T8).
+            # Fail-soft: any error here leaves the answer unchanged.
+            ev_status, ev_rows = None, []
+            try:
+                from galaxy.ai.agents.citation_check import check_answer_citations
+                _n_lit = len(lit_pool)
+                _cites = [{'pmid': c.pmid, 'doi': c.doi,
+                           'title': (c.title if i < _n_lit else '')}
+                          for i, c in enumerate(citations)]
+                answer_text, _kept, ev_status, ev_rows = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: check_answer_citations(
+                        answer_text, _cites, n_numbered=_n_lit))
+                citations = [c for c, r in zip(citations, ev_rows)
+                             if r['status'] not in ('not_found', 'title_mismatch')]
+            except Exception as _e:
+                log.warning(f"citation existence check skipped: {_e}")
+            # Evidence-boundary guarantee (Spec 01 §1.2): every answer states what
+            # the evidence does / does not establish. If the model didn't write a
+            # caveat, append an honest one derived from the grounding.
+            answer_text = self._ensure_evidence_boundary(answer_text, len(citations), confidence)
+
             return ResearchResponse(
-                answer=parsed.get('answer', response),
+                answer=answer_text,
                 citations=citations,
-                confidence=parsed.get('confidence', 0.8),
+                confidence=confidence,
                 follow_up_questions=parsed.get('follow_ups', []),
                 methods_used=list(analysis.keys()),
-                benchmark_evidence=evidence.get('benchmark_results')
+                benchmark_evidence=evidence.get('benchmark_results'),
+                retrieval=retrieval_stats,
+                conflicts=conflicts,
+                evidence_status=ev_status,
+                citation_verification=ev_rows,
+                evidence_answers_question=evidence_verdict,
             )
 
         except Exception as e:
@@ -2203,6 +2322,190 @@ class ResearchAgent:
                 error=str(e),
                 confidence=0.0
             )
+
+    @staticmethod
+    def _source_display_name(raw: Optional[str]) -> str:
+        """Map an internal source id (e.g. 'semantic_scholar') to a human label
+        for the 'How this was searched' panel. Unknown ids are title-cased."""
+        if not raw:
+            return "Other"
+        key = str(raw).strip().lower()
+        names = {
+            "pubmed": "PubMed",
+            "europepmc": "Europe PMC",
+            "europe_pmc": "Europe PMC",
+            "semantic_scholar": "Semantic Scholar",
+            "semanticscholar": "Semantic Scholar",
+            "openalex": "OpenAlex",
+            "arxiv": "arXiv",
+            "biorxiv": "bioRxiv",
+            "federated": "Federated",
+        }
+        if key in names:
+            return names[key]
+        return raw.replace("_", " ").title()
+
+    def _compute_retrieval_stats(self, pool: list, kept_pool: list) -> List[Dict[str, Any]]:
+        """Build per-source found/kept counts from the ACTUAL retrieved pool.
+
+        `pool` is the merged, source-tagged candidate list that was injected into
+        the synthesis prompt (each item carries a real `.source`). `kept_pool` is
+        the subset the answer actually cites (grounded pool) — same objects, so we
+        match by identity. `found` = per-source count in `pool`; `kept` = per-source
+        count in `kept_pool`. Both are real; nothing is estimated. Sources without a
+        genuine `.source` tag are grouped under 'Other' only if they carry one at
+        all — items with no source attribute are skipped so we never invent a name.
+
+        Returns [] when the pool has no source-tagged items (honest-empty).
+        """
+        found: Dict[str, int] = {}
+        kept: Dict[str, int] = {}
+        kept_ids = {id(c) for c in (kept_pool or [])}
+        any_source = False
+        for c in (pool or []):
+            raw = getattr(c, "source", None)
+            if not raw:
+                continue  # do not fabricate a source label
+            any_source = True
+            name = self._source_display_name(raw)
+            found[name] = found.get(name, 0) + 1
+            if id(c) in kept_ids:
+                kept[name] = kept.get(name, 0) + 1
+        if not any_source:
+            return []
+        # Stable order: most-found first, then name.
+        rows = [
+            {"name": name, "found": found[name], "kept": kept.get(name, 0)}
+            for name in found
+        ]
+        rows.sort(key=lambda r: (-r["found"], r["name"]))
+        return rows
+
+    def _parse_conflicts_block(self, answer: str):
+        """Extract the optional machine-parseable conflicts block the synthesis
+        prompt asks for. Returns (clean_answer, conflicts_list).
+
+        - clean_answer: the answer with the marker + JSON stripped (so the raw
+          block never shows in the UI).
+        - conflicts_list: validated [{topic, positions:[{claim, source}]}] with at
+          least two positions each; [] when the model emitted no marker, an empty
+          block, or malformed JSON. We NEVER synthesize a conflict here.
+        """
+        if not answer or _CONFLICT_MARKER not in answer:
+            return answer, []
+        idx = answer.find(_CONFLICT_MARKER)
+        clean = answer[:idx].rstrip()
+        tail = answer[idx + len(_CONFLICT_MARKER):].strip()
+        # The JSON array may be fenced or bare; grab from first '[' to its match.
+        start = tail.find("[")
+        if start == -1:
+            return clean, []
+        raw_json = tail[start:]
+        # Trim trailing prose after the closing bracket by decoding incrementally.
+        parsed = None
+        for end in range(len(raw_json), start, -1):
+            candidate = raw_json[:end]
+            if not candidate.rstrip().endswith("]"):
+                continue
+            try:
+                parsed = json.loads(candidate)
+                break
+            except Exception:
+                continue
+        if not isinstance(parsed, list):
+            return clean, []
+        conflicts: List[Dict[str, Any]] = []
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            positions_in = item.get("positions")
+            if not isinstance(positions_in, list):
+                continue
+            positions: List[Dict[str, Any]] = []
+            for p in positions_in:
+                if not isinstance(p, dict):
+                    continue
+                claim = (p.get("claim") or "").strip()
+                if not claim:
+                    continue
+                entry = {"claim": claim}
+                src = (p.get("source") or "").strip()
+                if src:
+                    entry["source"] = src
+                positions.append(entry)
+            # A real conflict needs at least two distinct positions.
+            if len(positions) < 2:
+                continue
+            conflict: Dict[str, Any] = {"positions": positions}
+            topic = (item.get("topic") or "").strip()
+            if topic:
+                conflict["topic"] = topic
+            conflicts.append(conflict)
+        return clean, conflicts
+
+    def _ground_citations(self, answer: str, pool: list):
+        """Keep only the papers the answer actually cites via [N] markers and
+        renumber them contiguously in BOTH the answer text and the returned
+        list, so every [N] maps to a real, returned citation and no uncited
+        paper is surfaced.
+
+        Returns (rewritten_answer, grounded_pool). grounded_pool is None when
+        the answer has no numeric [N] markers (e.g. attached-paper answers),
+        signalling that no retrieved literature is cited by this answer.
+        """
+        import re
+        if not pool or not answer:
+            return answer, None
+        marker_re = re.compile(r'\[(\d+(?:\s*,\s*\d+)*)\]')
+        ordered: List[int] = []
+        seen = set()
+        for m in marker_re.finditer(answer):
+            for tok in m.group(1).split(','):
+                tok = tok.strip()
+                if tok.isdigit():
+                    n = int(tok)
+                    if 1 <= n <= len(pool) and n not in seen:
+                        seen.add(n)
+                        ordered.append(n)
+        if not ordered:
+            return answer, None
+        remap = {old: i + 1 for i, old in enumerate(ordered)}
+
+        def _repl(m):
+            out = []
+            for tok in m.group(1).split(','):
+                tok = tok.strip()
+                if tok.isdigit() and int(tok) in remap:
+                    out.append(str(remap[int(tok)]))
+            return '[' + ', '.join(out) + ']' if out else m.group(0)
+
+        new_answer = marker_re.sub(_repl, answer)
+        grounded = [pool[old - 1] for old in ordered]
+        return new_answer, grounded
+
+    def _ensure_evidence_boundary(self, answer: str, n_citations: int, confidence: float) -> str:
+        """Guarantee a one-line evidence boundary/caveat. If the model already
+        stated caveats/limitations/a boundary, leave it; otherwise append an
+        honest boundary derived from the grounding (citation count + confidence)."""
+        if not answer:
+            return answer
+        low = answer.lower()
+        if any(w in low for w in (
+            "caveat", "boundary", "limitation", "evidence does not", "not establish",
+            "outside the scope", "should be interpreted", "not a systematic",
+        )):
+            return answer
+        if n_citations == 0:
+            note = ("**Evidence boundary:** no primary papers were retrieved for this "
+                    "answer — treat it as background, not literature-grounded, and verify "
+                    "against sources before acting on it.")
+        else:
+            level = "limited" if confidence < 0.5 else ("moderate" if confidence < 0.8 else "reasonable")
+            note = (f"**Evidence boundary:** grounded in {n_citations} retrieved "
+                    f"paper{'s' if n_citations != 1 else ''} ({level} confidence); this is a "
+                    f"targeted synthesis, not a systematic review, and may miss relevant work "
+                    f"outside the search.")
+        return answer.rstrip() + "\n\n" + note
 
     def _build_synthesis_prompt(
         self,
@@ -2462,7 +2765,13 @@ class ResearchAgent:
             lit = ["## Retrieved Literature (your ONLY citation list)",
                    "Cite these with [N] using the numbers below. Use ONLY papers from "
                    "this list for [N] citations — never cite a paper that is not listed "
-                   "here, and never invent a DOI, PMID, or PDB ID."]
+                   "here, and never invent a DOI, PMID, or PDB ID. Cite only papers whose "
+                   "content actually supports the sentence; do not pad with irrelevant [N]. "
+                   "End your answer with a one-line '**Evidence boundary:**' stating what "
+                   "the evidence does and does not establish and any scope limits.",
+                   "Begin your reply with exactly one line, before anything else: "
+                   "'EVIDENCE: addresses' if the papers below directly support an answer to the "
+                   "question, or 'EVIDENCE: insufficient' if they do not (off-topic or silent on it)."]
             for i, c in enumerate(cites, 1):
                 authors = ", ".join((getattr(c, 'authors', None) or [])[:6])
                 meta = []
@@ -2486,6 +2795,22 @@ class ResearchAgent:
                     entry += f"\n    Abstract: {abstract[:400]}"
                 lit.append(entry)
             prompt_parts.append("\n".join(lit))
+        else:
+            # Explicit no-evidence guard (defense-in-depth, model-independent).
+            # When retrieval returns 0 citations the model must NOT confabulate a
+            # bibliography from parametric memory — the historical failure mode
+            # (invented PMIDs/DOIs + a fake "N records retrieved" stat, esp. on
+            # evidence-review prompts that ASK for a table). The grounding guard only
+            # strips dangling [N] markers; it cannot catch inline-prose identifiers.
+            prompt_parts.append(
+                "## Retrieved Literature: NONE\n"
+                "Retrieval returned no verifiable citations for this question. You therefore MUST NOT:\n"
+                "- emit any [N] citation marker, evidence table, or per-study row;\n"
+                "- state any PMID, DOI, PDB ID, accession, or a 'records/papers retrieved' count;\n"
+                "- present any specific paper, author list, or year as a reference.\n"
+                "Begin your reply with exactly 'EVIDENCE: insufficient' and then give only "
+                "unreferenced background clearly marked as not literature-grounded."
+            )
 
         # Rigor-adaptive instructions. A quick factual question wants a brief answer;
         # an evidence-review request ("evidence table", "verify every DOI", "separate
@@ -2498,14 +2823,26 @@ class ResearchAgent:
             "structural evidence", "biochemical", "for every major claim", "provide the paper",
         ))
         if _deep:
+            # The evidence-table instruction is gated on having retrieved literature:
+            # with zero citations the "## Retrieved Literature: NONE" guard forbids a
+            # table, so asking for one here would contradict it and invite confabulation.
+            _table_line = (
+                "3. Where the question asks for a table, produce a markdown evidence table with one "
+                "row per study and the requested columns (e.g. method, organism/constructs, and "
+                "per-claim yes/no)."
+                if cites else
+                "3. Do NOT produce an evidence table or any per-study rows — no literature was "
+                "retrieved (see 'Retrieved Literature: NONE' above)."
+            )
             instructions = """## Instructions (evidence-review mode)
 Produce a rigorous, structured, evidence-graded answer.
 
 1. Use ONLY the numbered Retrieved Literature above for [N] citations. Never invent a paper, DOI, PMID, or PDB ID; if you are unsure an identifier is real, omit it.
 2. Distinguish what is DIRECTLY demonstrated experimentally from what remains a proposed model. If the retrieved evidence does not support a claim, write exactly: "Not directly demonstrated."
-3. Where the question asks for a table, produce a markdown evidence table with one row per study and the requested columns (e.g. method, organism/constructs, and per-claim yes/no).
+""" + _table_line + """
 4. Do NOT infer a mechanism (e.g. "handover"/transfer) from separate binding measurements — label it directly demonstrated only if the transfer itself was observed.
-5. End with a concise synthesis of what is established vs unknown. Prefer completeness and honesty over brevity."""
+5. End with a concise synthesis of what is established vs unknown. Prefer completeness and honesty over brevity.
+""" + _CONFLICT_INSTRUCTION
         else:
             instructions = """## Instructions
 Provide a concise, evidence-based answer to the research question.
@@ -2516,7 +2853,8 @@ Provide a concise, evidence-based answer to the research question.
 4. If tool recommendations are relevant, name them specifically (1–2 max)
 5. Cite sources inline with [N] using ONLY the numbered Retrieved Literature list above; never invent a DOI/PMID/paper. If the evidence does not support a claim, say "Not directly demonstrated."
 
-Format: plain prose or a short bulleted list. No lengthy introductions, no "In summary" footers."""
+Format: plain prose or a short bulleted list. No lengthy introductions, no "In summary" footers.
+""" + _CONFLICT_INSTRUCTION
 
         prompt_parts.append(f"""
 ## Research Question
@@ -2587,6 +2925,16 @@ Format: plain prose or a short bulleted list. No lengthy introductions, no "In s
             )
 
         return response
+
+    @staticmethod
+    def _split_evidence_verdict(answer: str):
+        """Strip the leading 'EVIDENCE: addresses|insufficient' line the synthesis prompt asks
+        for; return (answer, True/False/None). Tolerates bold/heading markup around it."""
+        import re as _re_ev
+        m = _re_ev.match(r'\s*[#*_\s]*EVIDENCE\s*:\s*\**\s*(addresses|insufficient)\b[^\n]*\n?', answer or '', _re_ev.I)
+        if not m:
+            return answer, None
+        return answer[m.end():].lstrip(), m.group(1).lower() == 'addresses'
 
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """Parse the LLM response to extract structured data."""

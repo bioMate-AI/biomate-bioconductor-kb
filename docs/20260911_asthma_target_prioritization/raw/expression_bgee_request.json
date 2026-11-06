@@ -1,0 +1,8 @@
+{
+  "query": "PREFIX genex: <http://purl.org/genex#> PREFIX orth: <http://purl.org/net/orth#> SELECT ?gene ?p ?o WHERE { ?gene a orth:Gene ; ?p ?o . FILTER(CONTAINS(STR(?gene), \"ENSG00000137033\")) } LIMIT 20",
+  "timeout_sec": 40,
+  "save_raw": true,
+  "raw_output_path": "/Users/kky/biomate-review/docs/20260911_asthma_target_prioritization/raw/expression_bgee.json",
+  "max_items": 20,
+  "max_depth": 6
+}

@@ -9,15 +9,16 @@ params.smiles_list              = '["CC(=O)Nc1ccc(O)cc1"]'
 params.receptor_pdb_file        = ''
 params.box_center               = '[0.0, 0.0, 0.0]'
 params.box_size                 = '[20.0, 20.0, 20.0]'
-params.ncpu                     = '4'
+params.ncpu                     = '4'     // used only by direct (unsharded) callers; sharded runs use the CPUs Batch allocates
+params.docking_shard_size       = 10      // ligands per parallel Batch task (Vina docks one ligand at a time)
 params.exhaustiveness           = '8'
 params.n_poses                  = '9'
 params.reference_ligand_smiles  = ''
+params.site_ligand             = ''      // residue name of a co-crystallised ligand to REMOVE from the receptor before docking (e.g. 'AQ4' in 1M17); waters are always removed
 
 process DOCKING_AUTODOCK_VINA {
-    tag 'run'
+    tag "${meta.id}"
     label 'process_medium'
-    publishDir path: { params.outdir }, mode: 'copy', overwrite: true
 
     // local (ARM dev): biomni-drug-discovery-nf layers on biomni-structure-to-drug
     // aws batch (AMD64): structure-based DD image (Vina, meeko, obabel, fpocket)
@@ -26,26 +27,28 @@ process DOCKING_AUTODOCK_VINA {
         : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
-    val run_id
+    tuple val(meta), val(shard_smiles)
 
     output:
-    path("docking_autodock_vina_results.json"), emit: results
-    path("docking_autodock_vina_output.txt"),   emit: output
-    path("qc_metrics.json"),                     emit: qc_metrics
-    path "docking_poses/*.pdbqt",                emit: poses, optional: true
-    path "versions.yml",                         emit: versions
+    path("${meta.id}_results.json"),    emit: results
+    path("${meta.id}_output.txt"),      emit: output
+    path("${meta.id}_qc_metrics.json"), emit: qc_metrics
+    path "docking_poses/*.pdbqt",       emit: poses, optional: true
+    path "versions.yml",                emit: versions
 
     script:
-    def prefix = task.ext.prefix ?: "${run_id}"
+    def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    export PARAM_SMILES_LIST='${params.smiles_list}'
+    export PARAM_SMILES_LIST='${shard_smiles}'
+    export PARAM_SHARD_ID='${meta.id}'
     export PARAM_RECEPTOR_PDB='${params.receptor_pdb_file}'
     export PARAM_BOX_CENTER='${params.box_center}'
     export PARAM_BOX_SIZE='${params.box_size}'
-    export PARAM_NCPU='${params.ncpu}'
+    export PARAM_NCPU='${task.cpus}'
     export PARAM_EXHAUSTIVENESS='${params.exhaustiveness}'
     export PARAM_N_POSES='${params.n_poses}'
     export PARAM_REF_SMILES='${params.reference_ligand_smiles}'
+    export PARAM_SITE_LIGAND='${params.site_ligand}'
 
     mkdir -p docking_poses
 
@@ -58,6 +61,7 @@ import shutil
 import math
 
 NL = chr(10)
+SHARD_ID = os.environ.get('PARAM_SHARD_ID', 'run')
 
 def auto_convert(val):
     if val is None or val == '' or val == 'null':
@@ -83,14 +87,31 @@ def auto_convert(val):
 # ── Read parameters ─────────────────────────────────────────────────────────
 smiles_list   = auto_convert(os.environ.get('PARAM_SMILES_LIST', '["c1ccccc1"]'))
 receptor_pdb  = os.environ.get('PARAM_RECEPTOR_PDB', '').strip()
-# Stage non-local receptor paths (e.g. s3 on AWS Batch) before trim/obabel.
+# Materialize the receptor before trim/obabel. The param may arrive as: a local
+# file, an s3:// path, an http(s) URL, or a bare 4-char PDB ID (e.g. "1IEP") that
+# the query named. Self-fetch the id from RCSB here — the same pattern as SRA/GEO
+# workflows fetching from an accession (fasterq-dump) — because the in-process
+# runtime can't call the app-side PDB fetch. Without this, a PDB-id receptor was
+# never fetched → "no receptor → minimal ALA" → docking failure.
 if receptor_pdb and not os.path.isfile(receptor_pdb):
-    import subprocess
+    import subprocess, re as _re_r, urllib.request
     _staged = os.path.join(os.getcwd(), 'receptor_staged.pdb')
-    _cp = subprocess.run(['aws', 's3', 'cp', receptor_pdb, _staged], capture_output=True, text=True)
-    if _cp.returncode == 0:
-        receptor_pdb = _staged
-        os.environ['PARAM_RECEPTOR_PDB'] = _staged
+    try:
+        if receptor_pdb.startswith('s3://'):
+            _cp = subprocess.run(['aws', 's3', 'cp', receptor_pdb, _staged], capture_output=True, text=True)
+            if _cp.returncode == 0 and os.path.isfile(_staged):
+                receptor_pdb = _staged; os.environ['PARAM_RECEPTOR_PDB'] = _staged
+        elif receptor_pdb.startswith(('http://', 'https://')):
+            urllib.request.urlretrieve(receptor_pdb, _staged)
+            if os.path.getsize(_staged) > 0:
+                receptor_pdb = _staged; os.environ['PARAM_RECEPTOR_PDB'] = _staged
+        elif _re_r.fullmatch(r'[0-9A-Za-z]{4}', receptor_pdb):
+            # Bare RCSB PDB ID → download the canonical structure.
+            urllib.request.urlretrieve(f'https://files.rcsb.org/download/{receptor_pdb.upper()}.pdb', _staged)
+            if os.path.getsize(_staged) > 0:
+                receptor_pdb = _staged; os.environ['PARAM_RECEPTOR_PDB'] = _staged
+    except Exception:
+        pass  # leave receptor_pdb as-is → downstream no-receptor fallback still applies
 box_center    = auto_convert(os.environ.get('PARAM_BOX_CENTER', '[0,0,0]'))
 box_size      = auto_convert(os.environ.get('PARAM_BOX_SIZE', '[20,20,20]'))
 ncpu          = int(auto_convert(os.environ.get('PARAM_NCPU', '4')) or 4)
@@ -147,7 +168,9 @@ def sdf_to_pdbqt(sdf_path, pdbqt_path):
 def receptor_pdb_to_pdbqt(pdb_path, pdbqt_path):
     import subprocess
     r = subprocess.run(
-        ['obabel', pdb_path, '-O', pdbqt_path, '-xr'],
+        # -p 7.4: add hydrogens for pH 7.4. Crystal structures carry none, and Vina recognises receptor H-bond
+        # donors only through polar hydrogens (HD atoms); the PDBQT writer keeps polar H and merges non-polar H.
+        ['obabel', pdb_path, '-O', pdbqt_path, '-xr', '-p', '7.4'],
         capture_output=True, text=True
     )
     detail = ((r.stderr or '') + (r.stdout or '')).strip()
@@ -162,11 +185,35 @@ def receptor_pdb_to_pdbqt(pdb_path, pdbqt_path):
         raise RuntimeError(
             f'obabel wrote trivial receptor PDBQT ({sz} bytes): {detail}'
         )
+    with open(pdbqt_path) as fh:
+        n_hd = sum(1 for ln in fh if ln.startswith(('ATOM', 'HETATM')) and ln[77:79].strip() == 'HD')
+    if n_hd == 0:
+        raise RuntimeError('receptor PDBQT has no polar hydrogens (HD); Vina would score no receptor H-bond donors')
+    return n_hd
 
 # ── Helper: trim PDB to Vina search region ──────────────────────────────────
 # Whole-virus or deposited assemblies often exceed ~10k ATOM records; Open Babel
 # may exit 0 but emit an empty PDBQT. Keeping atoms inside the docking box (+pad)
 # matches what Vina evaluates with compute_vina_maps and stays within tool limits.
+# Remove waters and the named co-crystallised ligand from the receptor. Docking into a site that still
+# holds the crystal ligand scores every pose against a clash. Other HETATM records (metals, cofactors) stay.
+WATER_RESNAMES = ('HOH', 'WAT', 'DOD')
+def strip_receptor_hetero(pdb_path, out_path, site_ligand):
+    drop = set(WATER_RESNAMES)
+    if site_ligand:
+        drop.add(site_ligand.strip().upper())
+    kept, removed = [], {}
+    with open(pdb_path) as fh:
+        for line in fh:
+            rn = line[17:20].strip().upper() if line.startswith(('ATOM', 'HETATM')) else ''
+            if line.startswith('HETATM') and rn in drop:
+                removed[rn] = removed.get(rn, 0) + 1
+                continue
+            kept.append(line)
+    with open(out_path, 'w') as out:
+        out.writelines(kept)
+    return removed
+
 def trim_pdb_to_search_box(pdb_path, out_path, cx, cy, cz, sx, sy, sz, pad=8.0):
     hx = sx / 2.0 + pad
     hy = sy / 2.0 + pad
@@ -277,6 +324,14 @@ try:
     else:
         rec_pdb = receptor_pdb
 
+    site_ligand = os.environ.get('PARAM_SITE_LIGAND', '').strip()
+    if os.path.isfile(rec_pdb):
+        stripped = os.path.join(tmpdir, 'receptor_no_hetero.pdb')
+        removed = strip_receptor_hetero(rec_pdb, stripped, site_ligand)
+        rec_pdb = stripped
+        log.append('  Receptor cleaned: removed ' + (', '.join(k + ' x' + str(v) for k, v in sorted(removed.items())) or 'nothing'))
+        if site_ligand and site_ligand.strip().upper() not in removed:
+            log.append('  WARNING: site_ligand ' + site_ligand + ' not found in the receptor; nothing removed for it')
     rec_for_prep = rec_pdb
     if receptor_pdb and os.path.isfile(rec_pdb):
         trim_out = os.path.join(tmpdir, 'receptor_trimmed.pdb')
@@ -295,11 +350,12 @@ try:
     log.append(f'Step 1: Preparing receptor {os.path.basename(rec_pdb)}')
     rec_pdbqt = os.path.join(tmpdir, 'receptor.pdbqt')
     try:
-        receptor_pdb_to_pdbqt(rec_for_prep, rec_pdbqt)
-        log.append(f'  Receptor PDBQT written ({os.path.getsize(rec_pdbqt)} bytes)')
+        n_hd = receptor_pdb_to_pdbqt(rec_for_prep, rec_pdbqt)
+        log.append(f'  Receptor PDBQT written ({os.path.getsize(rec_pdbqt)} bytes; {n_hd} polar hydrogens)')
     except Exception as e:
-        log.append(f'  Receptor prep warning: {e}  -- continuing with PDB as PDBQT')
-        shutil.copy(rec_pdb, rec_pdbqt)
+        # No fallback: a PDB renamed to .pdbqt has no AutoDock atom types, so every score would be meaningless.
+        log.append(f'  ERROR: receptor preparation failed: {e}')
+        raise
 
     # ── Reference ligand PDBQT for RMSD validation ─────────────────────────
     ref_pdbqt = None
@@ -345,14 +401,14 @@ try:
             log.append(f'  Best binding affinity: {best_score} kcal/mol')
 
             # Copy top pose to output dir
-            shutil.copy(out_pdbqt, f'docking_poses/pose_{idx:03d}.pdbqt')
+            shutil.copy(out_pdbqt, f'docking_poses/{SHARD_ID}_pose_{idx:03d}.pdbqt')
 
             entry = {
                 'smiles': smi,
                 'best_affinity_kcal_mol': best_score,
                 'all_affinities': [round(float(e[0]), 3) for e in energies],
                 'n_poses': len(energies),
-                'pose_file': f'docking_poses/pose_{idx:03d}.pdbqt',
+                'pose_file': f'docking_poses/{SHARD_ID}_pose_{idx:03d}.pdbqt',
             }
 
             # RMSD validation vs reference
@@ -468,6 +524,9 @@ with open('docking_autodock_vina_output.txt', 'w') as f:
 if not output_data['success']:
     exit(1)
 PYEOF
+    mv docking_autodock_vina_results.json ${meta.id}_results.json
+    mv docking_autodock_vina_output.txt ${meta.id}_output.txt
+    mv qc_metrics.json ${meta.id}_qc_metrics.json
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -479,17 +538,128 @@ PYEOF
     """
 }
 
+// ── REDUCE: merge per-shard docking results into the files callers read ─────────
+// Same output names and schema as the former single-job step, so the chain executor,
+// the QC gate reader and the benchmark scorer are unchanged.
+process DOCKING_MERGE {
+    tag 'merge'
+    label 'process_single'
+    publishDir path: { params.outdir }, mode: 'copy', overwrite: true
+
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' \
+        : 'biomate/biomni-drug-discovery-nf:latest'
+
+    input:
+    path shard_results
+    path shard_outputs
+    path shard_qc
+    path shard_poses
+
+    output:
+    path("docking_autodock_vina_results.json"), emit: results
+    path("docking_autodock_vina_output.txt"),   emit: output
+    path("qc_metrics.json"),                     emit: qc_metrics
+    path "docking_poses/*.pdbqt",                emit: poses, optional: true
+
+    script:
+    '''
+    mkdir -p docking_poses
+    for f in *_pose_*.pdbqt; do [ -e "$f" ] && mv "$f" docking_poses/; done
+    python3 << 'PYEOF'
+import glob, json, re
+NL = chr(10)
+
+def shard_index(name):
+    m = re.match(r"shard_([0-9]+)_", name)
+    return int(m.group(1)) if m else 0
+
+files = sorted(glob.glob("shard_*_results.json"), key=shard_index)
+results, logs, success = [], [], True
+for fn in files:
+    d = json.load(open(fn))
+    results.extend(d.get("results") or [])
+    success = success and bool(d.get("success"))
+    logs.append("[" + fn.replace("_results.json", "") + "]" + NL + (d.get("log") or ""))
+valid = [r["best_affinity_kcal_mol"] for r in results if "best_affinity_kcal_mol" in r]
+out = {
+    "success": success and bool(results),
+    "function": "docking_autodock_vina",
+    "domain": "pharmacology",
+    "results": results,
+    "n_ligands_docked": len(valid),
+    "best_score_kcal_mol": min(valid) if valid else None,
+    "n_shards": len(files),
+    "log": NL.join(logs),
+}
+json.dump(out, open("docking_autodock_vina_results.json", "w"), indent=2, default=str)
+
+qcs = [json.load(open(fn)) for fn in sorted(glob.glob("shard_*_qc_metrics.json"), key=shard_index)]
+threshold = qcs[0].get("binding_score_hit_threshold_kcal_mol", -7.0) if qcs else -7.0
+min_poses = qcs[0].get("valid_poses_min_threshold", 3) if qcs else 3
+best = out["best_score_kcal_mol"]
+total_poses = sum(int(r.get("n_poses") or 0) for r in results)
+qc = dict(qcs[0]) if qcs else {}
+qc.update({
+    "success": out["success"],
+    "process": "DOCKING_AUTODOCK_VINA",
+    "best_score_kcal_mol": best,
+    "docking_binding_score_passes": (best <= threshold) if best is not None else None,
+    "total_poses_generated": total_poses,
+    "docking_valid_poses_passes": (total_poses >= min_poses) if (total_poses > 0 or out["success"]) else None,
+    "n_ligands_docked": len(valid),
+    "n_shards": len(files),
+    "status": "computed" if best is not None else (qcs[0].get("status") if qcs else "not_computed"),
+})
+json.dump(qc, open("qc_metrics.json", "w"), indent=2, default=str)
+
+with open("docking_autodock_vina_output.txt", "w") as f:
+    for fn in sorted(glob.glob("shard_*_output.txt"), key=shard_index):
+        f.write(open(fn).read() + NL)
+    if valid:
+        f.write("Merged: " + str(len(valid)) + " ligands docked across " + str(len(files)) + " shards; best affinity " + str(min(valid)) + " kcal/mol" + NL)
+if not out["success"]:
+    raise SystemExit(1)
+PYEOF
+    '''
+}
+
 workflow DOCKING_AUTODOCK_VINA_WORKFLOW {
     take:
-    ch_input  // channel: val(run_id)
+    ch_input  // channel: val(run_id) — retained for signature compatibility
 
     main:
-    DOCKING_AUTODOCK_VINA(ch_input)
+    // Vina docks one ligand at a time, so the library is split into shards that run as parallel
+    // Batch tasks; a single merge writes the usual result files. N <= docking_shard_size => one shard.
+    def raw = params.smiles_list
+    def parsed = null
+    if (raw instanceof List) {
+        parsed = raw
+    } else {
+        try { parsed = new groovy.json.JsonSlurper().parseText((raw ?: '[]').toString()) } catch (Exception e) { parsed = null }
+    }
+    def shard_tuples = []
+    if (parsed instanceof List && parsed) {
+        def shard_size = (params.docking_shard_size ?: 10) as int
+        parsed.collate(shard_size).eachWithIndex { chunk, i ->
+            shard_tuples << [ [id: "shard_${i}"], groovy.json.JsonOutput.toJson(chunk) ]
+        }
+    } else {
+        // Not a JSON list (single SMILES or empty): one shard, parsed by the step itself as before.
+        shard_tuples << [ [id: "shard_0"], (raw ?: '').toString() ]
+    }
+    DOCKING_AUTODOCK_VINA(Channel.fromList(shard_tuples))
+    DOCKING_MERGE(
+        DOCKING_AUTODOCK_VINA.out.results.collect(),
+        DOCKING_AUTODOCK_VINA.out.output.collect(),
+        DOCKING_AUTODOCK_VINA.out.qc_metrics.collect(),
+        DOCKING_AUTODOCK_VINA.out.poses.flatten().collect().ifEmpty([])
+    )
 
     emit:
-    results  = DOCKING_AUTODOCK_VINA.out.results
-    output   = DOCKING_AUTODOCK_VINA.out.output
-    versions = DOCKING_AUTODOCK_VINA.out.versions
+    results  = DOCKING_MERGE.out.results
+    output   = DOCKING_MERGE.out.output
+    versions = DOCKING_AUTODOCK_VINA.out.versions.first()
 }
 
 // Entry workflow for standalone execution

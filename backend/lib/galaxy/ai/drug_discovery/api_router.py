@@ -15,8 +15,8 @@ Endpoints:
        Run BayesianOptimizer.propose_next_round() against a virtual library.
        Body: {virtual_library_smiles: [...], n_propose: 10, diversity_weight: 0.2}
 
-  GET  /api/drug-discovery/{campaign_id}/lims/poll
-       Poll Benchling LIMS for new assay data and ingest any new results.
+  POST /api/drug-discovery/{campaign_id}/lims/poll
+       Pull reviewed Benchling assay results (explicit schema mapping) and ingest them.
 
   POST /api/drug-discovery/{campaign_id}/models/register
        Register a custom predictive model (Python function, Docker, or REST).
@@ -37,7 +37,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from pydantic import BaseModel
 
 try:
@@ -302,6 +302,7 @@ class IngestAssayResponse(BaseModel):
     campaign_id: str
     ingested: int
     errors: list[str]
+    warnings: list[str] = []
     updated_ranks: list[dict]
     newly_failed: list[str]
     newly_passed: list[str]
@@ -322,7 +323,7 @@ class StudyReportIngestResponse(BaseModel):
     key_findings: str
     ames_result: Optional[bool]
     herg_ic50_um: Optional[float]
-    glp: bool
+    glp: Optional[bool]
     study_id: Optional[str]
     sections_to_regenerate: list[str]
     warning: Optional[str] = None
@@ -468,6 +469,7 @@ async def ingest_assay(
         campaign_id=campaign_id,
         ingested=result.get("ingested", 0),
         errors=result.get("errors", []),
+        warnings=result.get("warnings", []),
         updated_ranks=result.get("updated_ranks", []),
         newly_failed=result.get("newly_failed", []),
         newly_passed=result.get("newly_passed", []),
@@ -589,6 +591,7 @@ class RegisterModelRequest(BaseModel):
 async def register_model(
     campaign_id: str,
     body: RegisterModelRequest,
+    request: Request,
     _audit: None = Depends(_audit_fn),
 ):
     """
@@ -602,13 +605,13 @@ async def register_model(
     - python_function: (server-side only) attach a Python callable directly.
     """
     try:
-        from .custom_model_registry import CustomModelRegistry
+        from .custom_model_registry import get_registry
         from .custom_model_wrapper import DockerModelWrapper, RESTModelWrapper
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
     try:
-        registry = CustomModelRegistry(_campaign_db(campaign_id))
+        registry = get_registry(_campaign_db(campaign_id))
 
         if body.mode == "docker":
             if not body.image:
@@ -618,6 +621,7 @@ async def register_model(
                 campaign_id=campaign_id,
                 image=body.image,
                 command=body.command or [],
+                weight=body.weight,
                 higher_is_better=body.higher_is_better,
             )
         elif body.mode == "rest":
@@ -627,9 +631,10 @@ async def register_model(
                 name=body.name,
                 campaign_id=campaign_id,
                 endpoint=body.endpoint,
-                input_field=body.input_field or "smiles",
-                output_field=body.output_field or "score",
-                timeout_s=body.timeout_s or 30,
+                input_key=body.input_field or "smiles",
+                output_path=body.output_field or "score",
+                timeout=body.timeout_s or 30,
+                weight=body.weight,
                 higher_is_better=body.higher_is_better,
             )
         else:
@@ -638,26 +643,27 @@ async def register_model(
                 detail="mode must be 'docker' or 'rest' (python_function requires server-side registration)",
             )
 
-        registry.register(wrapper)
+        mv = registry.register(wrapper, config={"registered_by": _request_actor(request)})
     except HTTPException:
         raise
     except Exception as exc:
         log.exception("model registration failed")
         raise HTTPException(status_code=500, detail=str(exc))
 
-    return {"status": "registered", "campaign_id": campaign_id, "model_name": body.name, "mode": body.mode}
+    return {"status": "registered", "campaign_id": campaign_id, "model_name": body.name,
+            "mode": body.mode, "version": mv.version, "version_status": mv.status}
 
 
 @router.get("/{campaign_id}/models")
 async def list_models(campaign_id: str):
     """List registered models and their run history for a campaign."""
     try:
-        from .custom_model_registry import CustomModelRegistry
+        from .custom_model_registry import get_registry
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
     try:
-        registry = CustomModelRegistry(_campaign_db(campaign_id))
+        registry = get_registry(_campaign_db(campaign_id))
         models = registry.list_models(campaign_id)
         history = registry.get_run_log(campaign_id)
     except Exception as exc:
@@ -680,7 +686,7 @@ async def run_model(
     Returns per-compound scores and a run record for the audit log.
     """
     try:
-        from .custom_model_registry import CustomModelRegistry
+        from .custom_model_registry import ArtifactIntegrityError, get_registry
         from .assay_ingestion import AssayIngestionService
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
@@ -688,7 +694,7 @@ async def run_model(
     if not smiles_list:
         try:
             svc = AssayIngestionService(_campaign_db(campaign_id))
-            ranks = svc.get_compound_ranks(campaign_id)
+            ranks = svc.get_ranked_compounds(campaign_id)
             smiles_list = [r["smiles"] for r in ranks if r.get("smiles")]
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc))
@@ -697,10 +703,13 @@ async def run_model(
         raise HTTPException(status_code=404, detail="No SMILES available; upload assay data first.")
 
     try:
-        registry = CustomModelRegistry(_campaign_db(campaign_id))
+        registry = get_registry(_campaign_db(campaign_id))
         scores, run_record = registry.run_named_model(campaign_id, model_name, smiles_list)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Model '{model_name}' not registered for campaign '{campaign_id}'")
+        active = registry.get_active_version(campaign_id, model_name)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc).strip("'\""))
+    except ArtifactIntegrityError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     except Exception as exc:
         log.exception("model run failed")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -708,9 +717,148 @@ async def run_model(
     return {
         "campaign_id": campaign_id,
         "model_name": model_name,
+        "model_version": active.version if active else None,
         "scores": scores,
         "run_record": run_record.__dict__ if hasattr(run_record, "__dict__") else str(run_record),
     }
+
+
+# ---------------------------------------------------------------------------
+# Model versions — promotion, rollback, holdout comparison
+# ---------------------------------------------------------------------------
+
+def _request_actor(request: Request) -> str:
+    """Caller identity as recorded by the compliance audit log."""
+    try:
+        from ..compliance.audit_middleware import _extract_user_id
+        return _extract_user_id(request)
+    except ImportError:
+        return request.headers.get("X-BioMate-User-Id") or "anonymous"
+
+
+def _version_errors(fn):
+    from .custom_model_registry import (
+        ArtifactIntegrityError, ModelRegistryError, PromotionBlocked,
+    )
+    try:
+        return fn()
+    except PromotionBlocked as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except ArtifactIntegrityError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except ModelRegistryError as exc:
+        status = 404 if "has no version" in str(exc) else 422
+        raise HTTPException(status_code=status, detail=str(exc))
+
+
+class VersionDecisionRequest(BaseModel):
+    reviewer: str            # named human decision-maker, recorded with the caller identity
+    note: Optional[str] = None
+
+
+class RollbackRequest(VersionDecisionRequest):
+    to_version: Optional[int] = None
+
+
+class HoldoutRow(BaseModel):
+    smiles: str
+    label: float
+
+
+class CompareVersionsRequest(BaseModel):
+    version_a: int
+    version_b: int
+    holdout: list[HoldoutRow]
+    allow_training_overlap: bool = False
+
+
+def _decision_actor(request: Request, reviewer: str) -> str:
+    if not reviewer or not reviewer.strip():
+        raise HTTPException(status_code=400, detail="reviewer is required")
+    return f"{reviewer.strip()} (caller={_request_actor(request)})"
+
+
+@router.get("/{campaign_id}/models/{model_name}/versions")
+async def list_model_versions(campaign_id: str, model_name: str):
+    from .custom_model_registry import get_registry
+    registry = get_registry(_campaign_db(campaign_id))
+    versions = registry.list_versions(campaign_id, model_name)
+    if not versions:
+        raise HTTPException(status_code=404, detail=f"Model '{model_name}' has no versions")
+    active = next((v.version for v in versions if v.status == "active"), None)
+    return {"campaign_id": campaign_id, "model_name": model_name, "active_version": active,
+            "versions": [v.to_dict() for v in versions]}
+
+
+@router.get("/{campaign_id}/models/{model_name}/versions/{version}")
+async def get_model_version(campaign_id: str, model_name: str, version: int):
+    from .custom_model_registry import get_registry
+    registry = get_registry(_campaign_db(campaign_id))
+    return _version_errors(lambda: registry.get_version(campaign_id, model_name, version).to_dict())
+
+
+@router.post("/{campaign_id}/models/{model_name}/versions/{version}/promote")
+async def promote_model_version(
+    campaign_id: str, model_name: str, version: int, body: VersionDecisionRequest,
+    request: Request, _audit: None = Depends(_audit_fn),
+):
+    """Make a candidate (gate passed, artifact hash verified) the single active version."""
+    from .custom_model_registry import get_registry
+    registry = get_registry(_campaign_db(campaign_id))
+    actor = _decision_actor(request, body.reviewer)
+    return _version_errors(lambda: registry.promote(
+        campaign_id, model_name, version, actor=actor, note=body.note).to_dict())
+
+
+@router.post("/{campaign_id}/models/{model_name}/versions/{version}/reject")
+async def reject_model_version(
+    campaign_id: str, model_name: str, version: int, body: VersionDecisionRequest,
+    request: Request, _audit: None = Depends(_audit_fn),
+):
+    from .custom_model_registry import get_registry
+    registry = get_registry(_campaign_db(campaign_id))
+    actor = _decision_actor(request, body.reviewer)
+    return _version_errors(lambda: registry.reject(
+        campaign_id, model_name, version, actor=actor, note=body.note).to_dict())
+
+
+@router.post("/{campaign_id}/models/{model_name}/rollback")
+async def rollback_model_version(
+    campaign_id: str, model_name: str, body: RollbackRequest,
+    request: Request, _audit: None = Depends(_audit_fn),
+):
+    """Re-activate a previously active version (default: the most recently retired)."""
+    from .custom_model_registry import get_registry
+    registry = get_registry(_campaign_db(campaign_id))
+    actor = _decision_actor(request, body.reviewer)
+    return _version_errors(lambda: registry.rollback(
+        campaign_id, model_name, actor=actor, to_version=body.to_version,
+        note=body.note).to_dict())
+
+
+@router.post("/{campaign_id}/models/{model_name}/compare")
+async def compare_model_versions(
+    campaign_id: str, model_name: str, body: CompareVersionsRequest,
+    request: Request, _audit: None = Depends(_audit_fn),
+):
+    """Score two versions on the same holdout with identical metrics; the result is recorded.
+
+    Refuses (422) when holdout molecules appear in either version's training data
+    unless allow_training_overlap is set."""
+    from .custom_model_registry import get_registry
+    registry = get_registry(_campaign_db(campaign_id))
+    holdout = [(r.smiles, r.label) for r in body.holdout]
+    return _version_errors(lambda: registry.compare_versions(
+        campaign_id, model_name, body.version_a, body.version_b, holdout,
+        actor=_request_actor(request), allow_training_overlap=body.allow_training_overlap))
+
+
+@router.get("/{campaign_id}/models/{model_name}/comparisons")
+async def list_model_comparisons(campaign_id: str, model_name: str):
+    from .custom_model_registry import get_registry
+    registry = get_registry(_campaign_db(campaign_id))
+    return {"campaign_id": campaign_id, "model_name": model_name,
+            "comparisons": registry.list_comparisons(campaign_id, model_name)}
 
 
 # ---------------------------------------------------------------------------
@@ -742,8 +890,14 @@ async def propose_next_round(
         diversity_weight: 0–1 weight for Tanimoto diversity penalty (default 0.2).
 
     Returns:
-        proposed_smiles: selected SMILES,
-        proposed_scores: surrogate predicted scores per objective,
+        proposed_smiles: selected SMILES (n_proposed may be below n_requested
+            when library entries are invalid, duplicates or already measured;
+            see surrogate_report.excluded_candidates),
+        predicted_scores: surrogate predicted scores per objective,
+        gp_stds: posterior std per objective and proposed compound,
+        can_discriminate: False when the surrogate cannot confidently order
+            any candidate pair — the scores then do not rank the compounds,
+        surrogate_report: kernel, discrimination evidence, exclusions, warnings,
         round_metadata: acquisition details.
     """
     try:
@@ -773,24 +927,11 @@ async def propose_next_round(
                    "Upload results first via POST /{campaign_id}/ingest-assay."
         )
 
+    from .auto_retrain import build_training_rows, fit_campaign_optimizer, persist_round
+
     try:
-        import numpy as np
-        from .bayesian_optimizer import CampaignDataset
-
-        smiles_list = [r["smiles"] for r in ranked if r.get("smiles")]
-        scores_list = [min(1.0, max(0.0, r.get("composite_score", 0.5))) for r in ranked]
-        compound_ids = [r.get("compound_id", f"c{i}") for i, r in enumerate(ranked)]
-
-        opt = BayesianOptimizer(campaign_id=campaign_id, db_path=_campaign_db(campaign_id))
-        features = opt._featurise(smiles_list)
-        dataset = CampaignDataset(
-            compound_ids=compound_ids,
-            smiles_list=smiles_list,
-            features=features,
-            objectives={"composite_score": np.array(scores_list)},
-            objective_directions={"composite_score": "maximize"},
-        )
-        opt.fit(dataset)
+        rows = build_training_rows(ranked)
+        opt = fit_campaign_optimizer(_campaign_db(campaign_id), campaign_id, rows)
         proposal = opt.propose_next_round(
             virtual_library_smiles=body.virtual_library_smiles,
             n_propose=body.n_propose,
@@ -802,14 +943,23 @@ async def propose_next_round(
         log.exception("BayesianOptimizer.propose_next_round failed for campaign %s", campaign_id)
         raise HTTPException(status_code=500, detail=str(exc))
 
+    report = rows.report(len(ranked))
+    # Persisting allocates the round in the campaign ledger, so this round is
+    # numbered consistently with /retrain rounds and listed in /proposals.
+    persist_round(_campaign_db(campaign_id), opt, proposal, "api_propose", report)
+
     return {
         "campaign_id": campaign_id,
+        "training_report": report,
+        "n_requested": body.n_propose,
         "n_proposed": len(proposal.proposed_compounds),
         "proposed_smiles": proposal.proposed_compounds,
         "predicted_scores": proposal.scores,
         "confidence_intervals": proposal.confidence_intervals,
         "ad_statuses": proposal.ad_statuses,
         "gp_stds": proposal.gp_stds,
+        "can_discriminate": proposal.can_discriminate,
+        "surrogate_report": proposal.surrogate_report,
         "round_metadata": {
             "round_number": proposal.round_number,
             "diversity_score": proposal.diversity_score,
@@ -824,87 +974,124 @@ async def propose_next_round(
 # Track G — Benchling LIMS polling (G3 gap closure)
 # ---------------------------------------------------------------------------
 
-@router.get("/{campaign_id}/lims/poll")
+class PollLimsRequest(BaseModel):
+    mapping: Optional[dict] = None        # BenchlingSchemaMapping; omitted → stored mapping
+    schema_id: Optional[str] = None       # selects the stored mapping when mapping is omitted
+    since: Optional[str] = None           # RFC 3339 start for a first sync (default: full history)
+    full_resync: bool = False             # ignore the stored watermark
+
+
+_SECRET_QUERY_PARAMS = {"benchling_api_key", "api_key", "client_secret", "token", "access_token"}
+
+
+@router.post("/{campaign_id}/lims/poll")
 async def poll_lims(
     campaign_id: str,
-    benchling_api_key: str = Query(None, description="Benchling API key (overrides env BENCHLING_API_KEY)"),
-    assay_schema_id: str   = Query(None, description="Benchling assay schema ID to poll"),
-    since_hours: float     = Query(24.0, description="Look back N hours for new results"),
+    body: PollLimsRequest,
+    request: Request,
     _audit: None = Depends(_audit_fn),
 ):
     """
-    Poll Benchling LIMS for new assay results and ingest them into the
-    campaign compound ranking.
+    Pull reviewed, non-archived Benchling assay results for one assay-result
+    schema into the campaign, then re-rank compounds.
 
-    The Benchling API key can be supplied via query param (for dev) or the
-    BENCHLING_API_KEY environment variable (for production).
+    Credentials and the tenant URL come only from the server's environment /
+    secret store (BENCHLING_TENANT_URL with BENCHLING_CLIENT_ID +
+    BENCHLING_CLIENT_SECRET, or BENCHLING_API_KEY for trials); never from the
+    request, so a caller cannot redirect server credentials to another host.
 
-    Returns a summary of ingested records and updated compound ranks.
+    Body: ``mapping`` (explicit per-schema field mapping, see
+    drug_discovery.benchling_connector.BenchlingSchemaMapping) or ``schema_id``
+    of a mapping stored by an earlier poll. Polls are incremental on the stored
+    ``modifiedAt`` watermark and idempotent (rows are upserted on the Benchling
+    result ID); results archived since the last poll are retracted.
     """
+    leaked = sorted(_SECRET_QUERY_PARAMS & set(request.query_params))
+    if leaked:
+        raise HTTPException(status_code=400, detail=(
+            f"Credentials must not be sent in the URL ({', '.join(leaked)}); they may now be in "
+            "access logs, so rotate them. Configure Benchling credentials on the server instead."))
     try:
-        from .benchling_connector import BenchlingConnector
+        from .benchling_connector import (
+            BenchlingAPIError, BenchlingAssayPoller, BenchlingConfigError, BenchlingConnector,
+            BenchlingMappingError, BenchlingSchemaMapping, SOURCE_SYSTEM, load_sync_state,
+            save_sync_state,
+        )
         from .assay_ingestion import AssayIngestionService
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
-    api_key = benchling_api_key or os.environ.get("BENCHLING_API_KEY", "")
-    if not api_key:
-        raise HTTPException(
-            status_code=400,
-            detail="Benchling API key required. Pass benchling_api_key query param "
-                   "or set BENCHLING_API_KEY env var."
-        )
+    db_path = _campaign_db(campaign_id)
+    schema_id = (body.mapping or {}).get("schema_id") or body.schema_id
+    if not schema_id:
+        raise HTTPException(status_code=400, detail="Give a mapping (with schema_id) or the schema_id "
+                                                    "of a mapping stored by an earlier poll.")
+    state = load_sync_state(db_path, campaign_id, schema_id)
+    try:
+        if body.mapping is not None:
+            mapping = BenchlingSchemaMapping.from_dict(body.mapping)
+        elif state is not None:
+            mapping = BenchlingSchemaMapping.from_dict(state["mapping"])
+        else:
+            raise BenchlingMappingError(f"no stored mapping for schema '{schema_id}' in this campaign; "
+                                        "send the mapping")
+    except BenchlingMappingError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid Benchling mapping: {exc}")
 
     try:
-        connector = BenchlingConnector(api_key=api_key)
-        new_results = connector.list_assay_results(
-            schema_id=assay_schema_id,
-            since_hours=since_hours,
-        )
-    except Exception as exc:
-        log.exception("Benchling LIMS poll failed for campaign %s", campaign_id)
+        client = BenchlingConnector.from_env()
+    except BenchlingConfigError as exc:
+        raise HTTPException(status_code=503, detail=f"Benchling is not configured on this server: {exc}")
+
+    notes: list[str] = []
+    watermark = body.since
+    if state is not None and not body.full_resync:
+        if state["tenant_host"] != client.tenant_host:
+            notes.append(f"Stored watermark belongs to tenant {state['tenant_host']}; "
+                         f"reading {client.tenant_host} from the start.")
+        elif state["mapping"] != mapping.to_dict():
+            notes.append("Schema mapping changed since the last poll; re-reading the schema from the "
+                         "start so every stored result is mapped the same way.")
+        else:
+            watermark = state["watermark"] or body.since
+
+    try:
+        polled = BenchlingAssayPoller(client, mapping).poll(modified_after=watermark)
+    except (BenchlingAPIError, BenchlingConfigError) as exc:
+        log.warning("Benchling LIMS poll failed for campaign %s: %s", campaign_id, exc)
         raise HTTPException(status_code=502, detail=f"Benchling API error: {exc}")
 
-    if not new_results:
-        return {
-            "campaign_id": campaign_id,
-            "status": "no_new_data",
-            "records_ingested": 0,
-            "message": f"No new Benchling results in the last {since_hours}h",
-        }
-
-    # Convert Benchling results to AssayIngestionService-compatible CSV rows
-    import io, csv as csv_module, tempfile
-
-    fieldnames = list(new_results[0].keys()) if new_results else ["compound_id", "smiles"]
-    buf = io.StringIO()
-    writer = csv_module.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
-    writer.writeheader()
-    writer.writerows(new_results)
-    csv_bytes = buf.getvalue().encode()
-
     try:
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
-            tmp.write(csv_bytes)
-            tmp_path = tmp.name
-
-        svc = AssayIngestionService(_campaign_db(campaign_id))
-        result = svc.ingest(campaign_id, tmp_path)
+        svc = AssayIngestionService(db_path)
+        result = svc.ingest_rows(campaign_id, polled.rows)
+        retracted = 0
+        if polled.archived_result_ids:
+            retraction = svc.retract_records(campaign_id, SOURCE_SYSTEM, polled.archived_result_ids)
+            retracted = retraction["retracted"]
+            result.update({k: retraction[k] for k in ("warnings", "updated_ranks")})
     except Exception as exc:
+        log.exception("Benchling ingestion failed for campaign %s", campaign_id)
         raise HTTPException(status_code=500, detail=f"Ingestion error: {exc}")
-    finally:
-        import os as _os
-        try: _os.unlink(tmp_path)
-        except: pass
 
+    save_sync_state(db_path, campaign_id, mapping, client.tenant_host, polled.next_watermark)
     return {
         "campaign_id": campaign_id,
-        "status": "ingested",
-        "records_ingested": len(new_results),
-        "ingestion_result": {
-            "compounds_updated": result.compounds_updated if hasattr(result, "compounds_updated") else len(new_results),
-            "new_compounds": result.new_compounds if hasattr(result, "new_compounds") else 0,
-        },
+        "source": "benchling",
+        "tenant_host": client.tenant_host,
+        "auth": client.auth_kind,
+        "schema_id": mapping.schema_id,
+        "status": "ingested" if (result["ingested"] or result["updated"] or retracted) else "no_new_data",
+        "fetched": polled.fetched,
+        "records_ingested": result["ingested"],
+        "records_updated": result["updated"],
+        "records_unchanged": result["unchanged"],
+        "records_retracted": retracted,
+        "skipped": polled.skipped,
+        "errors": result["errors"],
+        "warnings": result["warnings"],
+        "notes": notes + result["notes"],
+        "watermark": {"previous": polled.previous_watermark, "next": polled.next_watermark},
+        "updated_ranks": result["updated_ranks"],
     }
 
 
@@ -1011,7 +1198,8 @@ async def get_auto_proposal(
     Return the latest auto-retrain proposal for a campaign.
 
     Returns the Proposal shape expected by DrugDiscoveryAutoRetrain:
-      { round, generated_at, trigger, items: [{rank, smiles, score, ci_lo, ci_hi, ad}] }
+      { round, generated_at, trigger, can_discriminate,
+        items: [{rank, smiles, score, std, ci_lo, ci_hi, ad}] }
 
     format=csv → downloadable CSV file
     """
@@ -1035,7 +1223,8 @@ async def get_auto_proposal(
 
         shaped = _format_proposal(proposal)
         buf = io.StringIO()
-        writer = _csv.DictWriter(buf, fieldnames=["rank", "smiles", "score", "ci_lo", "ci_hi", "ad"])
+        writer = _csv.DictWriter(buf, fieldnames=["rank", "smiles", "score", "std", "ci_lo",
+                                                   "ci_hi", "ad"])
         writer.writeheader()
         writer.writerows(shaped["items"])
         filename = f"{campaign_id}_round{shaped['round']}_proposals.csv"
@@ -1061,7 +1250,7 @@ async def trigger_retrain(
     already running.
     """
     try:
-        from .auto_retrain import refit_and_propose, start_background_loop
+        from .auto_retrain import CampaignDataError, refit_and_propose, start_background_loop
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
@@ -1069,6 +1258,8 @@ async def trigger_retrain(
 
     try:
         proposal = refit_and_propose(db_path, campaign_id, triggered_by="manual")
+    except CampaignDataError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -1090,8 +1281,12 @@ async def trigger_retrain(
         "proposed_smiles": proposal.proposed_smiles,
         "scores": proposal.scores,
         "confidence_intervals": proposal.confidence_intervals,
+        "gp_stds": proposal.gp_stds,
         "ad_statuses": proposal.ad_statuses,
         "created_at": proposal.created_at,
+        "training_report": proposal.training_report,
+        "can_discriminate": proposal.can_discriminate,
+        "surrogate_report": proposal.surrogate_report,
     }
 
 
@@ -1505,6 +1700,132 @@ def _format_audit_record(r) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# De-novo generation — expose the existing closed generate->predict->select->rank
+# loop over HTTP. DeNovoPipeline + get_generator + BayesianOptimizer already
+# exist and are unit-tested (test_denovo_pipeline.py); only the endpoint was
+# missing. Built-in RDKit objectives (QED / SA) keep the BRICS path fully
+# self-contained (no external key, no retraining). The learned NIM generators
+# (bionemo_genmol/molmim) are selectable and degrade HONESTLY to an empty ranked
+# list + status note when NVIDIA_API_KEY is unset — never fabricated molecules.
+# ---------------------------------------------------------------------------
+
+class DeNovoRunRequest(BaseModel):
+    seed_smiles: list                      # labelled seeds the GP is fit on
+    generator: str = "brics"               # brics | bionemo_genmol | bionemo_molmim
+    objectives: list = ["qed", "sa"]       # built-in RDKit objectives
+    n_molecules: int = 50
+    max_candidates: int = 2000
+    n_propose: int = 10
+    campaign_id: Optional[str] = None
+
+
+def _builtin_objective(name: str):
+    """ObjectiveSpec for a built-in RDKit objective, or None if unknown.
+
+    'qed' -> drug-likeness (maximize) · 'sa' -> synthetic accessibility (minimize).
+    Predictors omit molecules RDKit cannot parse (honest partial scoring), and
+    return {} if RDKit is unavailable so the pipeline degrades rather than crashes.
+    """
+    from .denovo_pipeline import ObjectiveSpec
+    key = (name or "").strip().lower()
+    if key == "qed":
+        def _qed(smiles_list: list) -> dict:
+            try:
+                from rdkit import Chem
+                from rdkit.Chem import QED
+            except Exception:
+                return {}
+            out = {}
+            for smi in smiles_list:
+                mol = Chem.MolFromSmiles(smi)
+                if mol is not None:
+                    out[smi] = float(QED.qed(mol))
+            return out
+        return ObjectiveSpec("qed", _qed, direction="maximize")
+    if key in ("sa", "sa_score", "synthetic_accessibility"):
+        def _sa(smiles_list: list) -> dict:
+            from .cro_order_export import _sa_score
+            out = {}
+            for smi in smiles_list:
+                v = _sa_score(smi)
+                if v is not None:
+                    out[smi] = float(v)
+            return out
+        return ObjectiveSpec("sa", _sa, direction="minimize")
+    return None
+
+
+@router.post("/denovo/run-round")
+async def denovo_run_round(request: DeNovoRunRequest):
+    """Run one closed de-novo generate -> predict -> GP-select -> rank iteration.
+
+    Thin wiring over the existing DeNovoPipeline + get_generator + BayesianOptimizer.
+    Honest: BRICS is deterministic enumeration (is_learned=False); NIM generators
+    are learned but return an empty ranked list + status when no NVIDIA_API_KEY —
+    never fabricated molecules.
+    """
+    from .generators import get_generator, GenerationSpec
+    from .denovo_pipeline import DeNovoPipeline
+
+    objectives = []
+    for nm in (request.objectives or []):
+        spec_obj = _builtin_objective(nm)
+        if spec_obj is None:
+            raise HTTPException(status_code=400, detail=f"Unknown objective {nm!r}; available: qed, sa")
+        objectives.append(spec_obj)
+    if not objectives:
+        raise HTTPException(status_code=400, detail="At least one objective is required")
+    if not request.seed_smiles:
+        raise HTTPException(status_code=400, detail="seed_smiles must be a non-empty list")
+
+    try:
+        generator = get_generator(request.generator)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Isolated ephemeral DB for the optimizer's persistence. A stateless one-shot
+    # round must NOT write bo_proposals into a shared/relative "galaxy_ai_tools.db"
+    # (default), which — resolved against the backend CWD — could collide with the
+    # real workflow DB. Use a per-request temp file and delete it afterward.
+    _fd, _tmp_db = tempfile.mkstemp(prefix="denovo_", suffix=".db")
+    os.close(_fd)
+    pipeline = DeNovoPipeline(
+        campaign_id=request.campaign_id or "denovo-adhoc",
+        generator=generator,
+        objectives=objectives,
+        db_path=_tmp_db,
+        n_initial=min(8, max(1, len(request.seed_smiles))),
+    )
+    spec = GenerationSpec(
+        seed_smiles=request.seed_smiles[0],
+        n_molecules=request.n_molecules,
+        max_candidates=request.max_candidates,
+    )
+    try:
+        result = pipeline.run_round(spec, seed_smiles=request.seed_smiles, n_propose=request.n_propose)
+    except (ImportError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    finally:
+        try:
+            os.remove(_tmp_db)
+        except OSError:
+            pass
+
+    # Return only JSON-safe fields (ranked is a list of plain dicts); omit the
+    # RoundProposal object which may carry numpy arrays.
+    return {
+        "campaign_id": result.campaign_id,
+        "generator_name": result.generator_name,
+        "generator_is_learned": result.generator_is_learned,
+        "generator_status": result.generator_status,
+        "n_generated": result.n_generated,
+        "n_scored": result.n_scored,
+        "ranked": result.ranked,
+        "notes": result.notes,
+    }
+
+
 @router.get("/audit")
 async def query_audit_log(
     resource_id: Optional[str] = Query(None, description="campaign_id to filter by"),
@@ -1698,15 +2019,19 @@ async def trigger_retrain_now(
     Force an immediate GP refit + proposal round.
 
     Returns the new Proposal in the shape expected by DrugDiscoveryAutoRetrain:
-      { round, generated_at, trigger, items: [{rank, smiles, score, ci_lo, ci_hi, ad}] }
+      { round, generated_at, trigger, can_discriminate,
+        items: [{rank, smiles, score, std, ci_lo, ci_hi, ad}] }
     """
     try:
-        from .auto_retrain import refit_and_propose, start_background_loop
+        from .auto_retrain import CampaignDataError, refit_and_propose, start_background_loop
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
     db_path = _campaign_db(campaign_id)
-    proposal = refit_and_propose(db_path, campaign_id, triggered_by="manual")
+    try:
+        proposal = refit_and_propose(db_path, campaign_id, triggered_by="manual")
+    except CampaignDataError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
     if proposal is None:
         raise HTTPException(
@@ -1719,34 +2044,16 @@ async def trigger_retrain_now(
 
     start_background_loop(db_path, campaign_id)
 
-    # Submit ADMET screening Nextflow workflow for the proposed SMILES
-    nf_run_id: Optional[str] = None
-    try:
-        import json as _json
-        import urllib.request as _urllib
-        proposed_smiles = [item.get("smiles", "") for item in (proposal.items or []) if item.get("smiles")]
-        if proposed_smiles:
-            _nf_port = int(os.environ.get("NEXTFLOW_EXECUTOR_PORT", "8082"))
-            _nf_url = f"http://localhost:{_nf_port}/api/nextflow/run"
-            _payload = _json.dumps({
-                "workflow_id": "admet_screening",
-                "params": {
-                    "smiles_list": ",".join(proposed_smiles[:20]),
-                    "campaign_id": campaign_id,
-                    "n_compounds": len(proposed_smiles[:20]),
-                },
-                "tags": {"campaign_id": campaign_id, "trigger": "auto_retrain"},
-            }).encode()
-            _req = _urllib.Request(_nf_url, data=_payload, headers={"Content-Type": "application/json"}, method="POST")
-            with _urllib.urlopen(_req, timeout=5) as _resp:
-                _resp_data = _json.loads(_resp.read())
-                nf_run_id = _resp_data.get("run_id")
-    except Exception as _exc:
-        log.info("ADMET Nextflow submit skipped (executor not reachable): %s", _exc)
-
     result = _format_proposal(proposal)
-    if nf_run_id:
-        result["nf_run_id"] = nf_run_id
+    # ADMET screening of the proposal is a separate, user-attributed (billed)
+    # workflow run launched through /api/nextflow/execute; it is not started
+    # implicitly here, and the response says so explicitly.
+    result["admet_followup"] = {
+        "submitted": False,
+        "reason": "ADMET screening is not launched automatically by a retrain; "
+                  "run an ADMET workflow on proposed_smiles as the requesting user.",
+        "proposed_smiles": list(proposal.proposed_smiles),
+    }
     return result
 
 
@@ -1762,24 +2069,31 @@ async def trigger_retrain_legacy(
     return await trigger_retrain_now(campaign_id, _audit)
 
 
-@router.post("/{campaign_id}/retrain")
-async def trigger_retrain_post_legacy(
-    campaign_id: str,
-    _audit: None = Depends(_audit_fn),
-):
-    """Deprecated legacy path — delegates to /retrain/trigger."""
-    return await trigger_retrain_now(campaign_id, _audit)
-
-
 def _format_proposal(proposal) -> dict:
     """
     Shape an AutoProposal into the Proposal contract expected by the frontend:
-      { round, generated_at, trigger, items: [{rank, smiles, score, ci_lo, ci_hi, ad}] }
+      { round, generated_at, trigger, can_discriminate,
+        items: [{rank, smiles, score, std, ci_lo, ci_hi, ad}] }
     """
+    from .auto_retrain import CAMPAIGN_OBJECTIVE
+
     smiles = proposal.proposed_smiles
-    scores = proposal.scores  # dict keyed by smiles or list
+    # BayesianOptimizer emits {objective: [value per proposed compound]}.
+    scores = proposal.scores
     ci = proposal.confidence_intervals
     ad = proposal.ad_statuses  # list parallel to smiles
+    stds = getattr(proposal, "gp_stds", None) or {}
+    std_list = stds.get(CAMPAIGN_OBJECTIVE) if isinstance(stds, dict) else None
+
+    if isinstance(scores, dict) and CAMPAIGN_OBJECTIVE in scores:
+        scores = scores[CAMPAIGN_OBJECTIVE]
+    if isinstance(ci, dict) and CAMPAIGN_OBJECTIVE in ci:
+        ci = ci[CAMPAIGN_OBJECTIVE]
+
+    if isinstance(scores, dict) and CAMPAIGN_OBJECTIVE in scores:
+        scores = scores[CAMPAIGN_OBJECTIVE]
+    if isinstance(ci, dict) and CAMPAIGN_OBJECTIVE in ci:
+        ci = ci[CAMPAIGN_OBJECTIVE]
 
     # Normalise scores to a list aligned with smiles
     if isinstance(scores, dict):
@@ -1789,7 +2103,7 @@ def _format_proposal(proposal) -> dict:
     else:
         score_list = [0.0] * len(smiles)
 
-    # Normalise CI: may be dict-of-lists {"lo": [...], "hi": [...]} or list-of-dicts
+    # Normalise CI: may be dict-of-lists {"lo": [...], "hi": [...]} or list of (lo, hi)
     ci_lo_list: list[float] = []
     ci_hi_list: list[float] = []
     if isinstance(ci, dict):
@@ -1815,6 +2129,8 @@ def _format_proposal(proposal) -> dict:
             "rank":    i + 1,
             "smiles":  smi,
             "score":   score_list[i] if i < len(score_list) else 0.0,
+            # None for rounds persisted before posterior stds were stored.
+            "std":     float(std_list[i]) if std_list and i < len(std_list) else None,
             "ci_lo":   ci_lo_list[i] if i < len(ci_lo_list) else 0.0,
             "ci_hi":   ci_hi_list[i] if i < len(ci_hi_list) else 1.0,
             "ad":      ad_list[i] if i < len(ad_list) else "in_domain",
@@ -1825,6 +2141,11 @@ def _format_proposal(proposal) -> dict:
         "generated_at": proposal.created_at,
         "trigger":      proposal.triggered_by,
         "items":        items,
+        "training_report": proposal.training_report,
+        # False: predicted differences are within uncertainty, so the items are
+        # not a ranking. None: round persisted before this was recorded.
+        "can_discriminate": getattr(proposal, "can_discriminate", None),
+        "surrogate_report": getattr(proposal, "surrogate_report", None) or {},
     }
 
 
@@ -2025,7 +2346,7 @@ async def create_campaign(body: CampaignCreateRequest):
     try:
         from .assay_ingestion import AssayIngestionService
         svc = AssayIngestionService(db_path)
-        svc._ensure_schema()
+        svc.ensure_schema()
     except Exception:
         pass  # Schema init is best-effort; DB file is already created
 

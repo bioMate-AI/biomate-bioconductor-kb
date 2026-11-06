@@ -1,0 +1,27 @@
+{
+  "purpose": "Technical conversion only; raw count provenance assertion based on integer raw.X schema, not independently verified biological provenance; all nonprimary cells remain ineligible pending reconciliation.",
+  "normalized_X_rejection": "Invalid native counts at rows 0:128",
+  "raw_conversion": {
+    "source": {
+      "path": "/private/tmp/immune_fullscale_manifest/rna_source.h5ad",
+      "bytes": 4863603,
+      "sha256": "84c8457b7ca478f6ed0c1a4e57eb7875b4e82c588b4da7d7077b7db3e19b4ff1"
+    },
+    "n_cells": 565,
+    "n_genes": 12621,
+    "coverage": {
+      "source_cells": 565,
+      "written_cells": 565,
+      "excluded_cells": 0,
+      "cell_cap": null,
+      "nonzero_entries": 422029,
+      "total_counts": 1037948.0,
+      "zero_library_cells_retained": 0
+    },
+    "training_ready": false,
+    "primary_data_counts": {
+      "primary": 0,
+      "nonprimary": 565
+    }
+  }
+}

@@ -512,7 +512,7 @@ with open("generate_transcriptformer_embeddings_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("generate_transcriptformer_embeddings_output.txt", "w") as f:
-    f.write("Biomni: Generate Transcriptformer Embeddings" + NL)
+    f.write("BioMate: Generate Transcriptformer Embeddings" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

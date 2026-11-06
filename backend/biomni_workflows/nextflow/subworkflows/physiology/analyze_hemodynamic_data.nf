@@ -52,7 +52,7 @@ with open("analyze_hemodynamic_data_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_hemodynamic_data_output.txt", "w") as f:
-    f.write("Biomni: Analyze Hemodynamic Data Results" + NL)
+    f.write("BioMate: Analyze Hemodynamic Data Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

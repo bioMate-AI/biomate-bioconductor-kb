@@ -286,7 +286,7 @@ with open("interspecies_gene_conversion_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("interspecies_gene_conversion_output.txt", "w") as f:
-    f.write("Biomni: Interspecies Gene Conversion" + NL)
+    f.write("BioMate: Interspecies Gene Conversion" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

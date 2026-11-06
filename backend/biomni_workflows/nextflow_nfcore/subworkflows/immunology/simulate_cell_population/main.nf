@@ -137,7 +137,7 @@ with open("simulate_cell_population_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("simulate_cell_population_output.txt", "w") as f:
-    f.write("Biomni: Simulate Cell Population" + NL)
+    f.write("BioMate: Simulate Cell Population" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

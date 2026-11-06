@@ -1,0 +1,683 @@
+{
+  "avb6": [
+    {
+      "candidate_id": "AVB6-K-01",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](CO)NC1=O",
+      "seq": "FRGDLSWPA",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8687,
+      "nearest_known_id": "CHEMBL4445931",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8687,
+        "same_target_nearest_id": "CHEMBL4445931",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "close_analog",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.6667,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": true,
+      "verdict": "known_active",
+      "reasons": [
+        "structure: max_tanimoto 0.869 >= 0.85 (close_analog; nearest known CHEMBL4445931)"
+      ],
+      "backbone": "FRGDLSWPA",
+      "nearest_genus": {
+        "name": "avebehexin",
+        "seq": "FRGDLAFPK",
+        "identity": 0.667
+      }
+    },
+    {
+      "candidate_id": "AVB6-K-02",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](C(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+      "seq": "WRGDLTFPV",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8911,
+      "nearest_known_id": "CHEMBL4763429",
+      "nearest_known_smiles": "CCCC[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](Cc2ccccc2)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "True",
+        "is_avb6": "False",
+        "target_name": "Programmed cell death protein 1/Programmed cell death 1 ligand 1",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7714,
+        "same_target_nearest_id": "CHEMBL4445931",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "close_analog",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.6667,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": true,
+      "verdict": "known_active",
+      "reasons": [
+        "structure: max_tanimoto 0.891 >= 0.85 (close_analog; nearest known CHEMBL4763429)"
+      ],
+      "backbone": "WRGDLTFPV",
+      "nearest_genus": {
+        "name": "avebehexin",
+        "seq": "FRGDLAFPK",
+        "identity": 0.667
+      }
+    },
+    {
+      "candidate_id": "AVB6-K-03",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CC(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]cn2)NC(=O)CNC1=O",
+      "seq": "YRGDLGHPL",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7245,
+      "nearest_known_id": "CHEMBL4575627",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7245,
+        "same_target_nearest_id": "CHEMBL4575627",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.6667,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "YRGDLGHPL",
+      "nearest_genus": {
+        "name": "Trivehexin",
+        "seq": "YRGDLAYPK",
+        "identity": 0.667
+      }
+    },
+    {
+      "candidate_id": "AVB6-K-04",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2c[nH]cn2)NC(=O)[C@H](CCCCN)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](C)NC1=O",
+      "seq": "HRGDLAWPK",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8037,
+      "nearest_known_id": "CHEMBL4445931",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8037,
+        "same_target_nearest_id": "CHEMBL4445931",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.7778,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "HRGDLAWPK",
+      "nearest_genus": {
+        "name": "Trivehexin",
+        "seq": "YRGDLAYPK",
+        "identity": 0.778
+      }
+    },
+    {
+      "candidate_id": "AVB6-K-05",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC1=O",
+      "seq": "FRGDLIFPA",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8778,
+      "nearest_known_id": "CHEMBL4575627",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8778,
+        "same_target_nearest_id": "CHEMBL4575627",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "close_analog",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.7778,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": true,
+      "verdict": "known_active",
+      "reasons": [
+        "structure: max_tanimoto 0.878 >= 0.85 (close_analog; nearest known CHEMBL4575627)"
+      ],
+      "backbone": "FRGDLIFPA",
+      "nearest_genus": {
+        "name": "avebehexin",
+        "seq": "FRGDLAFPK",
+        "identity": 0.778
+      }
+    },
+    {
+      "candidate_id": "AVB6-K-06",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@H](CO)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCC(N)=O)NC1=O",
+      "seq": "RGDLQFPSG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8222,
+      "nearest_known_id": "CHEMBL4575627",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8222,
+        "same_target_nearest_id": "CHEMBL4575627",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.4444,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "RGDLQFPSG",
+      "nearest_genus": {
+        "name": "avebehexin",
+        "seq": "FRGDLAFPK",
+        "identity": 0.444
+      }
+    },
+    {
+      "candidate_id": "AVB6-K-07",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CO)NC1=O",
+      "seq": "LRGDLSFPT",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8506,
+      "nearest_known_id": "CHEMBL4740780",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](Cc2ccccc2)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](Cc2ccccc2)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "True",
+        "is_avb6": "False",
+        "target_name": "Programmed cell death protein 1/Programmed cell death 1 ligand 1",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8132,
+        "same_target_nearest_id": "CHEMBL4575627",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "close_analog",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.6667,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": true,
+      "verdict": "known_active",
+      "reasons": [
+        "structure: max_tanimoto 0.851 >= 0.85 (close_analog; nearest known CHEMBL4740780)"
+      ],
+      "backbone": "LRGDLSFPT",
+      "nearest_genus": {
+        "name": "avebehexin",
+        "seq": "FRGDLAFPK",
+        "identity": 0.667
+      }
+    },
+    {
+      "candidate_id": "AVB6-K-08",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]c3ccccc23)NC1=O",
+      "seq": "YRGDLIWPA",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8095,
+      "nearest_known_id": "130905",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCCN)NC(=O)[C@H](C)NC(=O)[C@H](C(C)C)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](C(C)C)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CC(=O)O)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Cytotoxic T-lymphocyte protein 4",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7963,
+        "same_target_nearest_id": "CHEMBL4445931",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.6667,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "YRGDLIWPA",
+      "nearest_genus": {
+        "name": "Trivehexin",
+        "seq": "YRGDLAYPK",
+        "identity": 0.667
+      }
+    },
+    {
+      "candidate_id": "AVB6-K-09",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC1=O",
+      "seq": "FRGDLAFPE",
+      "structure_status": "ok",
+      "max_tanimoto": 0.9294,
+      "nearest_known_id": "CHEMBL4575627",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.9294,
+        "same_target_nearest_id": "CHEMBL4575627",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "close_analog",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.8889,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": true,
+      "verdict": "known_active",
+      "reasons": [
+        "structure: max_tanimoto 0.929 >= 0.85 (close_analog; nearest known CHEMBL4575627)",
+        "sequence: identity 0.889 >= 0.80"
+      ],
+      "backbone": "FRGDLAFPE",
+      "nearest_genus": {
+        "name": "avebehexin",
+        "seq": "FRGDLAFPK",
+        "identity": 0.889
+      }
+    },
+    {
+      "candidate_id": "AVB6-K-10",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCCN)NC1=O",
+      "seq": "WRGDLKYPA",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8269,
+      "nearest_known_id": "CHEMBL4445931",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8269,
+        "same_target_nearest_id": "CHEMBL4445931",
+        "same_target_subset": "is_avb6=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "ok",
+      "max_seq_identity": 0.6667,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "WRGDLKYPA",
+      "nearest_genus": {
+        "name": "Trivehexin",
+        "seq": "YRGDLAYPK",
+        "identity": 0.667
+      }
+    }
+  ],
+  "pdl1": [
+    {
+      "candidate_id": "PDL1-K-01",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCCCN)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H]2CCCN2C1=O",
+      "seq": "FWLPYSFDTK",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8333,
+      "nearest_known_id": "CHEMBL2052017",
+      "nearest_known_smiles": "C[C@@H](O)[C@@H]1NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](CCCCN)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Somatostatin receptor type 2",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7009,
+        "same_target_nearest_id": "CHEMBL4781005",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "FWLPYSFDTK"
+    },
+    {
+      "candidate_id": "PDL1-K-02",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCSC)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)CNC(=O)[C@H](CCCCN)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CO)NC(=O)[C@H](CC(C)C)NC1=O",
+      "seq": "WMFPILSEKG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7353,
+      "nearest_known_id": "CHEMBL3787500",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CCSC)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCSC)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Bone marrow cell",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6303,
+        "same_target_nearest_id": "CHEMBL4781005",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "WMFPILSEKG"
+    },
+    {
+      "candidate_id": "PDL1-K-03",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](C)NC1=O",
+      "seq": "YFPWLADSRTG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8095,
+      "nearest_known_id": "130905",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCCN)NC(=O)[C@H](C)NC(=O)[C@H](C(C)C)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](C(C)C)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CC(=O)O)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Cytotoxic T-lymphocyte protein 4",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7679,
+        "same_target_nearest_id": "CHEMBL4781005",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "YFPWLADSRTG"
+    },
+    {
+      "candidate_id": "PDL1-K-04",
+      "modality": "peptide",
+      "smiles": "CSCC[C@@H]1NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](Cc2ccccc2)NC(=O)CNC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC1=O",
+      "seq": "FLWPMYSKDG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7374,
+      "nearest_known_id": "CHEMBL593612",
+      "nearest_known_smiles": "NCCCC[C@@H]1NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccc(O)cc2)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Urotensin-2 receptor",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6283,
+        "same_target_nearest_id": "CHEMBL4793239",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "FLWPMYSKDG"
+    },
+    {
+      "candidate_id": "PDL1-K-05",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)CNC(=O)[C@H](CO)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+      "seq": "WYFPLITENKSG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7846,
+      "nearest_known_id": "130905",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCCN)NC(=O)[C@H](C)NC(=O)[C@H](C(C)C)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](C(C)C)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CC(=O)O)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Cytotoxic T-lymphocyte protein 4",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6833,
+        "same_target_nearest_id": "CHEMBL4781005",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "WYFPLITENKSG"
+    },
+    {
+      "candidate_id": "PDL1-K-06",
+      "modality": "peptide",
+      "smiles": "CSCC[C@@H]1NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CO)NC1=O",
+      "seq": "FWLYPMSDKT",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7835,
+      "nearest_known_id": "CHEMBL2052017",
+      "nearest_known_smiles": "C[C@@H](O)[C@@H]1NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](CCCCN)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Somatostatin receptor type 2",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6814,
+        "same_target_nearest_id": "CHEMBL4781005",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "FWLYPMSDKT"
+    },
+    {
+      "candidate_id": "PDL1-K-07",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CC(C)C)NC1=O",
+      "seq": "FWPYILFERS",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8095,
+      "nearest_known_id": "CHEMBL4781005",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](Cc2ccccc2)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "True",
+        "is_avb6": "False",
+        "target_name": "Programmed cell death protein 1/Programmed cell death 1 ligand 1",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8095,
+        "same_target_nearest_id": "CHEMBL4781005",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "FWPYILFERS"
+    },
+    {
+      "candidate_id": "PDL1-K-08",
+      "modality": "peptide",
+      "smiles": "CSCC[C@H](NC(=O)[C@H](Cc1ccccc1)NC(=O)[C@H](Cc1ccc(O)cc1)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](Cc1c[nH]c2ccccc12)NC(=O)[C@H](Cc1ccccc1)NC(=O)[C@@H](N)CS)C(=O)N[C@@H](CO)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CS)C(=O)O",
+      "seq": "CFWLYFMSDC",
+      "structure_status": "ok",
+      "max_tanimoto": 0.75,
+      "nearest_known_id": "131378",
+      "nearest_known_smiles": "CC(C)C[C@H](NC(=O)[C@H](CO)NC(=O)[C@H](CC(N)=O)NC(=O)[C@@H](N)CS)C(=O)N[C@@H](CC(N)=O)C(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)N[C@@H](CS)C(=O)O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "WD repeat-containing protein 5",
+        "cyclic_bool": "False",
+        "same_target_max_tanimoto": 0.5766,
+        "same_target_nearest_id": "CHEMBL5281016",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "structure_tier": "novel",
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": false
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "backbone": "CFWLYFMSDC"
+    }
+  ],
+  "meta": {
+    "library_size": 136730,
+    "tanimoto_cutoff": 0.85,
+    "seq_id_cutoff": 0.8,
+    "avb6_genus": {
+      "Trivehexin": "YRGDLAYPK",
+      "avebehexin": "FRGDLAFPK",
+      "A20FMDV2": "NAVPNLRGDLQVLAQKVART"
+    },
+    "notes": [
+      "\u03b1v\u03b26 backbones are L one-letter (stereo/N-methyl stripped) \u2014 correct for re-discovery/FTO identity, NOT for activity (see activity-cliff doc).",
+      "PD-L1 sequence-axis FTO deferred: WL12/dmp10/BMS sequences must be pulled from primary refs, not recited from memory."
+    ]
+  }
+}

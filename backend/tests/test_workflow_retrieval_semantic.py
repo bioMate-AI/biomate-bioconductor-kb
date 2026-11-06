@@ -644,8 +644,17 @@ class TestAboveConfusable:
         results = search.search(case["query"], limit=20)
         names = [m.name for m in results]
         acceptable = set([case["correct"]] + case.get("acceptable", []))
-        if not any(t in names for t in acceptable):
-            pytest.skip(f"[{case['id']}] correct workflow not in top-20, skip rank comparison")
+        # A top-20 miss is a routing FAILURE, not a reason to skip. Skipping here
+        # let a total retrieval miss masquerade as "no rank comparison needed" —
+        # the exact false-green this suite must not produce. If the correct
+        # workflow isn't even in the top 20, the ranker failed and the test must
+        # fail loudly.
+        assert any(t in names for t in acceptable), (
+            f"[{case['id']}] correct workflow not in top-20 — routing MISS\n"
+            f"  query: {case['query']}\n"
+            f"  expected one of: {sorted(acceptable)}\n"
+            f"  top-10: {names[:10]}"
+        )
         correct_rank = min(
             (names.index(t) for t in acceptable if t in names),
             default=len(names)

@@ -83,3 +83,30 @@ def test_route_returns_none_for_non_training():
 def test_route_returns_none_when_ambiguous():
     # training intent but no resolvable dataset → fall through to normal router
     assert route_ml_training("train a classifier for my custom endpoint") is None
+
+
+# --- generic (non-molecular) tabular routing: expression matrix -> subtype ----
+
+def test_expression_matrix_routes_to_sklearn_tabular_kfold():
+    cfg = extract_training_config(
+        "train a subtype classifier on this gene expression matrix",
+        dataset_s3_uri="s3://bkt/expr.csv")
+    assert cfg.model_type == "sklearn_tabular"
+    assert cfg.dataset.split == "kfold" and cfg.dataset.cv_folds == 5
+    assert cfg.task_type == "classification"
+    assert cfg.dataset.target_col == "subtype"
+    assert cfg.dataset.s3_uri == "s3://bkt/expr.csv"
+
+
+def test_chinese_subtype_expression_request_routes_tabular():
+    cfg = extract_training_config("用这份基因表达矩阵训练一个亚型预测模型")
+    assert cfg.model_type == "sklearn_tabular"
+    assert cfg.dataset.split == "kfold"
+    assert cfg.dataset.target_col == "subtype"
+
+
+def test_molecular_request_is_not_hijacked_by_tabular_branch():
+    # a drug-discovery alias must still win over the generic tabular branch
+    cfg = extract_training_config("train a hERG blocker classifier")
+    assert cfg.model_type != "sklearn_tabular"
+    assert cfg.dataset.name == "tdc:hERG"

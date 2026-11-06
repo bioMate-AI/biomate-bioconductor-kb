@@ -1,0 +1,16 @@
+{
+  "task": "autofix_benchmark",
+  "mode": null,
+  "model": "qwen/qwen3.8-27b",
+  "n": 100,
+  "n_with_usage": 0,
+  "input_tokens_total": null,
+  "output_tokens_total": null,
+  "input_tokens_mean": null,
+  "output_tokens_mean": null,
+  "latency_ms_p50": null,
+  "latency_ms_p95": null,
+  "latency_ms_mean": null,
+  "n_with_latency": 0,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

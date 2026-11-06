@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="960" viewBox="0 0 1400 960" role="img" aria-label="Figure 1 | One evidence base, two knowledge interfaces"><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#526477" /></marker></defs><rect width="1400" height="960" fill="white" /><style>text{font-family:Arial,Helvetica,sans-serif;fill:#162b40} .title{font-size:32px;font-weight:700} .sub{font-size:20px;fill:#526477} .head{font-size:22px;font-weight:700} .body{font-size:20px} .small{font-size:18px;fill:#526477}</style><text x="50" y="57" class="title">Figure 1 | One evidence base, two knowledge interfaces</text><text x="50" y="94" class="sub">Study architecture: knowledge conditions proposals; new scores provide feedback.</text>
+<rect x="50" y="135" width="370" height="190" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="70" y="171" class="head">a  Source-qualified evidence</text>
+<text x="70" y="208" class="body">Statement and source passage</text>
+<text x="70" y="237" class="body">Scaffold, assay and conditions</text>
+<text x="70" y="266" class="body">Comparator and measured endpoint</text>
+<text x="70" y="295" class="body">Evidence ID and source hash</text>
+<rect x="490" y="135" width="400" height="190" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="510" y="171" class="head">b  Frozen evidence catalogue</text>
+<text x="510" y="208" class="body">Semantic review and scope checks</text>
+<text x="510" y="237" class="body">Source / compound exclusions</text>
+<text x="510" y="266" class="body">Explicit parent-to-evidence mapping</text>
+<text x="510" y="295" class="body">Unresolved entries excluded</text>
+<rect x="960" y="135" width="390" height="190" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="980" y="171" class="head">Common task inputs</text>
+<text x="980" y="208" class="body">Same starting chemical pool</text>
+<text x="980" y="237" class="body">Same hard constraints</text>
+<text x="980" y="266" class="body">Same allowable evidence</text>
+<text x="980" y="295" class="body">Same evaluation budget</text>
+<path d="M420,228 L490,228" stroke="#526477" fill="none" stroke-width="2.5" marker-end="url(#arrow)" />
+<path d="M890,228 L960,228" stroke="#526477" fill="none" stroke-width="2.5" marker-end="url(#arrow)" />
+<rect x="80" y="395" width="590" height="225" rx="12" fill="#e8f3ef" stroke="#b6c6d4" />
+<text x="100" y="431" class="head">c  IH-LM: computational knowledge</text>
+<text x="100" y="468" class="body">Applicability predicates select chemical parents</text>
+<text x="100" y="497" class="body">Selected parent supplies a SMILES prefix</text>
+<text x="100" y="526" class="body">Rule-constrained atom-level decoder proposes</text>
+<text x="100" y="555" class="body">Preference updates use newly obtained scores</text>
+<rect x="730" y="395" width="590" height="225" rx="12" fill="#f0edfa" stroke="#b6c6d4" />
+<text x="750" y="431" class="head">d  Claude / GPT / Gemini: textual knowledge</text>
+<text x="750" y="468" class="body">Scoped evidence enters a structured prompt</text>
+<text x="750" y="497" class="body">Model selects a parent or proposes a molecule</text>
+<text x="750" y="526" class="body">Chemical validity is checked independently</text>
+<text x="750" y="555" class="body">New scores return through the prompt history</text>
+<path d="M690,325 L375,395" stroke="#526477" fill="none" stroke-width="2.5" marker-end="url(#arrow)" />
+<path d="M690,325 L1025,395" stroke="#526477" fill="none" stroke-width="2.5" marker-end="url(#arrow)" />
+<rect x="80" y="695" width="590" height="170" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="100" y="731" class="head">e  Shared validation and accounting</text>
+<text x="100" y="768" class="body">Check chemistry, stereochemistry and rules</text>
+<text x="100" y="797" class="body">Count failures, duplicates, calls, time and cost</text>
+<text x="100" y="826" class="body">Score eligible proposals with the train oracle</text>
+<rect x="730" y="695" width="590" height="170" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="750" y="731" class="head">f  Independent evaluation</text>
+<text x="750" y="768" class="body">Stop verifier guides stopping only</text>
+<text x="750" y="797" class="body">Held-out assessment follows final selection</text>
+<text x="750" y="826" class="body">No held-out outcomes in evidence or feedback</text>
+<path d="M375,620 L375,695" stroke="#526477" fill="none" stroke-width="2.5" marker-end="url(#arrow)" />
+<path d="M1025,620 L500,695" stroke="#526477" fill="none" stroke-width="2.5" marker-end="url(#arrow)" />
+<path d="M670,780 L730,780" stroke="#526477" fill="none" stroke-width="2.5" marker-end="url(#arrow)" />
+<text x="50" y="915" class="small">Knowledge conditions proposals; feedback updates the policy. Held-out outcomes remain isolated.</text></svg>

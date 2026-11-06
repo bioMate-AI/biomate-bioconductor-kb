@@ -1,0 +1,265 @@
+{
+ "gen": "S-BRICS",
+ "cfg": {
+  "nf": 4
+ },
+ "runs": [
+  {
+   "n": 1000,
+   "validity": 0.562,
+   "uniqueness_of_valid": 0.2616,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 0.5238,
+   "ring_TV": 0.4762,
+   "nme_TV": 0.4862,
+   "mean_nme": 0.823,
+   "n_constraint_satisfying": 38,
+   "Y": 38.0,
+   "Y_cluster": 26.0,
+   "internal_diversity": 0.5523,
+   "seconds": 414.7
+  },
+  {
+   "n": 1000,
+   "validity": 0.536,
+   "uniqueness_of_valid": 0.25,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 0.6045,
+   "ring_TV": 0.3955,
+   "nme_TV": 0.4433,
+   "mean_nme": 0.881,
+   "n_constraint_satisfying": 35,
+   "Y": 35.0,
+   "Y_cluster": 25.0,
+   "internal_diversity": 0.582,
+   "seconds": 509.7
+  },
+  {
+   "n": 1000,
+   "validity": 0.554,
+   "uniqueness_of_valid": 0.2365,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 0.5344,
+   "ring_TV": 0.4656,
+   "nme_TV": 0.43,
+   "mean_nme": 0.863,
+   "n_constraint_satisfying": 35,
+   "Y": 35.0,
+   "Y_cluster": 24.0,
+   "internal_diversity": 0.555,
+   "seconds": 497.0
+  },
+  {
+   "n": 1000,
+   "validity": 0.568,
+   "uniqueness_of_valid": 0.2553,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 0.5655,
+   "ring_TV": 0.4345,
+   "nme_TV": 0.4314,
+   "mean_nme": 0.917,
+   "n_constraint_satisfying": 35,
+   "Y": 35.0,
+   "Y_cluster": 25.0,
+   "internal_diversity": 0.5977,
+   "seconds": 466.6
+  },
+  {
+   "n": 1000,
+   "validity": 0.546,
+   "uniqueness_of_valid": 0.2637,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 0.5208,
+   "ring_TV": 0.4792,
+   "nme_TV": 0.4492,
+   "mean_nme": 0.826,
+   "n_constraint_satisfying": 33,
+   "Y": 33.0,
+   "Y_cluster": 23.0,
+   "internal_diversity": 0.5833,
+   "seconds": 443.2
+  }
+ ],
+ "summary": {
+  "validity": {
+   "mean": 0.5532,
+   "t_interval": [
+    0.537,
+    0.569
+   ],
+   "percentile_bootstrap": [
+    0.544,
+    0.563
+   ],
+   "per_seed": [
+    0.562,
+    0.536,
+    0.554,
+    0.568,
+    0.546
+   ]
+  },
+  "uniqueness_of_valid": {
+   "mean": 0.2534,
+   "t_interval": [
+    0.24,
+    0.267
+   ],
+   "percentile_bootstrap": [
+    0.244,
+    0.261
+   ],
+   "per_seed": [
+    0.2616,
+    0.25,
+    0.2365,
+    0.2553,
+    0.2637
+   ]
+  },
+  "novelty_of_unique": {
+   "mean": 1.0,
+   "t_interval": [
+    1.0,
+    1.0
+   ],
+   "percentile_bootstrap": [
+    1.0,
+    1.0
+   ],
+   "per_seed": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "macro_fraction": {
+   "mean": 0.5498,
+   "t_interval": [
+    0.506,
+    0.594
+   ],
+   "percentile_bootstrap": [
+    0.525,
+    0.58
+   ],
+   "per_seed": [
+    0.5238,
+    0.6045,
+    0.5344,
+    0.5655,
+    0.5208
+   ]
+  },
+  "ring_TV": {
+   "mean": 0.4502,
+   "t_interval": [
+    0.406,
+    0.494
+   ],
+   "percentile_bootstrap": [
+    0.42,
+    0.475
+   ],
+   "per_seed": [
+    0.4762,
+    0.3955,
+    0.4656,
+    0.4345,
+    0.4792
+   ]
+  },
+  "nme_TV": {
+   "mean": 0.448,
+   "t_interval": [
+    0.42,
+    0.476
+   ],
+   "percentile_bootstrap": [
+    0.433,
+    0.468
+   ],
+   "per_seed": [
+    0.4862,
+    0.4433,
+    0.43,
+    0.4314,
+    0.4492
+   ]
+  },
+  "mean_nme": {
+   "mean": 0.862,
+   "t_interval": [
+    0.813,
+    0.911
+   ],
+   "percentile_bootstrap": [
+    0.832,
+    0.892
+   ],
+   "per_seed": [
+    0.823,
+    0.881,
+    0.863,
+    0.917,
+    0.826
+   ]
+  },
+  "Y": {
+   "mean": 35.2,
+   "t_interval": [
+    32.979,
+    37.421
+   ],
+   "percentile_bootstrap": [
+    33.8,
+    36.8
+   ],
+   "per_seed": [
+    38.0,
+    35.0,
+    35.0,
+    35.0,
+    33.0
+   ]
+  },
+  "Y_cluster": {
+   "mean": 24.6,
+   "t_interval": [
+    23.184,
+    26.016
+   ],
+   "percentile_bootstrap": [
+    23.6,
+    25.4
+   ],
+   "per_seed": [
+    26.0,
+    25.0,
+    24.0,
+    25.0,
+    23.0
+   ]
+  },
+  "internal_diversity": {
+   "mean": 0.5741,
+   "t_interval": [
+    0.55,
+    0.598
+   ],
+   "percentile_bootstrap": [
+    0.559,
+    0.589
+   ],
+   "per_seed": [
+    0.5523,
+    0.582,
+    0.555,
+    0.5977,
+    0.5833
+   ]
+  }
+ }
+}

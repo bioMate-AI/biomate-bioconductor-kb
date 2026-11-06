@@ -1,0 +1,14 @@
+{
+  "model": "google/gemini-3.1-pro-preview",
+  "bare": {
+    "accuracy": 0.8929,
+    "drug_discovery_accuracy": 0.9259,
+    "off_channel_or_empty": 0
+  },
+  "harness": {
+    "accuracy": 0.9881,
+    "drug_discovery_accuracy": 0.9815,
+    "off_channel_or_empty": 0
+  },
+  "harness_dividend": 0.0952
+}

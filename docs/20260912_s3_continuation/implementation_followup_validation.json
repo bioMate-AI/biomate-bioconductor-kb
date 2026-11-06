@@ -1,0 +1,7 @@
+{
+  "integrated_tests_passed": 86,
+  "source_binding_tests_passed": 2,
+  "independently_verified_ridge_fits": 120,
+  "max_prediction_absolute_difference": 2.1094237467877974e-15,
+  "downstream_prediction_gate": "failed"
+}

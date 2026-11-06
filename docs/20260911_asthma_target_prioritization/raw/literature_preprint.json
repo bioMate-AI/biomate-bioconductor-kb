@@ -1,0 +1,27 @@
+{
+  "messages": [
+    {
+      "status": "ok",
+      "category": "all"
+    }
+  ],
+  "collection": [
+    {
+      "title": "Prediction and Characterization of Genetically Regulated Expression of Target Tissues in Asthma",
+      "authors": "Slack, S. D.; Esquinca, E.; Arehart, C. H.; Boorgula, M. P.; Szczesny, B.; Romero, A.; Campbell, M.; Chavan, S.; Rafaels, N.; Watson, H.; Landis, R. C.; Hansel, N. H.; Rotimi, C. N.; Olopade, C. O.; Figueiredo, C. A.; Ober, C.; Liu, A. H.; Kenny, E. E.; Kammers, K.; Ruczinski, I.; Taub, M. A.; Daya, M.; Gignoux, C. R.; Kechris, K.; Barnes, K. C.; Mathias, R. A.; Johnson, R. K.",
+      "author_corresponding": "Randi K Johnson",
+      "author_corresponding_institution": "Department of Biomedical Informatics, University of Colorado Anschutz Medical Campus, Aurora, CO, USA; Department of Epidemiology, Colorado School of Public Hea",
+      "doi": "10.1101/2025.02.06.25321273",
+      "date": "2025-02-08",
+      "version": "1",
+      "type": "PUBLISHAHEADOFPRINT",
+      "license": "cc_by_nc_nd",
+      "category": "genetic and genomic medicine",
+      "jatsxml": "https://www.medrxiv.org/content/early/2025/02/08/2025.02.06.25321273.source.xml",
+      "abstract": "BackgroundGenetic control of gene expression in asthma-related tissues is not well-characterized, particularly for African-ancestry populations, limiting advancement in our understanding of the increased prevalence and severity of asthma in those populations.\n\nObjectiveTo create novel transcriptome prediction models for asthma tissues (nasal epithelium and CD4+ T cells) and apply them in transcriptome-wide association study (TWAS) to discover candidate asthma genes.\n\nMethodsWe developed and validated gene expression prediction databases for unstimulated CD4+ T cells (CD4+T) and nasal epithelium using an elastic net framework. Combining these with existing prediction databases (N=51), we performed TWAS of 9,284 individuals of African-ancestry to identify tissue-specific and cross-tissue candidate genes for asthma. For detailed Methods, please see the Supplemental Methods.\n\nResultsNovel databases for CD4+T and nasal epithelial gene expression prediction contain 8,351 and 10,296 genes, respectively, including four asthma loci (SCGB1A1, MUC5AC, ZNF366, LTC4S) not predictable with existing public databases. Prediction performance was comparable to existing databases and was most accurate for populations sharing ancestry with the training set (e.g. African ancestry). From TWAS, we identified 17 candidate causal asthma genes (adjusted P<0.1), including genes with tissue-specific (IL33 in nasal epithelium) and cross-tissue (CCNC and FBXW7) effects.\n\nConclusionsExpression of IL33, CCNC, and FBXW7 may affect asthma risk in African ancestry populations by mediating inflammatory responses. The addition of CD4+T and nasal epithelium prediction databases to the public sphere will improve ancestry representation and power to detect novel gene-trait associations from TWAS.\n\nKey MessagesO_LIFrom the largest African-ancestry TWAS of asthma to date (N=9,284), we identified 17 candidate causal asthma genes, including: nasal epithelial expression of IL33, and cross-tissue expression of CCNC and FBXW7.\nC_LIO_LIWe provide gene expression prediction databases for CD4+ T cell and nasal epithelial tissues built in African-ancestry populations, improving ancestry representation and power to detect novel gene-trait associations from TWAS.\nC_LI\n\nCapsule SummaryWe developed novel gene expression prediction databases (CD4+ T cells, nasal airway epithelium) representing diverse populations across the African diaspora and identified 17 candidate causal asthma genes from TWAS.",
+      "funder": "NA",
+      "published": "NA",
+      "server": "medRxiv"
+    }
+  ]
+}

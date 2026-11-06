@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 分子对接 — 把配体放入口袋，打分并排序</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">分子对接 — 把配体放入口袋、为构象打分、给候选物排序</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>分子对接 · AutoDock Vina</b></div>
+    <div class="kicker">献给想弄清一个分子究竟能否嵌入靶点的化学家</div>
+    <h2>它嵌得进口袋吗？对接把配体放进去，并为构象打分。</h2>
+    <p class="caption">你手上有一个靶点结构，和一个你希望能与之结合的分子。在任何检测之前，有一个问题要先问：<b>这个配体究竟能否坐进口袋里，又是以怎样的朝向？</b>分子对接在结合位点内部搜索配体的最佳构象，并为每一个构象打分，于是你可以把一长串候选物筛减到真正值得跟进的那几个。BioMate 在托管的云端算力上运行真实的引擎——<b>AutoDock Vina</b>（<code>Docking Autodock Vina</code>，领域 <code>drug_discovery</code>）。这一讲里，我们把这套思路从头搭起，再展示这条工作流究竟做了什么。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一个受体 + 配体 SMILES</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>界定口袋（盒子）</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>搜索构象，逐一打分</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>按亲和力分数排序</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>筛选候选物</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">它解决的问题</div>
+    <h2>你没法给每个候选物都做共晶——你需要一种快速的方式去问“这个能结合吗？”</h2>
+    <p class="caption">一轮工作的早期，你手握一个靶点结构，以及数十乃至数千个候选分子。为每一个都解出结构是不可能的，而湿实验检测又耗费时间和材料。你需要一种廉价、又懂物理的办法，来预测一个分子能否占据口袋、又是如何占据的，好把精力花在那些真正有望的分子上。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">问题</div><h4>嵌得进吗，又如何嵌？</h4><p>这个分子能坐进结合位点吗，又以怎样的朝向？那个构象，是下游一切的起点。</p></div>
+          <div class="tile"><div class="n">规模</div><h4>候选物众多</h4><p>一个虚拟库可以多达数千个化合物。你没法把它们全都结晶或检测；你需要一个排序来聚焦。</p></div>
+          <div class="tile"><div class="n">成本</div><h4>解结构与做检测都很慢</h4><p>共晶与结合检测既昂贵又低通量。它们属于短名单，而非那张长名单。</p></div>
+          <div class="tile"><div class="n">需求</div><h4>一个懂构象的过滤器</h4><p>一种方法：给出一个合理的结合构象和一个可比较的分数——快到足以在上实验台之前就筛一遍清单。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>需求：为每个候选物给出一个结合构象和一个分数，快到足以在上实验台前就完成筛选</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker">你需要先懂的几个概念</div>
+    <h2>四个概念，整套方法就顺理成章。</h2>
+    <p class="caption">你不需要懂打分函数的数学——只要这四个概念，按顺序。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 口袋</div><h4>结合发生的地方</h4><p>蛋白上有一个空腔——结合位点——配体就坐落在那里。对接需要知道该往哪里找：一个以那个口袋为中心的搜索盒子。</p></div>
+            <div class="tile"><div class="n">2 · 构象</div><h4>一个放定的朝向</h4><p>一个构象，就是配体坐进口袋的一种具体方式：它的位置、旋转，以及可旋转键的构型。对接会在许多构象中搜索。</p></div>
+            <div class="tile"><div class="n">3 · 分数</div><h4>嵌合看上去有多好</h4><p>打分函数以每摩尔千卡估计结合亲和力。越负，意味着预测的嵌合越紧——构象正是据此排序的。</p></div>
+            <div class="tile"><div class="n">4 · 搜索</div><h4>先探索，再排序</h4><p>引擎采样许多构象，逐一打分，并交回打分最好的那些。搜索投入越多，探索就越彻底。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">整套方法就是：用一个盒子把引擎对准口袋，让它去<b>搜索</b>低能量的<b>构象</b>，再读出排好序的<b>分数</b>——越负，嵌合看上去越好。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲余下部分会用到的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 目标 → 工作流 → 运行</div>
+    <h2>说出目标；BioMate 路由到真实的 Vina 引擎，并在云端运行它。</h2>
+    <p class="caption">用大白话提出把一个配体对接进某个口袋，BioMate 就打开真实的 <b>Docking Autodock Vina</b> 工作流——输入已映射、参数已就绪，距离托管算力上的运行只差一键。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate 中的 AutoDock Vina 对接</span>
+        <div class="frame"><img src="assets/live/docking-live-panel.png" alt="BioMate 的 AutoDock Vina 分子对接工作流面板"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话即可路由。</b>“把这个配体 SMILES 对接进我受体 PDB 的 ATP 口袋里”就落到 <b>Docking Autodock Vina</b> 工作流——领域 <code>drug_discovery</code>。</span></li>
+          <li><span class="b"></span><span><b>你要带来的输入。</b>配体作为一个 <code>smiles_list</code>，靶点作为一个 <code>receptor_pdb_file</code>，口袋则由 <code>box_center</code> + <code>box_size</code> 给出——也就是搜索盒子。</span></li>
+          <li><span class="b"></span><span><b>默认值已为你安排好。</b><code>exhaustiveness</code> 默认为 <code>8</code>，<code>n_poses</code> 默认为 <code>9</code>；搜索跑在 BioMate 的托管云端算力上，输出存入托管存储。</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run。</b>你是 Owner——单击即可在云端启动真实的 AutoDock Vina 计算。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的对接工作流，已为你配置就绪</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">输入</span> · 你要带来什么</div>
+    <h2>三样东西：配体、靶点，以及口袋在哪里。</h2>
+    <p class="caption">对接默认是定点的，所以你要告诉引擎该往哪里看。提供分子、受体结构，以及一个围住结合位点的盒子——此外，如果你想要一次可信度校验，再提供一个参照配体，用来核验构象。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">配体</div><h4>要对接的分子</h4><p>一个 <code>smiles_list</code>——以 SMILES 字符串形式给出的一个或多个候选物。引擎为每一个生成三维构象，并搜索其对接构象。</p></div>
+          <div class="tile"><div class="n">受体 + 盒子</div><h4>靶点与口袋</h4><p>靶点作为一个 <code>receptor_pdb_file</code>，口袋由 <code>box_center</code> 和 <code>box_size</code> 界定——也就是引擎在其内部采样的搜索盒子。</p></div>
+          <div class="tile"><div class="n">参照（可选）</div><h4>一个用来对照的构象</h4><p>一个 <code>reference_ligand_smiles</code> 会开启验证模式：对接得到的构象将与已知的晶体构象作比较，并报告其偏差。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">不知道口袋在哪？<b>盲对接。</b><code>Run Autosite</code> 检测空腔（<code>pdb_file</code>，<code>spacing</code> 默认 <code>1.0</code>）来界定盒子，或者 <code>Run Diffdock With Smiles</code>——一个扩散模型——无需预先界定盒子即可对接（<code>pdb_path</code>、<code>smiles_string</code>、<code>use_gpu</code>）。本讲默认采用定点的 Vina。</p>
+        <div><span class="verdict ok"><span class="mk"></span>配体、一个靶点和一个盒子进去——一个打了分、放定了的构象出来</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE METHOD -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">方法</span> · 它究竟做了什么</div>
+    <h2>准备、在盒子里搜索，再为构象打分、排序。</h2>
+    <p class="caption">这些步骤具体而顺序相接。Vina 构建一张受体网格，用一个随机优化器在盒子内部搜索配体的对接构象，再用它的经验亲和力函数为每一个打分——并交回排好序的最佳若干个。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · PREP</div><h4>三维配体 + 受体网格</h4><p>每一个 SMILES 都被转成一个三维结构；受体与搜索盒子共同界定了引擎为构象打分所依据的那张网格。</p></div>
+          <div class="tile"><div class="n">2 · SEARCH</div><h4>在盒子里采样构象</h4><p>Vina 的优化器在盒子内部探索位置、旋转与可旋转键。<code>exhaustiveness</code>（默认 <code>8</code>）决定那次搜索有多彻底。</p></div>
+          <div class="tile"><div class="n">3 · SCORE &amp; RANK</div><h4>每个构象一个亲和力</h4><p>每个保留下来的构象都得到一个以 kcal/mol 计的 Vina 结合亲和力分数；交回 <code>n_poses</code>（默认 <code>9</code>）个构象，从最负的开始排序——也就是看上去嵌合最好的那个。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">两种模式：<b>定点</b>用你的盒子；<b>验证</b>则加上一个 <code>reference_ligand_smiles</code>，并报告对接构象相对已知晶体构象的 <b>RMSD</b>——偏差 <code>&le; 2.0 &Aring;</code> 即为通过。</p>
+        <div><span class="verdict ok"><span class="mk"></span>用 Vina 的经验打分做真实的构象搜索——构象是排了序的，而非一次性的猜测</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">输出</span> · 带分数的、排好序的构象</div>
+    <h2>排好序的对接构象，每个都带一个亲和力分数——做验证时，还带一个 RMSD。</h2>
+    <p class="caption">结果是每个配体的一组放定了的构象，按以 kcal/mol 计的 Vina 结合亲和力分数排序，并附上你可以查看的构象坐标。当你提供一个参照配体时，构象还会带上它相对晶体结构的 RMSD，于是在相信那个分数之前，你就能先判断几何构型是否可信。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.4fr 1fr">
+          <div class="tile"><div class="n">排好序的构象</div><h4>每个构象：分数 + 坐标</h4><p>每个对接构象都带一个以 kcal/mol 计的 Vina 结合亲和力分数——越负表示预测的嵌合越紧——外加该放置的三维坐标。按每个候选物所能取得的最佳分数给它们排序。</p></div>
+          <div class="tile"><div class="n">验证</div><h4>构象 RMSD</h4><p>有了一个 <code>reference_ligand_smiles</code>，对接构象便与晶体构象作比较，并报告其 RMSD。偏差 <code>&le; 2.0 &Aring;</code> 是惯例上的通过——引擎重现了已知的几何构型。</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b gr"></span><span><b>构象与分数同行。</b>你拿到的从来不是一个光秃秃的数字：坐标让你看清配体被放在哪里、又是怎么放的，而这正是解读的一半。</span></li>
+          <li><span class="b am"></span><span><b>验证模式给你一个可信度的锚点。</b>当参照构象在 <code>2.0 &Aring;</code> 以内被重现时，相关配体上的打分，就远比盲设置下的可信得多。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>为每个候选物给出一个排了序、放定了、可供查看的构象——需要时，还带一次几何构型校验</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">用好这个结果</span> · 先筛选，再确认</div>
+    <h2>把该跟进的筛成短名单——并把这个分数当作一个假设，而非一次测量。</h2>
+    <p class="caption">对接靠把一张长名单削成一份可信的短名单来赚回它的成本。按分数排序，检查靠前的构象几何构型是否合理，再把留下来的往前推——推向更严格的自由能计算，或者推上实验台。这个数字是关于一个构象的假设，所以它是一个过滤器，而非一纸定论。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">筛选</div><h4>排序并筛成短名单</h4><p>按候选物各自最佳的 Vina 分数排序，剔除明显的非结合剂，留下那些在口袋里几何构型在化学上说得通的靠前构象。</p></div>
+          <div class="tile"><div class="n">升级</div><h4>交棒给 FEP/RBFE</h4><p>若要按活性为相近的类似物排序，对接太过粗糙——把短名单交给自由能工作流（姊妹篇<b>结合自由能</b>教程）去做那份精细的排序。</p></div>
+          <div class="tile"><div class="n">验证</div><h4>在实验室里确认</h4><p>构象和分数都是预测。共晶与结合检测才是基准真相；对接告诉你哪些化合物值得那笔成本。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">一个好习惯：先在一个已知晶体构象的配体上跑一遍验证模式。如果 Vina 在 <code>2.0 &Aring;</code> 以内重现了它，那么在你相信新分子上的分数之前，你就有了盒子与设置都站得住脚的证据。</p>
+        <div><span class="verdict ok"><span class="mk"></span>一份更锐利的短名单——升级到自由能计算或实验台，而非盲目动手</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="47.0">
+    <div class="kicker">你确切得到什么</div>
+    <h2>把范围讲清楚，好让你确切知道自己得到了什么。</h2>
+    <p class="caption">对接既快又有用，而确切地知道它在哪里可靠、在哪里不可靠，正是它能作为一个筛选工具而非一个假先知被信赖的原因。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">是闸门，不是尺子</div><h4>能分开，却排不出精细的先后</h4><p>Vina 的分数能很好地把结合剂与非结合剂分开，但对相近类似物那种精细的亲和力排序并不可靠。要做那个，请用 FEP/RBFE 自由能工作流——姊妹篇<b>结合自由能</b>教程。</p></div>
+          <div class="tile"><div class="n">默认是刚性的</div><h4>诱导契合有限</h4><p>受体默认被当作刚性处理，所以结合时口袋的重排——即诱导契合——基本不会被捕捉到。一个会围着配体改变形状的口袋，可能会被打错分。</p></div>
+          <div class="tile"><div class="n">一个构象假设</div><h4>是预测的，不是测量的</h4><p>一个好的分数，是关于一个构象的<i>假设</i>，而非一次测量得到的亲和力。而盲对接——没有已知口袋——比对接进一个已界定的位点可信度更低；在相信它之前，先核验几何构型。</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>具体而诚实——一个有明示假设的快速筛选工具，而非一次测量得到的亲和力</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">把配体放定。为构象打分。有把握地筛出短名单。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">要点就一句话：<b>在你结晶或检测任何东西之前，对接告诉你哪些分子有望嵌入口袋——又是以怎样的朝向。</b>BioMate 把你的目标路由到 <code>Docking Autodock Vina</code>，在你界定的盒子内部搜索构象，再交回排好序的构象，每个都带一个 Vina 结合亲和力分数和坐标——当你运行验证模式时，还带上构象相对参照晶体的 RMSD。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>带来你的配体（SMILES）、一个受体 PDB，以及作为盒子的口袋</li>
+            <li><span class="k">2</span>BioMate 路由到 <code>Docking Autodock Vina</code>，并在托管算力上运行 Vina</li>
+            <li><span class="k">3</span>它交回带亲和力分数的、排好序的构象——做验证的话，还带构象 RMSD</li>
+            <li><span class="k">4</span>按分数筛选；把短名单升级到自由能计算，或在实验台上确认</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>它回答什么</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">能不能嵌入，又如何嵌</span></td></tr>
+            <tr><td>引擎</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">AutoDock Vina</span></td></tr>
+            <tr><td>输出</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">排好序的构象 + 亲和力分数</span></td></tr>
+            <tr><td>模式</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">定点 · 验证（RMSD）</span></td></tr>
+            <tr><td>诚实的边界</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">闸门非尺子 · 刚性 · 构象假设</span></td></tr>
+          </table>
+          <p class="footnote">从一个靶点和一列分子，到一组放定了、打了分、排好序的构象——对什么值得上实验台做一次快速而诚实的筛选。盲对接与自由能的路径，都只在一步之遥。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

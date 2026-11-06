@@ -1,0 +1,20 @@
+{
+  "target": "Abeta42",
+  "traj_train": false,
+  "cyclization": "see_csv",
+  "n_test": 4000,
+  "test_binders": 237,
+  "motif_distinct_binders": 37,
+  "FULL": {
+    "LM": 0.9872,
+    "2mer": 0.9858,
+    "comp": 0.9335,
+    "LM_lift5": 12.32,
+    "LM_lift10": 9.96
+  },
+  "MOTIF_DISTINCT": {
+    "LM": 0.9792,
+    "2mer": 0.9786,
+    "comp": 0.8837
+  }
+}

@@ -1,0 +1,154 @@
+PASS  [value] groups v2 total peptides and sources  (20 / 6784)
+PASS  [value] group A counts and shares  (4399)
+PASS  [value] group S counts and shares  (1269)
+PASS  [value] group B counts and shares  (1116)
+PASS  [value] Townsend and Kelly counts and shares
+PASS  [value] group membership sha prefix and full sha
+PASS  [value] v1 dominance: Townsend 90% of train, Kelly 80% of stop, two papers 91% of held-out  ({'A': 0.9, 'S': 0.802, 'B': 0.519})
+PASS  [value] floors
+PASS  [value] stop verifier LOSO mean and n-weighted
+PASS  [value] held-out F2 LOSO mean and n-weighted
+PASS  [value] physics held-out Spearman and n
+PASS  [value] train verifier on S and B sources
+PASS  [value] floor verdicts (stop yes, F2 held-out yes, physics no)
+PASS  [value] replacement test: 528 of 1,116 completed, 5 sources, 588 failed, VOID
+PASS  [value] replacement test descriptive Spearman 0.225 and cluster interval 0.163 to 0.418
+PASS  [text] replacement test rule: >= 600 peptides, >= 7 of 9 sources, pass >= +0.10 with lower bound > 0, 60 conformers, 298.15 K, 120 s
+PASS  [text] failures systematic: median 67 heavy atoms vs 51; no peptide completed for four sources; consequence INCONCLUSIVE by design
+PASS  [value] pilot S-LIB: Y, t-interval, validity, seeds
+PASS  [value] pilot S-EDIT: Y, t-interval, validity, seeds
+PASS  [value] pilot L-CHEMFM: Y, t-interval, validity, seeds
+PASS  [value] pilot L-P0: Y, t-interval, validity, seeds
+PASS  [value] pilot L-PCLM2: Y, t-interval, validity, seeds
+PASS  [value] LLM minus best simple spans -408 to -467  ([-408.333, -418.667, -467.4])
+PASS  [value] pilot best simple generator is S-LIB at 704.6
+PASS  [value] pilot controls: copy-seed Y 0; random-init validity 0
+PASS  [value] P0 validity, macrocycle fraction, N-methyl means
+PASS  [value] P0 parameters 25.5 M
+PASS  [value] monitor hackable retained fractions
+PASS  [value] monitor delay and missed-hack
+PASS  [value] monitor benign retained and false-stop
+PASS  [value] simpler monitor retains 0.447
+PASS  [value] monitor on shared exploit equals no monitor (0.560)
+PASS  [value] 400 test seeds per environment
+PASS  [text] monitor parameters q, tau, patience, tol, warm-up, smoothing
+PASS  [text] monitor pre-registered verdict INCONCLUSIVE with 0.20 and [-2, +4] criteria
+PASS  [text] preference gate thresholds 0.01 and 0.005 from round 3 exist in the updater source
+PASS  [text] preference diagnosis numbers (zero-variance 0.95 to 1.0, KL 0.001, weight change 0.00096 / 0.0017, memorised 70.8%)
+PASS  [value] planted-optimum: loop 7/10, random search 1/10  ((7, 1))
+PASS  [value] shuffled-reward control paired mean and t-interval
+PASS  [value] smoke: ten seeds, 300-call budget
+PASS  [value] 38 orchestrator/harness tests pass
+PASS  [text] retrieval: 15 tests; arm-G store 4,634 rows / 2,826 isomers / 230 documents / 1991-2025 / 8 targets
+PASS  [text] retrieval: wide store 21,575 rows over 724 targets, no document ids; blind rule 5 of 5 queries
+PASS  [value] gold set counts (committed version)
+PASS  [value] gold set tiers
+PASS  [value] gold set sources: 41 PMC + 4 arXiv external, 5 internal  ((41, 4, 5))
+PASS  [value] gold set verified and weight-eligible by outcome class  ({'permeability': 28, 'other': 2, 'solubility': 1, 'stability': 1})
+PASS  [value] gold set file sha256 (prefix in text, full in availability statement)  (2936880724682422)
+PASS  [value] weight-eligible tiers 14 T1 and 18 T2  ({'T1': 14, 'T2': 18})
+PASS  [text] tier definition: T1 = own experiment/simulation/analysis; T2 = review summary, restated result, textbook rule, background, project goal; default T2
+PASS  [value] INFO working-tree gold file equals the committed version  (same)
+PASS  [value] direction check: 17 agree, 7 mixed, 0 disagree, 83 not testable
+PASS  [value] literature-prior arm = 15 weight-eligible rules that agreed  (15)
+PASS  [value] direction check rho n_nme Townsend/Kelly  (('+0.50', '+0.53'))
+PASS  [value] direction check rho hbd Townsend/Kelly  (('−0.44', '−0.53'))
+PASS  [value] direction check rho tpsa Townsend/Kelly  (('−0.47', '−0.49'))
+PASS  [value] direction check rho clogp Townsend/Kelly  (('+0.29', '+0.49'))
+PASS  [value] direction check rho mw Townsend/Kelly  (('−0.12', '+0.48'))
+PASS  [value] direction check rho n_dres Townsend/Kelly  (('−0.04', '+0.02'))
+PASS  [value] mining descriptive within-source values (TPSA, HBD, logP Spearman; N-Me mean z-effect)
+PASS  [text] mining result in retrieval README: pooled N-Me +0.554 [0.373, 0.735], I2 = 0.95
+PASS  [text] mining criteria: at least three sources
+PASS  [value] structure library: 888 complexes over 451 targets, 802 non-antibody, 28,789 parsed
+PASS  [value] structure library: closure classes and methods
+PASS  [value] structure library: median resolution, composition
+PASS  [text] structure: 30,773 candidates; 90% of parsed rows linear; 0 of 818 entries with affinity; Propedia/PepBDB not imported; no paper opened
+PASS  [value] priors: primary set 802 complexes, 378 targets, set hash 419f8bf3d8dc7334
+PASS  [value] priors: ring spans by closure type (snippets)
+PASS  [text] priors: turn frequencies, N-methyl contact rate, NH fate, unstable enrichment exported with weight 0 (structure document)
+PASS  [text] priors: LOTO thresholds (>= 20 targets, median <= 0.05, max <= 0.25) and default potential weight 0.5 not tuned
+PASS  [value] cards: 17 cards; five targets with complexes (baff 5, fcrn 5, il17a 1, pdl1 9, tnfa 1); cd20 antibody-epitope; 11 without  (['a4b1', 'a4b7', 'avb6', 'c5', 'cd40', 'grpr', 'il17f', 'il23', 'il2ra', 'il6r', 'lfa1'])
+PASS  [text] armG exclusion example removes avb6/PD-L1 accessions P06756, P18564, Q9NZQ7 and the avb3 targets sharing the alphaV accession
+PASS  [value] soft potentials: ring-size tables per closure class exist
+PASS  [value] rule set C constants (ring 12, N-Me 2-6, MW 600-1400, TPSA 300)  ({'RING_MIN': '12', 'TPSA_HI': '300.0', 'MW_LO': '600.0', 'MW_HI': '1400.0'})
+PASS  [text] SMARTS for N-methyl amide in draft equals spec
+PASS  [text] backbone: 22 layers, d 2048, vocab 320, 512 positions (pilot doc)
+PASS  [value] ChemFM-1B ~970 M parameters (survey)
+PASS  [text] union filter removed 8,983 molecules (0.312%)
+PASS  [text] ChEMBL at most 10% of tokens; corpora list
+PASS  [text] BoltzGen fine-tune lost 3/3; DockQ 0.506 vs 0.759
+PASS  [text] cofold ipTM vs physics rho -0.04
+PASS  [text] PeptideCLM-2 31.7M and 114M; strict load
+PASS  [text] budgets, proposal cap, seeds
+PASS  [text] A4 scale: z-score against 1,500 random rule-satisfying draws, no clipping, SD-AUC; 4 conformers
+PASS  [text] A4 saturation numbers: tuned baselines 0.979-0.986, random library 0.886-0.944 at B = 1,000
+PASS  [text] A4 margin: 0.10 x (SD-AUC best baseline - SD-AUC random_lib) per family from evaluation seeds 0-9; +0.03 withdrawn; re-tuned under the new scale
+PASS  [text] F1 formula coefficients
+PASS  [text] control pass rules (floor interval; 0.9 of optimum)
+PASS  [text] GO/NO-GO-detectable/INCONCLUSIVE definitions and effective margin ~0.7 x MDE (Track E section 3)
+PASS  [text] lambda_H values 0.229, 0.10, 0 (A3.4)
+PASS  [text] floors 0.15 / +0.10; groups; train 60-68%
+PASS  [text] snake draft and 18 remaining sources
+PASS  [value] t critical value for n = 10 is 2.26; 2.8 = 1.96 + 0.84; ratios 0.70 and 0.81
+PASS  [value] equivalence margin derivation: delta(26) = 0.0553
+PASS  [text] calibration acceptance criteria
+PASS  [text] calibration: 0.95 quantile of maximum standardised departure
+PASS  [value] gate positive control: false BIASED 24.5% / 32.5%; VALID 61% / 2.5%
+PASS  [value] gate detection of planted shortcuts is 1.00 at AUROC 0.60 and 0.65  (p == 1.0 for TPSA, typicality, censoring, diffuse)
+PASS  [text] patent filter MW [500, 2600], ring >= 12, >= 3 amide bonds, 2.5 s delay
+PASS  [text] extraction thresholds: precision 0.80, 100-entry audit, 60% coverage, >=3 rules from >=3 papers
+PASS  [text] extraction model size and quote length
+PASS  [text] 40 queries over four topics
+PASS  [text] Table 5: golden set 900/700/600; false-prune 0 of 900 over 126,195 positions; 40 strings every 5th position; 383 of 600 invalid cut; mask 0.43 vs 3.1 ms; LoRA smoke 6 steps 1,701 peptides 102 held out NLL 0.8933 to 0.8075
+PASS  [value] Table 7 tuning-seed SD-AUC per method, gap G and margin at f = 0.10 (both tuning objectives)
+PASS  [value] Table 7 note: 6 of 9 edit-operator GA tuning runs on the F1 objective stopped by the low-yield guard; no run at the wall-clock cap
+PASS  [text] tuning: seeds 100-102, 33 configurations and 198 runs per family (99 per objective)
+PASS  [value] Table 13: calibrated and registered P(BIASED), P(VALID) per validation cell; detection 1.00 (lower 0.94, n = 60); P(VALID | shortcut) 0.00 (upper 0.060); outcome SUCCESS
+PASS  [text] Table 13 application set M2 (14 families): P(BIASED) 0.090 (0.054 to 0.139), P(VALID) 0.170 (0.121 to 0.229)
+PASS  [text] Amirahmadi wording (5,826 samples = 5,758 + 68; AttentiveFP 86.2 to 66.1 baseline values from the adopted protocol; GP Tanimoto highest on both splits 89.7 / 80.4 tied with kernel mixture; Tables 3 and 6, arXiv v1)
+PASS  [struct] references: numbered list of 47 entries, every entry cited and every citation resolves  (cited 47)
+PASS  [struct] references: CycPeptMPDB has a full entry
+PASS  [struct] references: CREMP has a full entry
+PASS  [struct] references: CyclicPepedia has a full entry
+PASS  [struct] references: Macrocycle-DB has a full entry
+PASS  [struct] references: SweMacrocycleDB has a full entry
+PASS  [struct] references: PepBDB has a full entry
+PASS  [struct] references: Propedia has a full entry
+PASS  [struct] references: BioLiP2 has a full entry
+PASS  [struct] references: NPAtlas has a full entry
+PASS  [struct] references: COCONUT has a full entry
+PASS  [struct] references: SureChEMBL has a full entry
+PASS  [struct] references: Boltz-2 has a full entry
+PASS  [struct] references: BoltzGen has a full entry
+PASS  [struct] references: UniMoMo has a full entry
+PASS  [struct] references: REINVENT 4 has a full entry
+PASS  [struct] references: ChemFM has a full entry
+PASS  [struct] references: PeptideCLM-2 has a full entry
+PASS  [struct] title names the two contributions and omits the stopping monitor
+PASS  [struct] abstract: F1 gate ceiling stated, Table 3 cited, no stopping-monitor headline
+PASS  [struct] hygiene: no [PENDING  (0 hit(s))
+PASS  [struct] hygiene: no workstream  (0 hit(s))
+PASS  [struct] hygiene: no working name  (0 hit(s))
+PASS  [struct] hygiene: no USD  (0 hit(s))
+PASS  [struct] hygiene: no docs/ path  (0 hit(s))
+PASS  [struct] hygiene: no allatom_paper path  (0 hit(s))
+PASS  [struct] hygiene: no commit-hash-like token  (0 hit(s))
+PASS  [struct] hygiene: no instance id  (0 hit(s))
+PASS  [struct] hygiene: no LIT tag  (0 hit(s))
+PASS  [struct] hygiene: no registry  (0 hit(s))
+PASS  [struct] hygiene: no TODO/TBD  (0 hit(s))
+PASS  [struct] hygiene: no pending narration  (0 hit(s))
+PASS  [struct] hygiene: no old scale or margin  (0 hit(s))
+PASS  [struct] hygiene: no priority claim  (0 hit(s))
+PASS  [struct] hygiene: no deviation or conditional-plan language  (0 hit(s))
+PASS  [struct] hygiene: no registered-report language  (0 hit(s))
+PASS  [struct] cross-references resolve (40 section references)  ([])
+PASS  [struct] every referenced table is defined  (referenced ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'] defined ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'])
+PASS  [struct] every defined table is referenced in the text  (unreferenced [])
+PASS  [struct] Figure 1 defined and referenced
+PASS  [struct] unmeasured results are shown as — in tables, not narrated  (160 empty cells)
+PASS  [struct] section numbering sequential 1..8  (['1', '2', '3', '4', '5', '6', '7', '8'])
+
+151 checks; failed: 0; value checks 67, text checks 42, struct checks 42
+numeric tokens in Sections 3-5 not covered by any check: 218  ({'design constant, hyperparameter or document-derived number': 115, 'small count or ordinal in prose': 77, 'value from a document or design constant (not machine-readable)': 26})

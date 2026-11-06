@@ -1,0 +1,14 @@
+{
+  "model": "qwen/qwen3.5-9b",
+  "bare": {
+    "accuracy": 0.75,
+    "drug_discovery_accuracy": 0.7778,
+    "off_channel_or_empty": 8
+  },
+  "harness": {
+    "accuracy": 0.9643,
+    "drug_discovery_accuracy": 0.9815,
+    "off_channel_or_empty": 0
+  },
+  "harness_dividend": 0.2143
+}

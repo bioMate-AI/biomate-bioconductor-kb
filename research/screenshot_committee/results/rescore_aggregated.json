@@ -1,0 +1,610 @@
+{
+  "t7-2-members-roles.png": {
+    "consensus": "minor",
+    "issues": [
+      "Widen the role selector so 'Viewer' is fully visible.",
+      "Role selector dropdown text is truncated ('View...')",
+      "Real-looking personal email (lifeifei163361@163.com) exposed in the member list; replace it with a demo address such as owner@example.com.",
+      "Member name 'WPM Fixture' is a test-fixture name; use a realistic demo user name.",
+      "Role selector text is truncated to 'View...'; widen the control or show it expanded with Viewer/Editor options.",
+      "Invite button is shown greyed out; consider entering a sample email so the active state is shown.",
+      "Stray border line at the top edge of the crop."
+    ]
+  },
+  "i12-1-connectors-dialog.png": {
+    "consensus": "major",
+    "issues": [
+      "Wrong capture state: full page instead of Connectors dialog.",
+      "Expected 'Scientific Databases' tab and per-connector scope selectors are absent.",
+      "Category strip clips at the right edge; bottom row description is obscured by the footer.",
+      "Missing per-connector scope selectors on list items",
+      "Tab name is 'Public databases' instead of 'Scientific Databases'",
+      "Shown as a full page (breadcrumb Workspace / Connectors), not as a dialog opened from the sidebar",
+      "Tab is labeled 'Data sources > Public databases', not 'Scientific Databases' as intended",
+      "No per-connector scope selectors visible",
+      "Category filter row truncated at right ('Oth\u2026')",
+      "Last list row (dbSNP) clipped by footer",
+      "Tab count badges inconsistent: missing on Skills & experts and MCP servers",
+      "Duplicate-looking icon for Models & LLMs and Skills & experts",
+      "Paired 'N' / 'N\u2713' count chips are unexplained"
+    ]
+  },
+  "s1-1-sidebar.png": {
+    "consensus": "major",
+    "issues": [
+      "Lower utility row is clipped behind the account footer.",
+      "E2E test projects and numerous similar entries distract from the navigation example.",
+      "Remove the cut-off main-content strip from the crop.",
+      "User profile footer overlaps and clips the bottom menu items",
+      "Multiple empty 'New Chat' entries in history list",
+      "Footer item clipped/overlapped by account divider (overflow bug)",
+      "'Import workflow' misaligned/indented under Settings & API Keys",
+      "Partial main-pane content visible at right edge; crop to the sidebar only",
+      "E2E/AUTHZ test projects visible in a user manual",
+      "Duplicate truncated project names (4\u00d7 'IL-17A Cyclic Peptide P\u2026') are indistinguishable",
+      "Duplicate chats (3\u00d7 'New Chat', 2\u00d7 wsi_he_nuclei run)",
+      "Label 'OTHER CHATS' vs 'Chat history' in alt/intent; align the terminology",
+      "Real-looking user name/email in footer; use a demo account",
+      "Not a 'fresh login' state; reshoot with a curated demo workspace"
+    ]
+  },
+  "t3-2-after-run-summary.png": {
+    "consensus": "minor",
+    "issues": [
+      "Tighten side margins and include or fully exclude the clipped bottom caption.",
+      "Label summary chips as Compound 1 to avoid implying they summarize both compounds.",
+      "Footer caption clipped at bottom edge; recrop to include it or exclude it entirely",
+      "Summary chips show Compound 1 values only, unlabeled; Compound 2 hERG 0.974 liability not reflected in the headline",
+      "No Compound column in Key Results; duplicate metric rows are distinguished only by '(Compound N)' prefix text",
+      "Inconsistent interpretation phrasing (some rows have no Acceptable/Elevated judgement)",
+      "Excess horizontal whitespace; crop tighter"
+    ]
+  },
+  "r5-outputs.png": {
+    "consensus": "major",
+    "issues": [
+      "Reframe to include the full Outputs heading and avoid a partially shown third card.",
+      "Reduce side margins for better manual-page readability.",
+      "Make preview overflow discoverable; bottom text lines are visibly clipped.",
+      "Top crop removes 'Results' tab and 'Download report' button",
+      "Bottom crop cuts off the last file preview mid-content",
+      "Lacks overall page context",
+      "Top crop clips the Outputs header and search bar; bottom cuts the third card mid-way",
+      "Results tab and Download report button not visible, so the intended context is unconfirmed",
+      "fu_plasma 0.01 contradicts plasma protein binding 73.2% in the adjacent output",
+      "vd_lkg=100 and the round cl fractions look like placeholder defaults presented as 'predicted'",
+      "estimation_method (admet_ai_ppbr) is inconsistent with the disclaimer's Lobell & Sivarajah attribution for fu_plasma",
+      "'Biomni' branding in output header instead of BioMate",
+      "Inconsistent file-type icon for the TXT file; truncated filename; cryptic 'dl' label",
+      "Large empty side margins"
+    ]
+  },
+  "t3-3-after-run-outputs.png": {
+    "consensus": "major",
+    "issues": [
+      "Recrop to include the full Outputs heading and reduce empty side margins.",
+      "Show fewer complete cards rather than cutting off the third preview.",
+      "Make preview overflow or scrolling more apparent.",
+      "Screenshot is cropped too tightly at the top, omitting the 'Results' tab, page header, and 'Download report' button needed for orientation.",
+      "Crop clips the 'Outputs (8)' header and search bar at the top and cuts the third card at the bottom",
+      "Large empty side margins; crop to the content column",
+      "'Biomni' branding in predict_admet_properties_output.txt header instead of BioMate",
+      "fu_plasma 0.01 contradicts plasma protein binding 73.2% for the same compound",
+      "PK summary values (0.01/0.05/0.9/100) look like hardcoded defaults; Vd 100 L/kg is implausible for aspirin",
+      "Inconsistent file-type icon for TXT vs the '{}' used for JSON",
+      "Inconsistent button styling: RStudio bordered vs Jupyter borderless in card 1, Jupyter bordered in card 2",
+      "'dl' link label is cryptic; use 'Download'",
+      "Results tab and top-right 'Download report' not in frame, so the intended context is not shown"
+    ]
+  },
+  "i08-1-outputs-tab.png": {
+    "consensus": "major",
+    "issues": [
+      "Recrop to include the full Outputs heading/search and avoid a partially cut-off final card.",
+      "Use a tighter crop or fewer expanded viewers to improve manual-scale readability.",
+      "Producing-step identity is not evident from the generic 'run' labels.",
+      "Expand 'dl' to 'Download' for clearer actions.",
+      "Text at the bottom of the 'pk_summary.json' and 'predict_admet_properties_output.txt' code blocks is vertically sliced in half.",
+      "Screenshot is awkwardly cropped at the top (missing header context) and bottom (cutting off the third file).",
+      "Excessive empty white space on the left and right margins.",
+      "Top crop clips 'Outputs (8)' header, search box and count",
+      "Bottom crop cuts the third file's JSON mid-content",
+      "All viewers expanded; row structure (step/name/type/actions) is not the focus as the alt intends",
+      "fu_plasma 0.01 contradicts PPB 73.2% from the same ADMET run",
+      "vd_lkg 100 is implausible for aspirin",
+      "'Biomni:' branding shown in output text",
+      "Inconsistent file-type icons (JSON {} vs TXT folder glyph)",
+      "Truncated filename 'predict_admet_properties_results.js\u2026'",
+      "'dl' abbreviation is unclear; prefer 'download'",
+      "Excess side whitespace"
+    ]
+  },
+  "r6-reproducibility.png": {
+    "consensus": "major",
+    "issues": [
+      "Expand Resolved parameters to show the resolved values.",
+      "Compute checksums before capture; every SHA-256 cell currently shows a dash.",
+      "Crop excess side margins for better manual legibility.",
+      "Raw, unstyled 'runId: ...' text is visible at the very top of the page above the 'AFTER RUN' header.",
+      "SHA-256 column empty ('\u2013') for all outputs; click Compute checksums before capturing",
+      "Input bindings (0) with a 'predates input-binding capture' message contradicts a new cold-start run with demo data attached",
+      "Resolved parameters section collapsed; the intended state calls for resolved params to be visible",
+      "Parameters show only version=1 and toolParameters {}, which is uninformative",
+      "Stray raw 'runId:' debug line above the panel",
+      "dag.dot labeled type 'binary' (should be text)",
+      "pk_summary.json output looks unrelated to an ADMET workflow",
+      "Excess side whitespace; bottom card cut close to the edge"
+    ]
+  },
+  "t3-4-after-run-reproducibility.png": {
+    "consensus": "minor",
+    "issues": [
+      "Crop excess side margins to improve readability at manual display size.",
+      "Raw monospace 'runId: \u2026' debug-style line rendered above the AFTER RUN header, duplicating the Run id field",
+      "Input bindings (0) with a legacy-run fallback message; a tutorial ADMET run should show its bound input (demo data)",
+      "toolParameters shown as empty '{}'",
+      "dag.dot classified as 'binary' instead of text",
+      "SHA-256 column all '\u2013'; consider computing checksums before capture",
+      "Excess whitespace on left/right; tighten crop"
+    ]
+  },
+  "i09-1-three-tabs.png": {
+    "consensus": "minor",
+    "issues": [
+      "Bottom explanatory text is cut off; crop before it or include it fully.",
+      "Reduce blank side margins for better manual readability.",
+      "Label summary chips as Compound 1 to distinguish them from the two-compound results.",
+      "Bottom footnote text clipped at the image edge",
+      "Raw 'runId:' monospace line at the top looks like a debug artifact; crop it or style it",
+      "Summary chips show Compound 1 values only, with no compound label; this omits Compound 2's elevated hERG/CYP2D6 risks",
+      "No Compound column in Key Results; metrics repeat and are disambiguated only inside the Interpretation text",
+      "Inconsistent interpretation verdicts (some rows have no Acceptable/Elevated judgement)",
+      "Excess horizontal whitespace; tighten the crop"
+    ]
+  },
+  "i09-2-reproducibility-record.png": {
+    "consensus": "minor",
+    "issues": [
+      "Expand Resolved parameters to show the intended details.",
+      "Tighten the horizontal crop to reduce empty margins.",
+      "Stray raw 'runId: \u2026' debug line above the AFTER RUN header",
+      "SHA-256 column all '\u2013'; checksums should be computed before capture",
+      "toolParameters shown as raw '{}'",
+      "Input bindings (0) with 'run predates input-binding capture' note: use a run that has bindings",
+      "'Resolved parameters' section collapsed despite the intended state",
+      "dag.dot typed as 'binary' (questionable)",
+      "Excess horizontal whitespace; crop tighter"
+    ]
+  },
+  "r1-prerun-param-strip.png": {
+    "consensus": "major",
+    "issues": [
+      "Required 'OC1' parameter contains 'CC=CC=C1C(=O)O and acetaminophen CC(=O)Nc1ccc(O)cc1', mixing a partial SMILES with prose.",
+      "'You can keep chatting while this run continues in the background' contradicts the idle pre-run state.",
+      "Excess empty space reduces emphasis on the workflow settings.",
+      "Broken/empty icon buttons in right panel header",
+      "Parameter 'OC1' incorrectly extracted/parsed from prompt text",
+      "Chat message implies run is active while panel shows pre-run state",
+      "Spurious required param 'OC1' with a mis-parsed SMILES/prose value: a param-parsing bug",
+      "Param count (4) includes the bogus OC1, so the real set is 2 required + 1 optional",
+      "'1 phase' in the panel vs '2 steps' on the chat card",
+      "'run continues in the background' text shown before any run has started",
+      "Truncated chat title in the header",
+      "Unlabeled square/X icons under the panel title",
+      "Large empty space in the chat area and lower panel"
+    ]
+  },
+  "t3-1-workflow-panel.png": {
+    "consensus": "major",
+    "issues": [
+      "Spurious required 'OC1' parameter contains 'CC=CC=C1C(=O)O and acetaminophen CC(=O)Nc1ccc(O)cc1'.",
+      "'You can keep chatting while this run continues in the background' contradicts the idle pre-run state.",
+      "Large unused chat area makes the relevant settings less prominent.",
+      "Chat text 'run continues in the background' contradicts the pre-run state indicated by the 'Confirm & Run' button.",
+      "Severe parameter parsing bug: A fragment of a SMILES string ('OC1') is hallucinated as a parameter name, containing the rest of the prompt text.",
+      "Parsing bug: bogus required parameter 'OC1' extracted from the prompt's SMILES text",
+      "OC1 value contains raw prose fragment 'and acetaminophen ...'",
+      "Step/phase mismatch: card says '2 steps', panel says '1 phase'",
+      "Chat text 'run continues in the background' contradicts the idle, not-yet-run state",
+      "Header title truncated",
+      "Unlabeled square and X icons in the panel header",
+      "Large empty chat area"
+    ]
+  },
+  "r2-running.png": {
+    "consensus": "major",
+    "issues": [
+      "Run Manager count is inconsistent with the active workflow.",
+      "Unlabeled square header controls have unclear functions.",
+      "Large unused chat area dilutes the workflow focus.",
+      "Missing icons (empty square placeholders) in the right panel header around the 'Running' badge.",
+      "Chat title truncated in header",
+      "Unlabeled empty-square/X icons around Running badge look broken",
+      "Phase card named 'Steps' with badge '2' while header says '1 phase'",
+      "QC gate 'Apd90 Prolongation Max Pct \u2265 30' contradicts 'Max'; 'Ead Probability Halt \u2265 0.7' ambiguous",
+      "QC gates are CiPA cardiac only; none cover DILI/oral/CYP",
+      "Run Manager shows 0 during an active run",
+      "Raw snake_case-derived labels in QC gates/params",
+      "Large dead space in chat pane"
+    ]
+  },
+  "w1-1-phases.png": {
+    "consensus": "major",
+    "issues": [
+      "Recapture after one step is DONE while another is RUNNING; current progress is 0/2.",
+      "Replace finished-run/output-results alt text with a live-run description.",
+      "Crop tighter around the workflow panel to reduce dead space.",
+      "Broken/missing icon placeholders next to the 'Running' badge in the right panel header.",
+      "No step is shown as DONE; shows one RUNNING and one pending instead of the requested DONE + RUNNING state.",
+      "No step row shows DONE; the intended state requires one DONE and one RUNNING (recapture once step 1 has completed)",
+      "Unlabeled empty-square icons and a bare '\u00d7' in the panel header look like broken or placeholder icons",
+      "Phase card titled 'Steps' (badge 2) is ambiguous next to the 'STEPS \u00b7 2' header; a real phase name is expected",
+      "Page title truncated at top-left",
+      "Large empty chat area dilutes focus; crop to the workflow panel"
+    ]
+  },
+  "w1-2-workflow-settings.png": {
+    "consensus": "major",
+    "issues": [
+      "Missing toggle, dropdown, number box, and file field with Browse button.",
+      "Missing 'Your permissions here' card.",
+      "Malformed 'OC1' parameter appears to be a prompt-parsing artifact.",
+      "Background-run message contradicts the pre-run confirmation state.",
+      "Crop closer to the workflow panel to remove dead space.",
+      "Screenshot only shows text inputs, failing to demonstrate the requested mix of control types (toggle, dropdown, number box, file field).",
+      "Missing 'Your permissions here' card mentioned in alt intended state.",
+      "Spurious 'OC1' parameter with a garbage value from mis-parsing the SMILES prompt",
+      "No toggle, dropdown, number box or file/Browse field visible; all params are text boxes",
+      "Alt text references a 'Your permissions here' card that is not in the shot",
+      "Inconsistent '2 steps' (chat card) vs '1 phase' (panel)",
+      "Unlabeled checkbox and X icons under the workflow title",
+      "Header title truncated without ellipsis",
+      "Optional group collapsed, so its control type is not shown",
+      "Large empty space in chat and panel areas"
+    ]
+  },
+  "i11-3-multi-objective.png": {
+    "consensus": "minor",
+    "issues": [
+      "Show the drug_like/QED target alongside its scores for consistent per-goal interpretation.",
+      "property_envelope = 0 for every candidate; the objective appears broken or uninformative",
+      "QED = 1 and QED = 0 are implausible values for real molecules",
+      "score collapses to QED/2, so the multi-objective view adds nothing in this example",
+      "Verdict Accepted/Rejected basis is unexplained and reads as contradicting the 'not a pass/fail gate' note",
+      "Excess whitespace between property_envelope and score columns"
+    ]
+  },
+  "t11-2-design-candidates.png": {
+    "consensus": "minor",
+    "issues": [
+      "drug_like column shows normalised scores (1, 0) labelled as 'QED' units; raw QED cannot be 1 or 0, which contradicts the 'own units' claim",
+      "property_envelope = 0 fraction-in-window for all 8 candidates, so this objective is non-discriminating and every candidate misses its goal",
+      "Accepted/Rejected cutoff is unexplained while targets are described as non-gating",
+      "Screenshot not referenced by any manual page (orphan asset)"
+    ]
+  },
+  "i05-0-data-hub.png": {
+    "consensus": "major",
+    "issues": [
+      "Select and open a result CSV such as de_results.csv instead of inputs/counts_matrix.csv.",
+      "Reduce excess vertical whitespace for a more compact manual image.",
+      "Shows input CSV (counts_matrix.csv) instead of intended result CSV.",
+      "Duplicated explanatory text in the UI.",
+      "Intended state is a result CSV (e.g. de_results.csv) open, but an input file, counts_matrix.csv, is shown.",
+      "The file tree has no outputs/results folder, so there is no project with run results to show.",
+      "The preview shows only 12 of 21 columns, with no scroll indicator.",
+      "File names in the tree are truncated.",
+      "The left pane has a large empty area and there is unused space at the bottom of the page.",
+      "The orange quality dots on contrasts.csv and sample_metadata are unexplained."
+    ]
+  },
+  "t10-1-dataset-preview.png": {
+    "consensus": "minor",
+    "issues": [
+      "Replace the input counts matrix with a real results CSV containing meaningful result columns.",
+      "Update the alt text to describe the actual tabular preview and file.",
+      "Crop more tightly around the Preview table and row-count note.",
+      "Redundant helper text ('dataset is an object... not a path in a chat message') appears in both the top page header and below the file metadata.",
+      "Minor casing inconsistency: 'inputs' in sidebar vs 'Inputs' in breadcrumb.",
+      "Shows input counts_matrix.csv instead of a real results CSV with gene_id/log2FoldChange/padj as the intended note requests",
+      "Reference path is projects/\u2026/inputs/\u2026, not nextflow/outputs/\u2026/run/\u2026 as the alt text describes; the alt text and screenshot disagree",
+      "Preview table shows 12 of 21 columns with no horizontal-scroll or truncation indicator",
+      "Truncated filenames in the file tree",
+      "Excess blank space at the bottom of the capture; could crop tighter"
+    ]
+  },
+  "t10-2-dataset-lineage.png": {
+    "consensus": "major",
+    "issues": [
+      "Wrong file state: uploaded input instead of a run-produced result.",
+      "Missing underlined 'Produced by run c40459b2\u2026' link and Workflow / Status / Step rows, including 'Predict ADMET Properties (AI)'.",
+      "Crop contains substantial unused lower space.",
+      "Shows an uploaded input file instead of a run-output file.",
+      "Lineage tab is empty/unpopulated, failing the explicit instruction to capture a result file with lineage data.",
+      "Captured an uploaded input instead of a run-output file; lineage shows 'no upstream workflow'",
+      "Missing 'Produced by run' underlined link and the Workflow/Status/Step rows that are the focus of the shot",
+      "Alt text (run c40459b2\u2026, Predict ADMET Properties (AI)) does not match the image (MG PBMC transcriptomics counts_matrix.csv)",
+      "Project has no outputs folder; recapture in a project with a completed ADMET run",
+      "Large empty whitespace below the content; crop tighter",
+      "Truncated filenames in the file tree"
+    ]
+  },
+  "t10-4-dataset-versions.png": {
+    "consensus": "major",
+    "issues": [
+      "Missing authors on both version entries; v1 also lacks a note and timestamp.",
+      "Alt text identifies v1 as current while the screenshot identifies v2.",
+      "Redundant current indicator on v2.",
+      "Large unused lower area; crop around the dataset panel.",
+      "'v1' version entry is rendering as an empty box without timestamp or details",
+      "Excessive dead space at the bottom of the screenshot",
+      "Alt text says 'v1 \u00b7 current' but the screenshot shows 'v2 \u00b7 current'; update the alt text (or the state) so they agree.",
+      "The v1 entry shows no note, author or timestamp; it renders as an empty bar.",
+      "'current' appears twice on v2 (inline label plus badge); keep one.",
+      "No author is shown on version entries, although the intended state calls for it.",
+      "Large empty whitespace below the content and an over-tall FILES panel; crop to the content.",
+      "Filenames are truncated in the file tree.",
+      "Breadcrumb 'Inputs' vs folder 'inputs' capitalization is inconsistent."
+    ]
+  },
+  "t6-1-instruments-tab.png": {
+    "consensus": "minor",
+    "issues": [
+      "Wrong presentation state: full Connectors page, not an open Connectors dialog.",
+      "Crop out the large unused lower area to emphasize the Instruments section.",
+      "Excessive empty space at the bottom of the screenshot.",
+      "Large empty dead space in lower half; crop to content",
+      "Status/residency badges lack badge styling (plain text), weakening the 'badge' callout",
+      "Rendered as full page with breadcrumb, not a 'Connectors dialog' as the intended state says",
+      "Duplicate icon for Models & LLMs and Skills & experts",
+      "Inconsistent tab counts (missing on Skills & experts / MCP servers); active top tab not visibly indicated",
+      "Status 'Not checked' less instructive than a connected/checked state"
+    ]
+  },
+  "t7-0-project-overview.png": {
+    "consensus": "major",
+    "issues": [
+      "Wrong page captured: Instructions rather than project overview.",
+      "Missing chats and files on the left and Members & roles beneath Standing instructions on the right.",
+      "Skills & experts list is cut off at the bottom.",
+      "Wrong screen captured: shows the 'Instructions' page instead of the 'Project page overview'.",
+      "Missing left sidebar (chats and files) specified in intended state.",
+      "Missing right rail (Members & roles) specified in intended state.",
+      "Wrong screen: shows the Instructions sub-page instead of the project overview with chats/files plus a right rail.",
+      "Members & roles section is absent entirely.",
+      "Project chats and files list is absent.",
+      "Bottom crop cuts through the 'Structural Biologist' row.",
+      "Inconsistent edit controls (pencil icon vs 'Edit' button).",
+      "Excess whitespace and a long checklist dilute the focus; recapture at the overview or crop tighter."
+    ]
+  },
+  "t7-1-standing-instructions.png": {
+    "consensus": "major",
+    "issues": [
+      "Standing instructions contain the wrong example: MG PBMC rather than mouse-liver/paired-end/GRCm39.",
+      "Expected empty Notes card and Private label are absent; Output requirements appears below instead.",
+      "Bottom card is clipped, and the crop omits project-page context and Members & roles.",
+      "Standing instructions content is incorrect (shows GSE227835 instead of mouse-liver).",
+      "Card below is 'Output requirements', not the intended 'Notes' card.",
+      "Excessive horizontal white space due to bad cropping.",
+      "Bottom card is clipped.",
+      "Standing instructions text is the GSE227835 MG PBMC demo instead of the intended mouse-liver/paired-end/GRCm39 instructions.",
+      "Notes card with its 'Private' subtitle is missing; an 'Output requirements' card appears below instead.",
+      "Bottom card is clipped mid-header.",
+      "Alt text says the card sits in the right rail above Members & roles; the screenshot shows a centered main-column card with no Members & roles section.",
+      "Edit affordances are inconsistent: pencil icon on one card, text 'Edit' button on the other.",
+      "Large empty side margins; the crop should be tightened to the focus area."
+    ]
+  },
+  "w3-1-step-row.png": {
+    "consensus": "major",
+    "issues": [
+      "Crop cleanly around the completed row to avoid clipped adjacent content.",
+      "Use the manual's language consistently for the Details and status labels.",
+      "UI is localized in Chinese instead of English",
+      "Top text is vertically clipped",
+      "Bottom step is vertically clipped",
+      "UI captured in Chinese locale; 'Details' appears as '\u8be6\u60c5', and status/re-run are also Chinese, which mismatches the English manual and alt text",
+      "Mixed-language UI (English step and params, Chinese buttons)",
+      "Top parameter line clipped mid-text",
+      "Next step row clipped at the bottom edge",
+      "Details button not highlighted or annotated",
+      "Excess horizontal dead space; awkward ultra-wide crop"
+    ]
+  },
+  "w3-2-fullstep-provenance.png": {
+    "consensus": "major",
+    "issues": [
+      "Replace this empty-record capture with a populated step showing tool/version provenance, resolved parameters with origin tags, and an output.",
+      "Screenshot shows an empty/null state instead of a populated run step.",
+      "Missing resolved parameters tagged with their origin.",
+      "Missing step output.",
+      "Empty-state capture: no parameters, no origin badges, 0 outputs, tool/version/duration n/a. This contradicts the intended alt text.",
+      "Legend explains origin badges that are not visible anywhere in the shot.",
+      "Title casing 'Predict Admet Properties' should be 'ADMET'.",
+      "Close button captured with a prominent focus ring (polish).",
+      "Possible data-loading or provenance-recording bug for this step ('tool not reported'). Recapture against a run with recorded parameters and outputs."
+    ]
+  },
+  "domain-crispr-prerun.png": {
+    "consensus": "major",
+    "issues": [
+      "Attached crispr_counts.tsv is not shown among mapped inputs; the workflow instead requires fastq_dir and Library File.",
+      "Background-run message contradicts the blocked state and Run Manager count of 0.",
+      "Chat falsely claims run is continuing in background while blocked on inputs.",
+      "Workflow asks for FASTQ directory when user provided count data.",
+      "Screenshot is not referenced by any manual page",
+      "Attached crispr_counts.tsv is not mapped to any input; Library File shows required \u2014 not set",
+      "Fastq Dir is demanded (Which fastq_dir? 1/4) despite count-table input; the demo is not self-contained",
+      "Fastq Dir has a 'Default' badge but the field is empty",
+      "Card says '4 steps' but the panel says '2 phases'",
+      "'Run continues in the background' while no run exists (Run Manager 0, Confirm & Run disabled)",
+      "Analysis plan preview is truncated mid-sentence",
+      "Header title is truncated",
+      "Unlabeled checkbox/X icons in the panel header",
+      "Raw S3 path wraps awkwardly",
+      "Excess empty space"
+    ]
+  },
+  "domain-cryo-em-prerun.png": {
+    "consensus": "major",
+    "issues": [
+      "Dataset Id contains concatenated identifier/URI metadata and is not fully readable.",
+      "Chat claims an active background run while Run Manager shows 0 and the panel remains at confirmation.",
+      "Raw string/object representation leaking into 'Dataset Id' input field.",
+      "Unreferenced screenshot: remove it or attach it to a page",
+      "'Run continues in the background' text shown before Confirm & Run; Run Manager shows 0",
+      "Raw serialized 'id, s3_uri=\u2026' string in the Dataset Id input, clipped",
+      "Orphan truncated text under the collapsed Analysis plan",
+      "Duplicate Movies Path rendering (plain plus monospace)",
+      "'33 steps' vs '6 phases' shown without explanation",
+      "Confirm & Run appears disabled with no explanation",
+      "Unlabeled icon buttons under the panel title",
+      "Truncated header title; large empty areas"
+    ]
+  },
+  "domain-epigenomics-prerun.png": {
+    "consensus": "major",
+    "issues": [
+      "Tool request and displayed workflow identity do not match.",
+      "Self-contained demo request still prompts for required macs_gsize instead of using demo defaults.",
+      "Required parameter prompt conflicts with settings showing only optional parameters.",
+      "Background-run message contradicts pending configuration and disabled Confirm & Run.",
+      "Large empty area weakens the crop.",
+      "Text overflow under 'Analysis plan' in chat",
+      "Missing icon/empty square in side panel header",
+      "Contradiction: Prompt asks for BED files, side panel says no data inputs",
+      "Requested workflow perform_chipseq_peak_calling_with_macs2 but nf-core/chipseq is bound",
+      "'No data inputs to bind' contradicts the built-in BED demo files",
+      "Cold-start demo still prompts for required macs_gsize; defaults are not applied",
+      "Required macs_gsize is not shown in Parameters; only 'Optional parameters (2)' is shown",
+      "Clarification offers no hs/mm/ce/dm choices, only 'Provide the missing input'",
+      "'Run continues in the background' is shown before any run (Run Manager 0, Confirm & Run disabled)",
+      "MACS3 vs MACS2 inconsistency; '6 steps' vs '6 phases'",
+      "Truncated title and Analysis plan preview cut mid-word",
+      "Large empty whitespace",
+      "Screenshot is unreferenced by any manual page; remove it or attach it to a page"
+    ]
+  },
+  "domain-histology-prerun.png": {
+    "consensus": "major",
+    "issues": [
+      "Analysis-plan preview begins mid-word.",
+      "Upload instruction contradicts the already mapped built-in demo slide.",
+      "Background-running claim conflicts with pre-run confirmation state.",
+      "Incorrect singular: '1 steps'.",
+      "Large unused central area reduces documentation efficiency.",
+      "Broken/truncated text under 'Analysis plan' starting with 'ity, '",
+      "Stray checkbox and 'X' icon in right panel header area",
+      "'Inputs mapped' asks for a paperclip upload though the demo file is already wired, contradicting self-contained cold-start",
+      "'You can keep chatting while this run continues in the background' shown before Confirm & Run, Run Manager 0",
+      "Analysis plan preview text truncated mid-word at the start ('ity, intensity...')",
+      "Grammar: '1 steps'",
+      "Raw-looking label 'Input Wsi'",
+      "Unlabeled square/X icons under the workflow title",
+      "Large empty whitespace in chat and right panel",
+      "Screenshot unreferenced by any manual page: remove or link it"
+    ]
+  },
+  "domain-metabolomics-prerun.png": {
+    "consensus": "major",
+    "issues": [
+      "Analysis-plan preview loses its opening text.",
+      "Background-running message conflicts with the pre-run confirmation state.",
+      "Requested cachexia demo dataset is not visibly identified in settings.",
+      "Large blank area weakens the documentation crop.",
+      "AI response text is broken ('ow is now ready...')",
+      "Missing/broken icons in the right panel header (empty squares)",
+      "Chat title is truncated",
+      "Analysis plan summary text clipped at the start ('ow is now ready\u2026')",
+      "Header title truncated without ellipsis",
+      "Demo dataset not bound: Data/Metadata shown 'not set \u2014 empty' despite the cachexia demo request and BioMate's 'ready' claim",
+      "'Run continues in the background' shown before Confirm & Run; Run Manager shows 0",
+      "Unlabeled checkbox/X icons under the workflow title",
+      "Large dead space",
+      "Screenshot not referenced by any manual page"
+    ]
+  },
+  "domain-proteomics-prerun.png": {
+    "consensus": "major",
+    "issues": [
+      "Demo defaults do not populate required Pulldown Sample and Control Sample fields, blocking execution.",
+      "'No configuration required' and 'run continues in the background' contradict the missing-input prompt and disabled run button.",
+      "Grammar: '1 steps' should be '1 step'.",
+      "Premature 'run continues in the background' message when run is blocked awaiting input.",
+      "Empty required fields incorrectly show a 'Default' badge.",
+      "Demo dataset is not self-contained: required Pulldown Sample and Control Sample are empty despite 'sample-data defaults' and 'no configuration required'",
+      "'Default' badges sit on empty required fields",
+      "'You can keep chatting while this run continues in the background' shown before any run starts; Confirm & Run is disabled",
+      "'Which pulldown_sample?' 1/2 prompt contradicts the zero-config plan text",
+      "'1 steps' grammar error",
+      "Header title truncated ('...workflow on its')",
+      "Input File name duplicated as a monospace sub-line",
+      "'resolved \u00b7 format not checked' on the built-in demo input",
+      "Screenshot is unreferenced by any manual page",
+      "Large dead space in the chat column and right panel"
+    ]
+  },
+  "domain-single-cell-prerun.png": {
+    "consensus": "major",
+    "issues": [
+      "Dataset Id contains serialized metadata rather than a clean identifier.",
+      "Mapped filename displays 'pbmc3k_raw.h5ad]' with a stray bracket.",
+      "Chat says the run continues in the background before confirmation, while Run Manager shows 0.",
+      "Large unused chat area reduces screenshot focus.",
+      "Unlabeled checkbox in right panel header",
+      "Stray closing bracket in Inputs mapped section",
+      "Stray ']' in Inputs mapped value 'pbmc3k_raw.h5ad]'",
+      "Dataset Id field exposes a raw serialized object string (id + s3_uri) instead of a clean ID",
+      "Inputs mapped hint still tells the user to attach a file even though one is already attached and mapped",
+      "File Path and Dataset Id values are truncated with no visible full-value affordance",
+      "Unlabeled checkbox/X icons under the workflow title",
+      "Large empty dead space in the chat and right panel",
+      "Screenshot is unreferenced by any manual page; either reference it or drop it"
+    ]
+  },
+  "domain-structural-biology-prerun.png": {
+    "consensus": "major",
+    "issues": [
+      "1LYZ.pdb upload reports Internal server error; reference availability is unresolved.",
+      "Raw error JSON is exposed and promoted to a recommended required Warnings parameter.",
+      "Running-state chat text conflicts with pre-run confirmation and Run Manager 0.",
+      "Large dead space; FASTA path is not fully visible.",
+      "Raw JSON 'Internal server error' visible in the user chat message text.",
+      "Upload error incorrectly parsed and displayed as a 'Warnings' parameter in the workflow settings panel.",
+      "Raw JSON 'Internal server error' upload warning shown in the user message",
+      "Upload warning text bound as a 'Warnings' required parameter with a 'Recommended' badge",
+      "1LYZ.pdb upload failed, yet the chip shows it attached and Reference Pdb is a bare filename, not an uploaded path",
+      "'No data inputs to bind' contradicts the attached FASTA/PDB files",
+      "Chat card '2 steps' vs panel '1 phase' mismatch",
+      "Analysis plan preview truncated mid-sentence starting with '<1.5 \u00c5'",
+      "Title and Fasta Path value truncated",
+      "Unlabeled checkbox/X icons in the panel header",
+      "Large empty areas",
+      "Screenshot unreferenced by any manual page; remove or recapture after the fix"
+    ]
+  },
+  "domain-variant-calling-prerun.png": {
+    "consensus": "major",
+    "issues": [
+      "Mapped filename has a stray closing bracket.",
+      "Dataset Id displays internal storage metadata rather than a clean dataset value.",
+      "Genome Coverage shows Default without a visible value.",
+      "Claims the run continues while required inputs remain unresolved.",
+      "Analysis-plan preview begins mid-word ('e, validated databases...').",
+      "Empty checkbox and 'x' icon without labels in right panel header.",
+      "Dataset Id parameter field displays raw UUID/S3 URI instead of the mapped filename.",
+      "Orphan screenshot: not referenced by any manual page",
+      "Analysis plan preview truncated mid-word ('e, validated databases\u2026')",
+      "Dataset Id field shows raw id plus s3_uri string instead of a friendly file name",
+      "Stray ']' in 'sequencing_samples.csv]'",
+      "Inputs mapped text tells the user to attach a file even though files are attached and mapped",
+      "'7 steps' on the card vs '5 phases' in the panel",
+      "'run continues in the background' message shown before any run exists (Run Manager 0)",
+      "Required Genome Coverage field is empty despite a 'Default' badge",
+      "Unlabeled square/X icons in the panel header",
+      "Header title truncated",
+      "Large dead space in the right panel"
+    ]
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "rdkit_version": "2025.03.6",
+  "n_attempted": 6,
+  "n_valid": 5,
+  "n_unique_valid": 3,
+  "chemical_validity_per_attempt": 0.8333333333333334,
+  "connected_valid_per_attempt": 0.8333333333333334,
+  "fully_specified_stereo_valid_per_attempt": 0.8333333333333334,
+  "unique_valid_per_attempt": 0.5,
+  "uniqueness_among_valid": 0.6,
+  "exact_unseen_valid_per_attempt": 0.5,
+  "training_reference_unique_count": 1,
+  "identity_policy": "isomeric_graph; strip_atom_maps_and_removable_H; preserve_charge_isotope_fragments",
+  "limits": [
+    "No tautomer or salt-parent normalization",
+    "Exact graph novelty is not scaffold novelty or freedom to operate",
+    "Fingerprint similarity is not calibrated predictive uncertainty",
+    "No 3D geometry, peptide topology specification, potency, synthesis or safety evaluation",
+    "No proof that supplied attempts or training reference are complete"
+  ],
+  "samples": [
+    {
+      "sample_id": "linear_reference",
+      "chemical_valid": true,
+      "canonical_isomeric_smiles": "C[C@H](N)C(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)O",
+      "n_fragments": 1,
+      "unspecified_stereo_elements": 0,
+      "exact_training_match": true,
+      "nearest_training_tanimoto": 1.0
+    },
+    {
+      "sample_id": "linear_duplicate",
+      "chemical_valid": true,
+      "canonical_isomeric_smiles": "C[C@H](N)C(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)O",
+      "n_fragments": 1,
+      "unspecified_stereo_elements": 0,
+      "exact_training_match": true,
+      "nearest_training_tanimoto": 1.0
+    },
+    {
+      "sample_id": "linear_other",
+      "chemical_valid": true,
+      "canonical_isomeric_smiles": "C[C@H](NC(=O)[C@H](Cc1ccccc1)NC(=O)CN)C(=O)O",
+      "n_fragments": 1,
+      "unspecified_stereo_elements": 0,
+      "exact_training_match": false,
+      "nearest_training_tanimoto": 0.6
+    },
+    {
+      "sample_id": "cyclic",
+      "chemical_valid": true,
+      "canonical_isomeric_smiles": "O=C1CNC(=O)CN1",
+      "n_fragments": 1,
+      "unspecified_stereo_elements": 0,
+      "exact_training_match": false,
+      "nearest_training_tanimoto": 0.06818181818181818
+    },
+    {
+      "sample_id": "cyclic_alternate_order",
+      "chemical_valid": true,
+      "canonical_isomeric_smiles": "O=C1CNC(=O)CN1",
+      "n_fragments": 1,
+      "unspecified_stereo_elements": 0,
+      "exact_training_match": false,
+      "nearest_training_tanimoto": 0.06818181818181818
+    },
+    {
+      "sample_id": "failed",
+      "chemical_valid": false,
+      "failure_reason": "missing_or_invalid_smiles"
+    }
+  ],
+  "input_sha256": "a4e9e63b990c581c3a0118aca49f4c94d5f32815c50d406cd4bd590e04d3e863",
+  "training_sha256": "ecc640d1c3adc3f5531482b86fe2e35ca92116e4d88e6426fc5504d6a98b5450"
+}

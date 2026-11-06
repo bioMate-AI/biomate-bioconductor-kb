@@ -1,0 +1,122 @@
+[
+  {
+    "id": "5o45_d23",
+    "seq": "GGSGEGKKLAEELGLK",
+    "iptm": 0.626,
+    "ptm": 0.641,
+    "filter_rmsd": 4.59,
+    "len": 16
+  },
+  {
+    "id": "5o45_d1",
+    "seq": "SSPFPVFKEFSP",
+    "iptm": 0.606,
+    "ptm": 0.615,
+    "filter_rmsd": 1.71,
+    "len": 12
+  },
+  {
+    "id": "5o45_d22",
+    "seq": "SAPEVLRPYSSNPK",
+    "iptm": 0.604,
+    "ptm": 0.617,
+    "filter_rmsd": 4.94,
+    "len": 14
+  },
+  {
+    "id": "5o45_d24",
+    "seq": "AAPEVLRKYTSLP",
+    "iptm": 0.594,
+    "ptm": 0.634,
+    "filter_rmsd": 4.69,
+    "len": 13
+  },
+  {
+    "id": "5o45_d25",
+    "seq": "SNGPAELEEAVGVKI",
+    "iptm": 0.592,
+    "ptm": 0.619,
+    "filter_rmsd": 3.16,
+    "len": 15
+  },
+  {
+    "id": "5o45_d41",
+    "seq": "SSNPAAKHIDPM",
+    "iptm": 0.586,
+    "ptm": 0.617,
+    "filter_rmsd": 2.35,
+    "len": 12
+  },
+  {
+    "id": "5o45_d2",
+    "seq": "VKHLPELAHLSPS",
+    "iptm": 0.585,
+    "ptm": 0.627,
+    "filter_rmsd": 1.79,
+    "len": 13
+  },
+  {
+    "id": "5o45_d52",
+    "seq": "STLQLVNGRADF",
+    "iptm": 0.582,
+    "ptm": 0.614,
+    "filter_rmsd": 2.55,
+    "len": 12
+  },
+  {
+    "id": "5o45_d26",
+    "seq": "FGSKWAPDILKK",
+    "iptm": 0.578,
+    "ptm": 0.618,
+    "filter_rmsd": 2.53,
+    "len": 12
+  },
+  {
+    "id": "5o45_d31",
+    "seq": "MKTLTIDGVEFKIG",
+    "iptm": 0.577,
+    "ptm": 0.623,
+    "filter_rmsd": 4.8,
+    "len": 14
+  },
+  {
+    "id": "5o45_d5",
+    "seq": "TSNGTVIAGVM",
+    "iptm": 0.564,
+    "ptm": 0.616,
+    "filter_rmsd": 1.76,
+    "len": 11
+  },
+  {
+    "id": "5o45_d58",
+    "seq": "STTYVIDGETFTVS",
+    "iptm": 0.564,
+    "ptm": 0.597,
+    "filter_rmsd": 2.5,
+    "len": 14
+  },
+  {
+    "id": "5o45_d28",
+    "seq": "SKNPNAPEVLKPH",
+    "iptm": 0.563,
+    "ptm": 0.615,
+    "filter_rmsd": 2.36,
+    "len": 13
+  },
+  {
+    "id": "5o45_d3",
+    "seq": "SNGIEIAGFVT",
+    "iptm": 0.559,
+    "ptm": 0.61,
+    "filter_rmsd": 1.82,
+    "len": 11
+  },
+  {
+    "id": "5o45_d62",
+    "seq": "SYSLTVDGETFEVG",
+    "iptm": 0.559,
+    "ptm": 0.602,
+    "filter_rmsd": 3.73,
+    "len": 14
+  }
+]

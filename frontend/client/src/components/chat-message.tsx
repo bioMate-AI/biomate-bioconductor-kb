@@ -1,8 +1,12 @@
+import { ProgressStreamBox } from "./chat-progress-fold"
+import { ReadAloud } from "./voice-controls"
 import { useState, useRef } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { CodeExecutionBlock, type ToolBlock } from "./code-execution-block"
+import { FindingsCard } from "./findings-card"
+import { t } from "@/lib/i18n"
 
 /**
  * Pre-processes assistant markdown to:
@@ -39,6 +43,37 @@ function addCitationLinks(text: string): string {
 
   return linkedBody + linkedRefs;
 }
+
+/**
+ * Renders a markdown-embedded figure. If the image fails to load (or has no
+ * src), it shows a VISIBLE labeled placeholder with the alt text and a link to
+ * open the source — never a silent blank gap. The old behaviour set
+ * `display:none` on error, which left a cited figure as a mysterious empty box.
+ */
+function MarkdownFigure({ src, alt }: { src?: string; alt?: string }) {
+  const [errored, setErrored] = useState(false);
+  const label = (alt && alt.trim()) || t('chat_msg.figure');
+  if (!src || errored) {
+    return (
+      <span className="my-2 flex flex-col items-start gap-1 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <span>🖼 {t('preview.figure_unavailable', { label })}</span>
+        {src && (
+          <a href={src} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 break-all">
+            {t('preview.figure_open_source')}
+          </a>
+        )}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt ?? ""}
+      className="my-2 max-w-full rounded-md border border-border"
+      onError={() => setErrored(true)}
+    />
+  );
+}
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -55,21 +90,30 @@ import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { WorkflowChainPlan } from "./workflow-chain-plan"
 import { WorkflowDisambiguationCard, type DisambigCandidate } from "./workflow-disambiguation-card"
+import { buildDisambiguationCorrection, submitCorrection } from "@/lib/corrections"
+import { pipelineApprovalOptions } from "@/lib/chain-execution"
 import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
+import { IdeationRigorSection } from "./ideation-rigor-section"
 import { WhyAnchor } from "./why-anchor"
-import { ParamClarificationCard, type ParamClarification } from "./param-clarification-card"
-import { IntentClarificationCard, type IntentCandidate } from "./intent-clarification-card"
+import { type ParamClarification } from "./param-clarification-card"
+import { ClarifyCard, type ClarifyAnswer } from "./clarify-card"
+import {
+  paramClarificationsToQuestions,
+  intentClarificationToQuestion,
+  type IntentClarificationMeta,
+} from "./clarify-adapter"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { useToast } from "@/hooks/use-toast"
-import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
+import { hasInlineInputData, normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
 // Use the shared Message type for consistency
 import type { ExecutionRun, Message } from '@shared/schema'
+import { IND_REPORT_ENABLED } from "@/lib/feature-flags";
 export type { Message }
 
 // ── Speaker pill helpers ───────────────────────────────────────
@@ -95,8 +139,67 @@ function deriveSpeaker(kind: string | undefined): string {
   return 'wf'
 }
 
+/**
+ * IntentClarifyBridge — renders intent (cross-intent) clarification through the
+ * typed ClarifyCard (spec 06 §6.4) while preserving the existing intentOverride
+ * re-submit round-trip.
+ *
+ * A confirmed pick re-dispatches `biomate:intent-clarification-resolved` (the
+ * chat-with-artifacts bridge re-sends the original message with
+ * context.intentOverride). A skip must NOT re-submit — but ClarifyCard's skip
+ * paths call BOTH onSkip and onDone on a single-question card. We therefore set
+ * a skip flag in onSkip and guard onDone against it so a skip only dispatches
+ * `biomate:intent-clarification-skipped` (a no-op in the bridge), never a
+ * re-submit.
+ */
+function IntentClarifyBridge({
+  meta,
+  messageId,
+}: {
+  meta: IntentClarificationMeta
+  messageId: string
+}) {
+  const skippedRef = useRef(false)
+  const q = intentClarificationToQuestion(meta)
+  if (!q) return null
+  const originalMessage = meta.originalMessage || ""
+  return (
+    <ClarifyCard
+      questions={[q]}
+      messageId={messageId}
+      onSkip={() => {
+        skippedRef.current = true
+        window.dispatchEvent(
+          new CustomEvent("biomate:intent-clarification-skipped", {
+            detail: { messageId },
+          }),
+        )
+      }}
+      onDone={(answers: ClarifyAnswer[]) => {
+        // onSkip fires just before onDone on a skip path; bail so skip never
+        // re-submits.
+        if (skippedRef.current) {
+          skippedRef.current = false
+          return
+        }
+        const a = answers[0]
+        if (!a) return
+        window.dispatchEvent(
+          new CustomEvent("biomate:intent-clarification-resolved", {
+            detail: { messageId, intentType: a.value, originalMessage },
+          }),
+        )
+      }}
+      className="mt-2"
+    />
+  )
+}
+
 interface ChatMessageProps {
   message: Message
+  progressMessages?: Message[]
+  continuation?: boolean
+  hideActions?: boolean
   sessionId?: string
   onCopy?: () => void
   onRegenerate?: () => void
@@ -118,15 +221,30 @@ interface ChatMessageProps {
   isWorkflowRunning?: boolean
   workflowProgress?: number
   currentExecutionRun?: ExecutionRun | null
+  isStreaming?: boolean
   isLatestAssistantMessage?: boolean
   isRunAnchorFocused?: boolean
   isRunAnchorHighlighted?: boolean
   isInPanel?: boolean
-  onOpenInPanel?: () => void
+  /** C1: open the run's right panel. An optional `tab` deep-links to a specific
+   *  after-run sub-tab (Summary/Outputs/Report). The handler in chat-interface.tsx
+   *  + the panel (Stream 1) consume `tab`; chat-message only needs to pass it. */
+  onOpenInPanel?: (opts?: { tab?: 'summary' | 'outputs' | 'report' }) => void
+  /**
+   * Re-send this answer's intent forced to the Cloud/validated-workflow lane
+   * (spec 02 §2.2). Shown as an unobtrusive action on instant/compute-style
+   * assistant answers. The parent looks up the user turn that produced this
+   * message and re-sends it with intentOverride='workflow_generation'.
+   */
+  onRedoAsValidatedRun?: (message: Message) => void
 }
 
 export function ChatMessage({
   message,
+  progressMessages = [],
+  continuation = false,
+  hideActions = false,
+  isStreaming = false,
   sessionId,
   onCopy = () => console.log('Copy message triggered'),
   onRegenerate = () => console.log('Regenerate message triggered'),
@@ -152,9 +270,24 @@ export function ChatMessage({
   isRunAnchorHighlighted = false,
   isInPanel = false,
   onOpenInPanel,
+  onRedoAsValidatedRun,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
+
   const isWorkflowMessage = !isUser && message.metadata?.type === "workflow" && !!message.metadata?.workflow
+  // Keep workflow intent readable throughout execution. Research streaming uses its existing disclosure.
+  const foldResponse = !isUser && isStreaming && !isWorkflowMessage
+  const ResponseContainer = foldResponse ? "details" : "div"
+  // "Compute/analysis result" answer — an instant-lane reply that ran code or
+  // a tool (metadata.toolBlocks) or otherwise produced a numeric/analysis
+  // result, but is NOT already a validated (Cloud-lane) workflow message.
+  // These are the answers spec 02 §2.2 offers to "redo as a validated run".
+  const hasToolBlocks = Array.isArray((message.metadata as any)?.toolBlocks) && (message.metadata as any).toolBlocks.length > 0
+  const isComputeResultMessage =
+    !isUser &&
+    !isWorkflowMessage &&
+    message.metadata?.type !== "error" &&
+    hasToolBlocks
   // Workflow-progress messages: short, italic, friendly chat lines emitted by
   // the backend narrator (see backend/lib/galaxy/ai/workflow_ops/workflow_chat_narrator.py)
   // and delivered via the workflow SSE stream. Rendered as a single line, not
@@ -193,34 +326,34 @@ export function ChatMessage({
     onCopy()
     try {
       await navigator.clipboard.writeText(message.content || "")
-      toast({ title: "Copied response" })
+      toast({ title: t('chat_msg.copied') })
     } catch {
-      toast({ title: "Copy failed", description: "Clipboard permission unavailable.", variant: "destructive" })
+      toast({ title: t('chat_msg.copy_failed'), description: t('chat_msg.clipboard_unavailable'), variant: "destructive" })
     }
   }
 
   const handleCopyWorkflow = async () => {
     const workflow = message.metadata?.workflow
     if (!workflow) {
-      toast({ title: "No workflow to copy", variant: "destructive" })
+      toast({ title: t('chat_msg.no_workflow_to_copy'), variant: "destructive" })
       return
     }
     try {
       await navigator.clipboard.writeText(JSON.stringify(workflow, null, 2))
-      toast({ title: "Copied workflow JSON" })
+      toast({ title: t('chat_msg.copied_workflow_json') })
     } catch {
-      toast({ title: "Copy failed", description: "Clipboard permission unavailable.", variant: "destructive" })
+      toast({ title: t('chat_msg.copy_failed'), description: t('chat_msg.clipboard_unavailable'), variant: "destructive" })
     }
   }
 
   const handleDownloadOutputs = () => {
     if (!effectiveInvocationId) {
-      toast({ title: "No outputs yet", description: "Run a workflow first to enable download.", variant: "destructive" })
+      toast({ title: t('chat_msg.no_outputs_yet'), description: t('chat_msg.no_outputs_desc'), variant: "destructive" })
       return
     }
     window.open(`/api/invocations/${effectiveInvocationId}/download-all`, "_blank")
     setDownloadPromptOpen(true)
-    toast({ title: "Download started" })
+    toast({ title: t('chat_msg.download_started') })
   }
 
   // Format timestamp like reference: "YOU · 3:40 PM"
@@ -335,22 +468,81 @@ export function ChatMessage({
         data-message-type="workflow_progress"
         data-progress-kind={kind ?? "unknown"}
         style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontSize: 12, fontStyle: 'italic',
+          display: 'flex', flexDirection: 'row', alignItems: 'baseline', justifyContent: 'flex-start', flexWrap: 'wrap', gap: 6,
+          width: '100%', minWidth: 0, textAlign: 'left',
+          fontSize: 12, fontStyle: 'normal',
           color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
           opacity: 0.85,
         }}
       >
-        <span aria-hidden style={{ fontStyle: 'normal' }}>🔹</span>
         <span className="speaker-pill" data-speaker={speaker} aria-label={pillLabel}>{pillLabel}</span>
-        <span>{message.content}</span>
-        <WhyAnchor rationaleId={rationaleId} workflowName={wfName} phaseId={phaseId} />
+        <span style={{ flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }}>{message.content}</span>
+        {/* "(why?)" rationale anchor — commented out 2026-10-20 (UI refinement).
+            WhyAnchor renders the "(why?)" link whenever a workflow_name+phase_id
+            (or rationaleId) is present, BEFORE confirming a curated rationale
+            exists, so steps with no rationale (the common drug-dev case) showed a
+            void link. Curated rationale content is sparse. Re-enable once the
+            step event carries a rationale-exists flag so the link only renders
+            when it leads somewhere.
+        <WhyAnchor rationaleId={rationaleId} workflowName={wfName} phaseId={phaseId} /> */}
         {timeLabel && (
           <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>
         )}
       </div>
     )
   }
+
+  const responseContent = (
+              <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none
+                prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
+                prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
+                prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
+                prose-code:text-xs prose-code:bg-muted prose-code:text-foreground prose-code:px-1 prose-code:rounded
+                prose-pre:bg-muted prose-pre:text-foreground prose-pre:border prose-pre:border-border prose-pre:text-xs prose-pre:overflow-x-auto
+                prose-blockquote:border-l-4 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
+                prose-hr:my-3" style={isWorkflowMessage ? { fontSize: 'inherit' } : undefined}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    a: ({ href, children, ...props }) => (
+                      <a
+                        href={href}
+                        target={href?.startsWith('#') ? '_self' : '_blank'}
+                        rel={href?.startsWith('#') ? undefined : 'noopener noreferrer'}
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    ),
+                    table: ({ children, ...props }) => (
+                      <div className="overflow-x-auto my-2 max-w-full">
+                        <table className="w-full text-xs" {...props}>{children}</table>
+                      </div>
+                    ),
+                    img: ({ src, alt }) => (
+                      <MarkdownFigure src={typeof src === 'string' ? src : undefined} alt={alt} />
+                    ),
+                    // Explicit token-styled quote/callout box so a cited passage
+                    // always shows a visible accent border + readable text (the
+                    // prose default border color can render near-invisible).
+                    blockquote: ({ children }) => (
+                      <blockquote className="my-2 border-l-4 border-primary/60 bg-muted/40 pl-3 pr-2 py-1.5 rounded-r text-foreground/90 not-italic">
+                        {children}
+                      </blockquote>
+                    ),
+                  }}
+                >
+                  {addCitationLinks(
+                    // Strip trailing References section when structured citations are rendered below
+                    (message.metadata?.type === 'research_response' &&
+                      (message.metadata?.research_response as any)?.citations?.length > 0)
+                      ? (message.content || '').replace(/\n+(?:#{1,3}\s+|\*{1,2})?references?\**\s*\n[\s\S]*$/i, '').trim()
+                      : (message.content || '')
+                  )}
+                </ReactMarkdown>
+              </div>
+  )
 
   return (
     <div
@@ -364,10 +556,10 @@ export function ChatMessage({
       style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: isUser ? 'flex-end' : 'flex-start', maxWidth: '100%' }}
     >
       {/* Who label — "YOU · 3:40 PM" or "BIOMATE + speaker pill" */}
-      <div className="who" style={{
-        fontSize: 11, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
-        textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600,
-        fontFamily: 'var(--bm-font-ui)',
+      {!continuation && <div className="who" style={{
+        fontSize: 9.5, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+        letterSpacing: '0.13em', fontWeight: 600,
+        fontFamily: 'var(--bm-font-mono)',
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         {isUser ? `You${timeLabel ? ` · ${timeLabel}` : ''}` : (
@@ -398,23 +590,32 @@ export function ChatMessage({
             })()}
           </>
         )}
-      </div>
+      </div>}
 
-      <div className={cn("max-w-full space-y-3", isUser && "flex flex-col items-end")}>
+      <div className={cn("w-full min-w-0 max-w-full space-y-3", isUser && "flex flex-col items-end")}>
+        {(progressMessages.length > 0 || (isWorkflowMessage && message.content?.trim())) && (
+          <ProgressStreamBox messages={progressMessages} inline plan={isWorkflowMessage ? responseContent : undefined} />
+        )}
         <div className={cn(
           isUser
             ? "bubble"  /* reference: .msg.user .bubble */
             : ""        /* assistant: no card wrapper */
         )} style={isUser ? {
-          background: 'var(--bm-surface-3, oklch(0.945 0.005 240))',
+          // Design .bubble: surface-2, uniform r-md (no speech-tail), 13.5/1.6,
+          // padding 11/13, max-width 86% (audit C2#6/C2#8).
+          background: 'var(--bm-surface-2, oklch(0.965 0.004 240))',
           color: 'var(--bm-text, oklch(0.22 0.01 260))',
-          borderRadius: '14px 14px 2px 14px',
-          padding: '10px 14px',
-          maxWidth: '80%',
-          fontSize: 14,
-          lineHeight: 1.5,
+          borderRadius: 'var(--bm-r-md, 8px)',
+          padding: '11px 13px',
+          maxWidth: '86%',
+          minWidth: 0,
+          overflowWrap: 'anywhere',
+          whiteSpace: 'pre-wrap',
+          overflow: 'visible',
+          fontSize: 13.5,
+          lineHeight: 1.6,
           alignSelf: 'flex-end',
-        } : { lineHeight: 1.55 }}>
+        } : { lineHeight: 1.65 }}>
             {isUser ? (() => {
               const raw = message.content || ''
               // Extract attached file names from metadata blocks before stripping them
@@ -460,74 +661,10 @@ export function ChatMessage({
                   <span>{(message.metadata as any).progressStatus}</span>
                 </div>
               )}
-              <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none
-                prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
-                prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
-                prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
-                prose-blockquote:border-l-4 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
-                prose-hr:my-3">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
-                  components={{
-                    a: ({ href, children, ...props }) => (
-                      <a
-                        href={href}
-                        target={href?.startsWith('#') ? '_self' : '_blank'}
-                        rel={href?.startsWith('#') ? undefined : 'noopener noreferrer'}
-                        {...props}
-                      >
-                        {children}
-                      </a>
-                    ),
-                    table: ({ children, ...props }) => (
-                      <div className="overflow-x-auto my-2 max-w-full">
-                        <table className="w-full text-xs" {...props}>{children}</table>
-                      </div>
-                    ),
-                    img: ({ src, alt, ...props }) => {
-                      if (!src) return null;
-                      return (
-                        <img
-                          src={src}
-                          alt={alt ?? ''}
-                          {...props}
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      );
-                    },
-                    pre: ({ children, ...props }) => (
-                      <pre
-                        {...props}
-                        className="bg-muted text-foreground text-xs overflow-x-auto rounded p-3 my-2"
-                      >
-                        {children}
-                      </pre>
-                    ),
-                    code: ({ className, children, ...props }) => {
-                      const isBlock = className?.includes('language-');
-                      return (
-                        <code
-                          {...props}
-                          className={isBlock
-                            ? `${className ?? ''} text-foreground`
-                            : 'text-xs bg-muted text-foreground px-1 rounded'}
-                        >
-                          {children}
-                        </code>
-                      );
-                    },
-                  }}
-                >
-                  {addCitationLinks(
-                    // Strip trailing References section when structured citations are rendered below
-                    (message.metadata?.type === 'research_response' &&
-                      (message.metadata?.research_response as any)?.citations?.length > 0)
-                      ? (message.content || '').replace(/\n+(?:#{1,3}\s+|\*{1,2})?references?\**\s*\n[\s\S]*$/i, '').trim()
-                      : (message.content || '')
-                  )}
-                </ReactMarkdown>
-              </div>
+              <ResponseContainer className="w-full">
+              {foldResponse && <summary className="cursor-pointer text-sm text-muted-foreground py-2">Writing response…</summary>}
+              {!isWorkflowMessage && responseContent}
+              </ResponseContainer>
               </>
             )}
           </div>
@@ -574,6 +711,10 @@ export function ChatMessage({
                   onToolClick({ tool: { tool_id: galaxyToolId, name: toolName }, relevanceScore: 1, reasoning: 'From research' })
                 }
               }}
+              // "Check against our data" reuses the redo-as-validated-run path: it
+              // re-runs the question that produced this answer as a validated
+              // workflow. Only wired when the handler exists → never a dead exit.
+              onCheckAgainstData={onRedoAsValidatedRun ? () => onRedoAsValidatedRun(message) : undefined}
               className="mt-3"
             />
           )}
@@ -582,15 +723,9 @@ export function ChatMessage({
               or was previously in the panel (panel closed after opening) */}
           {isWorkflowMessage && everInPanel && message.metadata?.workflow && (() => {
               const runStatus = currentExecutionRun?.execution?.status;
-              const chipClass = runStatus === 'failed' ? 'chip-fail' : runStatus === 'running' ? 'chip-run' : 'chip-ok';
-              const chipLabel = runStatus === 'failed' ? 'Failed' : runStatus === 'completed' ? 'Done' : runStatus === 'running' ? 'Running' : isInPanel ? 'In panel' : 'Open in panel';
-              const hint = runStatus === 'failed'
-                ? 'This run did not complete. Check the panel for details and try again.'
-                : runStatus === 'completed'
-                ? 'Run complete — results are available in the panel.'
-                : isInPanel
-                ? 'You can keep chatting while this run continues in the background.'
-                : 'Click Open to view this workflow in the panel.';
+              const completed = ['completed', 'succeeded', 'ok'].includes(runStatus || '');
+              const chipClass = runStatus === 'failed' ? 'chip-fail' : runStatus === 'running' ? 'chip-run' : completed ? 'chip-ok' : 'chip';
+              const chipLabel = completed ? 'Completed' : ({ running:'Running', failed:'Failed', paused:'Paused', cancelled:'Cancelled', pending:'Ready', configuring:'Ready', queued:'Queued' } as Record<string,string>)[runStatus || ''] || (runStatus ? runStatus.charAt(0).toUpperCase() + runStatus.slice(1) : null);
               return (
                 <>
                   <div className="wf-chip" data-tour="chat-handoff">
@@ -599,95 +734,91 @@ export function ChatMessage({
                     </div>
                     <div className="wf-chip-body">
                       <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
-                      <div className="wf-chip-sub">
-                        {[
-                          message.metadata.workflow.domain,
-                          message.metadata.workflow.subtitle ||
-                            (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps) && Object.keys(message.metadata.workflow.steps).length > 0
-                              ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
-                        ].filter(Boolean).join(' · ')}
-                      </div>
                     </div>
-                    <span className={chipClass}>
+                    {chipLabel && <span className={chipClass}>
                       <span className="dot" />
                       {chipLabel}
-                    </span>
+                    </span>}
+                    {isInPanel && (
+                      <span className="chip-ok" data-testid="wf-chip-in-panel">
+                        <span className="dot" />
+                        {t('chat.in_panel')}
+                      </span>
+                    )}
                     {!isInPanel && onOpenInPanel && (
                       <button
-                        onClick={onOpenInPanel}
+                        onClick={() => onOpenInPanel()}
                         style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
                       >
                         Open
                       </button>
                     )}
                   </div>
-                  <div
-                    className="wf-chip-hint"
-                    data-testid="wf-chip-background-hint"
-                    style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.45 }}
-                  >
-                    {hint}
-                  </div>
                 </>
               );
             })()
           }
 
-          {/* IntentClarificationCard — surfaces cross-intent ambiguity
-              (e.g. tool_search vs workflow_generation) from the backend's
-              _detectCrossIntentAmbiguity. User pick re-submits the query
-              with context.intentOverride set. */}
+          {/* §1.1–1.3 Chat answer block — the completed run's answer lives in chat
+              (full scrollable result + per-tab deep-links + status row), not only in
+              the right panel. Shown once the panel is/was open so it complements,
+              rather than duplicates, the inline card shown before the panel opens. */}
+          {isWorkflowMessage && message.metadata?.workflow && everInPanel &&
+            ['completed', 'succeeded', 'ok'].includes(currentExecutionRun?.execution?.status || '') && (
+            <div
+              data-v2-ui
+              data-testid="chat-answer-block"
+              style={{ marginTop: 10, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg-elev, #fff)', overflow: 'hidden' }}
+            >
+              {/* Full result — scrollable, never capped to N rows (design override). */}
+              <div style={{ maxHeight: 440, overflowY: 'auto' }}>
+                <FindingsCard
+                  runId={currentExecutionRun?.id}
+                  executionStatus={currentExecutionRun?.execution?.status}
+                  onOpenOutput={() => onOpenInPanel?.({ tab: 'outputs' })}
+                  preview
+                />
+              </div>
+              {/* Per-tab deep links. The run status + "Open run" already live on the
+                  wf-chip above, so the answer block does not repeat them (avoids a
+                  redundant second "Completed" hint). */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid var(--border)', fontSize: 12 }}>
+                <button type="button" data-testid="answer-link-summary" onClick={() => onOpenInPanel?.({ tab: 'summary' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px dotted var(--border-strong)' }}>Full table in Summary →</button>
+                <button type="button" data-testid="answer-link-outputs" onClick={() => onOpenInPanel?.({ tab: 'outputs' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px dotted var(--border-strong)' }}>Files in Outputs →</button>
+                <button type="button" data-testid="answer-link-report" onClick={() => onOpenInPanel?.({ tab: 'report' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px dotted var(--border-strong)' }}>Full report →</button>
+              </div>
+            </div>
+          )}
+
+          {/* Intent clarification (spec 06 §6.4, typed) — surfaces cross-intent
+              ambiguity (e.g. tool_search vs workflow_generation) from the
+              backend's _detectCrossIntentAmbiguity. Rendered by the typed
+              ClarifyCard as a single workflow-target question; picking an option
+              re-submits the query with context.intentOverride set. ClarifyCard
+              dispatches `biomate:clarify-workflow-resolved` (the value is the
+              intent type); we translate that here into the existing
+              `biomate:intent-clarification-resolved` re-submit so the
+              intentOverride round-trip in chat-with-artifacts is preserved. */}
           {!isUser && (message.metadata as any)?.intentClarification?.candidates?.length > 0 && (
-            <IntentClarificationCard
-              originalMessage={(message.metadata as any).intentClarification.originalMessage || ''}
-              originalIntent={(message.metadata as any).intentClarification.originalIntent || ''}
-              candidates={(message.metadata as any).intentClarification.candidates as IntentCandidate[]}
-              reason={(message.metadata as any).intentClarification.reason}
-              onPick={(intentType, originalMessage) => {
-                window.dispatchEvent(
-                  new CustomEvent('biomate:intent-clarification-resolved', {
-                    detail: { messageId: message.id, intentType, originalMessage },
-                  }),
-                )
-              }}
-              onSkip={() => {
-                window.dispatchEvent(
-                  new CustomEvent('biomate:intent-clarification-skipped', {
-                    detail: { messageId: message.id },
-                  }),
-                )
-              }}
-              className="mt-2"
+            <IntentClarifyBridge
+              meta={(message.metadata as any).intentClarification as IntentClarificationMeta}
+              messageId={message.id}
             />
           )}
 
-          {/* ParamClarificationCard — surfaces missing-required / enum-violation
-              issues from schema-grounded extraction. Hidden when none present. */}
+          {/* Param clarification (spec 06 §6.4, typed) — surfaces missing-required
+              / enum-violation issues from schema-grounded extraction. Rendered by
+              the typed ClarifyCard: each option carries the bound schema value,
+              so answering selects a value directly (never re-parsed). ClarifyCard
+              dispatches the same `biomate:param-clarification-resolved` /
+              `-skipped` events the workflow-panel bridge already listens for, so
+              the pre-fill round-trip is unchanged. Hidden when none present. */}
           {!isUser && (message.metadata as any)?.paramClarifications?.length > 0 && (
-            <ParamClarificationCard
-              workflowName={
-                message.metadata?.workflow?.name ||
-                message.metadata?.workflow?.display_name ||
-                'workflow'
-              }
-              clarifications={(message.metadata as any).paramClarifications as ParamClarification[]}
-              onSelect={(paramName, value) => {
-                // Dispatch a custom event the workflow panel can listen for; the
-                // panel patches the param value in place. The card itself does
-                // not own param state.
-                window.dispatchEvent(
-                  new CustomEvent('biomate:param-clarification-resolved', {
-                    detail: { messageId: message.id, paramName, value },
-                  }),
-                )
-              }}
-              onSkip={(paramName) => {
-                window.dispatchEvent(
-                  new CustomEvent('biomate:param-clarification-skipped', {
-                    detail: { messageId: message.id, paramName },
-                  }),
-                )
-              }}
+            <ClarifyCard
+              questions={paramClarificationsToQuestions(
+                (message.metadata as any).paramClarifications as ParamClarification[],
+              )}
+              messageId={message.id}
               className="mt-2"
             />
           )}
@@ -698,7 +829,7 @@ export function ChatMessage({
           {/* Path A.4: Roll into IND project. Shows only when workflow completed +
               at least one IND project exists. The affordance itself queries
               listProjects() and hides if empty. */}
-          {isWorkflowMessage && message.metadata?.workflow && currentExecutionRun?.execution?.status === "completed" && (
+          {IND_REPORT_ENABLED && isWorkflowMessage && message.metadata?.workflow && currentExecutionRun?.execution?.status === "completed" && (
             <RollIntoIndAffordance
               workflowName={message.metadata.workflow.name || message.metadata.workflow.display_name}
               workflowRunId={effectiveInvocationId || undefined}
@@ -744,6 +875,7 @@ export function ChatMessage({
                 {
                   executionBlockedReason,
                   allowLowConfidenceOverride: !!executionBlockedReason,
+                  hasInlineData: hasInlineInputData(message.metadata?.workflow),
                 }
               );
               const effectiveBlockedReason = executionBlockedReason;
@@ -777,7 +909,14 @@ export function ChatMessage({
                     <WorkflowDisambiguationCard
                       message={wf.message || 'Which workflow best fits what you need?'}
                       candidates={candidates}
-                      onSelect={(c) => onAdjustViaChat?.(`Use ${c.display_name || c.name}`)}
+                      onSelect={(c) => {
+                        // A pick that differs from the system's top-scored guess is a
+                        // genuine routing correction — record it so the next turn's
+                        // _buildCorrectionContextBlock injection prefers it.
+                        const correction = buildDisambiguationCorrection(candidates, c, { sessionId })
+                        if (correction) void submitCorrection(correction)
+                        onAdjustViaChat?.(`Use ${c.display_name || c.name}`)
+                      }}
                     />
                   </div>
                 )
@@ -796,6 +935,9 @@ export function ChatMessage({
                   params: s.params || s.parameters || {},
                   status: s.status || 'pending' as const,
                   outputTypes: s.output_types || [],
+                  dependsOn: s.depends_on,
+                  dimensions: s.dimensions,
+                  errorMessage: s.errorMessage || s.error,
                   usesStepId: s.uses_step_id || s.input_from,
                   usesDescription: s.uses_description || s.input_type,
                 }))
@@ -806,7 +948,8 @@ export function ChatMessage({
                   >
                     <PipelineListView
                       steps={steps}
-                      approvalGate
+                      approvalGate={pipelineApprovalOptions(wf).endAtStep === 0}
+                      chainStatus={wf.chain_status}
                       chainRunId={wf.chain_run_id}
                       onConfirmRun={() => onRunPipeline?.(wf)}
                       onApproveStep={(completedStepId, nextStepId) =>
@@ -898,6 +1041,7 @@ export function ChatMessage({
                             toolInstallationSuccess:
                               message.metadata?.tool_installation?.success !== false,
                           },
+                          __datasetReferenceUnresolvedIds: message.metadata?.datasetReferenceUnresolvedIds,
                           __executionOverrides: params?.__executionOverrides || undefined,
                           __qcConfig: params?.__qcConfig || undefined,
                         },
@@ -940,6 +1084,7 @@ export function ChatMessage({
                           candidateWorkflows: [],
                           toolInstallationSuccess: true,
                         },
+                        __datasetReferenceUnresolvedIds: message.metadata?.datasetReferenceUnresolvedIds,
                         __executionOverrides: params?.__executionOverrides || undefined,
                         __qcConfig: params?.__qcConfig || undefined,
                       },
@@ -959,6 +1104,14 @@ export function ChatMessage({
           {/* Scientific Rationale — collapsed by default, shown for generated workflows */}
           {isWorkflowMessage && message.metadata?.rationale && (
             <WorkflowRationale rationale={message.metadata.rationale} />
+          )}
+
+          {/* Ideation rigor (gap 10) — expandable pre-run plan on the workflow
+              card. Renders <IdeationPlan> when the backend ideation gates have
+              produced a plan (metadata.ideationPlan); otherwise shows an honest
+              empty state. Shown before a run confirms (not once completed). */}
+          {isWorkflowMessage && !everInPanel && currentExecutionRun?.execution?.status !== "completed" && (
+            <IdeationRigorSection plan={(message.metadata as any)?.ideationPlan} />
           )}
 
           {/* Output Attachments in chat — commented out per UX review 2026-06-19.
@@ -988,7 +1141,7 @@ export function ChatMessage({
               wfName.includes("pbpk_simulation") ||
               wfName.includes("pbpk")
             const isCompleted = currentExecutionRun?.execution?.status === "completed"
-            if (!isAdmetOrPbpk || !isCompleted) return null
+            if (!IND_REPORT_ENABLED || !isAdmetOrPbpk || !isCompleted) return null  // IND paused
             const label = wfName.includes("pbpk")
               ? "PBPK qualification complete"
               : "ADMET screening complete"
@@ -1003,14 +1156,14 @@ export function ChatMessage({
                   <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/>
                   <path d="M5 6h6M5 8.5h4M5 11h3"/>
                 </svg>
-                <span>{label} — <strong>Generate IND §2.6 report from these results →</strong></span>
+                <span>{label} — <strong>{t('chat_msg.generate_ind')}</strong></span>
               </a>
             )
           })()}
         </div>
 
         {/* Action buttons — only shown when there is actual response content */}
-        {!isUser && message.metadata?.type !== "error" && !!message.content?.trim() && (
+        {!hideActions && !isUser && message.metadata?.type !== "error" && !!message.content?.trim() && (
           <div className="flex items-center gap-2 flex-wrap">
             <DownloadOutcomePrompt
               open={downloadPromptOpen}
@@ -1025,19 +1178,20 @@ export function ChatMessage({
               size="icon"
               onClick={handleCopyResponse}
               data-testid="button-copy-response-icon"
-              title="Copy response"
-              aria-label="Copy response"
+              title={t('chat_msg.copy_response')}
+              aria-label={t('chat_msg.copy_response')}
             >
               <Copy className="h-4 w-4" />
             </Button>
+            <ReadAloud text={message.content || ""} disabled={isStreaming} />
             {/* Save response as file */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  title="Save response as file"
-                  aria-label="Save response as file"
+                  title={t('chat_msg.save_as_file')}
+                  aria-label={t('chat_msg.save_as_file')}
                   data-testid="button-save-response"
                 >
                   <FileDown className="h-4 w-4" />
@@ -1049,21 +1203,21 @@ export function ChatMessage({
                   className="gap-2"
                 >
                   <FileText className="h-4 w-4" />
-                  Save as .txt
+                  {t('chat_msg.save_as_txt')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => downloadAsMd(message.content || '', message.content)}
                   className="gap-2"
                 >
                   <FileText className="h-4 w-4" />
-                  Save as .md
+                  {t('chat_msg.save_as_md')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => downloadAsDocx(message.content || '', message.content)}
                   className="gap-2"
                 >
                   <FileDown className="h-4 w-4" />
-                  Save as .docx
+                  {t('chat_msg.save_as_docx')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1072,19 +1226,32 @@ export function ChatMessage({
               size="icon"
               onClick={onRegenerate}
               data-testid="button-regenerate-message-icon"
-              title="Regenerate response"
-              aria-label="Regenerate response"
+              title={t('chat_msg.regenerate_response')}
+              aria-label={t('chat_msg.regenerate_response')}
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
+            {isComputeResultMessage && onRedoAsValidatedRun && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onRedoAsValidatedRun(message)}
+                data-testid="button-redo-as-validated-run"
+                title={t('chat_msg.rerun_validated_tip')}
+                className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <FlaskConical className="h-3.5 w-3.5" />
+                {t('chat_msg.redo_as_validated')}
+              </Button>
+            )}
             {effectiveInvocationId && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleDownloadOutputs}
                 data-testid="button-download-outputs-icon"
-                title="Download outputs"
-                aria-label="Download outputs"
+                title={t('chat_msg.download_outputs')}
+                aria-label={t('chat_msg.download_outputs')}
               >
                 <Download className="h-4 w-4" />
               </Button>
@@ -1109,7 +1276,7 @@ export function ChatMessage({
               data-testid="button-async-try-again"
               onClick={() => onSuggestionClick("Try again", message)}
             >
-              Try again
+              {t('chat_msg.try_again')}
             </Button>
             <ReportConfusionButton
               sessionId={sessionId}

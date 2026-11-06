@@ -163,10 +163,12 @@ export function configureSecurityHeaders(app: Express) {
                 'https://*.google-analytics.com',
                 'https://*.googletagmanager.com',
               ],
+              mediaSrc: ["'self'", ...(process.env.BIOMATE_VOICE_ENABLED === "true" ? ["blob:"] : [])],
               connectSrc: [
                 "'self'",
                 'https://api.anthropic.com',
                 'https://api.openai.com',
+                ...(process.env.BIOMATE_LIVE_VOICE_ENABLED === 'true' ? ['wss://api.elevenlabs.io'] : []),
                 // GA4 measurement-protocol POSTs + region-specific endpoints.
                 'https://www.google-analytics.com',
                 'https://*.google-analytics.com',

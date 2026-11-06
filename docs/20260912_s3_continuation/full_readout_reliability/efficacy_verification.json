@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "ratios_independently_checked": 768,
+  "target_cpm_values_checked": 384,
+  "summary_groups_checked": 17,
+  "overall": {
+    "profiles": 384,
+    "both_references_measurable": 380,
+    "lower_than_both_references": 364,
+    "undefined_reference_ratios": 4,
+    "median_ratio": {
+      "feature": 0.14902064490751557,
+      "reference": 0.1469607743635611
+    }
+  },
+  "undefined_handling": "Zero control counts produce None without pseudocount; excluded from measurable-profile denominator and pool-specific medians.",
+  "results_sha256": "feb70c6a856e2367af3ba4c806a32db3ac899ea9fc20e27fcbef1984637feb01"
+}

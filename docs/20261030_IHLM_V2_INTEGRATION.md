@@ -1,0 +1,157 @@
+# IH-LM v2 — integration of the earlier months of work (T-INTEGRATE)
+
+Status 2026-10-28 (CDT): **Step 1 (inventory) only.** Steps 2 (architecture) and 3 (wiring) follow after this section is committed and the coordinator has the verdict table. Every row below was established by opening the file or the audit that measured it; "claimed" means a document asserts it and no audit re-derived it.
+
+## 1. Inventory and verdicts
+
+Verdict key: **AS-IS** reusable unchanged · **FIX** reusable after the stated fix · **PATTERN** only the design idea / interface is reusable · **NO** not reusable (and why).
+
+| # | asset (path) | what it verifiably is / does (evidence) | verdict | reason / what limits it |
+|---|---|---|---|---|
+| 1 | `runs_helm/unified_cyclic_llm_v4.pt` + `cyclic_llm/unified_cyclic_llm.py` | Own monomer-token LM: 5.02 M params, vocab 393 (opened checkpoint: d_model 256, 6 layers, 8 heads, block 40, 4,000 steps, batch 128, max_len 16); trained on CycPeptMPDB (monomers + permeability buckets) ∪ display pool (target prefix + enrichment bucket) (code read). Stored per-target AUCs reproduce **exactly** from the checkpoint (V4 audit #1); scoring alignment correct (#2); planted-signal control passes (#3) | **FIX** (as comparator / scorer on its mapped subset only) | binding "win" at chance vs hard negatives on 4 of 5 targets (0.44–0.66, audit #5); a trivial abundance sort scores 0.996–1.0 (#6); wrong-target prefix keeps AUC 0.81–0.92 on 3 targets (#8: target barely used); 34.7 % of its training rows are Lariat but it has no topology token (#13); "validity 1.0" is token-level (#14); monomer converter covers only 2.5–5.4 % of the benchmark (reuse audit §3). Not a backbone for atom-level coverage |
+| 2 | `v4_eval/loop_model.py`, `atom_loop_model.py`, `smiles_to_monomers.py`, `monomer_dictionary_v5.json` | `LoopModel` contract (score / update / fingerprint / cost meter; update returns a new model, modes finetune_ranking, dpo, frozen, one_shot_matched), v4 backend, atom-LM backend, audited SMILES→monomer converter (tests pass; 40.6 % full mapping on CycPeptMPDB held-out half, 4.1 % on benchmark domain) | **AS-IS** | this is the interface IH-LM v2 must implement; the converter's low benchmark coverage is a measured limit |
+| 3 | `runs_helm/unified_cyclic_llm_v4_dpo.pt` | v4 + DPO on **permeability only** (code `methodology_close.py`: null target, `<p_hi>`; oracles = composition regressors); placebo-controlled gain +0.124 vs +0.0145 shuffled (p = 0.004); leakage-safe independent-evaluator gain +0.098 (6/6 seeds); 68–72 % of generated peptides are verbatim CycPeptMPDB (V4 audit §6) | **FIX** | binding scores unchanged: Spearman 0.9999 vs v4, AUC identical; evaluator independent in data only (same featuriser); diversity 0.962→0.889 |
+| 4 | `runs_helm/unified_cyclic_llm_v4_dpo_rc.pt` | "rule-constrained" DPO checkpoint | **NO** | its rule gate was a no-op when trained (reuse audit row 21): uninformative |
+| 5 | `runs_helm/helm_monomer_llm.pt` (4.95 M, vocab 387) | permeability-conditioned monomer LM; superseded by v4 | **PATTERN** (vocabulary only) | monomer vocabulary (387 tokens, 363 ncAA) reusable via the v5 dictionary; the model adds nothing over v4 |
+| 6 | display-conditioned char LMs v2/v3/v3.1 (`runs_v3/*.pt`, `train_cyclic_llm_v{2,3,3_1}.py`) + `cyclic_llm_selector.py` | ~4.8 M-param nanoGPT; LLR selector pattern | **NO** (as evidence) / **PATTERN** (LLR scoring) | within-target AUC is circular (abundance null AUC ≈ 1.0, LM below it on all four targets: rigor check, paper-draft rescope); memorisation on 3 of 5 targets (leakage audit); cross-target LOTO null. The conditional-LLR scoring pattern is reused inside #1/#2 |
+| 7 | `cyclic_llm/neural_generator.py` | v4-based proposer for the αvβ6 scaffold free positions (samples ∝ v4 likelihood under null-target + high-permeability conditioning), same symbolic reject + rank, enumeration fallback | **PATTERN** | docstring's own limits: target-agnostic, palette-restricted to gate-known monomers, signal is "permeable macrocycle chemistry" not affinity; αvβ6 only |
+| 8 | `cyclic_llm/rule_conditioned_generator.py` | fixed-scaffold enumeration `cyclo(p1-R-G-D-L-p6-p7-[dP]-[NMeK])` over short lists, then gate + FTO filter; emits (H, X) | **PATTERN** | self-described stand-in; not generative (V4 audit §2); the constrain-then-reject contract is the reusable idea |
+| 9 | `cyclic_llm/rule_induction.py` | greedy conjunction over **9 hard-coded** RGD / αvβ6 / PD-L1 predicates; induced rules for 2 targets (αvβ6 from 3 actives + 4 non-actives; PD-L1 from 1 + 3) | **FIX** | predicates must be generalised (substructure/edit predicates) before use beyond 2 targets; keep the "H artifact" output format |
+| 10 | `cyclic_llm/acceptance_gate.py`, `pharmacophore_knowledge.py` | computable αvβ6 gates H1–H8 (RGD, RGDL, D-Pro + N-methyl lock, aromatic flanks, single Lys handle, FTO flag); PD-L1 marked "needs a structure gate"; literature-grounded; `generation_constraint()` contract for a constrained decoder | **AS-IS** (for αvβ6/PD-L1) | target-specific by construction; the decoder contract was never implemented on a pretrained base (nothing enforces it at decoding) |
+| 11 | `cyclic_llm/knowledge_liability_flags.py` | zero-compute CMC/radiopharmacy motif flags (NG/NS/NH/NA, DG/DS, Met/Trp oxidation, odd Cys; αvβ6 SAR; renal charge); `parse_helm` bug fixed (docs 20261027_PARSE_HELM_NCAA_BUG) | **FIX** | canonical-residue/sequence-motif level only; not ncAA-, stereo- or topology-aware (KB audit §1) |
+| 12 | `cyclic_llm/score.py` (cheap tier), `fto_score.py`, `peptide_availability.py` | consolidated verifier: `hard_gate_pass = rule ∧ not-infringing ∧ developability`; `rank_key`; availability informational | **AS-IS** (cheap tier, as a verifier hook) | HELM-only input; rule applicable to αvβ6 only (`rule_applicable=False` otherwise); a pass is never binding evidence; availability OLS fit on linear SH3/PDZ peptides, not validated for cyclic peptides; FTO `patents_checked` limited |
+| 13 | `cyclic_llm/physics_dispatch.py`, `scorer_config.py`, `physics_batch.py`, `loop_batch.py` | admissibility logic (A2 control-anchor, mechanism-compliance, metal rule) and a dispatch seam that **reads precomputed** results | **PATTERN** | αvβ6 MM-GBSA voided (no metal, no anchor): no admissible αvβ6 ΔG exists; FEP control edge computed with no metal at the site (−0.18 vs measured −0.95 kcal/mol; "ready" verdict void); expensive tier bypassed in practice |
+| 14 | `cyclic_llm/loop.py` | propose → score → select → revise → repeat harness; `revise` is a deterministic symbolic stand-in ("no LLM or RL is wired") | **PATTERN** | harness reusable; `revise` is what IH-LM's update path replaces |
+| 15 | `cyclic_llm/reward.py`, `research/.../dpo_pairs.py`, `dpo_peptide_trainer.py` | reward = hard gate dominates, FEP ΔΔG preferred, MM-GBSA fallback, selectivity first-class; preference-pair emitter into the DPO schema | **FIX** | pair emitter and reward are reusable as written; two of three DPO streams empty (only the loop's own ranking is fed); physics terms are 0 in practice; the only closed gradient loop (`methodology_close.py`) optimises a permeability oracle, never binding |
+| 16 | `cyclic_llm/loop_grade_bridge.py`, `evaluation/local_trial/graded_run_store.py`, `execution_grader.py` | execution-tier ladder (crashed→…→pass) and SQLite reward store for graded real runs | **AS-IS** (as storage/grading contract) | holds only simulated data today; no measured campaign data exists |
+| 17 | `cyclic_llm/experience_kb.py`, `medchem_kb.py`, `target_kb/*.json` | 151 entry instances = 73 distinct statements, 16 targets; medchem liability (1,585 RDKit alerts, cited); 54 of 57 citations confirmed real (Crossref) | **FIX** | covers 12 of 793 benchmark targets (1 of 46 in the primary analysis); pharmacophore entries are 2 sentences; no UniProt keys; self-asserted `verified` flags unreliable; `medchem_kb_product` dead (no consumer); `medchem_kb_ingested_large` is summary counts only (KB audit §1–3) |
+| 18 | `cyclic_llm/kb_audit/peptide_sar_kb.py` (K_phys, K_nme, K_dflip channel) | rules mined from training labs only; offline permutation null: median per-lab ρ 0.252 (p = 5×10⁻⁵), 19/21 labs positive | **AS-IS** (K_phys as a prior); K_nme/K_dflip as reference modes | K_nme ≈ 0 per peptide; D-flip carries nothing; in the loop only an exploratory regime-B lead, cluster-level none |
+| 19 | `cyclic_llm/ihlm/` (workstream 1: `model.py`, `symbolic.py`) | IHLM class + symbolic modules (offsets, similarity retrieval, edit effects, uncertainty, dual memory), tests | **AS-IS** for symbolic parts at commit ≥ `94efe092d`; **FIX** neural M3 attention and verifier head | neural M3 leave-lab-out ρ 0.444 < 0.60 and verifier AUC 0.529 < 0.90 (xfail, no threshold loosened); untrained backbone; ≈800 lines |
+| 20 | atom LM P0 (`allatom/`, S3) | 25.5 M params, ChEMBL-dominated (1.7 % macrocycles), stereo-preserving tokens, 94.1 % of analysis-I items within 256 tokens | **FIX** (baseline/typicality control only) | proof of pipeline; typicality control exposed the M2 shortcut (AUC 0.665 with no target information); stereo ranking 0.113 ≪ chirality-aware GBM 0.351; 0.29 % of 100k corpus lines overlap benchmark compounds |
+| 21 | UniMoMo / PepGLAD / BoltzGen fine-tunes, Stage B selector | cyclic fine-tune flat (+0.0097 DockQ, CI spans 0; 79 OOM events in 90 updates); PepGLAD plateau 0.437; BoltzGen fine-tune lost to base on 3/3 (n = 4 smoke); selector null on 104 post-cutoff complexes (inputs verified) | **NO** | not scorers of arbitrary SMILES and null as fine-tunes; Stage B data (884 PDB complexes with closure atom pairs) reusable as topology ground truth (separate note) |
+| 22 | earlier design docs (`20261015_GENERATION_SYSTEM_MASTER`, `…SURVEY_AND_ARCHITECTURE`, `…DETAILED_DESIGN_SYMBOLIC_NEURAL_LEARNINGS`, `20261013_RULE_VS_NOVELTY`, `20261021_RULE_CONSTRAINED_GENERATIVE_ARCHITECTURE`, `20261008_SESSION…CAPSTONE`) | SNG pattern: rules outside constrain/reject, LLM proposes, verifier scores, loop revises; lessons: binding is the easy axis, hard gates (selectivity, developability, FTO, mechanism physics) kill candidates; rules are a good filter and poor generator (genus trap) | **PATTERN** (design), **NO** (as evidence) | capstone claims (binding selector "win", "levers compose") are superseded by the V4 audit and rigor check; the architecture doc itself lists remaining stand-ins: `revise`, physics read-only, DPO streams unfed |
+
+### 1.1 What the inventory says about IH-LM v2
+- **Reusable as written (AS-IS):** LoopModel contract and converter (#2), αvβ6/PD-L1 gate layer (#10), the cheap verifier (#12), the graded-run store (#16), K_phys prior (#18), workstream 1's symbolic modules at ≥ `94efe092d` (#19).
+- **Reusable after a named fix:** v4 as a mapped-subset scorer (#1), permeability-DPO machinery (#3, #15), rule induction generalised beyond 9 predicates (#9), liability flags made ncAA/stereo-aware (#11), the KBs with source-aware provenance and UniProt keys (#17), the atom LM as baseline (#20).
+- **Design patterns only:** neural-proposer-inside-symbolic-constraints (#7, #8), the loop harness (#14), physics admissibility logic (#13).
+- **Not reusable:** the rc DPO checkpoint (#4), the display LMs as evidence (#6), UniMoMo/PepGLAD/BoltzGen fine-tunes (#21).
+- **Verified blockers that any integrated design must respect:** no admissible αvβ6 ΔG (physics tier is read-only/voided); no measured assay data from our own campaigns; v4's binding signal is at chance against hard negatives and barely target-conditioned; monomer converter covers ≈ 4 % of the benchmark; two of three DPO streams empty; knowledge bases cover 12/793 targets.
+
+Steps 2 and 3 are not started; Step 2 will cross-check its design against every row above.
+
+## 2. Architecture (Step 2) — IH-LM v2, cross-checked against every inventory row
+
+### 2.1 Principle
+IH-LM v2 is **not a new model class**: it is the workstream-1 learner (`cyclic_llm/ihlm/`, row 19) with the earlier months of work attached behind existing interfaces. Where a verified asset exists it is wrapped, not rebuilt; where an asset is unverified or null it is not relied on. All new code is thin adapters in `cyclic_llm/ihlm_v2/`.
+
+### 2.2 Data flow
+```
+ PROPOSE                                                   (rows 7, 8, 14, 19)
+   P1 IHLM.propose_edits (M4: single edits of a measured parent, closed-form edit priors + UCB)
+   P2 v4 sampling under symbolic constraints (mapped monomer subset only; row 1) -> HELM tokens
+   P3 constrain-then-reject enumeration pattern (row 8, pattern only)
+        |
+ CONSTRAIN / REJECT  (symbolic layer)                      (rows 10, 11, 17, 18, 9)
+   acceptance_gate + pharmacophore (alphavbeta6 / PD-L1 only); liability flags; K_phys prior
+        |
+ SCORE  (IHLM.score)                                       (rows 19, 18, 2, 1)
+   (1-w)*net  +  w*K_phys   [w = n0/(n0+n)  (M1)]   +  sim_max * retrieval (M3)   +  b_source / sd (M2)
+   optional extra component: v4 LLR (row 1), defined only where the converter maps the compound
+   uncertainty (calibrated half-width) -> acquisition = UCB (M5)
+        |
+ VERIFY  (cost-ordered ladder)                             (rows 12, 13, 15, 16)
+   L0  score.py cheap tier: rule (applicable targets only) AND not-infringing AND developability
+   L1  (none exists: no cheap-physics tier is implemented)
+   L2  physics_dispatch: cofold / MM-GBSA / FEP results, admissible only if control-anchored + mechanism-compliant;
+       READ-ONLY today; no admissible alphavbeta6 DeltaG exists -> L2 returns "pending" (reward term 0), never a number
+   reward.reward(record) -> scalar + terms; real runs graded into graded_run_store (row 16)
+        |
+ UPDATE                                                    (rows 2, 14, 15, 19)
+   fast memory write (every call): measured labels under source=<lab>; verifier rewards under source="verifier:<tier>"
+        (NEVER pooled with laboratory data: they are not measurements)
+   preference pairs: reward.build_preference_pairs -> dpo_pairs.PairSet -> slow update via LoopModel modes / DPO trainer
+   round orchestration: loop.py harness; its `revise` stand-in is replaced by propose + update
+```
+
+### 2.3 Interfaces (all reuse the LoopModel contract of row 2)
+| component | interface | status in this step |
+|---|---|---|
+| `V4Adapter` | `coverage(smiles)`, `score(smiles, target_seq)` -> list[float|None] (None = unmapped; never imputed), `propose(n, target_seq, seed, temp)` -> token lists + HELM, `fingerprint()`; checkpoint opened read-only (sha256 checked unchanged) | built + tested |
+| `VerifierHook` | `grade_helm(helm, target, tier="cheap")` -> {reward, gated, terms, hard_gate_pass, rule_applicable, pending_physics} using `score.score` + `reward.reward`; refuses `tier="full"` unless explicitly allowed (reads precomputed results only) | built + tested |
+| `GradedMemoryBridge` | `ingest(graded, model)` -> new IHLM (fast memory written, source `verifier:<tier>`); `pairs(graded)` -> `PairSet` via `reward.build_preference_pairs` | built + tested |
+| round driver | `loop.py` orchestration | NOT rebuilt; smoke run only calls the three adapters |
+
+### 2.4 Cross-check against every inventory row
+| row | asset | how IH-LM v2 uses it | not relied on |
+|---|---|---|---|
+| 1 | v4 checkpoint/code | optional extra score component and sampler, on the mapped subset; also a comparator (`V4Adapter`) | not the backbone; no binding claim (chance vs hard negatives 4/5); target prefix not treated as informative; no topology |
+| 2 | LoopModel + converter | the contract all components implement; converter gives mapped/unmapped status | no claim for unmapped compounds (returns None); 4.1 % benchmark coverage stated |
+| 3 | v4_dpo | available as a comparator and as evidence the DPO machinery works on permeability | not used as binding evidence; not assumed to differ from v4 on binding |
+| 4 | v4_dpo_rc | excluded | uninformative (gate was a no-op) |
+| 5 | helm_monomer_llm | vocabulary only via the v5 dictionary | model not used |
+| 6 | display LMs/selector | LLR scoring pattern (already inside row 1) | no evidence from them (circular, memorisation) |
+| 7 | neural_generator | pattern for P2: neural proposal inside symbolic constraints, with explicit enumeration fallback labelled | its αvβ6-only palette/target-agnostic signal is not generalised |
+| 8 | rule_conditioned_generator | constrain-then-reject contract; (H, X) artifact | not treated as generative |
+| 9 | rule_induction | H-artifact format; predicates to be generalised later | no claim beyond 2 targets |
+| 10 | acceptance_gate/pharmacophore | hard constraint for αvβ6/PD-L1 targets only (via row 12) | not applied to other targets (rule_applicable=False is respected) |
+| 11 | liability flags | optional pre-filter; flagged as canonical-residue only | not claimed for ncAA/stereo |
+| 12 | score.py cheap tier | `VerifierHook` L0 | a pass is never binding evidence; HELM-only; availability informational |
+| 13 | physics_dispatch/scorer_config | L2 admissibility logic; returns pending when nothing admissible | no αvβ6 ΔG anywhere; physics terms are 0, stated in every record |
+| 14 | loop.py | round orchestration pattern; `revise` replaced by propose + update | its stand-in revise not used as a learned policy |
+| 15 | reward/dpo_pairs/trainer | reward scalar and pair emitter used unchanged by `VerifierHook`/`GradedMemoryBridge` | no gradient training here; 2 of 3 DPO streams empty |
+| 16 | graded_run_store/execution_grader | storage contract for real graded runs | holds only simulated data; none ingested |
+| 17 | experience_kb/medchem_kb/target_kb | target metadata (counter-targets, structures) feeding scorer_config | coverage 12/793 targets; no UniProt keys; dead product KB ignored |
+| 18 | K_phys channel | M1 prior | K_nme/K_dflip reference only |
+| 19 | ihlm modules | the learner | neural M3 and verifier head (xfail) not relied on; symbolic retrieval used |
+| 20 | atom LM P0 | baseline/typicality control only | no foundation-model claim |
+| 21 | UniMoMo/PepGLAD/BoltzGen, Stage B | excluded as models; Stage B manifest = topology ground truth for later | null/flat results not relied on |
+| 22 | earlier design docs | the SNG architecture pattern | capstone claims superseded by audits are not cited |
+
+### 2.5 What is new, reused, fixed
+- **Reused unchanged:** LoopModel contract and converter, gate layer, cheap verifier, reward/pair emitter, graded store, K_phys, symbolic IHLM modules.
+- **Fixed in this step (thin):** a read-only v4 adapter with explicit coverage reporting (rows 1/2); a verifier hook that makes "pending physics" explicit instead of silent; a bridge that keeps verifier rewards out of laboratory sources (the pooled-lab confound this study found).
+- **New (design, from workstream 1):** lab offsets with anchors, stereo-aware retrieval, edit-space effects, calibrated uncertainty, dual memory (rows 19).
+- **Not built:** the P1 atom-level backbone (planned, untrained); a cheap-physics tier L1; constrained decoding on a pretrained base; admissible αvβ6 physics.
+
+### 2.6 What this can honestly support (provenance)
+| class | components |
+|---|---|
+| standard (not claimed) | transformer encoder/decoder, AdamW, pairwise-ranking / DPO loss, split-conformal calibration, ridge/conjugate shrinkage |
+| our earlier assets (reused; claims limited to their audits) | v4 weights (mapped-subset scorer), gates, cheap verifier, reward/pair emitter, KBs, K_phys |
+| new modules (design; no measured advantage yet) | per-source offsets with anchors, stereo-aware retrieval, edit-space effects, uncertainty, fast/slow memory, verifier-ladder routing and the graded-memory bridge |
+**Supported today:** an integrated, tested implementation exists with explicit coverage and admissibility reporting. **Not supported:** any performance claim for the integrated model; any binding or αvβ6-physics claim; generation validity beyond token level; that verifier rewards equal measured activity.
+
+## 3. Wiring and tests (Step 3) — what is wired, what is tested, what does not work
+
+Code: `research/guangzhou_all_atom/cyclic_llm/ihlm_v2/` (`_paths.py`, `v4_adapter.py`, `verifier_hook.py`, `graded_bridge.py`, `test_ihlm_v2.py`, `smoke_replay.py`, `smoke_result.json`). CPU only; no network; no paid API; nothing launched.
+
+### 3.1 Tests (11 passed, `python3 -m pytest -q test_ihlm_v2.py`, ~90 s)
+| test | what it controls |
+|---|---|
+| checkpoint read-only | v4 loads (5,022,976 params, vocab 393, block 40); sha256 unchanged after loading, scoring and updating |
+| unmapped is None, deterministic | a non-peptide returns None (never imputed); repeated scoring identical; coverage on CycPeptMPDB partial (0 < fraction < 1) |
+| update does not mutate | original adapter fingerprint unchanged; the new one differs |
+| propose deterministic, in-vocabulary | same seed same samples, different seed different; tokens in vocab; topology reported as "unspecified" |
+| **gate-name map, planted equivalence** | v4 tokens `[F,R,G,D,L,A,F,dP,meK]` → gate HELM equals the reference peptide and gets the same gate verdict; **without the map the same peptide is rejected** (`meK` ≠ `NMeK`): the naming gap between v4 and the gate is real and the map fixes it; tokens with `-`/parentheses (e.g. `Phe(4-Cl)`) → ungradeable, not mis-parsed |
+| verifier cheap cases | gate-pass peptide has positive reward; literal-genus infringer and no-RGD peptide fail with the right reasons; physics fields listed as pending with zero reward terms; PD-L1 reports `rule_applicable=False` |
+| `tier="full"` refused | no accidental physics/network call |
+| bridge never writes rewards as labels | planted reward 9.99 never appears as a label; all rows stay under their laboratory source; input model not mutated; the planted gate flags reach memory (5 of 10 flagged) |
+| verifier flag leaves lab offsets unchanged | planted +0.5 lab offset estimated identically with and without the verifier annotation |
+| accounting | graded + duplicates + unmapped + unrepresentable + invalid = n (CycPeptMPDB repeats canonical SMILES; found by the first test run: the original counter reported 28 graded but 25 unique; fixed to count duplicates explicitly) |
+| pairs | gate-pass chosen over gate-fail |
+
+### 3.2 Smoke replay (plumbing only, **no claim**)
+200-peptide pool from CycPeptMPDB (sources with ≥ 20 peptides; within-source z labels), 30 initial, 3 rounds × 15 picks, 2 seeds; IH-LM fast memory only (offsets + symbolic retrieval + edit effects; no net, no knowledge channel) versus random; verifier hook and bridge run each round. Result file `smoke_result.json`: all components ran together; checkpoint unmodified. Mean hits 9.0 (IH-LM) vs 3.0 (random) over **two seeds** — not an evaluation; it is what analog retrieval does in an in-distribution pool and says nothing about generalisation. The first full-size run (500/40/4/20/5) did not finish in 25 minutes on the loaded laptop and was stopped; the size was reduced and the reduction stated in the script and result.
+
+### 3.3 What does not work / limits found while building
+1. **v4 coverage on CycPeptMPDB is ~15 % and lab-dependent**: random 300 of the pool → 15.3 % mapped; 2020_Townsend 37/112, 2021_Kelly 0/79, 2013_CHUGAI 0/40, 2016_Furukawa 0/22. Any v4 comparison on CycPeptMPDB therefore effectively covers only part of one lab. (The smoke script's first coverage field read 0.0 because it used the first 300 insertion-ordered rows, all from CHUGAI; found by audit and fixed; canonical vs raw SMILES map identically, 28/28 on the first 120.)
+2. **Naming gap between v4 tokens and the gate** (above): needs the map; tokens with `-`/parentheses are ungradeable (the gate dialect splits on `-`).
+3. **No admissible physics**: every graded record lists `ddg_fep`, `binding_dG`, `selectivity_gap`, `groove_occupancy`, `geometry` as pending; the reward is gate/FTO/developability only; a gate pass is not binding evidence.
+4. **Verifier rewards are not measurements**: they are never labels and never a laboratory source; graded-only candidates reach the model only as preference pairs (emitter only, no training run).
+5. **v4 has no topology token** (34.7 % Lariat); `propose` returns HELM with an assumed head-to-tail string and says so; token-level validity only.
+6. **No cheap-physics tier exists** (L1 in the ladder is empty); no constrained decoding on a pretrained base; neural M3/verifier head of workstream 1 remain xfail (unchanged, not touched).
+7. The round driver `loop.py` was not rebuilt; the smoke script is a minimal driver, not a replacement.
+
+### 3.4 Supported by this step
+An integrated implementation in which the earlier v4 asset, the cheap verifier and reward, and the new fast-memory modules run behind one contract, with coverage and admissibility reported per call, a tested v4↔gate naming map, and a guard against pooling verifier output with laboratory data. **No performance claim** for the integrated model.

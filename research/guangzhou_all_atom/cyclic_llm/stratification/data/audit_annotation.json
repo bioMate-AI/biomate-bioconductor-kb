@@ -1,0 +1,113 @@
+{
+ "nme": {
+  "n": 6684,
+  "exact_agreement": 0.9581,
+  "mismatch_n": 280,
+  "mean_signed_diff": -0.0417,
+  "diff_dist": {
+   "0": 6404,
+   "-1": 278,
+   "1": 1,
+   "-2": 1
+  }
+ },
+ "nme_mismatch_examples": [
+  [
+   44,
+   2,
+   3,
+   "['L', 'dP', 'meY', 'L', 'Me_dL', 'Mono3']"
+  ],
+  [
+   45,
+   2,
+   3,
+   "['L', 'dP', 'meY', 'L', 'Me_dL', 'Mono4']"
+  ],
+  [
+   47,
+   2,
+   3,
+   "['L', 'dP', 'meY', 'L', 'Me_dL', 'Mono5']"
+  ],
+  [
+   743,
+   4,
+   5,
+   "['Mono6', 'A', 'meL', 'I', 'meF', 'meA', 'meV', 'F', 'T', 'Bal(3-Me)']"
+  ],
+  [
+   750,
+   4,
+   5,
+   "['Mono6', 'T', 'meA', 'meF', 'Ser(tBu)', 'meL', 'meF', 'G', 'Bal(3-Me)']"
+  ],
+  [
+   760,
+   4,
+   5,
+   "['Mono6', 'meF', 'T', 'Sar', 'Ser(tBu)', 'meL', 'meL', 'Bal(3-Me)']"
+  ],
+  [
+   788,
+   3,
+   4,
+   "['Mono6', 'A', 'meL', 'I', 'meL', 'meV', 'F', 'T', 'Bal(3-Me)']"
+  ],
+  [
+   789,
+   3,
+   4,
+   "['Mono6', 'A', 'meL', 'I', 'meF', 'meV', 'F', 'T', 'Bal(3-Me)']"
+  ]
+ ],
+ "D_cip": {
+  "n": 5166,
+  "exact_agreement": 1.0,
+  "mismatch_n": 0,
+  "diff_dist": {
+   "0": 5166
+  }
+ },
+ "D_cip_mismatch_examples": [],
+ "topology_helm_vs_shape": {
+  "head_to_tail": {
+   "Circle": 5369,
+   "Lariat": 0
+  },
+  "lariat_nterm_sc": {
+   "Circle": 0,
+   "Lariat": 1098
+  },
+  "lariat_sc_cterm": {
+   "Circle": 1,
+   "Lariat": 1523
+  }
+ },
+ "topology_helm_vs_rdkitT1": {
+  "head_to_tail": {
+   "head_to_tail": 5000,
+   "lariat": 369
+  },
+  "lariat_nterm_sc": {
+   "head_to_tail": 0,
+   "lariat": 1098
+  },
+  "lariat_sc_cterm": {
+   "head_to_tail": 2,
+   "lariat": 1522
+  }
+ },
+ "T1_accuracy": {
+  "head_to_tail_recall": 0.9313,
+  "lariat_recall": 0.9992,
+  "overall": 0.9536,
+  "n": 7991
+ },
+ "n_unique_structures": 7991,
+ "helm_topology_counts_unique": {
+  "head_to_tail": 5369,
+  "lariat_sc_cterm": 1524,
+  "lariat_nterm_sc": 1098
+ }
+}

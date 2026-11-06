@@ -1,0 +1,37 @@
+{
+ "S1_logistic_F_all_C0.1": {
+  "n_features": 26,
+  "contrastive": 0,
+  "val_top1": 0.95,
+  "val_hits": 19,
+  "informative_hits": "4/5"
+ },
+ "S2_logistic_F_pl_C1.0": {
+  "n_features": 3,
+  "contrastive": 0,
+  "val_top1": 0.95,
+  "val_hits": 19,
+  "informative_hits": "4/5"
+ },
+ "S3_contrastive_F_pl_lam0.01": {
+  "n_features": 3,
+  "contrastive": 1,
+  "val_top1": 0.95,
+  "val_hits": 19,
+  "informative_hits": "4/5"
+ },
+ "S0_original_all_samples": {
+  "n_features": 26,
+  "contrastive": 0,
+  "val_top1": 0.95,
+  "val_hits": 19,
+  "informative_hits": "4/5"
+ },
+ "REFERENCE": {
+  "default_hits": 19,
+  "random_expected": 18.64,
+  "oracle_hits": 20,
+  "n": 20
+ },
+ "A8_CHOSEN": "S2_logistic_F_pl_C1.0"
+}

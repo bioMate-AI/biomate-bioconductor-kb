@@ -1,0 +1,68 @@
+{
+  "path": "/tmp/immune_fullscale_manifest/A_mapkg_full_edges.parquet",
+  "sha256": "a076245408b61c8ee385fd30c92575eabe8fdcf58a6ff11e45897500d48ea647",
+  "bytes": 2725405,
+  "rows": 233773,
+  "columns": [
+    "i_symbol",
+    "j_symbol",
+    "relation"
+  ],
+  "column_types": {
+    "i_symbol": "str",
+    "j_symbol": "str",
+    "relation": "str"
+  },
+  "null_counts": {
+    "i_symbol": 0,
+    "j_symbol": 0,
+    "relation": 0
+  },
+  "unique_endpoint_strings": 15250,
+  "unique_raw_relations": 62166,
+  "normalized_relation_counts": {
+    "is in the same protein complex or physically associated with (confidence)": 195264,
+    "encodes a protein that engages with high confidence (confidence) in a protein\u2013protein interaction with the protein encoded by": 29423,
+    "colocalizes with (confidence)": 8296,
+    "directly interacts with (confidence)": 790
+  },
+  "confidence": {
+    "parsed_rows": 233773,
+    "min": 0.0,
+    "max": 1.0,
+    "below_0_5": 968
+  },
+  "self_loops": 0,
+  "duplicate_full_rows": 11765,
+  "explicit_node_type_columns": false,
+  "explicit_drug_disease_relation_families": false,
+  "original_complete_heterogeneous_graph_located_in_inventory": false,
+  "related_s3_candidates": [
+    {
+      "key": "immunology_sc_corpus_broad/tracks/structured_knowledge/mapkg/mapkg_genenet.parquet",
+      "bytes": 759628,
+      "etag": "\"a463d87c1b9d3f995c6b5033479a01fb\"",
+      "last_modified": "2026-08-26T17:44:01+00:00"
+    },
+    {
+      "key": "immunology_sc_corpus_broad/immune_llm_models/rebakeoff_stage/A_mapkg_edges.parquet",
+      "bytes": 710270,
+      "etag": "\"38df4a0bfe4c9ec2d31bdfa7a44143ff\"",
+      "last_modified": "2026-08-31T03:29:16+00:00"
+    },
+    {
+      "key": "immunology_sc_corpus_broad/immune_llm_models/rebakeoff_stage/A_mapkg_full_edges.parquet",
+      "bytes": 2725405,
+      "etag": "\"8fba33d59da0718cfe55d4114822b356\"",
+      "last_modified": "2026-08-31T03:29:18+00:00"
+    },
+    {
+      "key": "immunology_sc_corpus_broad/immune_llm_models/rebakeoff_stage/primekg_immune_subgraph.parquet",
+      "bytes": 750313,
+      "etag": "\"fe2e453f6ed89396a3af16a56f47dac5\"",
+      "last_modified": "2026-08-31T03:29:23+00:00"
+    }
+  ],
+  "inventory_sha256": "dc7f3dae6a8699f919dcd2808643f57201703b42dff3c4198c44e10afef49334",
+  "limitation": "Endpoint strings lack node types; relation semantics support a gene/protein interaction projection, not a full heterogeneous graph. No evidence of drug/disease relations. Original graph absent from searched inventory is not proof absent from bucket or elsewhere."
+}

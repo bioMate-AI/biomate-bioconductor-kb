@@ -137,7 +137,7 @@ with open("glv_equations_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("glv_equations_output.txt", "w") as f:
-    f.write("Biomni: Glv Equations" + NL)
+    f.write("BioMate: Glv Equations" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

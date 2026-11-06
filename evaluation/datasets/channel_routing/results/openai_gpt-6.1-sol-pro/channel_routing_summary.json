@@ -1,0 +1,14 @@
+{
+  "model": "openai/gpt-6.1-sol-pro",
+  "bare": {
+    "accuracy": 0.9048,
+    "drug_discovery_accuracy": 0.963,
+    "off_channel_or_empty": 0
+  },
+  "harness": {
+    "accuracy": 1.0,
+    "drug_discovery_accuracy": 1.0,
+    "off_channel_or_empty": 0
+  },
+  "harness_dividend": 0.0952
+}

@@ -6,10 +6,70 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Info, ExternalLink, Pencil, Check, X } from "lucide-react";
+import { tOr } from "@/lib/i18n";
+import { Info, ExternalLink, Pencil, Check, X, Plus } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+// ── Multi-value (list) params ─────────────────────────────────────────────────
+// A multi-compound input (smiles_list, compounds, …) must be edited as named
+// entities — one item per full-width row with add/remove — not a raw JSON array
+// crammed into a textarea. CSV/FASTA/sequence *blobs* stay as a textarea (below).
+const LIST_SUFFIX_RE = /(_list$|smiles|compounds?|molecules?|actives|ligands?|inchi|accessions?)/i;
+const BLOB_SUFFIX_RE = /(_csv|_tsv|_fasta|_fa|_sequences|_library)$/i;
+function isDiscreteListParam(param: any): boolean {
+  if (Array.isArray(param?.value) || Array.isArray(param?.defaultValue)) return true;
+  if (param?.type === 'list') return true;
+  const id = String(param?.id || '').toLowerCase();
+  if (BLOB_SUFFIX_RE.test(id)) return false;
+  return LIST_SUFFIX_RE.test(id);
+}
+function parseListItems(v: any): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x));
+  const s = String(v ?? '').trim();
+  if (!s) return [];
+  if (s.startsWith('[')) { try { const a = JSON.parse(s); if (Array.isArray(a)) return a.map((x: any) => String(x)); } catch { /* not JSON */ } }
+  return s.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);
+}
+function serializeListItems(items: string[], original: any): any {
+  if (Array.isArray(original)) return items;
+  const s = String(original ?? '');
+  if (s.trim().startsWith('[')) return JSON.stringify(items);
+  if (s.includes('\n')) return items.join('\n');
+  if (s.includes(',')) return items.join(', ');
+  return items.join('\n');
+}
+function ListParamField({ param, onChange }: { param: any; onChange?: (id: string, v: any) => void }) {
+  const original = param.value ?? param.defaultValue;
+  const items = parseListItems(original);
+  const commit = (next: string[]) => onChange && onChange(param.id, serializeListItems(next, original));
+  return (
+    <div className="space-y-1.5 w-full" data-testid={`list-param-${param.id}`} data-param-kind="list">
+      {items.length === 0 && <p className="text-[11px] text-muted-foreground">No entries yet — add one below.</p>}
+      {items.map((it, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground w-5 text-right shrink-0 font-mono">{i + 1}</span>
+          <Input
+            value={it}
+            spellCheck={false}
+            aria-label={`${param.label || param.id} item ${i + 1}`}
+            onChange={(e) => { const next = items.slice(); next[i] = e.target.value; commit(next); }}
+            className="font-mono text-xs h-7 flex-1"
+          />
+          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0"
+            aria-label={`Remove item ${i + 1}`} onClick={() => commit(items.filter((_, j) => j !== i))}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" className="h-7 text-xs"
+        data-testid={`list-param-add-${param.id}`} onClick={() => commit([...items, ''])}>
+        <Plus className="h-3 w-3 mr-1" /> Add
+      </Button>
+    </div>
+  );
+}
 
 export interface Parameter {
   id: string;
@@ -37,6 +97,87 @@ export interface Parameter {
   };
   /** Whether this value was auto-filled by the AI from tool knowledge */
   autoFilled?: boolean;
+  /** Whether the user manually overrode the value (via inline edit / params panel) */
+  overridden?: boolean;
+  /** Whether the value came from project-level instructions/context (not schema, not AI) */
+  inherited?: boolean;
+  /** Whether the user explicitly accepted an AI recommendation as-is */
+  confirmed?: boolean;
+}
+
+/**
+ * §7.4 parameter-origin taxonomy. Every param row carries exactly one origin
+ * badge so the user can tell where each value came from. Derivation is honest:
+ * when a flavor can't be determined from the flags on the param, we fall back
+ * to "default" rather than guessing.
+ */
+export type ParamOrigin = 'default' | 'inherited' | 'recommended' | 'confirmed' | 'edited';
+
+export function deriveParamOrigin(param: Parameter): ParamOrigin {
+  // User-authored value always wins — an edit supersedes any prior origin.
+  if (param.overridden) return 'edited';
+  // A recommendation the user explicitly accepted.
+  if (param.confirmed) return 'confirmed';
+  // AI-filled from tool knowledge / parameter hints.
+  if (param.autoFilled) return 'recommended';
+  // Value derived from project instructions / context.
+  if (param.inherited) return 'inherited';
+  // Untouched schema default (or unknown provenance) — honest fallback.
+  return 'default';
+}
+
+const PARAM_ORIGIN_META: Record<ParamOrigin, { label: string; tooltip: string; className: string }> = {
+  default: {
+    label: 'Default',
+    tooltip: 'Schema default — this value was not changed.',
+    className: 'border-border bg-muted text-muted-foreground',
+  },
+  inherited: {
+    label: 'Inherited',
+    tooltip: 'Derived from your project instructions / context.',
+    className: 'border-purple-300/60 bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300',
+  },
+  recommended: {
+    label: 'Recommended',
+    tooltip: 'AI-recommended from tool knowledge. Review before running.',
+    className: 'border-blue-300/60 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300',
+  },
+  confirmed: {
+    label: 'Confirmed',
+    tooltip: 'You accepted the recommended value.',
+    className: 'border-green-300/60 bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-300',
+  },
+  edited: {
+    label: 'Edited',
+    tooltip: 'You changed this value from the recommended / default.',
+    className: 'border-amber-300/60 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300',
+  },
+};
+
+function ParamOriginBadge({ param }: { param: Parameter }) {
+  const origin = deriveParamOrigin(param);
+  const meta = PARAM_ORIGIN_META[origin];
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            data-testid={`param-origin-badge-${param.id}`}
+            data-origin={origin}
+            className={cn(
+              'inline-flex items-center rounded-sm border px-1 py-0 text-[10px] font-medium leading-tight align-middle ml-1 cursor-default',
+              meta.className,
+            )}
+          >
+            {origin === 'recommended' ? tOr('panel.recommended', meta.label) : meta.label}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-[220px] text-xs p-2">
+          {meta.tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 interface ParameterGroupProps {
@@ -161,10 +302,10 @@ function EditableParamRow({ param, onChange }: { param: Parameter; onChange?: (i
       data-testid={`param-override-btn-${param.id}`}
       onClick={() => setIsEditing(true)}
       className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground ml-1 align-middle"
-      title="Override AI-recommended value"
+      title={tOr('panel.override_tip', 'Override AI-recommended value')}
     >
       <Pencil className="h-2.5 w-2.5" />
-      Override
+      {tOr('panel.override','Override')}
     </button>
   );
 }
@@ -185,6 +326,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
         <Label htmlFor={param.id}>{param.label}</Label>
         {param.required && <span className="text-destructive text-xs ml-0.5">*</span>}
         {hasKnowledge && <KnowledgeBadge param={param} />}
+        <ParamOriginBadge param={param} />
       </span>
     );
 
@@ -199,6 +341,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
             />
             <Label htmlFor={param.id} className="cursor-pointer">{param.label}</Label>
             {hasKnowledge && <KnowledgeBadge param={param} />}
+            <ParamOriginBadge param={param} />
           </div>
         );
       case 'select':
@@ -207,7 +350,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
             <LabelWithKnowledge />
             <Select onValueChange={(val) => onChange && onChange(param.id, val)} value={param.value}>
               <SelectTrigger>
-                <SelectValue placeholder="Select an option" />
+                <SelectValue placeholder={tOr('panel.select_option', 'Select an option')} />
               </SelectTrigger>
               <SelectContent>
                 {param.options?.map((opt) => (
@@ -232,7 +375,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
                 value={param.value ?? ''}
                 rows={5}
                 onChange={(e) => onChange && onChange(param.id, e.target.value)}
-                placeholder="Paste inline content (CSV / SMILES / FASTA) or enter a file path…"
+                placeholder={tOr('panel.file_inline_placeholder', 'Paste inline content (CSV / SMILES / FASTA) or enter a file path…')}
                 className={`font-mono text-xs resize-y ${param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
               />
             </div>
@@ -250,7 +393,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
                 type="text"
                 value={param.value || ''}
                 onChange={(e) => onChange && onChange(param.id, e.target.value)}
-                placeholder={isActualPath ? "Dataset path or ID" : ""}
+                placeholder={isActualPath ? tOr('panel.dataset_path_placeholder', 'Dataset path or ID') : ""}
                 className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
               />
               {isActualPath && (
@@ -269,8 +412,21 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
         );
       }
       default: {
-        // Detect params that hold multi-line content (CSV, SMILES lists, FASTA, etc.)
-        const _MULTILINE_SUFFIXES = ['_csv', '_tsv', '_fasta', '_fa', '_sequences', '_actives', '_library', '_smiles'];
+        // Multi-value discrete list (multi-compound smiles_list, actives, …):
+        // edit as named entities — one full-width row each, add/remove — not a raw
+        // JSON array in a textarea.
+        if (isDiscreteListParam(param)) {
+          return (
+            <div className="space-y-1 w-full">
+              <div className="flex items-center gap-1 flex-wrap">
+                <LabelWithKnowledge />
+              </div>
+              <ListParamField param={param} onChange={onChange} />
+            </div>
+          );
+        }
+        // Detect params that hold multi-line *blob* content (CSV, FASTA, etc.)
+        const _MULTILINE_SUFFIXES = ['_csv', '_tsv', '_fasta', '_fa', '_sequences', '_library'];
         const isMultiline = _MULTILINE_SUFFIXES.some(s => param.id.toLowerCase().endsWith(s));
         if (isMultiline) {
           return (

@@ -1,0 +1,135 @@
+{
+  "scope": "synthetic live transport smoke, not scientific acceptance",
+  "model": "Qwen/Qwen3.8-27B",
+  "results": [
+    {
+      "case": "identifier_json",
+      "passed": false,
+      "seconds": 126.489,
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "```json\n{\n  \"accession\": \"GSE12345\",\n  \"platform\": \"GPL96\"\n}\n```"
+            }
+          }
+        ],
+        "created": 1789236364,
+        "model": "Qwen/Qwen3.8-27B",
+        "system_fingerprint": "b1-3057bb6",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 34,
+          "prompt_tokens": 40,
+          "total_tokens": 74,
+          "prompt_tokens_details": {
+            "cached_tokens": 36
+          }
+        },
+        "id": "chatcmpl-U9tk8stTNeLFlPu1hg4qy95ZXaLlNYf8",
+        "timings": {
+          "cache_n": 36,
+          "prompt_n": 4,
+          "prompt_ms": 863.71,
+          "prompt_per_token_ms": 215.9275,
+          "prompt_per_second": 4.63118407798914,
+          "predicted_n": 34,
+          "predicted_ms": 11169.739,
+          "predicted_per_token_ms": 338.4769393939394,
+          "predicted_per_second": 2.9544110207051393
+        }
+      },
+      "error": "Expecting value: line 1 column 1 (char 0)"
+    },
+    {
+      "case": "tool_round_trip",
+      "passed": true,
+      "seconds": 22.258000000000003,
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "Your latest run was **fixture-run-729**, and its status was **failed**."
+            }
+          }
+        ],
+        "created": 1789236386,
+        "model": "Qwen/Qwen3.8-27B",
+        "system_fingerprint": "b1-3057bb6",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 20,
+          "prompt_tokens": 341,
+          "total_tokens": 361,
+          "prompt_tokens_details": {
+            "cached_tokens": 305
+          }
+        },
+        "id": "chatcmpl-c9T8GYa2u4Vw4srGM2rkp7pND0Gn7Mus",
+        "timings": {
+          "cache_n": 305,
+          "prompt_n": 36,
+          "prompt_ms": 10392.045,
+          "prompt_per_token_ms": 288.66791666666666,
+          "prompt_per_second": 3.464188232441257,
+          "predicted_n": 20,
+          "predicted_ms": 6444.071,
+          "predicted_per_token_ms": 339.1616315789474,
+          "predicted_per_second": 2.9484467194728303
+        }
+      },
+      "first_response": {
+        "choices": [
+          {
+            "finish_reason": "tool_calls",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "",
+              "tool_calls": [
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "list_history",
+                    "arguments": "{}"
+                  },
+                  "id": "lXlO4mpKezje82pLVsygdUAhM6JBCKQc"
+                }
+              ]
+            }
+          }
+        ],
+        "created": 1789236369,
+        "model": "Qwen/Qwen3.8-27B",
+        "system_fingerprint": "b1-3057bb6",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 14,
+          "prompt_tokens": 292,
+          "total_tokens": 306,
+          "prompt_tokens_details": {
+            "cached_tokens": 288
+          }
+        },
+        "id": "chatcmpl-DG0e3rMjkS8NtnQ5Lkpvegkjd1puRhDH",
+        "timings": {
+          "cache_n": 288,
+          "prompt_n": 4,
+          "prompt_ms": 701.521,
+          "prompt_per_token_ms": 175.38025,
+          "prompt_per_second": 5.701896308164688,
+          "predicted_n": 14,
+          "predicted_ms": 4407.843,
+          "predicted_per_token_ms": 339.06484615384613,
+          "predicted_per_second": 2.949288348065029
+        }
+      }
+    }
+  ]
+}

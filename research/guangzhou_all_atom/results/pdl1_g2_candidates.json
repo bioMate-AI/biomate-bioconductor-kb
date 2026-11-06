@@ -1,0 +1,343 @@
+{
+  "round": "G2",
+  "target": "PD-L1",
+  "prefilter": "liab=none, 2Nal<=1, W<=1, meanH<=0.70, arom 3-4, net -2..+2",
+  "candidates": [
+    {
+      "id": "PDL1-G2-A01",
+      "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-T-Q-N-K-T-A)",
+      "pep": "WYFPVITQNKTA",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.65,
+        "net": 1,
+        "liab": []
+      },
+      "source": "K-05 analog"
+    },
+    {
+      "id": "PDL1-G2-A02",
+      "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-S-D-Q-K-T-A)",
+      "pep": "WYFPVISDQKTA",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.61,
+        "net": 0,
+        "liab": []
+      },
+      "source": "K-05 analog"
+    },
+    {
+      "id": "PDL1-G2-A03",
+      "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-S-D-Q-K-T-G)",
+      "pep": "WYFPVISDQKTG",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.58,
+        "net": 0,
+        "liab": []
+      },
+      "source": "K-05 analog"
+    },
+    {
+      "id": "PDL1-G2-A04",
+      "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-S-E-N-K-T-G)",
+      "pep": "WYFPLISENKTG",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.6,
+        "net": 0,
+        "liab": []
+      },
+      "source": "K-05 analog"
+    },
+    {
+      "id": "PDL1-G2-A05",
+      "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-D-Q-K-T-G)",
+      "pep": "WYFPLITDQKTG",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.65,
+        "net": 0,
+        "liab": []
+      },
+      "source": "K-05 analog"
+    },
+    {
+      "id": "PDL1-G2-A06",
+      "helm": "cyclo(W-Y-F-[dP]-I-[NMeI]-S-E-N-K-S-A)",
+      "pep": "WYFPIISENKSA",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.61,
+        "net": 0,
+        "liab": []
+      },
+      "source": "K-05 analog"
+    },
+    {
+      "id": "PDL1-G2-A07",
+      "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-S-E-Q-K-A-A)",
+      "pep": "WYFPLISEQKAA",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.66,
+        "net": 0,
+        "liab": []
+      },
+      "source": "K-05 analog"
+    },
+    {
+      "id": "PDL1-G2-A08",
+      "helm": "cyclo(W-Y-F-[dP]-V-[NMeI]-T-D-N-K-T-G)",
+      "pep": "WYFPVITDNKTG",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.58,
+        "net": 0,
+        "liab": []
+      },
+      "source": "K-05 analog"
+    },
+    {
+      "id": "PDL1-G2-F01",
+      "helm": "cyclo(V-H-W-E-Y-[dP]-E-F-R-[NMeL]-L-D)",
+      "pep": "VHWEYPEFRLLD",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 4,
+        "meanH": 0.62,
+        "net": -2,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F02",
+      "helm": "cyclo(F-K-Y-[dP]-D-F-K-[NMeL]-I-S-V)",
+      "pep": "FKYPDFKLISV",
+      "metrics": {
+        "n2": 0,
+        "nw": 0,
+        "arom": 3,
+        "meanH": 0.65,
+        "net": 1,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F03",
+      "helm": "cyclo([NMeI]-F-R-V-N-V-R-Y-H-[dP]-F)",
+      "pep": "IFRVNVRYHPF",
+      "metrics": {
+        "n2": 0,
+        "nw": 0,
+        "arom": 4,
+        "meanH": 0.64,
+        "net": 2,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F04",
+      "helm": "cyclo([NMeF]-Y-R-V-R-L-[dP]-D-F-K-I-E)",
+      "pep": "FYRVRLPDFKIE",
+      "metrics": {
+        "n2": 0,
+        "nw": 0,
+        "arom": 3,
+        "meanH": 0.46,
+        "net": 1,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F05",
+      "helm": "cyclo(V-R-V-S-Y-N-[dP]-W-[NMeF]-N-L-E)",
+      "pep": "VRVSYNPWFNLE",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.58,
+        "net": 0,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F06",
+      "helm": "cyclo([dP]-Y-D-Y-Q-Y-[NMeL]-T-I-D-V-T-V)",
+      "pep": "PYDYQYLTIDVTV",
+      "metrics": {
+        "n2": 0,
+        "nw": 0,
+        "arom": 3,
+        "meanH": 0.64,
+        "net": -2,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F07",
+      "helm": "cyclo([NMeI]-V-Q-I-S-[dP]-Y-K-Y-E-Y-Q-I)",
+      "pep": "IVQISPYKYEYQI",
+      "metrics": {
+        "n2": 0,
+        "nw": 0,
+        "arom": 3,
+        "meanH": 0.62,
+        "net": 0,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F08",
+      "helm": "cyclo(F-D-Y-K-L-[NMeW]-D-[dP]-Y-K-I)",
+      "pep": "FDYKLWDPYKI",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 4,
+        "meanH": 0.61,
+        "net": 0,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F09",
+      "helm": "cyclo(I-Q-F-[NMeI]-R-[dP]-Y-R-Y-S-W-N)",
+      "pep": "IQFIRPYRYSWN",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 4,
+        "meanH": 0.62,
+        "net": 2,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F10",
+      "helm": "cyclo(V-[dP]-D-F-R-[NMeF]-V-T-I-N-W-E)",
+      "pep": "VPDFRFVTINWE",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.67,
+        "net": -1,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F11",
+      "helm": "cyclo(F-R-F-[dP]-K-L-N-W-N-[NMeL]-I-E)",
+      "pep": "FRFPKLNWNLIE",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.66,
+        "net": 1,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F12",
+      "helm": "cyclo(Y-K-Y-[dP]-[NMeL]-Q-L-R-V-H-L-Q)",
+      "pep": "YKYPLQLRVHLQ",
+      "metrics": {
+        "n2": 0,
+        "nw": 0,
+        "arom": 3,
+        "meanH": 0.55,
+        "net": 2,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F13",
+      "helm": "cyclo([NMeF]-V-R-V-R-F-[dP]-H-I-Q-W-D)",
+      "pep": "FVRVRFPHIQWD",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 4,
+        "meanH": 0.66,
+        "net": 1,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F14",
+      "helm": "cyclo(W-D-[NMeL]-V-[dP]-K-I-D-Y-E-F)",
+      "pep": "WDLVPKIDYEF",
+      "metrics": {
+        "n2": 0,
+        "nw": 1,
+        "arom": 3,
+        "meanH": 0.66,
+        "net": -2,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F15",
+      "helm": "cyclo([NMeI]-F-T-I-N-[dP]-Y-K-Y-D-F-K)",
+      "pep": "IFTINPYKYDFK",
+      "metrics": {
+        "n2": 0,
+        "nw": 0,
+        "arom": 4,
+        "meanH": 0.56,
+        "net": 1,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    },
+    {
+      "id": "PDL1-G2-F16",
+      "helm": "cyclo(V-R-[NMeL]-Y-Q-F-D-[dP]-F-K-F-T)",
+      "pep": "VRLYQFDPFKFT",
+      "metrics": {
+        "n2": 0,
+        "nw": 0,
+        "arom": 4,
+        "meanH": 0.6,
+        "net": 1,
+        "liab": []
+      },
+      "source": "fresh diverse"
+    }
+  ]
+}

@@ -15,7 +15,6 @@ def isolate_paths(tmp_path, monkeypatch):
     # The worker reads via rj.DPO_PAIRS_PATH; align it.
     monkeypatch.setattr(rj, "DPO_PAIRS_PATH", pairs)
     monkeypatch.setattr(rj, "JOBS_PATH", tmp_path / "training_jobs.jsonl")
-    monkeypatch.setattr(rw, "SIMULATED_TRAIN_SECONDS", 0.0)
     monkeypatch.setattr(rw, "ORG_RULES_DIR", tmp_path / "org_rules")
     yield
 

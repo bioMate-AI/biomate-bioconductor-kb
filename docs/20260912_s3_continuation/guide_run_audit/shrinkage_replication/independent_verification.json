@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "independent_coefficients_and_gene_lists": 72,
+  "prediction_rows_verified": 1152,
+  "numeric_and_summary_comparisons": 18846,
+  "excluded_union_target_genes": 32,
+  "control_reference_verification": "Raw pools disjoint by guide identity; same pooled controls reconstructed within donor/condition",
+  "leakage_review": "All coefficient, expression-filter, target-variance and prediction inputs are from3 training donors. Union target identity is shared design information; all32 target genes excluded everywhere. Known-target transfer in same4 donors, shared controls and exploratory reused data do not establish prospective or cross-study prediction.",
+  "normalization": "Multiply-then-divide operation order matches documented driver and preserves exact Spearman ties. Full-library sizes retained.",
+  "input_sha256": {
+    "selected": "5e0f8ae1a43950e5b82de419b13ca741c5eb5e2618a9307e34040612d46aca1b",
+    "basic_qc": "31ed2ae10693a13844507a8d11296a5673ce34a212e8a4f31bb25d3244b5827f",
+    "controls": "80f1c5ebe5988d9e20915856d11cfec1f5eba98e674de5e7f66b429f90d8b195"
+  }
+}

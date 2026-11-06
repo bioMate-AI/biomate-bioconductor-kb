@@ -1,0 +1,6102 @@
+{
+  "summary_equal_weight_donors": {
+    "no_change": {
+      "excluding_perturbed_readout": {
+        "mse": 0.015533995683084272,
+        "spearman": null
+      }
+    },
+    "condition_mean": {
+      "excluding_perturbed_readout": {
+        "mse": 0.016095434074395457,
+        "spearman": 0.05923885496819791
+      }
+    },
+    "target_condition_mean": {
+      "excluding_perturbed_readout": {
+        "mse": 0.018533572845006237,
+        "spearman": 0.06184278658622769
+      }
+    },
+    "target_condition": {
+      "excluding_perturbed_readout": {
+        "mse": 0.015820740496799664,
+        "spearman": 0.06990462255707978
+      }
+    },
+    "baseline_state": {
+      "excluding_perturbed_readout": {
+        "mse": 0.016501069039065855,
+        "spearman": 0.060215113060098815
+      }
+    },
+    "shuffled_state": {
+      "excluding_perturbed_readout": {
+        "mse": 0.016973657910396824,
+        "spearman": 0.05799490588638517
+      }
+    }
+  },
+  "outer_folds": [
+    {
+      "test_donor": "CE0006864",
+      "train_donors": [
+        "CE0008162",
+        "CE0008678",
+        "CE0010866"
+      ],
+      "test_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "excluded_unseen_target_condition_rows": [],
+      "selection": {
+        "target_condition": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.01665181926137693,
+                0.021234242824790087,
+                0.02260013392623081
+              ],
+              "mean_mse": 0.02016206533746594
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.015935510075806465,
+                0.020722759576319857,
+                0.02208849999256111
+              ],
+              "mean_mse": 0.019582256548229145
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.013334020463613169,
+                0.018874693380020745,
+                0.020261738383457125
+              ],
+              "mean_mse": 0.01749015074236368
+            }
+          ]
+        },
+        "baseline_state": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.017162638990737927,
+                0.02186947476382675,
+                0.02380941151956163
+              ],
+              "mean_mse": 0.020947175091375437
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.01647763906914257,
+                0.021437405333914136,
+                0.023320045588185526
+              ],
+              "mean_mse": 0.02041169666374741
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.013906575208982244,
+                0.019847480271059596,
+                0.021462902760968974
+              ],
+              "mean_mse": 0.018405652747003603
+            }
+          ]
+        },
+        "shuffled_state": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.017752656668566926,
+                0.022614923254973707,
+                0.02325152198583151
+              ],
+              "mean_mse": 0.021206367303124047
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.017056096845328002,
+                0.022180390730571504,
+                0.022772920804437168
+              ],
+              "mean_mse": 0.02066980279344556
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.014387493647411773,
+                0.02055911786026955,
+                0.021010231894474873
+              ],
+              "mean_mse": 0.018652281134052064
+            }
+          ]
+        }
+      },
+      "metrics": {
+        "no_change": {
+          "excluding_perturbed_readout": {
+            "mse": 0.012841735625434655,
+            "spearman": null,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 0,
+            "constant_prediction_rows": 48,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.018193452788357642,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.009283937708050681,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.011047816379895645,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "condition_mean": {
+          "excluding_perturbed_readout": {
+            "mse": 0.013559213556561209,
+            "spearman": 0.0062178597483941,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.01875312778203969,
+              "spearman": 0.008733251481343083,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.010724424805766544,
+              "spearman": -0.07697946137831634,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.01120008808187739,
+              "spearman": 0.08689978914215556,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "target_condition_mean": {
+          "excluding_perturbed_readout": {
+            "mse": 0.01553446093772902,
+            "spearman": 0.06900845655616648,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.019591109496844953,
+              "spearman": 0.08734986387658145,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.012594835194113963,
+              "spearman": 0.031135562910372075,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.014417438122228145,
+              "spearman": 0.08853994288154593,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "target_condition": {
+          "excluding_perturbed_readout": {
+            "mse": 0.012867421825705902,
+            "spearman": 0.057230333279951605,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.017166210134241987,
+              "spearman": 0.11296275289595901,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.010224578871843882,
+              "spearman": -0.02877075214861475,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.011211476471031835,
+              "spearman": 0.08749899909251055,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "baseline_state": {
+          "excluding_perturbed_readout": {
+            "mse": 0.013606107233069922,
+            "spearman": 0.06218693837968647,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.01801687865701612,
+              "spearman": 0.12834703464474456,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.01109427029694652,
+              "spearman": -0.04731690065659532,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.01170717274524713,
+              "spearman": 0.10553068115091015,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "shuffled_state": {
+          "excluding_perturbed_readout": {
+            "mse": 0.014548987030649588,
+            "spearman": 0.021239479350166374,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.020247863037731968,
+              "spearman": 0.023095273047563133,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.01076883475224062,
+              "spearman": -0.040044640474029794,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.012630263301976181,
+              "spearman": 0.08066780547696578,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "test_donor": "CE0008162",
+      "train_donors": [
+        "CE0006864",
+        "CE0008678",
+        "CE0010866"
+      ],
+      "test_rows": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95
+      ],
+      "excluded_unseen_target_condition_rows": [],
+      "selection": {
+        "target_condition": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.01598680084451473,
+                0.019534352890060124,
+                0.023940054251472376
+              ],
+              "mean_mse": 0.019820402662015745
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.015354914503613286,
+                0.019089009533843446,
+                0.023241399483133265
+              ],
+              "mean_mse": 0.01922844117353
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.013162277060320035,
+                0.017636577888256826,
+                0.020657448213475683
+              ],
+              "mean_mse": 0.017152101054017516
+            }
+          ]
+        },
+        "baseline_state": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.016929855964350975,
+                0.02010099888957251,
+                0.02453064940994786
+              ],
+              "mean_mse": 0.020520501421290447
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.01633801678570956,
+                0.01970744585869854,
+                0.023877537066914766
+              ],
+              "mean_mse": 0.019974333237107622
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.014225080097773088,
+                0.01835753995535688,
+                0.02144379639235557
+              ],
+              "mean_mse": 0.01800880548182851
+            }
+          ]
+        },
+        "shuffled_state": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.017366683003278417,
+                0.02216265200911151,
+                0.02436784838813919
+              ],
+              "mean_mse": 0.021299061133509708
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.016756931333660557,
+                0.021744285929220775,
+                0.02370724633643448
+              ],
+              "mean_mse": 0.02073615453310527
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.014507165955968996,
+                0.02018320653213736,
+                0.021240461329377663
+              ],
+              "mean_mse": 0.018643611272494674
+            }
+          ]
+        }
+      },
+      "metrics": {
+        "no_change": {
+          "excluding_perturbed_readout": {
+            "mse": 0.011054111136869748,
+            "spearman": null,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 0,
+            "constant_prediction_rows": 48,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.011585438893948096,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.011017146381818676,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.010559748134842471,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "condition_mean": {
+          "excluding_perturbed_readout": {
+            "mse": 0.012742805907424931,
+            "spearman": -0.0031163200807969396,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.013709028030962135,
+              "spearman": -0.07902631719425612,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.0126835351888208,
+              "spearman": 0.08262209351301406,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.011835854502491857,
+              "spearman": -0.01294473656114877,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "target_condition_mean": {
+          "excluding_perturbed_readout": {
+            "mse": 0.016254316184086806,
+            "spearman": 0.04354076027739253,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.01820897268931995,
+              "spearman": 0.01086685261303582,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.016801112797847757,
+              "spearman": 0.05745594335286298,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.013752863065092715,
+              "spearman": 0.06229948486627875,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "target_condition": {
+          "excluding_perturbed_readout": {
+            "mse": 0.012933743985733423,
+            "spearman": 0.03031204353993036,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.01380351292536473,
+              "spearman": -0.03026243794373566,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.013148659945063161,
+              "spearman": 0.0776354046282254,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.011849059086772374,
+              "spearman": 0.04356316393530134,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "baseline_state": {
+          "excluding_perturbed_readout": {
+            "mse": 0.01369050498806332,
+            "spearman": 0.014372421641143425,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.015485458110030933,
+              "spearman": -0.030016214701329202,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.012840548596957818,
+              "spearman": 0.06642439672292848,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.01274550825720121,
+              "spearman": 0.0067090829018309935,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "shuffled_state": {
+          "excluding_perturbed_readout": {
+            "mse": 0.01319447989384745,
+            "spearman": 0.06168248778530302,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.013365765228555882,
+              "spearman": 0.04870549298030214,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.013683395066226275,
+              "spearman": 0.10368803080372838,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.012534279386760189,
+              "spearman": 0.03265393957187851,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "test_donor": "CE0008678",
+      "train_donors": [
+        "CE0006864",
+        "CE0008162",
+        "CE0010866"
+      ],
+      "test_rows": [
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143
+      ],
+      "excluded_unseen_target_condition_rows": [],
+      "selection": {
+        "target_condition": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.01719843537347512,
+                0.016163563855607355,
+                0.022066135259343953
+              ],
+              "mean_mse": 0.018476044829475475
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.016603259478487866,
+                0.01555010500820464,
+                0.02168259836934383
+              ],
+              "mean_mse": 0.017945320952012112
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.014299665361202753,
+                0.013233293272731969,
+                0.020334342673766676
+              ],
+              "mean_mse": 0.01595576710256713
+            }
+          ]
+        },
+        "baseline_state": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.017135193995413727,
+                0.01663713607560594,
+                0.02191556784766102
+              ],
+              "mean_mse": 0.01856263263956023
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.016674346970619095,
+                0.01611248804356483,
+                0.021537060131862695
+              ],
+              "mean_mse": 0.018107965048682204
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.015007461362822001,
+                0.014157119387967237,
+                0.020174684736358393
+              ],
+              "mean_mse": 0.01644642182904921
+            }
+          ]
+        },
+        "shuffled_state": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.01704238234865683,
+                0.016436909880578526,
+                0.02269867312888602
+              ],
+              "mean_mse": 0.018725988452707124
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.016584176069157953,
+                0.015912938080623096,
+                0.022305682424249768
+              ],
+              "mean_mse": 0.018267598858010273
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.014935404320424464,
+                0.01396219002281326,
+                0.020828100972046352
+              ],
+              "mean_mse": 0.01657523177176136
+            }
+          ]
+        }
+      },
+      "metrics": {
+        "no_change": {
+          "excluding_perturbed_readout": {
+            "mse": 0.017811793423614063,
+            "spearman": null,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 0,
+            "constant_prediction_rows": 48,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.022706747316549085,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.015172125626859543,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.015556507327433564,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "condition_mean": {
+          "excluding_perturbed_readout": {
+            "mse": 0.018268990329334666,
+            "spearman": 0.0621820088195826,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.024108707568832717,
+              "spearman": 0.006231006259010338,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.01523732525548973,
+              "spearman": 0.10240102976715248,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.015460938163681551,
+              "spearman": 0.07791399043258493,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "target_condition_mean": {
+          "excluding_perturbed_readout": {
+            "mse": 0.01923759940042209,
+            "spearman": 0.06930096828428367,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.025007120644734915,
+              "spearman": 0.02943086505540572,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.015112131729454657,
+              "spearman": 0.09896559967848176,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.017593545827076694,
+              "spearman": 0.07950644011896355,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "target_condition": {
+          "excluding_perturbed_readout": {
+            "mse": 0.017322722725347028,
+            "spearman": 0.07243708513391266,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.02251057561958724,
+              "spearman": 0.039002546123845835,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.01459453125350132,
+              "spearman": 0.08458071128118005,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.014863061302952518,
+              "spearman": 0.09372799799671208,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "baseline_state": {
+          "excluding_perturbed_readout": {
+            "mse": 0.018282182607221333,
+            "spearman": 0.06750844466355908,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.024030412219011858,
+              "spearman": 0.03261441012632499,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.015095939766118435,
+              "spearman": 0.09562706368717995,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.015720195836533703,
+              "spearman": 0.07428386017717231,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "shuffled_state": {
+          "excluding_perturbed_readout": {
+            "mse": 0.01928658057873003,
+            "spearman": 0.05094203157688921,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.025473062642988632,
+              "spearman": 0.030054591254392818,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.01553584715295389,
+              "spearman": 0.08296356832284772,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.016850831940247578,
+              "spearman": 0.039807935153427086,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "test_donor": "CE0010866",
+      "train_donors": [
+        "CE0006864",
+        "CE0008162",
+        "CE0008678"
+      ],
+      "test_rows": [
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "excluded_unseen_target_condition_rows": [],
+      "selection": {
+        "target_condition": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.014389028746296722,
+                0.016393967488400482,
+                0.017890837530724832
+              ],
+              "mean_mse": 0.01622461125514068
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.013966523037994436,
+                0.01570001810075977,
+                0.01768012151260914
+              ],
+              "mean_mse": 0.015782220883787782
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.012552841587362374,
+                0.013120294820674061,
+                0.017200473896489914
+              ],
+              "mean_mse": 0.014291203434842118
+            }
+          ]
+        },
+        "baseline_state": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.015349646762790305,
+                0.017528816662202667,
+                0.01844650957644089
+              ],
+              "mean_mse": 0.01710832433381129
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.014991543952837284,
+                0.016879319357550496,
+                0.018225871391729414
+              ],
+              "mean_mse": 0.0166989115673724
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.01383777184456328,
+                0.014436473426788166,
+                0.0176250446883575
+              ],
+              "mean_mse": 0.015299763319902982
+            }
+          ]
+        },
+        "shuffled_state": {
+          "selected_alpha": 100.0,
+          "grid": [
+            {
+              "alpha": 1.0,
+              "inner_donor_mse": [
+                0.015228522579385737,
+                0.01747560984090003,
+                0.017960622389694834
+              ],
+              "mean_mse": 0.016888251603326868
+            },
+            {
+              "alpha": 10.0,
+              "inner_donor_mse": [
+                0.014857438229051037,
+                0.016826859642517972,
+                0.017756391145869646
+              ],
+              "mean_mse": 0.016480229672479554
+            },
+            {
+              "alpha": 100.0,
+              "inner_donor_mse": [
+                0.013625567500712676,
+                0.014390656897159146,
+                0.0172705834935796
+              ],
+              "mean_mse": 0.015095602630483809
+            }
+          ]
+        }
+      },
+      "metrics": {
+        "no_change": {
+          "excluding_perturbed_readout": {
+            "mse": 0.020428342546418624,
+            "spearman": null,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 0,
+            "constant_prediction_rows": 48,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.023301129099287436,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.01998739748257534,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.0179965010573931,
+              "spearman": null,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 0,
+              "constant_prediction_rows": 16,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "condition_mean": {
+          "excluding_perturbed_readout": {
+            "mse": 0.01981072650426102,
+            "spearman": 0.17167187138561188,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.022140112701826625,
+              "spearman": 0.1693825735333369,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.019640827385489834,
+              "spearman": 0.19080266107937865,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.017651239425466602,
+              "spearman": 0.15483037954412,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "target_condition_mean": {
+          "excluding_perturbed_readout": {
+            "mse": 0.02310791485778703,
+            "spearman": 0.06552096122706809,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.027739606463551766,
+              "spearman": 0.06079145091549673,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.021504861992046112,
+              "spearman": 0.06908196765066994,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.020079276117763202,
+              "spearman": 0.06668946511503764,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "target_condition": {
+          "excluding_perturbed_readout": {
+            "mse": 0.0201590734504123,
+            "spearman": 0.11963902827452448,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.022900098369634705,
+              "spearman": 0.13231062830299473,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.01934559949290706,
+              "spearman": 0.13329418672930124,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.018231522488695126,
+              "spearman": 0.09331226979127741,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "baseline_state": {
+          "excluding_perturbed_readout": {
+            "mse": 0.020425481327908855,
+            "spearman": 0.09679264755600632,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.022789209073251916,
+              "spearman": 0.1164485800459083,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.019773184218032883,
+              "spearman": 0.1120215662200395,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.01871405069244177,
+              "spearman": 0.061907796402071204,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        },
+        "shuffled_state": {
+          "excluding_perturbed_readout": {
+            "mse": 0.02086458413836023,
+            "spearman": 0.09811562483318208,
+            "rows": 48,
+            "mse_rows": 48,
+            "spearman_rows": 48,
+            "constant_prediction_rows": 0,
+            "constant_target_rows": 0,
+            "fewer_than_three_readouts": 0
+          },
+          "by_condition": {
+            "Rest": {
+              "mse": 0.02332479109067913,
+              "spearman": 0.12270925639246251,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim48hr": {
+              "mse": 0.020825630757775715,
+              "spearman": 0.05444069289489137,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            },
+            "Stim8hr": {
+              "mse": 0.01844333056662584,
+              "spearman": 0.11719692521219238,
+              "rows": 16,
+              "mse_rows": 16,
+              "spearman_rows": 16,
+              "constant_prediction_rows": 0,
+              "constant_target_rows": 0,
+              "fewer_than_three_readouts": 0
+            }
+          }
+        }
+      }
+    }
+  ],
+  "inner_splits": [
+    {
+      "outer_test_donor": "CE0006864",
+      "inner_validation_donor": "CE0008162",
+      "fit_rows": [
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "validation_rows": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0006864",
+      "inner_validation_donor": "CE0008678",
+      "fit_rows": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "validation_rows": [
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0006864",
+      "inner_validation_donor": "CE0010866",
+      "fit_rows": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143
+      ],
+      "validation_rows": [
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0008162",
+      "inner_validation_donor": "CE0006864",
+      "fit_rows": [
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "validation_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0008162",
+      "inner_validation_donor": "CE0008678",
+      "fit_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "validation_rows": [
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0008162",
+      "inner_validation_donor": "CE0010866",
+      "fit_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143
+      ],
+      "validation_rows": [
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0008678",
+      "inner_validation_donor": "CE0006864",
+      "fit_rows": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "validation_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0008678",
+      "inner_validation_donor": "CE0008162",
+      "fit_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "validation_rows": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0008678",
+      "inner_validation_donor": "CE0010866",
+      "fit_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95
+      ],
+      "validation_rows": [
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0010866",
+      "inner_validation_donor": "CE0006864",
+      "fit_rows": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143
+      ],
+      "validation_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0010866",
+      "inner_validation_donor": "CE0008162",
+      "fit_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143
+      ],
+      "validation_rows": [
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95
+      ],
+      "excluded_validation_rows": []
+    },
+    {
+      "outer_test_donor": "CE0010866",
+      "inner_validation_donor": "CE0008678",
+      "fit_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95
+      ],
+      "validation_rows": [
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143
+      ],
+      "excluded_validation_rows": []
+    }
+  ],
+  "aggregation_rows": [
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 41,
+      "library": 258444.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 297,
+      "library": 2727567.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 130,
+      "library": 1221154.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 319,
+      "library": 2618328.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 187,
+      "library": 1549259.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 156,
+      "library": 1451103.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 212,
+      "library": 1768811.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 182,
+      "library": 1738586.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 236,
+      "library": 1863121.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 160,
+      "library": 1206826.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 81,
+      "library": 578695.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 224,
+      "library": 2173343.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 82,
+      "library": 740800.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 173,
+      "library": 1343706.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 76,
+      "library": 752195.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 282,
+      "library": 2402166.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 26,
+      "library": 283996.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 337,
+      "library": 4862752.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 157,
+      "library": 2267740.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 298,
+      "library": 4102438.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 198,
+      "library": 2753924.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 181,
+      "library": 2431965.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 164,
+      "library": 2215696.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 240,
+      "library": 3505396.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 238,
+      "library": 3001968.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 191,
+      "library": 2787948.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 53,
+      "library": 696162.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 169,
+      "library": 2284669.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 132,
+      "library": 1893869.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 160,
+      "library": 1991661.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 108,
+      "library": 1348333.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 280,
+      "library": 3609100.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 40,
+      "library": 396348.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 309,
+      "library": 3493733.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 118,
+      "library": 1353301.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 319,
+      "library": 3260656.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 177,
+      "library": 1892852.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 174,
+      "library": 1847160.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 138,
+      "library": 1431098.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 185,
+      "library": 2143437.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 194,
+      "library": 2165214.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 163,
+      "library": 1751369.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 67,
+      "library": 681524.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 210,
+      "library": 2396278.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 86,
+      "library": 1003393.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 174,
+      "library": 1712850.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 80,
+      "library": 698657.0
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 294,
+      "library": 2728496.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 29,
+      "library": 287074.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 79,
+      "library": 736837.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 66,
+      "library": 673187.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 193,
+      "library": 1729986.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 271,
+      "library": 2400852.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 202,
+      "library": 1740779.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 112,
+      "library": 1109407.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 261,
+      "library": 2369248.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 117,
+      "library": 1077731.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 85,
+      "library": 823740.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 102,
+      "library": 883058.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 116,
+      "library": 1088614.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 69,
+      "library": 614161.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 75,
+      "library": 745076.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 69,
+      "library": 741844.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 89,
+      "library": 835365.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 36,
+      "library": 516884.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 67,
+      "library": 958669.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 101,
+      "library": 1536118.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 157,
+      "library": 2169073.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 202,
+      "library": 2658876.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 193,
+      "library": 2669573.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 117,
+      "library": 1808643.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 270,
+      "library": 3741808.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 132,
+      "library": 1734493.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 79,
+      "library": 1189997.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 91,
+      "library": 1290063.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 102,
+      "library": 1545508.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 115,
+      "library": 1750384.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 67,
+      "library": 887581.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 85,
+      "library": 1425462.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 79,
+      "library": 1244091.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 50,
+      "library": 545361.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 65,
+      "library": 865386.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 79,
+      "library": 1009140.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 155,
+      "library": 1953134.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 205,
+      "library": 2603932.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 194,
+      "library": 2348924.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 120,
+      "library": 1482855.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 239,
+      "library": 3230623.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 141,
+      "library": 1718240.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 76,
+      "library": 910550.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 95,
+      "library": 1278225.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 95,
+      "library": 1178526.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 84,
+      "library": 980399.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 76,
+      "library": 935927.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 78,
+      "library": 1010353.0
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 77,
+      "library": 949179.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 33,
+      "library": 281792.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 239,
+      "library": 2166226.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 339,
+      "library": 4539350.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 381,
+      "library": 4607324.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 125,
+      "library": 1291707.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 38,
+      "library": 330420.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 172,
+      "library": 1944162.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 544,
+      "library": 6030792.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 245,
+      "library": 2312449.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 41,
+      "library": 282497.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 198,
+      "library": 1692764.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 101,
+      "library": 1105092.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 92,
+      "library": 1189228.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 87,
+      "library": 805947.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 222,
+      "library": 1953895.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 64,
+      "library": 731243.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 20,
+      "library": 190130.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 193,
+      "library": 2364148.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 371,
+      "library": 4950493.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 388,
+      "library": 4571363.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 117,
+      "library": 1467539.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 32,
+      "library": 384810.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 174,
+      "library": 2217359.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 513,
+      "library": 6171059.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 263,
+      "library": 3368868.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 37,
+      "library": 420629.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 121,
+      "library": 1167152.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 121,
+      "library": 1556248.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 151,
+      "library": 1924538.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 84,
+      "library": 1130869.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 277,
+      "library": 3230968.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 72,
+      "library": 785942.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 19,
+      "library": 308602.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 195,
+      "library": 2708646.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 329,
+      "library": 4677386.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 319,
+      "library": 4796496.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 114,
+      "library": 1626715.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 32,
+      "library": 391911.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 144,
+      "library": 2427976.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 487,
+      "library": 6957097.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 208,
+      "library": 2497203.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 39,
+      "library": 554566.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 166,
+      "library": 1881898.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 88,
+      "library": 1170922.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 129,
+      "library": 2054604.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 51,
+      "library": 712705.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 211,
+      "library": 3030855.0
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 75,
+      "library": 1063277.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 105,
+      "library": 826475.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 37,
+      "library": 447055.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 457,
+      "library": 4061182.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 98,
+      "library": 784646.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 441,
+      "library": 4277450.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 102,
+      "library": 929277.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 125,
+      "library": 1156610.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 83,
+      "library": 764139.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 352,
+      "library": 3430123.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 80,
+      "library": 799113.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 279,
+      "library": 2446442.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 293,
+      "library": 2879393.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 1327,
+      "library": 11787500.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 383,
+      "library": 3364753.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 32,
+      "library": 315905.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 3664,
+      "library": 37039781.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 60,
+      "library": 443645.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 44,
+      "library": 428267.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 451,
+      "library": 4476317.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 84,
+      "library": 805772.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 455,
+      "library": 4088283.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 99,
+      "library": 997617.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 90,
+      "library": 851059.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 86,
+      "library": 899075.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 365,
+      "library": 3563554.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 73,
+      "library": 785455.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 291,
+      "library": 2466644.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 273,
+      "library": 2606292.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 1481,
+      "library": 13757982.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 484,
+      "library": 4738252.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 27,
+      "library": 256306.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 3566,
+      "library": 40633894.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "ARPC2",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 141,
+      "library": 1610315.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "CD7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 40,
+      "library": 490159.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "CORO1A",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 394,
+      "library": 5053761.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "CST7",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 84,
+      "library": 1015424.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "DUSP1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 405,
+      "library": 5387076.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "FOS",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 107,
+      "library": 1303968.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "FTH1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 119,
+      "library": 1479755.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "GBP4",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 88,
+      "library": 1112591.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "GBP5",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 343,
+      "library": 4634752.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "HINT1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 94,
+      "library": 1325083.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "IKZF1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 293,
+      "library": 3431195.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "IL32",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 290,
+      "library": 3711164.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "KLF6",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 1339,
+      "library": 16017148.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "MSN",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 428,
+      "library": 5544529.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "SMCHD1",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 32,
+      "library": 423976.0
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "target": "VIM",
+      "profiles": 2,
+      "guides": 2,
+      "cells": 3853,
+      "library": 51037262.0
+    }
+  ],
+  "source_groups": [
+    [
+      255317,
+      255318
+    ],
+    [
+      257254,
+      257255
+    ],
+    [
+      258224,
+      258225
+    ],
+    [
+      258501,
+      258502
+    ],
+    [
+      259544,
+      259545
+    ],
+    [
+      261108,
+      261109
+    ],
+    [
+      261261,
+      261262
+    ],
+    [
+      261478,
+      261479
+    ],
+    [
+      261480,
+      261481
+    ],
+    [
+      262536,
+      262537
+    ],
+    [
+      263287,
+      263288
+    ],
+    [
+      263377,
+      263378
+    ],
+    [
+      264139,
+      264140
+    ],
+    [
+      266092,
+      266093
+    ],
+    [
+      273280,
+      273281
+    ],
+    [
+      276741,
+      276742
+    ],
+    [
+      50178,
+      50179
+    ],
+    [
+      52124,
+      52125
+    ],
+    [
+      53101,
+      53102
+    ],
+    [
+      53380,
+      53381
+    ],
+    [
+      54431,
+      54432
+    ],
+    [
+      55976,
+      55977
+    ],
+    [
+      56128,
+      56129
+    ],
+    [
+      56344,
+      56345
+    ],
+    [
+      56346,
+      56347
+    ],
+    [
+      57413,
+      57414
+    ],
+    [
+      58168,
+      58169
+    ],
+    [
+      58259,
+      58260
+    ],
+    [
+      59023,
+      59024
+    ],
+    [
+      60977,
+      60978
+    ],
+    [
+      68224,
+      68225
+    ],
+    [
+      71702,
+      71703
+    ],
+    [
+      25214,
+      25215
+    ],
+    [
+      27171,
+      27172
+    ],
+    [
+      28158,
+      28159
+    ],
+    [
+      28439,
+      28440
+    ],
+    [
+      29496,
+      29497
+    ],
+    [
+      31061,
+      31062
+    ],
+    [
+      31214,
+      31215
+    ],
+    [
+      31431,
+      31432
+    ],
+    [
+      31433,
+      31434
+    ],
+    [
+      32503,
+      32504
+    ],
+    [
+      33259,
+      33260
+    ],
+    [
+      33351,
+      33352
+    ],
+    [
+      34124,
+      34125
+    ],
+    [
+      36090,
+      36091
+    ],
+    [
+      43399,
+      43400
+    ],
+    [
+      46904,
+      46905
+    ],
+    [
+      231999,
+      232000
+    ],
+    [
+      233829,
+      233830
+    ],
+    [
+      234725,
+      234726
+    ],
+    [
+      234979,
+      234980
+    ],
+    [
+      235954,
+      235955
+    ],
+    [
+      237423,
+      237424
+    ],
+    [
+      237571,
+      237572
+    ],
+    [
+      237774,
+      237775
+    ],
+    [
+      237776,
+      237777
+    ],
+    [
+      238746,
+      238747
+    ],
+    [
+      239461,
+      239462
+    ],
+    [
+      239551,
+      239552
+    ],
+    [
+      240271,
+      240272
+    ],
+    [
+      242117,
+      242118
+    ],
+    [
+      248882,
+      248883
+    ],
+    [
+      252139,
+      252140
+    ],
+    [
+      1296,
+      1297
+    ],
+    [
+      3173,
+      3174
+    ],
+    [
+      4094,
+      4095
+    ],
+    [
+      4358,
+      4359
+    ],
+    [
+      5357,
+      5358
+    ],
+    [
+      6852,
+      6853
+    ],
+    [
+      7002,
+      7003
+    ],
+    [
+      7209,
+      7210
+    ],
+    [
+      7211,
+      7212
+    ],
+    [
+      8209,
+      8210
+    ],
+    [
+      8941,
+      8942
+    ],
+    [
+      9031,
+      9032
+    ],
+    [
+      9772,
+      9773
+    ],
+    [
+      11667,
+      11668
+    ],
+    [
+      18657,
+      18658
+    ],
+    [
+      21979,
+      21980
+    ],
+    [
+      74937,
+      74938
+    ],
+    [
+      76807,
+      76808
+    ],
+    [
+      77730,
+      77731
+    ],
+    [
+      77994,
+      77995
+    ],
+    [
+      79002,
+      79003
+    ],
+    [
+      80498,
+      80499
+    ],
+    [
+      80648,
+      80649
+    ],
+    [
+      80856,
+      80857
+    ],
+    [
+      80858,
+      80859
+    ],
+    [
+      81853,
+      81854
+    ],
+    [
+      82586,
+      82587
+    ],
+    [
+      82678,
+      82679
+    ],
+    [
+      83426,
+      83427
+    ],
+    [
+      85307,
+      85308
+    ],
+    [
+      92256,
+      92257
+    ],
+    [
+      95593,
+      95594
+    ],
+    [
+      166189,
+      166190
+    ],
+    [
+      167904,
+      167905
+    ],
+    [
+      168746,
+      168747
+    ],
+    [
+      168989,
+      168990
+    ],
+    [
+      169887,
+      169888
+    ],
+    [
+      171256,
+      171257
+    ],
+    [
+      171394,
+      171395
+    ],
+    [
+      171569,
+      171570
+    ],
+    [
+      171571,
+      171572
+    ],
+    [
+      172489,
+      172490
+    ],
+    [
+      173136,
+      173137
+    ],
+    [
+      173221,
+      173222
+    ],
+    [
+      173879,
+      173880
+    ],
+    [
+      175588,
+      175589
+    ],
+    [
+      181842,
+      181843
+    ],
+    [
+      184848,
+      184849
+    ],
+    [
+      98658,
+      98659
+    ],
+    [
+      100356,
+      100357
+    ],
+    [
+      101182,
+      101183
+    ],
+    [
+      101419,
+      101420
+    ],
+    [
+      102312,
+      102313
+    ],
+    [
+      103654,
+      103655
+    ],
+    [
+      103791,
+      103792
+    ],
+    [
+      103964,
+      103965
+    ],
+    [
+      103966,
+      103967
+    ],
+    [
+      104869,
+      104870
+    ],
+    [
+      105509,
+      105510
+    ],
+    [
+      105595,
+      105596
+    ],
+    [
+      106234,
+      106235
+    ],
+    [
+      107885,
+      107886
+    ],
+    [
+      114045,
+      114046
+    ],
+    [
+      116994,
+      116995
+    ],
+    [
+      210096,
+      210097
+    ],
+    [
+      211830,
+      211831
+    ],
+    [
+      212676,
+      212677
+    ],
+    [
+      212920,
+      212921
+    ],
+    [
+      213838,
+      213839
+    ],
+    [
+      215212,
+      215213
+    ],
+    [
+      215351,
+      215352
+    ],
+    [
+      215537,
+      215538
+    ],
+    [
+      215539,
+      215540
+    ],
+    [
+      216479,
+      216480
+    ],
+    [
+      217131,
+      217132
+    ],
+    [
+      217214,
+      217215
+    ],
+    [
+      217877,
+      217878
+    ],
+    [
+      219583,
+      219584
+    ],
+    [
+      225957,
+      225958
+    ],
+    [
+      229032,
+      229033
+    ],
+    [
+      187740,
+      187741
+    ],
+    [
+      189501,
+      189502
+    ],
+    [
+      190386,
+      190387
+    ],
+    [
+      190630,
+      190631
+    ],
+    [
+      191555,
+      191556
+    ],
+    [
+      192990,
+      192991
+    ],
+    [
+      193133,
+      193134
+    ],
+    [
+      193326,
+      193327
+    ],
+    [
+      193328,
+      193329
+    ],
+    [
+      194276,
+      194277
+    ],
+    [
+      194962,
+      194963
+    ],
+    [
+      195046,
+      195047
+    ],
+    [
+      195736,
+      195737
+    ],
+    [
+      197522,
+      197523
+    ],
+    [
+      204018,
+      204019
+    ],
+    [
+      207129,
+      207130
+    ],
+    [
+      143396,
+      143397
+    ],
+    [
+      145182,
+      145183
+    ],
+    [
+      146076,
+      146077
+    ],
+    [
+      146331,
+      146332
+    ],
+    [
+      147292,
+      147293
+    ],
+    [
+      148738,
+      148739
+    ],
+    [
+      148882,
+      148883
+    ],
+    [
+      149086,
+      149087
+    ],
+    [
+      149088,
+      149089
+    ],
+    [
+      150065,
+      150066
+    ],
+    [
+      150760,
+      150761
+    ],
+    [
+      150844,
+      150845
+    ],
+    [
+      151540,
+      151541
+    ],
+    [
+      153358,
+      153359
+    ],
+    [
+      160012,
+      160013
+    ],
+    [
+      163210,
+      163211
+    ],
+    [
+      119928,
+      119929
+    ],
+    [
+      121764,
+      121765
+    ],
+    [
+      122700,
+      122701
+    ],
+    [
+      122960,
+      122961
+    ],
+    [
+      123941,
+      123942
+    ],
+    [
+      125425,
+      125426
+    ],
+    [
+      125573,
+      125574
+    ],
+    [
+      125778,
+      125779
+    ],
+    [
+      125780,
+      125781
+    ],
+    [
+      126781,
+      126782
+    ],
+    [
+      127495,
+      127496
+    ],
+    [
+      127582,
+      127583
+    ],
+    [
+      128313,
+      128314
+    ],
+    [
+      130181,
+      130182
+    ],
+    [
+      137023,
+      137024
+    ],
+    [
+      140310,
+      140311
+    ]
+  ],
+  "input_verification": {
+    "guide_pools_disjoint": true,
+    "control_target_source_rows_disjoint": true,
+    "control_target_guides_disjoint": true,
+    "aggregates_recomputed_exactly": true,
+    "control_profiles": 348
+  },
+  "provenance": {
+    "targets_sha256": "619c0e9257a09500c01321954429d9222f5296065c1768c1c9153f80c9d351ea",
+    "baseline_sha256": "90dd86ec2fb393564e636cd9a25eb3c7cb960808cc67104f53b3abda5baf6836",
+    "controls_sha256": "442a0b4500c305787d869efc0ad8e8e6c48028e3c65d9b7a17e31180c6405d4e",
+    "script_sha256": "24b34a9e06b4b649d1a52591903d6f62e011e7b665e13eff9d0d5c8fd8ff4e91"
+  },
+  "protocol": {
+    "task": "Control-assisted seen-target donor transfer; four nested outer donor folds",
+    "label": "log1p(10000 * summed target counts / summed full-transcriptome UMI library) minus independent reference-control transform; not deposited DE logFC",
+    "state": "Feature-control transform only; no perturbed state input",
+    "ridge": "Train-only feature scaling; alpha 1/10/100 selected by equal inner-donor MSE; inverse donor-row-count training weights",
+    "selection_metric": "Downstream-only inner donor MSE; direct-target entries excluded from per-readout training, baseline estimation, selection and reporting",
+    "aggregation": "Summed target-guide pseudobulk counts, weighting more abundant cells/guides; not equal-guide mean",
+    "shuffle": "Fixed training-donor derangement shared across conditions; test state remains correct",
+    "limits": [
+      "Reused development set, not new confirmation; no unmasked direct-target predictions should be consumed",
+      "Only four donors; seed or row variation is not donor confidence",
+      "Seen target-condition combinations only; no unseen target claim",
+      "Baseline provenance must establish separate control guide pools",
+      "All counts require measured complete panel; no missing groups zero-filled",
+      "Tiny ridge development comparison; no causal or machinery validation"
+    ]
+  }
+}

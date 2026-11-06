@@ -37,9 +37,12 @@ import {
   tip,
   exploreTutorial,
 } from './demo-helpers.js';
+import { FIXTURE_EMAIL, FIXTURE_PASSWORD } from './_fixture-login.js';
 
 const DEMO = 'demo-05-autoloop-qc';
-const EMAIL = 'demo_autoloop_qc@biomate.test';
+// Canonical shared fixture (CLAUDE.md): never a made-up @biomate.test address —
+// those bounce in verification and degrade the account's quota.
+const EMAIL = FIXTURE_EMAIL;
 
 // First docking query — intentionally conservative params to trigger QC gate.
 // Use the same phrasing pattern as Demo 1's working docking query.
@@ -58,7 +61,7 @@ test('Demo 5 — Auto-loop QC: erlotinib/EGFR docking QC gate fires then auto-re
   test.setTimeout(1_800_000);
 
   // ── Setup ──────────────────────────────────────────────────────────────────
-  await setupDemoUser(page, EMAIL, 'DemoPass123!', 'Drug Discovery');
+  await setupDemoUser(page, EMAIL, FIXTURE_PASSWORD, 'Drug Discovery');
   await shot(page, DEMO, '00_start');
   await tip(page, 'Welcome to BioMate — Auto-loop QC detects failed runs and re-runs with scientifically correct parameters automatically', 5000);
   await pause(page, 5_000);

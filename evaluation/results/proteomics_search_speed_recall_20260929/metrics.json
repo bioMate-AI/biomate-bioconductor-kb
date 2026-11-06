@@ -1,0 +1,167 @@
+[
+  {
+    "method": "comet",
+    "claimed_fdr": 0.01,
+    "ids_at_fdr": {
+      "psms": 260,
+      "peptides": 73,
+      "proteins": 71
+    },
+    "calibration": {
+      "entrapment_ids": 0,
+      "target_ids": 260,
+      "ratio": 1.0,
+      "fmr": 0.0
+    },
+    "calibration_curve": [
+      {
+        "claimed_fdr": 0.001,
+        "measured_fmr": 0.0,
+        "target_ids": 141,
+        "entrapment_ids": 0
+      },
+      {
+        "claimed_fdr": 0.002,
+        "measured_fmr": 0.0,
+        "target_ids": 141,
+        "entrapment_ids": 0
+      },
+      {
+        "claimed_fdr": 0.005,
+        "measured_fmr": 0.0,
+        "target_ids": 141,
+        "entrapment_ids": 0
+      },
+      {
+        "claimed_fdr": 0.01,
+        "measured_fmr": 0.0,
+        "target_ids": 260,
+        "entrapment_ids": 0
+      },
+      {
+        "claimed_fdr": 0.02,
+        "measured_fmr": 0.0,
+        "target_ids": 361,
+        "entrapment_ids": 0
+      },
+      {
+        "claimed_fdr": 0.05,
+        "measured_fmr": 0.01079136690647482,
+        "target_ids": 556,
+        "entrapment_ids": 6
+      }
+    ],
+    "speed": {},
+    "calibrated": true
+  },
+  {
+    "method": "sage",
+    "claimed_fdr": 0.01,
+    "ids_at_fdr": {
+      "psms": 552,
+      "peptides": 137,
+      "proteins": 130
+    },
+    "calibration": {
+      "entrapment_ids": 3,
+      "target_ids": 552,
+      "ratio": 1.0,
+      "fmr": 0.005434782608695652
+    },
+    "calibration_curve": [
+      {
+        "claimed_fdr": 0.001,
+        "measured_fmr": 0.0025575447570332483,
+        "target_ids": 391,
+        "entrapment_ids": 1
+      },
+      {
+        "claimed_fdr": 0.002,
+        "measured_fmr": 0.0025575447570332483,
+        "target_ids": 391,
+        "entrapment_ids": 1
+      },
+      {
+        "claimed_fdr": 0.005,
+        "measured_fmr": 0.0020833333333333333,
+        "target_ids": 480,
+        "entrapment_ids": 1
+      },
+      {
+        "claimed_fdr": 0.01,
+        "measured_fmr": 0.005434782608695652,
+        "target_ids": 552,
+        "entrapment_ids": 3
+      },
+      {
+        "claimed_fdr": 0.02,
+        "measured_fmr": 0.005706134094151213,
+        "target_ids": 701,
+        "entrapment_ids": 4
+      },
+      {
+        "claimed_fdr": 0.05,
+        "measured_fmr": 0.024441340782122904,
+        "target_ids": 1432,
+        "entrapment_ids": 35
+      }
+    ],
+    "speed": {},
+    "calibrated": true
+  },
+  {
+    "method": "sage_mokapot",
+    "claimed_fdr": 0.01,
+    "ids_at_fdr": {
+      "psms": 836,
+      "peptides": 191,
+      "proteins": 174
+    },
+    "calibration": {
+      "entrapment_ids": 2,
+      "target_ids": 836,
+      "ratio": 1.0,
+      "fmr": 0.0023923444976076554
+    },
+    "calibration_curve": [
+      {
+        "claimed_fdr": 0.001,
+        "measured_fmr": NaN,
+        "target_ids": 0,
+        "entrapment_ids": 0
+      },
+      {
+        "claimed_fdr": 0.002,
+        "measured_fmr": NaN,
+        "target_ids": 0,
+        "entrapment_ids": 0
+      },
+      {
+        "claimed_fdr": 0.005,
+        "measured_fmr": 0.0014245014245014246,
+        "target_ids": 702,
+        "entrapment_ids": 1
+      },
+      {
+        "claimed_fdr": 0.01,
+        "measured_fmr": 0.0023923444976076554,
+        "target_ids": 836,
+        "entrapment_ids": 2
+      },
+      {
+        "claimed_fdr": 0.02,
+        "measured_fmr": 0.004757373929590866,
+        "target_ids": 1051,
+        "entrapment_ids": 5
+      },
+      {
+        "claimed_fdr": 0.05,
+        "measured_fmr": 0.027741935483870966,
+        "target_ids": 1550,
+        "entrapment_ids": 43
+      }
+    ],
+    "speed": {},
+    "calibrated": true
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "model": "deepseek/deepseek-v4-pro",
+  "bare": {
+    "accuracy": 0.8333,
+    "drug_discovery_accuracy": 0.8704,
+    "off_channel_or_empty": 0
+  },
+  "harness": {
+    "accuracy": 0.9762,
+    "drug_discovery_accuracy": 1.0,
+    "off_channel_or_empty": 0
+  },
+  "harness_dividend": 0.1429
+}

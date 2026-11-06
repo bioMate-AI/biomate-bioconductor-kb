@@ -84,6 +84,65 @@ except ImportError as e:
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# GEO data-modality detection — the DATA-FIRST routing signal, lifted to module
+# scope so BOTH the chat path (AIAssistant._detect_geo_platform) and the
+# execute-gate (via the /api/ai_assistant/geo_platform endpoint) share ONE
+# implementation. See docs/20261102_UNIFIED_PUBLIC_ID_ROUTING_DESIGN.md.
+# ---------------------------------------------------------------------------
+_GEO_PLATFORM_CACHE: Dict[str, Optional[str]] = {}
+
+
+def detect_geo_platform(gse_id: str, cache: Optional[Dict[str, Optional[str]]] = None) -> Optional[str]:
+    """Read GEO's own Series metadata to determine data modality.
+
+    Returns 'microarray' | 'scrna' | 'bulk_rnaseq' | None (unknown / lookup failed).
+    One HTTP GET to GEO's SOFT text endpoint; `!Series_type` is authoritative for
+    array-vs-sequencing, and title/summary/design disambiguate scRNA from bulk.
+    Any failure returns None so the caller can fall back — never raises into routing.
+    Results are cached per accession for the process lifetime (shared module cache
+    when `cache` is omitted).
+    """
+    if cache is None:
+        cache = _GEO_PLATFORM_CACHE
+    if gse_id in cache:
+        return cache[gse_id]
+    result: Optional[str] = None
+    try:
+        import urllib.request as _u
+        url = (f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={gse_id}"
+               "&targ=self&form=text&view=quick")
+        with _u.urlopen(url, timeout=4) as _r:
+            text = _r.read().decode('utf-8', 'replace')
+        types, meta = [], []
+        for ln in text.splitlines():
+            low = ln.lower()
+            if low.startswith('!series_type'):
+                types.append(low.split('=', 1)[-1].strip())
+            elif (low.startswith('!series_title') or low.startswith('!series_summary')
+                  or low.startswith('!series_overall_design')):
+                meta.append(low.split('=', 1)[-1].strip())
+        blob = ' '.join(meta)
+        has_array = any('array' in t for t in types)
+        has_seq = any('sequencing' in t for t in types)
+        sc = any(k in blob for k in [
+            'single cell', 'single-cell', 'scrna', 'sc-rna', '10x', 'droplet',
+            'drop-seq', 'chromium', 'single nucleus', 'single-nucleus', 'snrna',
+        ])
+        if has_array and not has_seq:
+            result = 'microarray'
+        elif has_seq and not has_array:
+            result = 'scrna' if sc else 'bulk_rnaseq'
+        else:
+            result = None  # mixed / no type line → unknown, let caller fall back
+        log.info("[GeoFastPath] GEO %s metadata: types=%s → platform=%s", gse_id, types, result)
+    except Exception as _e:
+        log.info("[GeoFastPath] GEO platform lookup for %s failed (%s) — caller falls back", gse_id, _e)
+        result = None
+    cache[gse_id] = result
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Module-level bounded cache for multi-task LLM classification results.
 # Keyed by MD5 of the lowercased query; evicts oldest entry when full.
 # ---------------------------------------------------------------------------
@@ -93,8 +152,8 @@ _MULTI_TASK_CACHE_MAX = 128
 # Fastest/cheapest model per provider for lightweight classification calls.
 _FAST_CLASSIFICATION_MODELS: dict = {
     'anthropic': 'claude-haiku-4-5',
-    'gemini': 'gemini-3.5-flash',
-    'google': 'gemini-3.5-flash',
+    'gemini': 'gemini-3.8-flash',
+    'google': 'gemini-3.8-flash',
     'openai': 'gpt-3.5-turbo',
     'deepseek': 'deepseek-chat',
     'zhipu': 'glm-4-flash',
@@ -145,6 +204,34 @@ def _eager_load_steps(nextflow_path: str) -> dict:
         return _parse_nextflow_steps(nextflow_path)
     except Exception:
         return {}
+
+
+def _composed_workflow_name(data: Dict) -> str:
+    """A composed workflow's display name: its own name, else the first clause of its description
+    (<=60 chars), never the literal placeholder "Generated Workflow" — a GSE157703 scRNA request
+    showed a card titled "Generated Workflow" (external-user replay, dev 2026-11-04)."""
+    import re as _re_nm
+    name = str((data or {}).get('name') or '').strip()
+    if name and name.lower() != 'generated workflow':
+        return name
+    desc = str((data or {}).get('description') or (data or {}).get('annotation') or '').strip()
+    clause = _re_nm.split(r'(?<=[.;:])\s|\s[—–-]\s', desc)[0].strip().rstrip('.;:') if desc else ''
+    if clause:
+        return clause if len(clause) <= 60 else clause[:57].rsplit(' ', 1)[0] + '…'
+    # No description (composed from catalog steps): name it after its own steps.
+    steps = (data or {}).get('steps') or []
+    if isinstance(steps, dict):
+        steps = list(steps.values())
+    labels = []
+    for st in steps if isinstance(steps, list) else []:
+        lab = str((st or {}).get('name') or (st or {}).get('tool_id') or (st or {}).get('label') or '').strip() if isinstance(st, dict) else ''
+        lab = _re_nm.sub(r'[_]+', ' ', lab).strip()
+        if lab and lab.lower() not in (l.lower() for l in labels):
+            labels.append(lab)
+    if labels:
+        joined = ' → '.join(labels[:3])
+        return joined if len(joined) <= 60 else joined[:57].rsplit(' ', 1)[0] + '…'
+    return 'Custom workflow'
 
 
 class AIAssistant:
@@ -486,6 +573,21 @@ class AIAssistant:
         """
         Route a query to the appropriate handler and execute.
 
+        .. warning::
+            NOT WIRED TO THE LIVE PATH (as of 2026-10-12). This method (and the
+            multi-task clarification + backend DAG composer it calls:
+            ``_looks_like_multi_task`` / ``_handle_multi_task_clarification`` /
+            ``decomposed_dag.build_dag_plan``, gated by ``BIOMATE_MULTITASK_DAG_ENABLED``)
+            has NO live callers — only unit tests. The live chat/generation endpoint is
+            ``generate_workflow_unified`` (``/api/ai_assistant/generate_workflow``), and
+            the live multi-step composer is the Node-side
+            ``galaxy-assistant.ts::processSequentialPipeline`` (reached when
+            ``analyzeIntent`` flags ``isMultiIntent``/``isSequential``). Enabling
+            ``BIOMATE_MULTITASK_DAG_ENABLED`` therefore changes NO live behaviour.
+            This remains as a tested, validated (``galaxy.chain.dag.validate_plan``)
+            candidate for a future *rigorous* composer — wire or remove deliberately.
+            See docs/20261012_COMPOSER_FLAG_ENABLED_AND_WIRING_GAP.md.
+
         This is the main entry point for the unified AI assistant that
         automatically determines intent and routes to the right component.
 
@@ -555,6 +657,37 @@ class AIAssistant:
         context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Handle workflow generation requests."""
+        # --- Flag-gated Pattern-Router hook (default OFF). -------------------
+        # When BIOMATE_PATTERN_ROUTER_ENABLED is off (the default), this reads a
+        # single env var and does nothing else -- no import, no new call -- so the
+        # path below is behaviorally identical to today's single-pass generation.
+        # Only when enabled does it consult the (already-tested) pattern_router,
+        # which itself only reaches the dormant multi-agent orchestrator for a
+        # MULTI_SPECIALIST decision. Any failure falls through to the default path.
+        import os as _os
+        if _os.environ.get("BIOMATE_PATTERN_ROUTER_ENABLED", "").strip().lower() in (
+            "1", "true", "yes", "on"
+        ):
+            try:
+                from .pattern_router import maybe_route_workflow_generation
+                _pr = maybe_route_workflow_generation(query, context, enabled=True)
+                _res = _pr.get("result")
+                if _pr.get("dispatched") and isinstance(_res, dict):
+                    return {
+                        "success": _res.get("success", True),
+                        "handler": "agent_orchestrator",
+                        "workflow": _res.get("workflow_ga") or _res.get("workflow"),
+                        "source": _res.get("source", "pattern_router:multi_specialist"),
+                        "confidence": _res.get("confidence"),
+                        "message": _res.get("message"),
+                        "pattern": (_pr.get("decision") or {}).get("pattern"),
+                    }
+            except Exception as _hook_exc:  # never break the live path
+                log.warning(
+                    "[PatternRouter] hook skipped (%s); using unified generation",
+                    _hook_exc,
+                )
+        # ---------------------------------------------------------------------
         # Use the existing generate_workflow_unified method
         datasets = context.get('datasets', []) if context else []
         result = self.generate_workflow_unified(query, available_datasets=datasets)
@@ -722,14 +855,88 @@ class AIAssistant:
                     ],
                 }
 
-            # No missing context — fall back to single-task generation for now.
-            # Full parallel dispatch (LangGraph + Celery) is Phase 1 of the main plan.
+            # No missing context. Reconciliation #3 (first slice): when enabled,
+            # assemble the decomposed tasks into an executable DAG plan instead of
+            # DISCARDING them (the old behaviour collapsed N tasks → one workflow).
+            # Default OFF (BIOMATE_MULTITASK_DAG_ENABLED) → byte-for-byte the prior
+            # single-task path. The assembled plan is validated against the chain
+            # executor contract (galaxy.chain.dag); if any task can't be resolved,
+            # build_dag_plan returns None and we fall back safely.
+            import os as _os
+            if _os.environ.get("BIOMATE_MULTITASK_DAG_ENABLED", "").strip().lower() in ("1", "true", "yes", "on"):
+                try:
+                    from .decomposed_dag import build_dag_plan, bind_shared_inputs, to_pipeline_card
+                    _dag = build_dag_plan(
+                        tasks, self._resolve_task_to_workflow,
+                        type_provider=self._workflow_io_types,
+                    )
+                    if _dag:
+                        # Best-effort: prefill the user's input onto fan-out root steps.
+                        _dag = bind_shared_inputs(_dag, self._extract_input_refs(context))
+                        log.info(f"[MultiTask] assembled {len(_dag['steps'])}-step DAG plan (not discarded)")
+                        # Emit the frontend's pipeline-card shape so the existing
+                        # whole-plan chain card renders + submits it (no frontend change).
+                        return {
+                            'message': f"Prepared a {len(_dag['steps'])}-step plan with dependencies. Review and run when ready.",
+                            'success': True,
+                            'execution_mode': 'dag',
+                            'workflow': to_pipeline_card(_dag),
+                            'pipeline_id': pipeline_id,
+                        }
+                    log.info("[MultiTask] DAG assembly incomplete (a task did not resolve) — single-task fallback")
+                except Exception as _dag_exc:
+                    log.warning(f"[MultiTask] DAG assembly failed ({_dag_exc}) — single-task fallback")
+            # Fall back to single-task generation (default path).
             log.info(f"[MultiTask] {len(tasks)} tasks detected, generating sequentially for now")
             return await self._handle_workflow_generation(query, context)
 
         except Exception as e:
             log.warning(f"[MultiTask] Decomposition failed ({e}), falling back to single-task")
             return await self._handle_workflow_generation(query, context)
+
+    def _resolve_task_to_workflow(self, task):
+        """Best-effort per-task resolution for the decomposed DAG (reconciliation #3).
+
+        Returns ``{'nextflow_path', 'parameters'}`` or ``None``. Conservative: the
+        top workflow-search match only, and ``None`` on anything uncertain — so
+        ``build_dag_plan`` safely falls back to single-task generation rather than
+        emitting an unexecutable DAG. (Richer resolution + input binding is the
+        next sub-slice of the logical->executable adapter.)
+        """
+        try:
+            desc = getattr(task, 'description', None)
+            if desc is None and isinstance(task, dict):
+                desc = task.get('description')
+            if not desc:
+                return None
+            from .decomposed_dag import pick_workflow_match
+            # Confidence-gated: only a medium+ match resolves; weak matches → None
+            # → build_dag_plan falls back to single-task (never dispatches a guess).
+            return pick_workflow_match(self.workflow_search.search(desc))
+        except Exception as exc:
+            log.debug(f"[MultiTask] task resolution failed: {exc}")
+        return None
+
+    def _workflow_io_types(self, nextflow_path):
+        """(input_types, output_types) for a workflow — used to wire dependent-step
+        handoffs in the decomposed DAG by type compatibility. Returns None on any
+        failure so build_dag_plan refuses to fabricate a handoff and falls back."""
+        try:
+            from galaxy.webapps.galaxy.api.workflow_chain import _get_workflow_types
+            return _get_workflow_types(nextflow_path)
+        except Exception as exc:
+            log.debug(f"[MultiTask] io-types lookup failed for {nextflow_path}: {exc}")
+            return None
+
+    def _extract_input_refs(self, context):
+        """User-provided input file references (for best-effort DAG root prefill)."""
+        ctx = context or {}
+        refs = []
+        for key in ('datasets', 'inputFiles', 'input_files', 'files'):
+            val = ctx.get(key)
+            if isinstance(val, list):
+                refs.extend(val)
+        return refs
 
     def _find_missing_context(self, tasks: list, context: dict) -> list:
         """Return list of clarification questions for missing required parameters."""
@@ -1019,7 +1226,9 @@ class AIAssistant:
             return [c.to_dict() for c in citations]
 
         except Exception as e:
-            log.warning(f"Literature search failed: {e}")
+            # A provider error (HTTP 429/timeout/outage) is NOT "no citations found" —
+            # make it loud so it isn't mistaken for an empty-but-successful search.
+            log.error(f"Literature search FAILED (provider error — DEGRADED, not 'no citations'): {e}")
             return []
 
     def search_literature_sync(
@@ -1783,6 +1992,16 @@ class AIAssistant:
                 return "compound_peptidomimetic"
             if any(k in all_text for k in ("druglike", "drug-like", "ro5", "lipinski", "hts")):
                 return "compound_druglike"
+            # A generic ADMET / safety-screen workflow gets the standard ADMET QC
+            # profile (hERG IC50, DILI, Ames gates). Unlike cryo-EM/proteomics there
+            # is NO backend domain auto-default for drug-discovery, so returning None
+            # here left ADMET runs with no profile and no gate could ever fire.
+            # Other drug-discovery workflows (docking, generation) have no
+            # compound-safety gate and correctly stay None.
+            if any(k in all_text for k in ("admet", "adme", "herg", "cardiotox",
+                                           "hepatotox", "dili", "ames", "toxicit",
+                                           "safety", "liabilit")):
+                return "admet_standard"
             return None
 
         # --- RNA-seq specialisations ---
@@ -1845,13 +2064,26 @@ class AIAssistant:
         # "declares N input channels but 0 were given" (the RC-1 failure). Verify
         # on disk that the resolved file is actually standalone-runnable.
         if filename.endswith('/main.nf'):
-            resolved = self._find_nf_file(getattr(match, 'filename', '') or '')
+            resolved = self._resolve_execution_nf(getattr(match, 'filename', '') or '')
             if resolved is not None and not self._nf_file_is_standalone_runnable(resolved):
                 return False
             return True
         if filename.endswith('.nf') and ('/workflows/' in filename or 'biomni_nf/' in filename or '/bioconductor/' in filename):
             return True
         return False
+
+    def _resolve_execution_nf(self, filename: str) -> Optional[Any]:
+        """The .nf file the EXECUTOR will run for a DB filename (nextflow_executor._resolve_nextflow_path).
+
+        _find_nf_file prefers the biomni_workflows/ display stubs (their curated user-facing params), but the
+        executor runs the real downloaded nf-core pipeline when one exists (resolver order fixed 2026-08-24).
+        Judging runnability on the stub flagged every nf-core pipeline as non-executable — 128 of 131 have a
+        real copy on dev (2026-11-05). Falls back to _find_nf_file when the executor cannot resolve the path."""
+        try:
+            from galaxy.webapps.galaxy.api.nextflow_executor import _resolve_nextflow_path  # noqa: PLC0415
+            return _resolve_nextflow_path(filename)
+        except Exception:  # unresolvable here, or executor module unavailable (e.g. unit tests)
+            return self._find_nf_file(filename)
 
     def _nf_file_is_standalone_runnable(self, nf_path: Any) -> bool:
         """True iff the `.nf` at `nf_path` can be launched directly.
@@ -1927,6 +2159,21 @@ class AIAssistant:
         """
         keys = self._load_runnable_nextflow_keys()
         if not keys:
+            return True
+        filename = (getattr(match, "filename", "") or "").lower()
+        # BioMate AI-native tool workflows (biomate-ai-tools/<name>/main.nf, or stored as
+        # nf-core-workflows/modules/biomate-ai-tools/<name>/main.nf) and nextflow_nfcore/
+        # subworkflows biomate tools are standalone AWS-Batch-runnable entry points — the
+        # runnable_keys whitelist is meant only for bioconductor subworkflows + biomni
+        # custom workflows. Without these bypasses a correctly-ranked #1 biomate-ai-tools
+        # match (e.g. cyclic_peptide_design, score 114) fails the preferred executable+runnable
+        # loop in _pick_best_executable_nextflow_match and the router falls to a lower-scored
+        # sibling (cyclic_peptide_cofold, 44). Mirrors the webapps search copy's bypass.
+        if "/bioconductor/" not in filename and (
+            "biomate-ai-tools/" in filename
+            or (filename.startswith("nextflow_nfcore/subworkflows/"))
+            or (filename.startswith("nfcore/") and "/main.nf" in filename)
+        ):
             return True
         key = self._nextflow_workflow_key(getattr(match, "filename", "") or "")
         return bool(key and key in keys)
@@ -2217,11 +2464,22 @@ Respond with a single JSON object — no other text:
         'topology_file',              # optional — used for restart/continuation runs
         'checkpoint_file',            # optional — restart only
         'restraints_file',            # optional — position restraints
+        # Drug discovery / generative lead design (reinvent4_lead_design, scaffold_hopping)
+        # — null defaults that are CONDITIONALLY required only for non-default
+        # scoring functions. The .nf enforces them at runtime (error out iff
+        # scoring_function == 'docking_gnina'/'custom_toml' and the value is
+        # absent), so the common default scoring_function='qed_sa' generation
+        # path must NOT be gated on them.
+        'receptor',                   # optional — only required for scoring_function=docking_gnina
+        'docking_ref_ligand',         # optional — only used for docking box center (docking_gnina)
+        'custom_toml',                # optional — only required for scoring_function=custom_toml
         # Genomics
         'known_sites',                # optional — dbSNP for BQSR (hg38 auto-injected)
         'intervals',                  # optional — targeted sequencing intervals
         'pon',                        # optional — Panel of Normals for somatic callers
         'germline_resource',          # optional — gnomAD for mutect2
+        # GEO accession fetch (geo_data_connector)
+        'local_series_matrix',        # optional local override — null means auto-download from GEO by accession
     })
 
     def _find_nf_file(self, filename: str) -> Optional[Any]:
@@ -2259,6 +2517,18 @@ Respond with a single JSON object — no other text:
             # modality_triage / etc, forcing the frontend's schema-grounded
             # extractor to fall back to the legacy WORKFLOW_PARAM_ALIASES table.
             backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools" / filename,
+            # Some biomate-ai-tools workflows store their DB filename WITH the
+            # "biomate-ai-tools/" prefix already (e.g. cyclic_peptide_design →
+            # "biomate-ai-tools/cyclic_peptide_design/main.nf"), others without it.
+            # The candidate above only handles the without-prefix form; for the
+            # with-prefix form it doubles to .../modules/biomate-ai-tools/biomate-ai-tools/...
+            # (absent) → _find_nf_file returns None → the workflow is wrongly
+            # excluded from PRIMARY by _is_executable_nextflow_match and the router
+            # falls through to a lower-scored sibling (observed 2026-10-29: a cyclic
+            # peptide DESIGN query routed to cyclic_peptide_cofold instead). This
+            # candidate resolves the with-prefix form; first-existing-wins, so it is
+            # purely additive and never changes a path that already resolves.
+            backend_root / "nf-core-workflows" / "modules" / filename,
         ]
         # Add nf-core-workflows/ candidates when it looks like an nf-core workflow
         if _nfcore_suffix:
@@ -2291,7 +2561,11 @@ Respond with a single JSON object — no other text:
         'input', 'reads', 'reads1', 'reads2', 'fastq', 'fastq1', 'fastq2',
         'bam', 'genome', 'fasta', 'genome_fasta', 'reference', 'reference_genome',
         'gtf', 'gff', 'bed', 'vcf', 'csv', 'samplesheet', 'sample_sheet',
-        'design', 'multiqc_config', 'star_index', 'hisat2_index', 'bwa_index',
+        # Differential-expression inputs are deliberately explicit here.  They are
+        # files even though their names do not end in "_file" or "_path"; without
+        # this they render as free text and cannot participate in dataset binding.
+        'design', 'matrix', 'counts', 'count_matrix', 'metadata', 'sample_metadata',
+        'coldata', 'contrasts', 'contrast', 'multiqc_config', 'star_index', 'hisat2_index', 'bwa_index',
         'bowtie2_index', 'transcript_fasta', 'additional_fasta', 'transcript',
         'probeset', 'annotation', 'blacklist', 'bait_intervals', 'target_intervals',
         # Explicit fasta-input variants — historically classified as 'string'
@@ -2438,6 +2712,55 @@ Respond with a single JSON object — no other text:
                 required.append(entry)
             else:
                 optional.append(entry)
+
+        # ── Style-A declared data inputs ────────────────────────────────────
+        # Bioconductor-style subworkflows declare their data file via a code
+        # header (`// Input: patient_clinical_data.csv`) rather than a config
+        # file-param, so the loop above found NO file param and the workflow
+        # panel showed "no data inputs to bind" even though the workflow needs
+        # a data file. Surface each declared token as an OPTIONAL file-type
+        # param so the viewer's existing file-picker logic (type == 'file')
+        # renders a picker. OPTIONAL (not required) so one-click/no-input demo
+        # workflows — which fall back to a placeholder in the executor — are
+        # NOT newly blocked. Named by the declared base token so the executor's
+        # Style-A staging (nextflow_executor._build_bioc_entry_wrapper →
+        # params.get(name) / base-name fallback) binds the uploaded file.
+        # Dedup: skip a token already covered by a real config file-param
+        # (<base>, <base>_path, <base>_ref) so there are no double rows.
+        _input_decl = _re.search(r'(?m)^\s*//\s*Input:\s*(.+?)\s*$', text)
+        if _input_decl:
+            _decl_tokens = [
+                _re.split(r'\s*\(', _t)[0].strip()
+                for _t in _re.split(r'[,\s]+', _input_decl.group(1))
+                if _t.strip()
+            ]
+            for _tok in _decl_tokens:
+                # `input_files` is the vestigial stageAs:'?/*' slot, not a
+                # user-facing data file — never surface it as a picker.
+                if not _tok or _tok == "input_files":
+                    continue
+                # Base token: drop a trailing short extension (.csv/.rds/.txt…)
+                # to match the executor's base-name resolution. Dotless tokens
+                # (e.g. `sce2`) are used verbatim.
+                _base = _tok
+                _mext = _re.search(r'\.([A-Za-z0-9]{1,6})$', _tok)
+                if _mext:
+                    _base = _tok[: _mext.start()]
+                if not _base or any(
+                    _k in seen_names
+                    for _k in (_base, _tok, _base + "_path", _base + "_ref")
+                ):
+                    continue
+                seen_names.add(_base)
+                optional.append({
+                    "name": _base,
+                    "label": _base.replace("_", " ").title(),
+                    "description": "Data input file read by the workflow",
+                    "type": "file",
+                    "default": None,
+                    "data_input": True,
+                })
+
         return {"required": required, "optional": optional}
 
     def _schema_type_to_param_type(self, name: str, param_def: dict) -> str:
@@ -2552,7 +2875,46 @@ Respond with a single JSON object — no other text:
         schema_params = self._parse_nextflow_schema(filename)
         if schema_params is not None:
             return schema_params
-        return self._parse_nextflow_params(filename)
+        return self._reconcile_required_with_executed_schema(
+            filename, self._parse_nextflow_params(filename)
+        )
+
+    def _reconcile_required_with_executed_schema(self, filename: str, params: dict) -> dict:
+        """Take required-ness, declared params and defaults from the pipeline that actually runs.
+
+        See galaxy.ai.executed_schema. The stub's curated entries are kept for display, demoted
+        to optional when the executed pipeline does not require them; entries for params the
+        executed pipeline does not declare are dropped (Nextflow would ignore or reject them);
+        defaults are the pipeline's own (a stub default sent on the CLI overrides the pipeline's
+        config and its -profile, e.g. add_decoys=true on a target-decoy database); schema-
+        required params the stub lacks are added.
+        """
+        from galaxy.ai.executed_schema import executed_pipeline_params  # noqa: PLC0415
+        got = executed_pipeline_params(filename)
+        if got is None:
+            return params
+        req_names, props, known, defaults = got['required'], got['props'], got['known'], got['defaults']
+        required, optional = [], []
+        for p in list(params.get('required', [])) + list(params.get('optional', [])):
+            name = p.get('name')
+            if name not in known:
+                continue
+            entry = dict(p, required=name in req_names)
+            if name in defaults:
+                entry['default'] = defaults[name]
+            (required if entry['required'] else optional).append(entry)
+        have = {p.get('name') for p in required}
+        for name in sorted(req_names - have):
+            d = props.get(name, {})
+            required.append({
+                'name': name,
+                'label': name.replace('_', ' ').title(),
+                'description': d.get('description') or d.get('help_text') or '',
+                'type': self._schema_type_to_param_type(name, d),
+                'default': defaults.get(name, d.get('default')),
+                'required': True,
+            })
+        return {'required': required, 'optional': optional}
 
     _SRA_ACCESSION_RE = re.compile(r'\b([SED]RR\d{6,9}|GSE\d{4,9}|GSM\d{4,9}|E-MTAB-\d{4,9}|PXD\d{4,9})\b', re.IGNORECASE)
     _GENOME_BUILD_RE = re.compile(
@@ -2677,6 +3039,71 @@ Respond with a single JSON object — no other text:
                 "inputMappings": [],
             },
         }
+
+    def _bind_uploaded_datasets_to_params(
+        self,
+        req: list,
+        opt: list,
+        uploaded_datasets: Optional[List[Dict[str, Any]]],
+    ) -> tuple:
+        """Bind session uploads to unfilled file parameters without an LLM.
+
+        This is intentionally conservative: it only fills an input when the
+        filename gives a clear semantic match (for example count matrix →
+        ``matrix`` and sample metadata → ``samplesheet``).  The former LLM-only
+        path made an otherwise runnable bulk-DE request randomly lose its count
+        matrix and metadata when the model was unavailable.
+        """
+        if not uploaded_datasets:
+            return req, opt
+
+        def _dataset_value(dataset: Dict[str, Any]) -> str:
+            for key in ("s3_uri", "file_path", "path", "uri", "source_url"):
+                value = dataset.get(key)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+            return ""
+
+        files = [
+            {"name": str(d.get("name") or _dataset_value(d).rsplit("/", 1)[-1]).lower(), "value": _dataset_value(d)}
+            for d in uploaded_datasets
+            if isinstance(d, dict) and _dataset_value(d)
+        ]
+        if not files:
+            return req, opt
+
+        # High-confidence filename cues, ordered from most specific to least.
+        cues = {
+            "matrix": ("matrix", "count", "featurecount", "htseq", "expression"),
+            "counts": ("matrix", "count", "featurecount", "htseq", "expression"),
+            "count_matrix": ("matrix", "count", "featurecount", "htseq", "expression"),
+            "samplesheet": ("samplesheet", "sample", "metadata", "coldata", "design"),
+            "sample_sheet": ("samplesheet", "sample", "metadata", "coldata", "design"),
+            "metadata": ("metadata", "sample", "coldata", "design"),
+            "sample_metadata": ("metadata", "sample", "coldata", "design"),
+            "coldata": ("coldata", "metadata", "sample", "design"),
+            "design": ("design", "metadata", "sample", "coldata"),
+            "contrasts": ("contrast", "comparison"),
+            "contrast": ("contrast", "comparison"),
+        }
+        suggestions = []
+        used_values: set = set()
+        for param in req + opt:
+            name = str(param.get("name") or "")
+            if not name or param.get("default") not in (None, "") or param.get("value") not in (None, ""):
+                continue
+            terms = cues.get(name.lower())
+            if not terms:
+                continue
+            match = next((f for f in files if f["value"] not in used_values and any(term in f["name"] for term in terms)), None)
+            if match:
+                suggestions.append({
+                    "name": name,
+                    "value": match["value"],
+                    "rationale": f"Matched uploaded file '{match['name']}' to {name}.",
+                })
+                used_values.add(match["value"])
+        return self._apply_llm_suggestions(req, opt, suggestions)
 
     # ------------------------------------------------------------------
     # Parameter pre-filling — layer 2 AI knowledge
@@ -2918,6 +3345,20 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 suggestions = resolve_smiles_params(suggestions)
             except Exception as _resolve_exc:
                 log.debug("[ParamSuggest] SMILES resolution skipped: %s", _resolve_exc)
+            # Validation guardrail (CLAUDE.md extraction = rules + LLM + validation):
+            # the LLM is fed the "[Uploaded datasets: name: dataset_id=<id>, ...,
+            # s3_uri=<uri>]" block and sometimes copies a whole entry into a dataset/id
+            # param value as "<id>, s3_uri=<uri>" / "<id>, galaxy_dataset_id=<gid>",
+            # which then renders as a raw serialized object in the field (e.g. the cryo
+            # "Dataset Id"). Keep only the leading id/uri token. The leading token is a
+            # valid dataset reference (BioMate stages id->S3 at execute time), so the
+            # executor input binding is unaffected — this only cleans the composite.
+            for _s in suggestions:
+                _v = _s.get("value")
+                if isinstance(_v, str):
+                    _m = _re_llm.match(r'^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=', _v)
+                    if _m:
+                        _s["value"] = _m.group(1)
             return suggestions
         except Exception as exc:
             log.debug("[ParamSuggest] LLM inference failed: %s", exc)
@@ -3021,6 +3462,41 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # When smiles_list is the only required param, this causes _explicit_covers_required=True
         # which skips _infer_params_from_intent_llm — eliminating an LLM call that adds latency.
         import json as _json_smiles
+        # Robust path (runs first): when the query is about chemistry and the
+        # workflow takes a smiles_list, split the query and RDKit-validate every
+        # candidate token. This captures a LIST of molecules — including short ones
+        # like 'CCO' and natural phrasings ("screen these SMILES for hERG: CCO,
+        # c1ccccc1") that the narrow 'SMILES:'-prefixed regex below misses. RDKit
+        # rejects non-molecule words (hERG, rank, screen…), so it does not
+        # false-positive. Falls through to the regex path if RDKit is unavailable.
+        if 'smiles_list' in all_param_names and 'smiles_list' not in _already_set:
+            _mentions_chem = bool(_re.search(
+                r'\b(smiles|compound|molecul|ligand|screen|admet|dock|herg|scaffold)\b',
+                user_intent, _re.IGNORECASE))
+            if _mentions_chem:
+                try:
+                    from rdkit import Chem as _Chem
+                    from rdkit import RDLogger as _RDLogger
+                    _RDLogger.DisableLog('rdApp.*')  # quiet parse errors for non-SMILES tokens
+                    _valid_smiles: list = []
+                    for _tok in _re.split(r'[\s,;]+', user_intent or ""):
+                        _tok = (_tok or "").strip().strip('.').rstrip(')')
+                        if not _tok or not _re.fullmatch(r'[A-Za-z0-9@\[\]\(\)\+\-=#\/\\%.]{2,}', _tok):
+                            continue
+                        _mol = _Chem.MolFromSmiles(_tok)
+                        if _mol is not None and _mol.GetNumAtoms() >= 2:
+                            _canon = _Chem.MolToSmiles(_mol)
+                            if _canon not in _valid_smiles:
+                                _valid_smiles.append(_canon)
+                    if _valid_smiles:
+                        suggestions.append({
+                            "name": "smiles_list",
+                            "value": _json_smiles.dumps(_valid_smiles[:50]),
+                            "rationale": f"{len(_valid_smiles)} SMILES RDKit-validated from the query.",
+                        })
+                        _already_set.add('smiles_list')
+                except Exception as _rdkit_exc:  # RDKit missing → regex fallback below
+                    log.debug("[ParamExtract] RDKit SMILES extraction skipped: %s", _rdkit_exc)
         if 'smiles_list' in all_param_names and 'smiles_list' not in _already_set:
             _smiles_m = _re.search(
                 r'\bSMILES\s*[=:]\s*([A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]{8,})',
@@ -3258,6 +3734,10 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if not _skip_param_llm:
             llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
             req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
+        # Session uploads are authoritative user inputs.  Bind clearly named
+        # files deterministically after best-effort LLM inference so a transient
+        # model failure cannot leave a bulk-DE matrix/samplesheet unbound.
+        req, opt = self._bind_uploaded_datasets_to_params(req, opt, uploaded_datasets)
         citations = self._build_workflow_citations(match.tools, match.domain, match.tags)
         warnings = [] if not needs_user_feedback else [
             'Medium confidence match — please verify tool selection is appropriate'
@@ -3349,8 +3829,9 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 'required_params': req,
                 'optional_params': opt,
                 **({'parameters': _exec_params} if _exec_params else {}),
+                **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
             },
-            'datasets_assigned': False,
+            'datasets_assigned': any(p.get('type') == 'file' and p.get('value') not in (None, '') for p in req + opt),
             'required_params': req,
             'optional_params': opt,
             'generated_parameters': req + opt,
@@ -3365,6 +3846,74 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             ],
             **({'citations': citations} if citations else {}),
         }
+
+    @staticmethod
+    def _named_workflow_tokens(user_intent: str) -> List[str]:
+        """Candidate workflow identifiers explicitly written in a request.
+
+        snake_case tokens (``perform_chipseq_peak_calling_with_macs2``) and
+        "the <name> workflow" phrases. File names (``counts_matrix.csv``), parameter
+        keys (``min_fold_change=2``) and path fragments (``s3://bucket/raw_reads/``)
+        are not identifiers and are skipped.
+        """
+        import re as _re_named
+
+        low = (user_intent or '').lower()
+        tokens: List[str] = []
+        for m in _re_named.finditer(r'(?<![\w./-])([a-z][a-z0-9]*(?:_[a-z0-9]+)+)(?![\w/-])', low):
+            following = low[m.end():m.end() + 8]
+            if _re_named.match(r'\.[a-z0-9]{1,5}\b', following) or _re_named.match(r'\s*[=:]', following):
+                continue
+            tokens.append(m.group(1))
+        tokens += _re_named.findall(r'\bthe\s+([a-z][a-z0-9_]{5,})\s+workflow\b', low)
+        return list(dict.fromkeys(tokens))
+
+    def _try_fast_path_named_catalog_workflow(
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Route a request that explicitly names ONE catalog workflow to exactly that workflow.
+
+        "Run perform_chipseq_peak_calling_with_macs2 using its built-in ... demo files" and
+        "Run the metaboanalystr workflow ..." name the workflow outright. An explicit name is
+        the strongest routing signal there is, so this runs before every keyword fast path
+        and retrieval — which otherwise sent the ChIP-seq demo to nf-core/chipseq (needs real
+        reads) and the metaboanalystr demo to a sibling workflow. Exactly one resolved
+        workflow is required: none -> normal routing; two or more -> a multi-workflow
+        request, left to chain/multi-intent routing. Explicit ``nf-core/<slug>`` mentions
+        are left to _try_fast_path_nfcore_pipeline.
+        """
+        import re as _re_named
+
+        # Only what the user wrote names a workflow. generate_workflow_unified appends
+        # "[Memory context]" (workflow names from PAST corrections) and the API layer appends
+        # "[Inline parameters: ...]"; neither may steer this request to a named workflow.
+        request_text = _re_named.split(r'\n\s*\[(?:Memory context|Inline parameters:)', user_intent or '')[0]
+        if _re_named.search(r'\bnf-core/[a-z]', request_text, _re_named.IGNORECASE):
+            return None
+        resolved: Dict[int, Any] = {}
+        for token in self._named_workflow_tokens(request_text):
+            match = self.workflow_search.resolve_named_workflow(token)
+            if match:
+                resolved.setdefault(match.id, match)
+        if len(resolved) != 1:
+            return None
+        top = next(iter(resolved.values()))
+        log.info(
+            "[UnifiedWorkflowGeneration] Named-workflow fast path → %s (id=%d)", top.name, top.id
+        )
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
 
     def _try_fast_path_explicit_codon_workflow(
         self,
@@ -3600,6 +4149,54 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             uploaded_datasets=uploaded_datasets,
         )
 
+    # The request's TASK is to make new molecules or improve existing ones (not to predict
+    # properties of given ones). Property/ADMET terms in such a request are design constraints.
+    _GENERATIVE_TASK_PATTERNS = (
+        r'\b(generate|design|propose|create|enumerate|grow|decorate)\b[^.\n]{0,60}?'
+        r'\b(candidates?|molecules?|compounds?|analogu?es?|leads?|ligands?|binders?|series|scaffolds?|peptides?|macrocycles?)\b',
+        r'\b(de novo|generative|candidate generation|molecule generation|lead (?:generation|optimi[sz]ation)|scaffold[- ]hop\w*)\b',
+        r'\b(optimi[sz]e|improve|fix|reduce|lower|increase|raise)\b[^.\n]{0,60}?'
+        r'\b(series|scaffold|leads?|compounds?|potency|solubility|druglikeness|drug-likeness|liabilit\w*|'
+        r'selectivity|permeability|stability|affinity|half-life|clearance)\b',
+        r'\b(adapt|fine-?tune|retrain)\b[^.\n]{0,40}?\b(generative|generator|reinvent)\b',
+    )
+
+    @staticmethod
+    def _request_task_text(user_intent: str) -> str:
+        """The request's statement of its task: the user's own text (without the
+        "[Memory context]" / "[Inline parameters" suffixes added server-side), first paragraph.
+        Supporting material follows a blank line — e.g. the cold-start examples' "Prepared demo
+        context", whose own wording ("this design exercise", assay cut-offs) must not be read as
+        the task: matched on the full text, 23 of 106 cold-start prompts that predict, dock or
+        rank looked generative; on the first paragraph, none do."""
+        import re as _re_task
+
+        own = _re_task.split(r'\n\s*\[(?:Memory context|Inline parameters:)', user_intent or '')[0]
+        return own.strip().split('\n\n')[0]
+
+    @classmethod
+    def _is_generative_task(cls, user_intent: str) -> bool:
+        """The task is to make new molecules or improve existing ones (generate / design /
+        optimise / adapt a generator), as opposed to predicting, docking or ranking given ones."""
+        import re as _re_gen
+
+        task = cls._request_task_text(user_intent).lower()
+        return any(_re_gen.search(p, task) for p in cls._GENERATIVE_TASK_PATTERNS)
+
+    @classmethod
+    def _admet_is_generation_constraint(cls, user_intent: str) -> bool:
+        """True when ADMET/SMILES terms appear in a request whose task is generative ("Generate
+        candidates ... with ADMET filtering"): the ADMET fast path, which fires on any "admet",
+        must not answer it with Property prediction. (Measured 2026-11-03: the observed
+        generate/optimise -> ADMET misroutes came from SEARCH, not this fast path — see
+        _is_generative_task's routing hint; this guard covers explicit ADMET phrasing.)"""
+        import re as _re_gen
+
+        text = _re_gen.split(r'\n\s*\[(?:Memory context|Inline parameters:)', user_intent or '')[0]
+        mentions_admet = bool(_re_gen.search(r'\badmet\b', text.lower())) or bool(_re_gen.search(
+            r'\bSMILES\s*[=:]\s*[A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]{8,}', text, _re_gen.IGNORECASE))
+        return mentions_admet and cls._is_generative_task(user_intent)
+
     def _try_fast_path_admet_workflow(  # noqa: deploy-trigger
         self,
         user_intent: str,
@@ -3798,42 +4395,10 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         cache = getattr(self, '_geo_platform_cache', None)
         if cache is None:
             cache = self._geo_platform_cache = {}
-        if gse_id in cache:
-            return cache[gse_id]
-        result: Optional[str] = None
-        try:
-            import urllib.request as _u
-            url = (f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={gse_id}"
-                   "&targ=self&form=text&view=quick")
-            with _u.urlopen(url, timeout=4) as _r:
-                text = _r.read().decode('utf-8', 'replace')
-            types, meta = [], []
-            for ln in text.splitlines():
-                low = ln.lower()
-                if low.startswith('!series_type'):
-                    types.append(low.split('=', 1)[-1].strip())
-                elif (low.startswith('!series_title') or low.startswith('!series_summary')
-                      or low.startswith('!series_overall_design')):
-                    meta.append(low.split('=', 1)[-1].strip())
-            blob = ' '.join(meta)
-            has_array = any('array' in t for t in types)
-            has_seq = any('sequencing' in t for t in types)
-            sc = any(k in blob for k in [
-                'single cell', 'single-cell', 'scrna', 'sc-rna', '10x', 'droplet',
-                'drop-seq', 'chromium', 'single nucleus', 'single-nucleus', 'snrna',
-            ])
-            if has_array and not has_seq:
-                result = 'microarray'
-            elif has_seq and not has_array:
-                result = 'scrna' if sc else 'bulk_rnaseq'
-            else:
-                result = None  # mixed / no type line → unknown, let caller fall back
-            log.info("[GeoFastPath] GEO %s metadata: types=%s → platform=%s", gse_id, types, result)
-        except Exception as _e:
-            log.info("[GeoFastPath] GEO platform lookup for %s failed (%s) — caller falls back", gse_id, _e)
-            result = None
-        cache[gse_id] = result
-        return result
+        # Delegate to the shared module-level implementation (also used by the
+        # execute-gate via /api/ai_assistant/geo_platform) so there is ONE source
+        # of truth for data-modality routing.
+        return detect_geo_platform(gse_id, cache=cache)
 
     def _try_fast_path_geo_scrna_pseudobulk(  # noqa: deploy-trigger
         self,
@@ -3892,25 +4457,48 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # defer to normal routing (limma / differentialabundance); single-cell → pseudobulk.
         _platform = self._detect_geo_platform(_geo_id)  # 'microarray'|'scrna'|'bulk_rnaseq'|None
         if _platform in ('microarray', 'bulk_rnaseq'):
-            log.info("[GeoFastPath] GEO %s platform=%s (not single-cell) — skipping pseudobulk fast path, "
-                     "deferring to normal routing (limma/differentialabundance)", _geo_id, _platform)
-            return None
+            # A bare GEO accession is not a count matrix.  Falling through here used
+            # to let ordinary similarity routing emit an empty differentialabundance
+            # card (matrix/samplesheet unset) that looked runnable.  Fetch and inspect
+            # the series first instead.  We intentionally do *not* auto-chain this to
+            # DESeq2: a GEO series can be normalized microarray data or lack an
+            # interpretable comparison, both of which require a method/contrast choice.
+            return self._return_geo_bulk_connector(_geo_id, _platform)
         if _platform is None:
-            # GEO metadata unavailable (network/parse) → conservative keyword FALLBACK only:
-            # skip pseudobulk on an explicit non-single-cell prose signal, else keep the
-            # scRNA default. Keywords are the fallback, not the primary signal.
-            _non_scrna = any(kw in _q for kw in [
-                'microarray', 'micro-array', 'micro array', 'affymetrix', 'agilent',
-                'beadchip', 'expression array', 'gene expression array', 'array express',
-            ])
+            # GEO metadata unavailable (network/parse) → do not guess that an
+            # accession is single-cell.  Pseudobulk irreversibly changes the unit of
+            # analysis, so it is allowed only with an explicit single-cell signal;
+            # every other unknown accession goes through retrieval/review.
             _scrna_signal = any(kw in _q for kw in [
                 'scrna', 'sc-rna', 'single cell', 'single-cell', 'pseudobulk', '10x', 'cellranger',
             ])
-            if _non_scrna and not _scrna_signal:
-                log.info("[GeoFastPath] GEO %s metadata unavailable; non-single-cell keyword signal "
-                         "— skipping pseudobulk fast path (fallback)", _geo_id)
-                return None
-        # _platform == 'scrna', or unknown with no non-single-cell signal → proceed with pseudobulk
+            if not _scrna_signal:
+                log.info("[GeoFastPath] GEO %s metadata unavailable; no explicit single-cell signal "
+                         "— routing to connector for data review", _geo_id)
+                return self._return_geo_bulk_connector(_geo_id, 'unknown')
+        # _platform == 'scrna', or metadata is unavailable but the user explicitly
+        # requested a single-cell/pseudobulk analysis → proceed with pseudobulk.
+
+        # Single-cell CLUSTERING / trajectory / cell-typing intent must NOT be collapsed
+        # to pseudobulk — pseudobulk aggregation destroys per-cell resolution and cannot
+        # reproduce Seurat/Scanpy clustering, UMAP, marker discovery, or trajectory work
+        # (the actual analysis in the source papers). Defer to normal routing so the
+        # router can select a real single-cell workflow (nf-core/scrnaseq,
+        # bioconductor_scrna_seq, Seurat/Scanpy clustering, cell-type annotation).
+        # Keep pseudobulk ONLY when the intent is explicit cross-condition DE.
+        _singlecell_analysis = any(kw in _q for kw in [
+            'cluster', 'umap', 't-sne', 'tsne', 'cell type', 'cell-type', 'celltype',
+            'annotat', 'marker gene', 'markers', 'subpopulation', 'sub-population',
+            'sub-cluster', 'trajectory', 'pseudotime', 'seurat', 'scanpy', 'cell atlas',
+        ])
+        _explicit_pseudobulk_de = any(kw in _q for kw in [
+            'pseudobulk', 'pseudo-bulk', 'deseq2', 'edger', 'differential expression',
+            'differential abundance',
+        ])
+        if _singlecell_analysis and not _explicit_pseudobulk_de:
+            log.info("[GeoFastPath] GEO %s single-cell clustering/trajectory intent — skipping "
+                     "pseudobulk fast path, deferring to normal routing (nf-core/scrnaseq / Seurat)", _geo_id)
+            return None
 
         # Look up geo_scrna_pseudobulk in the DB
         top = self.workflow_search.get_workflow_by_filename_pattern('%geo_scrna_pseudobulk%')
@@ -3948,6 +4536,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         }
         return {
             'success': True,
+            # Every sibling fast path (nf-core/ADMET/cryosparc via _return_nextflow_match,
+            # plus the template-confidence paths) sets 'source'; this one reuses a DB
+            # template (geo_scrna_pseudobulk), so it is 'template_reuse'. Omitting it made
+            # the endpoint's result['source'] subscript raise KeyError -> 500 for scRNA.
+            'source': 'template_reuse',
             'message': (
                 f"I'm fetching the raw data directly from GEO using GEOquery — "
                 f"this downloads and pseudobulk-aggregates the scRNA-seq data for {_geo_id} "
@@ -3957,6 +4550,82 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'workflow_type': 'workflow_generation',
             'workflow_ga': _wf_ga,
             'needsWorkflowGeneration': False,
+        }
+
+    def _return_geo_bulk_connector(self, accession: str, platform: str) -> Optional[Dict[str, Any]]:
+        """Return a non-empty, scientifically safe GEO retrieval card for bulk data.
+
+        This is deliberately a retrieval/review step rather than a pretend automatic
+        DE chain.  GEOquery can retrieve a series matrix and phenotype table, but it
+        cannot establish that matrix is raw counts or infer a defensible contrast.
+        """
+        top = self.workflow_search.get_workflow_by_filename_pattern('%geo_data_connector%')
+        if not top:
+            top = self.workflow_search.get_workflow_by_name('geo_data_connector')
+        if not top:
+            log.error("[GeoFastPath] geo_data_connector not found in DB; refusing empty DE card for %s", accession)
+            return {
+                'success': False,
+                'source': 'geo_accession_preflight',
+                'workflow_type': 'workflow_generation',
+                'needsWorkflowGeneration': False,
+                'message': (
+                    f"BioMate recognized {accession}, but the GEO retrieval workflow is not available in this "
+                    "environment. Differential expression was not created because no count matrix, sample "
+                    "metadata, or confirmed contrast is available."
+                ),
+                'validation': {
+                    'is_valid': False,
+                    'issues': ['GEO retrieval workflow is unavailable'],
+                    'warnings': [],
+                    'suggestions': ['Enable geo_data_connector, then retrieve and review the series before selecting a DE method.'],
+                },
+            }
+
+        platform_label = {
+            'bulk_rnaseq': 'bulk RNA-seq',
+            'microarray': 'microarray',
+        }.get(platform, 'an unconfirmed bulk or microarray assay')
+        log.info("[GeoFastPath] GEO %s platform=%s → geo_data_connector (id=%s)", accession, platform, top.id)
+        required = {
+            'name': 'accession',
+            'value': accession,
+            'default': accession,
+            'type': 'text',
+            'required': True,
+            'autoFilled': True,
+            'description': 'GEO series or sample accession to retrieve via GEOquery.',
+        }
+        return {
+            'success': True,
+            'source': 'geo_accession_preflight',
+            'message': (
+                f"I identified {accession} as {platform_label}. I will retrieve its GEO series matrix and "
+                "sample metadata first. Before differential expression, BioMate will need to verify whether "
+                "the matrix is raw counts and which phenotype column/contrast is scientifically appropriate."
+            ),
+            'workflow_type': 'workflow_generation',
+            'workflow_ga': {
+                'id': top.id,
+                'name': top.name,
+                'filename': top.filename,
+                'format': 'nextflow',
+                'domain': getattr(top, 'domain', 'transcriptomics'),
+                'description': (
+                    'Retrieve a GEO series matrix and sample metadata for assay, count-scale, and contrast review. '
+                    'This retrieval step does not automatically run differential expression.'
+                ),
+                'required_params': [required],
+                'optional_params': [],
+                'parameters': {'accession': accession},
+                'steps': {},
+                'nextflow_path': top.filename,
+            },
+            'required_params': [required],
+            'optional_params': [],
+            'generated_parameters': [required],
+            'needsWorkflowGeneration': False,
+            'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
         }
 
     def _try_fast_path_protein_structure(  # noqa: deploy-trigger
@@ -3979,11 +4648,27 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         _best_seq: Optional[str] = None
         _best_len = 0
         for _m in _re_prot.finditer(rf'\b({_AA_CHARS}{{15,}})\b', user_intent):
+            # A/C/G/T(/U/N) are also amino-acid letters: a run made only of them is DNA/RNA —
+            # e.g. 10x cell barcodes "AAACCTGAGAAGGCCT" in an inline scRNA count table were read
+            # as a protein and the request got nf-core/proteinfold (dev replay, 2026-11-04).
+            if _re_prot.fullmatch(r'[ACGTUNacgtun]+', _m.group(1)):
+                continue
             if len(_m.group(1)) > _best_len:
                 _best_seq = _m.group(1).upper()
                 _best_len = len(_best_seq)
 
         if not _best_seq:
+            return None
+
+        # A sequence in a DESIGN request is the target/binding site or the molecule to improve,
+        # not a structure-prediction job: "Design cyclic peptides against this binding site" and
+        # "Improve serum stability without losing affinity (peptide design)" carry a target
+        # sequence and were answered with nf-core/proteinfold (dev 2026-11-04, once the real
+        # nf-core pipelines were restored and proteinfold became resolvable). Same rule as the
+        # ADMET fast path: the request's own task decides, not the presence of a sequence.
+        if self._is_generative_task(user_intent):
+            log.info("[ProteinStructureFastPath] generative task with a sequence (target/molecule to "
+                     "design against) — not structure prediction; skipping")
             return None
 
         # Only route here if the query is NOT clearly about nucleotide analysis
@@ -4089,6 +4774,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         preferred_domains: Optional[List[str]] = None,
         penalized_domains: Optional[List[str]] = None,
         credential_map: Optional[Dict[str, bool]] = None,
+        user_input_kinds: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
@@ -4176,6 +4862,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             # so the final return dict can always reference them safely.
             dataset_match_result: Dict[str, Any] = {}
 
+            # An explicitly named workflow outranks every keyword heuristic below.
+            _fast_named = self._try_fast_path_named_catalog_workflow(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_named:
+                return _fast_named
+
             _fast_codon = self._try_fast_path_explicit_codon_workflow(
                 user_intent, uploaded_datasets=uploaded_datasets
             )
@@ -4212,8 +4905,12 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             if _fast_cryo:
                 return _fast_cryo
 
+            # ADMET named as a constraint of a generation/optimisation request is not an
+            # ADMET-prediction request: skip the ADMET fast path and steer search (hint below).
+            _admet_as_constraint = self._admet_is_generation_constraint(user_intent)
+            _generative_task = self._is_generative_task(user_intent)
             try:
-                _fast_admet = self._try_fast_path_admet_workflow(
+                _fast_admet = None if _admet_as_constraint else self._try_fast_path_admet_workflow(
                     user_intent, uploaded_datasets=uploaded_datasets
                 )
             except Exception as _fa_exc:
@@ -4405,6 +5102,31 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 user_intent = user_intent + _hint
                 log.info("[UnifiedWorkflowGeneration] AutoDock Vina pattern detected — injected docking_autodock_vina routing hint")
 
+            # Generative/optimisation task: retrieval otherwise ranks on the property words that
+            # come with it ("drug-like properties", hERG/MW cut-offs in the context) and returns
+            # a property PREDICTOR. Measured 2026-11-03 (dev logs): "Generate candidates ... with
+            # drug-like properties" and "Adapt the generative model ..." reached Step 1 search
+            # (ADMET fast path not involved) and selected predict_admet_properties / ADMET_pred.
+            if _generative_task:
+                _task_low = self._request_task_text(user_intent).lower()
+                if re.search(r'\b(peptides?|macrocycl\w*|cyclic|stapled)\b', _task_low):
+                    _gen_wf = "cyclic_peptide_design (peptide/macrocycle design)"
+                elif re.search(r'\b(antibod\w*|nanobod\w*|vhh|scfv|bispecific)\b', _task_low):
+                    _gen_wf = "an antibody / nanobody design workflow"
+                else:
+                    _gen_wf = ("a small-molecule generative design workflow "
+                               "(reinvent4_lead_design for generation / multi-objective optimisation, "
+                               "a scaffold-hopping workflow for scaffold hops)")
+                user_intent = user_intent + (
+                    "\n[Routing hint: the task is to GENERATE or OPTIMISE molecules; property / ADMET "
+                    f"criteria in the request are design objectives or constraints, not the task. Prefer {_gen_wf}, "
+                    "NOT a property-prediction-only workflow.]"
+                )
+                log.info(
+                    "[UnifiedWorkflowGeneration] Generative task (ADMET as constraint=%s) — injected generative-design hint",
+                    _admet_as_constraint,
+                )
+
             # Step 1: Iterative search trials until confidence is high.
             log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows iteratively...")
             trials = self._build_intent_trials(user_intent, key_terms=key_terms)
@@ -4421,6 +5143,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     preferred_domains=preferred_domains or None,
                     penalized_domains=penalized_domains or None,
                     key_terms=key_terms or None,
+                    user_input_kinds=user_input_kinds,
                 )
                 if not trial_results:
                     continue
@@ -5115,7 +5838,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             Galaxy .ga workflow JSON
         """
         # Extract template structure
-        workflow_name = template.get('name', 'Generated Workflow')
+        workflow_name = _composed_workflow_name(template)
         workflow_desc = template.get('description', '') or template.get('annotation', '')
 
         # Galaxy .ga format uses 'steps' key (dict), not 'workflow_steps' (list)
@@ -5184,7 +5907,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         """
         # Similar to _build_workflow_ga_from_template
         # This is a simplified version - real implementation would be more complex
-        workflow_name = workflow_data.get('name', 'Generated Workflow')
+        workflow_name = _composed_workflow_name(workflow_data)
         workflow_desc = workflow_data.get('description', '')
         steps = workflow_data.get('steps', [])
 
@@ -6262,6 +6985,22 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         in parallel and receive a merged result set.
         """
         db = database.lower().strip()
+
+        # Private DB path (userdb:<conn_id>) — routed to galaxy.ai.private_db.
+        # This dispatcher has no per-request `trans` (the AIAssistant is a process
+        # singleton), and private_db enforces per-user ownership + read-only
+        # execution through `trans.user`'s Vault namespace. So private DB queries
+        # MUST be routed at the trans-aware API layer (query_biological_database in
+        # webapps/.../api/ai_assistant.py), which intercepts `userdb:` before it
+        # reaches here. If a `userdb:` value reaches this dispatcher, it means it was
+        # invoked without user context — refuse rather than run unauthenticated.
+        if db.startswith('userdb:'):
+            return {
+                "success": False,
+                "source": "userdb",
+                "error": "Private DB queries require an authenticated request; "
+                         "route via /api/databases/query (trans-aware) not the singleton dispatcher.",
+            }
 
         # Federated path: parallel fan-out to all relevant sources
         if db in ('federated', 'auto'):

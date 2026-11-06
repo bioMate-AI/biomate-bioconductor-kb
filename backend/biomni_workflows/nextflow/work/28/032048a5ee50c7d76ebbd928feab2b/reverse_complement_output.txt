@@ -1,5 +1,0 @@
-Biomni: Reverse Complement Results
-============================================================
-
-status: Function not available
-params: {'seq': 'ATCGATCG'}

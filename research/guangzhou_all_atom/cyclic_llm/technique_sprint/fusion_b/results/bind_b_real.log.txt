@@ -1,0 +1,7 @@
+priors ready 61 s
+target 0 46 80
+target 10 46 263
+target 20 46 390
+target 30 46 547
+target 40 46 752
+wrote bind_b_cells.csv 11658 863 s

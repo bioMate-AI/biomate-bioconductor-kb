@@ -1,0 +1,97 @@
+{
+  "artifact": "LEAVE_HLA_OUT_RESULT",
+  "harness": "leave_hla_out_gate.py",
+  "date": "2026-09-13",
+  "purpose": "THE decisive leave-HLA-out gate: does the widened H4 (presentation controlled by antigen-processing MACHINERY STATE, not source-protein abundance) GENERALIZE across HLA backgrounds beyond the single HAP1 line? Sizes near-term CRO spend.",
+  "training_eligible": false,
+
+  "data_available_vs_usable": {
+    "hla_backgrounds_available_in_corpus": ">=32 (per H4_CORPUS_INVENTORY.json + HLA_ALLELE_ANCHOR.json)",
+    "note_most_are_WT_only": "The large majority of the >=32 backgrounds are WT-only immunopeptidomes (tumor/donor presentation diversity). Those carry NO machinery-KO<->WT contrast and DO NOT feed this gate.",
+    "ko_contrast_backgrounds_with_known_HLA_and_usable_processed_tables": 4,
+    "ko_contrast_backgrounds_ran_in_gate": 4,
+    "usable_backgrounds": [
+      {"background": "HAP1", "deposit": "PXD056426", "KO_conditions": 11, "matched_proteome": true, "loader": "fragpipe_searchzip Search.zip", "HLA": "HLA-A*03:01;B*51:01;C*01:02"},
+      {"background": "A375", "deposit": "PXD065279(B2M)+PXD060572(ERAP1) merged", "KO_conditions": 2, "matched_proteome": false, "loader": "FragPipe combined_peptide + DIA-NN pr_matrix", "HLA": "HLA-A*01:01;A*02:01;B*44:03;B*57:01;C*06:02;C*16:01"},
+      {"background": "THP-1", "deposit": "PXD060575(ERAP1)", "KO_conditions": 1, "matched_proteome": false, "loader": "DIA-NN pr_matrix", "HLA": "HLA-A*02:01;A*24:02;B*15:11;B*35:01;C*03:03"},
+      {"background": "HeLa", "deposit": "PXD078020(TAPBPR)", "KO_conditions": 1, "matched_proteome": false, "loader": "Proteome Discoverer .msf (SQLite Peptides, ConfidenceLevel=3)", "HLA": "HLA-A*02;B*35;B*08;C*06:02"}
+    ],
+    "ko_contrast_backgrounds_examined_but_EXCLUDED": [
+      {"deposit": "PXD024109", "background": "EBV-LCL HLA-A29", "KO": "ERAP2", "reason": "SILAC Light/Heavy quant; the 4 held files are IP-antibody variants (HLA-A29-IP vs W6/32-IP), not a decodable WT<->ERAP2-KO condition contrast within the held tables. WT/KO split needs the sample sheet not present."},
+      {"deposit": "PXD013064", "background": "HeLa.ABC-KO + HLA-B*51:01", "KO": "ERAP1 shRNA", "reason": "PEAKS mztab has PSM section but ms_run/sample IDs (FL02xx, T/E suffix) do not encode WT vs ERAP1-silenced; SDRF factor = organism part only. WT/KO map requires paper-level metadata not in the deposit."},
+      {"deposit": "PXD054491/PXD054494", "background": "A375", "KO": "ERAP1 silencing + inhibitor", "reason": "Spectronaut per-run MS2Quantity columns keyed by raw run numbers; no KEY/condition map in the deposit (the .sne is binary). Redundant with A375 anyway (already represented via PXD060572)."},
+      {"deposit": "PXD063219", "background": "HeLaM B*44:02/B*44:05", "KO": "TAPBPR KD", "reason": ".msf processable but ~0.9 GB x 4 coprocessed + per-DDA files; disk-heavy and redundant with the TAPBPR editor axis already covered by PXD078020. Not required to change the verdict."},
+      {"deposit": "PXD020079", "background": "GBM HROG02/HROG17/RA (class-II CIITA)", "reason": "raw MS only (6 .raw, 9.5 GB) — no peptide tables; not processable under the peptides-not-raw + disk constraint. Would enter as class-II backgrounds once a normalized per-condition table is aggregated (must gate class-II separately)."},
+      {"deposit": "MSV000091285", "background": "proteasome/immunoproteasome-inhibitor", "reason": "transport-blocked (FTP-only MassIVE), not fetched."}
+    ]
+  },
+
+  "per_background_KO_presentation": {
+    "PXD056426_HAP1": {
+      "B2M": 0.0279, "TAP2": 0.1715, "TAPBP": 0.2416, "IRF2": 0.2853, "ERP57": 0.3887,
+      "TAP1": 0.4862, "ERAP1": 0.4987, "GIIA": 0.6149, "SPPL3": 0.8005, "CANX": 0.8729, "CALR": 0.9306,
+      "B1_spearman_pres_vs_proteome": -0.5909,
+      "H4_mean_essential_loss_beyond_abundance": 0.7219,
+      "H4_local_win": true,
+      "verdict": "H4 REPRODUCED locally: essentials collapse presentation (B2M->3%) while proteome stays ~100%; abundance baseline B1 inverted."
+    },
+    "A375": {
+      "B2M": 0.8784, "ERAP1": 0.9876,
+      "measure_cross_check": "B2M-KO: detection-count 0.878, summed-spectral 0.860, intensity 0.646, 55% of B2M-KO peptides shared with WT -> a genuinely RETAINED repertoire (all 3 measures agree).",
+      "verdict": "H4 NOT reproduced: A375 B2M-KO retains ~88% of presentation (HAP1 B2M-KO retains 3%). ERAP1-KO ~99% (expected; trimmer, not hard essential)."
+    },
+    "THP-1": {"ERAP1": 0.8451, "verdict": "ERAP1-KO ~85% (expected trimmer effect, no collapse)."},
+    "HeLa": {"TAPBPR": 1.1389, "verdict": "TAPBPR/TAPBPL editor KO INCREASES repertoire to 114% (loss of peptide editing broadens presentation) -> opposite direction of loss."}
+  },
+
+  "GATE_RESULT": {
+    "n_ko_contrast_backgrounds_ran": 4,
+    "pooled_leave_HLA_out_transfer_spearman": -0.9312,
+    "n_pooled_KO_predictions": 15,
+    "permutation_null": {"n_permutations": 3000, "null_mean": -0.4386, "null_p50": -0.1233, "null_p95": -0.0804, "perm_pvalue_one_sided": 0.883},
+    "n_backgrounds_carrying_positive_ordering": 0,
+    "leave_HLA_out_folds": [
+      {"held_out": "HAP1 (PXD056426)", "n_KO_tested": 11, "transfer_spearman": -0.9203, "train_fit_slope": -0.0439,
+       "interpretation": "Trained on A375+THP-1+HeLa (where machinery-KO shows ~no loss), the fitted slope is NEGATIVE, so predicting HAP1 (where severity genuinely predicts big loss) is strongly ANTI-correlated. The public backgrounds actively contradict, not merely fail to confirm, the HAP1 ordering."},
+      {"held_out": "A375 (merged)", "n_KO_tested": 2, "transfer_spearman": null, "reason": "<3 KO conditions -> per-fold Spearman uncomputable"},
+      {"held_out": "THP-1 (PXD060575)", "n_KO_tested": 1, "transfer_spearman": null, "reason": "<3 KO conditions"},
+      {"held_out": "HeLa (PXD078020)", "n_KO_tested": 1, "transfer_spearman": null, "reason": "<3 KO conditions"}
+    ],
+    "leakage_disjoint_allele_check": {
+      "harness_any_shared_alleles_flag": false,
+      "HONEST_CORRECTION": "The harness allele tokenizer treats 'A*02' (HeLa) and 'A*02:01' (A375, THP-1) as DIFFERENT tokens, so it under-counts sharing and reports disjoint. In reality A375, THP-1 and HeLa ALL carry HLA-A*02 -> the 3 public KO backgrounds are NOT allele-disjoint; only HAP1 (A*03:01/B*51:01/C*01:02) is fully disjoint from the rest. Disjoint-allele PASS criterion is therefore NOT met. (Moot: verdict already FAIL on rho, p, and background-count.)"
+    }
+  },
+
+  "PASS_FAIL_vs_rule": {
+    "rule": "PASS requires ALL of: pooled transfer rho>=0.30 AND perm p<=0.05 AND >=3 backgrounds each carry a positive ordering (transfer>=0.3/fold) AND disjoint HLA alleles across folds.",
+    "pooled_rho>=0.3": {"value": -0.9312, "met": false},
+    "perm_p<=0.05": {"value": 0.883, "met": false},
+    ">=3_backgrounds_carry_ordering": {"value": 0, "met": false},
+    "disjoint_alleles": {"value": "A*02 shared across A375/THP-1/HeLa", "met": false},
+    "VERDICT": "FAIL_or_UNPROVEN_across_HLA",
+    "stronger_statement": "Beyond FAIL: the 3 public KO-contrast backgrounds ACTIVELY CONTRADICT the HAP1 machinery->presentation collapse (held-out HAP1 transfer rho = -0.92; public B2M-KO retains 88% of presentation vs HAP1's 3%). The H4 result does NOT generalize on the public KO-contrast data available."
+  },
+
+  "which_backgrounds_carry_vs_break": {
+    "carries_H4": ["HAP1 (PXD056426) — the only background where machinery-KO collapses presentation as H4 predicts"],
+    "breaks_H4": [
+      "A375 (B2M-KO retains 88%)",
+      "THP-1 (ERAP1-KO 85%, but ERAP1 is a trimmer so weak-loss is expected — informative only as 'no collapse')",
+      "HeLa (TAPBPR-KO 114%, editor KO broadens repertoire)"
+    ],
+    "important_confound": "A375/THP-1/HeLa contribute mostly ERAP1/TAPBPR (trimmer/editor) KOs, NOT the hard essentials (B2M/TAP1/TAP2/TAPBP) that drive the HAP1 collapse. The ONE hard-essential public replicate (A375 B2M-KO) is exactly the one that fails to collapse. So the corpus is under-powered on the discriminative KOs AND the single available replicate contradicts."
+  },
+
+  "CRO_sizing_implication": "FAIL/CONTRADICTED -> CRO MUST supply the missing cells. Cross-HLA generalization of H4 is NOT established (and is actively contradicted) on public KO-contrast data. The CRO must acquire >=3 distinct HLA backgrounds x the hard-essential machinery-KO panel (B2M, TAP1, TAP2, TAPBP at minimum) + same-flask matched proteome + absolute quant, with verified-complete KOs, before H4 can be trained/claimed cross-allele. The expensive path. Priority: resolve the A375 B2M-KO discordance first (leaky KO vs method vs genuine A*02-background B2M-independent presentation) because it, not statistical power, is the load-bearing failure.",
+
+  "caveats": [
+    "Only 1 of 4 usable backgrounds (HAP1) has >=3 KO conditions -> only the HAP1 fold has a computable per-fold transfer Spearman; the other 3 folds are null by construction. The pooled statistic is effectively 'can A375+THP-1+HeLa predict HAP1' -> it strongly cannot (rho -0.92).",
+    "Presentation measure is WITHIN-DEPOSIT unique-peptide detection-count fraction of WT (batch-robust, HLA-agnostic); NEVER raw cross-lab intensity. Cross-checked against summed-spectral-count and intensity for A375 B2M-KO (0.88/0.86/0.65 — same story).",
+    "A375 is cross-method merged (PXD065279 MHC1-TIP DDA B2M-KO + PXD060572 DIA-NN ERAP1-KO); within-deposit normalization mitigates but does not erase method differences.",
+    "Matched proteome only available for HAP1 here -> B1 beyond-abundance metric computed for HAP1 only; the other 3 ran presentation-loss transfer only (labeled). ERAP1/TAPBPR being trimmer/editor KOs, their weak/inverted loss is biologically expected and is NOT evidence for or against H4's hard-essential claim.",
+    "Class-II (PXD020079 CIITA GBM) not runnable here (raw MS only); would gate separately once normalized.",
+    "Harness disjoint-allele check under-counts A*02 sharing (2-field vs 1-field token mismatch); corrected in this result. Verdict unaffected.",
+    "training_eligible = false (evaluation/decision harness)."
+  ]
+}

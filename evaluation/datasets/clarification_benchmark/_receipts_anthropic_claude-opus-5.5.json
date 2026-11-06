@@ -1,0 +1,47 @@
+[
+  {
+    "id": "h2_sheet_conflict",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "You asked to align human reads to GRCh38, but the samplesheet's 'genome' column is set to GRCm39 (mouse). Are these samples human, so the samplesheet should be corrected to GRCh38? Or are they mouse, so GRCm39 is the right reference?"
+  },
+  {
+    "id": "h2_rnaseq_10x",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "nf-core/rnaseq is built for bulk RNA-seq. It does not handle 10x cell barcodes or UMIs, so running it on 10x single-cell FASTQs would collapse everything into one bulk-like profile per sample. Do you want to switch to nf-core/scrnaseq (e.g., with the cellranger, simpleaf, or STARsolo aligner) for per-cell count matrices? Or do you really want a bulk/pseudobulk-style analysis with nf-core/rnaseq? Please also confirm the 10x chemistry (e.g., 3' v2/v3, 5', or Multiome)."
+  },
+  {
+    "id": "h2_dock_no_receptor"
+  },
+  {
+    "id": "h2_tpm_deseq",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "DESeq2 requires raw, un-normalized integer read counts, but expression.csv contains TPM-normalized decimal values, which are not valid DESeq2 input. Do you have the raw count matrix (e.g., from featureCounts, HTSeq, or tximport of Salmon/kallisto output)? If only TPM is available, would you prefer a TPM-appropriate approach instead, such as limma on log2(TPM+1), with the caveat that it is less rigorous than count-based methods?"
+  },
+  {
+    "id": "h2_bam_hg19",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "You asked for hg38, but sample.bam's @SQ header shows it was aligned to hg19 (GRCh37). Calling it against an hg38 reference would give invalid results. How would you like to proceed: (a) realign the reads to hg38 and then call variants, (b) call variants against hg19 and lift the VCF over to hg38, or (c) call variants against hg19 only?"
+  },
+  {
+    "id": "h2_fully_specified",
+    "action": "interpret",
+    "value": "germline small variants (SNVs and indels)",
+    "clarify_about": ""
+  },
+  {
+    "id": "h2_no_groups",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "DESeq2 needs a design contrast, but no condition or group labels exist for sample1\u2013sample6. Which experimental group does each sample belong to (e.g., sample1\u20133 = control, sample4\u20136 = treated)? Which comparison do you want (e.g., treated vs control, with control as the reference level)? Are there other covariates to include in the design, such as batch?"
+  },
+  {
+    "id": "h2_truseq_strand",
+    "action": "interpret",
+    "value": "reverse",
+    "clarify_about": ""
+  }
+]

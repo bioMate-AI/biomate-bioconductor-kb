@@ -70,7 +70,7 @@ with open("segment_with_nn_unet_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("segment_with_nn_unet_output.txt", "w") as f:
-    f.write("Biomni: Segment With Nn Unet Results" + NL)
+    f.write("BioMate: Segment With Nn Unet Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

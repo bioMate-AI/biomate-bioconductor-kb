@@ -1,0 +1,46 @@
+{
+  "complex_counts": {
+    "train": 4157,
+    "valid": 114
+  },
+  "exact_complex_overlap": 0,
+  "sequence_comparisons": {
+    "receptor": {
+      "unique_sequences": {
+        "train": 2713,
+        "valid": 85
+      },
+      "shared_unique_sequences": 0,
+      "validation_complexes_matching_train": 0,
+      "unknown_sequence_complexes": {
+        "train": 87,
+        "valid": 9
+      }
+    },
+    "peptide": {
+      "unique_sequences": {
+        "train": 3504,
+        "valid": 111
+      },
+      "shared_unique_sequences": 6,
+      "validation_complexes_matching_train": 6,
+      "unknown_sequence_complexes": {
+        "train": 0,
+        "valid": 0
+      }
+    },
+    "receptor_peptide_pair": {
+      "unique_sequences": {
+        "train": 3963,
+        "valid": 104
+      },
+      "shared_unique_sequences": 0,
+      "validation_complexes_matching_train": 0,
+      "unknown_sequence_complexes": {
+        "train": 87,
+        "valid": 9
+      }
+    }
+  },
+  "limitation": "Exact sequence identity only; family/pocket/temporal separation remains unverified. Published split is unchanged."
+}

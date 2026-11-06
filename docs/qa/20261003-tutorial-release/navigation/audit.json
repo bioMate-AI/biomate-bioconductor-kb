@@ -1,0 +1,28 @@
+{
+  "checkedAt": "2026-10-04T04:41:20.089Z",
+  "baseUrl": "https://dev-public.biomate.ai",
+  "scope": "Module navigation only; no scientific execution or result validation",
+  "checks": [
+    {
+      "module": "search",
+      "passed": true,
+      "visibleText": "Search & evidence\nA cited answer over literature, databases and patents\nLiterature\nDatabases\nPatents\nInternal\n“What is the evidence linking this target to disease?”\n“Known SAR for this chemotype — what drives potency?”\n“Why do inhibitors of this target usually fail on selectivity?”"
+    },
+    {
+      "module": "analysis",
+      "passed": true,
+      "visibleText": "Data analysis\nWork on your own data — ad-hoc or a validated workflow\nAd-hoc compute\nValidated workflows\n“Summarise this assay table and plot potency against logP.”\n“Correlate predicted and measured IC50 for these compounds.”\n“Reshape this plate readout into long format and save it.”"
+    },
+    {
+      "module": "design",
+      "passed": true,
+      "visibleText": "Design & generate\nPropose candidates — molecules, peptides, proteins — then optimise and rank them\nGenerate\nPredict & filter\nOptimise properties · one pass\nRank candidates\nModality\nSmall molecule\nPeptide\nProtein / biologic\n“Generate 500 candidates for this target with drug-like properties.”\n“Scaffold-hop away from this series but keep the binding pharmacophore.”\n“Grow this fragment into a lead-like molecule.”"
+    },
+    {
+      "module": "models",
+      "passed": true,
+      "visibleText": "Models\nTrain, adapt or optimise a model on your data\nTrain\nAdapt\nOptimise\n“Train a potency predictor on our in-house assay data.”\n“Train an hERG classifier and gate the design loop on it.”\n“Train a solubility model from our historical plate data.”"
+    }
+  ],
+  "technicalChecksPassed": true
+}

@@ -1,0 +1,13 @@
+{
+  "package": "acmg_variant_interpretation",
+  "requirements": [],
+  "python": ["stdlib-only"],
+  "containers": {
+    "VEP_ANNOTATE": "ensemblorg/ensembl-vep:release_110.0",
+    "ACMG_DOSSIER": "python:3.11-slim"
+  },
+  "by_workflow": {
+    "main.nf": []
+  },
+  "notes": "acmg_criteria.py and build_dossier.py use only the Python standard library (argparse, csv, json). No third-party packages, no RNG. Evidence comes from Ensembl VEP (gnomAD AF, ClinVar, consequence, optional CADD/REVEL/AlphaMissense/constraint plugins)."
+}

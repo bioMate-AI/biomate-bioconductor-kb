@@ -8,7 +8,7 @@
  * and zero existing test coverage.
  */
 import { describe, it, expect } from "vitest";
-import { normalizePrereqChecklist } from "./prereq-normalizer";
+import { hasInlineInputData, normalizePrereqChecklist } from "./prereq-normalizer";
 
 describe("normalizePrereqChecklist", () => {
   it("returns undefined when no validator payload is provided", () => {
@@ -136,5 +136,22 @@ describe("normalizePrereqChecklist", () => {
       },
     });
     expect(out!.canRun).toBe(true);
+  });
+});
+
+describe("hasInlineInputData", () => {
+  it("recognizes inline SMILES as input data, not a missing dataset", () => {
+    expect(hasInlineInputData({ inline_parameters: { smiles_list: '[\"CCO\"]' } })).toBe(true);
+  });
+
+  it("recognizes a bound count matrix and sample sheet", () => {
+    expect(hasInlineInputData({
+      required_params: [{ name: "matrix", type: "file" }, { name: "samplesheet", type: "file" }],
+      inline_parameters: { matrix: "s3://uploads/counts.csv", samplesheet: "s3://uploads/metadata.csv" },
+    })).toBe(true);
+  });
+
+  it("does not mistake runtime configuration for input data", () => {
+    expect(hasInlineInputData({ inline_parameters: { threads: 8, max_memory: "16.GB" } })).toBe(false);
   });
 });

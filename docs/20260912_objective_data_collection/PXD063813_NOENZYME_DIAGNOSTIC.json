@@ -1,0 +1,135 @@
+{
+  "_meta": {
+    "artifact": "PXD063813_NOENZYME_DIAGNOSTIC",
+    "generated": "2026-09-14",
+    "owner": "immune-FM H4 (presentation) head — zero-acquisition-cost diagnostic",
+    "training_eligible": false,
+    "training_eligible_reason": "Diagnostic/adjudication artifact for the H4 mechanism (B2M-KO ligandome collapse) on clean single-allele lines and for localizing the A375 B2M-KO anomaly. Not a training corpus; a recipe + feasibility record. Any promotion still requires the H4 kill-test / leave-HLA-out advantage, which this deposit cannot supply (A*02-only, not disjoint-allele).",
+    "goal": "Reprocess PXD063813 raw timsTOF DIA with a NO-ENZYME (unspecific) search to recover the true HLA-I ligandome, then test whether B2M-KO collapses the ligandome in C1R-A*02 and K562-A*02 (HLA-null single-allele transfectants). Collapse => confirms H4 on clean defined-allele lines and localizes the earlier A375 88%-retention anomaly to A375 (leaky KO / MHC1-TIP) rather than A*02 biology.",
+    "why_reprocess": "The deposit's HELD processed file (report.pr_matrix.tsv etc.) is a TRYPTIC WHOLE-PROTEOME DIA-NN search (--cut K*,R*, missed-cleavages 1, avg peptide length 14.3, ~7800 proteins/run). Proteome is unchanged by B2M-KO (as expected), so the held matrix's KO/WT ~0.96-0.99 detection ratio does NOT reflect antigen presentation. The eluted HLA-I ligandome requires a fresh no-enzyme reprocessing of the raw .d files."
+  },
+
+  "FEASIBILITY": {
+    "verdict": "NOT_FEASIBLE_IN_THIS_ENVIRONMENT",
+    "run_attempted": false,
+    "result_faked": false,
+    "blockers": [
+      "DISK: 5.9 GB free. Raw = 24 .d.zip totalling 145.69 GB; per-file compressed 5.06-6.60 GB (mean 6.07 GB). A single compressed .d.zip (min 5.06 GB) barely fits and leaves NO room to unzip. DIA-NN searches the UNCOMPRESSED .d (a Bruker .d unzips to ~10-15 GB). Even one WT/KO pair (2 files) is physically impossible on 5.9 GB.",
+      "SEARCH ENGINE: No no-enzyme-capable DIA/DDA engine installed locally. Probed and NOT found: DIA-NN, MSFragger/FragPipe, philosopher, Comet, MS-GF+. Only Java is present (no mono for Comet, no Docker/Singularity runtime). The only DIA-NN presence on disk is BioMate Galaxy tool XMLs + skill docs (a CLOUD execution path, not a local binary).",
+      "ANCHOR REFERENCE: the A*02:01 mono-allelic ligand anchor lives on S3 (s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions/immunopeptidome/monoallelic_ref/combined_monoallelic_hlaI_human.tsv.gz), NOT locally; the task scoped S3 out. The anchor is regenerable from OPEN sources (MHCflurry 2.0 mass_spec CSV + SysteMHC AlleleLibs) but the search itself is still disk/engine-blocked."
+    ],
+    "disk_free_gb": 5.9,
+    "raw_total_gb": 145.69,
+    "raw_file_count": 24,
+    "raw_per_file_gb": {"min": 5.06, "max": 6.60, "mean": 6.07},
+    "min_footprint_for_one_pair_gb_estimate": "~2 x (6 GB zip + ~12 GB unzipped .d) = ~36 GB just for one WT/KO pair's raw, before DIA-NN scratch/output. >6x the free disk.",
+    "engines_probed": {
+      "diann": "not found (PATH + /Applications + /opt + /usr/local + conda envs)",
+      "fragpipe_msfragger_philosopher": "not found",
+      "comet": "not found",
+      "msgf_plus": "not found (java present but jar absent)",
+      "docker": "not found",
+      "singularity_apptainer": "not found",
+      "java": "present (/usr/bin/java)",
+      "conda_base": "present (/Users/kky/opt/anaconda3); no MS engine env"
+    }
+  },
+
+  "DEPOSIT_FACTS": {
+    "accession": "PXD063813",
+    "title": "The covalent bonding of beta-2-microglobulin with HLA class I influences the antigenic landscape of cells",
+    "lab": "Liepe (Sperner / MR_SP_J)",
+    "submission_date": "2025-05-09",
+    "access": "OPEN (PRIDE; ftp mirror ftp.pride.ebi.ac.uk/pride/data/archive/2026/06/PXD063813/)",
+    "instrument": "timsTOF Pro 2 (Bruker), nanoLC Dionex UltiMate 3000, DIA high-sensitivity PASEF, 50 min gradient",
+    "acquisition": "DIA (diaPASEF), QuantUMS high-precision quant, iodoacetamide (carbamidomethyl C)",
+    "held_search_software": "DIA-NN 2.0.0, spectral library from UniProt human reference proteome + B2M-HLA construct translation",
+    "cell_lines_and_arms": {
+      "C1R-A02_WT": 6, "C1R-A02-NoB2M_KO": 6, "K562-A02_WT": 6, "K562-A02-NoB2M_KO": 6,
+      "layout": "2 injections x 3 biological replicates per arm; both lines are HLA-null parents carrying a single defined HLA-A*02 transfectant"
+    },
+    "raw_files_24_d_zip": "MR_SP_J_Liepe_121124_300125_TIMS_set2_{C1R-A02|C1R-A02-NoB2M|K562-A02|K562-A02-NoB2M}_inj{1,2}_bio{1,2,3}_DIAHiSe_50min_*.d.zip",
+    "reusable_supporting_files_small": {
+      "fasta": "UP000005640_9606_AddedSequence_20250302.fasta (13.7 MB) — UniProt human + the added B2M-HLA construct sequence; REUSE this for the no-enzyme search",
+      "report.log.txt": "0.1 MB — original DIA-NN command line (confirms --cut K*,R* --missed-cleavages 1 tryptic search)",
+      "report.pr_matrix.tsv": "44.4 MB — TRYPTIC proteome precursor matrix (the misleading held file; NOT a ligandome)"
+    },
+    "representative_pair_recommended_for_pilot": [
+      "MR_SP_J_..._C1R-A02_inj1_bio1_...GA7_1_4889.d.zip (6.08 GB) [WT]",
+      "MR_SP_J_..._C1R-A02-NoB2M_inj1_bio1_...GB2_1_4894.d.zip (6.49 GB) [KO]"
+    ]
+  },
+
+  "REPROCESSING_RECIPE_no_enzyme": {
+    "engine": "DIA-NN 2.0.0 (match the deposit's own version for comparability; >=1.8.1 also fine). Library-free (predicted spectral library) direct-from-.d diaPASEF search.",
+    "input": "24 uncompressed Bruker .d directories (unzip each .d.zip first).",
+    "fasta": "UP000005640_9606_AddedSequence_20250302.fasta (pulled from the deposit; keeps the B2M-HLA construct so construct-derived peptides are searchable).",
+    "digest": {
+      "protease": "UNSPECIFIC (no-enzyme). DIA-NN flag: set Cut = '' (empty) i.e. remove --cut, OR GUI Protease = 'unspecific'. Missed cleavages irrelevant for unspecific and should be 0.",
+      "diann_cli": "--cut  (empty value; explicitly override the deposit's --cut K*,R*)  --missed-cleavages 0"
+    },
+    "peptide_length_window": {
+      "min": 8, "max": 12,
+      "rationale": "HLA class-I ligandome window. DIA-NN: --min-pep-len 8 --max-pep-len 12 (GUI: Peptide length range 8-12). This is the single most important change vs the tryptic proteome search (which averaged 14.3 and ended 99% in K/R).",
+      "note": "Some HLA-I pipelines use 8-14 to catch longer ligands; keep 8-12 as primary and optionally re-run 8-14 as a sensitivity check."
+    },
+    "precursor_charge": "--min-pc 1 --max-pc? use 1-4 (HLA-I ligands are predominantly 1-3+). GUI precursor charge 1-4.",
+    "mz_ranges": "Keep deposit defaults for diaPASEF (precursor + fragment m/z as acquired); DIA-NN auto-detects from .d.",
+    "modifications": {
+      "fixed": "Carbamidomethyl (C) — iodoacetamide, as in deposit (--unimod4).",
+      "variable": "Oxidation (M) recommended for immunopeptidomics; optionally N-term acetylation. Keep var-mods low (immunopeptidome libraries balloon with unspecific digest).",
+      "note": "Do NOT add tryptic-specific assumptions."
+    },
+    "fdr": {
+      "precursor_qvalue": 0.01,
+      "note": "1% precursor FDR (--qvalue 0.01). For immunopeptidomics also report a run-specific decoy-based peptide FDR; DIA-NN's global q at 1% is the primary gate. Consider --matrix-qvalue 0.01 for the output matrix."
+    },
+    "library_mode": "Library-free: --predictor (deep-learning-predicted spectra + RT + IM) generated from the FASTA under the unspecific 8-12 digest. Expect a very large in silico library (unspecific 8-12mers over the human proteome) => high RAM/time; see resource estimate.",
+    "quant": "QuantUMS / MBR across the 24 runs (--reanalyse for MBR) so WT and KO precursors share the same evidence pool. Keep WT+KO of the same line in one DIA-NN run for a fair within-line comparison.",
+    "diann_full_example_cli": "diann --dir <folder_of_.d> --fasta UP000005640_9606_AddedSequence_20250302.fasta --fasta-search --predictor --cut  --missed-cleavages 0 --min-pep-len 8 --max-pep-len 12 --min-pr-charge 1 --max-pr-charge 4 --unimod4 --var-mods 1 --var-mod UniMod:35,15.994915,M --qvalue 0.01 --reanalyse --matrices --out report_noenzyme.tsv --threads <N> --verbose 1",
+    "outputs_needed": "report_noenzyme.pr_matrix.tsv (precursor x run), report_noenzyme.parquet, report_noenzyme.stats.tsv."
+  },
+
+  "A02_ANCHOR_SCORING": {
+    "purpose": "Distinguish genuine HLA-A*02:01 ligands from search noise/co-purified background so the KO/WT retention is measured on TRUE presented peptides, not chemical background.",
+    "reference": {
+      "primary": "A*02:01 mono-allelic eluted-ligand set from the mono-allelic anchor (combined_monoallelic_hlaI_human.tsv.gz on S3), filter allele == HLA-A*02:01. Regenerable OPEN if S3 unavailable: MHCflurry 2.0 curated_training_data.mass_spec.csv.bz2 (allele HLA-A*02:01, ~thousands of ligands) UNION SysteMHC AlleleLibs A*02:01 pepidx.",
+      "predictor_open": "MHCflurry 2.0 (pip install mhcflurry; Apache-2.0) OR MixMHCpred (Gfeller lab, OPEN) as a de-novo A*02:01 binding predictor when a peptide is not in the reference set."
+    },
+    "genuine_HLA_ligand_definition": "A detected 8-12mer is a genuine A*02:01 ligand if EITHER (a) exact-match present in the A*02:01 mono-allelic reference, OR (b) MHCflurry/MixMHCpred %rank <= 2 (strong+weak binder) against HLA-A*02:01. A*02:01 canonical anchors: P2 = L/M/I (Leu dominant), P-Omega(C-term) = V/L/I. As a cheap sanity motif check, expect strong P2-Leu and C-term-Val/Leu enrichment in the WT ligandome.",
+    "retention_metric": {
+      "definition": "retention = (# genuine A*02:01 ligands detected in KO, union over KO replicates at 1% FDR) / (# genuine A*02:01 ligands detected in WT).",
+      "also_report": ["Jaccard overlap of genuine-ligand sets KO vs WT", "total 8-12mer count KO/WT (unfiltered)", "fraction of WT genuine ligands lost in KO", "P2/Comega motif entropy WT vs KO (motif should DISAPPEAR on true collapse)"],
+      "collapse_threshold_interpretation": {
+        "collapse_CONFIRMS_H4": "retention roughly <= 0.15-0.30 AND loss of the A*02:01 P2-Leu/Comega-Val motif in KO. B2M-KO removes surface HLA-I => ligandome collapses. On clean single-allele HLA-null parents (C1R, K562) this is the expected clean-mechanism result.",
+        "partial_or_no_collapse": "retention >= ~0.5 with motif retained would mirror the A375 88% anomaly and would argue the KO is leaky or a B2M-independent presentation route persists.",
+        "diagnostic_payoff": "If C1R and K562 CLEANLY collapse while A375 retained 88%, the anomaly LOCALIZES to A375 (leaky B2M-KO clone / MHC1-TIP-type sensitivity / residual surface HLA), NOT to A*02 biology or to the H4 mechanism. That is the adjudication value of this run."
+      }
+    }
+  },
+
+  "RESOURCE_ESTIMATE_proper_node": {
+    "storage": "~350-450 GB working disk: 145.7 GB compressed download + ~200-300 GB uncompressed .d (24 x ~10-13 GB) + DIA-NN predicted library + scratch/output. Provision >=500 GB to be safe. (Can process line-by-line to cap peak: one line's 12 runs at a time ~ 150-180 GB.)",
+    "download": "145.7 GB over PRIDE FTP/https/Aspera; ~1-4 h depending on link. Aspera (fasp) fastest.",
+    "compute": "Unspecific 8-12 digest over the human proteome yields a very large predicted library. DIA-NN library generation + search of 24 diaPASEF runs: 32-64 CPU cores, 128-256 GB RAM strongly recommended (unspecific immunopeptidome DIA is RAM-heavy). GPU optional (DIA-NN predictor benefits from it).",
+    "wall_time": "Rough: predicted-library build 1-3 h; per-run diaPASEF search 15-45 min x 24 = 6-18 h; MBR/reanalyse pass 1-3 h. End-to-end ~10-24 h on a 32-64 core node.",
+    "cost_class": "1 large node (e.g. 64 vCPU / 256 GB) for ~1 day, or split by cell line into 2 shorter jobs.",
+    "execution_route_recommended": "BioMate DIA-NN Galaxy tool on AWS Batch (diann tool XMLs already present in repo) — the intended cloud execution path. Feed the deposit FASTA + the 24 .d, override protease->unspecific and length->8-12 per the recipe above. This keeps it on the BioMate execution engine per project policy rather than a local workaround."
+  },
+
+  "NEXT_STEPS_if_run_on_node": [
+    "1. Pull the 24 .d.zip (or, minimally, the two lines separately) + UP000005640_9606_AddedSequence_20250302.fasta from PRIDE.",
+    "2. DIA-NN 2.0.0 unspecific, len 8-12, 1% FDR, per-line MBR (WT+KO together).",
+    "3. Regenerate/pull the A*02:01 anchor; classify detected 8-12mers as genuine ligands (reference match OR MHCflurry %rank<=2).",
+    "4. Compute KO/WT genuine-ligand retention + P2/Comega motif for C1R and K562.",
+    "5. Compare to A375 88% retention to localize the anomaly."
+  ],
+
+  "honesty_notes": [
+    "No result was fabricated. The B2M-KO ligandome retention for C1R/K562 was NOT computed because the search could not be run (disk + no engine).",
+    "The 0.96-0.99 KO/WT numbers in HARD_ESSENTIAL_KO_RESCAN.json are the TRYPTIC PROTEOME matrix and are explicitly NOT a presentation readout; they must not be cited as ligandome retention.",
+    "Even if run, PXD063813 adds NO disjoint HLA allele (A*02 only) and does not re-power the leave-HLA-out gate; its value here is purely DIAGNOSTIC (adjudicate the A375 anomaly on clean single-allele lines).",
+    "File sizes/URLs are from PRIDE v2 REST (/projects/PXD063813/files) fetched 2026-09-14; total 146.38 GB across 40 files, 145.69 GB in 24 .d.zip.",
+    "df-checked before any pull; only sub-MB metadata JSON fetched to scratchpad; intermediates deleted."
+  ]
+}

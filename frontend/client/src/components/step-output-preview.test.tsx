@@ -11,7 +11,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { StepOutputPreview } from "./step-output-preview";
+import { StepOutputPreview, parsePlddtFromPdb } from "./step-output-preview";
 
 // Stub heavy viewers — we're testing routing + content rendering, not the
 // 3Dmol/density/chart internals.
@@ -144,6 +144,21 @@ describe("StepOutputPreview — viewer routing by extension", () => {
     });
   });
 
+  it("routes .html to an 'Open in new tab' affordance, not a blank sandboxed iframe (FIX #9.3)", async () => {
+    mockFetch("<html><body><script>render()</script></body></html>", "text/html");
+    const { container } = render(
+      <StepOutputPreview runId={runId} file={{ name: "report.html", path: "/pipeline_info/report.html", extension: "html" }} onClose={onClose} />,
+    );
+    const link = await screen.findByRole("link", { name: /Open full report in a new tab/i });
+    // Opens the fetched report in an isolated top-level tab — never weakens the
+    // iframe sandbox (blob: URL would inherit the app origin → stored-XSS risk).
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link).toHaveAttribute("href", "blob:mock-url");
+    // The blank 256px sandboxed iframe must be gone.
+    expect(container.querySelector("iframe")).toBeNull();
+  });
+
   it("renders error message on 404 fetch failure", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: false,
@@ -156,5 +171,111 @@ describe("StepOutputPreview — viewer routing by extension", () => {
       expect(screen.getByText(/Failed to load file/)).toBeInTheDocument();
       expect(screen.getByText(/HTTP 404/)).toBeInTheDocument();
     });
+  });
+
+  // DL-domain JSON sidecars → the ported evidence viewers (Spec 08 §8.5).
+  it("routes a *_seqtracks.json output to SeqTracks with its flagged intervals", async () => {
+    mockFetch(
+      {
+        locus: "chr7:5,527,100–5,530,600",
+        bp: 3500,
+        tracks: [{ kind: "line", name: "conservation", values: [10, 40, 80, 60] }],
+        flagged: [{ start: 120, end: 145, context: "splice donor", why: "predicted loss-of-function" }],
+      },
+      "application/json",
+    );
+    render(<StepOutputPreview runId={runId} file={{ name: "variant_seqtracks.json", path: "/p", extension: "json" }} onClose={onClose} />);
+    await waitFor(() => {
+      // The DL preview wrapper mounts and the SeqTracks flagged output is the actionable payload.
+      expect(screen.getByTestId("dl-json-preview")).toBeInTheDocument();
+      expect(screen.getByText(/predicted loss-of-function/)).toBeInTheDocument();
+    });
+  });
+
+  it("routes a *_hits.json output to HitGrid and keeps a held hit unscored (null, not 0)", async () => {
+    mockFetch(
+      {
+        modelName: "admet-herg v3",
+        hits: [
+          { id: "cand-1", smiles: "CCO", score: 0.82, confidence: "in-domain", verdict: "accepted" },
+          { id: "cand-2", smiles: "c1ccccc1", verdict: "held", confidence: "out-of-domain" },
+        ],
+      },
+      "application/json",
+    );
+    render(<StepOutputPreview runId={runId} file={{ name: "triage_hits.json", path: "/p", extension: "json" }} onClose={onClose} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("dl-json-preview")).toBeInTheDocument();
+      // HitGrid renders the ranked-hits card; the held candidate id must still appear.
+      expect(screen.getByText("cand-2")).toBeInTheDocument();
+    });
+  });
+
+  it("does NOT route a plain report.json to a DL viewer (unknown JSON → table)", async () => {
+    mockFetch({ summary: "ok", value: 42 }, "application/json");
+    render(<StepOutputPreview runId={runId} file={{ name: "report.json", path: "/p", extension: "json" }} onClose={onClose} />);
+    await waitFor(() => {
+      // No DL wrapper — falls through to the generic JSON table path.
+      expect(screen.queryByTestId("dl-json-preview")).not.toBeInTheDocument();
+    });
+  });
+
+  it("renders a JSON object as a readable key/value view, not comma-split CSV rows", async () => {
+    mockFetch({ dili_probability: 0.875, dili_probability_threshold: 0.5, admet_dili_probability_passes: false, citation: "Redfern 2003, Kazius 2005" }, "application/json");
+    render(<StepOutputPreview runId={runId} file={{ name: "qc_metrics.json", path: "/p", extension: "json" }} onClose={onClose} />);
+    const preview = await screen.findByTestId("json-preview");
+    // Keys and scalar values are present as a structured view.
+    expect(preview.textContent).toContain("admet_dili_probability_passes");
+    expect(preview.textContent).toContain("false");
+    // The citation stays a single value cell, not split across CSV columns.
+    const citationCell = Array.from(preview.querySelectorAll("td")).find((td) => td.textContent?.includes("Redfern 2003"));
+    expect(citationCell?.textContent).toContain("Redfern 2003, Kazius 2005");
+  });
+
+  it("shows a multi-line string field of a JSON object with its line breaks", async () => {
+    mockFetch({ success: true, result: "Compound: CCO\n  hERG inhibition : 0.003\n  DILI probability : 0.855" }, "application/json");
+    render(<StepOutputPreview runId={runId} file={{ name: "predict_admet_properties_results.json", path: "/p", extension: "json" }} onClose={onClose} />);
+    const preview = await screen.findByTestId("json-preview");
+    // The multi-line "result" value is rendered in its own cell with line breaks intact.
+    const resultCell = Array.from(preview.querySelectorAll("td")).find((td) => td.textContent?.includes("hERG inhibition"));
+    expect(resultCell?.textContent).toContain("Compound: CCO");
+    expect(resultCell?.textContent).toContain("hERG inhibition : 0.003");
+    expect(resultCell?.textContent).toContain("DILI probability : 0.855");
+  });
+
+  it("keeps an array of records as a table", async () => {
+    mockFetch([{ smiles: "CCO", score: 0.1 }, { smiles: "CCN", score: 0.2 }], "application/json");
+    render(<StepOutputPreview runId={runId} file={{ name: "scores.json", path: "/p", extension: "json" }} onClose={onClose} />);
+    await screen.findByText("CCN");
+    expect(screen.queryByTestId("json-preview")).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pLDDT parser — the honest companion to a predicted-structure 3D view.
+// Spec 14 §14.2: "pLDDT in the B-factor column". Spec 08 §8.5: a predicted
+// structure opens the 3D view WITH its per-residue confidence chart.
+// ---------------------------------------------------------------------------
+describe("parsePlddtFromPdb", () => {
+  // Minimal PDB: one CA per residue with the B-factor (cols 61-66) as pLDDT.
+  // Columns are 1-based in the PDB spec; slice offsets in the parser are 0-based.
+  const pdbLine = (resSeq: number, bfac: number) =>
+    `ATOM  ${String(resSeq * 5).padStart(5)}  CA  ALA A${String(resSeq).padStart(4)}    ` +
+    `  10.000  10.000  10.000  1.00${bfac.toFixed(2).padStart(6)}           C`;
+
+  it("reads one per-residue confidence value per CA atom, in residue order", () => {
+    const pdb = [pdbLine(1, 95.2), pdbLine(2, 72.0), pdbLine(3, 40.5)].join("\n");
+    expect(parsePlddtFromPdb(pdb)).toEqual([95.2, 72.0, 40.5]);
+  });
+
+  it("returns [] when there are no CA atoms", () => {
+    const pdb = "ATOM      1  N   ALA A   1      10.0  10.0  10.0  1.00 88.00           N";
+    expect(parsePlddtFromPdb(pdb)).toEqual([]);
+  });
+
+  it("returns [] for a real crystal structure whose B-factors exceed the pLDDT 0–100 band", () => {
+    // Real temperature factors routinely run 120+ Å² — not a confidence column.
+    const pdb = [pdbLine(1, 145.0), pdbLine(2, 210.0)].join("\n");
+    expect(parsePlddtFromPdb(pdb)).toEqual([]);
   });
 });

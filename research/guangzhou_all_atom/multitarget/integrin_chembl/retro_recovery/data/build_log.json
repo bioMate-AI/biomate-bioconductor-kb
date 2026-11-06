@@ -1,0 +1,167 @@
+{
+ "rows_total": 136730,
+ "rows_cyclic_flag": 36102,
+ "rows_null_target": 1533,
+ "rows_excluded_affinity_nonpositive_or_gt1e9_or_nan": 12,
+ "rows_excluded_relation_tilde_or_ll": 0,
+ "smiles_unique_in_cyclic_rows": 16991,
+ "smiles_passing_macrocycle_peptide_filter": 16218,
+ "compounds": 16195,
+ "flat_structures": 14599,
+ "stratum_counts": {
+  "ncaa_peptide": 13783,
+  "non_peptide_macrocycle": 2101,
+  "peptide": 311
+ },
+ "rows_after_filter": 32871,
+ "assay_type_counts": {
+  "IC50": 19098,
+  "Ki": 7576,
+  "EC50": 4439,
+  "Kd": 1758
+ },
+ "source_counts": {
+  "BindingDB": 23697,
+  "BindingDB,ChEMBL": 5519,
+  "ChEMBL": 3655
+ },
+ "pairs_all": 30310,
+ "pair_label_counts": {
+  "pos": 20562,
+  "gray": 5701,
+  "inactive": 4021,
+  "conflict": 26
+ },
+ "targets_with_labeled_pairs": 793,
+ "family_rule": "targets linked when Jaccard(Pfam sets) >= 0.67 (connected components); targets with no Pfam are singletons",
+ "n_families": 317,
+ "largest_family_targets": [
+  [
+   "F997e29c2",
+   130
+  ],
+  [
+   "F942bc262",
+   39
+  ],
+  [
+   "F916636f7",
+   30
+  ]
+ ],
+ "targets_without_pfam": 6,
+ "targets_eligible_M_flat5": 344,
+ "targets_eligible_M_if_count_compounds_5": 348,
+ "targets_eligible_I": 46,
+ "families_eligible_M": 141,
+ "families_eligible_I": 26,
+ "positives_dropped_insufficient_decoys": 9784,
+ "items_M": 165516,
+ "items_M_positives": 8033,
+ "targets_in_M_after_drop": 299,
+ "items_I": 9432,
+ "items_I_positives": 7600,
+ "targets_in_I": 46,
+ "families_in_M": 120,
+ "families_in_I": 26,
+ "rgd_fraction_M_positives": 0.028009460973484376,
+ "rgd_fraction_M_decoys": 0.032562244813725924,
+ "rgd_fraction_I_positives": 0.018289473684210526,
+ "rgd_fraction_I_decoys": 0.034388646288209604,
+ "stratum_M_positives": {
+  "ncaa_peptide": 7215,
+  "non_peptide_macrocycle": 786,
+  "peptide": 32
+ },
+ "stereo_pairs_opposite_labels_same_target": 95,
+ "integrin_targets": [
+  {
+   "target_key": "P05106",
+   "genes": "ITGB3",
+   "n_pos_flat": 110,
+   "n_inactive_flat": 44,
+   "eligible_M": true,
+   "eligible_I": true
+  },
+  {
+   "target_key": "P05106,P06756",
+   "genes": "ITGAV,ITGB3",
+   "n_pos_flat": 34,
+   "n_inactive_flat": 8,
+   "eligible_M": true,
+   "eligible_I": false
+  },
+  {
+   "target_key": "P05106,P06756,P18084",
+   "genes": "ITGAV,ITGB3,ITGB5",
+   "n_pos_flat": 1,
+   "n_inactive_flat": 0,
+   "eligible_M": false,
+   "eligible_I": false
+  },
+  {
+   "target_key": "P05106,P08514",
+   "genes": "ITGA2B,ITGB3",
+   "n_pos_flat": 47,
+   "n_inactive_flat": 30,
+   "eligible_M": true,
+   "eligible_I": true
+  },
+  {
+   "target_key": "P05556,P08648",
+   "genes": "ITGA5,ITGB1",
+   "n_pos_flat": 13,
+   "n_inactive_flat": 9,
+   "eligible_M": true,
+   "eligible_I": false
+  },
+  {
+   "target_key": "P06756",
+   "genes": "ITGAV",
+   "n_pos_flat": 5,
+   "n_inactive_flat": 12,
+   "eligible_M": true,
+   "eligible_I": false
+  },
+  {
+   "target_key": "P06756,P08648",
+   "genes": "ITGA5,ITGAV",
+   "n_pos_flat": 2,
+   "n_inactive_flat": 0,
+   "eligible_M": false,
+   "eligible_I": false
+  },
+  {
+   "target_key": "P06756,P18084",
+   "genes": "ITGAV,ITGB5",
+   "n_pos_flat": 11,
+   "n_inactive_flat": 7,
+   "eligible_M": true,
+   "eligible_I": false
+  },
+  {
+   "target_key": "P06756,P18564",
+   "genes": "ITGAV,ITGB6",
+   "n_pos_flat": 67,
+   "n_inactive_flat": 5,
+   "eligible_M": true,
+   "eligible_I": false
+  },
+  {
+   "target_key": "P08648",
+   "genes": "ITGA5",
+   "n_pos_flat": 64,
+   "n_inactive_flat": 18,
+   "eligible_M": true,
+   "eligible_I": false
+  },
+  {
+   "target_key": "P18564",
+   "genes": "ITGB6",
+   "n_pos_flat": 67,
+   "n_inactive_flat": 5,
+   "eligible_M": true,
+   "eligible_I": false
+  }
+ ]
+}

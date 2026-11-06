@@ -1,0 +1,20 @@
+[
+ {
+  "mined_on_half": 0,
+  "n_mined_sig": 5,
+  "n_testable": 4,
+  "n_sign_agree": 2,
+  "n_replicated": 0,
+  "replication_rate": 0.0,
+  "median_effect_ratio_test_over_mine": -0.7088979991611577
+ },
+ {
+  "mined_on_half": 1,
+  "n_mined_sig": 6,
+  "n_testable": 4,
+  "n_sign_agree": 3,
+  "n_replicated": 0,
+  "replication_rate": 0.0,
+  "median_effect_ratio_test_over_mine": 0.13599106602319902
+ }
+]

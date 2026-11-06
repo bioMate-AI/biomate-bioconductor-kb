@@ -1,0 +1,76 @@
+{
+ "scenario": "EGFR kinase hit-finding bench (PDB 1M17) for chain vina_virtual_screening_bench",
+ "built": "2026-11-01",
+ "build_script": "build_dataset.py (seed 20261101)",
+ "counts": {
+  "actives_total": 55,
+  "reference_actives_excluded_from_scoring": 5,
+  "test_actives": 50,
+  "decoys": 246,
+  "library_smi_rows": 296,
+  "ic50_records_le_100nM_downloaded": 14359,
+  "unique_candidate_actives_after_filters": 3396
+ },
+ "approved_drugs_in_actives": {
+  "gefitinib": "BDBM5447",
+  "erlotinib": "BDBM5446",
+  "afatinib": "BDBM50322823",
+  "osimertinib": "BDBM50029668",
+  "lapatinib": "BDBM5445"
+ },
+ "sources": [
+  {
+   "what": "data/1M17.pdb",
+   "url": "https://files.rcsb.org/download/1M17.pdb",
+   "retrieved": "2026-11-01",
+   "verified": "TITLE EGFR tyrosine kinase domain with 4-anilinoquinazoline inhibitor erlotinib; chain A; HET AQ4 A 999 (29 heavy atoms = erlotinib)",
+   "licence": "CC0 1.0 (wwPDB)"
+  },
+  {
+   "what": "data/erlotinib_crystal_ligand.pdb",
+   "derived_from": "1M17.pdb HETATM AQ4 A 999 (29 heavy atoms, no H), redocking reference",
+   "licence": "CC0 1.0"
+  },
+  {
+   "what": "actives (data/actives.smi, labels.csv)",
+   "url": "https://bindingdb.org/rest/getLigandsByUniprots?uniprot=P00533&cutoff=100&response=application/json",
+   "retrieved": "2026-11-01",
+   "rule": "query == 'Epidermal growth factor receptor', affinity_type == IC50, plain numeric value <= 100 nM (qualified '<'/'>' dropped), median per BindingDB monomer id, one per InChIKey connectivity block, MW 250-500 and <=38 heavy atoms (approved drugs exempt), 55 picked by MaxMin Morgan2 diversity over a seeded 600-molecule subset after force-including the approved drugs",
+   "licence": "CC BY 3.0 (BindingDB)"
+  },
+  {
+   "what": "decoys (data/decoys.smi)",
+   "url": "https://raw.githubusercontent.com/aspuru-guzik-group/chemical_vae/main/models/zinc_properties/250k_rndm_zinc_drugs_clean_3.csv",
+   "dataset": "ZINC250k: 250k drug-like ZINC-derived molecules (Gomez-Bombarelli et al., ACS Cent Sci 2018); first 90,000 of a seeded shuffle used as candidate pool",
+   "licence": "ZINC is free for use (zinc.docking.org terms); the hosting repository is MIT licensed. Redistribution of ~250 SMILES subset assumed acceptable; confirm before external release."
+  }
+ ],
+ "deviations_from_plan": [
+  "ChEMBL REST (https://www.ebi.ac.uk/chembl/api/data) returned HTTP 500 on every endpoint incl. /status, with the generic service-unavailable page, for >30 min on 2026-11-01; actives therefore come from BindingDB (which itself curates ChEMBL/literature IC50) instead of ChEMBL. Ids are BindingDB monomer ids (BDBM...), not CHEMBL ids.",
+  "DUD-E (https://dude.docking.org/targets/egfr/decoys_final.ism) timed out (30 s, both http and https); ZINC15 substance search is behind a captcha. Fallback decoys documented below. DUD-E licence not checked because it was unreachable."
+ ],
+ "decoy_matching_rule": {
+  "per_active": "up to 5 decoys (cap keeps library ~300 for dev docking)",
+  "properties_rdkit": "MolWt, Crippen logP, Lipinski HBD, Lipinski HBA, rotatable bonds (CalcNumRotatableBonds) of the largest fragment",
+  "tolerance": {
+   "mw": 25.0,
+   "logp": 0.7,
+   "hbd": 1,
+   "hba": 1,
+   "rotb": 2
+  },
+  "topological_dissimilarity": "max Morgan(r=2,2048) Tanimoto to ANY of the 3396 candidate EGFR actives must be < 0.35",
+  "uniqueness": "no decoy shares an InChIKey or canonical SMILES with any BindingDB EGFR active (checked against all 3396 candidates, not just the 55 picked)",
+  "limits": "some actives (e.g. erlotinib, osimertinib) got 0 matched decoys because the dissimilarity filter removes quinazoline-like candidates; decoys are pooled, so the library still holds 246 decoys (<5 per active on average is not reached for all). Decoys are NOT experimentally confirmed non-binders (property-matched, topologically dissimilar only), as in DUD-E."
+ },
+ "reference_split": {
+  "reference_ids": [
+   "BDBM152775",
+   "BDBM50074742",
+   "BDBM50232320",
+   "BDBM50614289",
+   "BDBM759882"
+  ],
+  "rule": "5 random (seeded) non-approved actives; marked label=reference in labels.csv; excluded from library.smi and from scoring"
+ }
+}

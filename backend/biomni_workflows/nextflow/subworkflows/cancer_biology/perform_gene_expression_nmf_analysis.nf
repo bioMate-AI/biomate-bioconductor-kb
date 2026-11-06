@@ -56,7 +56,7 @@ with open("perform_gene_expression_nmf_analysis_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("perform_gene_expression_nmf_analysis_output.txt", "w") as f:
-    f.write("Biomni: Perform Gene Expression Nmf Analysis Results" + NL)
+    f.write("BioMate: Perform Gene Expression Nmf Analysis Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

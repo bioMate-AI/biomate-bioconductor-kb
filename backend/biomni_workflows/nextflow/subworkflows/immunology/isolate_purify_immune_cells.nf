@@ -56,7 +56,7 @@ with open("isolate_purify_immune_cells_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("isolate_purify_immune_cells_output.txt", "w") as f:
-    f.write("Biomni: Isolate Purify Immune Cells Results" + NL)
+    f.write("BioMate: Isolate Purify Immune Cells Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -1,0 +1,39 @@
+{
+ "n_unique_9mers": 600,
+ "inside_genus": [
+  16,
+  0.027,
+  [
+   0.016,
+   0.043
+  ]
+ ],
+ "identity_lt_0_7": [
+  600,
+  1.0,
+  [
+   0.994,
+   1.0
+  ]
+ ],
+ "usable_novel_9mer": [
+  584,
+  0.973,
+  [
+   0.957,
+   0.984
+  ]
+ ],
+ "verdict_categories": {
+  "literally OUTSIDE": 584,
+  "INSIDE (literal genus)": 16
+ },
+ "L0_usable_novel_for_comparison": {
+  "k": 1,
+  "rate": 0.006,
+  "ci95": [
+   0.001,
+   0.031
+  ]
+ }
+}

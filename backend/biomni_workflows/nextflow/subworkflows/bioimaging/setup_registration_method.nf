@@ -58,7 +58,7 @@ with open("setup_registration_method_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("setup_registration_method_output.txt", "w") as f:
-    f.write("Biomni: Setup Registration Method Results" + NL)
+    f.write("BioMate: Setup Registration Method Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

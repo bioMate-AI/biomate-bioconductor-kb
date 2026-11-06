@@ -76,6 +76,11 @@ function startMockServer(): Promise<MockServer> {
 
   const server: Server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const u = new URL(req.url ?? '/', `http://${req.headers.host}`);
+    if (u.pathname === '/oauth/register') {
+      res.writeHead(201, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ client_id: 'registered-test-client' }));
+      return;
+    }
 
     if (u.pathname === '/oauth/authorize' && req.method === 'GET') {
       // The installer never hits /oauth/authorize as an HTTP client — its
@@ -200,7 +205,12 @@ describe('installer end-to-end flow', () => {
 
     const cfg = JSON.parse(await fs.readFile(path.join(tmpHome, '.claude.json'), 'utf8'));
     expect(cfg.mcpServers.biomate.command).toBe('npx');
-    expect(cfg.mcpServers.biomate.env.BIOMATE_REFRESH_TOKEN).toBe('mock_refresh_token');
+    expect(cfg.mcpServers.biomate.env).not.toHaveProperty('BIOMATE_REFRESH_TOKEN');
+    const credentialFile = cfg.mcpServers.biomate.env.BIOMATE_OAUTH_FILE;
+    const credential = JSON.parse(await fs.readFile(credentialFile, 'utf8'));
+    expect(credential.refresh_token).toBe('mock_refresh_token');
+    expect(credential.clientId).toBe('registered-test-client');
+    expect((await fs.stat(credentialFile)).mode & 0o777).toBe(0o600);
   });
 
   it('§3.2.2 claude-code: preserves existing keys in ~/.claude.json', async () => {
@@ -254,7 +264,8 @@ describe('installer end-to-end flow', () => {
 
     const cfg = await fs.readFile(path.join(tmpHome, '.codex', 'config.toml'), 'utf8');
     expect(cfg).toContain('[mcp_servers.biomate]');
-    expect(cfg).toContain('mock_refresh_token');
+    expect(cfg).toContain('BIOMATE_OAUTH_FILE');
+    expect(cfg).not.toContain('mock_refresh_token');
   });
 
   it('§3.2.6 chatgpt: prints instructions, writes no file', async () => {

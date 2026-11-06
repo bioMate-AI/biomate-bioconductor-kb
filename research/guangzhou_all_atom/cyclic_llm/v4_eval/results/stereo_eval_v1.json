@@ -1,0 +1,155 @@
+{
+ "n_groups_ge3_isomers": 341,
+ "n_isomers": 4770,
+ "group_size_hist": {
+  "11": 15,
+  "5": 24,
+  "10": 16,
+  "4": 24,
+  "3": 36,
+  "8": 56,
+  "7": 24,
+  "15": 8,
+  "12": 5,
+  "13": 12,
+  "6": 15,
+  "14": 10,
+  "21": 13,
+  "27": 5,
+  "26": 4,
+  "17": 4,
+  "25": 5,
+  "28": 2,
+  "16": 2,
+  "23": 3,
+  "9": 13,
+  "24": 5,
+  "19": 5,
+  "22": 4,
+  "32": 1,
+  "44": 2,
+  "30": 2,
+  "37": 1,
+  "39": 1,
+  "18": 3,
+  "51": 1,
+  "46": 2,
+  "42": 2,
+  "52": 1,
+  "20": 1,
+  "99": 1,
+  "82": 2,
+  "70": 1,
+  "115": 1,
+  "41": 1,
+  "55": 1,
+  "92": 1,
+  "86": 1,
+  "47": 1,
+  "103": 1,
+  "116": 1,
+  "31": 1,
+  "29": 1
+ },
+ "flat_fp_random_linear": {
+  "name": "flat_fp_random_linear",
+  "n_groups_scored": 340,
+  "mean_within_group_spearman": 0.0,
+  "ci95": [
+   0.0,
+   0.0
+  ],
+  "pair_concordance": null,
+  "n_pairs_scored": 0
+ },
+ "random_score_control": {
+  "name": "random_scores(seed0)",
+  "n_groups_scored": 340,
+  "mean_within_group_spearman": 0.002,
+  "ci95": [
+   -0.0413,
+   0.0464
+  ],
+  "pair_concordance": 0.5033,
+  "n_pairs_scored": 76077
+ },
+ "atom_lm_mean_logp": {
+  "name": "atom_lm_mean_logp",
+  "n_groups_scored": 340,
+  "mean_within_group_spearman": 0.1038,
+  "ci95": [
+   0.0565,
+   0.1501
+  ],
+  "pair_concordance": 0.5146,
+  "n_pairs_scored": 76077
+ },
+ "atom_lm_cost": {
+  "n_params": 25483264,
+  "flops": 27229683048448.0,
+  "score_tokens": 534266,
+  "train_tokens": 0,
+  "updates": 0,
+  "wall_seconds": 55.367,
+  "update_seconds": 0.0,
+  "score_seconds": 55.367,
+  "est_usd_at_declared_rate": 0.005383,
+  "usd_per_hour_assumed": 0.35,
+  "note": "wall-clock measured on the host that ran it; USD = wall_seconds x declared rate (not a billed cost)"
+ },
+ "sar_protocol": {
+  "seed": 0,
+  "n_groups": 305,
+  "n_revealed": 2260,
+  "n_target": 2402,
+  "loo_group_mean_artifact_spearman(documented, NOT a result)": -1.0
+ },
+ "sar_revealed_mean_reference": {
+  "name": "revealed_mean",
+  "n_groups_total": 305,
+  "n_groups_spearman": 281,
+  "n_pairs_scored": 0,
+  "pair_concordance": null,
+  "mean_target_spearman": 0.0,
+  "ci95": [
+   0.0,
+   0.0
+  ]
+ },
+ "sar_chiral_fp_gbm": {
+  "name": "chiral_fp_gbm",
+  "n_groups_total": 305,
+  "n_groups_spearman": 281,
+  "n_pairs_scored": 18889,
+  "pair_concordance": 0.6691,
+  "mean_target_spearman": 0.3514,
+  "ci95": [
+   0.2954,
+   0.405
+  ]
+ },
+ "sar_blind_flat_fp_gbm": {
+  "name": "stereo_blind_fp_gbm",
+  "n_groups_total": 305,
+  "n_groups_spearman": 281,
+  "n_pairs_scored": 0,
+  "pair_concordance": null,
+  "mean_target_spearman": 0.0,
+  "ci95": [
+   0.0,
+   0.0
+  ]
+ },
+ "sar_atom_lm_zero_fit": {
+  "name": "atom_lm_zero_fit",
+  "n_groups_total": 305,
+  "n_groups_spearman": 281,
+  "n_pairs_scored": 18962,
+  "pair_concordance": 0.5152,
+  "mean_target_spearman": 0.113,
+  "ci95": [
+   0.0557,
+   0.1707
+  ]
+ }
+}

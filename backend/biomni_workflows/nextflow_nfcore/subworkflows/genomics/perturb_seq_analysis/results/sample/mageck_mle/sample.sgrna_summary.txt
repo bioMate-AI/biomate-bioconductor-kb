@@ -1,1 +1,0 @@
-sgRNA	Gene	LFC

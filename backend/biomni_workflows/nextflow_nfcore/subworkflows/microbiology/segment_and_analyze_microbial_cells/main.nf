@@ -224,7 +224,7 @@ with open("segment_and_analyze_microbial_cells_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("segment_and_analyze_microbial_cells_output.txt", "w") as f:
-    f.write("Biomni: Segment And Analyze Microbial Cells" + NL)
+    f.write("BioMate: Segment And Analyze Microbial Cells" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,4 @@
+method	wall_clock_s	peptides_at_1pct	measured_fmr	calibrated
+comet		73	0.0000	True
+sage		137	0.0054	True
+sage_mokapot		191	0.0024	True

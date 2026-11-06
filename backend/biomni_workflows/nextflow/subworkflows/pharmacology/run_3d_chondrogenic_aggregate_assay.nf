@@ -54,7 +54,7 @@ with open("run_3d_chondrogenic_aggregate_assay_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("run_3d_chondrogenic_aggregate_assay_output.txt", "w") as f:
-    f.write("Biomni: Run 3D Chondrogenic Aggregate Assay Results" + NL)
+    f.write("BioMate: Run 3D Chondrogenic Aggregate Assay Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

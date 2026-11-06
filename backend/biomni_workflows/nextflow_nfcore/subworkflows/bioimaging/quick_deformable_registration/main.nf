@@ -339,7 +339,7 @@ with open("quick_deformable_registration_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("quick_deformable_registration_output.txt", "w") as f:
-    f.write("Biomni: Quick Deformable Registration" + NL)
+    f.write("BioMate: Quick Deformable Registration" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

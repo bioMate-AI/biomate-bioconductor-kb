@@ -1,0 +1,34 @@
+{
+  "checked_against": "training corpus in s3://knowledge-datasets-1759951976 (235 GSE from keys+manifests, 1179 ImmPort SDY in metadata inventory, corpus NCTs) + local training source configs",
+  "geo": {
+    "GSE15316": "CLEAN — not in training corpus",
+    "GSE113156": "CLEAN — not in training corpus",
+    "GSE35455": "CLEAN — not in training corpus (also demoted on QC grounds)"
+  },
+  "trials": {
+    "usable_trials": 339,
+    "overlap_with_corpus_ncts": "none"
+  },
+  "immport_SDY1490_iWITH": {
+    "already_in_s3": true,
+    "location": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immport/studies/SDY1490/ (+ global immport/tables_parquet/)",
+    "credentials_needed": false,
+    "note": "The priority withdrawal cohort was ALREADY collected — no ImmPort login required. Full iWITH clinical tables pulled to raw/immport/SDY1490/.",
+    "wired_into_training": "NO — only false-positive 'SDY' substrings (peptide seqs like AELSDYRRL) appear in training configs; ImmPort is not in the immune-LLM training source pipeline",
+    "leakage_risk": "LOW, but quarantine: ImmPort is staged in the data lake and knowledge integration is incomplete (RESUME_STATUS: 6/61 knowledge artifacts parsed). Confirm exclusion from knowledge sources before using SDY1490 as blind eval.",
+    "patient_level_labels_available": {
+      "n_subjects": 161,
+      "dispmstr": "disposition: COMPYN, TERMRSN, DISPDY, TERMDY, LCONTDY (censoring)",
+      "rjynmstr": "rejection events: HISTGRD, REJDY (time-to-rejection = withdrawal-failure endpoint)",
+      "saevmstr": "serious adverse events",
+      "trrcmstr": "transplant record incl. TPDY (day-zero anchor)",
+      "vistmstr/vis3mstr/uvismstr": "visit timing for follow-up/censoring"
+    },
+    "objective_served": "therapy duration / sustained response (immunosuppression withdrawal without rejection) — genuine patient-level time-to-event"
+  },
+  "bindingdb": {
+    "location": "s3://knowledge-datasets-1759951976/biomni_data_lake/BindingDB_All_202409.tsv.gz (493,860,614 bytes)",
+    "accessible": true,
+    "note": "reachable now (sandbox blocked earlier); in biomni reference lake, not confirmed in immune-LLM training — check before using as druggability eval to avoid leakage"
+  }
+}

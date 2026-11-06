@@ -53,7 +53,10 @@ describe("LTM session bridge — schema + helper + wiring", () => {
   });
 
   it("chat-stream calls ensureChatLtmSession after ensureLtmUser + resolveProjectForChat", () => {
-    expect(/ensureLtmUser[\s\S]{0,300}resolveProjectForChat[\s\S]{0,300}ensureChatLtmSession/.test(ROUTES)).toBe(true);
+    // Widened windows: the three calls remain in order (ensureLtmUser →
+    // resolveProjectForChat → ensureChatLtmSession) but hardening code was added
+    // between them; the test asserts ORDER, not adjacency.
+    expect(/ensureLtmUser[\s\S]{0,1500}resolveProjectForChat[\s\S]{0,1500}ensureChatLtmSession/.test(ROUTES)).toBe(true);
   });
 
   it("chat-stream passes the LTM UUID (not the text sessionId) as memorySessionId", () => {

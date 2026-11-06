@@ -1,0 +1,124 @@
+{
+  "n_per_set": 25,
+  "committee": [
+    "anthropic/claude-opus-5.5",
+    "openai/gpt-6.1-sol",
+    "deepseek/deepseek-v4-pro",
+    "google/gemini-3.1-pro-preview"
+  ],
+  "sets": {
+    "routing": {
+      "anthropic/claude-opus-5.5": {
+        "n": 25,
+        "query_realistic": 0.88,
+        "gold_plausible": 1.0,
+        "fail_rate": 0.04,
+        "fail_issues": [
+          "nonsensical query; name echo with odd casing, no task described"
+        ]
+      },
+      "openai/gpt-6.1-sol": {
+        "n": 25,
+        "query_realistic": 0.84,
+        "gold_plausible": 1.0,
+        "fail_rate": 0.0,
+        "fail_issues": []
+      },
+      "deepseek/deepseek-v4-pro": {
+        "n": 25,
+        "query_realistic": 0.96,
+        "gold_plausible": 0.96,
+        "fail_rate": 0.04,
+        "fail_issues": [
+          "Query is a package name statement, not a workflow request; gold is a workflow file, mismatch."
+        ]
+      },
+      "google/gemini-3.1-pro-preview": {
+        "n": 25,
+        "query_realistic": 0.68,
+        "gold_plausible": 1.0,
+        "fail_rate": 0.12,
+        "fail_issues": [
+          "missing verb / awkward grammar",
+          "scraped package description",
+          "templated repo description"
+        ]
+      }
+    },
+    "dpo_routing_confusable": {
+      "anthropic/claude-opus-5.5": {
+        "n": 25,
+        "chosen_correct": 0.96,
+        "negative_valid": 0.68,
+        "fail_rate": 0.04,
+        "fail_issues": [
+          "query names pharmacology path but chosen is drug_discovery; labels inverted"
+        ]
+      },
+      "openai/gpt-6.1-sol": {
+        "n": 25,
+        "chosen_correct": 1.0,
+        "negative_valid": 0.28,
+        "fail_rate": 0.0,
+        "fail_issues": []
+      },
+      "deepseek/deepseek-v4-pro": {
+        "error": "no JSON parsed"
+      },
+      "google/gemini-3.1-pro-preview": {
+        "error": "no JSON parsed"
+      }
+    },
+    "dpo_exec_grounded": {
+      "anthropic/claude-opus-5.5": {
+        "error": "no JSON parsed"
+      },
+      "openai/gpt-6.1-sol": {
+        "n": 25,
+        "chosen_correct": 0.68,
+        "negative_valid": 0.12,
+        "fail_rate": 0.32,
+        "fail_issues": [
+          "hpar provides reference atlas data rather than count-data analysis",
+          "Prediction is not normalization; rejected Hi-C normalization workflow fits",
+          "fedup produces enrichment results, not differential-expression tables",
+          "MsBackendRawFileReader reads raw spectra rather than count data",
+          "affycomp benchmarks microarray expression estimates rather than counts",
+          "flowSpecs processes cytometry intensities rather than count matrices"
+        ]
+      },
+      "deepseek/deepseek-v4-pro": {
+        "error": "no JSON parsed"
+      },
+      "google/gemini-3.1-pro-preview": {
+        "error": "no JSON parsed"
+      }
+    },
+    "param": {
+      "anthropic/claude-opus-5.5": {
+        "n": 25,
+        "gold_sensible": 0.96,
+        "restraint_valid": 1.0,
+        "fail_rate": 0.04,
+        "fail_issues": [
+          "truncated placeholder path as param name"
+        ]
+      },
+      "openai/gpt-6.1-sol": {
+        "n": 25,
+        "gold_sensible": 0.96,
+        "restraint_valid": 0.88,
+        "fail_rate": 0.04,
+        "fail_issues": [
+          "Required name is a truncated directory-path placeholder"
+        ]
+      },
+      "deepseek/deepseek-v4-pro": {
+        "error": "no JSON parsed"
+      },
+      "google/gemini-3.1-pro-preview": {
+        "error": "no JSON parsed"
+      }
+    }
+  }
+}

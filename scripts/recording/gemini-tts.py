@@ -15,7 +15,7 @@ The script writes:
 
 import re, wave, struct, pathlib, argparse, os, json, time
 
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyDoFJyQuwTYsfhoLO4DBL1ME9Ojl7VpFHI')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
 TTS_MODEL      = 'gemini-2.5-flash-preview-tts'
 SAMPLE_RATE    = 24000
 SILENCE_MS     = int(os.environ.get('SILENCE_MS', '300'))   # pause between steps in the concatenated track
@@ -48,6 +48,8 @@ def parse_narration(path: str) -> list[dict]:
 
 def tts(text: str) -> bytes:
     """Call Gemini TTS and return raw PCM bytes (24 kHz, 16-bit mono)."""
+    if not GEMINI_API_KEY:
+        raise RuntimeError('GEMINI_API_KEY is required; no embedded credential fallback')
     from google import genai
     from google.genai import types
 
@@ -103,8 +105,7 @@ def main():
 
     steps = parse_narration(args.narration)
     if not steps:
-        print('ERROR: no steps parsed from', args.narration)
-        return
+        raise SystemExit('No narration steps parsed; refusing to produce audio')
 
     print(f'Generating TTS for {len(steps)} steps  (voice: {VOICE_NAME})')
     print(f'Output dir: {out_dir}\n')
@@ -118,8 +119,7 @@ def main():
         try:
             pcm = tts(step['text'])
         except Exception as e:
-            print(f'       ERROR: {e} — skipping')
-            pcm = silence_pcm(2000)
+            raise RuntimeError(f'TTS failed at step {step["num"]}; render aborted') from e
 
         wav_path = out_dir / f'step-{step["num"]:03d}.wav'
         pcm_to_wav(pcm, str(wav_path))

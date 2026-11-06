@@ -1,0 +1,37 @@
+{
+  "source": "ChEMBL public API",
+  "n_targets_queried": 20,
+  "n_resolved": 20,
+  "family_split_by_target_type": {
+    "SINGLE PROTEIN": [
+      "IL6R",
+      "TNF",
+      "MS4A1",
+      "TNFSF13B",
+      "JAK1",
+      "JAK2",
+      "JAK3",
+      "BTK",
+      "IL17A",
+      "IL4R",
+      "IL5",
+      "TSLP",
+      "IL5RA",
+      "CTLA4",
+      "IFNAR1",
+      "S1PR1",
+      "IL1B",
+      "IL13",
+      "IL12B"
+    ],
+    "PROTEIN COMPLEX": [
+      "IL23A"
+    ]
+  },
+  "caveats": [
+    "ligandability proxy = bioactivity count; not modality-specific engagement per se",
+    "untested compounds/targets are NOT negatives",
+    "one component of druggability, not global tractability"
+  ],
+  "training_eligible": false
+}

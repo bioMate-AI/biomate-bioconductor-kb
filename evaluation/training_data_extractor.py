@@ -52,7 +52,7 @@ def _connect_sqlite(sqlite_path: str):
 def get_db_connection():
     database_url = os.environ.get("DATABASE_URL", "")
     if database_url:
-        print(f"Connecting to PostgreSQL ({database_url[:40]}...)")
+        print("Connecting to PostgreSQL using DATABASE_URL (credential redacted)")
         return _connect_postgres(database_url)
     candidate_paths = [
         os.path.expanduser("~/biomate/backend/universe.sqlite"),
@@ -115,7 +115,7 @@ def fetch_execution_runs_by_sessions(conn, dialect: str, session_ids: list) -> d
         return {}
     placeholders = ",".join(["%s"] * len(session_ids)) if dialect == "postgres" else ",".join(["?"] * len(session_ids))
     sql = f"""
-        SELECT chat_session_id, workflow_name, status, parameters, metrics, created_at
+        SELECT id, chat_session_id, workflow_name, status, parameters, metrics, created_at
         FROM execution_runs
         WHERE chat_session_id IN ({placeholders})
         ORDER BY created_at DESC
@@ -174,6 +174,11 @@ def _extract_quality_score(metrics_str) -> Optional[float]:
 
 
 def build_full_example(episode: dict, run: Optional[dict], ux_score: Optional[float], min_quality: float) -> Optional[dict]:
+    # Session membership does not prove that a run belongs to this episode.
+    # Until capture supplies an explicit execution_run_id, export candidates only.
+    exact_run_link = bool(run and episode.get('execution_run_id') and str(episode['execution_run_id']) == str(run.get('id')))
+    if not exact_run_link:
+        run = None
     quality = _extract_quality_score(run.get("metrics") if run else None)
     if quality is not None and quality < min_quality:
         return None
@@ -181,8 +186,8 @@ def build_full_example(episode: dict, run: Optional[dict], ux_score: Optional[fl
     if not user_content:
         return None
     assistant_content = (episode.get("assistant_response") or "").strip()
-    if not assistant_content and run:
-        assistant_content = f"Running {run.get('workflow_name', 'workflow')} with the specified parameters."
+    if not assistant_content:
+        return None
     params_summary = None
     if run and run.get("parameters"):
         try:
@@ -196,9 +201,12 @@ def build_full_example(episode: dict, run: Optional[dict], ux_score: Optional[fl
             {"role": "assistant", "content": assistant_content},
         ],
         "metadata": {
+            "training_eligible": False,
+            "review_status": "candidate-needs-full-context-and-review",
+            "exact_run_link": exact_run_link,
             "workflow": episode.get("workflow_name") or (run.get("workflow_name") if run else None),
             "domain": episode.get("domain"),
-            "outcome": run.get("status") if run else ("completed" if episode.get("outcome_success") else "failed"),
+            "outcome": run.get("status") if run else "unverified",
             "outcome_success": bool(episode.get("outcome_success")),
             "quality_score": quality,
             "what_worked": episode.get("what_worked"),
@@ -237,7 +245,7 @@ def extract(dry_run: bool, output_path: Optional[str], min_quality: float, outco
     session_ids = [str(e["session_id"]) for e in episodes if e.get("session_id")]
     runs_by_session = fetch_execution_runs_by_sessions(conn, dialect, session_ids)
     ux_by_session = fetch_ux_feedback_by_sessions(conn, dialect, session_ids)
-    print(f"Episodes with linked exec run:   {sum(1 for e in episodes if str(e.get('session_id','')) in runs_by_session)}")
+    print(f"Sessions with candidate exec run:   {sum(1 for e in episodes if str(e.get('session_id','')) in runs_by_session)}")
     print(f"Episodes with UX feedback:       {sum(1 for e in episodes if str(e.get('session_id','')) in ux_by_session)}")
 
     full_examples, routing_pairs = [], []

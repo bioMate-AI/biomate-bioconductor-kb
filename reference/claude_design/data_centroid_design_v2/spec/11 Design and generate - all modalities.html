@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 11 — Design &amp; generate: all modalities</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Design &amp; generate: all modalities</h1>
+<p class="docmeta"><span>BioMate · Spec 11 · addendum to Spec 05</span><span>Status: built</span><span>Platform: mixed</span></p>
+
+<p class="lede">The module was small-molecule-shaped: its name, its examples and its parameters all assumed chemistry, which left a protein designer looking at an empty module and finding their work under Models instead. This addendum makes one design module carry every modality — small molecule, peptide, protein / biologic — and makes <strong>modality a property of the request</strong> rather than of the module, the track or the run card.</p>
+
+<h2><span class="num">11.1</span>What changed</h2>
+<table class="st prose">
+<thead><tr><th>Before</th><th>Now</th></tr></thead>
+<tbody>
+<tr><td>"Propose molecules, then optimise and rank them."</td><td>"Propose candidates — molecules, peptides, proteins — then optimise and rank them."</td></tr>
+<tr><td>Track "Predict activity".</td><td>Track "Predict &amp; filter" — structure and activity both filter a candidate set.</td></tr>
+<tr><td>One example list per track.</td><td>Three per track, switched by a <strong>Modality</strong> control on the card; 34 worked example phrasings in all.</td></tr>
+<tr><td>Router knew chemistry intents only.</td><td>Router has peptide and protein/biologic rules, placed before the workflow rules.</td></tr>
+<tr><td>Lane sentence read "This reads like molecular design…".</td><td>Lane sentence is modality-neutral, and peptide / biologic requests get their own wording keyed off the matched domain.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">11.2</span>The modality control</h2>
+<p>On the opened card, under the track sentence: a row labelled <em>Modality</em> with three chips — Small molecule · Peptide · Protein / biologic. It sets which example set is listed, persists across track changes, and travels with the example when clicked.</p>
+<div class="rule"><span class="lbl">Rule</span><p>Modality is not a filter over an inventory of pipelines. It states what kind of object the user is designing, and it decides which generator and which scorers are callable — so it must reach the run card, not stop at the example list.</p></div>
+
+<h2><span class="num">11.3</span>Examples by modality</h2>
+<table class="st prose">
+<thead><tr><th>Track</th><th>Small molecule</th><th>Peptide</th><th>Protein / biologic</th></tr></thead>
+<tbody>
+<tr><td>Generate</td><td>500 candidates for a target; scaffold-hop; grow a fragment.</td><td>Cyclic peptide binders to an epitope; stapled analogues of a helix; macrocyclise a linear peptide.</td><td>Nanobody candidates; graft CDRs onto a human framework; enzyme active-site redesign.</td></tr>
+<tr><td>Predict &amp; filter</td><td>Predict affinity; which would bind and why; dock the top 50.</td><td>Which peptides stay bound; predicted helicity; serum-cleavage risk.</td><td>Predict the complex, filter on interface quality; fold retention at 40 °C; exposed hydrophobic patches.</td></tr>
+<tr><td>Optimise properties</td><td>Potency without solubility loss; druglikeness with hERG ≥ 30 µM; fix a metabolic liability.</td><td>Serum stability without affinity loss; charge vs permeability; potency and solubility together.</td><td>Antibody developability (aggregation, viscosity); humanise a nanobody; thermostability without activity loss.</td></tr>
+<tr><td>Rank candidates</td><td>Top 20 for developability; which pass every safety gate; synthesise-now vs park.</td><td>Synthesisability and stability; which analogues pass every liability filter.</td><td>Expression and developability risk; which constructs pass every manufacturability gate.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">11.4</span>How modality reaches the card</h2>
+<ul class="deck">
+<li><b>click</b><span>Clicking an example passes the card's current modality explicitly. This is authoritative — the user chose it two clicks ago.</span></li>
+<li><b>typed text</b><span><code>modalityOf(text)</code> infers it: peptide / macrocycle / staple / helicity → peptide; antibody / nanobody / CDR / framework / enzyme / thermostability / construct / expression titre → protein; otherwise small molecule.</span></li>
+<li><b>held</b><span>The clicked modality is kept in its own state and outranks inference. It is cleared when the user edits the composer text — at that point the sentence is theirs.</span></li>
+<li><b>applied</b><span><code>wfFor(dom, modality)</code> substitutes the run card's <em>Modality</em> parameter and the "… to stay on" slot: scaffold, sequence motif or framework.</span></li>
+</ul>
+<div class="rule"><span class="lbl">Root cause fixed</span><p>Modality had been hard-coded per domain key, so a cross-cutting domain — Candidate ranking, Activity prediction — could only ever claim one modality. Ranking a set of nanobodies and ranking a set of small molecules are the same job on different objects; the card now takes the modality from the request.</p></div>
+
+<h2><span class="num">11.5</span>Router additions</h2>
+<table class="el prose">
+<thead><tr><th>Rule</th><th>Domain</th></tr></thead>
+<tbody>
+<tr><td>peptide · macrocycle · stapled · helicity · serum stability · proteolytic · cell permeability · reduce charge</td><td>Peptide design</td></tr>
+<tr><td>antibody · nanobody · CDR · humanise · framework · enzyme variant · thermostability · aggregation · viscosity · expression system/host/titre/yield · interface quality · predicted complex · keep the fold · hydrophobic patch · manufacturability</td><td>Protein &amp; biologic design</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Rule</span><p>A rule may not claim a sentence another domain owns. Bare <code>expression</code> and <code>developability</code> swallowed the transcriptomics, ADMET and ranking seeds; both were qualified or removed. Every seed in the product — router seeds, tiles, domain shapes, module examples — is audited against its owning domain, and the audit is part of the change, not an afterthought.</p></div>
+
+<h2><span class="num">11.6</span>Where biologics is still thin</h2>
+<ul>
+<li><span class="tag open">open</span> The Models worked cases are chemistry-weighted: only "Run a model" is protein. Train, Tune and Rounds are small-molecule.</li>
+<li><span class="tag open">open</span> Design run phases are shared across modalities; expression and manufacturability probably deserve their own phase for biologics.</li>
+<li><span class="tag open">open</span> Whether nucleic-acid modalities (siRNA, mRNA, guide design) are a fourth chip or a separate module.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 11 · Design &amp; generate: all modalities</span><span>Amends: 05, 06</span><span>Next: 12 — Reports as files</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

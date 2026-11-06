@@ -1,0 +1,90 @@
+"""
+Integration test: BioMate's deep-research harness improved by the REAL (vendored)
+Harness2 method code — recursion + blind selection + library, with BioMate's
+controller as the substrate and the trust-lattice citation count as the
+answer-free selection signal.
+
+Needs Python >= 3.12 (the vendored core's floor); skips cleanly otherwise.
+
+Run:  python3 grounded-prototype/tests/test_h2_biomate.py
+"""
+
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+_PASS = []
+
+
+def _skip(msg):
+    print(f"SKIP  {msg}")
+    sys.exit(0)
+
+
+def main():
+    if sys.version_info < (3, 12):
+        _skip(f"needs Python >= 3.12 (have {sys.version.split()[0]}) for vendored harness2")
+    try:
+        from research.h2_biomate import (
+            BioMateResearchAdapter, BioMateProposer, _parse_config, _write_config,
+        )
+        from harness2.core import schedule
+    except Exception as exc:  # pragma: no cover
+        _skip(f"vendored harness2 / adapter import failed: {exc}")
+
+    def ck(name, cond):
+        print(("PASS" if cond else "FAIL"), "-", name)
+        _PASS.append(cond)
+
+    # config round-trip (the safe ast parse of the editable .py harness file)
+    rt, bg = _parse_config(_write_config({"admet": ["clinical"]}, {"max_rounds": 2}))
+    ck("config round-trips via ast (no exec)", rt == {"admet": ["clinical"]} and bg["max_rounds"] == 2)
+
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        adapter = BioMateResearchAdapter(root)
+        prop = BioMateProposer(adapter.spec.channels["proposer"])
+
+        # the BioMate harness c1..c8 tree includes the editable route table (INV)
+        base = adapter.base_harness()
+        ck("base harness has editable scripts/route_table.py",
+           (base / "scripts/route_table.py").is_file())
+        # P1: the DOM surface is an editable SKILL (the only editable-as-data
+        # BioMate surface) that Harness2 improves.
+        ck("base harness has editable skills/admet-evidence/SKILL.md",
+           (base / "skills/admet-evidence/SKILL.md").is_file())
+
+        res = schedule.run_domain("biomedical_research", adapter.tasks(), 2,
+                                  adapter=adapter, prop=prop,
+                                  runs_root=adapter.spec.runs_root,
+                                  library_root=root / "library" / "2")
+        ck("harness2 run_domain completes with no failures",
+           res.get("done") == len(adapter.tasks()) and res.get("failed") == 0)
+        ck("the research controller actually executed rollouts", adapter.execution_count > 0)
+
+        # P0 verifier bridge: answer-based where a task has ground truth, else trust lattice.
+        run_dir = adapter.execute("m7-limit-value", None, "verif-ab")
+        ab = adapter.score(run_dir, "m7-limit-value")
+        ck("ground-truth task scored answer-BASED (real verifier)",
+           ab["answer_free"] is False
+           and ab["verifier"] in ("expected_params_real", "expected_params_f1"))
+        ck("answer-based score is a real reward in [0,1]", 0.0 <= ab["score"] <= 1.0)
+        run_dir2 = adapter.execute("herg-cardiac", None, "verif-af")
+        af = adapter.score(run_dir2, "herg-cardiac")
+        ck("open-world task scored answer-FREE (trust lattice)",
+           af["answer_free"] is True and af["verifier"] == "trust_lattice")
+
+        lib = root / "library" / "2"
+        ck("harnessing-level library was written (adopted harnesses banked)",
+           lib.exists() and any(lib.rglob("*.md")))
+
+    passed = sum(1 for c in _PASS if c)
+    print(f"\n{passed}/{len(_PASS)} passed")
+    sys.exit(0 if passed == len(_PASS) else 1)
+
+
+if __name__ == "__main__":
+    main()

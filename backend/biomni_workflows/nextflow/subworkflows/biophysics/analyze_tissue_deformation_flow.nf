@@ -52,7 +52,7 @@ with open("analyze_tissue_deformation_flow_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_tissue_deformation_flow_output.txt", "w") as f:
-    f.write("Biomni: Analyze Tissue Deformation Flow Results" + NL)
+    f.write("BioMate: Analyze Tissue Deformation Flow Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

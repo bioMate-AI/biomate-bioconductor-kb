@@ -1,0 +1,11 @@
+[Unit]
+Description=BioMate synthetic FastQC execution and artifact check
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/biomate-trial
+ExecStart=/usr/bin/python3 /opt/biomate-trial/evaluate_fastqc.py --output /opt/biomate-trial/fastqc-evaluation
+TimeoutStartSec=360
+TimeoutStopSec=10
+RemainAfterExit=yes

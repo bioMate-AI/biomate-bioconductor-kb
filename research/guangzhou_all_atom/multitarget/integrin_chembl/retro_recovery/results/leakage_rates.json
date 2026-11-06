@@ -1,0 +1,108 @@
+{
+ "folds_v1": {
+  "labelled_compounds": 14492,
+  "compounds_in_gt1_fold": 0.0729367927132211,
+  "flat_structures_in_gt1_fold": 0.07651394270952055,
+  "I": {
+   "positives": {
+    "rows": 7600,
+    "exact_compound_in_other_fold": 0.1095,
+    "flat_structure_in_other_fold": 0.1134,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0372,
+    "tanimoto_ge_0p70": 0.2964
+   },
+   "inactives_or_decoys": {
+    "rows": 1832,
+    "exact_compound_in_other_fold": 0.2713,
+    "flat_structure_in_other_fold": 0.2757,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0306,
+    "tanimoto_ge_0p70": 0.3341
+   }
+  },
+  "I_CD": {
+   "positives": {
+    "rows": 5993,
+    "exact_compound_in_other_fold": 0.0,
+    "flat_structure_in_other_fold": 0.0,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0324,
+    "tanimoto_ge_0p70": 0.2818
+   },
+   "inactives_or_decoys": {
+    "rows": 1158,
+    "exact_compound_in_other_fold": 0.0,
+    "flat_structure_in_other_fold": 0.0,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0311,
+    "tanimoto_ge_0p70": 0.3264
+   }
+  },
+  "M2": {
+   "positives": {
+    "rows": 188,
+    "exact_compound_in_other_fold": 0.5638,
+    "flat_structure_in_other_fold": 0.5691,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.117,
+    "tanimoto_ge_0p70": 0.6064
+   },
+   "inactives_or_decoys": {
+    "rows": 3298,
+    "exact_compound_in_other_fold": 0.9124,
+    "flat_structure_in_other_fold": 0.9133,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0258,
+    "tanimoto_ge_0p70": 0.3041
+   }
+  }
+ },
+ "folds_v2": {
+  "labelled_compounds": 14492,
+  "compounds_in_gt1_fold": 0.03698592326800994,
+  "flat_structures_in_gt1_fold": 0.03973862168528227,
+  "I": {
+   "positives": {
+    "rows": 7600,
+    "exact_compound_in_other_fold": 0.0257,
+    "flat_structure_in_other_fold": 0.0278,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0284,
+    "tanimoto_ge_0p70": 0.2624
+   },
+   "inactives_or_decoys": {
+    "rows": 1832,
+    "exact_compound_in_other_fold": 0.1386,
+    "flat_structure_in_other_fold": 0.1414,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0284,
+    "tanimoto_ge_0p70": 0.2778
+   }
+  },
+  "I_CD": {
+   "positives": {
+    "rows": 5993,
+    "exact_compound_in_other_fold": 0.0015,
+    "flat_structure_in_other_fold": 0.0015,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0287,
+    "tanimoto_ge_0p70": 0.272
+   },
+   "inactives_or_decoys": {
+    "rows": 1158,
+    "exact_compound_in_other_fold": 0.006,
+    "flat_structure_in_other_fold": 0.006,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.025,
+    "tanimoto_ge_0p70": 0.2755
+   }
+  },
+  "M2": {
+   "positives": {
+    "rows": 188,
+    "exact_compound_in_other_fold": 0.2766,
+    "flat_structure_in_other_fold": 0.2766,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0957,
+    "tanimoto_ge_0p70": 0.4202
+   },
+   "inactives_or_decoys": {
+    "rows": 3298,
+    "exact_compound_in_other_fold": 0.7411,
+    "flat_structure_in_other_fold": 0.7438,
+    "tanimoto_ge_0p90_neighbour_in_other_fold": 0.0146,
+    "tanimoto_ge_0p70": 0.1938
+   }
+  }
+ }
+}

@@ -1,0 +1,5 @@
+{
+  "code_sha256": "53ffb31cd3c19811924f19fb801eb3a0837d90e13043107919b5ecd95f998e8e",
+  "reason": "Run optional augmentation acquisition concurrently with core-data training; reuse installed environment and preserve original deadline",
+  "deadline_utc": "2026-09-13T01:45:52Z"
+}

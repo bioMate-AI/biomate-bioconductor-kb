@@ -1,0 +1,96 @@
+[
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.DE_stats.by_donors.h5mu",
+    "LastModified": "2026-09-02 08:19:47+00:00",
+    "ETag": "\"0b4d7b5115e31f9e46293bc705dafb6d-32\"",
+    "ChecksumAlgorithm": [
+      "CRC64NVME"
+    ],
+    "ChecksumType": "FULL_OBJECT",
+    "Size": 16866278447,
+    "StorageClass": "STANDARD",
+    "type": "file",
+    "size": 16866278447,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.DE_stats.by_donors.h5mu"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.DE_stats.by_guide.h5mu",
+    "LastModified": "2026-09-02 08:34:38+00:00",
+    "ETag": "\"cd4f2fa833cab5777c753f6c9c3362ef-55\"",
+    "ChecksumAlgorithm": [
+      "CRC64NVME"
+    ],
+    "ChecksumType": "FULL_OBJECT",
+    "Size": 29424424894,
+    "StorageClass": "STANDARD",
+    "type": "file",
+    "size": 29424424894,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.DE_stats.by_guide.h5mu"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.DE_stats.h5ad",
+    "LastModified": "2026-09-02 08:34:54+00:00",
+    "ETag": "\"767edf7df51625db7154167acaa7dc94-32\"",
+    "ChecksumAlgorithm": [
+      "CRC64NVME"
+    ],
+    "ChecksumType": "FULL_OBJECT",
+    "Size": 16786240107,
+    "StorageClass": "STANDARD",
+    "type": "file",
+    "size": 16786240107,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.DE_stats.h5ad"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.pseudobulk_merged.h5ad",
+    "LastModified": "2026-09-02 08:45:42+00:00",
+    "ETag": "\"757ccc082f2a0ca99868bee4604c962c-84\"",
+    "ChecksumAlgorithm": [
+      "CRC64NVME"
+    ],
+    "ChecksumType": "FULL_OBJECT",
+    "Size": 44566657140,
+    "StorageClass": "STANDARD",
+    "type": "file",
+    "size": 44566657140,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.pseudobulk_merged.h5ad"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/data_sharing_readme.md",
+    "LastModified": "2026-09-02 02:01:30+00:00",
+    "ETag": "\"0919489793f206e7cc23418362a1acc8\"",
+    "ChecksumAlgorithm": [
+      "CRC64NVME"
+    ],
+    "ChecksumType": "FULL_OBJECT",
+    "Size": 26759,
+    "StorageClass": "STANDARD",
+    "type": "file",
+    "size": 26759,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/data_sharing_readme.md"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/logs",
+    "Size": 0,
+    "StorageClass": "DIRECTORY",
+    "type": "directory",
+    "size": 0,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/logs"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/metadata",
+    "Size": 0,
+    "StorageClass": "DIRECTORY",
+    "type": "directory",
+    "size": 0,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/metadata"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/suppl_tables",
+    "Size": 0,
+    "StorageClass": "DIRECTORY",
+    "type": "directory",
+    "size": 0,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/suppl_tables"
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "labels_and_feature_states_recomputed_from_raw_selected_counts": 192,
+  "saved_metric_comparisons": 48,
+  "outer_folds": 4,
+  "inner_donor_splits": 12,
+  "metric_implementation": "Independent rankdata/dot-product Spearman and direct squared errors",
+  "limits": "Does not reload fitted ridge objects; original driver saves predictions and hyperparameter tables"
+}

@@ -11,7 +11,7 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Accuri C6 flow cytometer FCS file from Galaxy test data
-params.fcs_file_path = '/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs'
+params.fcs_file_path = "${projectDir}/../../../../sample_data/flow_cytometry/Accuri_C6_A01_H2O.fcs"
 // Demo gating strategy for basic immunophenotyping - format: {"pop_name": [["marker", "operator", threshold], ...]}
 params.gating_strategy = '{"lymphocytes": [["FSC-A", "between", [50000, 150000]], ["SSC-A", "between", [10000, 80000]]]}'
 params.compensation_matrix = null
@@ -274,7 +274,7 @@ with open("analyze_flow_cytometry_immunophenotyping_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_flow_cytometry_immunophenotyping_output.txt", "w") as f:
-    f.write("Biomni: Analyze Flow Cytometry Immunophenotyping" + NL)
+    f.write("BioMate: Analyze Flow Cytometry Immunophenotyping" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

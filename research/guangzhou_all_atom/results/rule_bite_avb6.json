@@ -1,0 +1,28 @@
+{
+  "what": "\u03b1v\u03b26 rule-bite: same v4 model, rule OFF (free generation) vs ON (constrain-at-generation)",
+  "n_per_arm": 300,
+  "rule_OFF_free_v4": {
+    "n": 298,
+    "avb6_admissible_frac": 0.0,
+    "n_admissible": 0,
+    "fail_reasons": {
+      "rule_fail": 298
+    }
+  },
+  "rule_ON_constrained_v4": {
+    "backend": "neural (unified_cyclic_llm_v4)",
+    "n": 19,
+    "avb6_admissible_frac": 1.0,
+    "n_admissible": 19,
+    "examples": [
+      "cyclo(Y-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+      "cyclo(W-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+      "cyclo(Y-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
+      "cyclo(W-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
+      "cyclo(W-R-G-D-L-A-[2Nal]-[dP]-[NMeK])"
+    ]
+  },
+  "divergence_on_minus_off": 1.0,
+  "verdict": "RULE IS DECISIVE (rule != no-rule): free v4 ~0% \u03b1v\u03b26-admissible vs rule-constrained 100%",
+  "note": "Same v4 distribution supplies the free-position chemistry in BOTH arms; the only difference is WHERE the rule acts. This is the regime the permeability close lacked (there the model already satisfied the rule, so rule==no-rule). Rules help inversely to model strength / data coverage: decisive for a target the model has NOT learned (0/12 RGD audit), redundant for a property it has."
+}

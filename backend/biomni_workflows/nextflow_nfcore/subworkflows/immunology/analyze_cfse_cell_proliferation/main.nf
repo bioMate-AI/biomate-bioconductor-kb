@@ -347,7 +347,7 @@ with open("analyze_cfse_cell_proliferation_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_cfse_cell_proliferation_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cfse Cell Proliferation" + NL)
+    f.write("BioMate: Analyze Cfse Cell Proliferation" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

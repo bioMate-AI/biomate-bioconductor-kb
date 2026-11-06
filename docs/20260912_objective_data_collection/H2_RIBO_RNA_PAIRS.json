@@ -1,0 +1,88 @@
+{
+  "objective": "H2 translation-efficiency (TE = ribosome-protected-fragment count / mRNA count, per gene). Assemble matched RNA-seq + Ribo-seq PAIRS (same samples) to enable H2 pretraining.",
+  "generated": "2026-09-13",
+  "training_eligible": false,
+  "s3_root": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/riboseq_h2/",
+  "method": "Prefer processed footprint/RNA count tables (RiboBase/RPFdb/GEO supplementary); do not download raw FASTQ. Per-gene TE computed as log2((RPF_CPM+0.5)/(mRNA_CPM+0.5)) per sample, filtering genes with mean mRNA count >=10.",
+
+  "summary": {
+    "generic_human_paired_N_TE_ready": 1282,
+    "generic_human_paired_N_source": "RiboBase (massiveNGSpipe / Cenik lab), human Ribo-seq samples matched with corresponding RNA-seq. Genome Biol 2024 PMC11326257. TE tables HELD on S3 (Zenodo 10373032).",
+    "generic_human_TE_contexts_in_held_table": 77,
+    "generic_human_genes_in_held_TE_table": 11150,
+    "immune_specific_paired_studies_identified": 16,
+    "immune_specific_paired_TE_tables_HELD_computed": 3,
+    "immune_specific_paired_samples_HELD": 23,
+    "h2_pretraining_feasible": true,
+    "h2_pretraining_basis": "Feasible NOW on GENERIC human data (RiboBase TE tables, 1282 matched human Ribo+RNA samples across 77 cell-line/tissue contexts, ~11k genes; held on S3). Immune-SPECIFIC fine-tuning/eval feasible on a smaller held anchor set (human Jurkat T-cell activation 9 samples + mouse CD8 memory-T + mouse BMDM-LPS ready-made TE), with more immune studies identified and fetch-ready."
+  },
+
+  "held_TE_tables": {
+    "ribobase_generic_human": {
+      "s3_prefix": "acquisitions_modalities/riboseq_h2/ribobase_zenodo_10373032/",
+      "source": "Zenodo 10373032 (RiboBase intermediate TE data, Cenik lab / massiveNGSpipe)",
+      "files": [
+        {"name": "human_TE_cellline_all_plain.csv", "bytes": 15651172, "content": "per-gene TE (CLR) aggregated by 77 cell-line/tissue contexts x 11150 genes; plain CSV, immediately usable", "immune_contexts_present": ["Primary CD4+ T-cells", "primary macrophages", "THP-1", "K562", "HSB2", "Molt-3", "MM1.S", "MOLM-13", "LCL", "Mutu"]},
+        {"name": "human_flatten_te_clr.rda", "bytes": 90176331, "content": "per-GSM-sample TE CLR (genes x GEO GSM ids); ~1282 matched human samples"},
+        {"name": "human_flatten_ribo_clr.rda", "bytes": 34060129, "content": "ribosome-profiling CLR counts, genes x GSM"},
+        {"name": "human_flatten_rna_clr.rda", "bytes": 33794858, "content": "matched RNA-seq CLR counts, genes x GSM"}
+      ],
+      "skipped": [
+        {"name": "human_RNA_rho_new.rda / human_TE_rho.rda", "bytes_each": 944000000, "reason": "gene-gene rho covariation matrices (~944MB each); not per-sample TE; size-gated / not needed for H2"}
+      ],
+      "caveat": "RiboBase TE is BASELINE/steady-state per context (no immune stimulus applied); immune contexts are unstimulated cell-line resting TE. Good for the generic sequence/codon->TE transform, not for stimulus-response."
+    },
+    "immune_geo_computed": {
+      "s3_prefix": "acquisitions_modalities/riboseq_h2/immune_geo_TE/",
+      "files": [
+        {"name": "TE_GSE254157_254230_humanTcell.csv", "study": "GSE254157(RNA)+GSE254230(RPF)", "organism": "Homo sapiens", "cell": "Jurkat T cell", "immune": true, "stimulus": "T-cell activation timecourse 0/5/12h", "n_paired_samples": 9, "n_genes": 11759, "computed": "log2((RPF_CPM+0.5)/(mRNA_CPM+0.5)), RNA>=10"},
+        {"name": "TE_GSE168476_mouseCD8T.csv", "study": "GSE168476", "organism": "Mus musculus", "cell": "CD8 memory T lymphocyte", "immune": true, "stimulus": "TCR activation (T0 vs 2hr)", "n_paired_samples": 5, "n_genes": 18120, "computed": "FP/RNA CPM ratio from cds_xpressFP_xpressRNA table"},
+        {"name": "provenance/GSE99787_TE_mouseBMDM_LPS.xlsx", "study": "GSE99787", "organism": "Mus musculus", "cell": "bone-marrow-derived macrophage", "immune": true, "stimulus": "LPS 0/1/2/4/6h", "n_paired_samples": 9, "note": "author-provided ready-made TE table (not recomputed)"}
+      ],
+      "provenance_raw_counts_held": ["GSE254230_rpf_cts.csv.gz", "GSE254157_raw_mRNA_counts.tsv.gz", "GSE168476_cds_xpressFP_xpressRNA.tsv.gz"]
+    }
+  },
+
+  "immune_paired_inventory_identified": [
+    {"gse": "GSE254157+GSE254230", "organism": "human", "cell": "Jurkat T cell", "immune": true, "stimulus": "T-cell activation 0/5/12h", "ribo": true, "matched_rna": true, "n_paired": 9, "te_table": "HELD-computed s3 immune_geo_TE/TE_GSE254157_254230_humanTcell.csv", "confidence": "high"},
+    {"gse": "GSE99787", "organism": "mouse", "cell": "BMDM macrophage", "immune": true, "stimulus": "LPS 0/1/2/4/6h", "ribo": true, "matched_rna": true, "n_paired": 9, "te_table": "HELD ready-made s3 provenance/GSE99787_TE_mouseBMDM_LPS.xlsx", "confidence": "high"},
+    {"gse": "GSE168476", "organism": "mouse", "cell": "CD8 memory T", "immune": true, "stimulus": "TCR activation T0/2hr", "ribo": true, "matched_rna": true, "n_paired": 5, "te_table": "HELD-computed s3 immune_geo_TE/TE_GSE168476_mouseCD8T.csv", "confidence": "high"},
+    {"gse": "GSE281922", "organism": "mouse", "cell": "macrophage", "immune": true, "stimulus": "LPS activation (acute/intermediate/prolonged)", "ribo": true, "matched_rna": true, "n_paired": 11, "te_table": "GEO supplementary TXT (fetch-ready)", "confidence": "high"},
+    {"gse": "GSE60930", "organism": "mouse", "cell": "RAW264 macrophage", "immune": true, "stimulus": "LPS 100ng/ml 30min", "ribo": true, "matched_rna": true, "n_paired": 6, "te_table": "GEO supplementary (fetch-ready)", "confidence": "high"},
+    {"gse": "GSE240674", "organism": "human", "cell": "monocyte/macrophage", "immune": true, "stimulus": "endotoxin tolerance (LPS/ET), G9a", "ribo": true, "matched_rna": true, "n_paired": 18, "te_table": "GEO supp RNA TPM present; RPF processed table needs GSM-level fetch", "confidence": "medium"},
+    {"gse": "GSE108331+GSE108333", "organism": "mouse", "cell": "dendritic cell", "immune": true, "stimulus": "DC activation, m6A/Mettl3 KO", "ribo": true, "matched_rna": true, "n_paired": 4, "te_table": "GEO supplementary (fetch-ready; title = TE analysis)", "confidence": "high"},
+    {"gse": "GSE184909", "organism": "mouse", "cell": "T cell", "immune": true, "stimulus": "early T-cell activation (tRNA-m1A / MYC)", "ribo": true, "matched_rna": true, "n_paired": 12, "te_table": "GEO supp CSV/XLSX (fetch-ready)", "confidence": "high"},
+    {"gse": "GSE83351", "organism": "mouse", "cell": "T cell", "immune": true, "stimulus": "T-cell activation time course (RNAPII)", "ribo": true, "matched_rna": true, "n_paired": 7, "te_table": "GEO supp TXT (subset paired)", "confidence": "high"},
+    {"gse": "GSE94698", "organism": "mouse", "cell": "Th1 T cell", "immune": true, "stimulus": "Th1 stimulation", "ribo": true, "matched_rna": true, "n_paired": 5, "te_table": "GEO supp (companion to GSE83351)", "confidence": "medium"},
+    {"gse": "GSE160328", "organism": "mouse", "cell": "CD4 T cell", "immune": true, "stimulus": "T-cell activation (RNMT translatome+transcriptome)", "ribo": true, "matched_rna": true, "n_paired": 16, "te_table": "GEO SuperSeries subseries (fetch-ready)", "confidence": "high"},
+    {"gse": "GSE96076", "organism": "mouse", "cell": "T cell", "immune": true, "stimulus": "T-cell activation / anti-viral (ZFP36)", "ribo": true, "matched_rna": true, "n_paired": 12, "te_table": "GEO SuperSeries (verify same-sample)", "confidence": "medium"},
+    {"gse": "GSE120762", "organism": "mouse", "cell": "macrophage", "immune": true, "stimulus": "mucosal immunity (non-canonical ORFs)", "ribo": true, "matched_rna": true, "n_paired": 8, "te_table": "GEO SuperSeries (fetch-ready)", "confidence": "medium"},
+    {"gse": "GSE286704", "organism": "mouse", "cell": "melanoma+immune (RIG-I)", "immune": true, "stimulus": "RIG-I / anti-tumour immunity (t6A)", "ribo": true, "matched_rna": true, "n_paired": 6, "te_table": "GEO supp (fetch-ready)", "confidence": "medium"},
+    {"gse": "GSE148245", "organism": "human", "cell": "epithelial (cap-snatching, IAV/Lassa)", "immune": false, "stimulus": "viral infection (host translation)", "ribo": true, "matched_rna": true, "n_paired": 2, "te_table": "GEO supp; small n, infection-adjacent", "confidence": "medium"},
+    {"gse": "GSE216912", "organism": "human", "cell": "CD8 T cell", "immune": true, "stimulus": "CD8 fate (mitoRibo-seq)", "ribo": "mito-only", "matched_rna": "verify", "n_paired": 6, "te_table": "mitoRibo-seq; different TE interpretation", "confidence": "low"}
+  ],
+
+  "generic_human_pretraining_pool_available_not_held": {
+    "RiboBase_human_matched": {"n_samples": 1282, "status": "TE tables HELD on S3; ribo files themselves via CenikLab request", "note": "per-sample TE CLR held in human_flatten_te_clr.rda"},
+    "RPFdb_v3.0": {"n_ribo": 5018, "n_matched_rna": 2343, "n_studies": 496, "n_species": 34, "url": "rpfdb.org / sysbio.gzzoc.com/rpfdb", "status": "IDENTIFIED, not held - host unreachable from this sandbox (timeout); has Download section with tracks + TE", "confidence": "corroborates scale, independent reprocessing"},
+    "RiboSeq_Data_Portal_RDP": {"n_samples": 14840, "n_studies": 969, "url": "rdp.ucc.ie", "status": "IDENTIFIED, not held - host unreachable from this sandbox (timeout); REST API + CLI bulk download"},
+    "TEDD": {"n_human_samples": 1518, "n_projects": 143, "breakdown": "726 RNA-seq, 738 Ribo-seq, 54 RNC-seq", "url": "ngdc.cncb.ac.cn/tedd", "status": "IDENTIFIED; downloadable per-transcript/gene TE/TR/EVI; no explicit immune conditions flagged"}
+  },
+
+  "disk_cost_log": {
+    "df_start": "5.8Gi free", "df_end": "4.9Gi free", "gate": ">2GB required, always satisfied",
+    "downloaded_total_MB": "~180 (RiboBase 4 files ~174MB + immune count tables ~3MB)",
+    "raw_intermediates_deleted": true,
+    "files_size_gated_skipped": ["human_RNA_rho_new.rda 944MB", "human_TE_rho.rda 944MB", "mouse_*_rho.rda ~993MB each"]
+  },
+
+  "caveats": [
+    "training_eligible=false: these are inventory + TE tables, not yet ingested/QC'd into the training cache.",
+    "GENERIC-vs-IMMUNE transfer risk: the large held pool (RiboBase, 1282 human samples) is dominated by non-immune cell lines (HeLa/HEK293/K562/HepG2 etc.) at BASELINE. It teaches the sequence/codon->TE transform but not immune-stimulus response. Immune-specific held anchors total only ~23 paired samples across 3 studies.",
+    "BATCH/pipeline heterogeneity: RiboBase is uniformly reprocessed (good, low batch); the individual immune GEO studies were computed with different aligners/normalizations by their authors -> cross-study TE is not directly comparable without harmonized reprocessing. Held immune TE (GSE254157/254230, GSE168476) was recomputed by us with a single CPM-ratio method for internal consistency; GSE99787 is author-provided (different method).",
+    "SPECIES mix: most immune-stimulus paired studies are MOUSE (BMDM-LPS, CD8-T, CD4-T, DC). Human immune-stimulus paired ribo-seq is scarce (Jurkat T-cell activation GSE254157/254230 is the main held human immune anchor; GSE240674 human monocyte LPS-tolerance is fetch-ready).",
+    "TE definition: computed as normalized-RPF/normalized-mRNA per gene (log2 CPM ratio); RiboBase uses CLR normalization. Different studies use RPKM/TPM ratios. Absolute TE values are not cross-method comparable; within-study contrasts (stimulated vs resting) are the reliable signal.",
+    "No true NK-cell paired ribo+RNA study found. B-cell paired data essentially absent (GSE133934 is ribo-only, n=2).",
+    "RPFdb/RDP hosts (rpfdb.org, rdp.ucc.ie) timed out from this sandbox; their large matched pools (2343 / ~thousands) are IDENTIFIED and fetch-ready from a networked host but NOT held."
+  ]
+}

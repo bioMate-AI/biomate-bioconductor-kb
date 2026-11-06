@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from functools import lru_cache
-import yaml
 
 log = logging.getLogger(__name__)
 
@@ -133,38 +132,38 @@ class SkillLoader:
             skills_path: Path to claude-scientific-skills repository.
                         Defaults to DEFAULT_SKILLS_PATH.
         """
-        self.skills_path = Path(skills_path or self.DEFAULT_SKILLS_PATH)
+        self.skills_path = Path(skills_path or os.environ.get("BIOMATE_RESEARCH_SKILLS_DIR") or self.DEFAULT_SKILLS_PATH)
         self._skill_cache: Dict[str, LoadedSkill] = {}
 
         if not self.skills_path.exists():
             log.warning(f"Skills path does not exist: {self.skills_path}")
 
     def _parse_frontmatter(self, content: str) -> tuple[Dict[str, Any], str]:
-        """Parse YAML frontmatter from skill content."""
-        if not content.startswith('---'):
-            return {}, content
+        """Use the same strict parser as uploaded expert skills.
 
-        try:
-            # Find end of frontmatter
-            end_idx = content.find('---', 3)
-            if end_idx == -1:
-                return {}, content
+        Import lazily to keep research-loader imports dependency-light and avoid
+        importing the Galaxy AI package during loader construction.
+        """
+        from galaxy.ai.skill_manager import _parse_frontmatter
 
-            frontmatter_str = content[3:end_idx].strip()
-            body = content[end_idx + 3:].strip()
-
-            frontmatter = yaml.safe_load(frontmatter_str) or {}
-            return frontmatter, body
-        except yaml.YAMLError as e:
-            log.warning(f"Failed to parse frontmatter: {e}")
-            return {}, content
+        return _parse_frontmatter(content)
 
     def _load_skill_file(self, skill_path: str) -> Optional[LoadedSkill]:
         """Load a single skill file."""
         if skill_path in self._skill_cache:
             return self._skill_cache[skill_path]
 
-        full_path = self.skills_path / skill_path / "SKILL.md"
+        relative = Path(skill_path)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("Skill path must stay within the configured package root")
+        # Keep legacy category/name mappings while accepting current upstream
+        # skills/name/SKILL.md and a directly configured skills/ root.
+        candidates = [self.skills_path / relative / "SKILL.md",
+                      self.skills_path / "skills" / relative.name / "SKILL.md",
+                      self.skills_path / relative.name / "SKILL.md"]
+        full_path = next((p for p in candidates if p.is_file()), candidates[0])
+        if self.skills_path.resolve() not in full_path.resolve().parents:
+            raise ValueError("Skill path resolves outside the configured package root")
 
         if not full_path.exists():
             log.warning(f"Skill file not found: {full_path}")
@@ -176,10 +175,12 @@ class SkillLoader:
 
             # Load references if they exist
             references = []
-            refs_path = self.skills_path / skill_path / "references"
+            refs_path = full_path.parent / "references"
             if refs_path.exists():
                 for ref_file in refs_path.glob("*.md"):
                     try:
+                        if full_path.parent.resolve() not in ref_file.resolve().parents:
+                            raise ValueError("Reference resolves outside the skill package")
                         ref_content = ref_file.read_text(encoding='utf-8')
                         references.append(f"## Reference: {ref_file.stem}\n{ref_content}")
                     except Exception as e:

@@ -248,7 +248,7 @@ with open("analyze_bone_microct_morphometry_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_bone_microct_morphometry_output.txt", "w") as f:
-    f.write("Biomni: Analyze Bone Microct Morphometry" + NL)
+    f.write("BioMate: Analyze Bone Microct Morphometry" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

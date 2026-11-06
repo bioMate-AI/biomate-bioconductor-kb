@@ -1,0 +1,302 @@
+smiles,id,label,source
+COc1ccccc1OCc1nc(-c2ccc3ncn(C)c3c2)no1,ZDEC0129,decoy,ZINC250k; matched_to=BDBM50204741
+Cc1cc(NC(=O)[C@@H](C)Oc2ccccc2)n(-c2nc([O-])c3cnn(-c4ccccc4)c3n2)n1,ZDEC0145,decoy,ZINC250k; matched_to=BDBM717423
+Cc1cccc2c(-n3nc(-c4ccccc4)cc3-c3ccccc3)cc(=O)[nH]c12,BDBM50645275,active,BindingDB P00533 IC50 median 84 nM (n=1) pmid=39026636
+CCN1CCN(CC(=O)Nc2cc(C)on2)CC1,BDBM32922,active,BindingDB P00533 IC50 median 81 nM (n=1) pmid=33065442
+COc1ccccc1NC(=O)N1CCc2c([nH]c3ccccc23)[C@@H]1c1cccnc1,ZDEC0136,decoy,ZINC250k; matched_to=BDBM50358048
+COc1ccc(Cn2c3nc4ccccc4nc3c3c(=O)n(CCc4ccccc4)cnc32)cc1,ZDEC0152,decoy,ZINC250k; matched_to=BDBM759882
+COc1ccc([C@H]2C(C(=O)c3cc4ccccc4o3)=C([O-])C(=O)N2Cc2ccccc2)cc1OC,ZDEC0002,decoy,ZINC250k; matched_to=BDBM5447
+Cc1cc(=O)n2nc(SCc3cccc([N+](=O)[O-])c3)nc2[nH]1,BDBM50510535,active,BindingDB P00533 IC50 median 77 nM (n=1) pmid=31078412
+O=C(NNc1ncnc2c1cnn2Cc1ccccc1)c1ccc(Cl)cc1Cl,ZDEC0046,decoy,ZINC250k; matched_to=BDBM50665109
+CCc1cccc(NC(=O)C2CCN(S(=O)(=O)c3ccc4c(c3)NC(=O)CO4)CC2)c1,ZDEC0090,decoy,ZINC250k; matched_to=BDBM525521
+COc1cccc(-c2nnc(NC(=O)c3ccccc3NS(=O)(=O)c3ccccc3)o2)c1,ZDEC0159,decoy,ZINC250k; matched_to=BDBM50665101
+COCc1nc(C)cc(N2CCC(c3ccc(C(F)(F)F)cc3)CC2)n1,ZDEC0023,decoy,ZINC250k; matched_to=BDBM50410798
+O=C1C[C@@H](c2cccs2)CC2=C1[C@H](c1c(Cl)cccc1Cl)n1ncnc1N2,ZDEC0130,decoy,ZINC250k; matched_to=BDBM276526
+SCC1(COc2ccc(Cl)c3cccnc23)CC1,ZDEC0051,decoy,ZINC250k; matched_to=BDBM50097956
+Cc1ccc(-n2nc(C)c(C(=O)Nc3cc(-c4cccc(F)c4)[nH]n3)c2-n2cccc2)cc1,ZDEC0241,decoy,ZINC250k; matched_to=BDBM670975
+Cc1ccc(NC(=O)C[C@H]2S/C(=N\N=C3/CCCc4ccccc43)NC2=O)cc1Cl,ZDEC0202,decoy,ZINC250k; matched_to=BDBM50613215
+Cn1c([C@H]2CCCN2C(=O)CCc2ccco2)nc2ccccc21,ZDEC0093,decoy,ZINC250k; matched_to=BDBM50232320
+Cn1c(/C(C#N)=C/c2ccc(-c3ccc(S(=O)(=O)N4CCOCC4)cc3)o2)nc2ccccc21,ZDEC0019,decoy,ZINC250k; matched_to=BDBM50593207
+CCOCCO[C@@H](C)C(=O)N1CC[C@@H](C)[C@H](O)C1,ZDEC0082,decoy,ZINC250k; matched_to=BDBM32922
+Cc1onc2c1/C=C/c1n[nH]c3ccc(cc13)-c1cnn(C)c1O[C@@H](C)CN(C)C2,BDBM790027,active,BindingDB P00533 IC50 median 24 nM (n=3) pmid=
+CCOc1ccc(/C=C2\Oc3c(cc4c(c3C)OCN(Cc3cccs3)C4)C2=O)cc1,ZDEC0113,decoy,ZINC250k; matched_to=BDBM547844
+O[C@@H](Cc1nc2ccccc2s1)c1ccsc1,ZDEC0062,decoy,ZINC250k; matched_to=BDBM50463628
+O=C(N[C@@H](CCc1ccccc1)c1ccc2c(c1)OCCCO2)c1ccc(Br)s1,ZDEC0232,decoy,ZINC250k; matched_to=BDBM791285
+COc1ccc(C[NH+]2CCC[C@@H](c3[nH]ncc3-c3ccc(Cl)cc3)C2)c(OC)c1OC,ZDEC0039,decoy,ZINC250k; matched_to=BDBM50578894
+C/C(=N\Nc1nnc(SCC(=O)Nc2cccc(C)c2)n1N)c1ccc(Br)cc1,ZDEC0156,decoy,ZINC250k; matched_to=BDBM50665101
+C[C@H](OC(=O)c1ccc2c(c1)C(=O)N(Cc1ccco1)C2=O)C(=O)Nc1ccc(F)cc1,ZDEC0173,decoy,ZINC250k; matched_to=BDBM50217199
+COc1ccccc1[C@H](C)NC(=O)c1cccnc1SC,ZDEC0092,decoy,ZINC250k; matched_to=BDBM50232320
+Fc1ccc(C2=Nc3ccc(F)cc3CN2/N=C\c2ccccc2)cc1,BDBM50410798,active,BindingDB P00533 IC50 median 75 nM (n=1) pmid=34450497
+Cc1nn(Cc2c(Cl)cccc2Cl)c(Cl)c1/C=N/NC(N)=S,ZDEC0181,decoy,ZINC250k; matched_to=BDBM50614289
+COc1cc(F)c([N+](=O)[O-])cc1NC(=O)OC(C)(C)C,BDBM700865,active,BindingDB P00533 IC50 median 2 nM (n=1) pmid=
+O=C(Nc1cc(Cl)ccc1Cl)C1CCN(C(=O)[C@H]2CC(=O)N(c3ccccc3)C2)CC1,ZDEC0035,decoy,ZINC250k; matched_to=BDBM50578894
+CCN(CC)S(=O)(=O)N1CCN(C(=O)c2sc3nc(C)cc(C)c3c2-n2cccc2)CC1,ZDEC0017,decoy,ZINC250k; matched_to=BDBM50593207
+C=CC(=O)N1CCC(C2CCNc3c(C(N)=O)c(-c4cc(OC)c5ccsc5c4)nn32)CC1,BDBM50613215,active,BindingDB P00533 IC50 median 100 nM (n=1) pmid=36912866
+C[C@H](C(=O)Nc1ccnc2ccnn12)c1ccc(Cl)c(Cl)c1,ZDEC0163,decoy,ZINC250k; matched_to=BDBM700961
+C/C(=N/[n+]1c(-c2ccc(C)cc2)csc1Nc1ccccc1C(F)(F)F)c1ccc(C)cc1,ZDEC0170,decoy,ZINC250k; matched_to=BDBM50352223
+COc1cc(C(=O)Nc2ccc(N3CCCC3=O)cc2)ccc1OCc1c(C)noc1C,ZDEC0000,decoy,ZINC250k; matched_to=BDBM5447
+Cc1ccsc1[C@@H](O)[C@@]1(C#N)CCOc2ccccc21,ZDEC0060,decoy,ZINC250k; matched_to=BDBM50463628
+O=C(CSc1nc2ccccc2c(=O)n1C1CCCC1)Nc1ccc(F)cc1[N+](=O)[O-],ZDEC0004,decoy,ZINC250k; matched_to=BDBM5447
+COc1cccc(N2CCN(C(=O)C[C@@H](C)CC3=NS(=O)(=O)c4ccccc4N3)CC2)c1,ZDEC0171,decoy,ZINC250k; matched_to=BDBM50217199
+CCCc1ncc(C(=O)Nc2cnc(Cl)c(C)c2)s1,ZDEC0192,decoy,ZINC250k; matched_to=BDBM700865
+Cc1cc(C(=O)NC[C@H](O)COc2cccc(C(F)(F)F)c2)c(C)s1,ZDEC0200,decoy,ZINC250k; matched_to=BDBM50232828
+CC[C@@H](NC(=O)N[C@@H](CS(C)(=O)=O)c1ccccc1)[C@H]1CCCO1,ZDEC0122,decoy,ZINC250k; matched_to=BDBM50455958
+NC(=O)c1c(NC(=O)c2ccc(S(=O)(=O)N3CCCCCC3)cc2)sc2c1CCCCC2,ZDEC0153,decoy,ZINC250k; matched_to=BDBM759882
+CCc1cc(C)c(C(=O)N2C[C@@H](O)C[C@@H]2c2cccc(C(F)(F)F)c2)o1,ZDEC0224,decoy,ZINC250k; matched_to=BDBM50140190
+C[C@@H]1OCC[C@H]1C(=O)O[C@@H](c1ccccc1)c1nccs1,ZDEC0125,decoy,ZINC250k; matched_to=BDBM50204741
+N#Cc1cccc(NNC(=O)NCCC(=O)NC2CCCC2)c1,ZDEC0167,decoy,ZINC250k; matched_to=BDBM4313
+Cc1coc2cc3oc(=O)c(CC(=O)N[C@H](Cc4c[nH]c5ccc(O)cc45)C(=O)[O-])c(C)c3cc12,ZDEC0178,decoy,ZINC250k; matched_to=BDBM50450875
+N#Cc1ccccc1Sc1ccccc1C(=O)N[C@@H](CO)c1ccco1,ZDEC0103,decoy,ZINC250k; matched_to=BDBM397334
+Nc1ccc(-c2ccc3c(c2)C(=O)N(C(c2nc4ccccc4[nH]2)c2cc(F)ccc2O)C3)cc1,BDBM670975,active,BindingDB P00533 IC50 median 98 nM (n=1) pmid=
+Cc1cc(N2C(=O)c3oc4c(ccc5ccccc54)c(=O)c3[C@@H]2c2cccnc2)no1,ZDEC0132,decoy,ZINC250k; matched_to=BDBM276526
+CCOC(=O)c1c(NC(=O)[C@H]2CCCN2S(=O)(=O)c2ccc(Cl)cc2)sc2c1CCCC2,ZDEC0066,decoy,ZINC250k; matched_to=BDBM200536
+O=C(COc1ccccc1-c1ccccc1)NNC(=O)c1cc(Cl)cc(Cl)c1,ZDEC0236,decoy,ZINC250k; matched_to=BDBM152775
+O=C(Cc1ccc(F)cc1)Nc1cccc(-c2cn3c(C(=O)N4CCOCC4)csc3n2)c1,ZDEC0204,decoy,ZINC250k; matched_to=BDBM50613215
+C#CCOc1cc(F)ccc1NC(=O)C(=O)NCc1ccc(C)cc1,ZDEC0124,decoy,ZINC250k; matched_to=BDBM50455958
+Cc1cccc([C@@H]2CN(Cc3ccc(N4CCOCC4)[nH+]c3)C[C@]23CCCCC(=O)N3)n1,ZDEC0088,decoy,ZINC250k; matched_to=BDBM525521
+Cc1ccc(-n2nnnc2SCC(=O)N[C@H](C)c2cccc3ccccc23)c(C)c1,ZDEC0111,decoy,ZINC250k; matched_to=BDBM547844
+C[C@@H](Sc1nnc(-c2c[nH]c3ccccc23)n1C1CC1)c1ccccc1,ZDEC0096,decoy,ZINC250k; matched_to=BDBM50137190
+O=S(=O)(NCc1cc(-c2ccccn2)n(C2CCCC2)n1)c1ccc2c(c1)OCCO2,ZDEC0174,decoy,ZINC250k; matched_to=BDBM50217199
+CC(C)(C)NC(=O)c1ccc2c(c1)[C@@H]1C=CC[C@@H]1[C@H](c1ccc(F)cc1)N2,ZDEC0210,decoy,ZINC250k; matched_to=BDBM50645275
+Cc1ccc2cccc(Nc3ncnc(NNC(=O)c4ccc(Br)cc4)c3N)c2n1,ZDEC0068,decoy,ZINC250k; matched_to=BDBM505513
+CC(C)CCOc1cccc([C@H]2c3c(-c4ccccc4O)n[nH]c3C(=O)N2[C@@H]2CCS(=O)(=O)C2)c1,ZDEC0212,decoy,ZINC250k; matched_to=BDBM50667513
+COc1ccc(C)cc1-n1c(C)cc(/C=C2\C(=N)N3N=C(c4ccccc4C)SC3=NC2=O)c1C,ZDEC0234,decoy,ZINC250k; matched_to=BDBM791285
+NC1CCN(Cc2ccn3ncnc(Nc4ccc5c(cnn5Cc5ccccn5)c4)c23)CC1,BDBM50217199,active,BindingDB P00533 IC50 median 47 nM (n=1) pmid=17606372
+CCCCN1C(=O)CS/C1=N/Nc1nncc2ccccc12,BDBM50204741,active,BindingDB P00533 IC50 median 23 nM (n=1) pmid=27484508
+O=C(C[C@@H]1Oc2ccccc2NC1=O)Nc1ccc(N2CCCCC2)c2ccncc12,ZDEC0106,decoy,ZINC250k; matched_to=BDBM696454
+CN(C(=O)NCCNC(=O)CC1CCCCC1)C1CCCCC1,ZDEC0080,decoy,ZINC250k; matched_to=BDBM50266913
+C[C@@H](OC(=O)c1ccnc(Cl)c1)c1ccc([N+](=O)[O-])cc1,ZDEC0095,decoy,ZINC250k; matched_to=BDBM50232320
+Nc1cc(-c2c[nH]c3ccccc23)nn1-c1nc(Nc2ccccc2)nc(N2CCOCC2)n1,BDBM50665101,active,BindingDB P00533 IC50 median 64 nM (n=1) pmid=40037064
+CC(C)(C)OC(=O)c1cccc(C(=O)NC[C@@H]2CCO[C@H]2c2ccccc2)c1,ZDEC0223,decoy,ZINC250k; matched_to=BDBM50140190
+O=C(CCCNc1ccc([N+](=O)[O-])cc1)Nc1cccc2cnccc12,ZDEC0104,decoy,ZINC250k; matched_to=BDBM397334
+Cc1c([C@@H](C)NC(=O)C(=O)Nc2ccnn2C(C)(C)C)oc2ccccc12,ZDEC0187,decoy,ZINC250k; matched_to=BDBM50074742
+Cc1ccc(C(=O)Oc2ccc3nccnc3c2)cc1F,ZDEC0058,decoy,ZINC250k; matched_to=BDBM50463628
+CNc1ccc(N(C)c2ncnc3occ(C)c23)cc1,BDBM50463628,active,BindingDB P00533 IC50 median 6.4 nM (n=1) pmid=30098869
+CCCOc1ccccc1C(=O)NC(=O)NC1CC2CCC(C1)N2C,BDBM50455958,active,BindingDB P00533 IC50 median 16 nM (n=1) pmid=32739648
+COc1ccc2c(c1)CCCN2c1nc(C)nc2ccccc12,BDBM50557540,active,BindingDB P00533 IC50 median 5 nM (n=1) pmid=33647840
+C[C@@H]1C[C@@H](NCc2cnc(N(C)C)s2)CC[NH+]1Cc1ccccc1,ZDEC0120,decoy,ZINC250k; matched_to=BDBM50455958
+CCOc1cc2c(cc1NC(=O)[C@H](C)NC(=O)c1ccc(Br)s1)O[C@H](C)C2,ZDEC0201,decoy,ZINC250k; matched_to=BDBM50613215
+CC(=O)Nc1cc(C)ccc1Nc1nc(Cl)ncc1Cl,BDBM700961,active,BindingDB P00533 IC50 median 1 nM (n=1) pmid=
+Cc1ccccc1-c1noc([C@@H](C)NC(=O)c2ccco2)n1,ZDEC0193,decoy,ZINC250k; matched_to=BDBM700865
+COc1ccccc1NC(=O)[C@H](C)Sc1nc2ccc(Br)cc2c(=O)n1C[C@@H](C)O,ZDEC0213,decoy,ZINC250k; matched_to=BDBM50667513
+COc1cc([C@H]2C(C(=O)c3ccco3)=C([O-])C(=O)N2c2nc3ccc(F)cc3s2)ccc1O,ZDEC0172,decoy,ZINC250k; matched_to=BDBM50217199
+Cc1ccc(-c2cc(C(=O)Nc3ccc(S(=O)(=O)N4CCCCC4)cc3)n[nH]2)c(O)c1C,ZDEC0036,decoy,ZINC250k; matched_to=BDBM50578894
+COc1ccc(-c2cnn3c(C)c(C(=O)Nc4cccc(Cl)c4)cnc23)cc1OC,ZDEC0237,decoy,ZINC250k; matched_to=BDBM152775
+Cc1ccc(S(=O)(=O)N2CCC(C(=O)N[C@H](C)CCC(C)C)CC2)cc1C,ZDEC0183,decoy,ZINC250k; matched_to=BDBM50614289
+O=C1NCCc2[nH]c(-c3ccncc3OCC3CCO3)c(Nc3cccc4c3CCC4)c21,BDBM696454,active,BindingDB P00533 IC50 median 0.726 nM (n=1) pmid=
+CONC(=O)c1ccccc1SCc1c(C)noc1C,ZDEC0128,decoy,ZINC250k; matched_to=BDBM50204741
+O=C([C@@H]1CCCN(c2nc3c(F)cccc3s2)C1)N1CCN(c2ccc(C(F)(F)F)cn2)CC1,ZDEC0154,decoy,ZINC250k; matched_to=BDBM759882
+COC(=O)Cn1cc(-c2cccc(Cl)c2)c(=O)c2c(O)cc(OC)cc21,BDBM50074742,reference,BindingDB P00533 IC50 median 64 nM (n=1) pmid=10090785
+O=C(c1ccc(N2CC[NH+]([C@H]3CC(=O)N(c4ccccc4)C3=O)CC2)cc1)c1cccs1,ZDEC0089,decoy,ZINC250k; matched_to=BDBM525521
+CCc1nn2c(=O)cc(COC(C)=O)nc2s1,ZDEC0085,decoy,ZINC250k; matched_to=BDBM32922
+COc1ccccc1[C@@H](NC(=O)c1ccc(Sc2ccccn2)cc1)c1nccn1C,ZDEC0110,decoy,ZINC250k; matched_to=BDBM547844
+Cc1ccc(NC(=O)[C@H]2CCCN(S(=O)(=O)c3cc(-c4noc(C)n4)ccc3Cl)C2)c(C)c1,ZDEC0211,decoy,ZINC250k; matched_to=BDBM50667513
+COc1ccccc1/C=C/C[NH+]1CCC2(CC1)C[C@H]2C(=O)N(C)Cc1cscn1,ZDEC0087,decoy,ZINC250k; matched_to=BDBM525521
+Cc1cccnc1Nc1ncnc(NNC(=O)c2ccccc2F)c1N,ZDEC0042,decoy,ZINC250k; matched_to=BDBM50453584
+c1csc(-c2cc3nccc(Nc4ccc5[nH]ccc5c4)c3s2)c1,BDBM50137190,active,BindingDB P00533 IC50 median 1 nM (n=1) pmid=14684289
+COc1c(Cl)ccc2sc(N3CC[NH+](CCNC(=O)c4ccc([N+](=O)[O-])cc4)CC3)nc12,ZDEC0115,decoy,ZINC250k; matched_to=BDBM50330240
+COc1ccc(NC(=O)c2oc3ccccc3c2NC(=O)Cc2ccc(F)cc2)cc1,ZDEC0137,decoy,ZINC250k; matched_to=BDBM50358048
+COc1ccc(NC(=S)NC(=O)c2cccc(Cl)c2)cc1Br,ZDEC0143,decoy,ZINC250k; matched_to=BDBM50665104
+Cc1ccc2oc3c(c(=O)c2c1)[C@H](c1cccc(Cl)c1)N(c1nncs1)C3=O,ZDEC0131,decoy,ZINC250k; matched_to=BDBM276526
+C#CC(=O)N1CCC(c2cnn3c(C(N)=O)c(-c4ccc(Oc5ccccc5)cc4)[nH]c23)CC1,BDBM50578894,active,BindingDB P00533 IC50 median 31 nM (n=1) pmid=34391034
+Cc1nc2n(n1)CCC[C@@H]2NC(=O)N[C@@H](CC(F)(F)F)c1ccc(F)cc1,ZDEC0185,decoy,ZINC250k; matched_to=BDBM50614289
+CC(C)(C)c1csc(C[C@]2(O)CCC[C@@H]2S(C)(=O)=O)n1,ZDEC0029,decoy,ZINC250k; matched_to=BDBM50510535
+COc1ccc2cc(-c3ccc(C(=O)Nc4ccc5[nH]ccc5c4)cc3)c(=O)oc2c1,ZDEC0139,decoy,ZINC250k; matched_to=BDBM50358048
+CC(C)(C)CNc1c(C#N)cnc2c(Cl)cc(N[C@H](C3=CNNN3)c3cccnc3)cc12,BDBM505513,active,BindingDB P00533 IC50 median 4 nM (n=1) pmid=
+Cc1c(CN[C@H](C)[C@@H](C)c2nc3ccccc3s2)cnn1C,ZDEC0091,decoy,ZINC250k; matched_to=BDBM50232320
+N#C/C(=C\c1ccc(O)c(O)c1)C(=O)NCc1ccccc1,BDBM4313,active,BindingDB P00533 IC50 median 100 nM (n=2) pmid=10464027;18077363
+Cc1c(C(=O)NCCc2ccc(N3CCOCC3)cc2)[nH]c2ccc(Cl)cc12,BDBM50614289,reference,BindingDB P00533 IC50 median 89 nM (n=1) pmid=37122549
+Cc1cc(/C=C2\C(=O)NC(=O)c3ccccc32)cc(C)c1OCc1ccccn1,ZDEC0182,decoy,ZINC250k; matched_to=BDBM50614289
+Cc1cccc(Oc2ccc(NC(=O)[C@H](C)NS(=O)(=O)c3cccs3)cc2)c1,ZDEC0227,decoy,ZINC250k; matched_to=BDBM50632216
+C[C@@H]1CCCOc2ccccc2-c2cc(ccn2)C(=O)N=C2Nc3ccccc3N2C1,BDBM276526,active,BindingDB P00533 IC50 median 8.9 nM (n=4) pmid=
+Cc1ccc(Nc2nnc(SCc3nc4sc(C(=O)[O-])c(C)c4c(=O)[nH]3)s2)cc1C,ZDEC0057,decoy,ZINC250k; matched_to=BDBM50598673
+O=C(c1cccc(N2CCCC2=O)c1)N1CC(=O)N(C2CCCCC2)C[C@@H](OCc2ccccn2)C1,ZDEC0018,decoy,ZINC250k; matched_to=BDBM50593207
+COc1ccc(-c2c(C)sc(Nc3ccc(C)cc3)[n+]2C(C)(C)C)cc1,ZDEC0099,decoy,ZINC250k; matched_to=BDBM50137190
+O=[N+]([O-])c1ccc(O)cc1C[NH+]1CCC[C@H]1C[C@@H](O)c1cccs1,ZDEC0123,decoy,ZINC250k; matched_to=BDBM50455958
+O=C(Nc1ccccc1F)[C@@H]1Sc2nnc(COc3ccccc3)n2N[C@H]1c1ccc(F)cc1,ZDEC0214,decoy,ZINC250k; matched_to=BDBM50667513
+Cc1cc(C)n(-c2cncc(N[C@@H](CO)c3ccc(Cl)c(F)c3)n2)n1,ZDEC0030,decoy,ZINC250k; matched_to=BDBM50363607
+COC(=O)c1ccc([C@H]2c3c(oc4ccc(Br)cc4c3=O)C(=O)N2C)cc1,ZDEC0010,decoy,ZINC250k; matched_to=BDBM790027
+Cc1ccc(NC(=O)c2sc3nc(CSc4nccn4C)[nH]c(=O)c3c2C)c(C)c1,ZDEC0105,decoy,ZINC250k; matched_to=BDBM696454
+O=S(=O)(Cc1ncc(-c2cccc(F)c2)o1)c1ccccc1,ZDEC0072,decoy,ZINC250k; matched_to=BDBM50557540
+N#CC1=C(SCC(=O)Nc2cc(Cl)ccc2C#N)NC2=C(C(=O)CCC2)[C@@H]1c1cccnc1,ZDEC0064,decoy,ZINC250k; matched_to=BDBM200536
+C[C@H]1CCCN(c2nc3c(c(=O)[nH]c(=O)n3C)n2CCSc2nc3ccccc3s2)C1,ZDEC0175,decoy,ZINC250k; matched_to=BDBM50217199
+O=C(NCc1ccncc1)Nc1ccc(Cl)c([N+](=O)[O-])c1,ZDEC0168,decoy,ZINC250k; matched_to=BDBM4313
+O=C(NCc1cc2ccccc2o1)N[C@@H]1CCCC[C@H]1CO,ZDEC0166,decoy,ZINC250k; matched_to=BDBM4313
+C[C@H](c1ccccc1)n1c([C@H]2CC(=O)N(C3CCCC3)C2)nc2ccccc21,ZDEC0207,decoy,ZINC250k; matched_to=BDBM50645275
+COC(=O)c1ccc(NCC(=O)Nc2ccc(C(C)C)cc2)cc1,ZDEC0077,decoy,ZINC250k; matched_to=BDBM50266913
+O=C(NCc1ccc(F)cc1)C(=O)Nc1c2c(nn1-c1ccc(F)cc1)CS(=O)(=O)C2,ZDEC0086,decoy,ZINC250k; matched_to=BDBM525521
+Cn1cc(-c2cc3c(-c4cn(C5CS(=O)(=O)C5)nc4-c4ccc(F)cc4)ncnc3o2)nn1,BDBM717423,active,BindingDB P00533 IC50 median 0.55 nM (n=1) pmid=
+O=C(CNc1ccc(Cl)cc1F)NC[C@@H]1COc2ccccc2O1,ZDEC0190,decoy,ZINC250k; matched_to=BDBM50074742
+Cc1ccc(C2=NN(c3nc(-c4ccc(Cl)cc4)cs3)C(c3ccc(F)cc3)C2)cc1C,BDBM50352223,active,BindingDB P00533 IC50 median 60 nM (n=2) pmid=21802290;31926469
+COc1ccc(OC)c([C@H]2C3=C(C[C@H](c4ccc(OC)c(OC)c4)CC3=O)Nc3nc(N)nn32)c1,ZDEC0053,decoy,ZINC250k; matched_to=BDBM50598673
+CC(=O)N1CCC[C@@H]2[C@H]1[C@@H](c1ccc(F)cc1)CN2C(=O)c1cc(C(C)C)n[nH]1,ZDEC0031,decoy,ZINC250k; matched_to=BDBM50363607
+CC(=O)Oc1ccc(-c2ccc(C(=O)Nc3cc(C)nn3-c3nc4ccccc4[nH]3)cc2)cc1,ZDEC0239,decoy,ZINC250k; matched_to=BDBM152775
+C=CC(=O)Nc1cc(Nc2nccc(-c3cn(C)c4ccccc34)n2)c(OC)cc1N(C)CCN(C)C,BDBM50029668,active,BindingDB P00533 IC50 median 3 nM (n=170) pmid=27433829;27564586;28225269
+O=C(NC1CCCC1)c1cccnc1Sc1ccccc1,ZDEC0071,decoy,ZINC250k; matched_to=BDBM50557540
+Cc1cccc(N2CCN(C(=O)CNC(=O)c3ccccc3Cl)CC2)c1C,ZDEC0033,decoy,ZINC250k; matched_to=BDBM50363607
+CC(=O)Nc1ccc(NC(=O)CSc2nnc(NC(=O)Nc3ccc(C)cc3)s2)cc1,ZDEC0069,decoy,ZINC250k; matched_to=BDBM505513
+Cc1cc(C)c2sc(N3CCN(C(=O)c4c(F)cccc4Cl)CC3)nc2c1,ZDEC0133,decoy,ZINC250k; matched_to=BDBM276526
+CN1CCN(C/C=C/C(=O)N2CCc3c(sc4ncnc(N[C@H](CO)c5ccccc5)c34)C2)CC1,BDBM50330240,active,BindingDB P00533 IC50 median 89 nM (n=1) pmid=20961149
+O=C(Nc1ccccc1)Nc1ccnn1Cc1ccccn1,ZDEC0049,decoy,ZINC250k; matched_to=BDBM50097956
+Cc1ccc(C[C@@]2(c3ccc(Cl)cc3)NC(N)=NC2=O)cc1,ZDEC0165,decoy,ZINC250k; matched_to=BDBM4313
+Cc1nc(-c2cccc(OCC(=O)Nc3ccc(C)c(S(=O)(=O)N4CCOCC4)c3)c2)no1,ZDEC0117,decoy,ZINC250k; matched_to=BDBM50330240
+CCNC(=O)c1ccc2c(c1)[C@H]1C=CC[C@@H]1[C@H](c1cccc(Cl)c1)N2,ZDEC0209,decoy,ZINC250k; matched_to=BDBM50645275
+CCC[C@@H](NC(=O)N1C[C@@H](C)O[C@@H](C)C1)C(=O)N1CCc2sccc2C1,ZDEC0188,decoy,ZINC250k; matched_to=BDBM50074742
+O=C(c1cc2ccccc2o1)N1CCN(c2ccc([N+](=O)[O-])c(NCc3ccco3)c2)CC1,ZDEC0001,decoy,ZINC250k; matched_to=BDBM5447
+O=C(/C=C\C(Cl)(Cl)Cl)c1ccc([N+](=O)[O-])cc1,ZDEC0073,decoy,ZINC250k; matched_to=BDBM50557540
+COc1cc(NC(=S)NC(=O)c2cc(Cl)ccc2Cl)ccc1NC(=O)C(C)C,ZDEC0242,decoy,ZINC250k; matched_to=BDBM670975
+CN(C(=O)CSc1ccncc1)c1ccc2ccccc2c1,ZDEC0074,decoy,ZINC250k; matched_to=BDBM50557540
+CCn1c([C@H](CC(C)C)NC(=O)Cc2c[nH]c3ccccc23)nc2cccnc21,ZDEC0184,decoy,ZINC250k; matched_to=BDBM50614289
+COc1ccccc1C(NC(=O)c1ccc(Cl)cc1)NC(=O)c1ccc(Cl)cc1,ZDEC0138,decoy,ZINC250k; matched_to=BDBM50358048
+CCCOc1ccccc1[C@H]1SCC(=O)Nc2c1c(O)nn2[C@H](C)CCC,ZDEC0229,decoy,ZINC250k; matched_to=BDBM50632216
+CC(C)c1cccc(C(C)C)c1NC(=O)c1cc([N+](=O)[O-])ccc1Cl,ZDEC0097,decoy,ZINC250k; matched_to=BDBM50137190
+CC1=C(C(=O)Nc2ccc(C)cn2)[C@H](c2cccc(Cl)c2Cl)C2=C(CCCC2=O)N1,ZDEC0245,decoy,ZINC250k; matched_to=BDBM670975
+CC(=O)NCc1ccc(C(=O)Nc2ccccc2-c2nc(-c3ccccc3)n[nH]2)cc1,ZDEC0144,decoy,ZINC250k; matched_to=BDBM50665104
+Cn1cc(-c2cc(C(=O)/N=c3\[nH]c4cc(CC#N)ccc4n3CC(C)(C)O)ccn2)cn1,BDBM525521,active,BindingDB P00533 IC50 median 6.8 nM (n=1) pmid=
+Cc1cc(C)cc(NNC(=O)[C@H]2CCCN2C(=O)Nc2ccc(C(F)(F)F)cc2)c1,BDBM50665104,active,BindingDB P00533 IC50 median 87 nM (n=1) pmid=40037064
+OCCCc1nc(-c2ccc(F)cc2)c(-c2ccnc3[nH]ccc23)[nH]1,BDBM50266913,active,BindingDB P00533 IC50 median 44 nM (n=1) pmid=28482151
+CC(C)(C)ONC(=O)c1cc(NCc2cc(O)ccc2O)ccc1O,BDBM50453584,active,BindingDB P00533 IC50 median 100 nM (n=1) pmid=8145236
+CCc1nnc(NC(=O)c2ccccc2NC(=O)c2ccc(C)c([N+](=O)[O-])c2)s1,ZDEC0230,decoy,ZINC250k; matched_to=BDBM50632216
+O=C(CSc1ccc(Cl)nn1)Nc1ccc(Cl)cn1,ZDEC0127,decoy,ZINC250k; matched_to=BDBM50204741
+CCO[C@@H](C)c1nc(C[NH+](C)[C@@H](C)c2cccc(O)c2)cs1,ZDEC0121,decoy,ZINC250k; matched_to=BDBM50455958
+Clc1ccc(Br)cc1N[C@@H]1CCOC2(CCOCC2)C1,ZDEC0020,decoy,ZINC250k; matched_to=BDBM50410798
+COc1cc(OC)cc(C(=O)Nc2ccc3nc(-c4ccncc4)[nH]c3c2)c1,ZDEC0222,decoy,ZINC250k; matched_to=BDBM50140190
+Nc1c(NCCc2cccs2)ncnc1NNC(=O)c1ccccc1,ZDEC0041,decoy,ZINC250k; matched_to=BDBM50453584
+OC1=Nc2nc(N3CCOCC3)sc2[C@@H](c2ccc(Br)cc2)C1,ZDEC0012,decoy,ZINC250k; matched_to=BDBM790027
+C[C@@H]1CC[C@H](NC(=O)Nc2cc(C(=O)N(C)C)ccc2F)[C@H](C)C1,ZDEC0078,decoy,ZINC250k; matched_to=BDBM50266913
+C[C@H](Oc1ccc(C#N)cc1)C(=O)Nc1ccc(F)cc1Cl,ZDEC0052,decoy,ZINC250k; matched_to=BDBM50097956
+CCNc1ncc(COc2ccc(C)cc2Br)s1,ZDEC0160,decoy,ZINC250k; matched_to=BDBM700961
+C#Cc1cccc(Nc2ncnc3cc(OCCOC)c(OCCOC)cc23)c1,BDBM5446,active,BindingDB P00533 IC50 median 17 nM (n=143) pmid=14684309;16480284;17889528
+Oc1cc2oc(-c3cc(O)c(O)c(O)c3)c(O)cc-2c(=[OH+])c1,BDBM50326997,active,BindingDB P00533 IC50 median 6.3 nM (n=1) pmid=27484508
+N#CC1=C(N)Oc2cc(OC(=O)COc3ccc(F)cc3)ccc2[C@@H]1c1cccc([N+](=O)[O-])c1,ZDEC0003,decoy,ZINC250k; matched_to=BDBM5447
+COc1ccc(-n2c(SCC(=O)Nc3ccc(C(N)=O)cc3)nc3c(c2=O)S[C@H](C)C3)cc1,ZDEC0179,decoy,ZINC250k; matched_to=BDBM50450875
+O=C(NS(=O)(=O)c1ccc(Cl)cc1)c1cncc(Br)c1,BDBM50363607,active,BindingDB P00533 IC50 median 90 nM (n=1) pmid=22277588
+Cc1nc2c(s1)[C@@H](NC[C@@H](O)c1cccc(OC(F)F)c1)CCC2,ZDEC0100,decoy,ZINC250k; matched_to=BDBM397334
+C=CC(=O)N[C@H]1CCN(c2nc(Nc3ccc(N4CCN(C)CC4)cc3)c3ncn(C(C)C)c3n2)C1,BDBM50450875,active,BindingDB P00533 IC50 median 19 nM (n=1) pmid=28287730
+COc1cccc(-c2nc(SCC(=O)Nc3ccccc3C)c3c(=O)n(C)c(=O)n(C)c3n2)c1,ZDEC0180,decoy,ZINC250k; matched_to=BDBM50450875
+COc1cc(OC)c(OC)cc1/C=N\Nc1ncnc2c1[nH]c1ccc(C)cc12,ZDEC0047,decoy,ZINC250k; matched_to=BDBM50665109
+[2H]C([2H])([2H])Oc1cc2ncnc(-c3cnn(C([2H])([2H])[2H])c3-c3ccccc3)c2nc1NC(=O)C1(C(F)(F)F)CC1,BDBM759882,reference,BindingDB P00533 IC50 median 35 nM (n=2) pmid=
+O=C1NN(c2cccc(Br)c2)C(=O)/C1=C/c1ccc(-c2cc([N+](=O)[O-])ccc2[O-])o1,ZDEC0063,decoy,ZINC250k; matched_to=BDBM200536
+CC(=O)Nc1ccc(Nc2ncnc(NC[C@@H]3CCCO3)c2N)cc1,ZDEC0040,decoy,ZINC250k; matched_to=BDBM50453584
+CCOc1ccc(C(F)(F)F)cc1NC(=O)NCCn1c(C)nc2ccccc21,ZDEC0135,decoy,ZINC250k; matched_to=BDBM50358048
+Cc1cc(SCC(=O)Nc2cccc(Cl)c2)nc2ccc(S(=O)(=O)N3CCOCC3)cc12,ZDEC0007,decoy,ZINC250k; matched_to=BDBM50322823
+CC(C)c1cnc(N2C[C@H](O)[C@H]2C)c2cnc(Nc3ccnc(N4CC[C@@H](O)[C@@](C)(F)C4)n3)cc12,BDBM50598673,active,BindingDB P00533 IC50 median 3.65 nM (n=2) pmid=35838760
+O=C1C[C@@H](c2ccc(F)cc2)c2sc(Nc3ccccc3)nc2N1,ZDEC0198,decoy,ZINC250k; matched_to=BDBM50232828
+N#Cc1ccccc1NC(=O)c1ccc(NC(=O)[C@H]2CC(=O)N(c3ccccc3)C2)cc1,ZDEC0109,decoy,ZINC250k; matched_to=BDBM696454
+Nc1ncnc2c1c(-c1cccc(O)c1)cn2C1CCCC1,BDBM50097956,active,BindingDB P00533 IC50 median 80 nM (n=1) pmid=11277535
+C[C@H]1CCCCN1c1ncnc(N(Cc2ccccc2)Cc2ccccc2)c1N,ZDEC0043,decoy,ZINC250k; matched_to=BDBM50665109
+COc1ccc(-n2c(=O)[nH]c3cc([C@@H]4N[C@@H](c5cccc(OC)c5OC)NO4)ccc3c2=O)cc1,ZDEC0176,decoy,ZINC250k; matched_to=BDBM50450875
+CN(CCC(=O)OC(C)(C)C)C(=O)Nc1cncc2ccccc12,ZDEC0162,decoy,ZINC250k; matched_to=BDBM700961
+C[C@H](NC(=O)c1ccccc1)C(=O)NCC1(c2ccccc2)CCC1,ZDEC0079,decoy,ZINC250k; matched_to=BDBM50266913
+O=C(NC1CC1)c1cccc(NCc2ccc(Cl)o2)c1,ZDEC0164,decoy,ZINC250k; matched_to=BDBM700961
+COC[C@@H]1OC[C@@]2(C)[C@H]3CC[C@@H](O)[C@@H](CC(=O)NCc4ccc5c(c4)OCO5)[C@]3(C)CC[C@H]2O1,ZDEC0118,decoy,ZINC250k; matched_to=BDBM50330240
+Cc1nc(C)c(/C=C2\N=C(c3ccc(F)c(F)c3)OC2=O)s1,ZDEC0075,decoy,ZINC250k; matched_to=BDBM50557540
+Cc1csc(NC(=O)CSc2nnc(-c3ccc(S(=O)(=O)N4CCCC4)cc3)o2)n1,ZDEC0177,decoy,ZINC250k; matched_to=BDBM50450875
+COc1ccc(N2C(=O)/C(=C\c3ccc(-c4ccc(Cl)c(C(=O)[O-])c4)o3)SC2=S)cc1,ZDEC0151,decoy,ZINC250k; matched_to=BDBM759882
+Cc1ccc(S(=O)(=O)N2CCC[C@@H](c3nc(-c4ccccc4Br)no3)C2)cc1,ZDEC0150,decoy,ZINC250k; matched_to=BDBM759882
+CCN(CC)c1ccc([C@@H]2Nc3ccc4ccccc4c3C3=C2C(=O)CC3)cc1,ZDEC0208,decoy,ZINC250k; matched_to=BDBM50645275
+COc1ccc([C@H]2CC(=O)NC3=C2C(=O)C[C@@H](c2ccc(OC(C)C)c(OC)c2)C3)cc1Cl,ZDEC0235,decoy,ZINC250k; matched_to=BDBM791285
+C/C(=N\NC(=O)c1cc(-c2ccc(-c3ccccc3)cc2)n[nH]1)c1ccc(O)cc1,ZDEC0142,decoy,ZINC250k; matched_to=BDBM50665104
+C[C@H](OC(=O)CN(C)C(=O)c1cccs1)[C@@H]1CCCO1,ZDEC0025,decoy,ZINC250k; matched_to=BDBM50510535
+Cc1cc(NC(=S)NC(=O)c2cccc(Cl)c2)ccc1NC(=O)c1cc2ccccc2o1,ZDEC0244,decoy,ZINC250k; matched_to=BDBM670975
+Cc1ccc(-c2nn3c(CC(C)C)nnc3s2)cn1,ZDEC0195,decoy,ZINC250k; matched_to=BDBM700865
+C[C@@H](CNC(=O)C(=O)Nc1ccc2c(c1)COC2)c1ccc(F)c(F)c1,ZDEC0034,decoy,ZINC250k; matched_to=BDBM50363607
+CC[C@@H](Sc1nnc2c(=O)n(-c3ccccc3OC)ccn12)C(=O)Nc1cc(C)ccc1C,ZDEC0009,decoy,ZINC250k; matched_to=BDBM50322823
+COc1cccc([C@H](O)c2ccc(Br)c3ccccc23)c1,ZDEC0022,decoy,ZINC250k; matched_to=BDBM50410798
+O=C1[C@H]2[C@@H](c3ccc(O)cc3)c3sc(=O)[nH]c3S[C@@H]2C(=O)N1c1ccc([N+](=O)[O-])cc1,ZDEC0155,decoy,ZINC250k; matched_to=BDBM50665101
+Cc1cccc(C)c1NC(=S)N/N=C1\C[C@@H]([C@@H](C)c2cccnc2)Oc2ccc(O)cc21,ZDEC0243,decoy,ZINC250k; matched_to=BDBM670975
+O=C(CSc1n[nH]c(N/N=C/c2cccc(O)c2)n1)Nc1cccc2c1C(=O)c1ccccc1C2=O,ZDEC0054,decoy,ZINC250k; matched_to=BDBM50598673
+Cc1ccc(NC(=O)[C@H](Cc2ccccc2)NS(=O)(=O)c2cccc3nsnc23)c(C)c1,ZDEC0008,decoy,ZINC250k; matched_to=BDBM50322823
+CN1CCO[C@H](c2noc([C@@](C)([NH3+])C3CC3)n2)C1,ZDEC0083,decoy,ZINC250k; matched_to=BDBM32922
+CCOC(=O)C1=C(C)NC(=Nc2nc(C)nc3cc(OC)c(OC)cc23)NC1c1ccc(Cl)cc1,BDBM50667513,active,BindingDB P00533 IC50 median 0.313 nM (n=1) pmid=40120497
+Cc1[nH+]c2ccccc2c(C)c1CC(=O)Nc1cccc(C(=O)Nc2cccc(F)c2)c1,ZDEC0141,decoy,ZINC250k; matched_to=BDBM50665104
+CS(=O)(=O)c1cccc(-c2noc(C3CCN(C(=O)c4cnc5ccccc5n4)CC3)n2)c1,ZDEC0146,decoy,ZINC250k; matched_to=BDBM717423
+Cc1cccc(/C=N/n2c(N)c(C(=O)NC3CCCCC3)c3nc4ccccc4nc32)c1,ZDEC0108,decoy,ZINC250k; matched_to=BDBM696454
+C=CC(=O)N1CCC[C@H]1COc1cncc(F)c1-c1[nH]c2cccnc2c1-c1cc(Cl)ccc1F,BDBM791285,active,BindingDB P00533 IC50 median 47 nM (n=2) pmid=
+CSc1ccc(CNC(=O)COc2ncnc3onc(-c4ccc(C)c(C)c4)c23)cc1,ZDEC0112,decoy,ZINC250k; matched_to=BDBM547844
+N#CC1=C(SCC(=O)c2ccc(Cl)cc2)NC(=O)[C@@H](C#N)C12CCCCC2,ZDEC0045,decoy,ZINC250k; matched_to=BDBM50665109
+CC(C)(C)OC(=O)N1CCC(C(=O)Nc2ccc3c(c2)OC(F)(F)O3)CC1,ZDEC0013,decoy,ZINC250k; matched_to=BDBM790027
+O=C(Nc1ccc(NC(=O)[C@@H]2CCCO2)cc1)c1cc2ccccc2[nH]1,ZDEC0076,decoy,ZINC250k; matched_to=BDBM50266913
+C[C@@H](NS(=O)(=O)c1cc(Cl)ccc1Cl)C(=O)Nc1ccc2c(c1)OCCO2,ZDEC0107,decoy,ZINC250k; matched_to=BDBM696454
+O=C(NC1CCCCC1)c1cccc2c1N[C@@H](c1ccc(Cl)c([N+](=O)[O-])c1)[C@@H]1CC=C[C@@H]21,ZDEC0217,decoy,ZINC250k; matched_to=BDBM50240779
+CCN(CC)C(=O)c1cc(-c2ccc(F)cc2)nc2cc(C(C)(C)C)nn12,ZDEC0024,decoy,ZINC250k; matched_to=BDBM50410798
+Cc1cc(C(=O)NCC[C@H](O)C(F)(F)F)on1,ZDEC0081,decoy,ZINC250k; matched_to=BDBM32922
+CC[C@@H](NC(=O)Nc1cc(C)ccc1F)c1nc(C(F)(F)F)cs1,ZDEC0206,decoy,ZINC250k; matched_to=BDBM50645275
+Cc1nc(C(=O)N2CCC(Oc3ccc(C[NH+]4CCN(c5ccccc5F)CC4)cc3)CC2)cs1,ZDEC0015,decoy,ZINC250k; matched_to=BDBM50593207
+O=C(Nc1ccc(Cl)c([N+](=O)[O-])c1)N1CCO[C@@H](c2ccccc2F)C1,ZDEC0197,decoy,ZINC250k; matched_to=BDBM50232828
+COc1ccc([C@H]2Nc3c(C(=O)N[C@H](C)c4ccccc4)cccc3[C@@H]3C=CC[C@@H]23)cc1OC,ZDEC0218,decoy,ZINC250k; matched_to=BDBM50240779
+CCOc1ccc(C2C(C#N)=C(N)OC3C2C(C)=NN3c2ccc(Cl)cc2)cc1,BDBM50665109,active,BindingDB P00533 IC50 median 0.21 nM (n=1) pmid=40037064
+N/C(=N/OC(=O)CC1CCCCC1)c1ccc([N+](=O)[O-])cc1,ZDEC0194,decoy,ZINC250k; matched_to=BDBM700865
+CS(=O)(=O)CCNCc1ccc(-c2ccc3ncnc(Nc4ccc(OCc5cccc(F)c5)c(Cl)c4)c3c2)o1,BDBM5445,active,BindingDB P00533 IC50 median 11 nM (n=67) pmid=14684309;16483772;16777410
+CCOC(=O)C1=C(C)N=c2s/c(=C/c3ccc(OC)c(OC)c3)c(=O)n2[C@@H]1c1ccco1,ZDEC0147,decoy,ZINC250k; matched_to=BDBM717423
+CCn1cc(C(=O)/N=c2/[nH]c3ccccc3s2)c(=O)c2cc3c(cc21)OCO3,ZDEC0011,decoy,ZINC250k; matched_to=BDBM790027
+OC[C@H](Nc1cnc(-c2cc(Cl)ccc2O)c(-c2ccc3cnccc3c2)c1)c1ccccc1,BDBM50240779,active,BindingDB P00533 IC50 median 4.2 nM (n=1) pmid=28714692
+CCOc1ccc([C@H]2CC(=O)C3=C(C2)Nc2ccccc2N[C@@H]3c2ccc(O)cc2)cc1OC,ZDEC0219,decoy,ZINC250k; matched_to=BDBM50240779
+CCc1ccc(S(=O)(=O)NCc2cc(-c3ccncc3)n(C3CCCC3)n2)s1,ZDEC0114,decoy,ZINC250k; matched_to=BDBM547844
+CC(=O)Nc1ccc(N(C(=O)c2ccco2)[C@@H](C(=O)NC2CCCC2)c2ccc(Cl)cc2)cc1,ZDEC0233,decoy,ZINC250k; matched_to=BDBM791285
+Cc1nn(-c2ccc(F)cc2)c2sc(C(=O)N[C@@H](c3ccc(Cl)cc3)c3nccn3C)cc12,ZDEC0231,decoy,ZINC250k; matched_to=BDBM791285
+O=C(Nc1cccc(Br)c1)c1ccc(OCCCN2CCCCC2)cc1O,BDBM152775,reference,BindingDB P00533 IC50 median 46 nM (n=1) pmid=24954438
+CCc1cccc(NC(=O)CN2C(=O)N[C@@](C)(c3ccc4c(c3)CCC4)C2=O)c1,ZDEC0032,decoy,ZINC250k; matched_to=BDBM50363607
+Cc1cccc2sc(NC(=O)c3cc4ccccc4[nH]3)nc12,ZDEC0161,decoy,ZINC250k; matched_to=BDBM700961
+Nc1ccc2nc(SCc3cccc(O)c3)oc2c1,ZDEC0059,decoy,ZINC250k; matched_to=BDBM50463628
+Cc1cc(=O)c(C(=O)N(C)CC(=O)Nc2ccc(OC(F)(F)F)cc2)nn1-c1ccccc1F,ZDEC0065,decoy,ZINC250k; matched_to=BDBM200536
+CS[C@H]1CC[C@H](Nc2ccc(C(=O)N(C)C)cn2)C1,ZDEC0191,decoy,ZINC250k; matched_to=BDBM700865
+COc1cc(/C=N/NC(=O)c2ccc(O)cc2O)ccc1OCc1ccc(Cl)cc1,ZDEC0226,decoy,ZINC250k; matched_to=BDBM50632216
+Cc1noc(C)c1N(C)C(=O)C1=NN(c2ccccc2)C(=O)CC1,ZDEC0027,decoy,ZINC250k; matched_to=BDBM50510535
+COc1ccc(N(C)c2nc(N)nc3c(Cc4ccccc4)c[nH]c23)cc1,BDBM50232828,active,BindingDB P00533 IC50 median 1.1 nM (n=1) pmid=27894589
+C=C(C#N)C(O)c1ccc(Nc2nc(Nc3ccccc3)ncc2F)cc1,BDBM397334,active,BindingDB P00533 IC50 median 55 nM (n=3) pmid=
+COc1ccc(S(=O)(=O)N2CCCCC2)cc1NC(=O)c1ccn(-c2ccccc2)n1,ZDEC0037,decoy,ZINC250k; matched_to=BDBM50578894
+COc1ccc2cc3c([nH+]c2c1)N(c1ccc(C(=O)NNC(=O)c2ccccc2[N+](=O)[O-])cc1)CC3,ZDEC0016,decoy,ZINC250k; matched_to=BDBM50593207
+COc1cc2ncnc(Nc3ccc(F)c(Cl)c3)c2cc1OCCCN1CCOCC1,BDBM5447,active,BindingDB P00533 IC50 median 10.3 nM (n=158) pmid=11459659;12384534;14684309
+Cc1c([C@H]2C(C#N)=C(N)Oc3c2c(=O)n(C)c2ccccc32)sc2ccccc12,ZDEC0014,decoy,ZINC250k; matched_to=BDBM790027
+O=C(OCc1cn2ccccc2n1)c1ccc(OC[C@@H]2CCCO2)cc1,ZDEC0186,decoy,ZINC250k; matched_to=BDBM50074742
+C[C@@H](C(=O)Nc1ccccc1C(C)(C)C)[S@](=O)Cc1ccccc1F,ZDEC0021,decoy,ZINC250k; matched_to=BDBM50410798
+Cc1cccc(C(=O)Nc2ccccc2SCc2ccsc2)c1,ZDEC0098,decoy,ZINC250k; matched_to=BDBM50137190
+CCOc1ccc(O)c([C@@H]2Nc3ccccc3C(=O)N2c2ccc(OC)cc2OC)c1,ZDEC0228,decoy,ZINC250k; matched_to=BDBM50632216
+O=C([O-])[C@H]1C2CCC(CC2)[C@@H]1C(=O)Nc1sc2c(c1C(=O)N1CCCCC1)CCCC2,ZDEC0038,decoy,ZINC250k; matched_to=BDBM50578894
+Cc1ccc2[nH]c3nc(S[C@H](C)C(=O)Nc4ccc([N+](=O)[O-])cc4C)nnc3c2c1,ZDEC0044,decoy,ZINC250k; matched_to=BDBM50665109
+C#CCOc1ccc(/C=C2\C(=O)NC(=O)N(c3cc(OC)c(Cl)cc3OC)C2=O)cc1OC,ZDEC0116,decoy,ZINC250k; matched_to=BDBM50330240
+C=CC(=O)Nc1cccc(-c2c(-c3ccccc3)oc3ncnc(NCCCO)c23)c1,BDBM50632216,active,BindingDB P00533 IC50 median 54 nM (n=1) pmid=36749735
+COc1cc2c(oc(=O)c3cc(C)cc(OC)c32)c2c([C@H]3O[C@@H](C)[C@@H](O)[C@](C)(O)[C@H]3O)ccc(O)c12,ZDEC0056,decoy,ZINC250k; matched_to=BDBM50598673
+C=CCN1C(=O)C(C)(C)COc2ccc(NC(=O)c3cc(-c4cc(OC)ccc4OC)n[nH]3)cc21,ZDEC0006,decoy,ZINC250k; matched_to=BDBM50322823
+Cc1nc(C)c(CNC(=O)c2cc(C3CC3)nc3ccc(F)cc23)s1,ZDEC0225,decoy,ZINC250k; matched_to=BDBM50140190
+Cc1ccc(C)c(N2CCN(c3nccnc3SCC(=O)Nc3cc(F)ccc3F)CC2)c1,ZDEC0067,decoy,ZINC250k; matched_to=BDBM200536
+O=C(c1ccccc1Cl)N1N=NN[C@H]1c1ncc(C(F)(F)F)cc1Cl,ZDEC0134,decoy,ZINC250k; matched_to=BDBM276526
+Cc1ccc(OCc2ccc(C(=O)N3N=CC[C@]3(O)C(F)(F)F)o2)c(C)c1,ZDEC0189,decoy,ZINC250k; matched_to=BDBM50074742
+CC[C@@H]([NH2+][C@@H](C)c1c[nH]c2ccc([N+](=O)[O-])cc12)[C@@H]1CCCO1,ZDEC0169,decoy,ZINC250k; matched_to=BDBM4313
+C[C@@H](Nc1ncc(F)c(N(C)C)n1)C1=CCCCC1,ZDEC0061,decoy,ZINC250k; matched_to=BDBM50463628
+Cn1cnc(-c2ccc(OC(F)(F)F)c(NC(=O)Nc3ccncc3)c2)c1,BDBM50140190,active,BindingDB P00533 IC50 median 95 nM (n=1) pmid=26753815
+CN(C)C/C=C/C(=O)Nc1cc2c(Nc3ccc(F)c(Cl)c3)ncnc2cc1O[C@H]1CCOC1,BDBM50322823,active,BindingDB P00533 IC50 median 1 nM (n=110) pmid=18408761;20550212;22621397
+C[C@@H]1CC(C(=O)Nc2ccc(C#N)c(Cl)c2)C[C@H](C)O1,ZDEC0050,decoy,ZINC250k; matched_to=BDBM50097956
+Clc1ccc(-c2nnc(Cc3nc4ccccc4[nH]3)o2)cc1,BDBM50232320,reference,BindingDB P00533 IC50 median 81 nM (n=2) pmid=27987485
+O=C(CSc1n[nH]c(N/N=C/c2cc(Cl)ccc2O)n1)Nc1ccc(Cl)cc1,ZDEC0070,decoy,ZINC250k; matched_to=BDBM505513
+Cc1noc(C)c1[C@@H](C)[NH2+]CCCS(C)(=O)=O,ZDEC0084,decoy,ZINC250k; matched_to=BDBM32922
+CCCc1nc(-n2ncc3c(C)nc(-c4cnccc4OC)cc32)cc2c1nc(C)n2CC,BDBM547844,active,BindingDB P00533 IC50 median 3.3 nM (n=1) pmid=
+O=C(Nc1nc(-c2ccc[nH]2)cs1)c1cnn(-c2ccccc2)c1,ZDEC0199,decoy,ZINC250k; matched_to=BDBM50232828
+Cc1cc(C)c(NC(=O)CN(C)C(=O)Cc2cccs2)c(C)c1,ZDEC0094,decoy,ZINC250k; matched_to=BDBM50232320
+O=C(CCNC(=O)Nc1ccccc1)Nc1ccc(N2CCCCC2)c2ccncc12,ZDEC0140,decoy,ZINC250k; matched_to=BDBM50665104
+Cc1nc(-c2cccc(NC(=O)NCc3ncoc3C)c2)no1,ZDEC0126,decoy,ZINC250k; matched_to=BDBM50204741
+COc1ccc2nc(NC[C@H]3CC[C@H](C(N)=O)O3)c(C)cc2c1,ZDEC0028,decoy,ZINC250k; matched_to=BDBM50510535
+O=C(Nc1cccnc1)c1ccc(Oc2nccs2)cc1,ZDEC0048,decoy,ZINC250k; matched_to=BDBM50097956
+COc1ccc(NC(=O)c2ccc3c([O-])nc4c(C(=O)NC(C)C)sc(=S)n4c3c2)cc1OC,ZDEC0055,decoy,ZINC250k; matched_to=BDBM50598673
+COc1cc(C)cc(C(=O)Nc2cc(C#N)ccc2OC(C)C)c1O,ZDEC0196,decoy,ZINC250k; matched_to=BDBM50232828
+Cn1c(SCC(=O)NCc2ccccc2CN2CCOCC2)nc2sc3c(c2c1=O)CCCC3,ZDEC0119,decoy,ZINC250k; matched_to=BDBM50330240
+O=C(Nc1nccs1)C(c1ncn2c1CCC2)N1Cc2c(F)cc(C#Cc3cccnc3)cc2C1=O,BDBM50593207,active,BindingDB P00533 IC50 median 7 nM (n=1) pmid=36178776
+O=S(=O)(N/N=C\c1cccc(OCc2ccc(F)cc2Cl)c1)c1ccc(F)cc1,ZDEC0238,decoy,ZINC250k; matched_to=BDBM152775
+Cc1ccc(Oc2ccc(Cl)cc2NC(=O)CN2CCSC2=O)cc1,ZDEC0221,decoy,ZINC250k; matched_to=BDBM50140190
+Cc1n[nH]c(C)c1C[C@@H](C)C(=O)Nc1cccc(OCc2cscn2)c1,ZDEC0102,decoy,ZINC250k; matched_to=BDBM397334
+CSC1=C(C#N)[C@@H](c2ccco2)C(C(=O)Nc2ccccc2)=C(C)N1,ZDEC0101,decoy,ZINC250k; matched_to=BDBM397334
+COC(=O)c1c(C)nn2c1ncc1c(=O)n(-c3n[nH]c(SCc4cccc(C)c4)n3)ccc12,ZDEC0149,decoy,ZINC250k; matched_to=BDBM717423
+COc1cccc(CNC(=O)Cn2c(=O)n(-c3ccc(F)cc3C)c(=O)c3sccc32)c1OC,ZDEC0203,decoy,ZINC250k; matched_to=BDBM50613215
+COc1cc(OC)cc(C(=O)Nc2cc(-c3ccco3)nn2-c2nc3c(c(=O)[nH]2)CCCC3)c1,ZDEC0158,decoy,ZINC250k; matched_to=BDBM50665101
+CC(C)n1ncc2c(C(=O)N[C@H](C)c3ccc(NC(=O)c4ccc(F)cc4)cc3)cc(C3CC3)nc21,ZDEC0220,decoy,ZINC250k; matched_to=BDBM50240779
+CC[C@@H](C)NC(=O)c1ccc2c(=O)n(C)c3nnc(SCc4cccc(OC)c4)n3c2c1,ZDEC0205,decoy,ZINC250k; matched_to=BDBM50613215
+COc1ccc(-n2ncc3c(O)nc(SCC(=O)Nc4cc(C)ccc4C)nc32)cc1,ZDEC0157,decoy,ZINC250k; matched_to=BDBM50665101
+O=C1CCc2c(Oc3ccc4c(c3)[C@H]3[C@H](NC(=O)c5cc(C(F)(F)F)ccn5)[C@H]3O4)ccnc2N1,BDBM200536,active,BindingDB P00533 IC50 median 6.95 nM (n=2) pmid=
+C[C@@H](Nc1ncnc2[nH]c(-c3ccc(O)cc3)cc12)c1ccc(Br)cc1,BDBM50358048,active,BindingDB P00533 IC50 median 62 nM (n=1) pmid=22018877
+COc1ccc(NC(=O)Cn2nc(SC)c(-c3nc(-c4ccc(C)cc4)no3)c2N)cc1Cl,ZDEC0215,decoy,ZINC250k; matched_to=BDBM50667513
+Cc1ccc2c(NC(=O)[C@@H]3CCCc4sc(NC(=O)c5ccc(Cl)cc5)nc43)cccc2n1,ZDEC0216,decoy,ZINC250k; matched_to=BDBM50240779
+CCOC(=O)[C@H]1CCCN(c2cc(C(=O)[O-])c3cc(NC(=O)c4ccc(Cl)cc4)ccc3n2)C1,ZDEC0148,decoy,ZINC250k; matched_to=BDBM717423
+Cc1nonc1[C@@H]1CCCN1C(=O)c1cn(-c2ccccc2)nn1,ZDEC0026,decoy,ZINC250k; matched_to=BDBM50510535
+CCN(C(=O)c1ccc(NC(=S)NC(=O)c2ccco2)cc1)c1cccc2ccccc12,ZDEC0240,decoy,ZINC250k; matched_to=BDBM152775
+CC(C)c1ccc(NC(=O)Cn2nc(-c3ccco3)c3sc(N4CCCCC4)nc3c2=O)cc1,ZDEC0005,decoy,ZINC250k; matched_to=BDBM50322823

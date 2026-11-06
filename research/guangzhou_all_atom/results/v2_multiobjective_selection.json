@@ -1,0 +1,226 @@
+{
+  "avb6": {
+    "selected_ids": [],
+    "all": [
+      {
+        "id": "AVB6-K-01",
+        "affinity_dG": -15.34,
+        "permeability": -3.883,
+        "SA": 6.04,
+        "safety": 0.55,
+        "tpsa": 388.3,
+        "clogp": -2.74,
+        "tier": "WATCH"
+      },
+      {
+        "id": "AVB6-K-02",
+        "affinity_dG": -25.02,
+        "permeability": -3.883,
+        "SA": 6.2,
+        "safety": 0.55,
+        "tpsa": 388.3,
+        "clogp": -1.71,
+        "tier": "WATCH"
+      },
+      {
+        "id": "AVB6-K-03",
+        "affinity_dG": -18.74,
+        "permeability": -4.012,
+        "SA": 6.1,
+        "safety": 0.8,
+        "tpsa": 401.2,
+        "clogp": -3.12,
+        "tier": "PASS"
+      },
+      {
+        "id": "AVB6-K-04",
+        "affinity_dG": -15.64,
+        "permeability": -4.341,
+        "SA": 6.29,
+        "safety": 0.55,
+        "tpsa": 434.1,
+        "clogp": -3.14,
+        "tier": "WATCH"
+      },
+      {
+        "id": "AVB6-K-05",
+        "affinity_dG": null,
+        "permeability": -3.523,
+        "SA": 6.02,
+        "safety": 0.8,
+        "tpsa": 352.3,
+        "clogp": -1.16,
+        "tier": "PASS"
+      },
+      {
+        "id": "AVB6-K-06",
+        "affinity_dG": -23.41,
+        "permeability": -4.156,
+        "SA": 5.83,
+        "safety": 0.8,
+        "tpsa": 415.6,
+        "clogp": -5.58,
+        "tier": "PASS"
+      },
+      {
+        "id": "AVB6-K-07",
+        "affinity_dG": null,
+        "permeability": -3.928,
+        "SA": 6.03,
+        "safety": 0.8,
+        "tpsa": 392.8,
+        "clogp": -4.05,
+        "tier": "PASS"
+      },
+      {
+        "id": "AVB6-K-08",
+        "affinity_dG": null,
+        "permeability": -3.883,
+        "SA": 6.24,
+        "safety": 0.55,
+        "tpsa": 388.3,
+        "clogp": -0.98,
+        "tier": "WATCH"
+      },
+      {
+        "id": "AVB6-K-09",
+        "affinity_dG": null,
+        "permeability": -4.543,
+        "SA": 6.43,
+        "safety": 0.55,
+        "tpsa": 454.3,
+        "clogp": -3.78,
+        "tier": "WATCH"
+      },
+      {
+        "id": "AVB6-K-10",
+        "affinity_dG": null,
+        "permeability": -4.086,
+        "SA": 6.11,
+        "safety": 0.55,
+        "tpsa": 408.6,
+        "clogp": -3.03,
+        "tier": "WATCH"
+      }
+    ],
+    "pareto_selection": {
+      "pareto_front": [
+        "AVB6-K-01",
+        "AVB6-K-02",
+        "AVB6-K-03",
+        "AVB6-K-06"
+      ],
+      "dominated": [
+        "AVB6-K-04"
+      ],
+      "unscored_no_dG": [
+        "AVB6-K-05",
+        "AVB6-K-07",
+        "AVB6-K-08",
+        "AVB6-K-09",
+        "AVB6-K-10"
+      ]
+    }
+  },
+  "pdl1": {
+    "selected_ids": [],
+    "all": [
+      {
+        "id": "PDL1-K-01",
+        "affinity_dG": -23.42,
+        "permeability": -4.22,
+        "SA": 6.76,
+        "safety": 0.55,
+        "tpsa": 422.0,
+        "clogp": -0.47,
+        "tier": "WATCH"
+      },
+      {
+        "id": "PDL1-K-02",
+        "affinity_dG": -22.87,
+        "permeability": -3.815,
+        "SA": 6.51,
+        "safety": 0.55,
+        "tpsa": 381.5,
+        "clogp": 0.08,
+        "tier": "WATCH"
+      },
+      {
+        "id": "PDL1-K-03",
+        "affinity_dG": -28.91,
+        "permeability": -4.87,
+        "SA": 6.91,
+        "safety": 0.55,
+        "tpsa": 487.0,
+        "clogp": -3.44,
+        "tier": "WATCH"
+      },
+      {
+        "id": "PDL1-K-04",
+        "affinity_dG": -26.86,
+        "permeability": -4.018,
+        "SA": 6.5,
+        "safety": 0.55,
+        "tpsa": 401.8,
+        "clogp": -0.41,
+        "tier": "WATCH"
+      },
+      {
+        "id": "PDL1-K-05",
+        "affinity_dG": -29.04,
+        "permeability": -5.233,
+        "SA": 7.38,
+        "safety": 0.55,
+        "tpsa": 523.3,
+        "clogp": -2.8,
+        "tier": "WATCH"
+      },
+      {
+        "id": "PDL1-K-06",
+        "affinity_dG": -22.67,
+        "permeability": -4.22,
+        "SA": 6.72,
+        "safety": 0.55,
+        "tpsa": 422.0,
+        "clogp": -0.66,
+        "tier": "WATCH"
+      },
+      {
+        "id": "PDL1-K-07",
+        "affinity_dG": -23.17,
+        "permeability": -4.377,
+        "SA": 6.94,
+        "safety": 0.55,
+        "tpsa": 437.7,
+        "clogp": 0.72,
+        "tier": "WATCH"
+      },
+      {
+        "id": "PDL1-K-08",
+        "affinity_dG": -21.83,
+        "permeability": -4.048,
+        "SA": 6.58,
+        "safety": 0.55,
+        "tpsa": 404.8,
+        "clogp": -1.24,
+        "tier": "WATCH"
+      }
+    ],
+    "pareto_selection": {
+      "pareto_front": [
+        "PDL1-K-02",
+        "PDL1-K-03",
+        "PDL1-K-04",
+        "PDL1-K-05"
+      ],
+      "dominated": [
+        "PDL1-K-01",
+        "PDL1-K-06",
+        "PDL1-K-07",
+        "PDL1-K-08"
+      ],
+      "unscored_no_dG": []
+    }
+  },
+  "_note": "Multi-objective Pareto over affinity_dG(MM-GBSA)xpermeability(RDKit TPSA PROXY, not EnsembleCycPerm)xSA(sascorer)xsafety(liability-tier PROXY, not HistGBM P[stable]). Within-target; needs a dG, so unscored candidates excluded. Trained perm/safety models + full-10 avb6 dG are follow-ups."
+}

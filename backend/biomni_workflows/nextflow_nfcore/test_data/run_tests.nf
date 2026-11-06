@@ -1083,6 +1083,7 @@ workflow TEST_GET_UCE_EMBEDDINGS_SCRNA {
 workflow TEST_PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2 {
     ch_input = Channel.of([
         [id: 'test_perform_chipseq_peak_calling_with_macs2'],
+        file("${params.test_data}/placeholder.txt"),
         file("${params.test_data}/placeholder.txt")
     ])
     PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2(ch_input)

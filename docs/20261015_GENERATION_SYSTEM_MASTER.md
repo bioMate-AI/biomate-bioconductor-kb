@@ -1,0 +1,76 @@
+# Peptide lead-generation system — MASTER (single entry point)
+
+**Date:** 2026-10-15 · Living master consolidating the generation-system work. The detailed docs remain
+authoritative for specifics; this is the one place to start. Code: `research/guangzhou_all_atom/cyclic_llm/`.
+
+## Thesis (one paragraph)
+The rounds showed binding is the *easy* axis — candidates die on the HARD gates (selectivity vs homolog,
+developability, FTO/novelty, mechanism-correct physics, pharmacophore-geometry). So the moat is **not** the
+generator; it is the **closed loop of an LLM proposer + a multi-constraint, honestly-verified scoring stack**
+that the generator optimizes against, with the hard gates as IN-LOOP objectives (not post-hoc filters). The
+architecture is the **SNG neurosymbolic pattern**: symbolic rules (outside the LLM, deterministic) constrain and
+reject; the neural LLM (inside) proposes in the free space; a verifier scores; the loop revises. Knowledge
+collection (target / structure / patent KBs) is the prerequisite foundation.
+
+## Division of labor
+- **Inside the LLM:** the proposer (candidate generation), intent/language reasoning. Trained only on the
+  data-advantaged slices: the peptide/HELM generator + DB-gold tasks (routing/decomp/findings). NOT a general reasoner.
+- **Outside (closed loop):** knowledge bases, hard-constraint rules, and the mechanism-matched scoring verifier
+  (the reward). Deterministic, correct, fresh.
+
+## What is BUILT and verified (code)
+| component | file | status |
+|---|---|---|
+| Target KB (avb6, pdl1) | `target_kb/*.json` | ✅ |
+| Rule induction (SNG L1 — learn the rule from few actives) | `rule_induction.py` | ✅ reproduces the αvβ6 gate from data (0 error); pdl1 honest cold-start |
+| FTO claim layer (`in_claim` + DoE) | `fto_kb/ca2998968.json`, `fto_score.py` | ✅ INSIDE / literally-OUTSIDE+DoE / OUTSIDE(form) |
+| Rule-conditioned generator (SNG L2/L5) | `rule_conditioned_generator.py` | ✅ rejects rule-violators AND patent-infringing; ranks by patent risk; emits (H,X) |
+| Consolidated verifier/reward `score()` | `score.py` | ✅ cheap tier live; **`tier='full'` auto-dispatches the expensive physics tier**, A2-gated |
+| Closed optimizer loop | `loop.py` | ✅ propose→score→select→revise→repeat closes end-to-end; 0-abandoned convergence on infringing/greasy/rule-fail stress seeds; revise = labeled stand-in for RL/LLM driver |
+| Neural proposer | `neural_generator.py` | ✅ unified_cyclic_llm_v4 proposes free-position chemistry by permeability-conditioned macrocycle likelihood (temp = exploration); same reject+rank + `(H,X)`; `loop.py --neural`; enumeration fallback |
+| Expensive-tier auto-dispatch | `physics_dispatch.py` | ✅ reads MM-GBSA/counter/groove artifacts (no GPU run), joins HELM→ID→result, A2 control-anchored at receptor level (K-05 binding −39.86/sel −15.27 admissible) |
+| Mechanism-matched scorer config | `scorer_config.py` | ✅ KB mechanism → metal/pose/counter-target/receptor/controls config; physics admissibility gated on `mechanism_compliant()` (avb6 requires Mn@MIDAS → metal-free runs non-compliant; metal-aware+anchored run admitted automatically) |
+| FTO compound/patent axis | `fto_score.py` → `drug_novelty_fto` | ✅ real NW identity + ECFP Tanimoto vs 136k ChEMBL/BindingDB + live SureChEMBL patent presence (replaces 2-HELM seq stub); `score(tier='full')` carries `fto.novelty`; fail-open |
+| RLVR reward + loop→DPO bridge | `reward.py` → `dpo_pairs.py`/`dpo_peptide_trainer.py` | ✅ `score()`→scalar reward (gate dominates, selectivity first-class — encodes the G2 lesson) + reward-ranked preference pairs into the existing DPO trainer; emitter only, gradient RLVR gated on volume+GPU |
+
+The **loop skeleton is now built end-to-end**: neural proposer → score (cheap + auto-dispatched physics,
+A2 + mechanism-gated; real FTO compound/patent axis) → select → revise → repeat, with a `score()`→reward +
+loop→DPO tap for the own-LLM. Remaining labeled stand-ins / gaps (see progress doc next-item list): revise =
+deterministic repair (not a learned RL/LLM policy); the neural proposer is target-agnostic for avb6 and
+restricted to a gate-known monomer palette; the expensive tier reads results only and there is **no admissible
+avb6 ΔG yet** — now a principled mechanism-noncompliance (requires Mn@MIDAS; existing avb6 runs are metal-free),
+so a metal-aware + control-anchored run will be admitted automatically when produced.
+
+## SNG learnings applied (`20261015_DETAILED_DESIGN_SYMBOLIC_NEURAL_LEARNINGS.md`)
+L1 induce the design rule from the few actives (not hand-code) ✅; L2 rules condition + reject ✅; L3 emit (H,X)
+artifact ✅; L4/L5 fits cold-start + correctness-by-construction ✅. Extend beyond SNG: induce/encode FTO,
+developability, mechanism as symbolic specs too (partially — FTO is encoded).
+
+## Next items (prioritized; `20261015_PROGRESS_AND_NEXT_ITEMS.md` has detail)
+1. ~~Neural peptide generator replacing the enumeration stand-in~~ ✅ DONE (`neural_generator.py`) — remaining: gate-known **monomer-palette expansion** (needs a vetted monomer-property table) + a **target-aware** (BoltzGen/affinity-conditioned) proposer for avb6.
+2. ~~Optimizer loop~~ ✅ DONE (`loop.py`) — remaining: swap the deterministic revise for the learned driver (REINVENT/Saturn RL with `score()` as reward, or LLM-revise); folds into #1/#8.
+3. ~~Expensive-tier auto-dispatch into `score()`~~ ✅ DONE (`physics_dispatch.py`, `score(tier='full')`) — remaining: a **G1 groove JSON** and optional **auto-launch** of the GPU job for gate-passers with no result yet.
+4. ~~Mechanism-matched scorer config~~ ✅ DONE (`scorer_config.py`) — the config now declares exactly what an admissible avb6 run needs (Mn@MIDAS + metal-complete receptor + control); remaining is the **GPU run itself** (metal-aware MM-GBSA + integrin counter-targets), out of band (spot-cost discipline).
+5. ~~Patent compound layer~~ ✅ DONE (`fto_score`→`drug_novelty_fto`: NW identity + 136k-lib Tanimoto + live SureChEMBL) — remaining: structured claim KBs for PD-L1 BMS + counter-integrin estates; SureChEMBL substructure (genus) search; library same-target tag enrichment.
+6. Real ILP (Popper/Aleph) + richer rule families + more negatives.
+7. Governance (Mozi verifiable stages).
+8. Own-LLM: continue gold SFT → peptide generator → RLVR with `score()` as reward. — generator ✅ (#1), **RLVR reward + loop→DPO bridge ✅ (`reward.py`)**; the gradient DPO→RL run itself is gated on loop volume + GPU (OWN_LLM §5); gold SFT is active in `evaluation/local_trial`.
+
+## Document index (detailed docs)
+- Lessons: `20261015_LESSONS_AND_GENERATION_SYSTEM_UPGRADE.md`
+- Survey + architecture (OSS: REINVENT4, Saturn, Mozi, AgentD, SNG, patentability-constrained): `20261015_GENERATION_SYSTEM_SURVEY_AND_ARCHITECTURE.md`
+- Two-phase build spec: `20261015_LOOP_BUILD_SPEC_PHASE0_AND_PHASE1.md`
+- Own-LLM direction: `20261015_OWN_LLM_OPTIMIZATION_DIRECTION.md`
+- SNG learnings + detailed design: `20261015_DETAILED_DESIGN_SYMBOLIC_NEURAL_LEARNINGS.md`
+- First-build plan: `20261015_BUILD_PLAN_TARGET_KB_AND_RULE_INDUCTION.md`
+- Backlog: `20261015_GENERATION_SYSTEM_BACKLOG.md` · Progress + next: `20261015_PROGRESS_AND_NEXT_ITEMS.md`
+- Program context (the αvβ6/PD-L1 rounds this was learned from): `20261014_CYCLIC_PEPTIDE_PROGRAM_MASTER.md`
+
+## Honest framing
+The loop skeleton now works end-to-end — neural proposer → score (cheap + A2-gated physics) → select → revise →
+repeat — and is genuinely novel for peptides (the OSS loops are all small-molecule). Scores are relative/
+feasibility-level and control-anchored, and the FTO axis now runs real structure/patent checks; the wet-lab
+assay is ground truth. What remains is hardening and the two resource-gated runs, not greenfield: a learned
+revise policy, a target-aware/palette-expanded neural proposer, admissible avb6 physics (the metal-aware MM-GBSA
+GPU run), and the gradient DPO→RL run on the `reward.py` signal once the loop produces volume — each specified in
+the progress doc's next-item list and grounded in existing components.

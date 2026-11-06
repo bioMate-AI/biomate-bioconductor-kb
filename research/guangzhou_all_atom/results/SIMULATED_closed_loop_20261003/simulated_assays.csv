@@ -1,0 +1,7 @@
+compound_id,assay_type,value,unit,assay_date,operator,operator_note
+SIM-0,Kd,12,nM,2026-10-03,=,SIMULATED integration fixture; not measured
+SIM-1,Kd,800,nM,2026-10-03,=,SIMULATED integration fixture; not measured
+SIM-2,Kd,100000,nM,2026-10-03,>,SIMULATED integration fixture; not measured
+SIM-3,Kd,12,nM,2026-10-03,=,SIMULATED integration fixture; not measured
+SIM-4,Kd,800,nM,2026-10-03,=,SIMULATED integration fixture; not measured
+SIM-5,Kd,100000,nM,2026-10-03,>,SIMULATED integration fixture; not measured

@@ -1,0 +1,25 @@
+{
+  "source": "ImmPort SDY1490 iWITH / ITN823ST (pediatric liver transplant, immunosuppression withdrawal)",
+  "objective": "therapy duration / sustained response \u2014 time to biopsy-proven rejection after withdrawal",
+  "n_screened": 161,
+  "n_screen_failures_excluded": 73,
+  "n_enrolled_with_followup": 88,
+  "n_rejection_events": 40,
+  "event_rate": 0.455,
+  "median_followup_days": 1483.0,
+  "max_followup_days": 1613.0,
+  "median_time_to_rejection_days": 230.0,
+  "covariates": [
+    "prior_rejection_history",
+    "age",
+    "SEX"
+  ],
+  "role": "external-test (single study, small n) \u2014 proof-of-concept patient-level time-to-event",
+  "caveats": [
+    "single study; small n \u2014 not broad duration validation",
+    "endpoint = on-study biopsy rejection (liv3mstr, positive REJDY); rjynmstr negative REJDY is pre-study history, used only as covariate",
+    "pediatric liver transplant tolerance \u2014 transfer to autoimmune/other duration questions is a hypothesis, not given",
+    "ImmPort quarantined; confirm not in knowledge-training before eval use"
+  ],
+  "training_eligible": false
+}

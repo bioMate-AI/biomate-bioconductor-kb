@@ -52,7 +52,7 @@ with open("identify_fas_functional_domains_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("identify_fas_functional_domains_output.txt", "w") as f:
-    f.write("Biomni: Identify Fas Functional Domains Results" + NL)
+    f.write("BioMate: Identify Fas Functional Domains Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

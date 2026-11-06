@@ -1,0 +1,5 @@
+config {'nn': 'nn_q3', 'd': 'd_q6_l0.3', 'g': 'g_a1000_q6_l0.3', 'f': 'f0_1000'}
+AL done 54 s
+controls done 648 s
+c4 done 664 s
+s3 done 665 s

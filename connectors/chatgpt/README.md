@@ -1,6 +1,6 @@
 # BioMate · ChatGPT GPT Action
 
-This directory holds the OpenAPI 3.1 spec consumed by ChatGPT's GPT builder ("Configure → Actions") to expose BioMate's 14 connector tools inside a custom GPT.
+This directory holds the OpenAPI 3.1 spec consumed by ChatGPT's GPT builder ("Configure → Actions") to expose BioMate's 19 connector tools inside a custom GPT.
 
 ## Files
 

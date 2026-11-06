@@ -1,0 +1,25 @@
+{
+  "model": "openai/gpt-6.1-sol-pro",
+  "pooled": {
+    "all": {
+      "n_pos": 138,
+      "n": 688,
+      "llm_alone_auroc": 0.6516,
+      "ot_genetics_auroc": 0.4535
+    },
+    "approved": {
+      "n_pos": 0,
+      "n": 550,
+      "llm_alone_auroc": null,
+      "ot_genetics_auroc": null
+    },
+    "emerging": {
+      "n_pos": 0,
+      "n": 550,
+      "llm_alone_auroc": null,
+      "ot_genetics_auroc": null
+    }
+  },
+  "novel_discovery_signal": false,
+  "interpretation": "LLM-alone: all=0.6516, APPROVED(kd>=.5)=None, EMERGING(kd<.5)=None (OT-genetics on emerging=None, n_emerging_pos=0). LLM advantage concentrates in APPROVED targets; no clear forward signal on emerging targets -> remains recall, not discovery."
+}

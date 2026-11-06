@@ -251,7 +251,7 @@ Analysis completed successfully.
         return research_log
 
     except Exception as e:
-        return f"Error during analysis: {str(e)}"
+        raise RuntimeError(f"Error during analysis: {str(e)}")
 
 # Execute the function
 try:
@@ -291,7 +291,7 @@ with open("analyze_protease_kinetics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_protease_kinetics_output.txt", "w") as f:
-    f.write("Biomni: Analyze Protease Kinetics" + NL)
+    f.write("BioMate: Analyze Protease Kinetics" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

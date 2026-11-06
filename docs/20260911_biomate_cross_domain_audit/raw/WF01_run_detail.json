@@ -1,0 +1,390 @@
+{
+  "http_status": 200,
+  "body": {
+    "id": "47381c6c-7a32-4d7c-b8a6-59f10a12912a",
+    "runSequence": 1,
+    "userId": "fd5a73ac-87df-4850-b8ff-6d768c1b47fb",
+    "mode": "sandbox",
+    "workflowName": "Predict ADMET Properties (AI)",
+    "workflowDefinition": {
+      "name": "Predict ADMET Properties (AI)",
+      "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+      "annotation": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+      "tags": [
+        "drug_discovery",
+        "biomni",
+        "nextflow",
+        "predict_admet_properties",
+        "preferred",
+        "model_type:ai_chemprop",
+        "chemprop",
+        "admet_ai"
+      ],
+      "domain": "drug_discovery",
+      "format": "nextflow",
+      "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+      "workflow_type": "nextflow",
+      "steps": {
+        "0": {
+          "id": "0",
+          "name": "Admet Infer Shard",
+          "tool_id": "ADMET_INFER_SHARD",
+          "annotation": "Admet Infer Shard",
+          "description": "",
+          "type": "tool",
+          "parameters": {},
+          "inputs": {},
+          "phase_group": "",
+          "phase_label": ""
+        },
+        "1": {
+          "id": "1",
+          "name": "Predict Admet Properties",
+          "tool_id": "PREDICT_ADMET_PROPERTIES",
+          "annotation": "Predict Admet Properties",
+          "description": "",
+          "type": "tool",
+          "parameters": {
+            "smiles_list": {
+              "type": "string",
+              "label": "Smiles List",
+              "default": null
+            },
+            "ADMET_model_type": {
+              "type": "string",
+              "label": "Admet Model Type",
+              "default": null
+            },
+            "admet_shard_size": {
+              "type": "string",
+              "label": "Admet Shard Size",
+              "default": null
+            }
+          },
+          "inputs": {},
+          "phase_group": "",
+          "phase_label": ""
+        }
+      },
+      "scientific_rationale": {
+        "tools_used": [
+          "Predict Admet Properties"
+        ],
+        "when_to_use": [
+          "Pharmacological modeling and drug analysis"
+        ],
+        "do_not_use_when": [
+          "Predictions are estimates - experimental validation required",
+          "Training data biased toward drug-like small molecules",
+          "May not generalize to novel chemotypes"
+        ],
+        "data_requirements": {},
+        "key_assumptions": [],
+        "common_pitfalls": [],
+        "parameter_hints": [
+          {
+            "param": "ADMET_model_type",
+            "recommended": "MPNN",
+            "rationale": "",
+            "tool": "Predict Admet Properties"
+          },
+          {
+            "param": "smiles_list",
+            "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+            "rationale": "",
+            "tool": "Predict Admet Properties"
+          },
+          {
+            "param": "_expert_guidance",
+            "recommended": "{'lipinski_rule_of_five': {'description': 'Empirical rules predicting oral bioavailability based on molecular properties. A compound violating more than one rule is unlikely to be orally bioavailable.', 'situations': {'standard_oral_drugs': {'value_or_range': 'MW < 500 Da, LogP <= 5, HBD <= 5, HBA <= 10', 'when': 'Designing or filtering compounds intended for oral administration', 'why': 'Based on analysis of >2,000 drugs by Christopher Lipinski (1997). These thresholds represent the 90th percentile of orally available drugs. Compounds violating more than one rule have poor absorption or permeability.', 'source': \"https://en.wikipedia.org/wiki/Lipinski's_rule_of_five\"}, 'beyond_rule_of_five': {'value_or_range': 'MW 500-1000, violations allowed for natural products and peptidomimetics', 'when': 'Working with antibiotics, antifungals, natural products, or PPI inhibitors that inherently violate Lipinski rules', 'why': \"Many successful drugs violate Lipinski rules, especially those targeting protein-protein interactions or using active transport mechanisms. The 'beyond Rule of 5' (bRo5) chemical space includes approved drugs like cyclosporine.\", 'source': 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4910824/'}}, 'common_mistakes': ['Treating Lipinski violations as absolute rejection criteria rather than guidelines', 'Applying Lipinski rules to non-oral routes (injectable, inhaled, topical drugs)', 'Ignoring that natural products and biologics routinely violate these rules']}, 'tpsa': {'description': 'Topological Polar Surface Area - sum of surfaces of polar atoms. Correlates with intestinal absorption and blood-brain barrier penetration.', 'situations': {'oral_absorption': {'value_or_range': '20-130 square Angstrom', 'when': 'Evaluating intestinal absorption potential for oral drugs', 'why': 'Compounds with TPSA > 140 square Angstrom typically have poor intestinal absorption (<10%). The range 20-130 captures most orally bioavailable drugs.', 'source': 'https://pmc.ncbi.nlm.nih.gov/articles/PMC5335600/'}, 'cns_penetration': {'value_or_range': '< 90 square Angstrom (ideally < 70)', 'when': 'Designing CNS-targeting drugs that must cross the blood-brain barrier', 'why': 'The BBB is more restrictive than intestinal epithelium. CNS drugs generally require TPSA < 90 square Angstrom, with most successful CNS drugs having TPSA < 70.', 'source': 'https://pmc.ncbi.nlm.nih.gov/articles/PMC5335600/'}}, 'common_mistakes': ['Not considering TPSA alongside LogP for permeability assessment', 'Using TPSA alone without considering charge state at physiological pH', 'Ignoring that TPSA thresholds differ for different tissues and barrier types']}, 'logp': {'description': 'Logarithm of the octanol-water partition coefficient. Measures lipophilicity, which affects absorption, distribution, metabolism, and toxicity.', 'situations': {'optimal_oral_absorption': {'value_or_range': '1.35-1.8 (ideal), must be <= 5 (Lipinski)', 'when': 'Optimizing oral and intestinal absorption', 'why': 'LogP values between 1.35 and 1.8 provide optimal oral and intestinal absorption. Too hydrophilic (LogP < 0) compounds have poor membrane permeability; too lipophilic (LogP > 5) compounds have poor aqueous solubility.', 'source': 'https://www.sailife.com/understanding-lipinskis-rule-of-5-and-the-role-of-logp-value-in-drug-design-and-development/'}, 'cns_drugs': {'value_or_range': '~2.0', 'when': 'Designing drugs to cross the blood-brain barrier', 'why': 'CNS drugs require sufficient lipophilicity to cross the BBB but not so much that they become trapped in membranes. A LogP around 2.0 provides optimal CNS penetration.', 'source': 'https://www.sailife.com/understanding-lipinskis-rule-of-5-and-the-role-of-logp-value-in-drug-design-and-development/'}, 'sublingual_absorption': {'value_or_range': '> 5', 'when': 'Designing drugs for sublingual or buccal absorption', 'why': 'Sublingual absorption relies on passive diffusion through the lipophilic oral mucosa, favoring highly lipophilic compounds.', 'source': 'https://www.sailife.com/understanding-lipinskis-rule-of-5-and-the-role-of-logp-value-in-drug-design-and-development/'}}, 'common_mistakes': ['Using calculated LogP without experimental validation for lead compounds', 'Not considering LogD (pH-dependent partition coefficient) for ionizable compounds', 'Optimizing for LogP without considering the impact on metabolic stability and off-target binding']}, 'solubility': {'description': 'Aqueous solubility of compound, typically reported as LogS. Critical determinant of oral bioavailability.', 'situations': {'acceptable_solubility': {'value_or_range': 'LogS > -4 (> 50 microg/mL)', 'when': 'Screening for compounds with adequate solubility for oral dosing', 'why': 'Compounds with aqueous solubility below 50 microg/mL frequently show dissolution-limited absorption, especially at higher doses.', 'source': 'https://pmc.ncbi.nlm.nih.gov/articles/PMC5335600/'}, 'high_solubility': {'value_or_range': 'LogS > -3 (> 500 microg/mL)', 'when': 'BCS Class I compounds or compounds requiring high doses', 'why': 'High solubility reduces the risk of variable absorption and food effects, simplifying clinical development.', 'source': 'https://pmc.ncbi.nlm.nih.gov/articles/PMC5335600/'}}, 'common_mistakes': ['Not measuring solubility at physiologically relevant pH values (1.2, 6.8, 7.4)', 'Relying solely on thermodynamic solubility without checking kinetic solubility', 'Ignoring the impact of polymorphism and salt form on solubility']}, 'herg_toxicity': {'description': 'Inhibition of the hERG potassium channel, which can cause QT prolongation, arrhythmia, and potentially fatal cardiac events (Torsades de Pointes).', 'situations': {'safe_threshold': {'value_or_range': 'hERG IC50 > 10 microM', 'when': 'Screening compounds for cardiac safety liability', 'why': 'Compounds with hERG IC50 > 10 microM are generally classified as non-inhibitors. Most hERG prediction models use 10 microM as the classification cutoff.', 'source': 'https://pmc.ncbi.nlm.nih.gov/articles/PMC3324100/'}, 'concerning_threshold': {'value_or_range': 'hERG IC50 < 1 microM', 'when': 'Compounds showing strong hERG inhibition requiring immediate medicinal chemistry attention', 'why': 'Compounds with hERG IC50 below 1 microM have a high probability of clinical QT prolongation. A safety margin of at least 30-fold between therapeutic Cmax and hERG IC50 is typically required.', 'source': 'https://www.nature.com/articles/s41598-025-99766-3'}}, 'common_mistakes': ['Using different IC50 thresholds (1-40 microM) without specifying which was used, making comparisons unreliable', 'Not considering the ratio of hERG IC50 to therapeutic Cmax (safety margin) rather than absolute IC50', 'Ignoring that lipophilic compounds (high LogP) have inherently higher hERG binding propensity']}, 'clearance': {'description': 'Rate of drug elimination from the body, typically measured as hepatic clearance in microsomal or hepatocyte assays.', 'situations': {'low_clearance': {'value_or_range': '< 5 mL/min/kg (human)', 'when': 'Compounds expected to have long half-lives suitable for once-daily dosing', 'why': 'Low clearance compounds have favorable pharmacokinetics for sustained exposure. Indicates metabolic stability and potential for low dose.', 'source': 'https://www.allucent.com/resources/blog/compartmental-modeling-pharmacokinetics'}, 'high_clearance': {'value_or_range': '> 20 mL/min/kg (human)', 'when': 'Compounds showing rapid metabolism requiring structural optimization', 'why': 'High clearance reduces oral bioavailability and requires frequent dosing. May indicate metabolic soft spots that can be blocked through structural modification.', 'source': 'https://www.allucent.com/resources/blog/compartmental-modeling-pharmacokinetics'}}, 'common_mistakes': ['Not scaling in vitro clearance to in vivo using appropriate well-stirred or parallel tube liver models', 'Ignoring species differences in clearance when extrapolating from preclinical to human', 'Not considering extrahepatic clearance (renal, intestinal) alongside hepatic clearance']}, 'ld50_prediction': {'description': 'Lethal dose for 50% of test animals. The standard acute toxicity endpoint representing the amount of compound causing death in half of the test organisms.', 'situations': {'ghs_classification': {'value_or_range': 'Category 1: LD50 <= 5 mg/kg (fatal); Category 2: 5-50 mg/kg (fatal); Category 3: 50-300 mg/kg (toxic); Category 4: 300-2000 mg/kg (harmful); Category 5: 2000-5000 mg/kg (may be harmful)', 'when': 'Classifying acute oral toxicity per the Globally Harmonized System (GHS)', 'why': 'GHS classification determines labeling, handling requirements, and regulatory classification. Computational LD50 prediction enables early hazard classification without animal testing.', 'source': 'https://pubs.acs.org/doi/10.1021/acs.chemrestox.3c00352'}, 'prediction_tools': {'value_or_range': 'ProTox-II, TEST (EPA), GUSAR, PredAOT; typical prediction accuracy 70-80%', 'when': 'Predicting LD50 for untested compounds in early drug discovery', 'why': 'Multiple QSAR-based tools are available. ProTox-II uses fragment-based similarity and molecular descriptors. PredAOT uses a two-step approach: first classifying compounds as toxic/non-toxic, then predicting specific LD50 values for each class. Using multiple tools and taking a consensus improves reliability.', 'source': 'https://pubs.acs.org/doi/10.1021/acsomega.2c05693'}}, 'common_mistakes': ['Treating predicted LD50 as a definitive value rather than a range estimate with significant uncertainty', 'Not considering route of administration (oral, dermal, inhalation LD50 values differ substantially)', 'Relying on a single prediction tool without cross-validation with other methods']}, 'noael_prediction': {'description': 'No Observed Adverse Effect Level - the highest dose at which no statistically significant adverse effects are observed in chronic toxicity studies. Used to calculate safety margins.', 'situations': {'safety_margin_calculation': {'value_or_range': 'Safety margin = NOAEL / therapeutic dose; should be >= 10x (preclinical), >= 100x (first-in-human with uncertainty)', 'when': 'Establishing safe starting doses for clinical trials', 'why': 'FDA guidance uses NOAEL from the most sensitive species to calculate the human equivalent dose (HED) for first-in-human studies. A 10-fold safety factor is applied to the HED to determine the maximum recommended starting dose (MRSD).', 'source': 'https://pubs.acs.org/doi/10.1021/acs.chemrestox.3c00352'}, 'prediction_approaches': {'value_or_range': 'VEGA QSAR, ToxTree, COSMOS; predictions have high uncertainty (within 1 log unit)', 'when': 'Estimating NOAEL for untested compounds before chronic toxicity studies', 'why': 'NOAEL predictions from computational models are much less reliable than LD50 predictions due to the complexity of chronic toxicity mechanisms. Predictions should be used for prioritization only, not as a substitute for chronic toxicity testing.', 'source': 'https://pubs.acs.org/doi/10.1021/acs.chemrestox.3c00352'}}, 'common_mistakes': ['Using NOAEL prediction as a substitute for chronic toxicity studies in regulatory submissions', 'Not applying appropriate species scaling factors (allometric scaling) when extrapolating from animal NOAEL to human doses', 'Ignoring organ-specific toxicity that may occur at doses below the general NOAEL']}, 'ames_mutagenicity_prediction': {'description': 'Prediction of Ames test (bacterial reverse mutation) results - whether a compound can cause gene mutations. A positive Ames test is a regulatory red flag for genotoxic carcinogenicity.', 'situations': {'structural_alert_screening': {'value_or_range': 'Screen for 29 validated toxicophores/structural alerts; sensitivity ~80%, specificity ~70%', 'when': 'Initial filtering of compounds for mutagenic potential based on structure', 'why': 'Structural alerts (toxicophores) are molecular substructures associated with mutagenicity (e.g., aromatic amines, nitro groups, alkylating agents, epoxides). A validated set of 29 toxicophores classified mutagenicity with 82% total accuracy.', 'source': 'https://pubs.acs.org/doi/10.1021/jm040835a'}, 'expert_system_prediction': {'value_or_range': 'Derek Nexus, Leadscope, or CASE Ultra; use consensus of rule-based + statistical approaches', 'when': 'Regulatory-grade mutagenicity prediction per ICH M7 guidance for impurity assessment', 'why': 'ICH M7 requires two complementary in silico methods - one expert rule-based (e.g., Derek Nexus) and one statistical/QSAR-based (e.g., CASE Ultra). Both must predict negative for a compound to be classified as non-mutagenic without experimental testing.', 'source': 'https://www.lhasalimited.org/wp-content/uploads/2023/04/Derek-Nexus-6.2-Mutagenicity-QMRF.pdf'}, 'machine_learning_models': {'value_or_range': 'Random Forest, SVM, or deep learning models; typical AUC 0.85-0.90 on benchmark datasets', 'when': 'High-throughput screening of large compound libraries for mutagenic liability', 'why': 'ML models trained on the Hansen benchmark dataset (>6,500 compounds) achieve AUC of 0.85-0.90. Models using molecular fingerprints (ECFP6) combined with physicochemical descriptors generally outperform those using either alone.', 'source': 'https://pubs.acs.org/doi/10.1021/acs.chemrestox.7b00083'}}, 'common_mistakes': ['Using a single prediction method when ICH M7 requires two complementary methods', 'Not distinguishing between alerting structures that cause mutagenicity via different mechanisms (direct-acting vs. requiring metabolic activation)', 'Ignoring that many structural alerts have high false positive rates and require expert interpretation']}, 'hepatotoxicity_prediction': {'description': 'Prediction of drug-induced liver injury (DILI), which is the leading cause of post-market drug withdrawals. Includes both intrinsic (dose-dependent) and idiosyncratic (unpredictable) hepatotoxicity.', 'situations': {'dili_risk_assessment': {'value_or_range': 'Binary classification (DILI-positive vs DILI-negative); best models achieve ~71% accuracy with ECFP6 fingerprints', 'when': 'Early assessment of hepatotoxicity risk for drug candidates', 'why': 'DILI accounts for 18% of drug withdrawals. Early prediction allows design-out of hepatotoxic liability. Ensemble models combining molecular fingerprints with deep neural networks and traditional ML achieve the best performance.', 'source': 'https://pmc.ncbi.nlm.nih.gov/articles/PMC11373136/'}, 'daily_dose_and_lipophilicity_rule': {'value_or_range': 'Daily dose > 100 mg AND LogP > 3: significantly elevated DILI risk', 'when': 'Quick risk stratification based on simple physicochemical and dosing properties', 'why': \"The '2-out-of-3 rule' (daily dose > 100 mg, LogP > 3, metabolism by CYPs) identifies compounds with significantly elevated DILI risk. This simple rule provides rapid risk stratification before more complex predictions.\", 'source': 'https://pmc.ncbi.nlm.nih.gov/articles/PMC10640386/'}, 'reactive_metabolite_assessment': {'value_or_range': 'Screen for bioactivation-prone functional groups (furans, thiophenes, anilines, hydrazines)', 'when': 'Evaluating mechanism-based hepatotoxicity risk from reactive metabolites', 'why': 'Many DILI cases are caused by reactive metabolites that form covalent adducts with cellular proteins (especially CYP-mediated bioactivation). Identifying bioactivation-prone substructures is a key component of hepatotoxicity risk assessment.', 'source': 'https://pubs.acs.org/doi/10.1021/tx200148a'}}, 'common_mistakes': ['Treating DILI prediction as a solved problem when even the best models have ~30% error rates', 'Not considering dose as a critical factor (most DILI occurs at daily doses > 100 mg)', 'Ignoring reactive metabolite formation as a mechanism of DILI', 'Using single-endpoint models when DILI involves multiple mechanisms (mitochondrial toxicity, bile salt transport inhibition, immune-mediated injury)']}}",
+            "rationale": "",
+            "tool": "Predict Admet Properties"
+          }
+        ]
+      },
+      "hardware_requirements": {
+        "gpu_required": false,
+        "min_memory_gb": 16,
+        "tools_analyzed": 1,
+        "tool_runtime_hints": [
+          {
+            "tool_id": "biomni/pharmacology/predict_admet_properties",
+            "tool_name": "predict_admet_properties",
+            "gpu": false,
+            "memory_gb": 16,
+            "container_image": null,
+            "runtime_type": "biomni_local"
+          }
+        ],
+        "source": "ai_tool_db.execution_info"
+      },
+      "required_params": [],
+      "optional_params": [
+        {
+          "name": "smiles_list",
+          "label": "Smiles List",
+          "description": "Workflow parameter: Smiles List",
+          "type": "string",
+          "default": "[\"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CC(C)(C)c1ccc(cc1)C(O)CCCN2CCC(CC2)C(O)(c3ccccc3)c4ccccc4\"]",
+          "autoFilled": true,
+          "rationale": "Extracted SMILES strings for caffeine, aspirin, and terfenadine from the query.",
+          "value": "[\"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CC(C)(C)c1ccc(cc1)C(O)CCCN2CCC(CC2)C(O)(c3ccccc3)c4ccccc4\"]"
+        },
+        {
+          "name": "ADMET_model_type",
+          "label": "Admet Model Type",
+          "description": "Workflow parameter: Admet Model Type",
+          "type": "string",
+          "default": "MPNN",
+          "autoFilled": true,
+          "rationale": "",
+          "value": "MPNN"
+        },
+        {
+          "name": "admet_shard_size",
+          "label": "Admet Shard Size",
+          "description": "Workflow parameter: Admet Shard Size",
+          "type": "integer",
+          "default": "25",
+          "value": "25"
+        }
+      ],
+      "parameters": {
+        "smiles_list": "[\"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CC(C)(C)c1ccc(cc1)C(O)CCCN2CCC(CC2)C(O)(c3ccccc3)c4ccccc4\"]",
+        "ADMET_model_type": "MPNN",
+        "admet_shard_size": "25"
+      }
+    },
+    "dataScope": {
+      "fraction": 1,
+      "samplingStrategy": "random",
+      "sampledIds": []
+    },
+    "parameters": {
+      "version": 1,
+      "toolParameters": {}
+    },
+    "execution": {
+      "galaxyInvocationId": "279bde70-b3d4-45bd-8be7-1a8b9f36aa52",
+      "galaxyHistoryId": "nf-47381c6c-7a32-4d7c-b8a6-59f10a12912a",
+      "executionEngine": "nextflow",
+      "status": "completed",
+      "startedAt": "2026-09-11T22:59:49.062Z",
+      "completedAt": "2026-09-11T23:02:29.896Z",
+      "nextflowRunId": "a1422bd1-d864-45d3-9584-db1697f6acbe",
+      "nextflowOutputDir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f",
+      "nextflowWorkDir": "s3://biomate-nextflow-work/nextflow/work/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/a1422bd1-d864-45d3-9584-db1697f6acbe",
+      "nextflowStatus": {
+        "run_id": "a1422bd1-d864-45d3-9584-db1697f6acbe",
+        "invocation_id": "279bde70-b3d4-45bd-8be7-1a8b9f36aa52",
+        "status": "succeeded",
+        "returncode": 0,
+        "outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f",
+        "work_dir": "s3://biomate-nextflow-work/nextflow/work/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/a1422bd1-d864-45d3-9584-db1697f6acbe",
+        "log_tail": [
+          "Sep-11 23:01:50.149 [TaskFinalizer-2] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=12; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+          "Sep-11 23:01:50.167 [main] DEBUG nextflow.Session - Session await > all processes finished",
+          "Sep-11 23:01:50.350 [PublishDir-3] DEBUG nextflow.cloud.aws.nio.S3Client - Creating S3 transfer manager pool - max-treads=10;",
+          "Sep-11 23:01:50.352 [PublishDir-3] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=10; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false",
+          "Sep-11 23:01:59.249 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop",
+          "Sep-11 23:01:59.249 [main] DEBUG nextflow.Session - Session await > all barriers passed",
+          "Sep-11 23:01:59.251 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)",
+          "Sep-11 23:01:59.252 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)",
+          "Sep-11 23:01:59.264 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=33.3s; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=6; peakMemory=36 GB; ]",
+          "Sep-11 23:02:00.063 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=[path] to=[storage]",
+          "Sep-11 23:02:00.366 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+          "Sep-11 23:02:00.367 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report",
+          "Sep-11 23:02:01.966 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline",
+          "Sep-11 23:02:02.407 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file",
+          "Sep-11 23:02:02.415 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done",
+          "Sep-11 23:02:02.430 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.3.0'",
+          "Sep-11 23:02:02.430 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon",
+          "Sep-11 23:02:02.431 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)",
+          "Sep-11 23:02:02.432 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)",
+          "Sep-11 23:02:02.432 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: There's no process matching config selector: PRODUCTION_MD",
+          "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+          "Sep-11 22:59:52.046 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config",
+          "Sep-11 22:59:56.964 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]",
+          "Sep-11 22:59:59.605 [main] WARN  nextflow.Session - There's no process matching config selector: PRODUCTION_MD",
+          "Sep-11 23:02:00.366 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info."
+        ],
+        "is_batch": true,
+        "s3_output_files": [
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/pk_summary.json",
+            "name": "pk_summary.json",
+            "size": 1686,
+            "extension": "json"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_output.txt",
+            "name": "predict_admet_properties_output.txt",
+            "size": 1558,
+            "extension": "txt"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_results.json",
+            "name": "predict_admet_properties_results.json",
+            "size": 1608,
+            "extension": "json"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/qc_metrics.json",
+            "name": "qc_metrics.json",
+            "size": 562,
+            "extension": "json"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/toxicity_report.json",
+            "name": "toxicity_report.json",
+            "size": 3316,
+            "extension": "json"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/versions.yml",
+            "name": "versions.yml",
+            "size": 159,
+            "extension": "yml"
+          }
+        ],
+        "qc_report": null,
+        "qc_gates": [
+          {
+            "metric": "herg_ic50_uM",
+            "value": 0.01,
+            "threshold": 1,
+            "operator": "<",
+            "message": "[GOLD] hERG IC50 0.010 \u03bcM is below the high-risk threshold of 1.0 \u03bcM (Sanguinetti & Tristani-Firouzi 2006; FDA E14 guidance). High-risk hERG inhibition predicts QT interval prolongation and risk of Torsade de Pointes (TdP). Structural optimisation to reduce hERG liability is required before progression."
+          },
+          {
+            "metric": "dili_risk",
+            "value": "high",
+            "threshold": "low",
+            "operator": "!=",
+            "message": "[GOLD] DILI risk classified as 'high' (DILIrank; Chen et al. 2016). Drug-induced liver injury is the leading cause of post-market drug withdrawal (Onakpoya et al. 2016). Hepatotoxicity investigation (ALT/AST panel, hepatocyte assay) is required before clinical progression."
+          }
+        ],
+        "started_at": 1789167589.9144783,
+        "completed_at": 1789167723.801233,
+        "duration_s": 133,
+        "completedTasks": 2,
+        "failedTasks": 0,
+        "runningTasks": 0,
+        "totalTasks": 2,
+        "progressPercent": 100,
+        "processes": [
+          {
+            "id": "1",
+            "name": "PREDICT_ADMET_PROPERTIES_WORKFLOW:ADMET_INFER_SHARD (shard_0)",
+            "status": "COMPLETED",
+            "work_dir": "",
+            "task_files": [],
+            "outputs": [],
+            "process": "admet_infer_shard (shard_0)"
+          },
+          {
+            "id": "2",
+            "name": "PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES (admet-merge)",
+            "status": "COMPLETED",
+            "work_dir": "",
+            "task_files": [],
+            "outputs": [],
+            "process": "predict_admet_properties (admet-merge)"
+          }
+        ]
+      },
+      "galaxyWorkflowId": null,
+      "errorMessage": null
+    },
+    "progress": {
+      "totalSteps": 0,
+      "completedSteps": 0,
+      "currentStepName": "Complete",
+      "percentComplete": 0
+    },
+    "steps": [
+      {
+        "stepId": "0",
+        "stepIndex": 0,
+        "stepName": "Admet Infer Shard",
+        "toolId": "ADMET_INFER_SHARD",
+        "toolName": "Admet Infer Shard",
+        "status": "pending",
+        "outputs": []
+      },
+      {
+        "stepId": "1",
+        "stepIndex": 1,
+        "stepName": "Predict Admet Properties",
+        "toolId": "PREDICT_ADMET_PROPERTIES",
+        "toolName": "Predict Admet Properties",
+        "status": "pending",
+        "outputs": []
+      }
+    ],
+    "metrics": {
+      "runtime": {
+        "totalSeconds": 0,
+        "perStepSeconds": {}
+      },
+      "resources": {
+        "peakMemoryGB": 0,
+        "avgCpuPercent": 0,
+        "diskUsedGB": 0
+      },
+      "quality": {},
+      "outputs": {
+        "fileCount": 0,
+        "totalSizeBytes": 0,
+        "byType": {},
+        "bySize": {}
+      }
+    },
+    "interactions": [],
+    "recommendations": [],
+    "createdAt": "2026-09-11T22:59:49.008Z",
+    "updatedAt": "2026-09-11T23:02:29.896Z",
+    "output_files": [
+      {
+        "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/pk_summary.json",
+        "name": "pk_summary.json",
+        "size": 1686,
+        "extension": "json"
+      },
+      {
+        "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_output.txt",
+        "name": "predict_admet_properties_output.txt",
+        "size": 1558,
+        "extension": "txt"
+      },
+      {
+        "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/predict_admet_properties_results.json",
+        "name": "predict_admet_properties_results.json",
+        "size": 1608,
+        "extension": "json"
+      },
+      {
+        "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/qc_metrics.json",
+        "name": "qc_metrics.json",
+        "size": 562,
+        "extension": "json"
+      },
+      {
+        "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/toxicity_report.json",
+        "name": "toxicity_report.json",
+        "size": 3316,
+        "extension": "json"
+      },
+      {
+        "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f/run/versions.yml",
+        "name": "versions.yml",
+        "size": 159,
+        "extension": "yml"
+      }
+    ],
+    "inline_findings": []
+  }
+}

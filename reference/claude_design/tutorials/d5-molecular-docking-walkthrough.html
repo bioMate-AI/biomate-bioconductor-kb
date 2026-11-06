@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Molecular docking — placing a ligand in the pocket, scored and ranked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Molecular docking — place a ligand in the pocket, score the pose, rank the candidates</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Molecular Docking · AutoDock Vina</b></div>
+    <div class="kicker">For the chemist asking whether a molecule could even fit the target</div>
+    <h2>Does it fit the pocket? Docking places the ligand and scores the pose.</h2>
+    <p class="caption">You have a target structure and a molecule you hope will bind it. Before any assay, one question comes first: <b>can this ligand sit in the pocket at all, and in what orientation?</b> Molecular docking searches for the ligand's best pose inside the binding site and scores each one, so you can triage a list down to the candidates worth pursuing. BioMate runs the real engine — <b>AutoDock Vina</b> (<code>Docking Autodock Vina</code>, domain <code>drug_discovery</code>) — on managed cloud compute. In this walkthrough we build the idea from the ground up, then show exactly what the workflow does.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>A receptor + ligand SMILES</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Define the pocket (the box)</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Search poses, score each</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Ranked by affinity score</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Triage the candidates</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>You can't co-crystallize every candidate — you need a fast way to ask "could this bind?"</h2>
+    <p class="caption">Early in a campaign you hold a target structure and dozens or thousands of candidate molecules. Solving a structure for each is impossible, and wet assays cost time and material. You need a cheap, physics-aware way to predict whether a molecule can occupy the pocket, and how, so you spend effort on the plausible ones.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">THE QUESTION</div><h4>Fit, and how?</h4><p>Can this molecule sit in the binding site, and in what orientation? That pose is the starting point for everything downstream.</p></div>
+          <div class="tile"><div class="n">THE SCALE</div><h4>Many candidates</h4><p>A virtual library can run to thousands of compounds. You cannot crystallize or assay them all; you need a rank to focus on.</p></div>
+          <div class="tile"><div class="n">THE COST</div><h4>Structure &amp; assay are slow</h4><p>Co-crystallography and binding assays are expensive and low-throughput. They belong on the shortlist, not the long list.</p></div>
+          <div class="tile"><div class="n">THE NEED</div><h4>A pose-aware filter</h4><p>A method that proposes a plausible bound pose and a comparable score — fast enough to triage a list before the bench.</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>The need: propose a bound pose and a score for each candidate, fast enough to triage before the bench</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas, and the whole method follows.</h2>
+    <p class="caption">You don't need the scoring-function mathematics — just these four concepts, in order.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · THE POCKET</div><h4>Where binding happens</h4><p>A protein has a cavity — the binding site — where a ligand sits. Docking needs to know where to look: a search box centred on that pocket.</p></div>
+            <div class="tile"><div class="n">2 · THE POSE</div><h4>A placed orientation</h4><p>A pose is one concrete way the ligand sits in the pocket: its position, rotation, and rotatable-bond conformation. Docking searches over many.</p></div>
+            <div class="tile"><div class="n">3 · THE SCORE</div><h4>How good the fit looks</h4><p>A scoring function estimates binding affinity in kilocalories per mole. More negative means a predicted tighter fit — it is how poses are ranked.</p></div>
+            <div class="tile"><div class="n">4 · SEARCH</div><h4>Explore, then rank</h4><p>The engine samples many poses, scores each, and returns the best-scoring ones. More search effort means a more thorough exploration.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The whole method is: point the engine at the pocket with a box, let it <b>search</b> for low-energy <b>poses</b>, and read the ranked <b>scores</b> — more negative being the better-looking fit.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — the vocabulary the rest of the walkthrough uses</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">In BioMate</span> · goal → workflow → run</div>
+    <h2>State the goal; BioMate routes to the real Vina engine and runs it in the cloud.</h2>
+    <p class="caption">Ask in plain English to dock a ligand into a pocket, and BioMate opens the real <b>Docking Autodock Vina</b> workflow — inputs mapped, parameters ready, one click from the managed-compute run.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · AutoDock Vina docking in BioMate</span>
+        <div class="frame"><img src="assets/live/docking-live-panel.png" alt="BioMate workflow panel for the AutoDock Vina molecular docking workflow"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain-English routing.</b> "Dock this ligand SMILES into my receptor PDB in the ATP pocket" lands on the <b>Docking Autodock Vina</b> workflow — domain <code>drug_discovery</code>.</span></li>
+          <li><span class="b"></span><span><b>The inputs you bring.</b> The ligands as a <code>smiles_list</code>, the target as a <code>receptor_pdb_file</code>, and the pocket as <code>box_center</code> + <code>box_size</code> — the search box.</span></li>
+          <li><span class="b"></span><span><b>Defaults, handled for you.</b> <code>exhaustiveness</code> defaults to <code>8</code> and <code>n_poses</code> to <code>9</code>; the search runs on BioMate's managed cloud compute with output to managed storage.</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run.</b> You're the Owner — a single click launches the real AutoDock Vina calculation in the cloud.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real docking workflow, set up for you</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">Inputs</span> · what you bring</div>
+    <h2>Three things: the ligands, the target, and where the pocket is.</h2>
+    <p class="caption">Docking is site-directed by default, so you tell the engine where to look. Supply the molecules, the receptor structure, and a box around the binding site — and, if you want a confidence check, a reference ligand to validate the pose against.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">LIGANDS</div><h4>The molecules to dock</h4><p>A <code>smiles_list</code> — one or many candidates as SMILES strings. The engine builds 3D conformers and searches poses for each.</p></div>
+          <div class="tile"><div class="n">RECEPTOR + BOX</div><h4>The target and the pocket</h4><p>The target as a <code>receptor_pdb_file</code>, with the pocket defined by <code>box_center</code> and <code>box_size</code> — the search box the engine samples inside.</p></div>
+          <div class="tile"><div class="n">REFERENCE (OPTIONAL)</div><h4>A pose to check against</h4><p>A <code>reference_ligand_smiles</code> switches on validation mode: the docked pose is compared to the known crystal pose and the deviation reported.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Don't know the pocket? <b>Blind docking.</b> <code>Run Autosite</code> detects cavities (<code>pdb_file</code>, <code>spacing</code> default <code>1.0</code>) to define the box, or <code>Run Diffdock With Smiles</code> — a diffusion model — docks without a predefined box (<code>pdb_path</code>, <code>smiles_string</code>, <code>use_gpu</code>). Site-directed Vina is the default here.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Ligands, a target, and a box in — a scored, placed pose out</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE METHOD -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">The method</span> · what it actually does</div>
+    <h2>Prepare, search the box, then score and rank the poses.</h2>
+    <p class="caption">The steps are concrete and sequential. Vina builds a receptor grid, searches ligand poses inside the box with a stochastic optimizer, and scores each with its empirical affinity function — returning the best few, ranked.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · PREP</div><h4>3D ligand + receptor grid</h4><p>Each SMILES is turned into a 3D structure; the receptor and the search box define the grid the engine will score poses on.</p></div>
+          <div class="tile"><div class="n">2 · SEARCH</div><h4>Sample poses in the box</h4><p>Vina's optimizer explores positions, rotations, and rotatable bonds inside the box. <code>exhaustiveness</code> (default <code>8</code>) sets how thorough that search is.</p></div>
+          <div class="tile"><div class="n">3 · SCORE &amp; RANK</div><h4>Affinity per pose</h4><p>Each kept pose gets a Vina binding-affinity score in kcal/mol; <code>n_poses</code> (default <code>9</code>) are returned, ranked from the most negative — the best-looking fit.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Modes: <b>site-directed</b> uses your box; <b>validation</b> adds a <code>reference_ligand_smiles</code> and reports the docked pose's <b>R-M-S-D</b> to the known crystal pose — a pass is a deviation of <code>&le; 2.0 &Aring;</code>.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Real pose search with Vina's empirical scoring — poses ranked, not a one-shot guess</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">The output</span> · ranked poses with scores</div>
+    <h2>Ranked docked poses, each with an affinity score — and an RMSD when you validate.</h2>
+    <p class="caption">The result is a set of placed poses for each ligand, ranked by a Vina binding-affinity score in kcal/mol, with the pose coordinates you can inspect. When you supply a reference ligand, the pose also carries its RMSD to the crystal structure, so you can judge whether the geometry is trustworthy before you trust the score.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.4fr 1fr">
+          <div class="tile"><div class="n">RANKED POSES</div><h4>Score + coordinates, per pose</h4><p>Each docked pose carries a Vina binding-affinity score in kcal/mol — more negative is a predicted tighter fit — plus the 3D coordinates of the placement. Rank your candidates by the best score each achieves.</p></div>
+          <div class="tile"><div class="n">VALIDATION</div><h4>Pose R-M-S-D</h4><p>With a <code>reference_ligand_smiles</code>, the docked pose is compared to the crystal pose and its R-M-S-D reported. A deviation of <code>&le; 2.0 &Aring;</code> is the conventional pass — the engine recovered the known geometry.</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b gr"></span><span><b>The pose travels with the score.</b> You never get a bare number: the coordinates let you see how and where the ligand was placed, which is half the interpretation.</span></li>
+          <li><span class="b am"></span><span><b>Validation mode gives a confidence anchor.</b> When the reference pose is recovered within <code>2.0 &Aring;</code>, the scoring on related ligands is far more credible than from a blind setup.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>A ranked, placed, inspectable pose for each candidate — with a geometry check when you ask for one</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">Using the result</span> · triage, then confirm</div>
+    <h2>Shortlist what to pursue — and treat the score as a hypothesis, not a measurement.</h2>
+    <p class="caption">Docking earns its keep by cutting a long list down to a credible shortlist. Rank by score, inspect the top poses for sensible geometry, and carry the survivors forward — to a more rigorous free-energy calculation, or to the bench. The number is a hypothesis of a pose, so it is a filter, not a verdict.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">TRIAGE</div><h4>Rank and shortlist</h4><p>Order the candidates by their best Vina score, drop the obvious non-binders, and keep the top poses whose geometry makes chemical sense in the pocket.</p></div>
+          <div class="tile"><div class="n">ESCALATE</div><h4>Hand off to FEP/RBFE</h4><p>To rank close analogs by potency, docking is too coarse — pass the shortlist to the free-energy workflow (the sibling <b>Binding Free Energy</b> tutorial) for the fine ranking.</p></div>
+          <div class="tile"><div class="n">VALIDATE</div><h4>Confirm in the lab</h4><p>The pose and score are predictions. Co-crystallography and binding assays are the ground truth; docking tells you which compounds are worth that cost.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">A good practice: run validation mode on a ligand with a known crystal pose first. If Vina recovers it within <code>2.0 &Aring;</code>, you have evidence the box and setup are sound before you trust scores on new molecules.</p>
+        <div><span class="verdict ok"><span class="mk"></span>A sharper shortlist — escalated to free energy or the bench, not acted on blind</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="47.0">
+    <div class="kicker">What you get, precisely</div>
+    <h2>Precise about scope, so you know exactly what you get.</h2>
+    <p class="caption">Docking is fast and useful, and knowing exactly where it is reliable — and where it is not — is what makes it trustworthy as a triage tool rather than a false oracle.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">A GATE, NOT A RULER</div><h4>Separates, doesn't finely rank</h4><p>Vina scores separate binders from non-binders well, but are unreliable for the fine affinity ranking of close analogs. For that, use the FEP/RBFE free-energy workflow — the sibling <b>Binding Free Energy</b> tutorial.</p></div>
+          <div class="tile"><div class="n">RIGID BY DEFAULT</div><h4>Limited induced-fit</h4><p>The receptor is treated as rigid by default, so pocket rearrangement on binding — induced fit — is largely not captured. A pocket that reshapes around a ligand can be mis-scored.</p></div>
+          <div class="tile"><div class="n">A POSE HYPOTHESIS</div><h4>Predicted, not measured</h4><p>A good score is a <i>hypothesis</i> of a pose, not a measured affinity. And blind docking — without a known pocket — is lower-confidence than docking into a defined site; validate the geometry before trusting it.</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>Specific and honest — a fast triage tool with stated assumptions, not a measured affinity</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="kicker">The value at a glance</div>
+    <h2 style="font-size:40px">Place the ligand. Score the pose. Shortlist with confidence.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The point in one sentence: <b>before you crystallize or assay anything, docking tells you which molecules could plausibly fit the pocket — and in what orientation.</b> BioMate routes your goal to <code>Docking Autodock Vina</code>, searches poses inside the box you define, and returns ranked poses each with a Vina binding-affinity score and coordinates — with pose R-M-S-D to a reference crystal when you run validation mode.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Bring your ligands (SMILES), a receptor P-D-B, and the pocket as a box</li>
+            <li><span class="k">2</span>BioMate routes to <code>Docking Autodock Vina</code> and runs Vina on managed compute</li>
+            <li><span class="k">3</span>It returns ranked poses with affinity scores — and pose R-M-S-D if you validate</li>
+            <li><span class="k">4</span>Triage by score; escalate the shortlist to free energy or confirm at the bench</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>What it answers</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Could it fit, and how</span></td></tr>
+            <tr><td>Engine</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">AutoDock Vina</span></td></tr>
+            <tr><td>Output</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Ranked poses + affinity score</span></td></tr>
+            <tr><td>Modes</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Site-directed · validation (RMSD)</span></td></tr>
+            <tr><td>Honest edges</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Gate not ruler · rigid · pose hypothesis</span></td></tr>
+          </table>
+          <p class="footnote">From a target and a list of molecules to a ranked set of placed, scored poses — a fast, honest triage of what is worth the bench. Blind-docking and free-energy paths are one route away.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

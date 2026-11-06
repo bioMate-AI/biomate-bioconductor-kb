@@ -268,7 +268,7 @@ with open("analyze_endolysosomal_calcium_dynamics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_endolysosomal_calcium_dynamics_output.txt", "w") as f:
-    f.write("Biomni: Analyze Endolysosomal Calcium Dynamics" + NL)
+    f.write("BioMate: Analyze Endolysosomal Calcium Dynamics" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

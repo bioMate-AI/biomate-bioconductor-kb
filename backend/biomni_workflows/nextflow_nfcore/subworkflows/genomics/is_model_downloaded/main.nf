@@ -221,7 +221,7 @@ with open("is_model_downloaded_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("is_model_downloaded_output.txt", "w") as f:
-    f.write("Biomni: Is Model Downloaded" + NL)
+    f.write("BioMate: Is Model Downloaded" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

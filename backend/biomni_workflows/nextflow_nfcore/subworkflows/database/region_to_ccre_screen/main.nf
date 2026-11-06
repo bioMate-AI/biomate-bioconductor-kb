@@ -218,7 +218,7 @@ with open("region_to_ccre_screen_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("region_to_ccre_screen_output.txt", "w") as f:
-    f.write("Biomni: Region To Ccre Screen" + NL)
+    f.write("BioMate: Region To Ccre Screen" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

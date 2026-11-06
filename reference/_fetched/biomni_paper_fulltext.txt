@@ -1,0 +1,6627 @@
+Biomni: A General-Purpose Biomedical AI Agent
+Kexin Huang1,∗,‡ , Serena Zhang1,∗ , Hanchen Wang1,2,∗ , Yuanhao Qu3,4,5,∗ , Yingzhou Lu5,∗ , Yusuf
+Roohani1,6 , Ryan Li1 , Lin Qiu7 , Gavin Li1 , Junze Zhang3,5 , Di Yin3,5 , Shruti Marwaha8 , Jennefer
+N. Carter8 , Xin Zhou5 , Matthew Wheeler8 , Jonathan A. Bernstein9 , Mengdi Wang10 , Peng He11 ,
+Jingtian Zhou6 , Michael Snyder5 , Le Cong3,5 , Aviv Regev2 , and Jure Leskovec1,‡
+1
+
+Department of Computer Science, Stanford University School of Engineering, Stanford, CA, USA
+
+2
+
+Research and Early Development, Genentech, South San Francisco, CA, USA
+
+3
+
+Department of Pathology, Stanford University School of Medicine, Stanford, CA, USA
+
+4
+
+Cancer Biology Program, Stanford University School of Medicine, Stanford, CA, USA
+
+5
+
+Department of Genetics, Stanford University School of Medicine, Stanford, CA, USA
+
+6
+
+Arc Institute, Palo Alto, CA, USA
+
+7
+
+Paul G. Allen School of Computer Science and Engineering, University of Washington, WA, USA
+
+8
+
+Department of Medicine, Stanford University School of Medicine, Stanford, CA, USA
+
+9
+
+Department of Pediatrics, Stanford University School of Medicine, Stanford, CA, USA
+
+10
+
+Department of Electrical and Computer Engineering, Princeton University, Princeton, NJ, USA
+
+11
+
+Department of Pathology, University of California San Francisco, San Francisco, CA, USA
+
+∗Equal contribution.
+‡Corresponding authors. Email: kexinh@cs.stanford.edu, jure@cs.stanford.edu
+
+1
+
+1
+
+Abstract
+
+2
+
+Biomedical research underpins progress in our understanding of human health and disease,
+
+3
+
+drug discovery, and clinical care. However, with the growth of complex lab experiments,
+
+4
+
+large datasets, many analytical tools, and expansive literature, biomedical research is in-
+
+5
+
+creasingly constrained by repetitive and fragmented workflows that slow discovery and limit
+
+6
+
+innovation, underscoring the need for a fundamentally new way to scale scientific exper-
+
+7
+
+tise. Here, we introduce Biomni, a general-purpose biomedical AI agent designed to au-
+
+8
+
+tonomously execute a wide spectrum of research tasks across diverse biomedical subfields.
+
+9
+
+To systematically map the biomedical action space, Biomni first employs an action discov-
+
+10
+
+ery agent to create the first unified agentic environment – mining essential tools, databases,
+
+11
+
+and protocols from tens of thousands of publications across 25 biomedical domains. Built
+
+12
+
+on this foundation, Biomni features a generalist agentic architecture that integrates large
+
+13
+
+language model (LLM) reasoning with retrieval-augmented planning and code-based execu-
+
+14
+
+tion, enabling it to dynamically compose and carry out complex biomedical workflows – en-
+
+15
+
+tirely without relying on predefined templates or rigid task flows. Systematic benchmarking
+
+16
+
+demonstrates that Biomni achieves strong generalization across heterogeneous biomedical
+
+17
+
+tasks – including causal gene prioritization, drug repurposing, rare disease diagnosis, micro-
+
+18
+
+biome analysis, and molecular cloning – without any task-specific prompt tuning. Real-world
+
+19
+
+case studies further showcase Biomni’s ability to interpret complex, multi-modal biomedical
+
+20
+
+datasets and autonomously generate experimentally testable protocols. Biomni envisions a
+
+21
+
+future where virtual AI biologists operate alongside and augment human scientists to dra-
+
+22
+
+matically enhance research productivity, clinical insight, and healthcare. Biomni is ready to
+
+23
+
+use at https://biomni.stanford.edu, and we invite scientists to explore its capabilities, stress-
+
+24
+
+test its limits, and co-create the next era of biomedical discoveries.
+
+2
+
+25
+
+1
+
+Introduction
+
+26
+
+Biomedical research is a key pillar of modern science and medicine, driving discoveries in disease
+
+27
+
+mechanisms, diagnostics, and therapeutics1–4 . Yet, with the growth in large-scale experiments,
+
+28
+
+data, tools, and literature, progress is increasingly slowed by fragmented, complex workflows that
+
+29
+
+require specialized tools, exhaustive literature reviews, intricate experimental design, and careful
+
+30
+
+statistical modeling5, 6 . A vast volume of valuable biomedical data sits underutilized7 , many so-
+
+31
+
+phisticated analyses are not conducted, and many connections for past knowledge and literature are
+
+32
+
+not made, not for lack of significance, but because the demand for expert researchers far exceeds
+
+33
+
+the supply. This mismatch between data abundance and limited human bandwidth highlights an
+
+34
+
+urgent need for a fundamentally new approach – one that can effectively scale expertise, streamline
+
+35
+
+workflows, and unlock the full potential of biomedical research.
+
+36
+
+Recent advances in Artificial Intelligence (AI) have created a paradigm shift, opening the
+
+37
+
+possibility for fundamentally reshaping biomedical research8 . AI agents have dramatically re-
+
+38
+
+shaped fields such as software engineering9 , law10 , material science11 and healthcare12 by au-
+
+39
+
+tomating repetitive tasks, enhancing productivity, and enabling breakthroughs that were previ-
+
+40
+
+ously unimaginable. Given these developments, the question emerges: Can we build a virtual
+
+41
+
+AI biomedical scientist? Such a virtual scientist would autonomously tackle diverse biomedical
+
+42
+
+research tasks spanning multiple subfields, unlocking extensive capabilities and fostering novel
+
+43
+
+insights through interdisciplinary integration – an achievement that can radically augment human
+
+44
+
+biologists limited by specialized expertise. Capable of efficiently managing thousands of concur-
+
+45
+
+rent tasks, this virtual scientist could dramatically enhance human productivity and accelerate the
+
+46
+
+pace of biomedical discovery.
+
+47
+
+Previous approaches have largely relied on specialist agentic workflows tailored to nar-
+
+48
+
+row biomedical tasks13–19 , which restricts their capacity to move fluidly and generalize across
+
+49
+
+the full spectrum of biomedical domains, as needed to answer key research questions. Enabling
+
+50
+
+an AI agent to handle a broad range of biomedical tasks introduces substantial technical chal-
+
+51
+
+lenges – most notably, the need to tightly couple advanced reasoning20 with the ability to exe-
+
+52
+
+cute highly specialized biomedical actions21 . Although LLM-based reasoning has seen significant
+
+53
+
+advancements22 , such LLMs need access to an environment that explicitly defines the biomedical
+
+3
+
+54
+
+action space, which is inherently diverse, domain-specific, and complex. Moreover, a truly capable
+
+55
+
+system requires an agentic architecture that can natively interact with this biomedical environment
+
+56
+
+– autonomously selecting and composing actions, using its reasoning capabilities to plan and exe-
+
+57
+
+cute diverse tasks without relying on rigid, pre-defined workflows.
+
+58
+
+Here we present Biomni, a generalist biomedical AI agent purpose-built to automate and
+
+59
+
+advance biomedical research across a wide range of subfields. Acting as a virtual AI biologist,
+
+60
+
+Biomni autonomously formulates novel, testable hypotheses, performs complex bioinformatics
+
+61
+
+analyses, and designs rigorous experimental protocols. To enable this capability, we first con-
+
+62
+
+structed a unified and comprehensive biomedical action space by systematically analyzing tens
+
+63
+
+of thousands of biomedical research papers spanning 25 distinct subfields, curated from major
+
+64
+
+bio-literature repositories. From this foundation, we developed an LLM-powered action discovery
+
+65
+
+agent capable of reading papers and extracting key tasks, tools, and databases essential to driving
+
+66
+
+biomedical discoveries. These elements are then selected and implemented into Biomni-E1, the
+
+67
+
+foundational environment that defines the biomedical action space for agentic interaction. Biomni-
+
+68
+
+E1 includes 150 specialized biomedical tools, 105 software packages, and 59 databases. We then
+
+69
+
+designed Biomni-A1, a general-purpose agent architecture capable of flexibly executing a broad
+
+70
+
+spectrum of biomedical tasks by using tools and datasets provided by Biomni E1. Given a user
+
+71
+
+query, the agent first uses a retrieval system to identify the most relevant tools, databases, and soft-
+
+72
+
+ware needed. It then applies LLM-based reasoning and domain expertise to generate a detailed,
+
+73
+
+step-by-step plan. Each step is expressed through executable code, enabling precise and flexible
+
+74
+
+compositions of biomedical actions – an essential feature given the domain’s reliance on highly
+
+75
+
+specialized tools and data resources. Unlike traditional function-calling methods, this approach
+
+76
+
+supports the dynamic and complex nature of biomedical workflows. This integrated system allows
+
+77
+
+Biomni not only to solve challenging, large-scale biomedical problems with efficiency, but also to
+
+78
+
+generalize to novel tasks across previously unseen areas of biomedical research.
+
+79
+
+Rigorous benchmarking demonstrates Biomni’s outstanding performance across established
+
+80
+
+biomedical Q&A benchmarks, and robust generalization performance in eight challenging, realis-
+
+81
+
+tic scenarios never encountered during development. Additionally, we highlight Biomni’s practical
+
+82
+
+capabilities through three impactful case studies: (1) analyzing 458 files of wearable sensor data
+
+83
+
+to generate novel insights; (2) rapidly performing comprehensive bioinformatics analyses on mas4
+
+84
+
+sive raw datasets, such as single-cell RNA-seq and ATAC-seq data, to generate novel insights and
+
+85
+
+hypotheses; (3) autonomously designing laboratory protocols to assist wet-lab researchers. With
+
+86
+
+Biomni, we introduce the first generation of a scalable, general-purpose biomedical AI agent,
+
+87
+
+setting the stage for an era where virtual AI biologists work alongside human researchers to dra-
+
+88
+
+matically accelerate biomedical discovery from basic research to translation.
+
+89
+
+2
+
+90
+
+Overview of Biomni. Biomni is a general-purpose biomedical AI agent comprising two main
+
+91
+
+components: Biomni-E1, a foundational biomedical environment with a unified action space, and
+
+92
+
+Biomni-A1, an intelligent agent designed to utilize this environment effectively.
+
+Results
+
+93
+
+Curating a unified biomedical action space is challenging due to its inherent complexity and
+
+94
+
+vastness. We systematically address this by employing an AI-driven approach (Figure 1a). Specif-
+
+95
+
+ically, we leveraged the 25 subject categories defined by bioRxiv, selecting the 100 most recent
+
+96
+
+publications per category. An action discovery LLM agent processed each paper sequentially,
+
+97
+
+extracting essential tasks, tools, databases, and software necessary to replicate or generate the de-
+
+98
+
+scribed research. This comprehensive set of resources constitutes the essential actions required to
+
+99
+
+perform a large set of biological research tasks.
+
+100
+
+We then curated Biomni-E1, an environment for a biomedical AI agent to perform a wide
+
+101
+
+range of actions (Figure 1b). Identified tools were rigorously verified by human experts, along
+
+102
+
+with corresponding test cases. These tools (Supplementary Table 1-Table 18) were specifically
+
+103
+
+chosen for their non-trivial nature, encompassing complex code, domain-specific know-how, or
+
+104
+
+specialized AI models. Recognizing the inherent flexibility required by biological software, which
+
+105
+
+cannot always be simplified into static functions, we constructed an execution environment pre-
+
+106
+
+installed with 105 widely-used biological software packages (Supplementary Table 23-30), sup-
+
+107
+
+porting Python, R, and Bash scripts. For database integration, we categorized resources into two
+
+108
+
+distinct groups. The first group consists of massive relational databases accessible via web APIs
+
+109
+
+(e.g., PDB, OpenTarget, ClinVar) (Supplementary Table 19-20). Rather than creating numerous
+
+110
+
+individual retrieval tools, we implemented a unified function per database. Each function accepts
+
+111
+
+natural language queries and internally employs an LLM to parse database schemas and generate
+
+112
+
+executable queries dynamically. Databases without web interfaces were downloaded into a data
+5
+
+113
+
+lake and preprocessed locally into structured pandas DataFrames for seamless integration with the
+
+114
+
+agent, for a total of 59 databases in Biomni-E1 (Supplementary Table 21-22). In summary, Biomni-
+
+115
+
+E1 is the first environment for biomedical AI agent and includes 150 specialized biomedical tools,
+
+116
+
+105 software, and 59 databases.
+
+117
+
+To build a general-purpose agent capable of tackling diverse biomedical tasks, we require a
+
+118
+
+specialized agentic architecture – one that avoids hardcoding workflows for each individual task.
+
+119
+
+This led to the development of Biomni-A1, which incorporates several core innovations critical
+
+120
+
+for operating across the biomedical research landscape. First, we introduce an LLM-based tool
+
+121
+
+selection mechanism designed to navigate the complexity and specialization of biomedical tools,
+
+122
+
+dynamically retrieving a tailored subset of resources based on the user’s goal. Second, recogniz-
+
+123
+
+ing that biomedical tasks often require rich procedural logic, Biomni-A1 uses code as a universal
+
+124
+
+action interface – allowing it to compose and execute complex workflows involving loops, par-
+
+125
+
+allelization, and conditional logic. Crucially, this approach also enables the agent to interleave
+
+126
+
+calls to software, tools, databases, and raw data operations that do not conform to predefined func-
+
+127
+
+tion signatures-supporting flexible and dynamic integration of heterogeneous resources. Third, the
+
+128
+
+agent adopts an adaptive planning strategy: it formulates an initial plan grounded in biomedical
+
+129
+
+knowledge and iteratively refines it throughout execution, enabling responsive, context-aware be-
+
+130
+
+havior. Together, these innovations enable Biomni-A1 to generalize to previously unseen tasks and
+
+131
+
+domains, dynamically composing intelligent actions and interfacing with software, data, and tools
+
+132
+
+in a way that embodies generalist biomedical intelligence (Figure 1c).
+
+133
+
+Biomni excels on general biomedical knowledge and reasoning benchmarks. We evaluated
+
+134
+
+Biomni on three challenging multiple-choice benchmarks of general biomedical knowledge and
+
+135
+
+reasoning: Humanity’s Last Exam (HLE)23 and LAB-Bench24 , which includes two key subtasks –
+
+136
+
+DbQA (Database Question Answering) and SeqQA (Sequence Question Answering) (Figure 2a).
+
+137
+
+These tasks span tool use, symbolic reasoning, and structured biological information retrieval
+
+138
+
+– core competencies for any robust biomedical AI agent. To isolate the impact of tool access
+
+139
+
+and agent design, we compared Biomni against six strong baselines (details in Supplementary
+
+140
+
+Notes A).
+
+141
+
+For LAB-Bench, a 45-question development set was used to refine tool and database inter-
+
+6
+
+142
+
+faces, while the final evaluation was conducted on 315 held-out test questions, with performance
+
+143
+
+averaged across three independent runs. We only curated a representative 12.5% subset of the full
+
+144
+
+benchmark due to API cost constraints. In DbQA, which requires structured querying over biolog-
+
+145
+
+ical databases, Biomni achieved 74.4% accuracy – matching expert human performance (74.7%)
+
+146
+
+and outperformed all baselines, including the coding agent (ReAct+Code, 40.8%). In SeqQA,
+
+147
+
+which involves reasoning over DNA and protein sequences, Biomni achieved 81.9% accuracy,
+
+148
+
+again exceeding human-level performance (78.8%).
+
+149
+
+To test true generalization of biomedical knowledge and reasoning without any development
+
+150
+
+set, we also evaluated Biomni on a 52-question subset of HLE spanning 14 biomedical subfields
+
+151
+
+– from molecular biology to physiology. Biomni achieved 17.3% accuracy, significantly outper-
+
+152
+
+forming the base LLM (6.0%), coding agent (12.8%), and literature agent (12.2%). These re-
+
+153
+
+sults demonstrate Biomni’s ability to generalize across unfamiliar, open-ended biomedical domains
+
+154
+
+without any task-specific adaptation. Additional ablation results are shown in Supplementary Fig-
+
+155
+
+ures 1-2. Performances across each subfield are reported in the Supplementary Figure 3.
+
+156
+
+Biomni generalizes to new, real-world biomedical tasks across diverse subfields. To evaluate
+
+157
+
+generalization in realistic research tasks, we curated eight new biomedical benchmarks spanning
+
+158
+
+genetics, genomics, microbiology, pharmacology, and clinical medicine (Figure 2b). Each task
+
+159
+
+was framed to reflect a common, well-defined, but complex real-world biomedical research goal,
+
+160
+
+including: (1) Variant prioritization: Identify the most likely causal variant from a list of poten-
+
+161
+
+tial variants for a trait, requiring reasoning about regulatory functions in non-coding regions. (2)
+
+162
+
+GWAS causal gene detection: Select the most likely causal gene within a locus, demanding fine-
+
+163
+
+grained locus-level inference. (3) CRISPR perturbation screen design: Construct gene panels to
+
+164
+
+maximize post-perturbation effect across a large (∼20,000 genes) search space. (4) Rare disease
+
+165
+
+diagnosis: Map patient phenotypes and genetic findings to rare disease diagnosis. (5) Drug repur-
+
+166
+
+posing: Given a rare disease and a list of candidate drugs, select the best therapeutic match. (6)
+
+167
+
+Single-cell RNA-seq annotation: Assign accurate cell-type labels to individual cell profiles across
+
+168
+
+tissues, species, and platforms. (7) Microbiome disease-taxa analysis: Perform statistical associa-
+
+169
+
+tion tests on microbiome datasets to uncover disease-relevant taxa. (8) Patient gene prioritization:
+
+170
+
+Given an individual patient’s genetic profile and phenotype description, identify the most plausi-
+
+7
+
+171
+
+ble causal gene. We benchmarked Biomni without prompt engineering or task-specific fine-tuning
+
+172
+
+against three baselines: (1) a base LLM (Claude Sonnet 3.7) without tool use, (2) a coding agent
+
+173
+
+with direct function calls and code execution (ReAct+Code), and (3) Biomni-ReAct, an ablation
+
+174
+
+of Biomni that replaces code-based planning with ReAct-style chaining. The complete benchmark
+
+175
+
+constructions are described in Methods, with detailed performance comparisons in Supplementary
+
+176
+
+Notes B.
+
+177
+
+Across all tasks, Biomni outperformed the base LLM by an average relative performance
+
+178
+
+gain of 402.3%, the coding agent by 43.0%, and its own ablated variant Biomni-ReAct by 20.4%.
+
+179
+
+These findings highlight the importance of code-centric planning and environment grounding, en-
+
+180
+
+abling Biomni to compose precise, flexible, and context-aware actions. For each benchmark, we
+
+181
+
+further analyzed the execution trajectories, identifying commonly invoked tools, software, and
+
+182
+
+datasets, as detailed in Supplementary Figures 6-16. These trajectories provide insight into the
+
+183
+
+complexity and structure of agent behavior across tasks. On average, Biomni executes between 6
+
+184
+
+and 24 distinct steps per task, involving combinations of 0-4 specialized tools, 1-8 software pack-
+
+185
+
+ages, and 0-3 unique data lake items. The agent interleaves data extraction, search/retrieval, rea-
+
+186
+
+soning, and computational analyses (Supplementary Figure 8) – reflecting a workflow pattern that
+
+187
+
+mirrors how human scientists alternate between retrieving knowledge and generating new insights.
+
+188
+
+Resource usage varies by task type: information synthesis tasks, such as CRISPR perturbation
+
+189
+
+screen design and GWAS causal gene identification, rely heavily on database queries (e.g., KEGG,
+
+190
+
+Reactome) and literature search (e.g., PubMed, Google), whereas bioinformatics analysis tasks
+
+191
+
+like microbiome profiling and single-cell annotation involve minimal database use but extensive
+
+192
+
+code execution with software libraries such as scanpy.
+
+193
+
+Biomni jointly analyzes 458 wearable sensor files to generate physiological hypotheses. To
+
+194
+
+evaluate Biomni’s performance in real-world biomedical workflows, we invited scientists to ap-
+
+195
+
+ply it directly to their own research questions. In this case study, a researcher used Biomni to
+
+196
+
+analyze 458 Excel files containing months-long wearable sensor data (continuous glucose moni-
+
+197
+
+toring (CGM) and body temperature) from 30 participants. The data were highly heterogeneous:
+
+198
+
+file formats varied, annotations were inconsistent, and participants exhibited substantial variability
+
+199
+
+(Figure 3a). The researcher posed an open-ended question: Can we uncover biologically meaning-
+
+8
+
+200
+
+ful thermogenic patterns?
+
+201
+
+Biomni autonomously generated and executed a 10-step analysis pipeline (Figure 3b), in-
+
+202
+
+ferring meal events from glucose spikes, extracting pre/post meal temperature windows, normal-
+
+203
+
+izing across individuals, and synthesizing population-level trends. Crucially, after completing the
+
+204
+
+pipeline, the agent delivered a structured, human-readable report summarizing its key findings
+
+205
+
+(Supplementary Notes D). It identified a consistent postprandial thermogenic response, with an
+
+206
+
+average temperature rise of 2.19◦ C (median: 1.10◦ CC) and a wide range across individuals (-
+
+207
+
+0.11◦ CC to 15.56◦ CC). Some participants showed rapid, pronounced spikes within 30 minutes of
+
+208
+
+eating, while others had delayed or muted responses – indicating divergent metabolic phenotypes
+
+209
+
+(Figure 3c,d). These insights were not manually curated or extracted by a human; the agent per-
+
+210
+
+formed the entire analysis end-to-end and surfaced the results as a concise narrative highlighting
+
+211
+
+patterns that would otherwise being ignored in raw data.
+
+212
+
+In a parallel workflow, the scientist requested Biomni to analyze 227 nights of wearable-
+
+213
+
+recorded sleep data across 10 participants. Biomni computed averages for duration, efficiency,
+
+214
+
+latency, and sleep stage composition, derived a composite sleep quality score, and conducted
+
+215
+
+chronobiological analyses. The agent delivered a structured summary to the user (Supplemen-
+
+216
+
+tary Notes D, Supplementary Figure 4), including personalized sleep profiles and timing insights,
+
+217
+
+without human post hoc synthesis. Biomni uncovered several novel insights: sleep efficiency
+
+218
+
+consistently peaked mid-week (on Wednesdays) and declined on Sundays, suggesting a potential
+
+219
+
+behavioral pattern tied to pre-Monday stress or weekend-induced disruptions. Another important
+
+220
+
+finding was that consistent sleep timing correlated more strongly with higher sleep quality than
+
+221
+
+total sleep duration, highlighting the critical role of circadian regularity in maintaining restorative
+
+222
+
+sleep.
+
+223
+
+The scientist then tasked Biomni with analyzing multi-omics data (652 lipidomic, 731 metabolomic,
+
+224
+
+and 1,470 proteomic features), jointly with the CGM data. Biomni conducted cross-omics correla-
+
+225
+
+tion analysis, applied hierarchical clustering to uncover biologically coherent feature groups, and
+
+226
+
+performed unsupervised PCA to link CGM signals to molecular pathways. It automatically gener-
+
+227
+
+ated interpretable outputs – trajectory plots, heatmaps, boxplots, PCA biplots, and cluster maps –
+
+228
+
+empowering rapid insight generation from complex multimodal datasets (Supplementary Notes D,
+
+229
+
+Supplementary Figure 5). Significant correlations among lipids, metabolites, and proteins revealed
+9
+
+230
+
+tightly interlinked regulatory pathways, underscoring the systems-level nature of metabolic regula-
+
+231
+
+tion. Notably, several identified biomarkers showed consistent patterns across samples and exhib-
+
+232
+
+ited high connectivity within correlation networks. Across all cases, the scientist noted that Biomni
+
+233
+
+accelerated the path from messy real-world data to testable hypotheses, supporting applications in
+
+234
+
+sleep optimization, metabolic research, and precision health.
+
+235
+
+Biomni automates complex multi-omics analysis to decipher transcriptional regulation of
+
+236
+
+skeletal lineages. To test whether Biomni could generalize to complex omics workflows, a scien-
+
+237
+
+tist used it to analyze a recently published multi-omics dataset of the developing human skeleton 25 .
+
+238
+
+This dataset comprises 336,162 single-nucleus RNA-Seq (snRNA) and ATAC-seq (snATAC-Seq),
+
+239
+
+paired with spatial transcriptomics data collected from human embryos between 5-11 weeks post-
+
+240
+
+conception (Figure3e). While the original study emphasized developmental trajectories and dis-
+
+241
+
+ease mechanisms, the scientist was interested in exploring gene regulatory mechanisms across
+
+242
+
+emerging skeletal cell types – a technically demanding task typically requiring extensive bioinfor-
+
+243
+
+matics support.
+
+244
+
+The scientist asked Biomni to investigate transcriptional regulation across skeletal lineages
+
+245
+
+using a detailed instruction (Supplementary Notes E). The system autonomously planned and exe-
+
+246
+
+cuted a ten-stage analysis pipeline: (1) loading and exploring all datasets, (2) preparing RNA-seq
+
+247
+
+data for analysis, (3) configuring pySCENIC to retrieve motifs, (4) running GRNBoost2 to infer
+
+248
+
+gene regulatory networks, (5) pruning networks using cisTarget, (6) calculating regulon activity
+
+249
+
+with AUCell, (7) extracting accessibility data from ATAC-seq, (8) filtering predicted targets us-
+
+250
+
+ing ATAC-seq accessibility, (9) analyzing activity patterns across cell types, developmental stages,
+
+251
+
+and anatomical regions, and (10) summarizing findings and preparing a report to the scientist. It
+
+252
+
+enabled Biomni to predict transcription factor-target gene links and filter regulons based on mo-
+
+253
+
+tif enrichment and chromatin accessibility correlations (Figure 3f). The full run, completed in
+
+254
+
+just over five hours, handled real-time execution issues (e.g., variable name mismatches) by sub-
+
+255
+
+sampling and debugging locally. Throughout, Biomni maintained all intermediate outputs – code,
+
+256
+
+figures, and logs – organized in a reproducible folder structure for validation and inspection. The
+
+257
+
+agent summarized all the analysis and generated a report describing the analysis and key findings
+
+258
+
+(Supplementary Notes E).
+
+10
+
+259
+
+In its final gene regulatory network (GRN) analysis (Figure 3h), Biomni re-capitulated known
+
+260
+
+regulatory relationships between key osteogenic transcription factors such as RUNX2 and HHIP,
+
+261
+
+confirming how they are regulated by a shared set of anti-osteogenic transcription factors including
+
+262
+
+TWIST1, LMX1B, and ALX4 25 . These findings align with author’s report 25 about the balanced
+
+263
+
+regulation needed for proper bone formation and suture patency. Furthermore, Biomni also uncov-
+
+264
+
+ered several unreported TFs, including AUTS2, ZFHX3, and PBX1, showed unexpectedly high
+
+265
+
+regulatory activity across multiple skeletal cell types. Although PBX1 is a well-established skele-
+
+266
+
+tal regulator 26 and ZFHX3/AUTS2 have only limited or indirect skeletal reports (in mouse 27
+
+267
+
+or zebrafish 28 ), their broad activity here suggests under-appreciated roles across diverse skele-
+
+268
+
+tal lineages. Biomni reported that these novel regulators were particularly active in osteoblasts,
+
+269
+
+preosteoblasts, and various chondrocyte populations, suggesting they play important but previ-
+
+270
+
+ously unrecognized roles in the transcriptional control of skeletal cell fate determination during
+
+271
+
+human embryonic development. Finally, Figure 3g-h reveals how Biomni’s visualizations effec-
+
+272
+
+tively captured both temporal dynamics of regulator activity and cell-type-specific variations in key
+
+273
+
+regulons like RUNX2. This demonstrates how Biomni enables researchers to autonomously per-
+
+274
+
+form complex multi-omics analysis and rapidly generate testable hypotheses without specialized
+
+275
+
+programming expertise.
+
+276
+
+Biomni designs wet-lab validated experimental protocol for cloning. To evaluate Biomni’s
+
+277
+
+ability to support real-world experimental design, we focused on a core task in molecular biology:
+
+278
+
+cloning. This process is central to countless workflows in research and biotechnology and requires
+
+279
+
+complex reasoning, from designing high-fidelity primers to choosing the right assembly method
+
+280
+
+and validating constructs. While general-purpose LLMs have struggled to perform such tasks due
+
+281
+
+to limited domain knowledge and tool access 24 , Biomni integrates LLM reasoning with dynamic
+
+282
+
+tool execution, enabling expert-level performance in molecular biology tasks.
+
+283
+
+To rigorously evaluate this task, we first collaborated with an expert group of gene-editing
+
+284
+
+researchers to design an open-ended cloning benchmark and expert user study (Figure 4a). Our
+
+285
+
+benchmark consisted of 10 realistic, representative cloning tasks covering Golden Gate, Gibson,
+
+286
+
+Gateway, and restriction cloning – each with options including single-fragment vs. pooled assem-
+
+287
+
+bly. The benchmark also included essential validation steps, such as designing Sanger sequencing
+
+11
+
+288
+
+primers and analyzing restriction digests. We posed these tasks to four entities: an LLM (Claude
+
+289
+
+3.7), Biomni, a human trainee (Stanford Biology Master with previous experience in cloning),
+
+290
+
+and a senior human expert (Stanford Genetics PostDoc with 5+ years of cloning experience).
+
+291
+
+Each was asked to generate a complete, end-to-end protocol along with the final cloned plas-
+
+292
+
+mid map. Blinded expert reviewers assessed the outputs. Biomni produced protocols and designs
+
+293
+
+that matched the human expert in accuracy and completeness – often providing comparable lev-
+
+294
+
+els of detail and anticipating the same edge cases. In contrast, the human trainee’s submissions
+
+295
+
+were frequently incomplete or suboptimal, reflecting the experience gap typical in early-stage re-
+
+296
+
+searchers. Remarkably, Biomni completed all tasks autonomously in a fraction of the time taken
+
+297
+
+by the expert.
+
+298
+
+To further validate Biomni in a real-world setting, a scientist assigned it a practical cloning
+
+299
+
+task: cloning a guide RNA targeting the human B2M gene into the lentiCRISPR v2 Blast construct
+
+300
+
+(Figure 4b). Biomni successfully executed the task through a comprehensive workflow (Figure 4c).
+
+301
+
+First, it analyzed the plasmid structure using annotation and pattern search tools to identify key fea-
+
+302
+
+tures necessary for cloning. It then designed three Cas9 sgRNAs targeting B2M using specialized
+
+303
+
+knockout sgRNA design tools. For the cloning process, Biomni generated forward and reverse
+
+304
+
+oligos with BsmBI overhangs to enable directional insertion of the sgRNA sequence. It produced
+
+305
+
+detailed protocols (Figure 4d) for oligo annealing, double-stranded DNA formation, and Golden
+
+306
+
+Gate cloning into the target vector. Biomni also provided complete bacterial transformation in-
+
+307
+
+structions, including heat-shock steps and antibiotic selection. For quality control, it designed a
+
+308
+
+U6 promoter sequencing primer to verify sgRNA insertion and simulated the Golden Gate assem-
+
+309
+
+bly to produce the final plasmid map.
+
+310
+
+The scientist followed Biomni’s protocol exactly to perform the wet-lab experiment (Fig-
+
+311
+
+ure 4e). Colonies appeared on the plate the next day; two were cultured, miniprepped, and se-
+
+312
+
+quenced using the Biomni-designed primers – both showing perfect alignment. This case illustrates
+
+313
+
+how scientists can rely on Biomni to autonomously design complex molecular biology experiments
+
+314
+
+with accuracy comparable to human experts, but in a fraction of the time.
+
+315
+
+User-friendly interface to empower scientists to generate biomedical discoveries. To bring the
+
+316
+
+power of Biomni into the hands of every scientist, we built an intuitive graphical interface – avail-
+
+12
+
+317
+
+able at https://biomni.stanford.edu – to help transform the way researchers interact with biomedical
+
+318
+
+data and tools. This seamless platform enables users to submit natural language queries and receive
+
+319
+
+results powered by the full capabilities of Biomni’s agentic system. Whether designing complex
+
+320
+
+cloning experiments, querying multi-omics databases, or generating hypotheses from wearable
+
+321
+
+data, scientists can now access the intelligence of a general-purpose biomedical AI agent without
+
+322
+
+writing a single line of code. The interface is designed for rapid iteration, real-time feedback, and
+
+323
+
+visual traceability, allowing users to explore intermediate steps, inspect tool usage, and validate
+
+324
+
+results interactively. By closing the gap between biomedical intent and execution, Biomni opens a
+
+325
+
+new era of accessible, automated, and scalable scientific discovery. An example of this interface is
+
+326
+
+shown in Supplementary Figure 17.
+
+327
+
+3
+
+328
+
+Biomni marks a major step forward in biomedical research, demonstrating robust generalization
+
+329
+
+across diverse subfields and laying the groundwork for AI agents as integral collaborators in scien-
+
+330
+
+tific discovery. Its zero-shot performance across complex tasks – including those in genetics, ge-
+
+331
+
+nomics, microbiology, immunology, pharmacology, and clinical medicine – underscores its poten-
+
+332
+
+tial to boost research productivity, accelerate discovery, and broaden access to advanced biomedical
+
+333
+
+analyses.
+
+Discussion
+
+334
+
+By automating complex, labor-intensive workflows, which normally require both expert
+
+335
+
+knowledge and coding skills, Biomni enables researchers to redirect their efforts toward creative
+
+336
+
+hypothesis generation, experimental innovation, and cross-disciplinary collaboration. This shift
+
+337
+
+holds profound implications. In the conext of target and drug discovery for biopharma, Biomni
+
+338
+
+can autonomously prioritize targets, design perturbation screens, or repurpose drugs – offering a
+
+339
+
+path to faster, more cost-effective reasearch. In clinical application settings, its capabilities in gene
+
+340
+
+prioritization and rare disease diagnosis point to more accurate, personalized insights and stream-
+
+341
+
+lined diagnostics. For consumer health, Biomni’s integration of wearable data and multi-omics
+
+342
+
+analyses envisions real-time, individualized health monitoring and intervention.
+
+343
+
+Nonetheless, several limitations remain. While Biomni’s unified environment spans a wide
+
+344
+
+range of biomedical tools and databases, the evaluated tasks represent only a subset of the field,
+
+345
+
+and key domains remain unexplored. In addition, in the action discovery agent, our decision to pri13
+
+346
+
+oritize the most recent literature makes the agent appear timely, but risks overlooking foundational
+
+347
+
+concepts and techniques that have faded from current discourse despite their enduring relevance.
+
+348
+
+The future versions should encapsulate a larger coverage of publications when defining the envi-
+
+349
+
+ronment. Moreover, although Biomni approaches human-level performance in tasks like database
+
+350
+
+querying, sequence analysis, and molecular cloning, it still struggles in areas requiring nuanced
+
+351
+
+clinical judgment, novel experimental reasoning, analytical inventions, or deep biological thinking
+
+352
+
+and synthesis. No system yet captures the full scope of human biomedical expertise. As reflected
+
+353
+
+in our benchmarks, Biomni has not achieved expert-level performance across all task categories.
+
+354
+
+We expect continued improvements as foundation models evolve and the agentic environment ex-
+
+355
+
+pands, as well as thanks to human experts and trainees deploying Biomni to facilitate or augment
+
+356
+
+their work.
+
+357
+
+These limitations open promising directions for future development. Training biomedical
+
+358
+
+reasoning agents with reinforcement learning could enable continuous self-improvement in plan-
+
+359
+
+ning and execution. Integrating multimodal data – text, images, and structured inputs – may further
+
+360
+
+deepen reasoning capabilities. Equipping Biomni to autonomously discover and incorporate new
+
+361
+
+tools and databases, as well as incorporate more historical methods (which may have high utility
+
+362
+
+but can be easily forgotten by human users), would ensure adaptability and long-term relevance.
+
+363
+
+Looking ahead, Biomni and its successors could become foundational infrastructure in an AI-
+
+364
+
+powered biomedical ecosystem, working seamlessly with human experts to unlock novel insights
+
+365
+
+into health and disease. This hybrid partnership may radically reshape biomedical research –
+
+366
+
+automating hypothesis generation, scaling discovery pipelines, and enabling medical innovation
+
+367
+
+to proceed at unprecedented speed and scope. General-purpose agents like Biomni could not only
+
+368
+
+accelerate breakthroughs but redefine the future of scientific inquiry itself.
+
+14
+
+a
+
+25 subjects defined in biorxiv
+
+An AI Agent Environment with
+Unified Biomedical Action Space
+
+b
+
+Subject 25
+Subject 1
+
+Genomics
+
+Pathology
+
+Biochemistry
+
+Retrieving
+
+...
+
+Genetics
+
+DESeq2
+
+macs2
+
+OpenTarget
+Genetics
+
+cooler
+
+Scanpy
+flowkit
+
+Action discovery agent
+
+...
+
+Biophysics ADMET
+Pred
+
+ClinVar
+Biopython
+
+Expert
+curation
+
+golden
+gate clone
+
+MPD
+
+S
+
+?
+
+...
+
+UCE
+
+RNA
+velocity
+
+...
+
+To answer the question:
+[ ] Preprocess, cluster and identify differentially expressed genes.
+[ ] Load oncogenic gene sets for comparison.
+[ ] Perform enrichment analysis to check for oncogenic pathways.
+[ ] Validate results with literature and databases.
+
+Composing actions with code
+
+Tools
+
+InterPro
+
+Oligo
+assembly
+
+Cell
+biology
+
+UCSC
+
+viennaRNA
+
+P
+
+Physiology
+
+Microbiology
+
+Reasoning
+[ ] Preprocess, cluster and identify differentially expressed genes.
+[ ] Load oncogenic gene sets for comparison...
+
+Composing actions with code
+Raw data
+Software
+
+P
+
+P
+
+Biochemistry
+
+Pharmacology
+
+Observation
+DKK1, UGT1A, EEF1A1, RAC2, PTGDS, COL1A1, TIMP1, SPP1...
+
+muscle
+
+RNA
+velocity
+COSMIC
+
+ClinVar
+
+...
+
+AlphaFold
+DB
+
+DiffDock
+
+bwa
+Homer
+
+CellxGene
+
+libsbml
+
+sk-image
+
+JASPAR
+
+AI models Know-hows
+AI
+
+primer
+design
+
+...
+
+59 databases
+
+IUCN
+
+...
+
+Wet-lab
+
+...
+
+Bioengineering
+105 softwares 150 biological specialized tools
+
+...
+
+CellxGene
+
+RegulomeDB
+
+...
+
+PLINK
+
+PDB
+GCTA
+
+...
+Actions necessary to conduct
+biomedical research
+
+virtual
+screening
+
+Synthetic
+biology
+
+miRBase
+
+UCE
+
+gseapy
+
+Reasoning
+
+gnomAD
+BindingDB
+
+...
+
+Are oncogenic pathways enriched among
+differentially expressed genes in adata.h5ad?
+
+Scanpy
+
+100 recent published papers
+
+Molecular
+biology
+
+c
+
+Observation
+
+......
+
+Answer
+
+Figure 1: Overview of the unified biomedical action space and agent environment in Biomni. (a) Workflow for systematically
+curating the unified biomedical action space. Actions necessary to conduct biomedical research were extracted from 2,500 recent
+bioRxiv publications across 25 biomedical subfields using an AI-driven discovery agent. Extracted actions were rigorously validated
+and curated by human experts, resulting in the integration of 105 biomedical software tools, 150 specialized biological tools (including wet-lab protocols, AI-driven predictive models, and domain-specific know-how), and 59 comprehensive biomedical databases.
+(b) Illustration of the unified biomedical action space spanning diverse biomedical subfields such as genetics, genomics, synthetic
+biology, cell biology, physiology, microbiology, pharmacology, bioengineering, biophysics, molecular biology, and pathology. Representative tools and databases integrated into Biomni’s environment are shown, highlighting its general-purpose capabilities. (c)
+Example workflow demonstrating Biomni’s reasoning and action composition process to autonomously answer a complex biological
+question. Biomni retrieves relevant tools based on the user’s query, formulates a structured reasoning plan, and composes executable
+code to perform comprehensive bioinformatics analyses, iteratively refining its reasoning based on observations until converging on
+a final, precise answer.
+
+15
+
+a
+
+Humanity's Last Exam:
+Biomedicine
+
+LAB-Bench: SeqQA
+
+LAB-Bench: DbQA
+Human
+
+Human
+
+b
+G
+
+C
+
+G
+
+A
+
+C
+
+Variant prioritization
+
+T
+
+15
+10
+5
+0
+
+I have a list of potential variants for
+disease X, prioritize the top variant for
+me.
++162%
+
+GWAS causal gene detection
+
+log10(P)
+
+T
+
+Chromosome
+
+I have a GWAS hit for trait XX, there are
+genes XXX, XXX in the locus, which is
+the most likely causal gene?
+
++78.9% +3.0%
+
++8.8%
+
++19.4%
+
+Genomics
+Genomics
+
+Genetics
+Genetics
+
+Design a gene panel of 50 genes for my
+CRISPR screen on T-cell exhaustion.
++9.8%
+
++54.2% +19.4% +2.7%
+
+Patient gene prioritization
+I have a patient with phenotypes XXX,
+XXX, and WGS returns gene mutations
+XXX, what is the causal gene?
+
+Perturbation screen design
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+
+A
+
++13.2% +23.0%
+
+scRNA-seq cell annotation
+I have scRNA-seq data stored at XXXX,
+annotate the cell type for me.
+
++5.7%
++inf
+
+Patient
+
++10.3% +93.6%
+
+Microbiology
+
+Drug
+
+Rare disease diagnosis
+I have a patient with phenotypes XXX,
+XXX, and WGS returns gene mutations
+XXX, what is the diagnosis?
+X21
+
++19.4% +10.3%
+
+Drug repurposing
+I have a rare disease XX, among a list of
+potential drugs, find the most likely one
+for repurposing.
++1.3%
+
++3.6%
+
++0.2%
+
+Microbiome disease-taxa
+bioinformatics analysis
+I have microbiome raw data stored at
+XXXX, analyze which taxa is associated
+with the disease XXX.
+X4.8
+
++180.0% +25.0%
+
+Figure 2: Zero-shot generalization of Biomni across diverse realistic biomedical tasks. (a) Biomni is superior to 6 baselines in
+Q&A multiple choice benchmarks that broadly evaluate the model’s capability across biomedical fields. (b) Biomni demonstrates
+robust zero-shot performance across eight previously unseen, real-world biomedical scenarios spanning multiple biomedical subfields, without any task-specific fine-tuning or prompt engineering. Evaluated tasks include variant prioritization and GWAS causal
+gene detection (genetics and genomics), perturbation screen design (functional genomics, immunology), patient gene prioritization, rare disease diagnosis (clinical genomics), drug repurposing (pharmacology), microbiome disease-taxa bioinformatics analysis
+(microbiology), and single-cell RNA-seq cell annotation (single-cell biology). Across these diverse scenarios, Biomni consistently
+outperformed baseline models (Base LLM, ReAct+Code) and specialized environments (Biomni ReAct), highlighting its generalpurpose biomedical capabilities and ability to autonomously adapt to new and complex biomedical tasks.
+
+16
+
+a
+
+I have CGM-derived data from multiple
+participants collected continuously around meals.
+Study how temperature changes after food intake.
+...... [instructions] ......
+
+......
+
+30 samples
+
+Continuous
+Glucose
+Monitoring Data
+
+Activity
+Data
+
+458 Raw Excel
+Sheets
+
+b
+
+c
+
+1. Dataset exploration
+& preprocessing
+
+2. Meal event detection
+
+10. Identification of individual
+metabolic variability
+
+9. Temperature increase
+distribution analysis
+
+4. Individual temperature
+response plots
+
+3. Postprandial
+temperature analysis
+8. Response pattern
+heatmap generation
+
+7. Peak thermogenic
+timing characterization
+
+Key figures generated from Biomni
+
+d
+
+5. Cross-subject
+comparative analysis
+6. Temperature
+response normalization
+
+Findings:
+On average, participants exhibited a 2.19°C
+increase in core body temperature following
+meal intake, with a median increase of 1.10°C.
+● Participants displayed considerable interindividual variability, with some showing rapid
+and pronounced thermogenic responses,
+while others had more subtle or delayed
+temperature changes.
+●
+
+e
+
+Map transcription factor circuits
+driving skeletal development on
+this scRNA & scATAC data.
+...... [instructions] ......
+
+{Shoulder, Hip,
+Knee} Joint
+snRNA-seq
+
+snATAC-seq
+336,000 nucleus droplets
+
+Time
+
+f
+1. Load and explore all
+the datasets
+
+10. Summary
+findings
+
+2. Prepare RNA-seq
+data for analysis
+
+9. Analyze activity patterns across cell types,
+developmental stages, and anatomical regions
+
+3. Configure pySCENIC (e.g.,
+retrieve motifs from data lake)
+8. Filter predicted targets
+using ATAC-seq accessibility
+
+g Key figures generated from Biomni
+
+h
+
+4. Run GRNBoost2 to infer
+gene regulatory networks
+
+5. Prune networks
+using cisTarget
+
+7. Extract accessibility
+data from ATAC-seq
+
+6. Calculate regulon
+activity (AUCell)
+
+Findings:
+●
+
+Novel transcription factors AUTS2, ZFHX3, and
+PBX1 showed high regulatory activity across
+multiple skeletal lineages.
+
+●
+
+Cell types LimbMes exhibited the highest overall
+activity levels among all the identified 566-589
+regulons across cell types.
+
+Figure 3: Biomni autonomously executes complex multi-modal biomedical analyses to generate hypothesis. (a-d) Biomni rapidly
+analyzed CGM-derived thermogenic responses data and activity data from 30 individuals, comprising 458 raw Excel sheets. (b)
+Workflow demonstrating Biomni’s autonomous execution of data preprocessing, meal event detection, postprandial temperature
+analysis, and thermogenic response characterization. (c) Representative individual temperature-response plots and temperature increase distribution following meals, automatically generated by Biomni. (d) Summary of unique biological findings identified
+by Biomni, including significant increases in core body temperature post-meal intake (average 2.19C, median 1.10C), and notable
+inter-individual variability in thermogenic responses. (e-h) Biomni autonomously analyzed single-cell multiomics data from approximately 336,000 nucleus droplets, combining single-nucleus RNA (snRNA-seq) and single-nucleus ATAC sequencing (snATAC-seq)
+across human embryonic joint development (shoulder, hip, knee). (f) A detailed workflow diagram showing Biomni’s 10-step analysis pipeline for gene regulatory networks with multiomics. (g) Two key figures generated from Biomni: Left panel shows a heatmap
+of regulator activity by developmental stage, with color intensity indicating activity levels. Right panel displays a boxplot of RUNX2
+regulon activity by cell type, showing variation in expression across different cell populations. (h) Key findings from the GRN analysis: 1) Novel transcription factors (AUTS2, ZFHX3, and PBX1) showing high regulatory activity across multiple skeletal lineages
+despite no previous association with skeletal development, and 2) Across the 566-589 regulons recovered, limb mesenchyme cells
+display the highest mean regulonactivity score, underscoring their prominent role in skeletal transcriptional control.
+
+17
+
+a
+
+b
+
+Cloning Open Answer Evaluation
+GG
+
+Multiple-piece GG
+Gibson
+
+GG Library
+Gibson Library
+
+Gateway
+
+Restriction
+
+Restriction Library
+
+I have a plasmid plentiCRISPR v2 blast:
+CGTTGGAGTCCACGTTCTTTAATAGTGG.....GCCCTTTGA.
+I hope to clone a CRISPR sgRNA targeting human B2M
+into this plasmid. Could you give me the final map of
+the plasmid and step-by-step guidance on how should I
+perform the cloning?
+
+Diagnostic digest
+
+c
+1. Plasmid
+Analysis
+
+d
+
+2. sgRNA
+Design
+
+3. Oligo Design
+for Cloning
+
+4. Oligo Annealing &
+Golden Gate Assembly
+
+5. Bacterial
+Transformation
+
+Biomni generated wet-lab cloning protocol
+## Step-by-Step Cloning Protocol
+### 1. Design and Order Oligos
+- **Forward oligo**: 5'CACCGCGCGAGCACAGCTAAGGCCA-3'
+- **Reverse oligo**: 5'AAACTGGCCTTAGCTGTGCTCGCGC-3'
+### 2. Anneal and Phosphorylate Oligos
+1. Resuspend oligos to 100 μM in nuclease-free water
+2. Prepare annealing reaction:
+- 1 μL Forward oligo (100 μM)
+- 1 μL Reverse oligo (100 μM)
+- 1 μL 10X T4 Ligation Buffer
+- 6.5 μL nuclease-free water
+- 0.5 μL T4 PNK
+3. Incubate in a thermocycler:
+- 37°C for 30 minutes (phosphorylation)
+- 95°C for 5 minutes (denaturation)
+- Ramp down to 25°C at 5°C/min (annealing)
+4. Dilute annealed oligos 1:200 in nuclease-free water
+(final: 50 nM)
+### 3. Golden Gate Assembly
+1. Prepare reaction:
+- 100 ng lentiCRISPR v2 blast plasmid
+- 1 μL diluted annealed oligos (50 nM)
+- 2 μL 10X T4 DNA Ligase Buffer
+- 1 μL BsmBI-v2 (NEB)
+- 1 μL T4 DNA Ligase
+- Nuclease-free water to 20 μL total
+2. Incubate in a thermocycler:
+- 37°C for 5 minutes
+- 16°C for 5 minutes
+- Repeat steps 1-2 for 10 cycles
+- 55°C for 5 minutes (final digestion)
+- 80°C for 5 minutes (enzyme inactivation)
+
+6. Colony
+Screening &
+Verification
+
+7. Final Plasmid
+Map Assemble
+
+Plasmid Map
+
+### 4. Bacterial Transformation
+1. Add 2 μL of the Golden Gate reaction to 50 μL of
+competent Stbl3 E. coli cells
+2. Incubate on ice for 30 minutes
+3. Heat shock at 42°C for 45 seconds
+4. Return to ice for 2 minutes
+5. Add 950 μL of SOC medium
+6. Incubate at 37°C for 1 hour with shaking
+7. Plate 100 μL on LB agar plates with ampicillin (100 μg/mL)
+8. Incubate plates at 37°C overnight
+### 5. Colony Screening and Verification
+1. Pick 3-5 colonies and grow in 5 mL LB + ampicillin
+medium overnight
+2. Extract plasmid DNA using a miniprep kit
+3. Verify correct insertion by Sanger sequencing using the U6
+promoter forward primer:
+5'-GACTATCATATGCTTACCGT-3'
+4. Confirm the presence of the B2M sgRNA sequence in the
+plasmid
+### 6. Lentivirus Production and Cell Transduction
+1. Transfect the verified plasmid into HEK293T cells along
+with packaging plasmids
+2. Collect virus-containing supernatant after 48-72 hours
+3. Filter and concentrate the lentivirus if needed
+4. Transduce target cells with the lentivirus
+5. Select transduced cells with blasticidin (5-10 μg/mL)
+6. Verify B2M knockout by flow cytometry, Western blot, or
+genomic sequencing
+
+A scientist
+follows the
+protocol to
+perform the
+cloning
+
+e
+
+Figure 4: Biomni designs wet-lab experimental protocol. (a) Open-ended cloning benchmark on 10 real cloning scenarios. We
+compared against base LLM, trainee-level human, and expert-level human scientists. We found that Biomni has similar accuracy
+as the expert level scientist, and significantly higher accuracy than trainee level, while using much less time. (b) Example of a
+user request to Biomni for cloning an sgRNA targeting the human B2M gene into the lentiCRISPR v2 Blast plasmid. (c) Biomni’s
+automated stepwise workflow, including plasmid analysis, sgRNA design, oligo synthesis, Golden Gate assembly, bacterial transformation, colony screening, and final plasmid mapping. (d) Biomni-generated detailed cloning protocol with step-by-step instructions
+and comprehensive plasmid map, enabling laboratory scientists to execute the experiment autonomously. (e) Validation of Biomni’s
+cloning protocol through successful colony growth on selection plates, followed by Sanger sequencing confirming perfect alignment
+of sgRNA insertion in picked colonies, demonstrating Biomni’s robust capability for precise and reliable experimental design.
+
+18
+
+369
+
+4
+
+Methods
+
+370
+
+Action Discovery from Literature. 100 recent publications from the year 2024 at biorxiv Were
+
+371
+
+collected and analyzed by extracting and parsing their PDF contents. Each paper was processed
+
+372
+
+in chunks, and a specialized prompt guided an LLM through each chunk to explicitly identify
+
+373
+
+and extract three categories of actionable insights: tasks, software, and databases. Specifically for
+
+374
+
+tasks, the LLM was instructed to highlight recurrent tasks requiring specialized implementations
+
+375
+
+within biomedical research workflows.
+
+376
+
+Implementing the Biomni Environment. In the initial iteration of environment construction, a
+
+377
+
+conservative and focused approach was adopted for tool curation. Initially, tasks were filtered
+
+378
+
+based on relevance to the primary research interests-drug discovery and clinical biomedicine-
+
+379
+
+retaining fields such as biochemistry, bioengineering, biophysics, cancer biology, cell biology, de-
+
+380
+
+velopmental biology, genetics, genomics, immunology, microbiology, molecular biology, pathol-
+
+381
+
+ogy, pharmacology, physiology, synthetic biology, and systems biology. Subsequently, these were
+
+382
+
+narrowed down to approximately 1,900 commonly recurring tasks. These tasks were further man-
+
+383
+
+ually reviewed to eliminate redundancy and exclude tasks that were trivial or easily implementable
+
+384
+
+through simple code. Selecting highly specialized tasks that require significant domain expertise
+
+385
+
+was emphasized, such as wet-lab protocols and advanced AI models.
+
+386
+
+Human scientists then collaborated with software engineering agents equipped with web
+
+387
+
+search capabilities to implement each specialized tool. Every tool underwent rigorous validation,
+
+388
+
+requiring a clearly defined test case that it successfully passed. This stringent process culminated in
+
+389
+
+a curated collection of 150 specialized tools. Additionally, essential literature retrieval tools were
+
+390
+
+included, such as PubMed and Google Scholar, with provisions for future iterative expansions.
+
+391
+
+Each tool was strictly defined using a comprehensive checklist that mandated: (1) a clear
+
+392
+
+and descriptive name, (2) detailed documentation, (3) outputs formatted as detailed research logs
+
+393
+
+optimized for LLM interpretation, (4) the inclusion and successful passing of a specific test case,
+
+394
+
+and (5) specialization criteria-if a task could easily be implemented via brief LLM-generated code
+
+395
+
+(e.g., simple database queries), no specialized tool was created.
+
+396
+
+Databases were categorized and extensive relational databases accessible via web APIs (e.g.,
+
+397
+
+PDB, OpenTargets, ClinVar) were integrated using a unified querying function. This function
+
+398
+
+accepts natural language inputs and leverages an LLM to dynamically parse database schemas
+
+399
+
+and execute corresponding queries. Databases lacking web APIs were downloaded and locally
+
+400
+
+preprocessed into structured pandas DataFrames for seamless accessibility by the agent.
+
+401
+
+For software integration, recognizing the frequent necessity of concurrently utilizing multiple
+
+19
+
+402
+
+software tools, a unified containerized environment was constructed, which was pre-installed with
+
+403
+
+a comprehensive suite of relevant software. Additionally, this environment supports the execution
+
+404
+
+of R packages and command-line interface (CLI) tools.
+
+405
+
+Biomni-A1. The Biomni agent is a general-purpose biomedical AI agent built upon the CodeAct29
+
+406
+
+framework, designed to systematically solve biomedical tasks by combining LLMs with an inter-
+
+407
+
+active coding environment. Given a user query, Biomni begins by prompting the LLM to generate
+
+408
+
+a clear, numbered bullet-list plan detailing the steps needed to tackle the given problem, keeping
+
+409
+
+careful track of progress and adjustments along the way. As the tool, software, and database space
+
+410
+
+is vast, the query task may only use a small set of these resources. To avoid long context, a prompt-
+
+411
+
+based retriever is utilized, powered by a separate LLM, where the agent dynamically selects the
+
+412
+
+most relevant functions, datasets, and software libraries from available resources. During execu-
+
+413
+
+tion, the LLM generates code, executes it in a coding environment (Python, R, or Bash), and returns
+
+414
+
+the resulting observations to inform subsequent reasoning. This iterative approach continues until
+
+415
+
+the agent converges on an accurate, validated solution.
+
+416
+
+Q&A Benchmarks. Development and testing sets were created by sampling the LAB-Bench
+
+417
+
+Database Question-Answering and Sequence Question-Answering benchmarks 24 . Due to resource
+
+418
+
+constraints, each set comprises 12.5% of the complete reference, proportionally distributed across
+
+419
+
+benchmark subtasks, providing a cost-effective and representative assessment of model perfor-
+
+420
+
+mance. The development set informed iterative refinements to Biomni’s database integrations and
+
+421
+
+tool implementations, while the test set provided an independent evaluation of generalization ca-
+
+422
+
+pabilities. Accuracy was evaluated by following the LAB-Bench protocol, using multiple-choice
+
+423
+
+answer options with an option for abstention due to insufficient information. Results represent
+
+424
+
+averages across three independent evaluation runs.
+
+425
+
+For Humanity’s Last Exam (HLE)23 , a representative sample of questions was selected, span-
+
+426
+
+ning fourteen subdisciplines of Biology/Medicine: Genetics, Biology, Ecology, Neuroscience,
+
+427
+
+Biochemistry, Microbiology, Immunology, Molecular Biology, Computational Biology, Biophysics,
+
+428
+
+Bioinformatics, Genomics, and Physiology. From each subdiscipline, up to five questions were
+
+429
+
+sampled (or the maximum number available if fewer than five existed in the category). This
+
+430
+
+sampling approach yielded a final evaluation set of 52 questions that comprehensively assessed
+
+431
+
+Biomni’s performance across the biological sciences. The evaluation was conducted directly with-
+
+432
+
+out the use of a development set.
+
+433
+
+Curating real-world benchmarks. The variant prioritization benchmark was curated from Open
+
+434
+
+Target Genetics30 ground truth set, and processed such that given a variant, a negative set of vari-
+
+20
+
+435
+
+ants is found. The prompt was as follows: ”Your task is to identify the most promising variant
+
+436
+
+associated with a given GWAS phenotype for futher examination. From the list, prioritize the
+
+437
+
+top associated variant (matching one of the given variant). GWAS phenotype: {trait} Variants:
+
+438
+
+{variant list}”. Accuracy was used as the metric. The GWAS causal gene detection benchmark
+
+439
+
+utilized a dataset curated from Shringarpure et al31 , using the original prompt: ”Your task is to
+
+440
+
+identify likely causal genes within a locus for a given GWAS phenotype. From the list, provide
+
+441
+
+only the likely causal gene (matching one of the given genes). Identify the causal gene. GWAS
+
+442
+
+phenotype: {trait} Genes in locus: {gene str}”. Accuracy was used as the metric. The pertur-
+
+443
+
+bation screen design benchmark was curated from Schmidt et al.32 . The prompt is ”Task: Plan
+
+444
+
+a CRISPR screen to{task description}. There are 18,939 possible genes to perturb and only per-
+
+445
+
+turb {num genes} genes. For each perturbation, you can measure out {measurement} which will
+
+446
+
+be referred to as the score. Generate {num genes} genes that maximize the perturbation effect.
+
+447
+
+Output format: a list of genes 1. XXX 2.XXX 3.XXX ...”. The evaluation metric was the average
+
+448
+
+post-perturbed effect. As the scale differs for the post-perturbed effect, one screen (IL-2) was used.
+
+449
+
+The scRNA-seq annotation benchmark ensured flexibility across diverse data formats (e.g., Cel-
+
+450
+
+lxGene, author-hosted portals), encompassing multiple tissues, species, sequencing technologies,
+
+451
+
+and experimental conditions. Datasets with author-provided annotations (Tier 1 or Tier 2, typically
+
+452
+
+≥10 cell types) were prioritized, and 20k-50k cells were subsampled proportionally to their cell
+
+453
+
+type distributions. Automatic evaluation was conducted at the single-cell level using LLMs via
+
+454
+
+semantic match, accounting for both naming variations (e.g., fibroblast vs. Fibroblast cells) and
+
+455
+
+hierarchical relations (e.g., CD8+ T cells vs. T cells), judged on-the-fly by LLM agents and later
+
+456
+
+verified by humans. In the microbiome benchmark, both Biomni and human experts independently
+
+457
+
+performed differential abundance analysis on five diverse microbiome datasets, selected to reflect
+
+458
+
+different data types, biological contexts, and analytical challenges. Dataset 1 comes from the MGM
+
+459
+
+2.0 platform33 and includes relative microbial abundance across samples and another with sample
+
+460
+
+labels, ideal for classification tasks33 . Dataset 2 curated from a well-known Nature study, offers
+
+461
+
+microbial abundance data in mice alongside metadata such as diet and sex, making it valuable for
+
+462
+
+modeling host-microbiome interactions34 . Dataset 3, developed by Pasolli et al.35 , combines eight
+
+463
+
+human metagenomic studies with species-level features processed using MetaPhlAn235 . Dataset 4
+
+464
+
+explores microbial communities in drinking water systems, providing an OTU matrix with abun-
+
+465
+
+dances represented as relative sequence counts. This environmental dataset allows models to be
+
+466
+
+tested beyond host-associated microbiomes36 . Finally, Dataset 5 is an in-house resource derived
+
+467
+
+from the Human Microbiome Project37 . Together, these datasets provide a comprehensive foun-
+
+468
+
+dation for benchmarking AI agents in microbiome analysis across both clinical and environmental
+21
+
+469
+
+domains. Biomni results were compared against those generated by human experts for consistency,
+
+470
+
+accuracy, and efficiency. The drug repurposing benchmark used a dataset from Huang et al.38 , for
+
+471
+
+the task of identifying the most likely drug from a pre-defined list of drugs for repurposing in a
+
+472
+
+given indication. Evaluation was based on the alignment score with off-label prescription patterns
+
+473
+
+of clinicians from an EHR system. The prompt was ”Your task is to identify top 5 drugs that can
+
+474
+
+be potentially repurposed to treat the given disease. From the list, prioritize the drug list with
+
+475
+
+the highest potential (matching the given DrugBank IDs). Disease: {disease} Drugs: {drug list}
+
+476
+
+Output format: a list of drugs with their DrugBank IDs, no drug name, just the IDs: 1. DB00001
+
+477
+
+2. DB00002 3. DB00003 ..”. The rare disease diagnosis benchmark used the MyGene2 dataset,
+
+478
+
+curated by Alsentzer et al.39 . The ground truth was expert annotated diagnosis. The prompt was
+
+479
+
+”Task: given a patient’s phenotypes and a list of candidate genes, diagnose the rare disease that
+
+480
+
+the patient has. Phenotypes: {phenotype list} Candidate genes: {candidate genes} Output format:
+
+481
+
+{{’disease name’: XXX, ’OMIM ID’: XXX}}”. The patient gene prioritization benchmark used
+
+482
+
+a dataset curated by Alsentzer et al.39 . The ground truth was a truly causal gene. The prompt was
+
+483
+
+”Task: Given a patient’s phenotypes and a list of candidate genes, identify the causal gene. Phe-
+
+484
+
+notypes: {phenotype list} Candidate genes: {candidate genes} Output format: {{’causal gene’:
+
+485
+
+[gene1]}}”.
+
+486
+
+Wearable analysis case study. A wearable case study integrated CGM-derived body temperature
+
+487
+
+data, sleep metrics, and multi-omics datasets from human participants40 , as follows: CGM Body
+
+488
+
+Temperature Data: For each participant, continuous glucose monitors (CGMs) equipped with tem-
+
+489
+
+perature sensors recorded skin temperature in high resolution. A total of 485 temperature files were
+
+490
+
+collected, each centered on a presumed meal event. The time window for each file spanned 6 hours
+
+491
+
+total, comprising 2 hours pre-meal and 4 hours post-meal. Sleep Data: Sleep metrics were derived
+
+492
+
+from wrist-worn wearable devices for a subset of 10 participants, covering 227 nights of sleep. Pa-
+
+493
+
+rameters collected included sleep duration, sleep efficiency, sleep latency, sleep stage composition
+
+494
+
+(light, deep, REM), and number of wake episodes. Omics Data: Blood samples were analyzed to
+
+495
+
+generate the following: Lipidomics: 652 lipid features across 147 samples; Metabolomics: 731
+
+496
+
+metabolite features across 147 samples; Proteomics: 1,470 protein features across 20 samples.
+
+497
+
+Multiome analysis case study. The authors’ dataset was directly downloaded and used with no
+
+498
+
+modifications 25 . The authors’ study generated a multi-omic dataset of human embryonic skeletal
+
+499
+
+development from 5-11 weeks post-conception. The dataset includes snRNA-seq and snATAC-seq
+
+500
+
+data from approximately 336,000 nuclei across five anatomical regions (hip, knee, shoulder joints,
+
+501
+
+calvaria, and skull base). The dataset covers both appendicular (limb) and cranial regions. No
+
+22
+
+502
+
+additional tools or manual preprocessing were added. As the analytical traces are extensive, more
+
+503
+
+guidance was included in the prompt instruction and two use cases were tested:
+
+504
+
+Comparative Analysis. This analysis focused on how cellular processes differ across anatomi-
+
+505
+
+cal locations and developmental timepoints. Biomni was instructed to characterize the cellular
+
+506
+
+composition across anatomical regions (calvaria, skull base, shoulder, hip, knee) and developmen-
+
+507
+
+tal stages. We prompted Biomni with detailed instructions (Supplementary Section E), including
+
+508
+
+cell type proportion estimates, region-specific population labels, UMAP embeddings, stacked bar
+
+509
+
+plots, a comparison of intramembranous versus endochondral ossification, key transcription factor
+
+510
+
+highlights, and developmental trajectory tracing.
+
+511
+
+Gene Regulatory Network Analysis We asked Biomni to identify transcriptional programs underly-
+
+512
+
+ing skeletal development. Following a systematic 10-step process, Biomni inferred gene regulatory
+
+513
+
+networks by: (1) loading and exploring all datasets, (2) preparing RNA-seq data for analysis, (3)
+
+514
+
+configuring pySCENIC to retrieve motifs, (4) running GRNBoost2 to infer gene regulatory net-
+
+515
+
+works, (5) pruning networks using cisTarget, (6) calculating regulon activity with AUCell, (7)
+
+516
+
+extracting accessibility data from ATAC-seq, (8) filtering predicted targets using ATAC-seq ac-
+
+517
+
+cessibility, (9) analyzing activity patterns across cell types, developmental stages, and anatomical
+
+518
+
+regions, and (10) summarizing findings.
+
+519
+
+Manual verification To evaluate whether the aggregated findings are truly reflected by the data or
+
+520
+
+merely simulated or hallucinated by the LLM, manual (human) verification was conducted follow-
+
+521
+
+ing the traces and codes generate by Biomni.
+
+522
+
+Wetlab Benchmark Development and Evaluation. A comprehensive benchmark was developed
+
+523
+
+consisting of 20 open-ended cloning questions curated from real-world applications to represent
+
+524
+
+the diversity and complexity of molecular cloning tasks across four major categories: Golden
+
+525
+
+Gate assembly, Gibson assembly, restriction enzyme cloning, and Gateway cloning. Each cate-
+
+526
+
+gory included both single-construct and pooled cloning scenarios. Additionally, the benchmark
+
+527
+
+incorporated common validation methods, including diagnostic restriction digestion, Sanger se-
+
+528
+
+quencing primer design, and sequence alignment analysis. For establishing baseline performance,
+
+529
+
+three human experts with extensive experience in molecular cloning were recruited. These experts
+
+530
+
+were instructed to complete each task without utilizing language models but were permitted to use
+
+531
+
+standard molecular biology tools, search engines, and publicly available online resources such as
+
+532
+
+plasmid repositories and primer design platforms. The time required for each expert to complete
+
+533
+
+each task was recorded, from initial task understanding to the final protocol and plasmid map gen-
+
+534
+
+eration. In parallel, Biomni and general LLM models were evaluated on identical tasks. Each
+
+535
+
+system was provided with the same task descriptions and required to generate detailed end-to-end
+23
+
+536
+
+experimental protocols and final cloned plasmid maps. For general LLMs, Claude 3.7 was used as
+
+537
+
+one of the most capable publicly-available models at the time of testing, providing it with the same
+
+538
+
+information but without access to specialized molecular biology tools. For evaluation, an indepen-
+
+539
+
+dent senior researcher with experience in molecular cloning technologies was recruited and blinded
+
+540
+
+to the source of each protocol (human expert, Biomni, or general LLM). The evaluator assessed
+
+541
+
+each protocol and plasmid map based on two primary criteria: (1) Accuracy: The correctness of
+
+542
+
+the proposed methodology, including appropriate enzyme selection, reaction conditions, primer
+
+543
+
+design parameters, and plasmid construction strategy. (2) Completeness: The thoroughness of the
+
+544
+
+protocol, including all necessary steps, reagents, concentrations, incubation times, and verification
+
+545
+
+methods. Each criterion was scored on a scale of 1-5 according to a detailed rubric (Supplementary
+
+546
+
+Table S31-32). The average scores across all 20 tasks were calculated for each system and human
+
+547
+
+expert to enable direct comparison.
+
+548
+
+Wetlab Validation. A practical cloning task was selected for validation: the insertion of a guide
+
+549
+
+RNA targeting the human B2M gene into the lentiCRISPR v2 Blast construct. This task was
+
+550
+
+chosen for its relevance to CRISPR-based gene editing applications and its moderate complexity,
+
+551
+
+involving multiple molecular biology techniques. The experiment was conducted in a standard
+
+552
+
+molecular biology laboratory setting using commercially available reagents and materials. The
+
+553
+
+lentiCRISPR v2 Blast plasmid was obtained from Addgene. All protocols for the experiment were
+
+554
+
+generated entirely by Biomni without modification (Supplementary Notes F), including plasmid
+
+555
+
+analysis, sgRNA design, oligo design with appropriate overhangs, detailed Golden Gate assembly
+
+556
+
+conditions, bacterial transformation parameters, and verification strategies. For validation of the
+
+557
+
+cloning results, standard molecular biology practices were followed, selecting colonies for cul-
+
+558
+
+ture and miniprep, followed by Sanger sequencing using the Biomni-designed primers. Sequence
+
+559
+
+alignment analysis was performed to verify the correct insertion of the sgRNA sequence. The
+
+560
+
+success of the cloning process was determined by the presence of bacterial colonies on selective
+
+561
+
+media and subsequent sequence verification confirming the accurate incorporation of the designed
+
+562
+
+sgRNA construct into the lentiCRISPR v2 Blast backbone.
+
+24
+
+563
+
+Data availability.
+
+564
+
+https://doi.org/10.7910/DVN/CE4ZYG.
+
+565
+
+Code availability.
+
+566
+
+based user interface is available at https://biomni.stanford.edu. Note that the public tool is not for
+
+567
+
+protected health information.
+
+568
+
+Acknowledgements. We thank Emily Alsentzer, Andrew Lee, members of Jure Leskovec’s lab,
+
+569
+
+and members of Euan Ashley’s lab, for providing helpful feedbacks. K.H. and J.L. also gratefully
+
+570
+
+acknowledge the support of NSF under Nos. OAC-1835598 (CINES), CCF-1918940 (Expedi-
+
+571
+
+tions), DMS-2327709 (IHBEM), IIS-2403318 (III); Stanford Data Applications Initiative, Wu Tsai
+
+572
+
+Neurosciences Institute, Stanford Institute for Human-Centered AI, Chan Zuckerberg Initiative,
+
+573
+
+Amazon, Genentech, GSK, Hitachi, SAP, and UCB. K.H. acknowledge the support of Stanford
+
+574
+
+Bio-X fellowship. Research reported in this publication was supported by the National Institute
+
+575
+
+of Neurological Disorders and Stroke of the National Institutes of Health under Award Number
+
+576
+
+U01NS134358. The content is solely the responsibility of the authors and does not necessarily
+
+577
+
+represent the official views of the National Institutes of Health.
+
+578
+
+Authors contribution. K.H., Y.R., J.L. conceived the study. K.H. and J.L. supervised the project.
+
+579
+
+K.H. designed and developed the framework. K.H., S.Z., H.W., Y.Q., Y.L. implemented tools
+
+580
+
+and databases. K.H. designed and implemented the generalist agent architecture. K.H. and R.L.
+
+581
+
+designed the action discovery agent. S.Z. performed benchmarks on Q&A tasks. K.H., H.W., Y.L.
+
+582
+
+collected and implemented benchmarks on realistic tasks. X.Z. provided advice on microbiome
+
+583
+
+benchmark. H.W., J.Z., P.H., K.H. performed multi-omics integration case study. Y.L., K.H.
+
+584
+
+performed wearable data analysis case study. Y.Q., J.Z., D.Y., S.Z., Y.L., K.H. performed wet-
+
+585
+
+lab case study. K.H., S.M., J.C., M.W., J.B. performed rare disease diagnosis case study. R.L.
+
+586
+
+performed qualitative trace analysis. R.L., L.Q., G.L., provided support for software. K.H., S.Z.,
+
+587
+
+H.W., Y.Q., A.R., Y.L. wrote the draft paper. All authors discussed the results and contributed to
+
+588
+
+the final manuscript.
+
+589
+
+Competing interests. A.R. and H.W. are employees of Genentech and A.R. has equity in Roche.
+
+590
+
+All other authors declare no competing interests.
+
+All data used in Biomni are publicly available at Harvard Dataverse under
+
+Biomni is open-sourced at https://github.com/snap-stanford/biomni. A web-
+
+25
+
+591
+
+References
+
+592
+593
+594
+
+595
+596
+
+597
+598
+
+599
+600
+
+601
+602
+
+1. Cong, L. et al. Multiplex genome engineering using crispr/cas systems. Science 339, 819–823
+(2013).
+2. Jumper, J. et al. Highly accurate protein structure prediction with alphafold. nature 596,
+583–589 (2021).
+3. Van Dyck, C. H. et al. Lecanemab in early alzheimers disease. New England Journal of
+Medicine 388, 9–21 (2023).
+4. López-Otı́n, C., Blasco, M. A., Partridge, L., Serrano, M. & Kroemer, G. Hallmarks of aging:
+An expanding universe. Cell 186, 243–278 (2023).
+5. Botvinik-Nezer, R. et al. Variability in the analysis of a single neuroimaging dataset by many
+teams. Nature 582, 84–88 (2020).
+
+604
+
+6. Thiele, I. & Palsson, B. Ø. A protocol for generating a high-quality genome-scale metabolic
+reconstruction. Nature protocols 5, 93–121 (2010).
+
+605
+
+7. Gibney, E. & Van Noorden, R. Scientists losing data at a rapid rate. Nature 10 (2013).
+
+603
+
+606
+607
+
+608
+609
+
+610
+611
+
+612
+613
+
+614
+615
+
+616
+617
+
+618
+619
+
+620
+621
+
+622
+623
+
+624
+625
+
+626
+627
+
+8. Wang, H. et al. Scientific discovery in the age of artificial intelligence. Nature 620, 47–60
+(2023).
+9. Ridnik, T., Kredo, D. & Friedman, I. Code generation with alphacodium: From prompt engineering to flow engineering. arXiv preprint arXiv:2401.08500 (2024).
+10. Cui, J., Li, Z., Yan, Y., Chen, B. & Yuan, L. Chatlaw: Open-source legal large language model
+with integrated external knowledge bases. CoRR (2023).
+11. Tom, G. et al. Self-driving laboratories for chemistry and materials science. Chemical Reviews
+124, 9633–9732 (2024).
+12. Peng, C. et al. A study of generative large language model for medical research and healthcare.
+NPJ digital medicine 6, 210 (2023).
+13. Qu, Y. et al. Crispr-gpt: An llm agent for automated design of gene-editing experiments.
+bioRxiv 2024–04 (2024).
+14. Swanson, K., Wu, W., Bulaong, N. L., Pak, J. E. & Zou, J. The virtual lab: Ai agents design
+new sars-cov-2 nanobodies with experimental validation. bioRxiv 2024–11 (2024).
+15. Roohani, Y. et al. Biodiscoveryagent: An ai agent for designing genetic perturbation experiments. International Conference on Learning Representations (2025).
+16. Wang, E. et al. Txgemma: Efficient and agentic llms for therapeutics. arXiv preprint
+arXiv:2504.06196 (2025).
+17. Xiao, Y. et al. Cellagent: An llm-driven multi-agent framework for automated single-cell data
+analysis. BioRxiv 2024–05 (2024).
+18. Youngblut, N. D. et al. scbasecamp: an ai agent-curated, uniformly processed, and continually
+expanding single cell data repository. bioRxiv 2025–02 (2025).
+
+26
+
+628
+629
+
+630
+631
+
+632
+633
+
+19. Hu, M. et al. Evaluation of large language models for discovery of gene set function. Nature
+methods 1–10 (2024).
+20. Wei, J. et al. Chain-of-thought prompting elicits reasoning in large language models. Advances
+in neural information processing systems 35, 24824–24837 (2022).
+21. Yao, S. et al. React: Synergizing reasoning and acting in language models. In International
+Conference on Learning Representations (ICLR) (2023).
+
+635
+
+22. Guo, D. et al. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement
+learning. arXiv preprint arXiv:2501.12948 (2025).
+
+636
+
+23. Phan, L. et al. Humanity’s last exam. arXiv preprint arXiv:2501.14249 (2025).
+
+634
+
+637
+638
+
+639
+640
+
+641
+642
+
+643
+644
+645
+
+646
+647
+648
+
+649
+650
+
+651
+652
+653
+
+654
+655
+
+656
+657
+
+658
+659
+
+660
+661
+
+662
+663
+664
+
+24. Laurent, J. M. et al. Lab-bench: Measuring capabilities of language models for biology research. arXiv preprint arXiv:2407.10362 (2024).
+25. To, K. et al. A multi-omic atlas of human embryonic skeletal development. Nature 635,
+657–667 (2024).
+26. Gordon, J. A. et al. Pbx1 represses osteoblastogenesis by blocking hoxa10-mediated recruitment of chromatin remodeling factors. Molecular and cellular biology (2010).
+27. Gomez, G. A. et al. Evaluation of potential roles of zinc finger homeobox 3 (zfhx3) expressed
+in chondrocytes and osteoblasts on skeletal growth in mice. Calcified Tissue International
+115, 445–454 (2024).
+28. Geng, Z., Tai, Y. T., Wang, Q. & Gao, Z. Auts2 disruption causes neuronal differentiation
+defects in human cerebral organoids through hyperactivation of the wnt/β-catenin pathway.
+Scientific reports 14, 19522 (2024).
+29. Wang, X. et al. Executable code actions elicit better llm agents. In Forty-first International
+Conference on Machine Learning (2024).
+30. Ghoussaini, M. et al. Open targets genetics: systematic identification of trait-associated genes
+using large-scale genetics and functional genomics. Nucleic acids research 49, D1311–D1320
+(2021).
+31. Shringarpure, S. S. et al. Large language models identify causal genes in complex trait gwas.
+medRxiv 2024–05 (2024).
+32. Schmidt, R. et al. Crispr activation and interference screens decode stimulation responses in
+primary human t cells. Science 375, eabj4008 (2022).
+33. Zhang, H., Kang, Z., Zhang, Y., Yang, R. & Ning, K. Towards a generative paradigm for
+large-scale microbiome analysis by generative language model. bioRxiv 2025–01 (2025).
+34. Turnbaugh, P. J. et al. A core gut microbiome in obese and lean twins. nature 457, 480–484
+(2009).
+35. Pasolli, E., Truong, D. T., Malik, F., Waldron, L. & Segata, N. Machine learning meta-analysis
+of large metagenomic datasets: tools and biological insights. PLoS computational biology 12,
+e1004977 (2016).
+
+27
+
+667
+
+36. Gomez-Alvarez, V. & Revetta, R. P. Monitoring of nitrification in chloraminated drinking
+water distribution systems with microbiome bioindicators using supervised machine learning.
+Frontiers in Microbiology 11, 571009 (2020).
+
+668
+
+37. Turnbaugh, P. J. et al. The human microbiome project. Nature 449, 804–810 (2007).
+
+665
+666
+
+669
+670
+
+671
+672
+
+673
+674
+
+675
+676
+677
+
+38. Huang, K. et al. A foundation model for clinician-centered drug repurposing. Nature Medicine
+30, 3601–3613 (2024).
+39. Alsentzer, E. et al. Few shot learning for phenotype-driven diagnosis of patients with rare
+genetic diseases. medRxiv 2022–12 (2022).
+40. Metwally, A. A. et al. Prediction of metabolic subphenotypes of type 2 diabetes via continuous
+glucose monitoring and machine learning. Nature Biomedical Engineering 1–18 (2024).
+41. Katz, D. et al. The multi-omic, multi-tissue response to acute endurance and resistance exercise: Results from the molecular transducers of physical activity consortium. Circulation 150,
+A4143199–A4143199 (2024).
+
+28
+
+Supplementary materials
+
+678
+
+679
+
+Supplementary Notes
+
+680
+
+A
+
+681
+
+We use the following baselines for benchmark comparison: (1) a base LLM without tools, (2) Re-
+
+682
+
+Act, using function-calling via chain-of-thought reasoning, (3) ReAct+Code, which adds Python
+
+683
+
+code execution capabilities, (4) ReAct+Literature, which includes access to PubMed, web search,
+
+684
+
+PDF extraction from URLs, and ArXiv papers, (5) ReAct+Code+Literature, combining both struc-
+
+685
+
+tured and unstructured tool resources, and (6) Biomni-ReAct, an ablation of Biomni that shares the
+
+686
+
+full environment but replaces Biomni-A1s code-based planning with standard ReAct-style tool
+
+687
+
+chaining.
+
+688
+
+B
+
+689
+
+In the variant prioritization benchmark, curated from Open Targets Genetics30 , the agent must
+
+690
+
+identify the top disease-relevant variant from a GWAS-linked candidate set. Biomni achieved
+
+691
+
+a 78.9% gain over the base LLM and outperformed ReAct+Code (+162%) and Biomni-ReAct
+
+692
+
+(+3.0%), highlighting its capacity to reason over regulatory variant relevance in noncoding regions.
+
+693
+
+In GWAS causal gene detection, adapted from Shringarpure et al.31 , Biomni was asked to
+
+694
+
+select the most likely causal gene from among candidates within a locus. It achieved a 19.4% gain
+
+695
+
+over base LLMs and modest improvements over both ReAct+Code (+54.2%) and Biomni-ReAct
+
+696
+
+(+2.7%), showing superior locus-level inference and granular reasoning.
+
+Details about baselines
+
+Details about real-world benchmark
+
+697
+
+In the CRISPR perturbation screen design task, adatped from Roohani et al.15 using data from
+
+698
+
+Schmidt et al.32 , Biomni generated gene panels to maximize the experimental effect. It improved
+
+699
+
+post-perturbation performance by 13.2% over ReAct+Code and 23.0% over Biomni-ReAct, de-
+
+700
+
+spite the large gene space (∼19k genes), showcasing its ability to perform experimental planning
+
+701
+
+strategically under strong constraints.
+
+702
+
+In patient gene prioritization and rare disease diagnosis, using datasets from Alsentzer et
+
+703
+
+al.39 , Biomni mapped patient phenotypes and genetic findings to causal genes and diagnoses,
+
+704
+
+achieving 19.4% and 10.3% gains over base LLMs, and outperforming Biomni-ReAct by 5.7%
+
+705
+
+and 10.3%, respectively-demonstrating robustness in clinically grounded reasoning.
+
+706
+
+In drug repurposing, adapted from TxGNN38 , Biomni selected candidate drugs aligned with
+
+707
+
+EHR-based off-label prescription patterns. Though the alignment gains over base LLMs were mod-
+
+708
+
+est (+3.6%), Biomni remained competitive with both ReAct+Code and Biomni-ReAct, indicating
+
+709
+
+its ability to handle subtle pharmacological signal amid high uncertainty.
+
+710
+
+In single-cell RNA-seq cell annotation, where the task involved assigning cell types across
+29
+
+711
+
+species, tissues, and platforms, Biomni achieved a 93.6% improvement over Biomni-ReAct and
+
+712
+
+10.3% over ReAct+Code, based on semantic matching verified by human adjudication-demonstrating
+
+713
+
+highly accurate biological labeling in diverse contexts.
+
+714
+
+Finally, in microbiome disease-taxa analysis, Biomni autonomously performed statistical
+
+715
+
+testing and visualization on five metagenomic datasets from public datasets, like Human Micro-
+
+716
+
+biome Project37 and literature. It outperformed the base LLM by 180.0%, ReAct+Code by 48.8%,
+
+717
+
+and Biomni-ReAct by 25.0%, underscoring its strength in executing complex, noisy workflows
+
+718
+
+end to end 41 .
+
+719
+
+C
+
+Biomni prompt
+System prompt for the generalist agent
+You are a helpful biomedical assistant assigned with the task of
+problem-solving.
+To achieve this, you will be using an interactive coding
+environment equipped with a variety of tool functions, data,
+and softwares to assist you throughout the process.
+Given a task, make a plan first. The plan should be a numbered
+list of steps that you will take to solve the task. Be specific
+and detailed.
+Format your plan as a checklist with empty checkboxes like this:
+1. [ ] First step
+2. [ ] Second step
+3. [ ] Third step
+Follow the plan step by step. After completing each step, update
+the checklist by replacing the empty checkbox with a checkmark:
+1. [
+] First step (completed)
+2. [ ] Second step
+3. [ ] Third step
+If a step fails or needs modification, mark it with an X and
+explain why:
+1. [
+] First step (completed)
+2. [
+] Second step (failed because...)
+3. [ ] Modified second step
+4. [ ] Third step
+At each turn, you should first provide your detailed thinking and
+reasoning given the conversation history, along with the
+updated plan (Always show the updated plan after each step so
+
+720
+
+30
+
+the user can track progress).
+After that, you have two options:
+1) Interact with a programming environment and receive the
+corresponding output within <observe></observe>. Your code
+should be enclosed using "<execute>" tag, for example: <execute
+> print("Hello World!") </execute>. IMPORTANT: You must end the
+code block with </execute> tag.
+- For Python code (default): <execute> print("Hello World!") </
+execute>
+- For R code: <execute> #!R\nlibrary(ggplot2)\nprint("Hello
+from R") </execute>
+- For Bash scripts and commands: <execute> #!BASH\necho "Hello
+from Bash"\nls -la </execute>
+- For CLI softwares, use Bash scripts.
+2) When you think it is ready, directly provide a solution that
+adheres to the required format for the given task to the user.
+Your solution should be enclosed using "<solution>" tag, for
+example: The answer is <solution> A </solution>. IMPORTANT: You
+must end the solution block with </solution> tag.
+- If user does not specify the format, use a report format. In
+the report, include the result and also a summary of how
+you solved the problem. Make it concise and to the point.
+Be rigorous.
+- Use numbered references like [1], [2] in the summary if
+applicable. Provide brief footnotes for each reference at
+the end of the report, explaining the rationale or evidence
+.
+You have many chances to interact with the environment to receive
+the observation. So you can decompose your code into multiple
+steps.
+Don’t overcomplicate the code. Keep it simple and easy to
+understand.
+When writing the code, please print out the steps and results in a
+clear and concise manner, like a research log.
+When calling the existing python functions in the function
+dictionary, YOU MUST SAVE THE OUTPUT and PRINT OUT the result.
+For example, result = understand_scRNA(XXX) print(result)
+Otherwise the system will not be able to know what has been done.
+Don’t overdo it. Stop when the plan is finished or the task is
+already solved. Be relatively simple and concise and
+understandable to the user.
+Also, avoid faking or simulating code/data. Your user is a
+721
+
+31
+
+biomedical researcher. Thus, stay true and rigorous.
+For the thinking process, put before the execute code block. Do
+not use print statement in the execute code block for the
+thinking process.
+If you draw figures, make publication-ready and beautiful figures.
+For R code, use the #!R marker at the beginning of your code block
+to indicate it’s R code.
+For Bash scripts and commands, use the #!BASH marker at the
+beginning of your code block. This allows for both simple
+commands and multi-line scripts with variables, conditionals,
+loops, and other Bash features.
+In each response, you must include EITHER <execute> or <solution>
+tag. Not both at the same time. Do not respond with messages
+without any tags. No empty messages. In each response, there
+could ONLY BE ONE TAG. Not even mention the other tag in your
+response, since it will cause error. In each response, for the
+tag, also just use once, not multiple times.
+Try to save all generated files or images to the ’/tmp/
+agent_outputs/’ directory.
+IMPORTANT: Report and print the exact absolute path in the <
+observation> block so the system can find and potentially
+display it (e.g. print(f"Image saved at: path/to/image.png")).
+Environment Resources:
+- Function Dictionary:
+{function_intro}
+--{tool_desc}
+--{import_instruction}
+- Biological Data Lake (Amazon S3):
+The biological data lake is stored in an Amazon S3 bucket: {
+s3_datalake_uri}
+{data_lake_intro}
+You need to use appropriate tools/libraries to access files from
+this S3 bucket within your code. Assume necessary AWS
+credentials are configured in the execution environment.
+---Available Files (use these paths relative to the bucket URI):
+722
+
+32
+
+{data_lake_content}
+---- Software Library:
+{library_intro}
+Each library is listed with its description to help you understand
+its functionality.
+---{library_content_formatted}
+---- Note on using R packages and Bash scripts:
+- R packages: Use subprocess.run([’Rscript’, ’-e’, ’your R code
+here’]) in Python, or use the #!R marker in your execute
+block.
+- Bash scripts and commands: Use the #!BASH marker in your
+execute block for both simple commands and complex shell
+scripts with variables, loops, conditionals, etc.
+723
+
+System prompt for the tool retriever LLM
+You are an expert biomedical research assistant. Your task is to
+select the relevant resources to help answer a user’s query.
+USER QUERY: {query}
+Below are the available resources. For each category, select items
+that are directly or indirectly relevant to answering the
+query.
+Be generous in your selection - include resources that might be
+useful for the task, even if they’re not explicitly mentioned
+in the query.
+It’s better to include slightly more resources than to miss
+potentially useful ones.
+AVAILABLE TOOLS:
+{self._format_resources_for_prompt(resources.get(’tools’, []))}
+AVAILABLE DATA LAKE ITEMS:
+{self._format_resources_for_prompt(resources.get(’data_lake’, []))
+}
+AVAILABLE SOFTWARE LIBRARIES:
+{self._format_resources_for_prompt(resources.get(’libraries’, []))
+}
+724
+
+33
+
+For each category, respond with ONLY the indices of the relevant
+items in the following format:
+TOOLS: [list of indices]
+DATA_LAKE: [list of indices]
+LIBRARIES: [list of indices]
+For example:
+TOOLS: [0, 3, 5, 7, 9]
+DATA_LAKE: [1, 2, 4]
+LIBRARIES: [0, 2, 4, 5, 8]
+If a category has no relevant items, use an empty list, e.g.,
+DATA_LAKE: []
+IMPORTANT GUIDELINES:
+1. Be generous but not excessive - aim to include all potentially
+relevant resources
+2. ALWAYS prioritize database tools for general queries - include
+as many database tools as possible
+3. Include all literature search tools
+4. For wet lab sequence type of queries, ALWAYS include molecular
+biology tools
+5. For data lake items, include datasets that could provide useful
+information
+6. For libraries, include those that provide functions needed for
+analysis
+7. Don’t exclude resources just because they’re not explicitly
+mentioned in the query
+8. When in doubt about a database tool or molecular biology tool,
+include it rather than exclude it
+725
+
+System prompt for the action discovery agent
+You are a research methodology expert specializing in identifying
+computational tasks and data analysis procedures in academic
+papers.
+Your job is to analyze chunks of academic papers and identify ONLY
+the most common, generalizable computational tasks that are
+widely used across biomedical research and can be implemented
+with Python or Linux code.
+STRICT GUIDELINES:
+1. ONLY extract tasks that are extremely common and standard in
+726
+
+34
+
+computational biomedical research
+2. Each task MUST have clear, well-defined inputs and outputs
+3. Tasks MUST be generalizable across many different papers and
+research questions
+4. Be VERY selective - only include tasks that appear in hundreds
+of papers
+5. If a task is specific to this paper, unclear, or not widely
+used, DO NOT include it
+6. Focus on computational tasks that can be implemented with
+Python or Linux code
+7. Each task should be something that could be implemented as a
+function with clear inputs/outputs
+8. Also identify commonly used databases and software packages
+mentioned in the text
+9. Tasks MUST be CONCRETE and SPECIFIC - include exact
+methodological details
+10. Avoid vague task names like "Statistical Analysis" - instead
+use specific protocol names like "Two-way ANOVA with Tukey’s
+Post-hoc Test using SciPy"
+11. DO NOT include wet lab procedures that cannot be implemented
+computationally
+12. ONLY include tasks that could be automated with code
+For the following chunk of text from an academic paper, provide:
+1. A list of ONLY the most common, generalizable COMPUTATIONAL
+tasks identified (be extremely selective)
+2. For each task, clearly define:
+- Task name: A SPECIFIC and CONCRETE name with methodological
+details (e.g., "RNA-seq Differential Expression Analysis
+with DESeq2" instead of just "Gene Expression Analysis")
+- Input: What SPECIFIC data or parameters the task requires
+- Output: What SPECIFIC data or results the task produces
+- Code implementation: How this task could be implemented with
+Python or Linux code, including key libraries/packages
+- Frequency: How common this computational task is in
+biomedical research
+- Standard methods: The established computational techniques
+used to perform this task
+- Example: A brief description of how THIS specific paper uses
+this task (with specific details from the paper)
+3. A list of commonly used databases mentioned in the text (if any
+)
+4. A list of commonly used software packages/tools mentioned in
+the text (if any)
+727
+
+35
+
+PAPER CHUNK:
+{chunk_text}
+Remember, it’s better to return NO tasks than to include tasks
+that aren’t extremely common, generalizable, and implementable
+with code. Quality over quantity is essential. Tasks MUST be
+CONCRETE with SPECIFIC methodological details and MUST be
+implementable with Python or Linux code.
+728
+
+729
+
+D
+
+Biomni generated report for the wearable case study
+User Prompt for CGM Wearable Temperature Data Analysis
+Task: Here I Have some CGM thermo data from participants, I
+recorded their body temperature after they took certain type
+food, and used the device to record the data
+Dataset: CGM thermo data in the format of csv
+Path: {data_path}
+Objective: Identify how each participants body temperature change
+after they took food, and also see individual difference after
+taking the food
+Expected Output: plot the graphs please
+Output Format:save figures in {save_path}
+
+730
+
+Agent Output for CGM Wearable Temperature Data Analysis
+# CGM Thermo Data Analysis Summary
+## Analysis Overview:
+This analysis examined temperature data from CGM devices to
+identify how body temperature changes after food intake and to
+analyze individual differences in temperature responses.
+## Methodology:
+1. Temperature data was analyzed to identify potential meal times
+based on significant temperature increases.
+2. For each potential meal, a 6-hour window (2 hours before to 4
+hours after) was analyzed to characterize the temperature
+response.
+3. Temperature changes were normalized relative to the pre-meal
+baseline to enable comparison across subjects.
+## Key Findings:
+731
+
+36
+
+- Average temperature increase after meals: 2.19 C
+- Median temperature increase: 1.10 C
+- Range of temperature increases: -0.11 C to 15.56 C
+Individual Differences:
+- Substantial variation was observed in temperature responses
+across subjects.
+- Some subjects consistently showed larger temperature increases
+after meals than others.
+- The timing of peak temperature also varied across subjects.
+## Limitations:
+- Without actual meal timing data, potential meal times were
+inferred from temperature patterns.
+- Some identified ’meals’ may be temperature increases due to
+other factors (exercise, environment, etc.).
+- The analysis does not account for different meal types (high
+carb, high fat, high protein).
+## Generated Visualizations:
+1. Daily temperature analysis plots
+2. Meal window plots
+3. Box plot comparing temperature increases across subjects
+4. Bar chart of average temperature increases by subject
+5. Average temperature response pattern after meals
+6. Individual differences in temperature response patterns
+7. Heatmap of temperature changes by subject
+8. Distribution of temperature increases
+732
+
+User Prompt for CGM Wearable Multi-Omics Data Analysis
+Task: Here I Have some CGM omics from participants,can you help me
+fully explore the omics data and generate some new insights"
+Dataset: CGM omics data in the format of csv
+Path: {data_path}
+Objective: fully explore omics data and generate biological
+insights
+Expected Output: plot the graphs please and write a insightful
+summary
+Output Format:save figures in {save_path}
+733
+
+37
+
+Agent Output for CGM Wearable Multi-Omics Data Analysis
+# CGM Omics Data Analysis: Key Biological Insights
+## Dataset Overview
+The analysis explored three distinct omics datasets from CGM
+participants:
+- **Lipidomics**: 652 features across 147 samples
+- **Metabolomics**: 731 features across 147 samples
+- **Proteomics**: Various proteins measured across multiple
+samples
+## Key Findings
+### 1. Multi-omics Integration
+The integrated analysis revealed coordinated patterns across
+lipids, metabolites, and proteins, suggesting complex
+biological processes that span multiple molecular layers.
+Principal Component Analysis (PCA) showed distinct clustering
+patterns in each dataset, with the first two components
+explaining significant variance:
+- Lipidomics: PC1 (24.15%), PC2 (15.34%)
+- Metabolomics: PC1 (33.68%), PC2 (11.12%)
+- Proteomics: PC1 (21.82%), PC2 (11.99%)
+### 2. Potential Biomarkers
+Several molecular features were identified as potential biomarkers
+based on their high variance and correlation patterns. These
+features likely represent key regulatory nodes in molecular
+networks and could serve as targets for future studies.
+### 3. Temporal and Seasonal Patterns
+Temporal analysis revealed seasonal variations in molecular
+profiles, suggesting environmental or lifestyle influences on
+human physiology. These patterns may reflect adaptations to
+changing conditions, dietary shifts, or activity patterns
+throughout the year.
+### 4. Molecular Networks
+Correlation network analysis identified modules of co-regulated
+features within each omics layer, likely representing
+functional units or biological pathways. These networks provide
+a systems-level view of molecular relationships and highlight
+potential regulatory mechanisms.
+### 5. Cross-omics Relationships
+734
+
+38
+
+Strong correlations were observed between features across
+different omics layers, indicating coordinated regulation and
+biological pathways that span multiple molecular types. These
+relationships help understand the interplay between different
+molecular classes in health and disease.
+## Future Directions
+1. **Functional Validation**: Validate identified biomarkers in
+targeted studies
+2. **Pathway Analysis**: Map features to specific biological
+pathways
+3. **Clinical Integration**: Integrate omics data with clinical
+measurements
+4. **Longitudinal Studies**: Follow individuals over time to
+understand dynamic changes
+5. **Machine Learning Models**: Develop predictive models for
+early disease markers
+The comprehensive analysis provides a foundation for understanding
+the complex molecular landscape of CGM participants and offers
+insights into potential biomarkers and biological mechanisms
+that could inform future clinical applications.
+735
+
+User Prompt for CGM Wearable Sleep Data Analysis
+Task: Here I have some sleep data from wearables from participants
+,can you help me fully explore the omics data and generate some
+new insights"
+Dataset: sleep data from wearables in the format of csv
+Path: {data_path}
+Objective: delve deep into sleep data and generate biological
+insights
+Expected Output: plot the graphs please and write a insightful
+summary
+Output Format:save figures in {save_path}
+736
+
+Agent Output for CGM Wearable Sleep Data Analysis
+# Sleep Data Analysis: Insights and Findings
+## Overview
+This analysis explored sleep data from wearable devices across 10
+participants, covering 227 nights of sleep. The dataset
+737
+
+39
+
+captured detailed sleep metrics including duration, efficiency,
+sleep stages (light, deep, REM), and various other parameters.
+Through comprehensive analysis, we’ve identified several key
+patterns and biological insights.
+## Key Findings
+### 1. Sleep Duration and Efficiency
+- **Average sleep duration**: 7.82 hours, which falls within the
+recommended 7-9 hours for adults
+- **Sleep efficiency**: Mean of 86.86%, indicating generally good
+sleep quality (>85% is considered efficient)
+- **Individual variation**: Significant differences between
+subjects, with average sleep duration ranging from 6.13 to 9.78
+hours
+- **Consistency**: 33.48% of nights had less than 7 hours of sleep
+, while 49.78% had more than 8 hours
+### 2. Sleep Architecture
+- **Sleep stage composition**: On average, participants spent
+59.09% in light sleep, 14.88% in deep sleep, and 19.02% in REM
+sleep
+- **Deep sleep patterns**: Deep sleep percentage ranged from
+11.15% to 20.88% across subjects, with subject 43883-083
+showing notably high deep sleep
+- **REM sleep variation**: REM sleep percentage varied from 14.79%
+to 23.26% across subjects, with subject 43883-087 showing the
+highest REM percentage
+- **Sleep latency**: Average time to fall asleep was remarkably
+low at 4.13 minutes (below 10 minutes may indicate sleep
+deprivation)
+### 3. Sleep Quality Patterns
+- **Quality scoring**: Our custom sleep quality score (
+incorporating efficiency, sleep stages, latency, and wake-ups)
+showed consistent patterns across subjects
+- **Wake episodes**: Participants experienced an average of 24.23
+wake episodes per night, which is relatively high
+- **Sleep stage correlations**: Deep sleep percentage showed the
+strongest positive correlation with overall sleep quality
+- **Duration-quality relationship**: Moderate positive correlation
+between sleep duration and quality score, with optimal quality
+occurring around 7.5-8.5 hours
+### 4. Chronobiological Insights
+738
+
+40
+
+- **Weekday vs. weekend**: Surprisingly, no statistically
+significant difference between weekday and weekend sleep
+duration (p=0.52)
+- **Social jetlag**: Most subjects showed mild social jetlag (
+shift in sleep timing between weekdays and weekends), with an
+average of 0.49 hours
+- **Sleep timing consistency**: Subjects with more consistent
+sleep onset times tended to have better sleep quality
+- **Day-of-week patterns**: Sleep efficiency was highest on
+Wednesdays and lowest on Sundays, suggesting potential end-ofweekend disruption
+### 5. Individual Sleep Profiles
+- **Subject 43883-079**: Longest average sleep duration (9.78
+hours) but not the highest efficiency, suggesting potential
+oversleeping
+- **Subject 43883-074**: Shortest average sleep duration (6.13
+hours) and lower efficiency (83.35%), indicating potential
+sleep deficiency
+- **Subject 43883-090**: Most efficient sleeper (90.21%) despite
+moderate duration (8.14 hours)
+- **Subject 43883-087**: Best REM sleep profile (23.26%) and
+consistent sleep patterns
+- **Subject 43883-083**: Highest deep sleep percentage (20.88%),
+suggesting good physical recovery during sleep
+## Biological Implications
+1. **Sleep Homeostasis**: The data reveals individual differences
+in sleep need and efficiency, supporting the concept of sleep
+homeostasis varying between individuals.
+2. **Sleep Architecture Balance**: The distribution of sleep
+stages (light, deep, REM) appears relatively normal across most
+subjects, with expected ratios for healthy adults.
+3. **Circadian Rhythms**: The relatively low social jetlag
+observed suggests well-aligned circadian rhythms for most
+participants, though individual differences exist.
+4. **Recovery Processes**: Deep sleep percentages (associated with
+physical recovery) vary significantly between subjects,
+potentially reflecting differences in physical activity or
+metabolic demands.
+739
+
+41
+
+5. **Cognitive Processing**: REM sleep (associated with cognitive
+processing and memory consolidation) shows notable variation,
+which may relate to differences in cognitive demands or
+emotional processing needs.
+## Recommendations for Future Research
+1. Incorporate additional biometric data (heart rate, physical
+activity, stress levels) to correlate with sleep patterns
+2. Collect subjective sleep quality ratings to compare with
+objective measures
+3. Extend data collection to longer periods to better capture
+seasonal variations and long-term patterns
+4. Analyze the impact of environmental factors (temperature, light
+, noise) on sleep metrics
+5. Investigate the relationship between sleep patterns and daytime
+performance/cognitive function
+This analysis demonstrates the power of wearable technology in
+capturing detailed sleep metrics, providing insights into both
+population-level sleep patterns and individual variations that
+have important implications for health and well-being.
+740
+
+741
+
+E
+
+Biomni generated report for the scRNA and scATAC case study
+User Prompt for scRNA and scATAC Joint Data Analysis
+Task
+G e n e r e g u l a t o r y n e t w o r k (GRN) analysis with pySCENIC
++ snATAC
+Goal
+Map transcription factor (TF) circuits that drive
+skeletal development across anatomical regions and
+developmental stages.
+
+DATA
+snRNA seq
+: {PATH}/filtered_core_rna.h5ad
+snATAC seq
+: {PATH}/filtered_core_atac.h5ad
+Workdir
+: {PATH}/buffer_o3_run6/
+pySCENIC database : {PATH}/pyscenic/
+742
+
+42
+
+All intermediates & logs must be written here.
+
+1 LOAD & ALIGN
+1.1 Read both .h5ad files into memory (AnnData).
+1.2 Verify identical cell barcodes and c e l l t y p e labels.
+1.3 Ensure gene/peak annotation uses the same genome build.
+2 TF SEED LIST
+2.1 Start with canonical skeletal TFs (SOX9, RUNX2, etc.).
+2.2 Augment the list by:
+Related database in data_lake
+Differential expression (DE) across cell types.
+Differential accessibility (DA) of promoter peaks. (Add
+any TF with DE padj < 0.05 AND DA padj < 0.05.)
+3 P E R C E L L T Y P E GRN INFERENCE
+3.0 Filter cell types: keep only those with
+500 nuclei (or
+50 pseudobulks).
+3.1 For each qualifying cell type **ct**:
+a) adata_ct = adata[adata.obs["cell_type"] == ct]
+b) ‘print(f"[{ct}] starting GRNBoost2
+")‘
+c) Run GRNBoost2
+save
+‘{workdir}/grnboost2/raw/{ct}_adjacency.csv‘
+4 MOTIF + ATAC PRUNING ( p e r c e l l t y p e )
+4.1 Pseudobulk the matching snATAC cells of **ct** (min depth 20
+k).
+4.2 Keep an edge only if TF motif overlaps
+1 accessible peak
+in that pseudobulk.
+4.3 Outputs: ‘ct_pruned_edges.csv‘, print out informative
+messages of intermediate results.
+5 REGULON BUILD
+5.1 Convert pruned edges to regulons (.loom + .csv).
+5.2 Discard regulons with <20 target genes.
+6 REGULON ACTIVITY (AUCell)
+6.1 Compute AUCell scores per nucleus.
+6.2 Save AUCell.h5ad (scores + metadata).
+7 COMPARATIVE ANALYSIS
+7.0 Concatenate all AUCell matrices.
+743
+
+43
+
+7.1
+7.2
+
+Within each **ct**, test stage / region effects.
+Across cell types, highlight TFs unique to a lineage.
+
+8 VISUALISATION
+8.1 UMAP colored by selected regulons.
+8.2 Heatmap: regulon
+c e l l t y p e ( r o w z s c o r e d AUCell).
+8.3 Line plots: stage trajectory of key TF activities.
+9 REPORT (Output: report.md or report.pdf)
+9.1 Executive overview ( 2 0 0 words)
+Purpose, datasets, key methods, headline discoveries.
+9.2
+
+Key findings (tables / figures)
+T o p 1 0 regulons by AUCell score *per lineage*
+S t a g e s p e c i f i c TFs ( l o g 2 f o l d
+1.5, FDR<0.05)
+Region restricted regulons (limb vs. craniofacial, etc
+.)
+Novel TFs not in seed list, ranked by t a r g e t c o u n t .
+
+9.3
+
+Visual summary
+UMAP coloured by 5 hallmark regulons.
+Heatmap: Regulon
+c e l l t y p e ( r o w Z AUCell).
+Bar plot: edge counts before/after ATAC pruning.
+
+9.4
+
+Method & QC appendix
+Parameter table (motif DB, thresholds, software versions)
+.
+Runtime / memory stats.
+E d g e r e t e n t i o n percentages for each pruning step.
+
+744
+
+Agent Output for scRNA and scATAC Joint Data Analysis
+# Gene Regulatory Network Analysis in Skeletal Development
+I’ve completed a comprehensive analysis of gene-regulatorynetworks (GRNs) in skeletal development using existing pySCENIC
+and snATAC-seq data. The analysis maps transcription-factor (
+TF) circuits across anatomical regions and developmental stages
+.
+## Analysis Overview
+1. **Inventory**: Located all necessary files including adjacency
+matrices, pruned edges, regulon tables, and AUCell data for 10
+745
+
+44
+
+distinct cell types.
+2. **Data Loading**: Successfully loaded regulon data and AUCell
+matrices, mapping cells to their corresponding cell types,
+developmental stages, and anatomical regions.
+3. **Quality Control**:
+- Edge retention rates were consistently ˜10% across all cell
+types
+- All cell types had 566-589 regulons with at least 20 target
+genes
+- AUCell score distributions showed consistent patterns with
+LimbMes exhibiting highest activity
+4. **Biological Analysis**:
+- Identified 458 differentially active regulons between early
+and late developmental stages
+- Found 4,177 differentially active regulons between anatomical
+regions
+- Mapped lineage-specific master regulators like SATB2 (cranial
+mesenchyme), SOX5 (chondroprogenitors), and TWIST1 (
+preosteoblasts)
+- Discovered novel regulators including AUTS2, ZFHX3, and PBX1
+with high activity across skeletal lineages
+- Performed GO/KEGG enrichment for top regulons revealing
+distinct biological processes for each cell type
+5. **Visualizations**: Created a comprehensive set of figures
+including:
+- Heatmap of regulon activity across cell types
+- UMAP embeddings colored by cell type and key regulon activity
+- Bar plots of raw vs. pruned edge counts and retention rates
+6. **Comprehensive Report**: Generated a detailed ‘report_full.md‘
+containing:
+- Executive summary of key findings
+- QC analysis with tables and figures
+- Key discoveries with visualizations
+- Novel regulator spotlight
+- Detailed methods section
+## Key Discoveries
+1. **Spatiotemporal Regulation**: Extensive differences in regulon
+activity between developmental stages and anatomical regions,
+746
+
+45
+
+highlighting complex spatiotemporal control of skeletal
+development.
+2. **Lineage-Specific Programs**: Distinct regulatory programs for
+each skeletal lineage, with both unique and shared regulons
+between related cell types.
+3. **Novel Regulators**: Identification of several transcription
+factors not previously associated with skeletal development
+that show high regulatory activity.
+4. **Functional Enrichment**: Cell-type-specific enrichment
+patterns, with osteoblast regulons enriched for bone
+development, chondrocyte regulons for cartilage development,
+and mesenchymal regulons for pattern specification.
+The complete analysis provides new insights into the
+transcriptional control of skeletal development and identifies
+potential targets for future research into skeletal disorders
+and regenerative medicine.
+747
+
+748
+
+F
+
+Biomni generated report for the cloning protocol case study
+User prompt for cloning protocol design
+I have a plasmid plentiCRISPR v2 blast:
+CGTTGGAGTCCACGTT...[full sequence removed for the clarity of the
+manuscript]...CGCCCTTTGA. I hope to clone a CRISPR sgRNA
+targeting human B2M into this plasmid. Could you give me the
+final map of the plasmid and step-by-step guidance on how
+should I perform the cloning?
+
+749
+
+Agent Output for cloning protocol design
+# Cloning B2M sgRNA into lentiCRISPR v2 blast Plasmid
+## Final Plasmid Map
+The final plasmid (12,816 bp) will contain:
+1. **Lentiviral Elements**:
+- 5’ and 3’ LTRs for viral integration
+- Psi ( ) packaging signal
+- RRE (Rev Response Element)
+- WPRE element for enhanced expression
+750
+
+46
+
+2. **CRISPR Components**:
+- U6 promoter driving sgRNA expression
+- B2M sgRNA: 5’-CGCGAGCACAGCTAAGGCCA-3’
+- sgRNA scaffold for Cas9 binding
+- EF1a promoter driving Cas9 expression
+- Cas9 coding sequence
+3. **Selection Markers**:
+- Blasticidin resistance gene for mammalian selection
+- Ampicillin resistance gene for bacterial selection
+## Cloning Strategy
+The B2M sgRNA will be inserted between the U6 promoter and sgRNA
+scaffold using BsmBI restriction sites, replacing the original
+stuffer sequence.
+## Step-by-Step Cloning Protocol
+### 1. Design and Order Oligos
+- **Forward oligo**: 5’-CACCGCGCGAGCACAGCTAAGGCCA-3’
+- **Reverse oligo**: 5’-AAACTGGCCTTAGCTGTGCTCGCGC-3’
+### 2. Anneal and Phosphorylate Oligos
+1. Resuspend oligos to 100
+M in nuclease-free water
+2. Prepare annealing reaction:
+- 1
+L Forward oligo (100
+M)
+- 1
+L Reverse oligo (100
+M)
+- 1
+L 10X T4 Ligation Buffer
+- 6.5
+L nuclease-free water
+- 0.5
+L T4 PNK
+3. Incubate in a thermocycler:
+- 37 C for 30 minutes (phosphorylation)
+- 95 C for 5 minutes (denaturation)
+- Ramp down to 25 C at 5 C /min (annealing)
+4. Dilute annealed oligos 1:200 in nuclease-free water (final: 50
+nM)
+### 3. Golden Gate Assembly
+1. Prepare reaction:
+- 100 ng lentiCRISPR v2 blast plasmid
+- 1
+L diluted annealed oligos (50 nM)
+- 2
+L 10X T4 DNA Ligase Buffer
+- 1
+L BsmBI-v2 (NEB)
+- 1
+L T4 DNA Ligase
+751
+
+47
+
+- Nuclease-free water to 20
+L total
+2. Incubate in a thermocycler:
+- 37 C for 5 minutes
+- 16 C for 5 minutes
+- Repeat steps 1-2 for 10 cycles
+- 55 C for 5 minutes (final digestion)
+- 80 C for 5 minutes (enzyme inactivation)
+### 4. Bacterial Transformation
+1. Add 2
+L of the Golden Gate reaction to 50
+L of competent
+Stbl3 E. coli cells
+2. Incubate on ice for 30 minutes
+3. Heat shock at 42 C for 45 seconds
+4. Return to ice for 2 minutes
+5. Add 950
+L of SOC medium
+6. Incubate at 37 C for 1 hour with shaking
+7. Plate 100
+L on LB agar plates with ampicillin (100
+g /mL)
+8. Incubate plates at 37 C overnight
+### 5. Colony Screening and Verification
+1. Pick 3-5 colonies and grow in 5 mL LB + ampicillin medium
+overnight
+2. Extract plasmid DNA using a miniprep kit
+3. Verify correct insertion by Sanger sequencing using the U6
+promoter forward primer:
+5’-GACTATCATATGCTTACCGT-3’
+4. Confirm the presence of the B2M sgRNA sequence in the plasmid
+### 6. Lentivirus Production and Cell Transduction
+1. Transfect the verified plasmid into HEK293T cells along with
+packaging plasmids
+2. Collect virus-containing supernatant after 48-72 hours
+3. Filter and concentrate the lentivirus if needed
+4. Transduce target cells with the lentivirus
+5. Select transduced cells with blasticidin (5-10
+g /mL)
+6. Verify B2M knockout by flow cytometry, Western blot, or genomic
+sequencing
+## Applications
+- Generation of B2M knockout cell lines for immunology research
+- Creating cells resistant to CD8+ T cell recognition
+- Development of universal donor cells for cell therapy
+- Control for CRISPR screens
+752
+
+48
+
+753
+
+Supplementary Figures
+
+ % G G Y V E G ]   	 
+
+  
+  
+ 
+
+ 1 
+ S 
+ M  7
+ S
+ R R
+ & M S
+ I X 
+ Q R
+   
+ M  7
+ S R
+ R I
+ X  
+ 
+ & M S  
+ Q R
+ M  S
+ 
+
+ & M S
+ Q R
+
+ 0 0
+
+ 0 0
+
+ 1 
+ 7 S
+ R R
+ I X 
+ 0 0
+   
+ 1 
+ 7 S
+ R R
+ I X 
+   
+
+ 
+
+Figure 1: Performance on HLE with different LLM as the engine. We found that Sonnet 3.7 has better performance than 3.5 for
+both LLM and Biomni. However, interestingly, O1 has better performance than Sonnet 3.7 for the LLM but not for Biomni.
+
+49
+
+ % G G Y V E G ]   	 
+
+  
+  
+  
+
+ X V M I
+ Z I
+ V
+
+ M
+ Q R
+
+ M  2
+ S 6
+ I
+
+ & M S
+
+ Q R
+
+ Z I
+ V
+ I X V
+ M I
+
+ X  2
+ S 6
+
+ & M S
+
+ M  6
+ I %
+ G
+
+ & M S
+
+ Q R
+
+ & M S
+
+ Q R
+
+ M  6
+ I %
+ G
+
+ X
+
+ 
+
+Figure 2: Ablation performance on retriever. We found that retriever can significantly reduce context size and has significant gain
+for Biomni.
+
+Figure 3: Subject-level performance on HLE biomedicine track. Due to the small sample size, the conclusion may not be meaningful.
+
+50
+
+a
+
+Scientific Aims
+
+Wearablederived sleep
+data
+
+b
+
+10 participants,
+covering 227
+nights of sleep.
+
+I have wearable-derived sleep data from
+multiple participants collected nightly over
+several weeks. Please explore each
+participant's sleep pattern, assess quality
+and consistency, and identify biologically
+meaningful inter-individual differences.
+
+1. How do individual sleep architecture patterns (light, deep, REM)
+vary over time and between subjects?
+2. What are the main contributors to sleep quality differences
+(e.g., efficiency, latency, wake events)?
+3. Can consistent sleep timing or deviations (e.g., social jetlag)
+serve as potential behavioral biomarkers for cognitive or
+physiological states?
+
+1. Data
+Understanding and
+Organizing
+
+2. Sleep Metrics
+Extraction
+
+3. Sleep Stage
+Decomposition
+
+4. Inter-Subject
+Comparison
+
+5. Pattern
+Discovery
+
+6. Sleep Quality
+Scoring
+
+c
+
+d Findings
+
+1.On overage, participants slept 7.82 hours with 86.9%
+efficiency, spending 59% in light sleep, 15% in deep
+sleep, and 19% in REM.
+2. Sleep quality scores, derived from latency, stage
+balance, and wake events, revealed that consistency in
+sleep timing correlated strongly with better sleep
+quality.
+3.No significant difference was found between
+weekday and weekend sleep duration, though mild
+social jetlag (~0.5 hours) was common.
+
+Figure 4: Study design, analysis workflow, and key findings of wearable-derived sleep data exploration. (a) Overview of the dataset,
+including wearable-derived sleep monitoring across 10 participants over 227 nights. (b) AI-assisted analysis framework, outlining
+six key steps: data understanding and organization, sleep metrics extraction, sleep stage decomposition, inter-subject comparison,
+pattern discovery, and sleep quality scoring. (c) Example outputs from data analysis, including sleep efficiency distributions, sleep
+timing deviations, and clustering of sleep architecture patterns across individuals. (d) Summary of findings: participants averaged
+7.82 hours of sleep with 86.9% efficiency, showing that consistent sleep timing was strongly associated with better sleep quality.
+Mild social jetlag ( 0.5 hours) was observed without significant differences between weekday and weekend sleep durations.
+
+51
+
+a
+
+Scientific Aims
+
+CGM-Omics
+
+b
+
+Activity Data
+
+Here I have some CGM omics
+from participants, can you help
+me fully explore the omics data
+and generate some insights?
+
+1.How does the human body regulate thermogenic responses
+following food intake at the molecular level?
+2.What are the key lipids, metabolites, and proteins associated
+with thermogenic responses to meals?
+3.Are there seasonal or temporal patterns in lipidomics,
+metabolomics, and proteomics data that influence thermogenic
+regulation?
+
+1. Data
+Understanding
+and Organizing
+
+2. Baseline
+Establishment
+&Statistical
+Analysis
+
+3. Omics
+Integration
+
+4. Pathway &
+Enrichment
+Analysis
+
+5. Visualization &
+Reporting
+
+6. Insight
+Generation
+
+c
+
+d Findings
+1. The integrated CGM-omics analysis
+revealed coordinated molecular patterns
+across lipidomics, metabolomics, and
+proteomics, with distinct clustering and
+strong cross-omics relationships.
+2. Several high-variance features were
+identified as potential biomarkers, and
+seasonal
+variations
+suggested
+environmental or lifestyle impacts.
+
+Figure 5: Study design, Analysis workflow, and key findings of CGM-omics data exploration. (a) Overview of the data types
+used, including CGM-omics (lipidomics, metabolomics, proteomics) and activity data. (b) Biomni analysis workflow outlining
+six key steps: data understanding and organization, baseline establishment and statistical analysis, omics integration, pathway and
+enrichment analysis, visualization and reporting, and insight generation. (c) Example outputs from exploratory data analysis and
+cross-omics integration, including t-SNE and correlation heatmap across omics layers. (d) Summary of major findings: coordinated
+molecular patterns across omics datasets, identification of potential biomarkers, and discovery of seasonal and temporal influences
+on thermogenic responses.
+
+52
+
+Biomni
+Biomni-ReAct
+
+Biomni
+Biomni-ReAct
+
+Biomni
+Biomni-ReAct
+
+Figure 6: Statistics for the number of tools, datasets, and software used across all the real-world benchmark tasks.
+
+53
+
+Biomni
+Biomni-ReAct
+
+Figure 7: Statistics for the length of the trajectory across all the real-world benchmark tasks.
+
+Figure 8: Action category statistics across steps.
+
+54
+
+Figure 9: Detailed analysis on the tools, datasets, and software used for Gene Perturbation task.
+
+55
+
+Figure 10: Detailed analysis on the tools, datasets, and software used for GWAS causal gene detection task.
+
+56
+
+Figure 11: Detailed analysis on the tools, datasets, and software used for microbiome data analysis task.
+
+57
+
+Figure 12: Detailed analysis on the tools, datasets, and software used for patient causal gene detection task.
+
+58
+
+Figure 13: Detailed analysis on the tools, datasets, and software used for rare disease diagnosis task.
+
+59
+
+Figure 14: Detailed analysis on the tools, datasets, and software used for drug repurposing task.
+
+60
+
+Figure 15: Detailed analysis on the tools, datasets, and software used for scRNA annotation task.
+
+61
+
+Figure 16: Detailed analysis on the tools, datasets, and software used for variant prioritization task.
+
+62
+
+Figure 17: Biomni user interface.
+
+63
+
+754
+
+Supplementary Tables
+Table 1: Tool descriptions for biomni.literature
+
+Tool Name
+
+Tool Description
+
+fetch supplementary info from doi
+
+Fetches supplementary information for a paper given its
+DOI and returns a research log.
+
+query arxiv
+
+Query arXiv for papers based on the provided search query
+and return formatted search results.
+
+query scholar
+
+Query Google Scholar for papers based on the provided
+search query and return the first search result.
+
+query pubmed
+
+Query PubMed for papers based on the provided search
+query and return formatted results.
+
+search google
+
+Search the web using Google search and return results with
+title, URL, and description.
+
+extract url content
+
+Extract the text content of a webpage using requests and
+BeautifulSoup, removing unwanted elements and formatting the result.
+
+extract pdf content
+
+Extract text content from a PDF file given its URL.
+
+64
+
+Table 2: Tool descriptions for biomni.biochemistry
+Tool Name
+
+Tool Description
+
+analyze circular dichroism spectra
+
+Analyzes circular dichroism (CD) spectroscopy data to
+determine secondary structure and thermal stability of
+biomolecules.
+
+analyze rna secondary structure features
+
+Calculate numeric values for various structural features of
+an RNA secondary structure in dot-bracket notation.
+
+analyze protease kinetics
+
+Analyze protease kinetics data from fluorogenic peptide
+cleavage assays, fits the data to Michaelis-Menten kinetics,
+and determines key kinetic parameters (kcat, KM, and catalytic efficiency).
+
+analyze enzyme kinetics assay
+
+Performs in vitro enzyme kinetics assay and analyzes the
+dose-dependent effects of modulators.
+
+analyze itc binding thermodynamics
+
+Analyzes isothermal titration calorimetry (ITC) data to determine binding affinity and thermodynamic parameters.
+
+analyze protein conservation
+
+Perform multiple sequence alignment and phylogenetic
+analysis to identify conserved protein regions.
+
+Table 3: Tool descriptions for biomni.bioengineering
+Tool Name
+
+Tool Description
+
+analyze cell migration metrics
+
+Analyze cell migration metrics from time-lapse microscopy
+images and generate quantitative measurements of cell
+movement.
+
+perform crispr cas9 genome editing
+
+Simulates CRISPR-Cas9 genome editing process including
+guide RNA design, delivery, and analysis.
+
+analyze calcium imaging data
+
+Analyze calcium imaging data to quantify neuronal activity
+metrics including cell counts, event rates, decay times, and
+signal-to-noise ratios.
+
+analyze in vitro drug release kinetics
+
+Analyzes in vitro drug release kinetics from biomaterial formulations and determines the best fitting kinetic model.
+
+analyze myofiber morphology
+
+Quantifies morphological properties of myofibers in microscopy images of tissue sections.
+
+decode behavior from neural trajectories
+
+Model neural activity trajectories and decode behavioral
+variables from neural spiking data.
+
+simulate whole cell ode model
+
+Simulate a whole-cell model represented as a system of ordinary differential equations (ODEs).
+
+65
+
+Table 4: Tool descriptions for biomni.biophysics
+Tool Name
+
+Tool Description
+
+predict protein disorder regions
+
+Predicts intrinsically disordered regions (IDRs) in a protein
+sequence using IUPred2A algorithm.
+
+analyze cell morphology and cytoskeleton
+
+Quantifies cell morphology and cytoskeletal organization
+from fluorescence microscopy images.
+
+analyze tissue deformation flow
+
+Quantify tissue deformation and flow dynamics from microscopy image sequence.
+
+Table 5: Tool descriptions for biomni.cancer biology
+Tool Name
+
+Tool Description
+
+analyze ddr network in cancer
+
+Analyze DNA Damage Response (DDR) network alterations and dependencies in cancer samples by reconstructing the DDR network from genomic data, identifying disruptions, and analyzing dependencies between DDR pathway components.
+
+analyze cell senescence and apoptosis
+
+Analyze flow cytometry data to quantify senescent and
+apoptotic cell populations from FCS files.
+
+detect and annotate somatic mutations
+
+Detects and annotates somatic mutations in tumor samples
+compared to matched normal samples using GATK Mutect2
+for variant calling, GATK FilterMutectCalls for filtering,
+and SnpEff for functional annotation.
+
+detect and characterize structural variations
+
+Detects and characterizes structural variations (SVs) in
+genomic sequencing data using LUMPY for SV detection followed by annotation with COSMIC and/or ClinVar
+databases.
+
+perform gene expression nmf analysis
+
+Performs Non-negative Matrix Factorization (NMF) on
+gene expression data to extract metagenes and their associated sample weights for tumor subtype identification.
+
+Table 6: Tool descriptions for biomni.cell biology
+Tool Name
+
+Tool Description
+
+quantify cell cycle phases from microscopy
+
+Quantify the percentage of cells in each cell cycle phase
+(G1, S, G2/M) using Calcofluor white stained microscopy
+images by segmenting cells and analyzing their morphological features.
+
+quantify and cluster cell motility
+
+Quantify cell motility features from time-lapse microscopy
+images and cluster cells based on motility patterns.
+
+perform facs cell sorting
+
+Performs Fluorescence-Activated Cell Sorting (FACS) to
+enrich cell populations based on fluorescence characteristics.
+
+analyze flow cytometry immunophenotyping
+
+Analyze flow cytometry data to identify and quantify specific cell populations based on surface markers.
+
+analyze mitochondrial morphology and potential
+
+Quantifies metrics of mitochondrial morphology and membrane potential from fluorescence microscopy images.
+
+66
+
+Table 7: Tool descriptions for biomni.molecular biology
+
+Tool Name
+
+Tool Description
+
+annotate open reading frames
+
+Find all Open Reading Frames (ORFs) in a DNA sequence
+using Biopython. Searches both forward and reverse complement strands if specified.
+
+annotate plasmid
+
+Annotate a DNA sequence using pLannotate’s commandline interface to identify features such as genes, promoters,
+and origins of replication.
+
+get gene coding sequence
+
+Retrieves the coding sequence(s) of a specified gene from
+NCBI Entrez.
+
+get plasmid sequence
+
+Retrieves plasmid sequences from either Addgene or NCBI
+based on the provided identifier.
+
+align sequences
+
+Align short sequences (primers) to a longer sequence, allowing for one mismatch. Checks both forward and reverse
+complement strands.
+
+pcr simple
+
+Simulate PCR amplification with given primers and sequence, returning products and binding details.
+
+pcr complex multi primers
+
+Simulate PCR amplification with multiple primers, considering all possible primer combinations and their potential
+products.
+
+digest sequence
+
+Simulates restriction enzyme digestion of a DNA sequence
+and returns the resulting fragments with their properties.
+
+golden gate
+
+Simulate a GoldenGate cloning reaction with Type IIS restriction enzymes to predict assembly products.
+
+oligo assembly
+
+Assemble two DNA sequences into an oligo with overhangs. Automatically detects overhang type and length.
+
+gibson assembly
+
+Simulate a Gibson Assembly reaction to join DNA fragments with overlapping regions.
+
+find restriction sites
+
+Identifies restriction enzyme sites in a given DNA sequence
+for specified enzymes.
+
+find restriction enzymes
+
+Finds common restriction enzyme sites in a DNA sequence.
+
+design primers with overhangs
+
+Design two primers to amplify a target sequence with optional overhangs.
+
+find sequence mutations
+
+Compare query sequence against reference sequence to
+identify mutations.
+
+get molecular cloning instructions
+
+Returns a dictionary containing molecular cloning instructions and important notes.
+
+calculate element distances
+
+Calculate pairwise distances between elements on a DNA
+sequence/plasmid, providing forward, reverse (for circular
+sequences), and shortest path distances.
+
+67
+
+Table 8: Continue tool descriptions for biomni.molecular biology
+Tool Name
+
+Tool Description
+
+design knockout sgrna
+
+Design sgRNAs for CRISPR knockout by searching precomputed sgRNA libraries for a specific gene.
+
+design golden gate oligos
+
+Design complementary oligonucleotides with Type IIS restriction enzyme overhangs for Golden Gate assembly
+based on restriction site analysis of the backbone.
+
+get oligo annealing protocol
+
+Return a standard protocol for annealing complementary
+oligonucleotides without phosphorylation.
+
+get golden gate assembly protocol
+
+Return a customized protocol for Golden Gate assembly
+based on the number of inserts and specific DNA sequences.
+
+get bacterial transformation protocol
+
+Return a standard protocol for bacterial transformation with
+detailed steps.
+
+design primer
+
+Design a single primer within a given DNA sequence window based on GC content and melting temperature constraints.
+
+design verification primers
+
+Design Sanger sequencing primers to verify a specific region in a plasmid, using existing primers when possible and
+designing new ones as needed.
+
+Table 9: Tool descriptions for biomni.genetics
+Tool Name
+
+Tool Description
+
+liftover coordinates
+
+Perform liftover of genomic coordinates between hg19 and
+hg38 genome builds with detailed step-by-step explanations.
+
+bayesian finemapping with deep vi
+
+Performs Bayesian fine-mapping from GWAS summary
+statistics using deep variational inference to compute posterior inclusion probabilities and credible sets for putative
+causal variants.
+
+analyze cas9 mutation outcomes
+
+Analyzes and categorizes mutations induced by Cas9 at target sites, generating detailed statistics on mutation types.
+
+analyze crispr genome editing
+
+Analyzes CRISPR-Cas9 genome editing results by comparing original and edited sequences to identify mutations and
+characterize edited loci.
+
+simulate demographic history
+
+Simulate DNA sequences with specified demographic and
+coalescent histories using msprime.
+
+identify transcription factor binding sites
+
+Identifies binding sites for a specific transcription factor in a
+genomic sequence using position weight matrices from the
+JASPAR database.
+
+fit genomic prediction model
+
+Fit a linear mixed model for genomic prediction using genotype and phenotype data.
+
+perform pcr and gel electrophoresis
+
+Performs PCR amplification of a target transgene and visualizes results using agarose gel electrophoresis.
+
+analyze protein phylogeny
+
+Perform phylogenetic analysis on a set of protein sequences,
+including multiple sequence alignment, tree construction,
+and visualization.
+
+68
+
+Table 10: Tool descriptions for biomni.genomics
+Tool Name
+
+Tool Description
+
+annotate celltype scRNA
+
+Annotate cell types in single-cell RNA-seq data based on
+gene markers and transferred labels using LLM.
+
+create scvi embeddings scRNA
+
+Creates scVI and scANVI embeddings for single-cell RNAseq data, training models and saving the results to a new
+AnnData object.
+
+create harmony embeddings scRNA
+
+Performs batch effect correction on single-cell RNA-seq
+data using the Harmony algorithm and saves the integrated
+embeddings.
+
+get uce embeddings scRNA
+
+Generate UCE (Universal Cell Embeddings) for single-cell
+RNA sequencing data to enable cell type identification and
+mapping to reference datasets.
+
+map to ima interpret scRNA
+
+Map cell embeddings from the input dataset to the Integrated Megascale Atlas reference dataset using UCE embeddings for cell type annotation.
+
+get rna seq archs4
+
+Given a gene name, fetch and return RNA-seq expression data (transcripts-per-million) across tissues from the
+ARCHS4 database.
+
+get gene set enrichment analysis supported database list
+
+Returns a list of supported databases available for gene set
+enrichment analysis
+
+gene set enrichment analysis
+
+Perform enrichment analysis for a list of genes to identify
+pathways, transcription factors, or other biological relationships.
+
+analyze chromatin interactions
+
+Analyze chromatin interactions from Hi-C data to identify enhancer-promoter interactions and topologically associated domains (TADs).
+
+analyze comparative genomics and haplotypes
+
+Perform comparative genomics and haplotype analysis on
+multiple genome samples. Aligns genomes to a reference,
+identifies variants, analyzes shared and unique genomic regions, and determines haplotype structure.
+
+perform chipseq peak calling with macs2
+
+Perform ChIP-seq peak calling using MACS2 to identify
+genomic regions with significant binding.
+
+find enriched motifs with homer
+
+Find DNA sequence motifs enriched in genomic regions using the HOMER motif discovery software.
+
+analyze genomic region overlap
+
+Analyze overlaps between two or more sets of genomic regions and generate a research log summarizing the analysis.
+
+69
+
+Table 11: Tool descriptions for biomni.immunology
+Tool Name
+
+Tool Description
+
+analyze atac seq differential accessibility
+
+Perform ATAC-seq peak calling and differential accessibility analysis using MACS2.
+
+analyze bacterial growth curve
+
+Analyzes bacterial growth curve data to determine growth
+parameters like doubling time, growth rate, and lag phase.
+
+isolate purify immune cells
+
+Isolates and purifies immune cells from tissue samples and
+returns a research log of the process.
+
+estimate cell cycle phase durations
+
+Estimate cell cycle phase durations using dual-nucleoside
+pulse labeling data and mathematical modeling.
+
+track immune cells under flow
+
+Track immune cells under flow conditions and classify their
+behaviors.
+
+analyze cfse cell proliferation
+
+Analyze CFSE-labeled cell samples to quantify cell division
+and proliferation from flow cytometry data.
+
+analyze cytokine production in cd4 tcells
+
+Analyze cytokine production (IFN-γ, IL-17) in CD4+ T
+cells after antigen stimulation using flow cytometry data.
+
+analyze ebv antibody titers
+
+Analyze ELISA data to quantify EBV antibody titers in
+plasma/serum samples.
+
+analyze cns lesion histology
+
+Analyzes histological images of CNS lesions to quantify
+immune cell infiltration, demyelination, and tissue damage.
+
+analyze immunohistochemistry image
+
+Analyzes immunohistochemistry images to quantify protein
+expression and spatial distribution.
+
+70
+
+Table 12: Tool descriptions for biomni.microbiology
+Tool Name
+
+Tool Description
+
+optimize anaerobic digestion process
+
+Optimize anaerobic digestion process conditions to maximize VFA production or methane yield.
+
+analyze arsenic speciation hplc icpms
+
+Analyzes arsenic speciation in liquid samples using HPLCICP-MS technique and returns a detailed research log.
+
+count bacterial colonies
+
+Count bacterial colonies from an image of agar plate using
+computer vision techniques.
+
+annotate bacterial genome
+
+Annotate a bacterial genome using Prokka to identify genes,
+proteins, and functional features.
+
+enumerate bacterial cfu by serial dilution
+
+Quantify bacterial concentration (CFU/mL) using serial dilutions and spot plating.
+
+model bacterial growth dynamics
+
+Model bacterial population dynamics over time using ordinary differential equations.
+
+quantify biofilm biomass crystal violet
+
+Quantifies biofilm biomass using crystal violet staining assay data and generates a detailed research log of the analysis.
+
+segment and analyze microbial cells
+
+Perform automated cell segmentation and quantify morphological metrics from fluorescence microscopy images.
+
+segment cells with deep learning
+
+Perform cell segmentation on fluorescence microscopy images using deep learning models from the Cellpose/Omnipose library.
+
+simulate generalized lotka volterra dynamics
+
+Simulate microbial community dynamics using the Generalized Lotka-Volterra (gLV) model.
+
+predict rna secondary structure
+
+Predict the secondary structure of an RNA molecule using
+ViennaRNA and generate visualization files.
+
+simulate microbial population dynamics
+
+Performs stochastic simulation of microbial population dynamics using the Gillespie algorithm.
+
+71
+
+Table 13: Tool descriptions for biomni.pathology
+Tool Name
+
+Tool Description
+
+analyze aortic diameter and geometry
+
+Analyze aortic diameter and geometry from cardiovascular imaging data to measure aortic root diameter, ascending
+aorta diameter, and calculate geometric parameters such as
+tortuosity and dilation indices.
+
+analyze atp luminescence assay
+
+Analyze luminescence-based ATP assay data to determine
+intracellular ATP concentration and generate a detailed research log of the analysis.
+
+analyze thrombus histology
+
+Analyze histological images of thrombus samples stained
+with H&E to identify and quantify different thrombus components (fresh, cellular lysis, endothelialization, fibroblastic
+reaction).
+
+analyze intracellular calcium with rhod2
+
+Analyzes intracellular calcium concentration using Rhod-2
+fluorescent indicator from microscopy images.
+
+quantify corneal nerve fibers
+
+Quantify the volume/density of immunofluorescencelabeled corneal nerve fibers from microscopy images.
+
+segment and quantify cells in multiplexed images
+
+Segment cells and quantify protein expression levels from
+multichannel tissue images.
+
+analyze bone microct morphometry
+
+Analyze bone microarchitecture parameters from 3D microCT images, calculating metrics such as bone mineral density (BMD), bone volume (BV), trabecular number (Tb.N),
+trabecular thickness (Tb.Th), and trabecular separation
+(Tb.S).
+
+72
+
+Table 14: Tool descriptions for biomni.pharmacology
+Tool Name
+
+Tool Description
+
+run diffdock with smiles
+
+Run DiffDock molecular docking simulation using a protein
+structure and a SMILES string for the ligand. Uses Docker
+to execute the DiffDock algorithm.
+
+docking autodock vina
+
+Performs molecular docking using AutoDock Vina to predict binding affinities between small molecules and a receptor protein.
+
+run autosite
+
+Runs AutoSite on a protein structure to identify potential
+binding sites and returns a research log with the results.
+
+retrieve topk repurposing drugs from disease txgnn
+
+Computes TxGNN model predictions for drug repurposing
+for a given disease and returns the top predicted drugs with
+their scores.
+
+predict admet properties
+
+Predicts ADMET (Absorption, Distribution, Metabolism,
+Excretion, Toxicity) properties for a list of compounds using pretrained models.
+
+predict binding affinity protein 1d sequence
+
+Predicts the binding affinity between small molecules and a
+protein sequence using pre-trained deep learning models.
+
+analyze accelerated stability of pharmaceutical formulations
+
+Analyzes the stability of pharmaceutical formulations under
+accelerated storage conditions and generates a research log
+of the results.
+
+run 3d chondrogenic aggregate assay
+
+Generates a detailed protocol for performing a 3D chondrogenic aggregate culture assay to evaluate compounds’ effects on chondrogenesis.
+
+grade adverse events using vcog ctcae
+
+Grade and monitor adverse events in animal studies using
+the VCOG-CTCAE standard.
+
+analyze radiolabeled antibody biodistribution
+
+Analyze biodistribution and pharmacokinetic profile of radiolabeled antibodies, including tissue distribution, halflives, and tumor-to-normal tissue ratios.
+
+estimate alpha particle radiotherapy dosimetry
+
+Estimate radiation absorbed doses to tumor and normal organs for alpha-particle radiotherapeutics using the Medical
+Internal Radiation Dose (MIRD) schema.
+
+perform mwas cyp2c19 metabolizer status
+
+Perform a Methylome-wide Association Study (MWAS) to
+identify CpG sites significantly associated with CYP2C19
+metabolizer status.
+
+calculate physicochemical properties
+
+Calculate key physicochemical properties of a drug candidate molecule including molecular weight, cLogP, TPSA,
+H-bond donors/acceptors, and other drug-like characteristics.
+
+analyze xenograft tumor growth inhibition
+
+Analyze tumor growth inhibition in xenograft models
+across different treatment groups.
+
+analyze western blot
+
+Performs densitometric analysis of Western blot images to
+quantify relative protein expression.
+
+73
+
+Table 15: Tool descriptions for biomni.physiology
+Tool Name
+
+Tool Description
+
+reconstruct 3d face from mri
+
+Generate a 3D model of facial anatomy from MRI scans of
+the head and neck.
+
+analyze abr waveform p1 metrics
+
+Extracts P1 amplitude and latency from Auditory Brainstem
+Response (ABR) waveform data. P1 (Wave I) is typically
+the first positive peak in the ABR waveform and is a critical
+marker for auditory function assessment.
+
+analyze ciliary beat frequency
+
+Analyze ciliary beat frequency from high-speed video microscopy data using FFT analysis.
+
+analyze protein colocalization
+
+Analyze colocalization between two fluorescently labeled
+proteins in microscopy images.
+
+perform cosinor analysis
+
+Performs cosinor analysis on physiological time series data
+to characterize circadian rhythms.
+
+calculate brain adc map
+
+Calculate Apparent Diffusion Coefficient (ADC) map from
+diffusion-weighted MRI data using the monoexponential
+diffusion model.
+
+analyze endolysosomal calcium dynamics
+
+Analyze calcium dynamics in endo-lysosomal compartments using ELGA/ELGA1 probe data.
+
+analyze fatty acid composition by gc
+
+Analyzes fatty acid composition in tissue samples using gas
+chromatography data.
+
+analyze hemodynamic data
+
+Analyzes raw blood pressure data to calculate key hemodynamic parameters including systolic blood pressure, diastolic blood pressure, mean arterial pressure, and heart rate.
+
+simulate thyroid hormone pharmacokinetics
+
+Simulates the transport and binding of thyroid hormones
+across different tissue compartments using an ODE-based
+pharmacokinetic model.
+
+quantify amyloid beta plaques
+
+Analyzes an image to detect, quantify, and characterize
+amyloid-beta plaques commonly found in Alzheimer’s disease tissue samples.
+
+74
+
+Table 16: Tool descriptions for biomni.synthetic biology
+Tool Name
+
+Tool Description
+
+engineer bacterial genome for therapeutic delivery
+
+Engineer a bacterial genome by integrating therapeutic genetic parts for therapeutic delivery.
+
+analyze bacterial growth rate
+
+Analyze bacterial growth data and extract growth parameters from OD600 measurements.
+
+analyze barcode sequencing data
+
+Analyze sequencing data to extract, quantify and determine
+lineage relationships of barcodes.
+
+analyze bifurcation diagram
+
+Performs bifurcation analysis on a dynamical system and
+generates a bifurcation diagram.
+
+create biochemical network sbml model
+
+Generate a mathematical model of a biochemical network
+in SBML format.
+
+optimize codons for heterologous expression
+
+Analyzes and optimizes a DNA/RNA sequence for improved expression in a heterologous host organism.
+
+simulate gene circuit with growth feedback
+
+Simulate gene regulatory circuit dynamics with growth
+feedback, tracking gene expression levels and cell growth
+over time.
+
+identify fas functional domains
+
+Identifies functional domains within a Fatty Acid Synthase
+(FAS) sequence and predicts their roles.
+
+Table 17: Tool descriptions for biomni.systems biology
+Tool Name
+
+Tool Description
+
+perform flux balance analysis
+
+Perform Flux Balance Analysis (FBA) on a genome-scale
+metabolic network model to predict metabolic flux distributions.
+
+model protein dimerization network
+
+Model protein dimerization networks to find equilibrium
+concentrations of dimers based on monomer concentrations
+and binding affinities.
+
+simulate metabolic network perturbation
+
+Construct and simulate kinetic models of metabolic networks and analyze their responses to perturbations.
+
+simulate protein signaling network
+
+Simulate protein signaling network dynamics using ODEbased logic modeling with normalized Hill functions.
+
+compare protein structures
+
+Compares two protein structures to identify structural differences and conformational changes.
+
+simulate renin angiotensin system dynamics
+
+Simulate the time-dependent concentrations of reninangiotensin system (RAS) components.
+
+Table 18: Tool descriptions for biomni.support tools
+
+Tool Name
+
+Tool Description
+
+run python repl
+
+Executes a Python command in the notebook environment
+and returns the output as a string.
+
+read function source code
+
+Read the source code of a function from any module path.
+
+75
+
+Table 19: Tool descriptions for biomni.database
+
+Tool Name
+
+Tool Description
+
+query uniprot
+
+Query the UniProt REST API using either natural language
+or a direct endpoint to retrieve protein information.
+
+query alphafold
+
+Query the AlphaFold Database API for protein structure
+predictions and information.
+
+query interpro
+
+Query the InterPro REST API using natural language or
+a direct endpoint to retrieve information about protein domains or families.
+
+query pdb
+
+Query the RCSB PDB database using natural language or a
+direct structured query to find protein structures.
+
+query pdb identifiers
+
+Retrieve detailed data and/or download files for PDB identifiers.
+
+query kegg
+
+Take a natural language prompt and convert it to a structured
+KEGG API query, then execute the query.
+
+query stringdb
+
+Query the STRING protein interaction database using natural language or direct endpoint.
+
+query iucn
+
+Query the IUCN Red List API using natural language or a
+direct endpoint to retrieve species conservation status information.
+
+query paleobiology
+
+Query the Paleobiology Database (PBDB) API using natural language or a direct endpoint.
+
+query jaspar
+
+Query the JASPAR REST API using natural language or a
+direct endpoint to retrieve transcription factor binding profiles.
+
+query worms
+
+Query the World Register of Marine Species (WoRMS)
+REST API using natural language or a direct endpoint.
+
+query cbioportal
+
+Query the cBioPortal REST API using natural language or
+a direct endpoint to access cancer genomics data.
+
+query clinvar
+
+Take a natural language prompt and convert it to a structured
+ClinVar query to search for genetic variants.
+
+query geo
+
+Query the NCBI Gene Expression Omnibus (GEO) using
+natural language or a direct search term.
+
+query dbsnp
+
+Query the NCBI dbSNP database using natural language or
+a direct search term.
+
+query ucsc
+
+Query the UCSC Genome Browser API using natural language or a direct endpoint.
+76
+
+Table 20: Continue tool descriptions for biomni.database
+
+Tool Name
+
+Tool Description
+
+query ensembl
+
+Query the Ensembl REST API using natural language or a
+direct endpoint to retrieve genomic data.
+
+query opentarget genetics
+
+Query the OpenTargets Genetics API using natural language or a direct GraphQL query to retrieve information
+about genetic targets and variants.
+
+query opentarget
+
+Query the OpenTargets Platform API using natural language or a direct GraphQL query to access drug targets,
+diseases, and mechanisms data.
+
+query gwas catalog
+
+Query the GWAS Catalog API using natural language or a
+direct endpoint to retrieve genetic association studies data.
+
+query gnomad
+
+Query gnomAD for variants in a gene using natural language or direct gene symbol.
+
+blast sequence
+
+Identifies a DNA or protein sequence using NCBI BLAST
+and returns information about the best alignment.
+
+query reactome
+
+Query the Reactome database using natural language or
+a direct endpoint to retrieve information about biological
+pathways.
+
+query regulomedb
+
+Query the RegulomeDB database using natural language or
+direct endpoint specification to get information about regulatory elements.
+
+query pride
+
+Query the PRIDE (PRoteomics IDEntifications) database
+using natural language or a direct endpoint.
+
+query gtopdb
+
+Query the Guide to PHARMACOLOGY database (GtoPdb)
+using natural language or a direct endpoint.
+
+region to ccre screen
+
+Retrieves information about candidate cis-regulatory elements (cCREs) that intersect with a specified genomic region.
+
+get genes near ccre
+
+Identifies the nearest genes to a specified candidate cisRegulatory Element (cCRE) by querying the SCREEN
+database.
+
+query remap
+
+Query the ReMap database for regulatory elements and
+transcription factor binding sites using natural language or
+direct API endpoints.
+
+query mpd
+
+Query the Mouse Phenome Database (MPD) for mouse
+strain phenotype data using natural language or direct endpoint access.
+
+query emdb
+
+Query the Electron Microscopy Data Bank (EMDB) for 3D
+macromolecular structures using natural language or direct
+endpoint77
+access.
+
+Table 21: Data lake descriptions
+File Name
+
+Description
+
+affinity capture-ms.csv
+
+Protein-protein interactions detected via affinity capture and
+mass spectrometry.
+
+affinity capture-rna.csv
+
+Protein-RNA interactions detected by affinity capture.
+
+BindingDB All 202409.tsv
+
+Measured binding affinities between proteins and small
+molecules for drug discovery.
+
+broad repurposing hub molecule with smiles.csv
+
+Molecules from Broad Institute’s Drug Repurposing Hub
+with SMILES annotations.
+
+broad repurposing hub phase moa target info.csv
+
+Drug phases, mechanisms of action, and target information
+from Broad Institute.
+
+co-fractionation.csv
+
+Protein-protein interactions from co-fractionation experiments.
+
+Cosmic Breakpoints v101 GRCh38.csv
+
+Genomic breakpoints associated with cancers from COSMIC database.
+
+Cosmic CancerGeneCensusHallmarksOfCancer v101 GRCh38.csv
+
+Hallmarks of cancer genes from COSMIC.
+
+Cosmic CancerGeneCensus v101 GRCh38.csv
+
+Census of cancer-related genes from COSMIC.
+
+Cosmic ClassificationPaper v101 GRCh38.csv
+
+Cancer classifications and annotations from COSMIC.
+
+Cosmic Classification v101 GRCh38.csv
+
+Classification of cancer types from COSMIC.
+
+Cosmic CompleteCNA v101 GRCh38.tsv.gz
+
+Complete copy number alterations data from COSMIC.
+
+Cosmic CompleteDifferentialMethylation v101 GRCh38.tsv.gz
+
+Differential methylation patterns from COSMIC.
+
+Cosmic CompleteGeneExpression v101 GRCh38.tsv.gz
+
+Gene expression data across cancers from COSMIC.
+
+Cosmic Fusion v101 GRCh38.csv
+
+Gene fusion events from COSMIC.
+
+Cosmic Genes v101 GRCh38.csv
+
+List of genes associated with cancer from COSMIC.
+
+Cosmic GenomeScreensMutant v101 GRCh38.tsv.gz
+
+Genome screening mutations from COSMIC.
+
+Cosmic MutantCensus v101 GRCh38.csv
+
+Catalog of cancer-related mutations from COSMIC.
+
+Cosmic ResistanceMutations v101 GRCh38.csv
+
+Resistance mutations related to therapeutic interventions
+from COSMIC.
+
+czi census datasets v4.csv
+
+Datasets from the Chan Zuckerberg Initiative’s Cell Census.
+
+DisGeNET.csv
+
+Gene-disease associations from multiple sources.
+
+dosage growth defect.csv
+
+Gene dosage changes affecting growth.
+
+enamine cloud library smiles.pkl
+
+Compounds from Enamine REAL library with SMILES annotations.
+
+genebass missense LC filtered.pkl
+
+Filtered missense variants from GeneBass.
+
+genebass pLoF filtered.pkl
+
+Predicted loss-of-function variants from GeneBass.
+
+genebass synonymous filtered.pkl
+
+Filtered synonymous variants from GeneBass.
+
+gene info.csv
+
+Comprehensive gene information.
+
+genetic interaction.csv
+
+Genetic interactions between genes.
+
+go-plus.json
+
+Gene ontology data for functional gene annotations.
+
+gtex tissue gene tpm.csv
+
+Gene expression (TPM) across human tissues from GTEx.
+
+gwas catalog.pkl
+
+Genome-wide association studies (GWAS) results.
+
+marker celltype.csv
+
+Cell type marker genes for identification.
+
+McPAS-TCR.csv
+
+T-cell receptor sequences and specificity data from McPAS
+database.
+
+miRDB v6.0 results.csv
+
+Predicted microRNA targets from miRDB.
+
+miRTarBase microRNA target interaction.csv
+
+Experimentally validated microRNA-target interactions
+from miRTarBase.
+
+miRTarBase microRNA target interaction pubmed abtract.txt
+
+PubMed abstracts for microRNA-target interactions in miRTarBase.
+
+miRTarBase MicroRNA Target Sites.csv
+
+Binding sites of microRNAs on target genes from miRTarBase.
+
+78
+
+Table 22: Continue data lake descriptions
+File Name
+
+Description
+
+mousemine m1 positional geneset.csv
+
+Positional gene sets from MouseMine.
+
+mousemine m2 curated geneset.csv
+
+Curated gene sets from MouseMine.
+
+mousemine m3 regulatory target geneset.csv
+
+Regulatory target gene sets from MouseMine.
+
+mousemine m5 ontology geneset.csv
+
+Ontology-based gene sets from MouseMine.
+
+mousemine m8 celltype signature geneset.csv
+
+Cell type signature gene sets from MouseMine.
+
+mousemine mh hallmark geneset.csv
+
+Hallmark gene sets from MouseMine.
+
+msigdb human c1 positional geneset.csv
+
+Human positional gene sets from MSigDB.
+
+msigdb human c2 curated geneset.csv
+
+Curated human gene sets from MSigDB.
+
+msigdb human c3 regulatory target geneset.csv
+
+Regulatory target gene sets from MSigDB.
+
+msigdb human c3 subset transcription factor targets from GTRD.csv
+
+Transcription factor targets from GTRD/MSigDB.
+
+msigdb human c4 computational geneset.csv
+
+Computationally derived gene sets from MSigDB.
+
+msigdb human c5 ontology geneset.csv
+
+Ontology-based gene sets from MSigDB.
+
+msigdb human c6 oncogenic signature geneset.csv
+
+Oncogenic signatures from MSigDB.
+
+msigdb human c7 immunologic signature geneset.csv
+
+Immunologic signatures from MSigDB.
+
+msigdb human c8 celltype signature geneset.csv
+
+Cell type signatures from MSigDB.
+
+msigdb human h hallmark geneset.csv
+
+Hallmark gene sets from MSigDB.
+
+omim.csv
+
+Genetic disorders and associated genes from OMIM.
+
+proteinatlas.tsv
+
+Protein expression data from Human Protein Atlas.
+
+proximity label-ms.csv
+
+Protein interactions via proximity labeling and mass spectrometry.
+
+reconstituted complex.csv
+
+Protein complexes reconstituted in vitro.
+
+synthetic growth defect.csv
+
+Synthetic growth defects from genetic interactions.
+
+synthetic lethality.csv
+
+Synthetic lethal interactions.
+
+synthetic rescue.csv
+
+Genetic interactions rescuing phenotypes.
+
+two-hybrid.csv
+
+Protein-protein interactions detected by yeast two-hybrid
+assays.
+
+variant table.csv
+
+Annotated genetic variants table.
+
+Virus-Host PPI P-HIPSTER 2020.csv
+
+Virus-host protein-protein interactions from P-HIPSTER.
+
+79
+
+Table 23: Software descriptions
+
+Software Name
+
+Description
+
+biopython
+
+[Python Package] A set of tools for biological computation including parsers for bioinformatics files, access to online services, and interfaces to common bioinformatics programs.
+
+biom-format
+
+[Python Package] The Biological Observation Matrix
+(BIOM) format is designed for representing biological sample by observation contingency tables with associated metadata.
+
+scanpy
+
+[Python Package] A scalable toolkit for analyzing singlecell gene expression data, specifically designed for large
+datasets using AnnData.
+
+scikit-bio
+
+[Python Package] Data structures, algorithms, and educational resources for bioinformatics, including sequence
+analysis, phylogenetics, and ordination methods.
+
+anndata
+
+[Python Package] A Python package for handling annotated
+data matrices in memory and on disk, primarily used for
+single-cell genomics data.
+
+mudata
+
+[Python Package] A Python package for multimodal data
+storage and manipulation, extending AnnData to handle
+multiple modalities.
+
+pyliftover
+
+[Python Package] A Python implementation of UCSC
+liftOver tool for converting genomic coordinates between
+genome assemblies.
+
+biopandas
+
+[Python Package] A package that provides pandas
+DataFrames for working with molecular structures and biological data.
+
+biotite
+
+[Python Package] A comprehensive library for computational molecular biology, providing tools for sequence analysis, structure analysis, and more.
+
+gget
+
+[Python Package] A toolkit for accessing genomic
+databases and retrieving sequences, annotations, and other
+genomic data.
+
+lifelines
+
+[Python Package] A complete survival analysis library for
+fitting models, plotting, and statistical tests.
+
+scvi-tools
+
+[Python Package] A package for probabilistic modeling of
+single-cell omics data, including deep generative models.
+
+80
+
+Table 24: Continue software descriptions
+
+Software Name
+
+Description
+
+gseapy
+
+[Python Package] A Python wrapper for Gene Set Enrichment Analysis (GSEA) and visualization.
+
+scrublet
+
+[Python Package] A tool for detecting doublets in singlecell RNA-seq data.
+
+cellxgene-census
+
+[Python Package] A tool for accessing and analyzing the
+CellxGene Census, a collection of single-cell datasets.
+
+hyperopt
+
+[Python Package] A Python library for optimizing hyperparameters of machine learning algorithms.
+
+scvelo
+
+[Python Package] A tool for RNA velocity analysis in single
+cells using dynamical models.
+
+pysam
+
+[Python Package] A Python module for reading, manipulating and writing genomic data sets in SAM/BAM/VCF/BCF
+formats.
+
+pyfaidx
+
+[Python Package] A Python package for efficient random
+access to FASTA files.
+
+pyranges
+
+[Python Package] A Python package for interval manipulation with a pandas-like interface.
+
+pybedtools
+
+[Python Package] A Python wrapper for Aaron Quinlan’s
+BEDTools programs.
+
+rdkit
+
+[Python Package] A collection of cheminformatics and machine learning tools for working with chemical structures
+and drug discovery.
+
+deeppurpose
+
+[Python Package] A deep learning library for drug-target
+interaction prediction and virtual screening.
+
+pyscreener
+
+[Python Package] A Python package for virtual screening
+of chemical compounds.
+
+openbabel
+
+[Python Package] A chemical toolbox designed to speak
+the many languages of chemical data, supporting file format conversion and molecular modeling.
+
+descriptastorus
+
+[Python Package] A library for computing molecular descriptors for machine learning applications in drug discovery.
+81
+
+Table 25: Continue software descriptions
+
+Software Name
+
+Description
+
+pymol
+
+[Python Package] A molecular visualization system for rendering and animating 3D molecular structures.
+
+openmm
+
+[Python Package] A toolkit for molecular simulation using
+high-performance GPU computing.
+
+pytdc
+
+[Python Package] A Python package for Therapeutics Data
+Commons, providing access to machine learning datasets
+for drug discovery.
+
+pandas
+
+[Python Package] A fast, powerful, and flexible data analysis and manipulation library for Python.
+
+numpy
+
+[Python Package] The fundamental package for scientific
+computing with Python, providing support for arrays, matrices, and mathematical functions.
+
+scipy
+
+[Python Package] A Python library for scientific and technical computing, including modules for optimization, linear
+algebra, integration, and statistics.
+
+scikit-learn
+
+[Python Package] A machine learning library featuring various classification, regression, and clustering algorithms.
+
+matplotlib
+
+[Python Package] A comprehensive library for creating
+static, animated, and interactive visualizations in Python.
+
+seaborn
+
+[Python Package] A statistical data visualization library
+based on matplotlib with a high-level interface for drawing
+attractive statistical graphics.
+
+statsmodels
+
+[Python Package] A Python module for statistical modeling
+and econometrics, including descriptive statistics and estimation of statistical models.
+
+pymc3
+
+[Python Package] A Python package for Bayesian statistical
+modeling and probabilistic machine learning.
+
+pystan
+
+[Python Package] A Python interface to Stan, a platform for
+statistical modeling and high-performance statistical computation.
+
+umap-learn
+
+[Python Package] Uniform Manifold Approximation and
+82
+Projection, a dimension
+reduction technique.
+
+Table 26: Continue software descriptions
+
+Software Name
+
+Description
+
+faiss-cpu
+
+[Python Package] A library for efficient similarity search
+and clustering of dense vectors.
+
+harmony-pytorch
+
+[Python Package] A PyTorch implementation of the Harmony algorithm for integrating single-cell data.
+
+tiledb
+
+[Python Package] A powerful engine for storing and analyzing large-scale genomic data.
+
+tiledbsoma
+
+[Python Package] A library for working with the SOMA
+(Stack of Matrices) format using TileDB.
+
+h5py
+
+[Python Package] A Python interface to the HDF5 binary
+data format, allowing storage of large amounts of numerical
+data.
+
+tqdm
+
+[Python Package] A fast, extensible progress bar for loops
+and CLI applications.
+
+joblib
+
+[Python Package] A set of tools to provide lightweight
+pipelining in Python, including transparent disk-caching
+and parallel computing.
+
+opencv-python
+
+[Python Package] OpenCV library for computer vision
+tasks, useful for image analysis in biological contexts.
+
+PyPDF2
+
+[Python Package] A library for working with PDF files, useful for extracting text from scientific papers.
+
+googlesearch-python
+
+[Python Package] A library for performing Google searches
+programmatically.
+
+scikit-image
+
+[Python Package] A collection of algorithms for image processing in Python.
+
+pymed
+
+[Python Package] A Python library for accessing PubMed
+articles.
+
+arxiv
+
+[Python Package] A Python wrapper for the arXiv API, allowing access to scientific papers.
+
+83
+
+Table 27: Continue software descriptions
+
+Software Name
+
+Description
+
+scholarly
+
+[Python Package] A module to retrieve author and publication information from Google Scholar.
+
+cryosparc-tools
+
+[Python Package] Tools for working with cryoSPARC, a
+platform for cryo-EM data processing.
+
+mageck
+
+[Python Package] Analysis of CRISPR screen data.
+
+igraph
+
+[Python Package] Network analysis and visualization.
+
+pyscenic
+
+[Python Package] Analysis of single-cell RNA-seq data and
+gene regulatory networks.
+
+cooler
+
+[Python Package] Storage and analysis of Hi-C data.
+
+trackpy
+
+[Python Package] Particle tracking in images and video.
+
+flowcytometrytools
+
+[Python Package] Analysis and visualization of flow cytometry data.
+
+cellpose
+
+[Python Package] Cell segmentation in microscopy images.
+
+viennarna
+
+[Python Package] RNA secondary structure prediction.
+
+PyMassSpec
+
+[Python Package] Mass spectrometry data analysis.
+
+python-libsbml
+
+[Python Package] Working with SBML files for computational biology.
+
+cobra
+
+[Python Package] Constraint-based modeling of metabolic
+networks.
+
+reportlab
+
+[Python Package] Creation of PDF documents.
+
+flowkit
+
+[Python Package] Toolkit for processing flow cytometry
+data.
+
+hmmlearn
+
+[Python Package] Hidden Markov model analysis.
+
+msprime
+
+[Python Package] Simulation of genetic variation.
+
+tskit
+
+[Python Package] Handling tree sequences and population
+genetics data.
+
+cyvcf2
+
+[Python Package] Fast parsing of VCF files.
+
+pykalman
+
+[Python Package] Kalman filter and smoother implementation.
+
+84
+
+Table 28: Continue software descriptions
+
+Software Name
+
+Description
+
+fanc
+
+[Python Package] Analysis of chromatin conformation data.
+
+ggplot2
+
+[R Package] A system for declaratively creating graphics,
+based on The Grammar of Graphics. Use with subprocess.run([’Rscript’, ’-e’, ’library(ggplot2); ...’]).
+
+dplyr
+
+[R Package] A grammar of data manipulation, providing a
+consistent set of verbs that help you solve the most common
+data manipulation challenges. Use with subprocess.
+
+tidyr
+
+[R Package] A package that helps you create tidy data,
+where each column is a variable, each row is an observation, and each cell is a single value. Use with subprocess.
+
+readr
+
+[R Package] A fast and friendly way to read rectangular data like CSV, TSV, and FWF. Use with subprocess.run([’Rscript’, ’-e’, ’library(readr); ...’]).
+
+stringr
+
+[R Package] A cohesive set of functions designed to make
+working with strings as easy as possible. Use with subprocess calls.
+
+Matrix
+
+[R Package] A package that provides classes and methods
+for dense and sparse matrices. Required for Seurat. Use
+with subprocess calls.
+
+Rcpp
+
+[R Package] Seamless R and C++ Integration, allowing R
+functions to call compiled C++ code. Use with subprocess
+calls.
+
+devtools
+
+[R Package] Tools to make developing R packages easier,
+including functions to install packages from GitHub. Use
+with subprocess calls.
+
+remotes
+
+[R Package] Install R packages from GitHub, GitLab, Bitbucket, or other remote repositories. Use with subprocess
+calls.
+
+DESeq2
+
+[R Package] Differential gene expression analysis based
+on the negative binomial distribution. Use with subprocess.run([’Rscript’, ’-e’, ’library(DESeq2); ...’]).
+85
+
+Table 29: Continue software descriptions
+
+Software Name
+
+Description
+
+clusterProfiler
+
+[R Package] A package for statistical analysis and visualization of functional profiles for genes and gene clusters.
+Use with subprocess calls.
+
+DADA2
+
+[R Package] A package for modeling and correcting
+Illumina-sequenced amplicon errors. Use with subprocess
+calls.
+
+xcms
+
+[R Package] A package for processing and visualization of
+LC-MS and GC-MS data. Use with subprocess calls.
+
+FlowCore
+
+[R Package] Basic infrastructure for flow cytometry data.
+Use with subprocess calls.
+
+edgeR
+
+[R Package] Empirical Analysis of Digital Gene Expression
+Data in R, for differential expression analysis. Use with
+subprocess calls.
+
+limma
+
+[R Package] Linear Models for Microarray Data, for differential expression analysis. Use with subprocess calls.
+
+harmony
+
+[R Package] A method for integrating and analyzing singlecell data across datasets. Use with subprocess calls.
+
+WGCNA
+
+[R Package] Weighted Correlation Network Analysis for
+studying biological networks. Use with subprocess calls.
+
+samtools
+
+[CLI Tool] A suite of programs for interacting with
+high-throughput sequencing data.
+Use with subprocess.run([’samtools’, ...]).
+
+bowtie2
+
+[CLI Tool] An ultrafast and memory-efficient tool for aligning sequencing reads to long reference sequences. Use with
+subprocess.run([’bowtie2’, ...]).
+
+bwa
+
+[CLI Tool] Burrows-Wheeler Aligner for mapping lowdivergent sequences against a large reference genome. Use
+with subprocess.run([’bwa’, ...]).
+
+86
+
+Table 30: Continue software descriptions
+
+Software Name
+
+Description
+
+bedtools
+
+[CLI Tool] A powerful toolset for genome arithmetic,
+allowing operations like intersect, merge, count, and
+complement on genomic features. Use with subprocess.run([’bedtools’, ...]).
+
+macs2
+
+[CLI Tool] Model-based Analysis of ChIP-Seq data, a tool
+for identifying transcript factor binding sites.
+
+fastqc
+
+[CLI Tool] A quality control tool for high throughput sequence data. Use with subprocess.run([’fastqc’, ...]).
+
+trimmomatic
+
+[CLI Tool] A flexible read trimming tool for Illumina NGS
+data. Use with subprocess.run([’trimmomatic’, ...]).
+
+mafft
+
+[CLI Tool] A multiple sequence alignment program
+for unix-like operating systems.
+Use with subprocess.run([’mafft’, ...]).
+
+Homer
+
+[CLI Tool] Motif discovery and next-gen sequencing analysis.
+
+FastTree
+
+[CLI Tool] Phylogenetic trees from sequence alignments.
+
+muscle
+
+[CLI Tool] Multiple sequence alignment tool.
+
+plink2
+
+[CLI Tool] A comprehensive toolkit for genome association studies that can perform a range of large-scale analyses
+in a computationally efficient manner. Use with subprocess.run([’plink2’, ...]).
+
+gcta64
+
+[CLI Tool] Genome-wide Complex Trait Analysis (GCTA)
+tool for estimating the proportion of phenotypic variance
+explained by genome-wide SNPs and analyzing genetic relationships. Use with subprocess.run([’gcta64’, ...]).
+
+iqtree2
+
+[CLI Tool] An efficient phylogenetic software for maximum
+likelihood analysis with built-in model selection and ultrafast bootstrap. Use with subprocess.run([’iqtree2’, ...]).
+
+87
+
+Table 31: Completeness scoring rubric for experimental documentation.
+
+Score
+
+Level
+
+Description
+
+1
+
+Severely Incomplete
+
+2
+
+Significantly Incomplete
+
+3
+
+Moderately Complete
+
+4
+
+Mostly Complete
+
+5
+
+Completely Thorough
+
+Missing many major components necessary for experiments. Cannot be followed for implementation.
+Lacks critical methodological details and equipment
+specifications.
+Missing few major components. Requires substantial
+additional effort from user. Key experimental parameters or control measures absent.
+Contains basic components with some detail gaps.
+Requires moderate additional effort from user. Most
+critical parameters defined but needs optimization.
+Contains nearly all necessary components. Requires
+minimal additional effort from user. Well-described
+procedures with adequate troubleshooting guidance.
+Contains all necessary components in appropriate detail. Can be followed precisely with no additional
+effort. Comprehensive methodology, specifications,
+and contingency plans.
+
+Table 32: Accuracy scoring rubric for experimental documentation.
+
+Score
+
+Level
+
+Description
+
+1
+
+Severely Inaccurate
+
+2
+
+Significantly Inaccurate
+
+3
+
+Moderately Accurate
+
+4
+
+Mostly Accurate
+
+5
+
+Completely Accurate
+
+Contains many major errors or misconceptions.
+Methods would lead to invalid or unreliable results.
+Fundamental scientific principles violated or misapplied.
+Contains few major errors or several minor errors.
+Some methodological approaches are flawed. May
+lead to partially valid but questionable results.
+Generally correct but contains some minor errors or
+imprecisions. Core methodology is sound but may
+have optimization issues. Results would be acceptable but not optimal.
+Contains minimal errors. Methods align with accepted scientific practices. Results would be reliable
+with only minor corrections needed.
+Contains no errors. Methods perfectly align with best
+scientific practices. Results would be highly reliable
+and reproducible. Includes appropriate controls and
+validation steps.
+
+88
+
+

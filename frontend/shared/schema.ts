@@ -526,6 +526,8 @@ export const citationSchema = z.object({
   authors: z.array(z.string()).default([]),
   year: z.number().optional(),
   journal: z.string().optional(),
+  abstract: z.string().optional(),
+  url: z.string().optional(),
   formatted_apa: z.string().default(""),
   formatted_short: z.string().default(""),
   formatted_bibtex: z.string().default(""),
@@ -835,6 +837,9 @@ export const executionConfigSchema = z.object({
   pauseAtQcFailures: z.boolean().optional(),
   // Low-level compute override: executor, memory, GPU. Passed through to buildNextflowComputeConfig.
   computeConfig: z.record(z.string(), z.unknown()).optional(),
+  // Ids the chat turn could not resolve to a real, authorized dataset. Forwarded
+  // so the execute gate blocks a run against an unresolved reference.
+  datasetReferenceUnresolvedIds: z.array(z.string()).optional(),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;
@@ -1038,6 +1043,21 @@ export const executionRunStatusSchema = z.enum([
 export type ExecutionRunStatus = z.infer<typeof executionRunStatusSchema>;
 
 // Execution Run - the main unified workflow execution record
+// Resolved input binding — the exact dataset object bound to a data-input step
+// at launch. Recorded on the run so the record states which inputs produced its
+// results (provenance / reproducibility). `datasetId` is the immutable handle
+// (Galaxy dataset id, project file id, or s3 reference); s3Uri/projectFileId are
+// captured when known so a result can be traced to an exact project object.
+export const inputBindingSchema = z.object({
+  stepId: z.string(),
+  datasetId: z.string(),
+  src: z.string().optional(),
+  name: z.string().optional(),
+  s3Uri: z.string().optional(),
+  projectFileId: z.string().optional(),
+});
+export type InputBinding = z.infer<typeof inputBindingSchema>;
+
 export const executionRunSchema = z.object({
   // Identity
   id: z.string().default(() => crypto.randomUUID()),
@@ -1055,6 +1075,10 @@ export const executionRunSchema = z.object({
   // Workflow
   workflowName: z.string(),
   workflowDefinition: z.any().optional(), // Full .ga workflow object
+
+  // Resolved input bindings (provenance) — which exact dataset was bound to
+  // each data-input step. Empty for workflows with no data inputs.
+  inputBindings: z.array(inputBindingSchema).default([]),
 
   // Data Scope (TUNABLE)
   dataScope: dataScopeSchema,
@@ -1178,6 +1202,17 @@ export const executionRunStatusResponseSchema = z.object({
       downloadableCount: z.number().optional(),
       totalOutputs: z.number().optional(),
       meetsContract: z.boolean().optional(),
+      // Completion is distinct from process exit status.  Generic workflows
+      // need registered artifacts; stdout-only is an explicit workflow
+      // metadata contract, never a heuristic based on domain or name.
+      completionContract: z
+        .object({
+          mode: z.enum(["artifacts_required", "stdout_only"]),
+          state: z.enum(["ready", "artifact_unavailable", "stdout_only"]),
+          registeredOutputCount: z.number().nonnegative(),
+          meetsContract: z.boolean(),
+        })
+        .optional(),
     })
     .optional(),
   nextflowStatus: z.any().optional(),
@@ -1233,6 +1268,10 @@ export const executionRuns = pgTable("execution_runs", {
   mode: text("mode").default("sandbox"),
   workflowName: text("workflow_name").notNull(),
   workflowDefinition: text("workflow_definition"), // JSON stringified
+
+  // Resolved input bindings (JSON array) — provenance of which dataset was
+  // bound to each data-input step at launch.
+  inputBindings: text("input_bindings"), // JSON stringified InputBinding[]
 
   // Data Scope (JSON)
   dataScope: text("data_scope"), // JSON stringified DataScope
@@ -1570,4 +1609,3 @@ export type InsertDownloadJob = typeof downloadJobs.$inferInsert;
 export const DOWNLOAD_JOB_ACTIVE_STATES = ["queued", "running"] as const;
 export const DOWNLOAD_JOB_DEDUP_STATES = ["queued", "running", "ready"] as const;
 export const DOWNLOAD_JOB_TERMINAL_STATES = ["ready", "failed", "cancelled", "expired"] as const;
-

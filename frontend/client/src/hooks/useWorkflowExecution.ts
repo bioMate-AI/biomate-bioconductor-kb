@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { parseSSEData } from '@/lib/sse-parse';
 import type { WorkflowExecutionUpdate } from '../../../shared/galaxy-types';
 
 interface WorkflowExecutionState {
@@ -108,7 +109,8 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
 
     // Workflow-level state changes
     eventSource.addEventListener('workflow_state', (event) => {
-      const update: WorkflowExecutionUpdate = JSON.parse(event.data);
+      const update = parseSSEData<WorkflowExecutionUpdate>(event.data);
+      if (!update || !update.data) return;
       console.log('[SSE] Workflow state:', update.data.workflow_state);
 
       setState(prev => ({
@@ -120,7 +122,8 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
 
     // Step-level state changes
     eventSource.addEventListener('step_state', (event) => {
-      const update: WorkflowExecutionUpdate = JSON.parse(event.data);
+      const update = parseSSEData<WorkflowExecutionUpdate>(event.data);
+      if (!update || !update.data) return;
       const { step_id, step_state, job_id } = update.data;
 
       console.log(`[SSE] Step ${step_id}: ${step_state}`);
@@ -155,7 +158,8 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
 
     // Job logs
     eventSource.addEventListener('job_log', (event) => {
-      const update: WorkflowExecutionUpdate = JSON.parse(event.data);
+      const update = parseSSEData<WorkflowExecutionUpdate>(event.data);
+      if (!update || !update.data) return;
       const { step_id, log_message } = update.data;
 
       if (step_id && log_message) {
@@ -181,7 +185,8 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
       if (!payload) {
         return;
       }
-      const update: WorkflowExecutionUpdate = JSON.parse(payload);
+      const update = parseSSEData<WorkflowExecutionUpdate>(payload);
+      if (!update || !update.data) return;
       console.error('[SSE] Error:', update.data.error);
 
       setState(prev => ({

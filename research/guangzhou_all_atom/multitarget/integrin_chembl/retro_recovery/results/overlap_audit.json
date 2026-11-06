@@ -1,0 +1,92 @@
+{
+ "I": {
+  "rows": 9432,
+  "targets": 46,
+  "compound_id": {
+   "distinct": 6619,
+   "in_gt1_target": 1731,
+   "in_gt1_family": 364,
+   "in_gt1_fold": 351,
+   "rows_with_item_in_other_fold": 0,
+   "rows_with_same_identity_in_another_fold": 1093,
+   "rows_frac": 0.1159,
+   "rows_with_same_identity_labelled_in_another_fold_ALLPAIRS": 1329,
+   "rows_frac_ALLPAIRS": 0.1409,
+   "positive_rows_in_another_fold_items": 705,
+   "positive_rows": 7600
+  },
+  "flat": {
+   "distinct": 6543,
+   "in_gt1_target": 1763,
+   "in_gt1_family": 375,
+   "in_gt1_fold": 360,
+   "rows_with_item_in_other_fold": 0,
+   "rows_with_same_identity_in_another_fold": 1113,
+   "rows_frac": 0.118,
+   "rows_with_same_identity_labelled_in_another_fold_ALLPAIRS": 1367,
+   "rows_frac_ALLPAIRS": 0.1449,
+   "positive_rows_in_another_fold_items": 721,
+   "positive_rows": 7600
+  }
+ },
+ "M2": {
+  "rows": 3486,
+  "targets": 20,
+  "compound_id": {
+   "distinct": 2105,
+   "in_gt1_target": 733,
+   "in_gt1_family": 658,
+   "in_gt1_fold": 470,
+   "rows_with_item_in_other_fold": 0,
+   "rows_with_same_identity_in_another_fold": 1529,
+   "rows_frac": 0.4386,
+   "rows_with_same_identity_labelled_in_another_fold_ALLPAIRS": 3115,
+   "rows_frac_ALLPAIRS": 0.8936,
+   "positive_rows_in_another_fold_items": 76,
+   "positive_rows": 188
+  },
+  "flat": {
+   "distinct": 1976,
+   "in_gt1_target": 685,
+   "in_gt1_family": 621,
+   "in_gt1_fold": 438,
+   "rows_with_item_in_other_fold": 0,
+   "rows_with_same_identity_in_another_fold": 1583,
+   "rows_frac": 0.4541,
+   "rows_with_same_identity_labelled_in_another_fold_ALLPAIRS": 3119,
+   "rows_frac_ALLPAIRS": 0.8947,
+   "positive_rows_in_another_fold_items": 79,
+   "positive_rows": 188
+  }
+ },
+ "M": {
+  "rows": 165516,
+  "targets": 299,
+  "compound_id": {
+   "distinct": 12178,
+   "in_gt1_target": 11829,
+   "in_gt1_family": 11431,
+   "in_gt1_fold": 11224,
+   "rows_with_item_in_other_fold": 0,
+   "rows_with_same_identity_in_another_fold": 163449,
+   "rows_frac": 0.9875,
+   "rows_with_same_identity_labelled_in_another_fold_ALLPAIRS": 147923,
+   "rows_frac_ALLPAIRS": 0.8937,
+   "positive_rows_in_another_fold_items": 8000,
+   "positive_rows": 8033
+  },
+  "flat": {
+   "distinct": 11111,
+   "in_gt1_target": 10814,
+   "in_gt1_family": 10491,
+   "in_gt1_fold": 10307,
+   "rows_with_item_in_other_fold": 0,
+   "rows_with_same_identity_in_another_fold": 163745,
+   "rows_frac": 0.9893,
+   "rows_with_same_identity_labelled_in_another_fold_ALLPAIRS": 148157,
+   "rows_frac_ALLPAIRS": 0.8951,
+   "positive_rows_in_another_fold_items": 8001,
+   "positive_rows": 8033
+  }
+ }
+}

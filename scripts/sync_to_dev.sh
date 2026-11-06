@@ -2,7 +2,8 @@
 # sync_to_dev.sh — MANUAL one-shot sync of ALL layers to dev-public.biomate.ai:
 #   1. Frontend (React/Express) — Docker rebuild + restart
 #   2. Backend Python files    — docker cp into running Galaxy container + restart
-#   3. Galaxy databases        — galaxy_ai_tools.db (workflow search), universe.sqlite
+#   3. Galaxy databases        — galaxy_ai_tools.db (workflow search); universe.sqlite (dev's live
+#                                Galaxy DB) only with BIOMATE_REPLACE_GALAXY_DB=1, backed up first
 #   4. Nextflow workflow files — .nf files in biomni_workflows/ + nf-core-workflows/modules/biomate-ai-tools/
 #
 # NOTE: Marketing website (webpage_design_v2/) is NOT synced here.
@@ -12,6 +13,7 @@
 #       Use scripts/deploy_marketing.sh instead.
 #
 # Usage: bash scripts/sync_to_dev.sh
+#        BIOMATE_SYNC_FORCE=frontend,backend bash scripts/sync_to_dev.sh   (re-deploy layers with no change)
 #
 # As of 2026-05-15 this script is MANUAL-ONLY.
 #   - The 10-minute auto-poll loop has been removed (caused orphan-process conflicts).
@@ -218,15 +220,34 @@ deploy_frontend() {
     frontend/Dockerfile frontend/Dockerfile.biotools 2>/dev/null
   log "[frontend] Archive: $(du -sh $tar_file | cut -f1)"
 
-  ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/frontend_sync.tar.gz"
+  # NOTE: deploy_frontend runs with set -e DISABLED — do_sync is invoked as
+  # `if do_sync ...` (bottom of file), which suppresses errexit for the entire
+  # call tree. So every remote step here MUST check its own exit code; a bare
+  # command that fails will otherwise be swallowed and the sync will falsely
+  # report "healthy" on the OLD container (2026-09-13 silent-fail incident:
+  # the archive scp dropped on a flaky SSM link, nothing deployed, yet
+  # [frontend] Done printed and the last-synced marker advanced).
+  if ! ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/frontend_sync.tar.gz"; then
+    log "[frontend] ERROR: archive upload (scp) failed — remote link down; aborting frontend deploy (old container still serving, marker NOT advanced)"
+    return 1
+  fi
 
-  ec2_ssh '
+  if ! ec2_ssh '
     set -e
-    rm -rf /opt/biomate/frontend_sync && mkdir -p /opt/biomate/frontend_sync
+    # Use sudo for the staging-dir wipe: a prior sync (or a root docker step)
+    # can leave root-owned files under /opt/biomate/frontend_sync (observed
+    # 2026-10-11: research_agent_v2/* owned by root -> `rm` Permission denied
+    # -> tar "Cannot open: File exists" -> frontend build aborted). sudo rm
+    # guarantees a clean staging dir; the fresh mkdir is then owned by $USER.
+    sudo rm -rf /opt/biomate/frontend_sync 2>/dev/null || rm -rf /opt/biomate/frontend_sync
+    mkdir -p /opt/biomate/frontend_sync
     tar -xzf /tmp/frontend_sync.tar.gz -C /opt/biomate/frontend_sync
-    # Prune dangling images + build cache to prevent disk-full build failures
+    # Prune dangling images, and cap (not wipe) the build cache, to prevent disk-full build failures.
+    # A full `docker builder prune -f` here threw away the npm ci + apt layers before every build:
+    # ~234 s of a ~6.7 min frontend deploy re-installed unchanged dependencies (sync of 2026-11-04).
+    # With the cache capped at 6 GB those layers are reused while package-lock.json is unchanged.
     docker image prune -f > /dev/null 2>&1 || true
-    docker builder prune -f > /dev/null 2>&1 || true
+    docker builder prune -f --max-used-space 6gb > /dev/null 2>&1 || docker builder prune -f > /dev/null 2>&1 || true
 
     # ── Atomic swap pattern (no downtime) ────────────────────────────────
     # OLD pattern (caused dev-public outages 2026-05-18):
@@ -256,6 +277,7 @@ deploy_frontend() {
     BUILD_RC=0
     set +e
     docker build -t biomate-dev-frontend:next \
+        --build-arg BUILD_COMMIT='"${CURRENT_COMMIT}"' \
         -f /opt/biomate/frontend_sync/frontend/Dockerfile \
         /opt/biomate/frontend_sync/frontend/ > /tmp/biomate_frontend_build.log 2>&1
     BUILD_RC=$?
@@ -290,7 +312,35 @@ deploy_frontend() {
     # Restore logo (not baked into image — uploaded separately)
     docker cp /tmp/logo_sync.png biomate-dev-frontend:/app/dist/public/logo.png 2>/dev/null || true
     docker ps --format "  {{.Names}}: {{.Status}}" | grep biomate-dev-frontend
-  '
+  '; then
+    log "[frontend] ERROR: remote build/swap step failed or SSH connection dropped mid-deploy — aborting frontend deploy (marker NOT advanced)"
+    return 1
+  fi
+
+  # Post-swap freshness verification. The steps above can each fail; the
+  # rc checks catch a hard failure, but a dropped/re-established SSM tunnel
+  # can also leave the OLD container in place while every command appears to
+  # have "run". So independently confirm the container now serving was created
+  # by THIS deploy: its creation time must be recent. A stale image means the
+  # fresh code did NOT go live — fail loudly rather than record a false success.
+  local _age
+  _age=$(ec2_ssh 'c=$(docker inspect biomate-dev-frontend --format "{{.Created}}" 2>/dev/null); if [ -n "$c" ]; then echo $(( $(date +%s) - $(date -d "$c" +%s) )); else echo missing; fi' 2>/dev/null | tr -d "[:space:]")
+  if ! [[ "$_age" =~ ^[0-9]+$ ]] || [[ "$_age" -gt 900 ]]; then
+    log "[frontend] ERROR: post-deploy verification failed — running container image age='${_age:-?}'s (expected < 900s). Fresh code is NOT live; aborting (marker NOT advanced)."
+    return 1
+  fi
+  # Verify the actual public bundle, not only a newly-created container.
+  # Worktrees may contain different branches while all produce healthy images.
+  local _served_commit
+  if ! _served_commit="$(curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --retry-max-time 60 --max-time 10 \
+      "https://dev-public.biomate.ai/build-info.json?commit=${CURRENT_COMMIT}" | \
+      python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit", ""))')" \
+      || [[ "$_served_commit" != "$CURRENT_COMMIT" ]]; then
+    log "[frontend] ERROR: public build commit '${_served_commit:-missing}' does not match ${CURRENT_COMMIT}; marker NOT advanced"
+    return 1
+  fi
+  log "[frontend] verified public build commit ${_served_commit}"
+  log "[frontend] verified fresh container (image age ${_age}s)"
   log "[frontend] Done"
 }
 
@@ -340,7 +390,7 @@ deploy_remote_mcp() {
       -e BIOMATE_API_URL=http://biomate-dev-frontend:3000 \
       -e BIOMATE_MCP_PUBLIC_URL=https://dev-public.biomate.ai \
       -e BIOMATE_OAUTH_ISSUER=https://dev-public.biomate.ai \
-      -e BIOMATE_MCP_REQUIRE_AUTH=0 \
+      -e BIOMATE_MCP_REQUIRE_AUTH=1 \
       -e BIOMATE_OAUTH_SIGNING_KEY="$SIGNING_KEY" \
       -e BIOMATE_OAUTH_DB=/var/lib/biomate/oauth.db \
       -v /opt/biomate/remote_mcp_data:/var/lib/biomate \
@@ -448,6 +498,150 @@ deploy_galaxy_yml() {
   log "[galaxy.yml] Done"
 }
 
+# ---------------------------------------------------------------------------
+# Real nf-core pipelines (backend/nf-core-workflows/<name>/main.nf)
+# ---------------------------------------------------------------------------
+# The downloaded pipelines are git-ignored (only modules/ is tracked) and are not part of any synced
+# layer, and the running Galaxy image is a docker-commit chain of containers that lacked them — so on
+# 2026-11-04 the container had 0 of the 137 real pipelines present on the host, every catalog
+# nf-core/* run failed at submit ("Could not resolve Nextflow script 'nfcore/<name>/main.nf'"), and
+# the resolver fell back to display-only stubs. Every sync now restores any that are missing from the
+# host copy (additive; nothing in the container is removed). Cheap no-op when all are present.
+NFCORE_PIPELINES_HOST_DIR="/opt/biomate/galaxy_build/nf-core-workflows"
+NFCORE_MODULES_HOST_DIR="/opt/biomate/galaxy_build/nf-core-modules"
+ensure_nfcore_pipelines() {
+  log "[nfcore] Checking real nf-core pipelines in the Galaxy container..."
+  ec2_ssh "NFCORE_SRC=${NFCORE_PIPELINES_HOST_DIR} bash -s" <<'REMOTE'
+set -e
+GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+GC="${GC:-biomate-galaxy-dev}"
+if [ ! -d "$NFCORE_SRC" ]; then echo "[nfcore] WARNING: host copy $NFCORE_SRC missing — cannot restore pipelines"; exit 0; fi
+# A pipeline is INCOMPLETE when its nextflow.config includes conf/base.config (the unconditional include every
+# nf-core pipeline loads) and that file does not exist. 125 of 137 host copies held only top-level files
+# (main.nf, nextflow.config, README — no conf/, modules/, workflows/), so every run failed at config parse
+# ("Config file does not exist: …/conf/base.config", 2026-11-05). Only base.config is checked: profile-scoped
+# includes may legitimately be absent upstream (eager test_bam, viralrecon test_full_sispa, …).
+incomplete() {  # $1 = pipeline dir
+  local c="$1/nextflow.config"
+  [ -f "$c" ] || return 1
+  grep -qE "includeConfig +['\"]conf/base\.config['\"]" "$c" && [ ! -f "$1/conf/base.config" ]
+}
+# 1) complete the host source from nf-core's own repositories, PINNED to the version the catalog was built
+#    against (manifest.version of the original 2025-10-30 download). The default branch is the latest release —
+#    on 2026-11-05 that moved 53 pipelines to other versions (ampliseq 2.16→3.1, pixelator 3→6, …), many needing
+#    Nextflow ≥ 26.04 while the container runs 25.10.x. The pins file records the intended version once.
+mver() { grep -oE "^\s*version\s*=\s*['\"][^'\"]+['\"]" "$1/nextflow.config" 2>/dev/null | head -1 | sed -E "s/.*['\"]([^'\"]+)['\"].*/\1/"; }
+nfreq() { grep -oE "nextflowVersion\s*=\s*['\"][^'\"]+['\"]" "$1/nextflow.config" 2>/dev/null | head -1 | grep -oE "[0-9]+\.[0-9]+(\.[0-9]+)?"; }
+NF_HAVE=$(docker exec "$GC" sh -c 'nextflow -version 2>/dev/null' | grep -oE "version [0-9]+\.[0-9]+\.[0-9]+" | head -1 | cut -d" " -f2)
+ver_le() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]; }   # $1 <= $2
+PINS="$NFCORE_SRC/.pinned_versions"
+if [ ! -f "$PINS" ]; then   # first run: original versions — from the backup of a replaced copy, else the copy itself
+  for d in "$NFCORE_SRC"/*/; do
+    n=$(basename "$d"); case "$n" in modules|*.incomplete_*|.fetch_*) continue ;; esac; [ -f "$d/main.nf" ] || continue
+    b=$(ls -d "$NFCORE_SRC/$n".incomplete_* 2>/dev/null | head -1)
+    v=$(mver "${b:-$d}"); [ -n "$v" ] && echo "$n $v"
+  done > "$PINS"
+fi
+refetched=0; refetch_failed=""
+for d in "$NFCORE_SRC"/*/; do
+  n=$(basename "$d"); [ "$n" = modules ] && continue; [ -f "$d/main.nf" ] || continue
+  case "$n" in *.incomplete_*|.fetch_*) continue ;; esac   # backups of replaced copies, not pipelines
+  pin=$(awk -v n="$n" '$1==n{print $2}' "$PINS")
+  cur=$(mver "$d")
+  if incomplete "$d" || { [ -n "$pin" ] && [ "$cur" != "$pin" ]; }; then
+    tmp="$NFCORE_SRC/.fetch_$n"; rm -rf "$tmp"; ok=0
+    if [ -n "$pin" ] && timeout 300 git clone -q --depth 1 --branch "$pin" "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null; then ok=1
+    elif [ -n "$pin" ] && echo "$pin" | grep -q dev && timeout 300 git clone -q --depth 1 "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null; then
+      req=$(nfreq "$tmp"); { [ -z "$req" ] || [ -z "$NF_HAVE" ] || ver_le "$req" "$NF_HAVE"; } && ok=1   # dev snapshot: no tag
+      # A "<x>dev" pin names no fetchable version, so the clone never matches it and every sync re-cloned
+      # (7 pipelines, 2026-11-06). Record the version actually fetched as the pin — fetched once, then stable.
+      fv=$(mver "$tmp")
+      if [ $ok = 1 ] && [ -n "$fv" ]; then
+        awk -v n="$n" -v v="$fv" '$1==n{$2=v} {print}' "$PINS" > "$PINS.tmp" && mv "$PINS.tmp" "$PINS"
+      fi
+    fi
+    if [ $ok = 1 ] && [ -f "$tmp/main.nf" ] && ! incomplete "$tmp"; then
+      [ -d "$NFCORE_SRC/$n.incomplete_$(date +%Y%m%d)" ] && rm -rf "$NFCORE_SRC/$n" || mv "$NFCORE_SRC/$n" "$NFCORE_SRC/$n.incomplete_$(date +%Y%m%d)"
+      mv "$tmp" "$NFCORE_SRC/$n" && refetched=$((refetched+1))
+    else
+      rm -rf "$tmp"; refetch_failed="$refetch_failed $n(pin=${pin:-?})"
+    fi
+  fi
+done
+[ "$refetched" -gt 0 ] && echo "[nfcore] fetched $refetched host pipelines at their pinned versions from github.com/nf-core (container Nextflow ${NF_HAVE:-?})"
+[ -n "$refetch_failed" ] && echo "[nfcore] WARNING: not fetched (kept as is):$refetch_failed"
+host_n=$(ls "$NFCORE_SRC"/*/main.nf 2>/dev/null | grep -vcE "\.incomplete_|/\.fetch_")
+# 2) restore into the container every pipeline that is missing there OR incomplete there
+# complete container copies as "name@version" (an incomplete copy is not listed, so it is replaced). Versions are
+# parsed on the host with the same mver() as the source, from the container's file — one parser for both sides.
+container_state=""
+for n in $(docker exec "$GC" sh -c 'for d in /app/nf-core-workflows/*/; do [ -f "$d/main.nf" ] || continue; if grep -qE "includeConfig +.conf/base.config" "$d/nextflow.config" 2>/dev/null && [ ! -f "$d/conf/base.config" ]; then continue; fi; basename "$d"; done'); do
+  cv=$(docker exec "$GC" cat "/app/nf-core-workflows/$n/nextflow.config" 2>/dev/null | { t=$(mktemp -d); cat > "$t/nextflow.config"; mver "$t"; rm -rf "$t"; })
+  container_state="$container_state $n@$cv"
+done
+present=" $container_state "   # complete pipelines, with their versions
+missing=""
+for d in "$NFCORE_SRC"/*/; do
+  n=$(basename "$d"); [ "$n" = modules ] && continue; [ -f "$d/main.nf" ] || continue
+  case "$n" in *.incomplete_*|.fetch_*) continue ;; esac
+  incomplete "$d" && continue   # do not copy a source that is still incomplete
+  case "$present" in *" $n@$(mver "$d") "*) ;; *) missing="$missing $n" ;; esac   # missing, incomplete or other version
+done
+if [ -z "$missing" ]; then echo "[nfcore] all $host_n real pipelines present in $GC"; exit 0; fi
+ST=/tmp/nfcore_pipelines_stage
+sudo rm -rf "$ST"; mkdir -p "$ST"
+for n in $missing; do rsync -a --exclude=.github --exclude="._*" --exclude=.git "$NFCORE_SRC/$n/" "$ST/$n/"; done
+# replace (not merge into) an incomplete container copy
+for n in $missing; do docker exec -u root "$GC" rm -rf "/app/nf-core-workflows/$n"; done
+docker cp "$ST/." "$GC:/app/nf-core-workflows/"
+docker exec -u root "$GC" chown -R galaxy:galaxy /app/nf-core-workflows 2>/dev/null || true
+echo "[nfcore] restored/replaced $(echo $missing | wc -w) of $host_n real pipelines into $GC (missing or incomplete)"
+REMOTE
+  # Same gap for the nf-core community library (also git-ignored except BioMate's own files): the
+  # catalog's nfcore/subworkflows/<name> entries resolve to nf-core-modules/subworkflows/nf-core/<name>
+  # and include ../../../modules/nf-core/<tool> — the container had 0 of the host's 94 / 755.
+  ec2_ssh "NFMOD_SRC=${NFCORE_MODULES_HOST_DIR} bash -s" <<'REMOTE'
+set -e
+GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+GC="${GC:-biomate-galaxy-dev}"
+if [ ! -d "$NFMOD_SRC/subworkflows/nf-core" ]; then echo "[nfcore] WARNING: host copy $NFMOD_SRC missing — cannot restore subworkflows"; exit 0; fi
+host_sw=$(ls "$NFMOD_SRC"/subworkflows/nf-core/*/main.nf 2>/dev/null | wc -l)
+host_mod=$(find "$NFMOD_SRC/modules/nf-core" -name main.nf 2>/dev/null | wc -l)
+have_sw=$(docker exec "$GC" sh -c 'ls /app/nf-core-modules/subworkflows/nf-core/*/main.nf 2>/dev/null | wc -l')
+have_mod=$(docker exec "$GC" sh -c 'find /app/nf-core-modules/modules/nf-core -name main.nf 2>/dev/null | wc -l')
+if [ "$have_sw" -ge "$host_sw" ] && [ "$have_mod" -ge "$host_mod" ]; then echo "[nfcore] nf-core library present ($have_sw subworkflows, $have_mod modules)"; exit 0; fi
+ST=/tmp/nfcore_modules_stage
+sudo rm -rf "$ST"; mkdir -p "$ST/subworkflows" "$ST/modules"
+rsync -a --exclude=.github --exclude="._*" --exclude=.git "$NFMOD_SRC/subworkflows/nf-core" "$ST/subworkflows/"
+rsync -a --exclude=.github --exclude="._*" --exclude=.git "$NFMOD_SRC/modules/nf-core" "$ST/modules/"
+docker cp "$ST/." "$GC:/app/nf-core-modules/"
+docker exec -u root "$GC" chown -R galaxy:galaxy /app/nf-core-modules 2>/dev/null || true
+echo "[nfcore] restored nf-core library into $GC ($host_sw subworkflows, $host_mod modules; had $have_sw / $have_mod)"
+REMOTE
+  # Extra Nextflow frameworks: the executor launches DSL1 pipelines on 22.10.8 and pipelines whose manifest
+  # requires a newer release on that release (_pipeline_nextflow_version). Pre-fetch each framework and its
+  # nf-amazon plugin into the runtime NXF_HOME so the first run does not download them mid-launch (concurrent
+  # first runs would race on the same jar). The version→plugin map is read from the executor — one source.
+  local nxf_map
+  nxf_map=$(python3 -c 'import re,ast,sys; s=open(sys.argv[1]).read(); m=re.search(r"^_NFAMAZON_FOR_NXF_VER = (\{.*\})", s, re.M); print(" ".join(f"{k}:{v}" for k,v in ast.literal_eval(m.group(1)).items()))' \
+    "$REPO_ROOT/backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py" 2>/dev/null)
+  [[ -z "$nxf_map" ]] && { log "[nfcore] ⚠ could not read _NFAMAZON_FOR_NXF_VER from the executor — extra frameworks not pre-fetched"; return 0; }
+  ec2_ssh "NXF_MAP='${nxf_map}' bash -s" <<'REMOTE'
+GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+GC="${GC:-biomate-galaxy-dev}"
+H=$(docker exec "$GC" sh -c 'if [ -d /opt/nextflow ]; then echo /opt/nextflow; else echo $HOME/.nextflow; fi')
+for vp in $NXF_MAP; do
+  v=${vp%%:*}; p=${vp##*:}
+  if docker exec "$GC" sh -c "[ -d $H/framework/$v ] && [ -d $H/plugins/nf-amazon-$p ]"; then echo "[nfcore] Nextflow $v + nf-amazon@$p present in $H"; continue; fi
+  if docker exec -e NXF_HOME="$H" -e NXF_VER="$v" -e NXF_OFFLINE=false "$GC" sh -c "timeout 600 nextflow -version >/dev/null 2>&1 && timeout 300 nextflow plugin install nf-amazon@$p >/dev/null 2>&1"; then
+    echo "[nfcore] fetched Nextflow $v + nf-amazon@$p into $H"
+  else
+    echo "[nfcore] WARNING: could not fetch Nextflow $v / nf-amazon@$p into $H — those pipelines will download it at launch"
+  fi
+done
+REMOTE
+}
+
 deploy_backend_python() {
   log "[backend] Syncing Python files..."
 
@@ -473,6 +667,13 @@ deploy_backend_python() {
     2>/dev/null >> "$tmp_list" || true
   # Always include the workflow indexer
   echo "backend/scripts/index_all_workflows.py" >> "$tmp_list"
+
+  # Also sync backend/experiments/ — the executor imports `experiments.autoloop_bridge`
+  # (+ per-domain QC evaluators) for the completion-time auto-loop emit. This tree was
+  # previously omitted from the sync, so on dev the import raised ModuleNotFoundError and
+  # the auto-loop remediation SSE silently no-op'd. Ship the whole package.
+  git ls-files -- 'backend/experiments/**/*.py' 'backend/experiments/*.py' 2>/dev/null >> "$tmp_list" || true
+  git ls-files --others --exclude-standard -- 'backend/experiments/**/*.py' 2>/dev/null >> "$tmp_list" || true
 
   local count=$(sort -u "$tmp_list" | grep -c "\.py$" || true)
   log "[backend] $count Python files to sync"
@@ -536,14 +737,26 @@ deploy_backend_python() {
     # ! -name "._*" excludes any Apple Double resource-fork files that macOS tar may
     # have bundled; copying them into the alembic versions_gxy/ dir causes a
     # null-byte ValueError that crash-loops gunicorn (sync 8 root cause, 2026-07-03).
+    # Lay the files out as the container sees them, then copy the tree in with ONE docker cp
+    # (merges into /app; existing files elsewhere are untouched). The per-file loop it replaces ran
+    # docker exec mkdir + docker cp for every file: ~2m47s for 632 files (sync of 2026-11-04).
+    LAYOUT=/tmp/backend_py_layout
+    rm -rf "$LAYOUT" && mkdir -p "$LAYOUT/app"
     find /tmp/backend_py_extract/backend -name "*.py" ! -name "._*" | while read src; do
       rel="${src#/tmp/backend_py_extract/backend/}"
-      dest="/app/lib/galaxy/${rel#lib/galaxy/}"
-      dir=$(dirname "$dest")
-      # Create directory in container if needed
-      docker exec "$GC" mkdir -p "$dir" 2>/dev/null || true
-      docker cp "$src" "$GC:$dest" 2>/dev/null && echo "  cp: $dest" || echo "  SKIP: $dest"
+      # experiments/ is a top-level package at /app/experiments (importable as `experiments`);
+      # everything else lands under /app/lib/galaxy/.
+      case "$rel" in
+        experiments/*) dest="/app/$rel" ;;
+        *)             dest="/app/lib/galaxy/${rel#lib/galaxy/}" ;;
+      esac
+      mkdir -p "$LAYOUT$(dirname "$dest")"
+      cp "$src" "$LAYOUT$dest"
     done
+    staged=$(find "$LAYOUT/app" -name "*.py" | wc -l)
+    # set -e: a failed copy aborts the sync instead of leaving a half-updated container.
+    docker cp "$LAYOUT/app/." "$GC:/app/"
+    echo "[backend] copied $staged python files into $GC:/app in one docker cp"
 
     # Also sync the biomni_workflows .nf files
     echo "[backend] Done Python sync"
@@ -553,6 +766,14 @@ deploy_backend_python() {
     # not /app/.venv. Installing to the venv silently fails to expose them.
     docker exec "$GC" /usr/local/bin/python3.9 -c "import boto3, redis, psycopg2" 2>/dev/null \
       || docker exec "$GC" /usr/local/bin/pip install -q boto3 redis psycopg2-binary 2>&1 | tail -3
+
+    # RDKit — required in-process by the Design & generate module (BRICS generator,
+    # backend/lib/galaxy/ai/drug_discovery/generators.py). gunicorn runs system
+    # python3.9 (see note above), so it must be installed there or /design returns
+    # "rdkit_unavailable" and generates 0 candidates. Pin rdkit>=2024.3 to avoid a
+    # numpy-2 segfault in rdkit.ML.InfoTheory (see backend/Dockerfile:134-137).
+    docker exec "$GC" /usr/local/bin/python3.9 -c "import rdkit" 2>/dev/null \
+      || docker exec "$GC" /usr/local/bin/pip install -q "rdkit==2024.3.5" 2>&1 | tail -3
 
     # Nextflow binary — required by /api/cryosparc/execute path. Image lacks it.
     # Nextflow VERSION PIN (2026-05-21): 25.10.5 is the latest pre-26 LTS.
@@ -580,11 +801,29 @@ deploy_workflows() {
   log "[workflows] Syncing .nf files..."
   local tar_file="/tmp/biomate_workflows.tar.gz"
   cd "$REPO_ROOT"
+  # GUARD: never ship git conflict markers to dev. deploy_workflows tars the WORKING TREE
+  # (unlike deploy_backend_python, which uses `git show HEAD:`), so a concurrent session's
+  # unresolved `git stash apply` can leave `<<<<<<<` / `>>>>>>>` in a .nf and this would
+  # hot-ship a broken file that dies at parse time (SyntaxError) on every Batch run —
+  # observed 2026-10-01 on merfish_spatial_analysis/main.nf (3 marker blocks reached dev).
+  # Same class as CLAUDE.md's merge-conflict-marker trap. Abort before tarring if any
+  # workflow source file carries an unambiguous conflict marker.
+  local _cm_hits
+  _cm_hits=$(grep -rlE '^(<<<<<<< |>>>>>>> )' \
+      backend/biomni_workflows backend/nf-core-workflows/modules/biomate-ai-tools backend/nf-core-modules \
+      --include='*.nf' --include='*.py' --include='*.R' --include='*.config' 2>/dev/null || true)
+  if [[ -n "$_cm_hits" ]]; then
+    log "[workflows] FATAL: git conflict markers in workflow source — refusing to deploy corrupted files:"
+    echo "$_cm_hits" | sed 's/^/      /' >&2
+    log "[workflows] Resolve them (likely a stray 'git stash apply') then re-run. ABORTING sync."
+    return 1
+  fi
   tar -czf "$tar_file" \
     --exclude='*/.nextflow' \
     --exclude='*/.nextflow.log*' \
     backend/biomni_workflows/ \
-    backend/nf-core-workflows/modules/biomate-ai-tools/ 2>/dev/null
+    backend/nf-core-workflows/modules/biomate-ai-tools/ \
+    backend/nf-core-modules/ 2>/dev/null
   log "[workflows] Archive: $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/workflows_sync.tar.gz"
@@ -628,6 +867,21 @@ deploy_workflows() {
         rm -rf \"\$dest\" 2>/dev/null
         cp -P \"\$rel\" \"\$dest\"
       done
+
+      # Per-file replacement for nf-core-modules/. The executor resolves workflows
+      # from backend_root/nf-core-modules (nextflow_executor _candidate_bases), but
+      # this directory was NEVER synced — so any workflow placed there (e.g. the
+      # proteomics DDA/EncyclopeDIA DIA workflows from PR #217) could not run on dev.
+      if [ -d /tmp/workflows_extract_in/backend/nf-core-modules ]; then
+        cd /tmp/workflows_extract_in/backend/nf-core-modules
+        find . -mindepth 1 \( -type f -o -type l \) | while read -r rel; do
+          rel=\${rel#./}
+          dest=/app/nf-core-modules/\$rel
+          mkdir -p \"\$(dirname \"\$dest\")\"
+          rm -rf \"\$dest\" 2>/dev/null
+          cp -P \"\$rel\" \"\$dest\"
+        done
+      fi
     " 2>&1 | tail -3
 
     # Workflow-script cache invalidation: Nextflow caches compiled .nf
@@ -682,7 +936,19 @@ deploy_databases() {
     _cur_local_md5=$(md5 -q "$local_db" 2>/dev/null \
       || md5sum "$local_db" 2>/dev/null | cut -d' ' -f1 \
       || echo '')
-    if [[ -n "$_cur_local_md5" && "$_cur_local_md5" == "${_DEV_DB_MD5:-}" ]]; then
+    # Never ship a catalog whose external-content FTS index disagrees with the workflows table: search
+    # then ranks on stale text and the update triggers fail mid-write (2026-11-05, docs/20261103 §13).
+    local _fts_bad=0
+    if command -v sqlite3 >/dev/null 2>&1 \
+       && ! sqlite3 "$local_db" "INSERT INTO workflows_fts(workflows_fts, rank) VALUES('integrity-check', 1);" >/dev/null 2>&1; then
+      log "::error:: [db] workflows_fts integrity-check FAILED on the local galaxy_ai_tools.db — not uploading it."
+      log "::error:: [db] rebuild first: sqlite3 $local_db \"INSERT INTO workflows_fts(workflows_fts) VALUES('rebuild')\""
+      _fts_bad=1
+    fi
+    if [[ "${_fts_bad:-0}" == 1 ]]; then
+      log "[db] galaxy_ai_tools.db NOT uploaded (FTS integrity) — dev keeps its current DB"
+      LAST_DB_SYNC="$local_db_mtime"
+    elif [[ -n "$_cur_local_md5" && "$_cur_local_md5" == "${_DEV_DB_MD5:-}" ]]; then
       log "[db] galaxy_ai_tools.db MD5 matches dev (${_cur_local_md5}) — skipping upload"
       LAST_DB_SYNC="$local_db_mtime"
     else
@@ -744,8 +1010,8 @@ deploy_databases() {
       echo \"[db] galaxy_ai_tools.db written to host volume (size=\${dev_size}B md5=\${dev_md5})\"
       # Also update the live container's in-process copy so Galaxy picks it up
       # without a restart (the volume mount will serve it on next restart anyway).
-      GC=\$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
-      GC="\${GC:-biomate-galaxy-dev}"
+      GC=\$(docker ps --filter \"name=biomate-galaxy\" --format \"{{.Names}}\" | grep -Ev \"rollback|chatgpt\" | head -1)
+      GC=\"\${GC:-biomate-galaxy-dev}\"
       docker exec -u root \"\$GC\" cp $GALAXY_DB_HOST_PATH/galaxy_ai_tools.db \
         /app/database/galaxy_ai_tools.db 2>/dev/null \
         && docker exec -u root \"\$GC\" chown galaxy:galaxy \
@@ -808,7 +1074,26 @@ sys.exit(0 if ok else 1)
   # backend/lib/galaxy/model/migrations/alembic/versions_gxy/.
   local universe_db="$REPO_ROOT/backend/database/universe.sqlite"
   local LATEST_GXY_HEAD="204367c6a604"  # merge_gxy_heads_autofix_sample_sheets
-  if [[ -f "$universe_db" && $(stat -c %s "$universe_db" 2>/dev/null || stat -f %z "$universe_db" 2>/dev/null || echo 0) -gt 0 ]]; then
+  # universe.sqlite IS dev's live Galaxy database (users, API keys, histories, workflows).
+  # Replacing it with a workstation copy resets all of that to the copy's state — e.g. a sync
+  # from a checkout holding a months-old universe.sqlite rolls dev's Galaxy users and every
+  # per-user API key back to that date. So it is replaced ONLY on explicit opt-in
+  # (BIOMATE_REPLACE_GALAXY_DB=1), and dev's current file is backed up first (2026-11-04).
+  if [[ -f "$universe_db" && "${BIOMATE_REPLACE_GALAXY_DB:-}" != "1" ]]; then
+    log "[db] universe.sqlite present locally but NOT replacing dev's live Galaxy DB (set BIOMATE_REPLACE_GALAXY_DB=1 to replace; dev's copy is backed up first)"
+  fi
+  if [[ "${BIOMATE_REPLACE_GALAXY_DB:-}" == "1" && -f "$universe_db" && $(stat -c %s "$universe_db" 2>/dev/null || stat -f %z "$universe_db" 2>/dev/null || echo 0) -gt 0 ]]; then
+    log "[db] universe.sqlite — BIOMATE_REPLACE_GALAXY_DB=1: backing up dev's live Galaxy DB, then replacing..."
+    ec2_ssh '
+      SRC=/opt/biomate/galaxy_db/universe.sqlite
+      if [[ -f "$SRC" ]]; then
+        TS=$(date +%Y%m%d_%H%M%S)
+        cp "$SRC" "${SRC}.bak_${TS}" && echo "[db] pre-replace backup: ${SRC}.bak_${TS} ($(stat -c %s ${SRC}.bak_${TS}) bytes)"
+        ls -t /opt/biomate/galaxy_db/universe.sqlite.bak_* 2>/dev/null | tail -n +4 | xargs rm -f
+      else
+        echo "[db] WARNING: $SRC not found on host — no backup taken"
+      fi
+    ' || { log "[db] backup of dev's Galaxy DB failed — NOT replacing it"; return 1; }
     log "[db] universe.sqlite — scp to EC2 (bypass S3)..."
     ec2_scp "$universe_db" "${EC2_USER}@${EC2_HOST}:/tmp/universe_sync.sqlite" \
       || { log "[db] scp failed — aborting universe.sqlite sync"; return 1; }
@@ -869,7 +1154,12 @@ resync_galaxy_env() {
     # values for the same key (last --env-file wins on docker run). Capture
     # the rest from the running container so we do not lose JWT_SECRET etc.
     LIVE_ENV=$(mktemp)
-    CLEANUP_FILES="$CLEANUP_FILES $LIVE_ENV"   # cleaned by on_exit; do NOT re-trap (would drop lock removal)
+    # NOTE: CLEANUP_FILES is a LOCAL-side var (outer on_exit trap). This block runs
+    # REMOTELY under set -u, where referencing it is an "unbound variable" fatal that
+    # aborts the recreate before docker stop/rm/run — a silent no-op that still prints
+    # "Done" and passes the health gate on the OLD container. Clean the temp file
+    # remotely instead (trap fires even on the early-exit paths above).
+    trap '"'"'rm -f "$LIVE_ENV"'"'"' EXIT
 
     # Keys present in .env — we will let the file supply them
     NEW_KEYS=$(grep -v "^#\|^$" "$ENV_FILE" | awk -F= "{print \$1}" | sort -u)
@@ -891,7 +1181,17 @@ resync_galaxy_env() {
     PORTS=$(docker inspect "$CONTAINER" --format "{{range \$p, \$bs := .HostConfig.PortBindings}}{{range \$bs}}-p {{.HostPort}}:{{\$p}} {{end}}{{end}}" | sed "s|/tcp||g")
     MOUNTS=$(docker inspect "$CONTAINER" --format "{{range .Mounts}}-v {{.Source}}:{{.Destination}}{{if .RW}}{{else}}:ro{{end}} {{end}}")
 
-    echo "  preserving image=$IMAGE network=$NETWORK ports=$PORTS"
+    # The Galaxy DB bind mount is already captured by MOUNTS for a normally-launched
+    # container. Adding it a SECOND time here makes docker run fail with "Duplicate
+    # mount point: /app/database" — and that failure lands AFTER docker rm, taking dev
+    # down. So add the explicit mount ONLY if MOUNTS somehow lacks it.
+    DB_MOUNT=""
+    case "$MOUNTS" in
+      *:/app/database*|*:/app/database:ro*) : ;;   # already preserved
+      *) DB_MOUNT="-v '"$GALAXY_DB_HOST_PATH"':/app/database" ;;
+    esac
+
+    echo "  preserving image=$IMAGE network=$NETWORK ports=$PORTS db_mount_extra=${DB_MOUNT:-none}"
     echo "  live env to preserve: $(wc -l < $LIVE_ENV) vars; env-file to apply: $(echo "$NEW_KEYS" | wc -l) keys"
 
     echo "[galaxy-env] Stopping + removing $CONTAINER..."
@@ -906,7 +1206,7 @@ resync_galaxy_env() {
       --network "$NETWORK" \
       $PORTS \
       $MOUNTS \
-      -v $GALAXY_DB_HOST_PATH:/app/database \
+      $DB_MOUNT \
       --restart unless-stopped \
       --env-file "$ENV_FILE" \
       $(awk "{print \"-e\", \$0}" "$LIVE_ENV" | tr "\n" " ") \
@@ -1181,6 +1481,15 @@ trigger_pi_suite() {
     log "[pi-suite] skipped (BIOMATE_SKIP_PI_SUITE=1)"
     return 0
   fi
+  # Self-healing guard: the PI suite's test files (e2e/ind-report-production.e2e.ts,
+  # e2e/ind-design-audit.e2e.ts) were removed in the "161 stale E2E files" cleanup
+  # (1a12b4e8c), so dispatching the workflow produced a guaranteed-red run on every
+  # sync ("No tests found"). Skip the dispatch while the tests are absent; it
+  # auto-resumes once they're restored. See docs/20261005_CI_ACTIONS_FAILURES_TRIAGE.md.
+  if [[ ! -f "$REPO_ROOT/frontend/e2e/ind-report-production.e2e.ts" ]]; then
+    log "[pi-suite] skipped — e2e/ind-report-production.e2e.ts absent (removed in 1a12b4e8c); not dispatching a testless suite. Restore the PI tests to re-enable."
+    return 0
+  fi
   local ref repo
   ref="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo integration/next-phase)"
   repo="bioMate-AI/biomate"
@@ -1259,6 +1568,20 @@ restart_galaxy() {
     #
     # galaxyctl restart gunicorn is a graceful master restart (~5-15s) that
     # re-imports all Python modules from the freshly synced .py files.
+    # Stray gunicorn holding :8080. Supervisord stops its gunicorn as a group, but a gunicorn
+    # started outside supervisord (parent = PID 1) keeps the listening socket: the supervised
+    # gunicorn then logs "Connection in use: (0.0.0.0, 8080)" and crash-loops — dev was down
+    # 2026-11-04 18:00-18:06 (CST) with two such orphans (started 17:31/17:34, not in gunicorn.log).
+    # Kill them before the restart and say so loudly (PIDs + start times) so the source is traceable.
+    kill_orphan_gunicorn() {
+      _orph=$(docker exec "$GC" ps -eo pid,ppid,lstart,args | awk "\$2==1 && /gunicorn galaxy.webapps.galaxy.fast_factory/" )
+      if [ -n "$_orph" ]; then
+        echo "[galaxy] WARNING: gunicorn outside supervisord (ppid 1) — would block :8080; killing:"
+        echo "$_orph" | cut -c1-140 | sed "s/^/[galaxy]   /"
+        docker exec -u root "$GC" kill -KILL $(echo "$_orph" | awk "{print \$1}") 2>/dev/null || true
+      fi
+    }
+    kill_orphan_gunicorn
     docker exec "$GC" galaxyctl restart gunicorn 2>&1 | tail -2 && \
       echo "[galaxy] gunicorn master restarted (fresh module load)" || \
       echo "[galaxy] galaxyctl restart failed — Galaxy may serve stale code"
@@ -1301,6 +1624,16 @@ restart_galaxy() {
       fi
       sleep 5
     done
+    if [ "$_galaxy_ok" -eq 0 ] && docker exec "$GC" sh -c "tail -50 /app/database/gravity/log/gunicorn.log" 2>/dev/null | grep -q "Connection in use"; then
+      echo "[galaxy] gunicorn cannot bind :8080 (Connection in use) — clearing strays; supervisord will retry"
+      kill_orphan_gunicorn
+      for _gi in $(seq 1 24); do
+        if curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version 2>/dev/null; then
+          echo "[galaxy] ✓ Galaxy healthy after clearing strays"; _galaxy_ok=1; break
+        fi
+        sleep 5
+      done
+    fi
     if [ "$_galaxy_ok" -eq 0 ]; then
       echo "[galaxy] WARNING: Galaxy did not respond within 120s after HUP — proceeding anyway (health gate will catch it)"
     fi
@@ -1378,7 +1711,11 @@ try:
     d = json.load(sys.stdin)
     err = d.get(\"error\", \"\")
     success = d.get(\"success\", False)
-    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\"))
+    # A valid generation result is EITHER a single workflow (workflow_ga/nextflow_path)
+    # OR a curated multi-step chain (workflow_type=chain with real steps). Both prove the
+    # DB schema + AI stack are functional; a chain IS a runnable pipeline, not 'no workflow'.
+    is_chain = d.get(\"workflow_type\") == \"chain\" and bool(d.get(\"chain_steps\"))
+    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\") or is_chain)
     if err == \"db_unavailable\":
         print(\"FAIL db_unavailable\"); sys.exit(1)
     if err == \"clarification_needed\":
@@ -1387,7 +1724,8 @@ try:
         print(f\"FAIL error={err}\"); sys.exit(1)
     if not success or not wf:
         print(f\"FAIL success={success} wf={wf}\"); sys.exit(1)
-    print(\"PASS workflow=\" + str(d.get(\"workflow_ga\",{}).get(\"name\",\"?\"))); sys.exit(0)
+    name = (d.get(\"workflow_ga\") or {}).get(\"name\") or d.get(\"chain_name\") or \"?\"
+    print(\"PASS workflow=\" + str(name)); sys.exit(0)
 except Exception as e:
     print(f\"FAIL parse_error={e}\"); sys.exit(1)
 " 2>&1)
@@ -1402,12 +1740,14 @@ try:
     d = json.load(sys.stdin)
     err = d.get(\"error\", \"\")
     success = d.get(\"success\", False)
-    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\"))
+    is_chain = d.get(\"workflow_type\") == \"chain\" and bool(d.get(\"chain_steps\"))
+    wf = bool(d.get(\"workflow_ga\") or d.get(\"nextflow_path\") or is_chain)
     if err:
         print(f\"FAIL error={err}\"); sys.exit(1)
     if not success or not wf:
         print(f\"FAIL success={success} wf={wf}\"); sys.exit(1)
-    print(\"PASS workflow=\" + str(d.get(\"workflow_ga\",{}).get(\"name\",\"?\"))); sys.exit(0)
+    name = (d.get(\"workflow_ga\") or {}).get(\"name\") or d.get(\"chain_name\") or \"?\"
+    print(\"PASS workflow=\" + str(name)); sys.exit(0)
 except Exception as e:
     print(f\"FAIL parse_error={e}\"); sys.exit(1)
 " 2>&1)
@@ -1500,6 +1840,22 @@ postsync_health_ok() {
   # Probe the dev host's mapped ports; retry to ride out HUP / cold start.
   # $1 = number of 5s retries (default 24 = 120s).
   # Prints which port is failing so we can distinguish Galaxy vs Frontend issues.
+  # Returns 0 healthy, 1 unhealthy (probes ran and failed), 2 UNVERIFIED (could not reach the host).
+  # ec2_ssh exits 255 on a transport failure (SSM "TargetNotConnected", dropped SSH): that is not a
+  # health verdict. On 2026-11-04 a healthy deploy was rolled back because the first probe's SSM
+  # session failed ("i-06696b0d91f4346e0 is not connected"); transport failures are now retried.
+  local attempt rc
+  for attempt in 1 2 3 4 5; do
+    _postsync_probe "$@"; rc=$?
+    [[ $rc -ne 255 ]] && return $rc
+    log "[health] cannot reach the dev host (ssh/SSM exit 255) — retrying in $((attempt * 15))s; not a health verdict"
+    sleep $((attempt * 15))
+  done
+  log "[health] dev host unreachable after 5 attempts — health UNVERIFIED"
+  return 2
+}
+
+_postsync_probe() {
   local tries="${1:-24}"
   ec2_ssh "
     for i in \$(seq 1 $tries); do
@@ -1590,8 +1946,13 @@ do_sync() {
     grep -vE '\.(test|spec)\.(ts|tsx|js)$|^frontend/e2e/' || true)"
   [[ -n "$_runtime_frontend" ]] && do_frontend=true
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
-  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/" && do_workflows=true
+  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/|^backend/nf-core-modules/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
+  # BIOMATE_SYNC_FORCE=frontend,backend,workflows re-deploys those layers even with no matching
+  # change, e.g. to exercise a change to this script itself.
+  [[ ",${BIOMATE_SYNC_FORCE:-}," == *",frontend,"* ]] && do_frontend=true
+  [[ ",${BIOMATE_SYNC_FORCE:-}," == *",backend,"* ]] && do_backend=true
+  [[ ",${BIOMATE_SYNC_FORCE:-}," == *",workflows,"* ]] && do_workflows=true
 
   # Always sync logo
   sync_logo 2>/dev/null || true
@@ -1669,6 +2030,7 @@ do_sync() {
   # `gunicorn` block — Docker maps host:8081 → container:8080, so 8081-bound
   # gunicorn never gets reached). Cheap to ship (single file) and idempotent.
   deploy_galaxy_yml || true
+  ensure_nfcore_pipelines || log "[nfcore] ⚠ pipeline restore failed — nf-core runs may fail to resolve"
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
@@ -1723,7 +2085,17 @@ do_sync() {
   # Apply PostgreSQL migrations BEFORE deploying the frontend so the new bundle's
   # storage layer never hits a missing column on the new schema.
   $do_frontend  && apply_postgres_migrations
-  $do_frontend  && deploy_frontend
+  # A failed frontend deploy MUST abort the sync before the health gate and the
+  # marker write — otherwise the health gate passes on the still-running OLD
+  # container and the sync records a false success (2026-09-13 silent-fail).
+  # set -e is suppressed here (if do_sync ...), so check the rc explicitly.
+  if $do_frontend; then
+    if ! deploy_frontend; then
+      log "[frontend] deploy FAILED — aborting sync; dev NOT advanced to ${CURRENT_COMMIT:0:8} (marker unchanged, re-run when the link is stable)"
+      SYNC_RESULT=failed
+      return 1
+    fi
+  fi
   # remote_mcp runs AFTER the frontend (which now points MCP_UPSTREAM_URL at the
   # mcp container). Failure here never aborts the sync — it self-reports + logs;
   # the connector canary below also flags a down /mcp. Never fails the deploy.
@@ -1736,7 +2108,13 @@ do_sync() {
   # covers the frontend container's cold-start (Node.js + DB migrations).
   if [[ "$ROLLBACK_READY" == 1 ]]; then
     log "[health] Verifying dev health after sync..."
-    if postsync_health_ok 120; then
+    postsync_health_ok 120; _health_rc=$?
+    if [[ $_health_rc -eq 2 ]]; then
+      # Could not reach the host at all: rolling back needs that same connection and would undo a
+      # deploy nobody could check. Report it; a human verifies dev and decides.
+      log "[health] ⚠ dev health UNVERIFIED (host unreachable) — NOT rolling back; verify https://dev-public.biomate.ai before relying on this deploy"
+      SYNC_RESULT=unverified
+    elif [[ $_health_rc -eq 0 ]]; then
       if smoke_test_workflow; then
         log "[health] ✓ dev healthy + smoke test passed"
         SYNC_RESULT=healthy
@@ -1874,7 +2252,15 @@ if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
   # Record commit so next sync diffs only changed code layers.
   # Note: DB md5 is no longer cached locally — we fetch it from dev each run
   # to correctly detect dev-side corruption. See the DB layer detection comment above.
-  echo "$CURRENT_COMMIT" > "$_PREV_COMMIT_FILE"
+  # The marker means "last commit shipped to ALL code layers". A frontend-only run
+  # (BIOMATE_ONLY_FRONTEND=1) leaves backend/workflows/db commits unshipped, so it must
+  # NOT advance it; otherwise the next full sync diffs from here and silently skips them
+  # (happened twice on 2026-11-02, see docs/20261102_SEARCH_FAILURE_VISIBILITY_AND_SYNC_MARKER.md).
+  if [[ "${BIOMATE_ONLY_FRONTEND:-}" == "1" ]]; then
+    log "[marker] frontend-only run: last-synced marker NOT advanced (stays at ${_PREV_COMMIT:0:8})"
+  else
+    echo "$CURRENT_COMMIT" > "$_PREV_COMMIT_FILE"
+  fi
   log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="
   # Ensure all AWS Batch CEs are pinned to the latest Launch Template version.
   # The aws-cli libz regression (2026-04 → 2026-06) was caused by CEs being

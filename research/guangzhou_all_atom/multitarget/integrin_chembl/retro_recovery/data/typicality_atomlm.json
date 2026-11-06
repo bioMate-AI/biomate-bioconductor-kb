@@ -1,0 +1,8 @@
+{
+ "scored": 11771,
+ "needed": 13655,
+ "covered_of_needed": 0.862,
+ "unscorable": 1884,
+ "ckpt_sha256": "75b18ab40e78cb8ab76affad138bfae71be0496b780cc66ceebbf146069ec785",
+ "consistency_max_abs_diff": 1.1102230246251565e-16
+}

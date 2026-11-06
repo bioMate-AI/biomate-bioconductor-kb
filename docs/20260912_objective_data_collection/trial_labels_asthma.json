@@ -1,0 +1,7189 @@
+[
+  {
+    "nct": "NCT02031640",
+    "title": "A Safety and Efficacy Study of Beclomethasone Dipropionate Delivered Via Breath-Actuated Inhaler (BAI) or Metered-Dose Inhaler (MDI) in Participants >=12 Years Old With Persistent Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1113,
+    "n_arms": 5,
+    "interventions": [
+      "Beclomethasone dipropionate",
+      "Placebo",
+      "Albuterol/salbutamol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 7,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 11,
+    "ae_other_num_affected": 53,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 106,
+        "otherNumAtRisk": 106
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 106,
+        "otherNumAtRisk": 106
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 107,
+        "otherNumAtRisk": 107
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 107,
+        "otherNumAtRisk": 107
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 106,
+        "otherNumAtRisk": 106
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 532,
+        "otherNumAtRisk": 532
+      }
+    ],
+    "withdrawals_total": 630,
+    "withdrawal_reasons": {
+      "Adverse Event": 7,
+      "Withdrawal by Subject": 54,
+      "Inclusion criteria not met": 350,
+      "Exclusion criteria met": 38,
+      "Lost to Follow-up": 18,
+      "Enrollment closed": 26,
+      "Randomization criteria not met": 85,
+      "Various administrative reasons": 17,
+      "Protocol deviation": 7,
+      "Lack of Efficacy": 25,
+      "Non-compliance": 3
+    }
+  },
+  {
+    "nct": "NCT00642161",
+    "title": "New Version Pulmicort Turbuhaler USA Children",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 430,
+    "n_arms": 0,
+    "interventions": [
+      "budesonide"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02554786",
+    "title": "A Multicenter Randomized 52 Week Treatment Double-blind, Triple Dummy Parallel Group Study to Assess the Efficacy and Safety of QMF149 Compared to Mometasone Furoate in Participants With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 2216,
+    "n_arms": 5,
+    "interventions": [
+      "Indacaterol acetate/Mometasone furoate",
+      "Mometasone furoate",
+      "Salmeterol xinafoate/fluticasone propionate"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 27,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 158,
+    "ae_other_num_affected": 2102,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 443,
+        "otherNumAtRisk": 443
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 437,
+        "otherNumAtRisk": 437
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 440,
+        "otherNumAtRisk": 440
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 443,
+        "otherNumAtRisk": 443
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 444,
+        "otherNumAtRisk": 444
+      }
+    ],
+    "withdrawals_total": 162,
+    "withdrawal_reasons": {
+      "Subject/guardian decision": 114,
+      "Lost to Follow-up": 15,
+      "Protocol deviation": 13,
+      "Technical problems": 5,
+      "Adverse Event": 2,
+      "Death": 1,
+      "Non-compliance with study treatment": 3,
+      "Physician Decision": 7,
+      "Pregnancy": 2
+    }
+  },
+  {
+    "nct": "NCT00393991",
+    "title": "Comparison of New Combination Inhaler (FlutiForm HFA MDI 100/10 \u00b5g) Versus Fluticasone and Formoterol Administered Alone, and Placebo, in Patients With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 475,
+    "n_arms": 4,
+    "interventions": [
+      "Fluticasone propionate/formoterol fumarate 100/10",
+      "Fluticasone propionate 100",
+      "Formoterol fumarate 10",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02291302",
+    "title": "School Inner-City Asthma Intervention Study (SICAS-2)",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 236,
+    "n_arms": 4,
+    "interventions": [
+      "integrated pest management",
+      "air purifier",
+      "No intervention (control)"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 59,
+        "otherNumAtRisk": 59
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 59,
+        "otherNumAtRisk": 59
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 59,
+        "otherNumAtRisk": 59
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 59,
+        "otherNumAtRisk": 59
+      }
+    ],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00636207",
+    "title": "A Study to Evaluate the Safety, Tolerability, and Pharmacokinetics of Inhaled Montelukast (MK-0476) in Participants With Mild or Moderate Asthma (MK-0476-380 AM3)(COMPLETED)",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 46,
+    "n_arms": 6,
+    "interventions": [
+      "Montelukast",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 12,
+    "n_primary_outcomes": 12,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 70,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 7,
+        "otherNumAtRisk": 7
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 7,
+        "otherNumAtRisk": 7
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 12,
+        "otherNumAtRisk": 12
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 18,
+        "otherNumAtRisk": 18
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 19,
+        "otherNumAtRisk": 19
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 18,
+        "otherNumAtRisk": 18
+      }
+    ],
+    "withdrawals_total": 3,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Withdrawal by Subject": 2
+    }
+  },
+  {
+    "nct": "NCT05173168",
+    "title": "A Pilot Study to Assess the Safety Profile of resB\u00ae",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 22,
+    "n_arms": 1,
+    "interventions": [
+      "Probiotic Dietary Supplement"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03141424",
+    "title": "Periostin-guided Withdrawal of Inhaled Corticosteroids in Patients With Non-eosinophilic Asthma",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 20,
+    "n_arms": 2,
+    "interventions": [
+      "Tapering of inhaled corticosteroid (ICS) treatment"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01165138",
+    "title": "Study HZA106827: Efficacy/Safety Study of Fluticasone Furoate/Vilanterol (GW642444) in Adult and Adolescent Asthmatics",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 612,
+    "n_arms": 3,
+    "interventions": [
+      "Fluticasone furoate/Vilanterol Inhalation Powder",
+      "Fluticasone Furoate Inhalation Powder",
+      "Placebo Inhaltion Powder"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 18,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 1,
+    "ae_other_num_affected": 76,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 203,
+        "otherNumAtRisk": 203
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 205,
+        "otherNumAtRisk": 205
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 201,
+        "otherNumAtRisk": 201
+      }
+    ],
+    "withdrawals_total": 94,
+    "withdrawal_reasons": {
+      "Adverse Event": 3,
+      "Lack of Efficacy": 45,
+      "Protocol Violation": 9,
+      "Lost to Follow-up": 3,
+      "Physician Decision": 19,
+      "Withdrawal by Subject": 15
+    }
+  },
+  {
+    "nct": "NCT00326053",
+    "title": "Prevention of Asthma Relapse After Discharge From Emergency",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 600,
+    "n_arms": 0,
+    "interventions": [
+      "Budesonide/formoterol"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02654145",
+    "title": "Omalizumab to Mepolizumab Switch Study in Severe Eosinophilic Asthma Patients",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 145,
+    "n_arms": 1,
+    "interventions": [
+      "Mepolizumab 100mg SC",
+      "Albuterol/salbutamol MDIs",
+      "Omalizumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 4,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 24,
+    "ae_other_num_affected": 270,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 145,
+        "otherNumAtRisk": 145
+      }
+    ],
+    "withdrawals_total": 7,
+    "withdrawal_reasons": {
+      "Lack of Efficacy": 1,
+      "Protocol Violation": 1,
+      "Withdrawal by Subject": 5
+    }
+  },
+  {
+    "nct": "NCT06465485",
+    "title": "STEP: Phase IIIb Study of Benralizumab to Step-down Maintenance Therapy in Patients With Severe Eosinophilic Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 504,
+    "n_arms": 1,
+    "interventions": [
+      "Benralizumab"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05932849",
+    "title": "Benralizumab Patient Access Programme Study: Retrospective Study in UK Severe Asthma Centres",
+    "phase": [],
+    "enrollment": 276,
+    "n_arms": 0,
+    "interventions": [
+      "Benralizumab"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT07159295",
+    "title": "Study in Portuguese Hospitals to Describe Patient Characteristics, Treatment Patterns and Outcomes",
+    "phase": [],
+    "enrollment": 74,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05565430",
+    "title": "Vocal Cord Responses During Hyperventilation in Normal Individuals and in Mild and Severe Asthmatics.",
+    "phase": [],
+    "enrollment": 24,
+    "n_arms": 3,
+    "interventions": [
+      "Acute Hyperventilation",
+      "Chronic hyperventilation",
+      "Effects of anticholinergic medication"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00257933",
+    "title": "Oral Prednisolone Dosing in Children Hospitalized With Asthma",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 152,
+    "n_arms": 2,
+    "interventions": [
+      "Prednisolone high dose",
+      "Prednisolone lower dose"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 74,
+        "otherNumAtRisk": 74
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 78,
+        "otherNumAtRisk": 78
+      }
+    ],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00163293",
+    "title": "Efficacy of Ciclesonide Inhaled Once Daily Versus Other Corticosteroids Used for Treatment of Mild Asthma in Children (4 to 11 Years) (BY9010/CA-101)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 240,
+    "n_arms": 3,
+    "interventions": [
+      "Ciclesonide",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 23,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 8,
+    "ae_other_num_affected": 318,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 79,
+        "otherNumAtRisk": 79
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 76,
+        "otherNumAtRisk": 76
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 84,
+        "otherNumAtRisk": 84
+      }
+    ],
+    "withdrawals_total": 39,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01107613",
+    "title": "The Lung Attack Alert Study",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 128,
+    "n_arms": 2,
+    "interventions": [
+      "Opinion leader educational letter"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01922037",
+    "title": "A Study in Participants With Asthma Initiating Treatment With Omalizumab (Xolair)",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 806,
+    "n_arms": 1,
+    "interventions": [
+      "Omalizumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 29,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 252,
+    "ae_other_num_affected": 158,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 69,
+        "otherNumAtRisk": 69
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 732,
+        "otherNumAtRisk": 732
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 801,
+        "otherNumAtRisk": 801
+      }
+    ],
+    "withdrawals_total": 184,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 46,
+      "Adverse Event": 8,
+      "Death": 5,
+      "Pregnancy": 2,
+      "Participant non-compliance": 50,
+      "Investigator/Sponsor decision": 5,
+      "Other unspecified": 68
+    }
+  },
+  {
+    "nct": "NCT02040779",
+    "title": "A 12-week Safety and Efficacy Study of Beclomethasone Dipropionate (80 and 160 mcg/Day) Delivered Via Breath-Actuated Inhaler (BAI) in Patients >=12 Years Old With Persistent Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 273,
+    "n_arms": 3,
+    "interventions": [
+      "Beclomethasone dipropionate breath-actuated inhaler",
+      "Placebo breath-actuated inhaler",
+      "albuterol/salbutamol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 10,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 91,
+        "otherNumAtRisk": 91
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 90,
+        "otherNumAtRisk": 90
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 92,
+        "otherNumAtRisk": 92
+      }
+    ],
+    "withdrawals_total": 23,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Withdrawal by Subject": 8,
+      "Non-compliance": 1,
+      "Protocol Violation": 3,
+      "Lost to Follow-up": 4,
+      "Lack of Efficacy": 6
+    }
+  },
+  {
+    "nct": "NCT01312961",
+    "title": "Efficacy, Safety, and Tolerability of Dupilumab in Patients With Persistent Moderate to Severe Eosinophilic Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 104,
+    "n_arms": 2,
+    "interventions": [
+      "Dupilumab",
+      "Placebo (for Dupilumab)",
+      "Fluticasone/Salmeterol combination therapy",
+      "Fluticasone monotherapy",
+      "Albuterol",
+      "Levalbuterol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 11,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 6,
+    "ae_other_num_affected": 90,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 52,
+        "otherNumAtRisk": 52
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 52,
+        "otherNumAtRisk": 52
+      }
+    ],
+    "withdrawals_total": 24,
+    "withdrawal_reasons": {
+      "Adverse Event": 6,
+      "Lack of Efficacy": 12,
+      "Poor compliance to protocol": 1,
+      "Other than specified above": 5
+    }
+  },
+  {
+    "nct": "NCT00118716",
+    "title": "A Study Measuring Asthma Control In Pediatric And Adolescent Subjects Whose Asthma Is Worsened By Activity Or Exercise",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 248,
+    "n_arms": 2,
+    "interventions": [
+      "Fluticasone propionate/salmeterol",
+      "Fluticasone Propionate"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 7,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 94,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 124,
+        "otherNumAtRisk": 124
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 124,
+        "otherNumAtRisk": 124
+      }
+    ],
+    "withdrawals_total": 35,
+    "withdrawal_reasons": {
+      "Adverse Event": 9,
+      "Protocol Violation": 9,
+      "Withdrawal by Subject": 1,
+      "Exacerbation": 4,
+      "Discontinued by sponsor": 2,
+      "Non-compliance": 4,
+      "misrandomized": 2,
+      "Expired drug use": 3,
+      "Investigator discretion": 1
+    }
+  },
+  {
+    "nct": "NCT04509921",
+    "title": "Adjustment of Asthma Treatment in Children Based on an Indirect Hyperresponsiveness Test",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 108,
+    "n_arms": 2,
+    "interventions": [
+      "asthma treatment adjustment taking account on degree of bronchial hyperresponsiveness"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02424409",
+    "title": "Evaluation of the Relapse Rate One Month After Discharge From Emergency Department for Asthmatic Patients Given a Strict Formalized Follow up Protocol",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 1422,
+    "n_arms": 2,
+    "interventions": [
+      "2: Intervention",
+      "1: Control"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00974766",
+    "title": "Trial on the Efficacy and Safety of Two Different Glucocorticoid Dose Regimens in Allergic Bronchopulmonary Aspergillosis",
+    "phase": [
+      "PHASE2",
+      "PHASE3"
+    ],
+    "enrollment": 92,
+    "n_arms": 2,
+    "interventions": [
+      "Glucocorticoids",
+      "Glucocorticoids"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02924688",
+    "title": "A Phase III Parallel Group Study, Comparing the Efficacy, Safety and Tolerability of the Fixed Dose Combination (FDC) of Fluticasone Furoate+Umeclidinium Bromide+Vilanterol (FF/UMEC/VI) With the FDC of FF/VI in Subjects With Inadequately Controlled Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 2436,
+    "n_arms": 6,
+    "interventions": [
+      "FF/UMEC/VI (100/31.25/25) mcg",
+      "FF/UMEC/VI (100/62.5/25) mcg",
+      "FF/UMEC/VI (200/31.25/25) mcg",
+      "FF/UMEC/VI (200/62.5/25) mcg",
+      "FF/VI (100/25) mcg",
+      "FF/VI (200/25) mcg",
+      "Fluticasone/salmeterol (FSC)",
+      "Albuterol/salbutamol",
+      "ELLIPTA DPI",
+      "DISKUS DPI",
+      "METERED-DOSE INHALER (MDI)"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 12,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 150,
+    "ae_other_num_affected": 971,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 407,
+        "otherNumAtRisk": 407
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 405,
+        "otherNumAtRisk": 405
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 406,
+        "otherNumAtRisk": 406
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 406,
+        "otherNumAtRisk": 406
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 404,
+        "otherNumAtRisk": 404
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 408,
+        "otherNumAtRisk": 408
+      }
+    ],
+    "withdrawals_total": 162,
+    "withdrawal_reasons": {
+      "Adverse Event": 21,
+      "Lack of Efficacy": 13,
+      "Protocol Violation": 25,
+      "Protocol defined withdrawal criteria met": 4,
+      "Lost to Follow-up": 18,
+      "Physician Decision": 6,
+      "Withdrawal by Subject": 75
+    }
+  },
+  {
+    "nct": "NCT00109200",
+    "title": "A Continued Access Protocol to Provide Xolair to Patients With Severe Allergic Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": null,
+    "n_arms": 0,
+    "interventions": [
+      "Xolair (omalizumab)"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03480815",
+    "title": "Nocturnal TLA for Severe Allergic Asthma After Withdrawal of Omalizumab Therapy",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 24,
+    "n_arms": 2,
+    "interventions": [
+      "Nocturnal Temperature Controlled Laminar Flow Device",
+      "None Device"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02889809",
+    "title": "Effects of a Orally Inhaled Fluticasone Furoate on Growth Velocity in Prepubertal, Paediatric Subjects With Asthma Over a Year",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 477,
+    "n_arms": 2,
+    "interventions": [
+      "Fluticasone furoate",
+      "Placebo",
+      "Montelukast",
+      "Short Acting Beta 2 Agonist"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 7,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 15,
+    "ae_other_num_affected": 317,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 239,
+        "otherNumAtRisk": 239
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 238,
+        "otherNumAtRisk": 238
+      }
+    ],
+    "withdrawals_total": 76,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 51,
+      "Lost to Follow-up": 2,
+      "Site Closed": 23
+    }
+  },
+  {
+    "nct": "NCT02980133",
+    "title": "Study of Fluticasone Propionate Multidose Dry Powder Inhaler Compared With Fluticasone Propionate/Salmeterol Multidose Dry Powder Inhaler",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 841,
+    "n_arms": 4,
+    "interventions": [
+      "Fluticasone Propionate",
+      "Fluticasone Propionate/Salmeterol",
+      "Placebo MDPI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 8,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 9,
+    "ae_other_num_affected": 39,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 209,
+        "otherNumAtRisk": 209
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 211,
+        "otherNumAtRisk": 211
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 208,
+        "otherNumAtRisk": 208
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 211,
+        "otherNumAtRisk": 211
+      }
+    ],
+    "withdrawals_total": 25,
+    "withdrawal_reasons": {
+      "Other than specified": 6,
+      "Lost to Follow-up": 4,
+      "Protocol Violation": 1,
+      "Withdrawal by parent/guardian": 13,
+      "Withdrawal by Subject": 1
+    }
+  },
+  {
+    "nct": "NCT02134028",
+    "title": "Long-Term Safety Evaluation of Dupilumab in Patients With Asthma (LIBERTY ASTHMA TRAVERSE)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 2282,
+    "n_arms": 1,
+    "interventions": [
+      "Dupilumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 27,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 307,
+    "ae_other_num_affected": 4104,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 111,
+        "otherNumAtRisk": 111
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 421,
+        "otherNumAtRisk": 421
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 517,
+        "otherNumAtRisk": 517
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 1013,
+        "otherNumAtRisk": 1013
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 97,
+        "otherNumAtRisk": 97
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 90,
+        "otherNumAtRisk": 90
+      },
+      {
+        "id": "EG006",
+        "seriousNumAtRisk": 19,
+        "otherNumAtRisk": 19
+      },
+      {
+        "id": "EG007",
+        "seriousNumAtRisk": 14,
+        "otherNumAtRisk": 14
+      }
+    ],
+    "withdrawals_total": 243,
+    "withdrawal_reasons": {
+      "Lack of Efficacy": 10,
+      "Poor compliance to protocol": 14,
+      "Other unspecified": 140,
+      "Adverse Event": 79
+    }
+  },
+  {
+    "nct": "NCT00393367",
+    "title": "Budesonide Inhalation Suspension for Acute Asthma in Children",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 179,
+    "n_arms": 2,
+    "interventions": [
+      "Budesonide inhalation suspension (0.5 mg/2mL) 2mg, albuterol (5mg/mL) 7.5 or 10mg",
+      "Prednisolone, prednisone, or methylprednisolone",
+      "Albuterol, ipratropium bromide",
+      "Ipratropium bromide"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 12,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 5,
+    "ae_other_num_affected": 94,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 91,
+        "otherNumAtRisk": 91
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 88,
+        "otherNumAtRisk": 91
+      }
+    ],
+    "withdrawals_total": 9,
+    "withdrawal_reasons": {
+      "Protocol Violation": 7,
+      "Withdrawal by Subject": 2
+    }
+  },
+  {
+    "nct": "NCT02141854",
+    "title": "Efficacy and Safety Study of FP MDPI Compared With FS MDPI in Adolescent and Adult Patients With Persistent Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 882,
+    "n_arms": 5,
+    "interventions": [
+      "FS MDPI",
+      "Fp MDPI",
+      "Placebo MDPI",
+      "Albuterol/salmeterol HFA MDI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 7,
+    "ae_other_num_affected": 113,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 143,
+        "otherNumAtRisk": 143
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 145,
+        "otherNumAtRisk": 145
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 145,
+        "otherNumAtRisk": 145
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 146,
+        "otherNumAtRisk": 146
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 144,
+        "otherNumAtRisk": 144
+      }
+    ],
+    "withdrawals_total": 232,
+    "withdrawal_reasons": {
+      "Inclusion criteria not met": 25,
+      "Randomization criteria not met": 76,
+      "Exclusion criteria met": 14,
+      "Other": 20,
+      "Adverse Event": 18,
+      "Withdrawal by Subject": 28,
+      "Lost to Follow-up": 10,
+      "Protocol Violation": 6,
+      "Noncompliance": 1,
+      "Lack of Efficacy": 9,
+      "Pregnancy": 1,
+      "Disease progression": 24
+    }
+  },
+  {
+    "nct": "NCT03317977",
+    "title": "Translating an Efficacious Illness Management Intervention for Youth With Asthma",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 75,
+    "n_arms": 2,
+    "interventions": [
+      "Reach for Control",
+      "MATCH"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 3,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 11,
+    "ae_other_num_affected": 71,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 36,
+        "otherNumAtRisk": 36
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 38,
+        "otherNumAtRisk": 38
+      }
+    ],
+    "withdrawals_total": 9,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02091986",
+    "title": "A 12-Week Study in Asthmatic Children Ages 6 to <12 Years, Investigating the Efficacy and Safety of Symbicort pMDI 80/2.25 \u03bcg and Symbicort pMDI 80/4.5 \u03bcg, Compared With Budesonide pMDI 80 \u03bcg",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 882,
+    "n_arms": 3,
+    "interventions": [
+      "Symbicort pMDI",
+      "Symbicort pMDI",
+      "Budesonide pMDI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 160,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 90,
+        "otherNumAtRisk": 90
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 93,
+        "otherNumAtRisk": 93
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 90,
+        "otherNumAtRisk": 90
+      }
+    ],
+    "withdrawals_total": 26,
+    "withdrawal_reasons": {
+      "7 rand in error 1 patient decision": 8,
+      "Lost to Follow-up": 1,
+      "Withdrawal by Subject": 15,
+      "Adverse Event": 2
+    }
+  },
+  {
+    "nct": "NCT01526161",
+    "title": "Management of Asthma in School-age Children on Therapy",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 229,
+    "n_arms": 3,
+    "interventions": [
+      "inhaled fluticasone propionate",
+      "salmeterol",
+      "Montelukast"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00189436",
+    "title": "Effect of Nebulized Budesonide and Oral Corticosteroids on Wheezing Episode Relapse in Children",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 61,
+    "n_arms": 2,
+    "interventions": [
+      "Nebulized Budesonide",
+      "Usual care (albuterol with or without oral steroid)"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 3,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 31,
+        "otherNumAtRisk": 31
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 30,
+        "otherNumAtRisk": 30
+      }
+    ],
+    "withdrawals_total": 13,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03133299",
+    "title": "A Study Evaluating Vitamin D in Allergic Bronchopulmonary Aspergillosis Complicating Asthma",
+    "phase": [
+      "PHASE2",
+      "PHASE3"
+    ],
+    "enrollment": 30,
+    "n_arms": 2,
+    "interventions": [
+      "Glucocorticoids",
+      "Vitamin D"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01436071",
+    "title": "Clinical Study Evaluating Safety and Efficacy of Fluticasone Furoate in People With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 248,
+    "n_arms": 2,
+    "interventions": [
+      "Fluticasone furoate 50mcg",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 49,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 121,
+        "otherNumAtRisk": 121
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 121,
+        "otherNumAtRisk": 121
+      }
+    ],
+    "withdrawals_total": 40,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Lack of Efficacy": 23,
+      "Protocol Violation": 1,
+      "Lost to Follow-up": 4,
+      "Physician Decision": 1,
+      "Withdrawal by Subject": 4,
+      "Did Not Receive Trial Medication": 6
+    }
+  },
+  {
+    "nct": "NCT03420651",
+    "title": "Peak Expiratory Flow Rate for Emergency Department Management of Acute Asthma Exacerbation",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 188,
+    "n_arms": 2,
+    "interventions": [
+      "Peak Expiratory Flow Rate (PEFR)",
+      "Standard Clinical Judgement"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02224157",
+    "title": "A Clinical Study to Evaluate Symbicort Turbuhaler Used 'as Needed' in Adults and Adolescents With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 4215,
+    "n_arms": 2,
+    "interventions": [
+      "budesonide/formoterol 'as needed' + budesonide placebo bid",
+      "budesonode bid + terbutaline 'as needed'"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 10,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 161,
+    "ae_other_num_affected": 1184,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 2089,
+        "otherNumAtRisk": 2089
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 2087,
+        "otherNumAtRisk": 2087
+      }
+    ],
+    "withdrawals_total": 221,
+    "withdrawal_reasons": {
+      "Severe non-compliance to protocol": 4,
+      "Other": 23,
+      "Subject decision": 108,
+      "Prematurely closed site": 6,
+      "Eligibility criteria not fulfilled": 12,
+      "Lost to Follow-up": 62,
+      "Death": 2,
+      "Adverse Event": 4
+    }
+  },
+  {
+    "nct": "NCT01287039",
+    "title": "A Study to Evaluate the Efficacy and Safety of Reslizumab (3.0 mg/kg) in the Reduction of Clinical Asthma Exacerbations in Patients (12-75 Years of Age) With Eosinophilic Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 489,
+    "n_arms": 2,
+    "interventions": [
+      "Reslizumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 13,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 75,
+    "ae_other_num_affected": 674,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 243,
+        "otherNumAtRisk": 243
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 245,
+        "otherNumAtRisk": 245
+      }
+    ],
+    "withdrawals_total": 56,
+    "withdrawal_reasons": {
+      "Noncompliance with study procedures": 1,
+      "Change of location/residence": 3,
+      "Elective surgery": 1,
+      "Protocol Violation": 5,
+      "Excluded medication taken": 1,
+      "Noncompliance with study medication": 1,
+      "Problem with travel": 1,
+      "Death": 1,
+      "Change of residence": 1,
+      "Adverse Event": 11,
+      "Withdrawal by Subject": 25,
+      "Lost to Follow-up": 5
+    }
+  },
+  {
+    "nct": "NCT01890161",
+    "title": "A Phase IIa Repeat Dose AXP1275 vs Placebo Cross-over Trial With Pulmonary Allergen Challenge in Adults With Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 21,
+    "n_arms": 2,
+    "interventions": [
+      "AXP1275",
+      "AXP1275 matching placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01687296",
+    "title": "Nebulized Fluticasone Propionate VS Oral Prednisone in Chinese Pediatric and Adolescent Subjects With an Acute Exacerbation of Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 261,
+    "n_arms": 2,
+    "interventions": [
+      "fluticasone propionate inhalation solution",
+      "oral prednisone",
+      "placebo inhalation solution",
+      "placebo tablet",
+      "salbutamol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 8,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 3,
+    "ae_other_num_affected": 11,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 123,
+        "otherNumAtRisk": 123
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 128,
+        "otherNumAtRisk": 128
+      }
+    ],
+    "withdrawals_total": 12,
+    "withdrawal_reasons": {
+      "Lack of Efficacy": 2,
+      "Protocol Violation": 1,
+      "Withdrawal by Subject": 9
+    }
+  },
+  {
+    "nct": "NCT00674817",
+    "title": "An Investigation Of The Interaction Of GSK961081 With Inhaled Beta-Agonist And Anti-Muscarinic Drugs.",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 45,
+    "n_arms": 6,
+    "interventions": [
+      "400 microgrammes GSK961081",
+      "1200 microgrammes GSK961081"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 23,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 88,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 39,
+        "otherNumAtRisk": 39
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 41,
+        "otherNumAtRisk": 41
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 41,
+        "otherNumAtRisk": 41
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 41,
+        "otherNumAtRisk": 41
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 40,
+        "otherNumAtRisk": 40
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 39,
+        "otherNumAtRisk": 39
+      }
+    ],
+    "withdrawals_total": 6,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 2,
+      "Protocol Violation": 2,
+      "Adverse Event": 2
+    }
+  },
+  {
+    "nct": "NCT01134042",
+    "title": "Study HZA106829: Efficacy/Safety Study of Fluticasone Furoate/Vilanterol (GW642444) in Adult and Adolescent Asthmatics",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 587,
+    "n_arms": 3,
+    "interventions": [
+      "Fluticasone Furoate/Vilanterol Inhalation Powder",
+      "Fluticasone Furoate Inhalation Powder",
+      "Fluticasone Propionate Inhalation Powder",
+      "Placebo Inhalation Powder 1",
+      "Placebo Inhalation Powder 2"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 11,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 9,
+    "ae_other_num_affected": 279,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 194,
+        "otherNumAtRisk": 194
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 197,
+        "otherNumAtRisk": 197
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 195,
+        "otherNumAtRisk": 195
+      }
+    ],
+    "withdrawals_total": 110,
+    "withdrawal_reasons": {
+      "Adverse Event": 12,
+      "Lack of Efficacy": 45,
+      "Protocol Violation": 13,
+      "Lost to Follow-up": 3,
+      "Physician Decision": 13,
+      "Withdrawal by Subject": 24
+    }
+  },
+  {
+    "nct": "NCT00563056",
+    "title": "An Open, Randomised, Parallel Group Multicentre Study to Compare the Efficacy and Safety of Flutiform\u00ae pMDI vs Fluticasone pMDI Plus Formoterol DPI in Adolescent and Adult Subjects With Mild to Moderate-severe Persistent, Reversible Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 227,
+    "n_arms": 2,
+    "interventions": [
+      "Flutiform",
+      "Flixotide plus Foradil"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05734339",
+    "title": "Patient-Reported Outcomes of Benralizumab in Real-World Use in Severe Eosinophilic Asthma Patients in Taiwan (BEAT)",
+    "phase": [],
+    "enrollment": 43,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05677139",
+    "title": "A Study for Observing Severe Asthma in Patients Treated With Tezepelumab",
+    "phase": [],
+    "enrollment": 513,
+    "n_arms": 1,
+    "interventions": [
+      "None (Observational Study)"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01141855",
+    "title": "Smoking Termination Opportunity for inPatients",
+    "phase": [
+      "PHASE2",
+      "PHASE3"
+    ],
+    "enrollment": 392,
+    "n_arms": 2,
+    "interventions": [
+      "Champix",
+      "Counselling alone"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03478657",
+    "title": "An Open-label Study to Evaluate Correct Use and Ease of Use of the ELLIPTA DPI in Pediatric Subjects With Asthma",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 222,
+    "n_arms": 1,
+    "interventions": [
+      "Placebo DPI",
+      "ELLIPTA DPI",
+      "Ease of use questionnaires"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 11,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 222,
+        "otherNumAtRisk": 222
+      }
+    ],
+    "withdrawals_total": 1,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 1
+    }
+  },
+  {
+    "nct": "NCT00603278",
+    "title": "A Randomized Study To Evaluate The Efficacy And Safety Of An Investigational Drug In Adolescent And Adult Subjects With Asthma Uncontrolled on Low-Dose ICS Therapy.",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 622,
+    "n_arms": 2,
+    "interventions": [
+      "GW685698X",
+      "placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 23,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 184,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 107,
+        "otherNumAtRisk": 107
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 105,
+        "otherNumAtRisk": 105
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 101,
+        "otherNumAtRisk": 101
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 103,
+        "otherNumAtRisk": 103
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 99,
+        "otherNumAtRisk": 99
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 100,
+        "otherNumAtRisk": 100
+      }
+    ],
+    "withdrawals_total": 115,
+    "withdrawal_reasons": {
+      "Lack of Efficacy": 85,
+      "Adverse Event": 7,
+      "Withdrawal by Subject": 11,
+      "Protocol Violation": 6,
+      "Physician Decision": 4,
+      "Lost to Follow-up": 2
+    }
+  },
+  {
+    "nct": "NCT02322775",
+    "title": "Study to Evaluate the Efficacy and Safety of Benralizumab in Adult Patients With Mild to Moderate Persistent Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 211,
+    "n_arms": 2,
+    "interventions": [
+      "Benralizumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 11,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 4,
+    "ae_other_num_affected": 38,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 106,
+        "otherNumAtRisk": 106
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 105,
+        "otherNumAtRisk": 105
+      }
+    ],
+    "withdrawals_total": 11,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Lost to Follow-up": 1,
+      "Protocol Violation": 1,
+      "Withdrawal by Subject": 7,
+      "Not willing to perform all FU visits": 1
+    }
+  },
+  {
+    "nct": "NCT05424523",
+    "title": "Effectiveness and Safety of Omalizumab in Children With Allergic Asthma.",
+    "phase": [],
+    "enrollment": 200,
+    "n_arms": 1,
+    "interventions": [
+      "Omalizumab"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02188940",
+    "title": "Exercise Training to Lose Weight in Obese Asthmatics",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 55,
+    "n_arms": 2,
+    "interventions": [
+      "Dietary",
+      "Education Program",
+      "Behavioral Therapy",
+      "Exercise Training",
+      "Stretching and Breathing exercise"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00632502",
+    "title": "Neutrophilic Asthma Study With Navarixin (MK-7123, SCH 527123) (MK-7123-017)(COMPLETED)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 37,
+    "n_arms": 2,
+    "interventions": [
+      "Navarixin",
+      "Placebo",
+      "Rescue medication"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 11,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 30,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 22,
+        "otherNumAtRisk": 22
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 12,
+        "otherNumAtRisk": 12
+      }
+    ],
+    "withdrawals_total": 4,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Randomized not treated": 3
+    }
+  },
+  {
+    "nct": "NCT01706198",
+    "title": "An Effectiveness Study Comparing Fluticasone Furoate (FF, GW685698)/Vilanterol (VI, GW642444) With Standard Treatment in Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 4233,
+    "n_arms": 2,
+    "interventions": [
+      "fluticasone furoate + vilanterol",
+      "inhaled corticosteroid with or without a long acting beta2-agonist"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 23,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 991,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 2119,
+        "otherNumAtRisk": 2119
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 2114,
+        "otherNumAtRisk": 2114
+      }
+    ],
+    "withdrawals_total": 367,
+    "withdrawal_reasons": {
+      "Adverse Event": 27,
+      "Protocol Violation": 12,
+      "Other: Subject reached stopping criteria": 24,
+      "Lost to Follow-up": 190,
+      "Physician Decision": 60,
+      "Withdrawal by Subject": 54
+    }
+  },
+  {
+    "nct": "NCT06455462",
+    "title": "Patient Characteristics, Treatment Patterns and Outcomes of Patients With Severe Asthma Treated With Tezepelumab in the Real World; a Retrospective, Observational Medical Chart Review Conducted in UK Severe Asthma Centres",
+    "phase": [],
+    "enrollment": 352,
+    "n_arms": 0,
+    "interventions": [
+      "Tezepelumab"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03292588",
+    "title": "A Trial of Mepolizumab Adjunctive Therapy for the Prevention of Asthma Exacerbations in Urban Children",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 335,
+    "n_arms": 2,
+    "interventions": [
+      "Mepolizumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 22,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 7,
+    "ae_other_num_affected": 114,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 146,
+        "otherNumAtRisk": 146
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 144,
+        "otherNumAtRisk": 144
+      }
+    ],
+    "withdrawals_total": 42,
+    "withdrawal_reasons": {
+      "Death": 1,
+      "Lost to Follow-up": 28,
+      "Physician Decision": 1,
+      "Withdrawal by Subject": 8,
+      "Move out of town": 1,
+      ">3 bursts of systemic corticosteroids for asthma during treatment period (Starting Nov 2020)": 3
+    }
+  },
+  {
+    "nct": "NCT01343407",
+    "title": "A Two-part Study of the Effects of MK-1029 in Allergen-Challenged Asthmatics (MK-1029-003)",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 16,
+    "n_arms": 3,
+    "interventions": [
+      "MK-1029 10 mg",
+      "MK-1029 100 mg",
+      "Placebo for MK-1029 10 mg",
+      "Placebo for MK-1029 100 mg"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 7,
+    "n_primary_outcomes": 4,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 60,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 14,
+        "otherNumAtRisk": 14
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 16,
+        "otherNumAtRisk": 16
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 16,
+        "otherNumAtRisk": 16
+      }
+    ],
+    "withdrawals_total": 2,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Withdrawal by Subject": 1
+    }
+  },
+  {
+    "nct": "NCT01641692",
+    "title": "A 3-period Crossover Study With GSK573719 as Monotherapy in Adult Subjects With Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 350,
+    "n_arms": 8,
+    "interventions": [
+      "GSK573719 Active treatment or Placebo",
+      "GSK573719 (Sub-group cohort)",
+      "Salbutamol/Albuterol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 23,
+    "n_primary_outcomes": 19,
+    "ae_serious_num_affected": 1,
+    "ae_other_num_affected": 71,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 126,
+        "otherNumAtRisk": 126
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 131,
+        "otherNumAtRisk": 131
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 138,
+        "otherNumAtRisk": 138
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 133,
+        "otherNumAtRisk": 133
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 128,
+        "otherNumAtRisk": 128
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 135,
+        "otherNumAtRisk": 135
+      },
+      {
+        "id": "EG006",
+        "seriousNumAtRisk": 126,
+        "otherNumAtRisk": 126
+      },
+      {
+        "id": "EG007",
+        "seriousNumAtRisk": 133,
+        "otherNumAtRisk": 133
+      }
+    ],
+    "withdrawals_total": 52,
+    "withdrawal_reasons": {
+      "Adverse Event": 4,
+      "Lack of Efficacy": 2,
+      "Protocol Violation": 6,
+      "Protocol-defined Stopping Criteria": 22,
+      "Lost to Follow-up": 3,
+      "Physician Decision": 1,
+      "Withdrawal by Subject": 14
+    }
+  },
+  {
+    "nct": "NCT06590740",
+    "title": "Establish FeNO Cut-off Value for Predicting Budesonide-formoterol Response in Chronic Cough Suggestive of CVA Patients.",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 1000,
+    "n_arms": 1,
+    "interventions": [
+      "Budesonide-Formoterol treatment"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04609878",
+    "title": "Study to Assess PT010 in Adult and Adolescent Participants With Inadequately Controlled Asthma (KALOS)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 2274,
+    "n_arms": 4,
+    "interventions": [
+      "BGF MDI 320/28.8/9.6 \u03bcg",
+      "BGF MDI 320/14.4/9.6 \u03bcg",
+      "BFF MDI 320/9.6 \u03bcg",
+      "BFF pMDI 320/9 \u03bcg"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 16,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 134,
+    "ae_other_num_affected": 465,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 342,
+        "otherNumAtRisk": 342
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 594,
+        "otherNumAtRisk": 594
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 606,
+        "otherNumAtRisk": 606
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 602,
+        "otherNumAtRisk": 602
+      }
+    ],
+    "withdrawals_total": 176,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 99,
+      "Physician Decision": 18,
+      "Lost to Follow-up": 15,
+      "Other/not specified": 12,
+      "Adverse Event": 11,
+      "Lack of Efficacy": 6,
+      "Death": 5,
+      "Withdrawal by parent/guardian": 4,
+      "Failure to meet randomization criteria": 3,
+      "Non-compliance with study drug": 2,
+      "Development of study-specific withdrawal criteria": 1
+    }
+  },
+  {
+    "nct": "NCT02502734",
+    "title": "Effect of Inhaled Fluticasone Furoate on Short-term Growth in Paediatric Subjects With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 60,
+    "n_arms": 2,
+    "interventions": [
+      "Fluticasone furoate",
+      "Placebo",
+      "Salbutamol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 2,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 1,
+    "ae_other_num_affected": 32,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 60,
+        "otherNumAtRisk": 60
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 58,
+        "otherNumAtRisk": 58
+      }
+    ],
+    "withdrawals_total": 2,
+    "withdrawal_reasons": {
+      "Adverse Event": 2
+    }
+  },
+  {
+    "nct": "NCT01842607",
+    "title": "A Study to Determine Long-term Safety of Mepolizumab in Asthmatic Subjects",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 651,
+    "n_arms": 1,
+    "interventions": [
+      "Mepolizumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 16,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 130,
+    "ae_other_num_affected": 978,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 651,
+        "otherNumAtRisk": 651
+      }
+    ],
+    "withdrawals_total": 66,
+    "withdrawal_reasons": {
+      "Adverse Event": 11,
+      "Lack of Efficacy": 19,
+      "Protocol Violation": 8,
+      "Protocol defined stopping criteria": 2,
+      "Lost to Follow-up": 3,
+      "Physician Decision": 9,
+      "Withdrawal by Subject": 14
+    }
+  },
+  {
+    "nct": "NCT00667407",
+    "title": "Efficacy and Safety of Levalbuterol Versus Racemic Albuterol in Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 627,
+    "n_arms": 2,
+    "interventions": [
+      "Levalbuterol 1.25 mg",
+      "Racemic Albuterol Sulfate"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01147744",
+    "title": "Dose Ranging Study Evaluating the Efficacy and Safety of GSK2190915 Administered Once Daily",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 700,
+    "n_arms": 7,
+    "interventions": [
+      "Fluticasone Propionate 100mcg via ACCUHALER/DISKUS",
+      "GSK2190915 100mg",
+      "GSK2190915 10mg",
+      "GSK2190915 300mg",
+      "GSK2190915 30mg",
+      "Montelukast 10mg",
+      "Placebo GSK2190915 one tablet",
+      "Placebo montelukast",
+      "Placebo fluticasone propionate via ACCUHALER/DISKUS",
+      "Placebo GSK2190915 two tablets"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 12,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 3,
+    "ae_other_num_affected": 76,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 100,
+        "otherNumAtRisk": 100
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 99,
+        "otherNumAtRisk": 99
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 100,
+        "otherNumAtRisk": 100
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 100,
+        "otherNumAtRisk": 100
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 101,
+        "otherNumAtRisk": 101
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 103,
+        "otherNumAtRisk": 103
+      },
+      {
+        "id": "EG006",
+        "seriousNumAtRisk": 97,
+        "otherNumAtRisk": 97
+      }
+    ],
+    "withdrawals_total": 152,
+    "withdrawal_reasons": {
+      "Protocol Violation": 7,
+      "Physician Decision": 3,
+      "Lack of Efficacy": 70,
+      "Adverse Event": 11,
+      "Withdrawal by Subject": 25,
+      "Lost to Follow-up": 1,
+      "Sponsor decision to amend protocol": 33,
+      "Met Protocol-defined Stopping Criteria": 2
+    }
+  },
+  {
+    "nct": "NCT00169962",
+    "title": "Study of Pulmozyme to Treat Severe Asthma Episodes",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 51,
+    "n_arms": 0,
+    "interventions": [
+      "rhDNAse (pulmozyme)"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03164473",
+    "title": "Maintenance of Remission With Rituximab Versus Azathioprine for Newly-diagnosed or Relapsing Eosinophilic Granulomatosis With Polyangiitis.",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 98,
+    "n_arms": 2,
+    "interventions": [
+      "Rituximab",
+      "Azathioprine",
+      "Placebo-rituximab",
+      "Placebo-azathioprine"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00264849",
+    "title": "Omalizumab in Adult and Adolescent Patients With Severe Persistent Allergic Asthma",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 406,
+    "n_arms": 2,
+    "interventions": [
+      "Omalizumab",
+      "Optimized asthma therapy"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 72,
+    "ae_other_num_affected": 375,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 274,
+        "otherNumAtRisk": 274
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 128,
+        "otherNumAtRisk": 128
+      }
+    ],
+    "withdrawals_total": 47,
+    "withdrawal_reasons": {
+      "Adverse Event": 9,
+      "Withdrawal by Subject": 18,
+      "Protocol Violation": 8,
+      "Lack of Efficacy": 7,
+      "Lost to Follow-up": 2,
+      "Death": 1,
+      "Administrative Problems": 2
+    }
+  },
+  {
+    "nct": "NCT01086410",
+    "title": "Safety Study of the Effects of Inhaled Fluticasone Furoate/GW642444 on the Hypothalamic-Pituitary-Adrenal (HPA) Axis",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 185,
+    "n_arms": 4,
+    "interventions": [
+      "Placebo Inhalation Powder",
+      "Fluticasone Furoate/GW642444 Inhalation Powder",
+      "Fluticasone Furoate/GW642444 Inhalation Powder",
+      "Placebo Oral Capsule",
+      "Prednisolone Oral Capsule"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 22,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 62,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 58,
+        "otherNumAtRisk": 58
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 56,
+        "otherNumAtRisk": 56
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 56,
+        "otherNumAtRisk": 56
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 15,
+        "otherNumAtRisk": 15
+      }
+    ],
+    "withdrawals_total": 8,
+    "withdrawal_reasons": {
+      "Adverse Event": 3,
+      "Lack of Efficacy": 2,
+      "Protocol Violation": 2,
+      "Lost to Follow-up": 1
+    }
+  },
+  {
+    "nct": "NCT02040766",
+    "title": "A Safety and Efficacy Study of Beclomethasone Dipropionate Delivered Via Breath-Actuated Inhaler (BAI) or Metered-Dose Inhaler (MDI) in Participants Ages 4-11 Years Old With Persistent Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 628,
+    "n_arms": 5,
+    "interventions": [
+      "Beclomethasone dipropionate BAI",
+      "Placebo BAI",
+      "albuterol/salbutamol 90 mcg",
+      "Beclomethasone dipropionate MDI",
+      "Placebo MDI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 56,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 628,
+        "otherNumAtRisk": 628
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 127,
+        "otherNumAtRisk": 127
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 126,
+        "otherNumAtRisk": 126
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 125,
+        "otherNumAtRisk": 125
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 125,
+        "otherNumAtRisk": 125
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 125,
+        "otherNumAtRisk": 125
+      }
+    ],
+    "withdrawals_total": 66,
+    "withdrawal_reasons": {
+      "Adverse Event": 5,
+      "Withdrawal by Subject": 14,
+      "Non-compliance": 1,
+      "Protocol Violation": 8,
+      "Lost to Follow-up": 13,
+      "Not reported": 1,
+      "Lack of Efficacy": 24
+    }
+  },
+  {
+    "nct": "NCT03556683",
+    "title": "Phase I Assessment of Hypertonic Saline in Moderate to Severe Asthmatics",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 24,
+    "n_arms": 3,
+    "interventions": [
+      "3% Hypertonic Saline",
+      "7% Hypertonic Saline",
+      "Salbutamol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 3,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 3,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 10,
+        "otherNumAtRisk": 10
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 8,
+        "otherNumAtRisk": 8
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 6,
+        "otherNumAtRisk": 6
+      }
+    ],
+    "withdrawals_total": 2,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02181335",
+    "title": "Efficacy and Safety Study Comparing Respimat \u00ae Budesonide With Turbohaler \u00ae Budesonide in Symptomatic Adult Moderate to Severe Asthmatics Requiring Inhaled Corticosteroids and Bronchodilator Therapy",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 684,
+    "n_arms": 3,
+    "interventions": [
+      "Respimat\u00ae Budesonide low dose",
+      "Respimat\u00ae Budesonide high dose",
+      "Turbohaler\u00ae Budesonide",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00766090",
+    "title": "Safety and Efficacy of GW685698X an Inhaled Corticosteroid Once Daily and Twice Daily for the Treatment of Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 190,
+    "n_arms": 1,
+    "interventions": [
+      "GW685698X"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 7,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 16,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 187,
+        "otherNumAtRisk": 187
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 140,
+        "otherNumAtRisk": 140
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 142,
+        "otherNumAtRisk": 142
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 42,
+        "otherNumAtRisk": 42
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 43,
+        "otherNumAtRisk": 43
+      }
+    ],
+    "withdrawals_total": 15,
+    "withdrawal_reasons": {
+      "Lost to Follow-up": 4,
+      "Lack of Efficacy": 6,
+      "Withdrawal by Subject": 2,
+      "Protocol Violation": 2,
+      "Physician Decision": 1
+    }
+  },
+  {
+    "nct": "NCT00642187",
+    "title": "New Version Pulmicort Turbuhaler USA Adults",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 525,
+    "n_arms": 2,
+    "interventions": [
+      "budesonide",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00768079",
+    "title": "A Phase 2 Study to Evaluate the Safety and Efficacy of Intravenously Administered Benralizumab (MEDI-563).",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 110,
+    "n_arms": 3,
+    "interventions": [
+      "Placebo",
+      "Benralizumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 19,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 33,
+    "ae_other_num_affected": 287,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 38,
+        "otherNumAtRisk": 38
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 36,
+        "otherNumAtRisk": 36
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 36,
+        "otherNumAtRisk": 36
+      }
+    ],
+    "withdrawals_total": 7,
+    "withdrawal_reasons": {
+      "Lost to Follow-up": 6,
+      "Participant incarcerated": 1
+    }
+  },
+  {
+    "nct": "NCT03550456",
+    "title": "Diagnostics and Quality of Life With EIA and EILO",
+    "phase": [],
+    "enrollment": 40,
+    "n_arms": 1,
+    "interventions": [
+      "ECC",
+      "ECC with CLE",
+      "Speech therapy"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05202262",
+    "title": "A 24-Week Efficacy and Safety Study to Assess Budesonide and Formoterol Fumarate Metered Dose Inhaler in Adult and Adolescent Participants With Inadequately Controlled Asthma (VATHOS)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 645,
+    "n_arms": 4,
+    "interventions": [
+      "BFF MDI 320/9.6 \u03bcg",
+      "BFF MDI 160/9.6 \u03bcg",
+      "BD MDI 320 \u03bcg",
+      "Open-label Symbicort TBH 320/9 \u03bcg"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 15,
+    "ae_other_num_affected": 179,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 88,
+        "otherNumAtRisk": 88
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 163,
+        "otherNumAtRisk": 163
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 168,
+        "otherNumAtRisk": 168
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 162,
+        "otherNumAtRisk": 162
+      }
+    ],
+    "withdrawals_total": 44,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Lost to Follow-up": 4,
+      "Physician Decision": 6,
+      "Pregnancy": 1,
+      "Development of withdrawal Criteria": 2,
+      "Withdrawal by Subject": 14,
+      "Various Reasons": 14,
+      "Failure to meet randomization criteria": 2
+    }
+  },
+  {
+    "nct": "NCT03706079",
+    "title": "Extension Study to Evaluate the Safety and Tolerability of Tezepelumab in Adults and Adolescents With Severe, Uncontrolled Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 951,
+    "n_arms": 2,
+    "interventions": [
+      "Tezepelumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 3,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 399,
+    "ae_other_num_affected": 2279,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 528,
+        "otherNumAtRisk": 528
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 531,
+        "otherNumAtRisk": 531
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 206,
+        "otherNumAtRisk": 206
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 74,
+        "otherNumAtRisk": 74
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 76,
+        "otherNumAtRisk": 76
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 32,
+        "otherNumAtRisk": 32
+      }
+    ],
+    "withdrawals_total": 84,
+    "withdrawal_reasons": {
+      "Death": 16,
+      "Lost to Follow-up": 13,
+      "Withdrawal by Subject": 43,
+      "Did not receive treatment / Non-compliance with protocol / did not complete safety follow-up visits": 7,
+      "Due to COVID-19 pandemic": 1,
+      "Did not complete safety follow-up visits": 3,
+      "Pregnancy": 1
+    }
+  },
+  {
+    "nct": "NCT00064389",
+    "title": "Long Term Safety Study of Levalbuterol and Racemic Albuterol in Subjects Twelve Years of Age and Older With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 746,
+    "n_arms": 2,
+    "interventions": [
+      "levalbuterol tartrate HFA MDI",
+      "racemic albuterol"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00076076",
+    "title": "The FLASH Study: A Study of Roflumilast Versus Placebo in Patients With Asthma (BY217/M2-023)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 822,
+    "n_arms": 0,
+    "interventions": [
+      "Roflumilast"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00639691",
+    "title": "A Compassionate Access Protocol to Assess the Safety of XolairTM (Omalizumab) in Patients (\u2265 6 Years Old) With Severe Allergic Asthma Who Remain Symptomatic Despite Optimal Therapy",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 48,
+    "n_arms": 1,
+    "interventions": [
+      "omalizumab"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03769090",
+    "title": "A Study to Assess the Efficacy and Safety of Budesonide/Albuterol Metered-dose Inhaler (BDA MDI/PT027) in Adults and Children 4 Years of Age or Older With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 3132,
+    "n_arms": 3,
+    "interventions": [
+      "Budesonide/albuterol sulfate metered-dose inhaler 160/180 \u03bcg",
+      "Budesonide/albuterol sulfate metered-dose inhaler 80/180 \u03bcg",
+      "Albuterol sulfate metered-dose inhaler 180 \u03bcg"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 5,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 184,
+    "ae_other_num_affected": 872,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 1015,
+        "otherNumAtRisk": 1015
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 1055,
+        "otherNumAtRisk": 1055
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 1057,
+        "otherNumAtRisk": 1057
+      }
+    ],
+    "withdrawals_total": 368,
+    "withdrawal_reasons": {
+      "Randomized and did not receive randomized study treatment": 5,
+      "Withdrawal by Subject": 188,
+      "Death": 8,
+      "Adverse Event": 22,
+      "A single severe exacerbation event lasting >20 days": 3,
+      ">= 3 severe exacerbation events within a 3 month period": 9,
+      ">= 5 total severe exacerbation events": 2,
+      "Protocol Violation": 19,
+      "Pregnancy": 4,
+      "Lost to Follow-up": 65,
+      "Condition under investigation worsened": 3,
+      "Lack of Efficacy": 5,
+      "Other reasons": 35
+    }
+  },
+  {
+    "nct": "NCT00667797",
+    "title": "Costs & Outcomes of Hospitalization/Treatment With Levalbuterol & Albuterol in Asthma or Chronic Obstructive Pulmonary Disease (COPD) Subjects",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 486,
+    "n_arms": 2,
+    "interventions": [
+      "levalbuterol HCl",
+      "albuterol Sulfate"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05098600",
+    "title": "The Epidemiology, Management and Comorbidities in Alopecia Areata in Czech Republic",
+    "phase": [],
+    "enrollment": 123,
+    "n_arms": 1,
+    "interventions": [
+      "Exposure of interest"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00675285",
+    "title": "Effects of Montelukast in Children With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 26,
+    "n_arms": 2,
+    "interventions": [
+      "montelukast sodium",
+      "placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01609478",
+    "title": "Efficacy, Safety and Pharmacokinetics of Indacaterol Acetate in Patients With Persistent Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 335,
+    "n_arms": 3,
+    "interventions": [
+      "indacaterol",
+      "placebo",
+      "mometasone furoate"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 20,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 6,
+    "ae_other_num_affected": 80,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 110,
+        "otherNumAtRisk": 110
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 108,
+        "otherNumAtRisk": 108
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 115,
+        "otherNumAtRisk": 115
+      }
+    ],
+    "withdrawals_total": 18,
+    "withdrawal_reasons": {
+      "Adverse Event": 9,
+      "Protocol Deviation": 2,
+      "Non-Compliance with study treatment": 1,
+      "Physician Decision": 2,
+      "Withdrawal by Subject": 4
+    }
+  },
+  {
+    "nct": "NCT02149199",
+    "title": "A Clinical Study to Evaluate Symbicort Turbuhaler Used 'as Needed' in Adults and Adolescents With Asthma.",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 3850,
+    "n_arms": 3,
+    "interventions": [
+      "budesonide/formoterol 'as needed' + budesonide placebo bid",
+      "terbutaline 'as needed' + placebo budesonide bid",
+      "budesonide bid + terbutaline 'as needed'"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 20,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 142,
+    "ae_other_num_affected": 1033,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 1277,
+        "otherNumAtRisk": 1277
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 1277,
+        "otherNumAtRisk": 1277
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 1282,
+        "otherNumAtRisk": 1282
+      }
+    ],
+    "withdrawals_total": 473,
+    "withdrawal_reasons": {
+      "Study specific withdrawal criteria": 31,
+      "Other": 65,
+      "Eligibility criteria not fulfilled": 31,
+      "Withdrawal by Subject": 245,
+      "Protocol Violation": 44,
+      "Lost to Follow-up": 26,
+      "Death": 1,
+      "Adverse Event": 30
+    }
+  },
+  {
+    "nct": "NCT01436110",
+    "title": "Clinical Study Evaluating Safety and Efficacy of Fluticasone Furoate and Fluticasone Propionate in People With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 351,
+    "n_arms": 3,
+    "interventions": [
+      "Fluticasone furoate 50mcg",
+      "Fluticasone propionate 100mcg",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 4,
+    "ae_other_num_affected": 134,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 115,
+        "otherNumAtRisk": 115
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 117,
+        "otherNumAtRisk": 117
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 115,
+        "otherNumAtRisk": 115
+      }
+    ],
+    "withdrawals_total": 88,
+    "withdrawal_reasons": {
+      "Lack of Efficacy": 46,
+      "Withdrawal by Subject": 18,
+      "Adverse Event": 5,
+      "Physician Decision": 5,
+      "Lost to Follow-up": 5,
+      "Protocol Violation": 5,
+      "Did Not Receive Trial Medication": 4
+    }
+  },
+  {
+    "nct": "NCT00862368",
+    "title": "Sustaining Smoking Cessation in Smokers With Kids With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 573,
+    "n_arms": 3,
+    "interventions": [
+      "PAM",
+      "PAM-Enhanced/Asthma Counseling Phone Calls",
+      "Follow-Up Phone Calls - Child Wellness Topic"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00603382",
+    "title": "A Randomized Study To Evaluate The Efficacy And Safety Of An Investigational Drug In Adolescent And Adult Subjects With Asthma Uncontrolled on Non-steroidal Therapy.",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 599,
+    "n_arms": 2,
+    "interventions": [
+      "GW685698X",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 23,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 6,
+    "ae_other_num_affected": 77,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 94,
+        "otherNumAtRisk": 94
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 97,
+        "otherNumAtRisk": 97
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 100,
+        "otherNumAtRisk": 100
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 110,
+        "otherNumAtRisk": 110
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 95,
+        "otherNumAtRisk": 95
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 102,
+        "otherNumAtRisk": 102
+      }
+    ],
+    "withdrawals_total": 80,
+    "withdrawal_reasons": {
+      "Adverse Event": 7,
+      "Lack of Efficacy": 49,
+      "Protocol Violation": 5,
+      "Lost to Follow-up": 4,
+      "Physician Decision": 6,
+      "Withdrawal by Subject": 9
+    }
+  },
+  {
+    "nct": "NCT02682862",
+    "title": "Ultra-long Acting Bronchodilator Therapy in Smoking Asthmatics",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 17,
+    "n_arms": 2,
+    "interventions": [
+      "olodaterol hydrochloride 2.5mcg, tiotropium bromide 2.5mcg",
+      "olodaterol 2.5 mcg"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01576718",
+    "title": "A Study of the Effectiveness and Safety of Different Doses of Fluticasone Propionate Taken From a Dry Powder Inhaler (Puffer) in Adolescents and Adults Who Have Asthma That is Not Controlled by High Dose Inhaled Corticosteroid Asthma Medications",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 889,
+    "n_arms": 6,
+    "interventions": [
+      "Fp MDPI",
+      "Placebo MDPI",
+      "Flovent Diskus",
+      "albuterol/salbutamol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 4,
+    "ae_other_num_affected": 31,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 106,
+        "otherNumAtRisk": 106
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 107,
+        "otherNumAtRisk": 107
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 106,
+        "otherNumAtRisk": 106
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 107,
+        "otherNumAtRisk": 107
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 107,
+        "otherNumAtRisk": 107
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 106,
+        "otherNumAtRisk": 106
+      }
+    ],
+    "withdrawals_total": 430,
+    "withdrawal_reasons": {
+      "Inclusion/exclusion criteria": 49,
+      "Withdrawal by Subject": 27,
+      "Randomization criteria not met": 166,
+      "Lost to Follow-up": 3,
+      "Other": 15,
+      "Adverse Event": 5,
+      "Physician Decision": 4,
+      "Protocol Violation": 45,
+      "Sponsor request": 2,
+      "Met stopping criteria": 112,
+      "Noncompliance to study medication": 2
+    }
+  },
+  {
+    "nct": "NCT01863290",
+    "title": "Linking Former Inmates to Primary Care",
+    "phase": [],
+    "enrollment": 816,
+    "n_arms": 1,
+    "interventions": [
+      "Primary care redesign"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00099840",
+    "title": "Procalcitonin Guided Antibiotic Use in Acute Respiratory Tract Infections (PARTI)-Study",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 400,
+    "n_arms": 0,
+    "interventions": [
+      "Procalcitonin guided antibiotic therapy"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04648839",
+    "title": "Observational Retrospective Study on Clinical Outcomes of Patients Receiving Benralizumab in Spain.",
+    "phase": [],
+    "enrollment": 221,
+    "n_arms": 1,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00114413",
+    "title": "Evaluation of an Asthma Treatment Strategy Based on Exhaled Nitric Oxide Measurements in Adolescents",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 547,
+    "n_arms": 2,
+    "interventions": [
+      "Inhaled corticosteroids",
+      "eNO measurement"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02405962",
+    "title": "Training Parents by Acceptance and Commitment Therapy for Managing Childhood Asthma Care",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 168,
+    "n_arms": 2,
+    "interventions": [
+      "ACT",
+      "Control"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 15,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 84,
+        "otherNumAtRisk": 84
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 84,
+        "otherNumAtRisk": 84
+      }
+    ],
+    "withdrawals_total": 6,
+    "withdrawal_reasons": {
+      "Lost to Follow-up": 5,
+      "A participant has moved to another place": 1
+    }
+  },
+  {
+    "nct": "NCT02898662",
+    "title": "AZD1419 Ph2a Study",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 81,
+    "n_arms": 2,
+    "interventions": [
+      "AZD1419",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 4,
+    "ae_other_num_affected": 54,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 40,
+        "otherNumAtRisk": 40
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 41,
+        "otherNumAtRisk": 41
+      }
+    ],
+    "withdrawals_total": 57,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Loss of asthma control": 47,
+      "Withdrawal by Subject": 5,
+      "Technical issue": 1,
+      "Randomized in error": 1,
+      "Subject decision": 1,
+      "Other": 1
+    }
+  },
+  {
+    "nct": "NCT01370317",
+    "title": "Study to Evaluate the Safety, Tolerability, and Pharmacokinetics of MK-1029 in Participants With Mild to Moderate Asthma",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 27,
+    "n_arms": 2,
+    "interventions": [
+      "MK-1029",
+      "Placebo for MK-1029"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 5,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 27,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 18,
+        "otherNumAtRisk": 18
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 9,
+        "otherNumAtRisk": 9
+      }
+    ],
+    "withdrawals_total": 2,
+    "withdrawal_reasons": {
+      "Participant withdrew consent": 1,
+      "Protocol deviation": 1
+    }
+  },
+  {
+    "nct": "NCT01698320",
+    "title": "Safety Study of Albuterol Spiromax\u00ae in Subjects With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 364,
+    "n_arms": 2,
+    "interventions": [
+      "Placebo MDPI",
+      "Albuterol MDPI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 6,
+    "ae_serious_num_affected": 9,
+    "ae_other_num_affected": 375,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 168,
+        "otherNumAtRisk": 168
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 170,
+        "otherNumAtRisk": 170
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 169,
+        "otherNumAtRisk": 169
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 168,
+        "otherNumAtRisk": 168
+      }
+    ],
+    "withdrawals_total": 72,
+    "withdrawal_reasons": {
+      "Inclusion/exclusion criteria": 24,
+      "Withdrawal by Subject": 23,
+      "Lost to Follow-up": 7,
+      "Other": 1,
+      "Adverse Event": 7,
+      "Protocol Violation": 2,
+      "Pregnancy": 5,
+      "Sponsor requested subject withdrawal": 3
+    }
+  },
+  {
+    "nct": "NCT03387852",
+    "title": "Evaluation of SAR440340 and as Combination Therapy With Dupilumab in Moderate-to-Severe Asthma Participants",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 296,
+    "n_arms": 4,
+    "interventions": [
+      "SAR440340",
+      "Dupilumab",
+      "Fluticasone or Fluticasone/salmeterol combination",
+      "Placebo for SAR440340",
+      "Placebo for dupilumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 3,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 13,
+    "ae_other_num_affected": 151,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 74,
+        "otherNumAtRisk": 74
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 73,
+        "otherNumAtRisk": 73
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 74,
+        "otherNumAtRisk": 74
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 74,
+        "otherNumAtRisk": 74
+      }
+    ],
+    "withdrawals_total": 97,
+    "withdrawal_reasons": {
+      "Adverse event (AE)": 5,
+      "Loss of asthma control (LOAC)": 78,
+      "Withdrawal by participant": 7,
+      "Other- Unspecified": 5,
+      "Poor compliance to protocol": 1,
+      "Randomized and not treated": 1
+    }
+  },
+  {
+    "nct": "NCT03369847",
+    "title": "Inhaled Steroids for Pediatric Asthma at Pediatric Emergency Medicine Discharge",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 43,
+    "n_arms": 2,
+    "interventions": [
+      "budesonide, beclomethasone"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03299686",
+    "title": "Study to Assess the Efficacy and Safety of CJM112 in Patients With Inadequately Controlled Severe Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 118,
+    "n_arms": 2,
+    "interventions": [
+      "CJM112",
+      "Placebo to CJM112"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 6,
+    "ae_other_num_affected": 235,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 70,
+        "otherNumAtRisk": 70
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 48,
+        "otherNumAtRisk": 48
+      }
+    ],
+    "withdrawals_total": 16,
+    "withdrawal_reasons": {
+      "Subject/Guardian Decision": 3,
+      "Physician Decision": 1,
+      "Adverse Event": 12
+    }
+  },
+  {
+    "nct": "NCT01241006",
+    "title": "Single Oral Dose of Dexamethasone Versus Five Days of Prednisone in Adult Asthma",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 376,
+    "n_arms": 2,
+    "interventions": [
+      "Dexamethasone",
+      "Prednisone"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00217854",
+    "title": "Inflammatory Processes in the Airway of Asthmatics With Persistent Bronchial Hyperreactivity",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 27,
+    "n_arms": 1,
+    "interventions": [
+      "Bronchoscopic"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01566149",
+    "title": "Study of Mometasone Furoate/Formoterol Fumarate (MF/F) Metered Dose Inhaler (MDI) in Adolescents & Adults With Persistent Asthma (P08212)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 49,
+    "n_arms": 2,
+    "interventions": [
+      "Mometasone Furoate/Formoterol Fumarate (MF/F) 100/5 mcg MDI",
+      "Mometasone Furoate/Formoterol Fumarate (MF/F) 200/5 mcg MDI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 5,
+    "n_primary_outcomes": 4,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 13,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 24,
+        "otherNumAtRisk": 24
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 25,
+        "otherNumAtRisk": 25
+      }
+    ],
+    "withdrawals_total": 5,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Non-compliance with study medication": 2,
+      "Protocol Violation": 1,
+      "Withdrawal by Subject": 1
+    }
+  },
+  {
+    "nct": "NCT01961154",
+    "title": "Stepping Down of Asthma Medication in Controlled Asthma",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 56,
+    "n_arms": 1,
+    "interventions": [
+      "Asthma medication reduction"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00259792",
+    "title": "SYMPHONIE - A Comparison of Symbicort Single Inhaler and Conventional Best Practice for the Treatment of Persistent Asthma in Adolescents and Adults",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1000,
+    "n_arms": 0,
+    "interventions": [
+      "Budesonide/formoterol Turbuhaler"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01508936",
+    "title": "Study to Evaluate the Efficacy and Safety of Reslizumab Treatment in Patients With Moderate to Severe Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 511,
+    "n_arms": 2,
+    "interventions": [
+      "Reslizumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 16,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 28,
+    "ae_other_num_affected": 194,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 97,
+        "otherNumAtRisk": 97
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 395,
+        "otherNumAtRisk": 395
+      }
+    ],
+    "withdrawals_total": 102,
+    "withdrawal_reasons": {
+      "Adverse Event": 43,
+      "Lack of Efficacy": 1,
+      "Withdrawal by Subject": 22,
+      "Protocol Violation": 5,
+      "Lost to Follow-up": 11,
+      "Other": 5,
+      "Data from 2 sites deemed invalid": 15
+    }
+  },
+  {
+    "nct": "NCT01756391",
+    "title": "Allergens in Inner-City Schools and Childhood Asthma",
+    "phase": [],
+    "enrollment": 351,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 351,
+        "otherNumAtRisk": 351
+      }
+    ],
+    "withdrawals_total": 32,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01691508",
+    "title": "Mepolizumab Steroid-Sparing Study in Subjects With Severe Refractory Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 135,
+    "n_arms": 2,
+    "interventions": [
+      "Mepolizumab",
+      "Placebo",
+      "OCS (prednisone/prednisolone)"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 5,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 18,
+    "ae_other_num_affected": 232,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 66,
+        "otherNumAtRisk": 66
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 69,
+        "otherNumAtRisk": 69
+      }
+    ],
+    "withdrawals_total": 7,
+    "withdrawal_reasons": {
+      "Adverse Event": 6,
+      "Withdrawal by Subject": 1
+    }
+  },
+  {
+    "nct": "NCT06811155",
+    "title": "Non-Interventional Study to Describe the Clinical Management in Asthmatic Patients (NICMA)",
+    "phase": [],
+    "enrollment": 288,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 288,
+        "otherNumAtRisk": 288
+      }
+    ],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00583778",
+    "title": "A Comparison of Levalbuterol Plus Ipratropium With Levalbuterol Alone in the Treatment of Acute Asthma Exacerbation",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 141,
+    "n_arms": 2,
+    "interventions": [
+      "ipratropium"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 2,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 74,
+        "otherNumAtRisk": 74
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 67,
+        "otherNumAtRisk": 67
+      }
+    ],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00252863",
+    "title": "DESOLO - SiT Peri-Launch: A Comparison of Symbicort Single Inhaler Therapy and Conventional Best Practice for the Treatment of Persistent Asthma in Adults",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1600,
+    "n_arms": 0,
+    "interventions": [
+      "Symbicort, used twice daily (b.i.d) and as needed (prn)",
+      "Budesonide Turbuhaler 200 \u00b5g",
+      "Fluticasone Discus 250 \u00b5g",
+      "Formoterol Turbuhaler 4.5 \u00b5g",
+      "Terbutaline Turbuhaler 0.5 mg",
+      "Salbutamol pressurized metered dose inhaler (pMDI) 100 \u00b5g",
+      "Salmeterol Discus 50 \u00b5g",
+      "Budesonide/Formoterol Turbuhaler 160/4.5 \u00b5g",
+      "Fluticasone/Salmeterol Discus 250/50 \u00b5g",
+      "Fluticasone/Salmeterol Discus 500/50 \u00b5g",
+      "Theophylline 200 mg",
+      "Theophylline 300 mg",
+      "Singulair 10 mg"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02501629",
+    "title": "An Efficacy and Safety Study of Reslizumab Subcutaneous in Patients With Oral Corticosteroid Dependent Asthma and Elevated Blood Eosinophils",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 177,
+    "n_arms": 2,
+    "interventions": [
+      "Reslizumab",
+      "Placebo",
+      "Non-Oral Corticosteroid (non-OCS) Asthma Medication",
+      "Oral Corticosteroid (OCS)"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 19,
+    "ae_other_num_affected": 47,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 89,
+        "otherNumAtRisk": 89
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 88,
+        "otherNumAtRisk": 88
+      }
+    ],
+    "withdrawals_total": 12,
+    "withdrawal_reasons": {
+      "Death": 1,
+      "Withdrawn from study by sponsor": 1,
+      "Early termination by sponsor": 1,
+      "Withdrawal by Subject": 8,
+      "Subject did not return to site": 1
+    }
+  },
+  {
+    "nct": "NCT00079937",
+    "title": "Efficacy and Safety of Omalizumab in Children (6 - < 12 Years) With Moderate-severe, Inadequately Controlled Allergic Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 628,
+    "n_arms": 2,
+    "interventions": [
+      "Omalizumab",
+      "Placebo",
+      "Fluticasone"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 80,
+    "ae_other_num_affected": 1772,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 421,
+        "otherNumAtRisk": 421
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 207,
+        "otherNumAtRisk": 207
+      }
+    ],
+    "withdrawals_total": 101,
+    "withdrawal_reasons": {
+      "Adverse Event": 3,
+      "Unsatisfactory therapeutic effect": 3,
+      "Subject no longer requires study drug": 3,
+      "Protocol Violation": 14,
+      "Withdrawal by Subject": 28,
+      "Lost to Follow-up": 17,
+      "Administrative problems": 33
+    }
+  },
+  {
+    "nct": "NCT05505734",
+    "title": "A Comparison of PT027 vs PT007 Used as Needed in Participants With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 2516,
+    "n_arms": 2,
+    "interventions": [
+      "BDA MDI",
+      "AS MDI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 10,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 97,
+    "ae_other_num_affected": 532,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 1209,
+        "otherNumAtRisk": 1209
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 1212,
+        "otherNumAtRisk": 1212
+      }
+    ],
+    "withdrawals_total": 719,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 115,
+      "Adverse Event": 26,
+      "Protocol Violation": 23,
+      "Lack of therapeutic response": 1,
+      "Lost to Follow-up": 484,
+      "Physician Decision": 35,
+      "Death": 3,
+      "Withdrawal by parent/guardian": 1,
+      "Pregnancy": 1,
+      "Other": 30
+    }
+  },
+  {
+    "nct": "NCT03207243",
+    "title": "Efficacy and Safety Study of GSK3772847 in Subjects With Moderately Severe Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 165,
+    "n_arms": 2,
+    "interventions": [
+      "GSK3772847",
+      "Placebo",
+      "Fluticasone propionate/salmeterol",
+      "Fluticasone propionate"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 52,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 3,
+    "ae_other_num_affected": 49,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 82,
+        "otherNumAtRisk": 82
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 83,
+        "otherNumAtRisk": 83
+      }
+    ],
+    "withdrawals_total": 103,
+    "withdrawal_reasons": {
+      "Adverse Event": 4,
+      "Loss of Asthma Control": 78,
+      "Withdrawal by Subject": 6,
+      "Physician Decision": 2,
+      "Lost to Follow-up": 1,
+      "Protocol Specified Withdrawal Criteria": 9,
+      "Protocol Violation": 3
+    }
+  },
+  {
+    "nct": "NCT02049294",
+    "title": "Study of the Steroid Sparing Effect of Xolair (Omalizumab) in Patients With Persistent Eosinophilic Bronchitis",
+    "phase": [
+      "PHASE2",
+      "PHASE3"
+    ],
+    "enrollment": 11,
+    "n_arms": 2,
+    "interventions": [
+      "Omalizumab (Xolair)",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02094937",
+    "title": "A Study to Compare the Efficacy and Safety of Fluticasone Furoate (FF) 100 mcg Once Daily With Fluticasone Propionate (FP) 250 mcg Twice Daily (BD) and FP 100 mcg BD in Well-controlled Asthmatic Japanese Subjects",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 430,
+    "n_arms": 4,
+    "interventions": [
+      "Fluticasone Furoate/Vilanterol",
+      "Fluticasone Furoate 100 mcg",
+      "Fluticasone Propionate 250 mcg",
+      "Fluticasone Propionate 100 mcg",
+      "Fluticasone Furoate Placebo",
+      "Fluticasone Propionate Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 8,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 139,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 430,
+        "otherNumAtRisk": 430
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 123,
+        "otherNumAtRisk": 123
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 124,
+        "otherNumAtRisk": 124
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 124,
+        "otherNumAtRisk": 124
+      }
+    ],
+    "withdrawals_total": 95,
+    "withdrawal_reasons": {
+      "Adverse Event": 16,
+      "Lack of Efficacy": 4,
+      "Protocol Violation": 2,
+      "Protocol defined stopping criteria": 63,
+      "Physician Decision": 1,
+      "Withdrawal by Subject": 8,
+      "Randomized incorrectly": 1
+    }
+  },
+  {
+    "nct": "NCT05440656",
+    "title": "A Real World Study to Capture Clinical and Patient Centered Outcomes in Adults With Severe Eosinophilic Asthma Treated With Benralizumab.",
+    "phase": [],
+    "enrollment": 152,
+    "n_arms": 0,
+    "interventions": [
+      "Cohort"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05274815",
+    "title": "Study to Evaluate Efficacy and Safety of Tezepelumab in Reducing Oral Corticosteroid Use in Adult Patients With Severe Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 305,
+    "n_arms": 1,
+    "interventions": [
+      "Tezepelumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 16,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 39,
+    "ae_other_num_affected": 4,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 298,
+        "otherNumAtRisk": 298
+      }
+    ],
+    "withdrawals_total": 25,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Death": 2,
+      "Lost to Follow-up": 4,
+      "Withdrawn from study due to investigator's decision": 1,
+      "Withdrawn from study due to participant's decision to withdraw": 1,
+      "Withdrawn from study due to severe non-compliance with the protocol": 1,
+      "Withdrawn from study due to subject decision": 1,
+      "Withdrawn due to participant's decision not to continue for personal and family reasons": 1,
+      "Withdrawn from study due to the participant stopped visit; agreed to a telephone contact at Week 52": 1,
+      "Withdrawn from study due to randomization into closed cohort by mistake": 1,
+      "Withdrawal by Subject": 11
+    }
+  },
+  {
+    "nct": "NCT00499915",
+    "title": "NICU Asthma Education and Secondhand Smoke Reduction Study",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 165,
+    "n_arms": 2,
+    "interventions": [
+      "Secondhand Smoke Reduction and Smoking Cessation Counseling",
+      "Asthma Education"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 2,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 83,
+        "otherNumAtRisk": 83
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 82,
+        "otherNumAtRisk": 82
+      }
+    ],
+    "withdrawals_total": 21,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04281108",
+    "title": "Efficacy and Safety APT-1011 in Adult Subjects With Eosinophilic Esophagitis (EoE) (FLUTE-2)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 143,
+    "n_arms": 2,
+    "interventions": [
+      "APT-1011",
+      "Placebo oral tablet",
+      "Esophagogastroduodenoscopy"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00207740",
+    "title": "A Study of Safety and Efficacy of CNTO 148 in Patients With Severe Persistent Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 309,
+    "n_arms": 2,
+    "interventions": [
+      "CNTO148",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 7,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 142,
+    "ae_other_num_affected": 803,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 78,
+        "otherNumAtRisk": 78
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 75,
+        "otherNumAtRisk": 75
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 78,
+        "otherNumAtRisk": 78
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 78,
+        "otherNumAtRisk": 78
+      }
+    ],
+    "withdrawals_total": 153,
+    "withdrawal_reasons": {
+      "Adverse Event": 43,
+      "Unsatisfactory therapeutic effect": 7,
+      "Lost to Follow-up": 4,
+      "Death": 1,
+      "Sponsor Directive": 74,
+      "Other": 24
+    }
+  },
+  {
+    "nct": "NCT00404859",
+    "title": "FLAME: Airway Inflammation Monitoring in Asthma and Cystic Fibrosis",
+    "phase": [],
+    "enrollment": 70,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05329194",
+    "title": "Effectiveness and Safety Study of Tezepelumab in Adults & Adolescent Participants With Severe Asthma in the United States",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 286,
+    "n_arms": 1,
+    "interventions": [
+      "Tezepelumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 37,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 45,
+    "ae_other_num_affected": 13,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 286,
+        "otherNumAtRisk": 286
+      }
+    ],
+    "withdrawals_total": 31,
+    "withdrawal_reasons": {
+      "Death": 2,
+      "Development of study-specific withdrawal criteria": 2,
+      "Lost to Follow-up": 6,
+      "Other": 5,
+      "Withdrawal by Subject": 16
+    }
+  },
+  {
+    "nct": "NCT00603746",
+    "title": "A Randomized Study To Evaluate The Efficacy And Safety Of An Investigational Drug In Adolescent And Adult Subjects With Asthma Uncontrolled on Moderate-Dose ICS Therapy.",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 627,
+    "n_arms": 1,
+    "interventions": [
+      "GW685698X"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 23,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 7,
+    "ae_other_num_affected": 147,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 103,
+        "otherNumAtRisk": 103
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 99,
+        "otherNumAtRisk": 99
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 101,
+        "otherNumAtRisk": 101
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 107,
+        "otherNumAtRisk": 107
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 102,
+        "otherNumAtRisk": 102
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 110,
+        "otherNumAtRisk": 110
+      }
+    ],
+    "withdrawals_total": 107,
+    "withdrawal_reasons": {
+      "Adverse Event": 10,
+      "Lack of Efficacy": 82,
+      "Protocol Violation": 5,
+      "Lost to Follow-up": 2,
+      "Physician Decision": 2,
+      "Withdrawal by Subject": 6
+    }
+  },
+  {
+    "nct": "NCT05070663",
+    "title": "A Study in Male and Female Adolescent Participants With Severe Uncontrolled Asthma Starting Treatment With Dupilumab Injection (Dupixent\u00ae)",
+    "phase": [],
+    "enrollment": 105,
+    "n_arms": 1,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04302610",
+    "title": "Do Heat and Moisture Exchange Mask Reduce EIB and Cough Severity in Asthma",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 26,
+    "n_arms": 3,
+    "interventions": [
+      "Heat and Moisture Exchange mask (ColdAvenger\u00ae expedition balaclava, USA,",
+      "Sham treatment"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT06476041",
+    "title": "Adherence to Asthma Medication During Pregnancy",
+    "phase": [],
+    "enrollment": 327,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03847896",
+    "title": "A Study to Assess the Efficacy and Safety of Budesonide/Albuterol Metered Dose Inhaler (BDA MDI/PT027) Used 4 Times Daily in Adults and Children 4 Years of Age or Older With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1001,
+    "n_arms": 5,
+    "interventions": [
+      "Budesonide/albuterol sulfate metered dose inhaler / BDA MDI 160/180 \u03bcg (high dose)",
+      "Budesonide/albuterol sulfate metered dose inhaler / BDA MDI 80/180 \u03bcg (low dose)",
+      "Budesonide metered dose inhaler / BD MDI 160 \u00b5g",
+      "Albuterol sulfate metered dose inhaler / AS MDI 180 \u03bcg",
+      "Placebo metered-dose inhaler / Placebo MDI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 15,
+    "ae_other_num_affected": 194,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 197,
+        "otherNumAtRisk": 197
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 204,
+        "otherNumAtRisk": 204
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 199,
+        "otherNumAtRisk": 199
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 201,
+        "otherNumAtRisk": 201
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 199,
+        "otherNumAtRisk": 199
+      }
+    ],
+    "withdrawals_total": 73,
+    "withdrawal_reasons": {
+      "Randomized in error and did not receive randomized study treatment": 1,
+      "Withdrawal by Subject": 34,
+      "Withdrawal by parent/guardian": 1,
+      "Adverse Event": 12,
+      "A severe exacerbation event": 3,
+      "Protocol Violation": 5,
+      "Lost to Follow-up": 1,
+      "Condition under investigation worsened": 2,
+      "Lack of Efficacy": 4,
+      "Other reasons": 10
+    }
+  },
+  {
+    "nct": "NCT04173442",
+    "title": "Post-authorization Safety Study in North America to Monitor Pregnancy and Infant Outcomes Following Administration of Dupilumab During Planned or Unexpected Pregnancy",
+    "phase": [],
+    "enrollment": 581,
+    "n_arms": 3,
+    "interventions": [
+      "dupilumab"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01099722",
+    "title": "Assessment of the Efficacy and Safety of FlutiForm\u00ae pMDI 125/5 \u00b5g (2 Puffs Bid) Versus Symbicort\u00ae Turbohaler\u00ae 200/6 \u00b5g (2 Puffs Bid) in Adolescent and Adult Subjects With Moderate to Severe Persistent, Reversible Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 261,
+    "n_arms": 2,
+    "interventions": [
+      "Flutiform",
+      "Symbicort Turbohaler"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02495168",
+    "title": "Randomized, Placebo-Controlled, Multidose, Study Comparing Generic Budesonide/Formoterol Fumarate Dihydrate to Symbicort\u00ae in Asthmatic Participants",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1714,
+    "n_arms": 3,
+    "interventions": [
+      "Generic Budesonide/Formoterol Fumarate Dihydrate",
+      "Symbicort\u00ae (Budesonide/Formoterol Fumarate Dihydrate)",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 4,
+    "n_primary_outcomes": 4,
+    "ae_serious_num_affected": 6,
+    "ae_other_num_affected": 220,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 501,
+        "otherNumAtRisk": 501
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 514,
+        "otherNumAtRisk": 514
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 126,
+        "otherNumAtRisk": 126
+      }
+    ],
+    "withdrawals_total": 109,
+    "withdrawal_reasons": {
+      "Other than Specified": 45,
+      "Did not Complete Final Visit On Time": 9,
+      "Physician Decision": 2,
+      "Lost to Follow-up": 17,
+      "Withdrawal by Subject": 7,
+      "Protocol Violation": 11,
+      "Adverse Event": 15,
+      "Lack of Efficacy": 3
+    }
+  },
+  {
+    "nct": "NCT00509028",
+    "title": "Safety and Efficacy Study of Budesonide (Pulmicort\u00ae) Turbuhaler\u00ae in Japanese Children With Bronchial Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 241,
+    "n_arms": 2,
+    "interventions": [
+      "Budesonide",
+      "Conventional Asthma Therapy"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 26,
+    "ae_other_num_affected": 744,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 121,
+        "otherNumAtRisk": 121
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 120,
+        "otherNumAtRisk": 120
+      }
+    ],
+    "withdrawals_total": 19,
+    "withdrawal_reasons": {
+      "Adverse Event": 2,
+      "Withdrawal by Subject": 7,
+      "Lost to Follow-up": 1,
+      "Protocol Violation": 6,
+      "Non-compliance": 3
+    }
+  },
+  {
+    "nct": "NCT05642728",
+    "title": "Impact of a PERsonalized CAse MAnagement Program for the Follow-up of Moderate and Severe aSTHma Patients on Exacerbations, Health Resource Use and Asthma Control: PERCASTHMA STUDY",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 120,
+    "n_arms": 2,
+    "interventions": [
+      "Case management follow-up program"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05610514",
+    "title": "Pulmonary and Cardiac Effects of E-Cigarette Use in Pulmonary Patients Who Smoke Cigarettes",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 21,
+    "n_arms": 2,
+    "interventions": [
+      "E-Cigarette",
+      "Financial Incentives"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03184480",
+    "title": "Arnuity\u00ae Ellipta\u00ae Drug Use Investigation",
+    "phase": [],
+    "enrollment": 336,
+    "n_arms": 1,
+    "interventions": [
+      "Arnuity Ellipta"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04808518",
+    "title": "A Study to Compare Severe Asthma Patients Who Start Biologics and Who do Not Start (PROSPECT)",
+    "phase": [],
+    "enrollment": 74,
+    "n_arms": 2,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00395408",
+    "title": "Linear Growth Study (0476-097)(COMPLETED)",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 360,
+    "n_arms": 0,
+    "interventions": [
+      "MK0476, montelukast sodium / Duration of Treatment : 56 Weeks",
+      "Comparator : beclomethasone dipropionate / Duration of Treatment : 56 Weeks"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02097537",
+    "title": "Study of Methacholine Chloride Inhalation Challenge in Children With Bronchial Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 10,
+    "n_arms": 1,
+    "interventions": [
+      "Methacholine Chloride (SK-1211)"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 3,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 7,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 10,
+        "otherNumAtRisk": 10
+      }
+    ],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02658422",
+    "title": "Bioequivalence of GW483100 10 Milligram (mg) Tablets in Healthy Subjects Under Fasting Conditions",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 32,
+    "n_arms": 2,
+    "interventions": [
+      "Test Montelukast",
+      "Reference Montelukast"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00092144",
+    "title": "Study of an Approved Drug in Patients With Asthma (0476-289)(COMPLETED)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 500,
+    "n_arms": 0,
+    "interventions": [
+      "MK0476, montelukast sodium / Duration of Treatment: 4 weeks",
+      "Comparator: placebo / Duration of Treatment: 4 weeks"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04272463",
+    "title": "ChAracterisation of ItaliaN Severe Uncontrolled Asthmatic patieNts Key Features When Receiving Benralizumab",
+    "phase": [],
+    "enrollment": 217,
+    "n_arms": 0,
+    "interventions": [
+      "No intervention"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03698630",
+    "title": "Single Dose Oral Dexamethasone Versus Multi-dose Prednisolone in the Treatment of Acute Exacerbations of Asthma in Children",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 250,
+    "n_arms": 2,
+    "interventions": [
+      "Prednisolone Sodium Phosphate",
+      "Dexamethasone"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02563067",
+    "title": "Study of Efficacy and Safety of QAW039 in Patients With Severe Asthma Inadequately Controlled With Standard of Care Asthma Treatment.",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 877,
+    "n_arms": 3,
+    "interventions": [
+      "QAW039",
+      "QAW039",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 81,
+    "ae_other_num_affected": 937,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 296,
+        "otherNumAtRisk": 296
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 293,
+        "otherNumAtRisk": 293
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 287,
+        "otherNumAtRisk": 287
+      }
+    ],
+    "withdrawals_total": 65,
+    "withdrawal_reasons": {
+      "Subject/guardian decision": 50,
+      "Physician Decision": 4,
+      "Lost to Follow-up": 3,
+      "Technical problems": 1,
+      "Lack of Efficacy": 1,
+      "Death": 2,
+      "Adverse Event": 3,
+      "Death post Treatment/safety period": 1
+    }
+  },
+  {
+    "nct": "NCT05755906",
+    "title": "A 12-week Study to Assess the Efficacy and Safety of Budesonide and Formoterol Fumarate Metered Dose Inhaler Relative to Budesonide Metered Dose Inhaler in Participants With Inadequately Controlled Asthma (LITHOS)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 374,
+    "n_arms": 2,
+    "interventions": [
+      "BFF MDI 160/9.6 \u03bcg BID (320/19.2\u03bcg/day)",
+      "BD MDI 160 \u03bcg BID (320 \u03bcg/day)"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 18,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 179,
+        "otherNumAtRisk": 179
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 174,
+        "otherNumAtRisk": 174
+      }
+    ],
+    "withdrawals_total": 12,
+    "withdrawal_reasons": {
+      "Failure to meet randomization criteria": 2,
+      "Lost to Follow-up": 1,
+      "Physician Decision": 1,
+      "Withdrawal by Subject": 8
+    }
+  },
+  {
+    "nct": "NCT05384938",
+    "title": "FAsenra Safety Trial in India",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 139,
+    "n_arms": 1,
+    "interventions": [
+      "Benralizumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 8,
+    "n_primary_outcomes": 3,
+    "ae_serious_num_affected": 14,
+    "ae_other_num_affected": 58,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 138,
+        "otherNumAtRisk": 138
+      }
+    ],
+    "withdrawals_total": 15,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 8,
+      "Lost to Follow-up": 6,
+      "One participant included in study but not included in analysis as did not meet eligibility criteria": 1
+    }
+  },
+  {
+    "nct": "NCT02813811",
+    "title": "Laminar Airflow in Severe Asthma for Exacerbation Reduction - 48 Month Follow-up.",
+    "phase": [],
+    "enrollment": 77,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05104892",
+    "title": "Proof of Concept Study of Rilzabrutinib in Adult Participants With Moderate-to-severe Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 196,
+    "n_arms": 2,
+    "interventions": [
+      "Rilzabrutinib",
+      "placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04652141",
+    "title": "Asthma Diagnosis Verified by Lung Function",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 146,
+    "n_arms": 2,
+    "interventions": [
+      "AsthmaTuner"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05631197",
+    "title": "Biomimetic Hydroxyapatite in Pediatric Patients With Asthma and/or Allergic Rhinitis",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 40,
+    "n_arms": 2,
+    "interventions": [
+      "Biorepair Total Protection Plus + desensitizing enamel-repair shock treatment",
+      "Sensodyne Repair & Protect"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02135692",
+    "title": "A Phase 3a, Repeat Dose, Open-label, Long-term Safety Study of Mepolizumab in Asthmatic Subjects",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 339,
+    "n_arms": 1,
+    "interventions": [
+      "Mepolizumab",
+      "SOC"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 134,
+    "ae_other_num_affected": 988,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 339,
+        "otherNumAtRisk": 339
+      }
+    ],
+    "withdrawals_total": 339,
+    "withdrawal_reasons": {
+      "Adverse Event": 3,
+      "Lack of Efficacy": 2,
+      "Protocol Violation": 2,
+      "Subject met Liver Stopping Criteria": 1,
+      "Product commercially available": 159,
+      "Study closed/terminated": 153,
+      "Lost to Follow-up": 4,
+      "Withdrawal by Subject": 15
+    }
+  },
+  {
+    "nct": "NCT02571777",
+    "title": "Study to Compare the Efficacy and Safety of QVM149 With QMF149 in Patients With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 3092,
+    "n_arms": 5,
+    "interventions": [
+      "QVM149 150/50/160",
+      "QVM149 150/50/80",
+      "QMF149 150/320",
+      "QMF149 150/160",
+      "salmeterol/fluticasone"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 24,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 304,
+    "ae_other_num_affected": 3648,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 616,
+        "otherNumAtRisk": 616
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 617,
+        "otherNumAtRisk": 617
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 613,
+        "otherNumAtRisk": 613
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 608,
+        "otherNumAtRisk": 608
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 618,
+        "otherNumAtRisk": 618
+      }
+    ],
+    "withdrawals_total": 191,
+    "withdrawal_reasons": {
+      "Subject/guardian decision": 138,
+      "Protocol Deviation": 21,
+      "Death": 6,
+      "Lost to Follow-up": 5,
+      "Physician Decision": 19,
+      "Pregnancy": 2
+    }
+  },
+  {
+    "nct": "NCT06290102",
+    "title": "Pharmacokinetic Profile and Safety of Fluticasone Propionate and Albuterol Sulfate in Combination When Compared to Fluticasone Propionate Multidose Dry Powder Inhaler (Fp MDPI) in Children Aged 4 to 11 Years Old",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 30,
+    "n_arms": 6,
+    "interventions": [
+      "TEV-56248",
+      "Fp MDPI"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03002402",
+    "title": "Feasibility and Acceptability of an Internet-based Cognitive-behavioral Treatment for Insomnia in Adults With Asthma",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 23,
+    "n_arms": 1,
+    "interventions": [
+      "Internet-based CBT-I"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02567708",
+    "title": "A Study to Investigate the Efficacy, Safety, and Tolerability of Repeat Doses of Inhaled GSK2269557 in Adults With Persistent, Uncontrolled Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 50,
+    "n_arms": 1,
+    "interventions": [
+      "GSK2269557 DPI",
+      "Placebo DPI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 18,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 36,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 47,
+        "otherNumAtRisk": 47
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 48,
+        "otherNumAtRisk": 48
+      }
+    ],
+    "withdrawals_total": 8,
+    "withdrawal_reasons": {
+      "Adverse Event": 2,
+      "Protocol Violation": 1,
+      "Other: Reached stopping criteria": 5
+    }
+  },
+  {
+    "nct": "NCT02139644",
+    "title": "Study of Fluticasone Propionate MDPI Compared With Fluticasone/Salmeterol MDPI in Adolescent and Adult Patients With Persistent Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 787,
+    "n_arms": 5,
+    "interventions": [
+      "FS MDPI",
+      "Fp MDPI",
+      "Placebo MDPI",
+      "albuterol/salbutamol",
+      "Beclomethasone dipropionate"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 6,
+    "ae_other_num_affected": 89,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 126,
+        "otherNumAtRisk": 126
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 128,
+        "otherNumAtRisk": 128
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 129,
+        "otherNumAtRisk": 129
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 129,
+        "otherNumAtRisk": 129
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 129,
+        "otherNumAtRisk": 129
+      }
+    ],
+    "withdrawals_total": 185,
+    "withdrawal_reasons": {
+      "Randomization criteria not met": 70,
+      "Inclusion criteria not met": 30,
+      "Withdrawal by Subject": 21,
+      "Exclusion criteria met": 11,
+      "Lost to Follow-up": 12,
+      "Adverse Event": 15,
+      "Other": 12,
+      "Non-compliance": 1,
+      "Protocol Violation": 3,
+      "Disease progression": 4,
+      "Lack of Efficacy": 6
+    }
+  },
+  {
+    "nct": "NCT02452190",
+    "title": "Study of Reslizumab in Participants With Uncontrolled Asthma and Elevated Blood Eosinophils",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 468,
+    "n_arms": 2,
+    "interventions": [
+      "Reslizumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 10,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 50,
+    "ae_other_num_affected": 263,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 231,
+        "otherNumAtRisk": 231
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 237,
+        "otherNumAtRisk": 237
+      }
+    ],
+    "withdrawals_total": 59,
+    "withdrawal_reasons": {
+      "Withdrawal by Sponsor": 4,
+      "Pregnancy": 1,
+      "Investigator's Decision": 2,
+      "Lack of Efficacy": 4,
+      "Lost to Follow-up": 7,
+      "Adverse Event": 7,
+      "Withdrawal by Subject": 31,
+      "Noncompliance with study drug": 1,
+      "Participant traveled abroad": 1,
+      "Death": 1
+    }
+  },
+  {
+    "nct": "NCT00708227",
+    "title": "Pharmacogenetics of b2-Agonists in Asthma.",
+    "phase": [],
+    "enrollment": 88,
+    "n_arms": 4,
+    "interventions": [],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 3,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 1,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 19,
+        "otherNumAtRisk": 19
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 26,
+        "otherNumAtRisk": 26
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 18,
+        "otherNumAtRisk": 18
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 25,
+        "otherNumAtRisk": 25
+      }
+    ],
+    "withdrawals_total": 10,
+    "withdrawal_reasons": {
+      "Physician Decision": 6,
+      "Withdrawal by Subject": 4
+    }
+  },
+  {
+    "nct": "NCT01113853",
+    "title": "Daily Monitoring of Exhaled Nitric Oxide in Asthmatic Patients",
+    "phase": [],
+    "enrollment": 40,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01079000",
+    "title": "Emergency Department (ED)-Directed Interventions to Improve Asthma Outcomes",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 367,
+    "n_arms": 3,
+    "interventions": [
+      "Opinion Leader letter",
+      "Involvement of a care manager",
+      "Usual care"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03859414",
+    "title": "PK of BDP/FF/GB Single-inhaler Triple Therapy in Japanese vs. Caucasians",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 32,
+    "n_arms": 4,
+    "interventions": [
+      "Therapeutic Dose 1",
+      "Therapeutic Dose 2",
+      "Supra-therapeutic Dose",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01479621",
+    "title": "A Study of the Effectiveness and Safety of Different Doses of Fluticasone Propionate Taken From a Dry Powder Inhaler in Adolescents and Adults Who Have Asthma That is Not Controlled by Asthma Medications Not Containing Steroids",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 909,
+    "n_arms": 6,
+    "interventions": [
+      "Fp MDPI",
+      "Flovent Diskus",
+      "albuterol/salbutamol",
+      "Placebo MDPI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 13,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 8,
+    "ae_other_num_affected": 49,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 104,
+        "otherNumAtRisk": 104
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 103,
+        "otherNumAtRisk": 103
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 103,
+        "otherNumAtRisk": 103
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 104,
+        "otherNumAtRisk": 104
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 104,
+        "otherNumAtRisk": 104
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 104,
+        "otherNumAtRisk": 104
+      }
+    ],
+    "withdrawals_total": 426,
+    "withdrawal_reasons": {
+      "Inclusion/exclusion criteria": 93,
+      "Withdrawal by Subject": 38,
+      "Randomization criteria not met": 153,
+      "Lost to Follow-up": 13,
+      "Other": 15,
+      "Adverse Event": 5,
+      "Physician Decision": 2,
+      "Non-compliance to study drug": 2,
+      "Protocol Violation": 38,
+      "Pregnancy": 2,
+      "Sponsor request subject to be withdrawn": 11,
+      "Met stopping criteria": 54
+    }
+  },
+  {
+    "nct": "NCT00942201",
+    "title": "Comparison of Oral Dexamethasone Doses in Asthma Exacerbation",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 125,
+    "n_arms": 2,
+    "interventions": [
+      "Dexamethasone",
+      "Dexamethasone"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00288379",
+    "title": "SMILDA - Symbicort\u00aeTurbuhaler\u00ae Allergan Challenge Study in Allergic Patients With Mild Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 16,
+    "n_arms": 0,
+    "interventions": [
+      "formoterol",
+      "budesonide/formoterol"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00688467",
+    "title": "Efficacy and Safety of Navarixin (SCH 527123) in Participants With Allergen-Induced Asthma (P05363)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 19,
+    "n_arms": 2,
+    "interventions": [
+      "Navarixin",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 13,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 1,
+    "ae_other_num_affected": 23,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 16,
+        "otherNumAtRisk": 16
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 17,
+        "otherNumAtRisk": 17
+      }
+    ],
+    "withdrawals_total": 6,
+    "withdrawal_reasons": {
+      "Adverse Event": 4,
+      "Did not meet protocol eligibility": 1,
+      "Protocol Violation": 1
+    }
+  },
+  {
+    "nct": "NCT03705702",
+    "title": "Behavioral Intervention to Increase Physical Activity in Patients With Asthma",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 46,
+    "n_arms": 2,
+    "interventions": [
+      "Education Program",
+      "Behavioral intervention"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01987492",
+    "title": "A Study of Lebrikizumab (RO5490255) in Participants With Severe Oral Corticosteroids (OCS) Dependent Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 230,
+    "n_arms": 3,
+    "interventions": [
+      "Lebrikizumab",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01430403",
+    "title": "Preventative Omalizumab or Step-up Therapy for Severe Fall Exacerbations",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 478,
+    "n_arms": 3,
+    "interventions": [
+      "Omalizumab",
+      "Inhaled Corticosteroid Boost Therapy (ICS)",
+      "Placebo omalizumab",
+      "Placebo fluticasone"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 22,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 73,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 259,
+        "otherNumAtRisk": 259
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 130,
+        "otherNumAtRisk": 130
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 89,
+        "otherNumAtRisk": 89
+      }
+    ],
+    "withdrawals_total": 34,
+    "withdrawal_reasons": {
+      "Lost to Follow-up": 13,
+      "Physician Decision": 1,
+      "Protocol Violation": 7,
+      "Withdrawal by Subject": 13
+    }
+  },
+  {
+    "nct": "NCT02075255",
+    "title": "Efficacy and Safety Study of Benralizumab to Reduce OCS Use in Patients With Uncontrolled Asthma on High Dose Inhaled Corticosteroid Plus LABA and Chronic OCS Therapy",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 220,
+    "n_arms": 3,
+    "interventions": [
+      "Benralizumab",
+      "Placebo",
+      "Benralizumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 34,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 38,
+    "ae_other_num_affected": 192,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 72,
+        "otherNumAtRisk": 72
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 73,
+        "otherNumAtRisk": 73
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 75,
+        "otherNumAtRisk": 75
+      }
+    ],
+    "withdrawals_total": 11,
+    "withdrawal_reasons": {
+      "Study specific withdrawal criteria": 2,
+      "Withdrawal by Subject": 5,
+      "Lost to Follow-up": 1,
+      "Adverse Event": 1,
+      "Death": 2
+    }
+  },
+  {
+    "nct": "NCT00368576",
+    "title": "A Study To Determine The Effect Of SB-480848 On Asthma",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 67,
+    "n_arms": 0,
+    "interventions": [
+      "SB 480848, tablets"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02513160",
+    "title": "Study to Assess the Efficacy and Safety of Beclomethasone Dipropionate in Adolescent and Adult Patients 12 Years of Age and Older With Persistent Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 713,
+    "n_arms": 4,
+    "interventions": [
+      "Beclomethasone Dipropionate 640",
+      "Placebo",
+      "Beclomethasone dipropionate via 320 mcg BAI",
+      "albuterol/salbutamol",
+      "Beclomethasone dipropionate via 320 mcg MDI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 7,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 4,
+    "ae_other_num_affected": 23,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 713,
+        "otherNumAtRisk": 713
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 107,
+        "otherNumAtRisk": 107
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 108,
+        "otherNumAtRisk": 108
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 105,
+        "otherNumAtRisk": 105
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 105,
+        "otherNumAtRisk": 105
+      }
+    ],
+    "withdrawals_total": 301,
+    "withdrawal_reasons": {
+      "Inclusion criteria not met": 33,
+      "Failure to meet randomization criteria": 214,
+      "Exclusion criteria met": 6,
+      "Adverse Event": 4,
+      "Withdrawal by Subject": 25,
+      "Site reached randomization limit": 1,
+      "Lost to Follow-up": 15,
+      "Noncompliance": 1,
+      "Lack of Efficacy": 1,
+      "Did not meet exclusion criteria": 1
+    }
+  },
+  {
+    "nct": "NCT00434421",
+    "title": "Sublingual Cockroach Safety in Adults With Cockroach Allergy & Perennial Allergic Rhinitis With or Without Asthma",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 28,
+    "n_arms": 1,
+    "interventions": [
+      "Glycerinated German cockroach allergenic extract",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 1,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 43,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 28,
+        "otherNumAtRisk": 28
+      }
+    ],
+    "withdrawals_total": 2,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 1,
+      "Non-compliance with study treatment": 1
+    }
+  },
+  {
+    "nct": "NCT00092989",
+    "title": "Investigation of Intravenous (IV) Administration of an Approved Drug (MK-0476, Montelukast Sodium) for Acute Asthma (MK-0476-288)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 650,
+    "n_arms": 2,
+    "interventions": [
+      "montelukast sodium",
+      "placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03236233",
+    "title": "A Study to Investigate the Safety and Tolerability of Single and Repeat Doses of PC786",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 39,
+    "n_arms": 3,
+    "interventions": [
+      "PC786 - Single doses",
+      "Placebo - Single doses",
+      "PC786 - Repeat doses",
+      "Placebo - Repeat doses"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03878355",
+    "title": "A Study of Different Endoscopic Surgery Procedures in Eosinophilic Chronic Rhinosinusitis With Nasal Polyps",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 27,
+    "n_arms": 3,
+    "interventions": [
+      "radical endoscopic sinus surgery (RESS) plus Draf 3 surgery.",
+      "radical endoscopic sinus surgery (RESS)",
+      "functional endoscopic sinus surgery (FESS)"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01366521",
+    "title": "Dose Ranging Pharmacokinetics and Pharmacodynamics Study With Mepolizumab in Asthma Patients With Elevated Eosinophils",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 70,
+    "n_arms": 4,
+    "interventions": [
+      "Mepolizumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 17,
+    "n_primary_outcomes": 9,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 135,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 21,
+        "otherNumAtRisk": 21
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 15,
+        "otherNumAtRisk": 15
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 23,
+        "otherNumAtRisk": 23
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 59,
+        "otherNumAtRisk": 59
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 11,
+        "otherNumAtRisk": 11
+      }
+    ],
+    "withdrawals_total": 4,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Protocol Violation": 1,
+      "Physician Decision": 1,
+      "Withdrawal by Subject": 1
+    }
+  },
+  {
+    "nct": "NCT03620747",
+    "title": "Continuation of TRAVERSE- LTS12551 Evaluating Dupilumab Safety in Patients With Asthma (Long-Term Follow-Up)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 393,
+    "n_arms": 1,
+    "interventions": [
+      "Dupilumab SAR231893 (REGN668)"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 4,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 29,
+    "ae_other_num_affected": 107,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 393,
+        "otherNumAtRisk": 393
+      }
+    ],
+    "withdrawals_total": 19,
+    "withdrawal_reasons": {
+      "Participant decision": 7,
+      "Adverse Event": 6,
+      "Lack of Efficacy": 1,
+      "Poor compliance to protocol": 2,
+      "Other-unspecified": 3
+    }
+  },
+  {
+    "nct": "NCT00238784",
+    "title": "SOLO-Symbicort\u00ae in the Treatment of Persistent Asthma in Adolescents & Adults",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1300,
+    "n_arms": 0,
+    "interventions": [
+      "Budesonide/formoterol Turbuhaler"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04576325",
+    "title": "Pharmacokinetic Profile of Voriconazole Inhalation Powder in Adult Subjects With Asthma",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 17,
+    "n_arms": 2,
+    "interventions": [
+      "Voriconazole Inhalation Powder",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01563029",
+    "title": "A Dose-ranging Study of Fluticasone Furoate (FF)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 597,
+    "n_arms": 5,
+    "interventions": [
+      "Fluticasone Furoate",
+      "Fluticasone Propionate",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 8,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 161,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 119,
+        "otherNumAtRisk": 119
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 118,
+        "otherNumAtRisk": 118
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 120,
+        "otherNumAtRisk": 120
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 118,
+        "otherNumAtRisk": 118
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 118,
+        "otherNumAtRisk": 118
+      }
+    ],
+    "withdrawals_total": 172,
+    "withdrawal_reasons": {
+      "Adverse Event": 5,
+      "Lack of Efficacy": 121,
+      "Protocol Violation": 10,
+      "Protocol defined stopping criteria": 1,
+      "Lost to Follow-up": 4,
+      "Physician Decision": 16,
+      "Withdrawal by Subject": 15
+    }
+  },
+  {
+    "nct": "NCT05251402",
+    "title": "Addressing Quality of Life, Clinical Outcomes, and Mechanisms in Uncontrolled Asthma Following the DASH Dietary Pattern",
+    "phase": [
+      "PHASE2",
+      "PHASE3"
+    ],
+    "enrollment": 323,
+    "n_arms": 2,
+    "interventions": [
+      "Group A - Patient Education",
+      "Group B - Patient Education with Nutrition Counseling"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01700192",
+    "title": "Efficacy and Safety Study of SCH 900237/MK-8237 in Children and Adults With House Dust Mite-Induced Allergic Rhinitis/Rhinoconjunctivitis (P05607)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1482,
+    "n_arms": 2,
+    "interventions": [
+      "MK-8237 tablets",
+      "Placebo tablets",
+      "Rescue Medication: Self-Injectable Epinephrine",
+      "Rescue Medication: Loratadine tablets",
+      "Rescue Medication: Olopatadine ophthalmic drops",
+      "Rescue Medication: Mometasone furoate nasal spray"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 7,
+    "n_primary_outcomes": 3,
+    "ae_serious_num_affected": 22,
+    "ae_other_num_affected": 3644,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 743,
+        "otherNumAtRisk": 743
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 738,
+        "otherNumAtRisk": 738
+      }
+    ],
+    "withdrawals_total": 308,
+    "withdrawal_reasons": {
+      "Adverse Event": 91,
+      "Lack of Efficacy": 1,
+      "Lost to Follow-up": 71,
+      "Noncompliance with study drug": 5,
+      "Physician Decision": 5,
+      "Pregnancy": 5,
+      "Progressive disease": 1,
+      "Protocol Violation": 7,
+      "Technical problems": 1,
+      "Withdrawal by Subject": 120,
+      "Never received study drug": 1
+    }
+  },
+  {
+    "nct": "NCT00587288",
+    "title": "Efficacy and Safety Study of Reslizumab to Treat Poorly Controlled Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 106,
+    "n_arms": 2,
+    "interventions": [
+      "Reslizumab",
+      "Saline"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 7,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 3,
+    "ae_other_num_affected": 44,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 53,
+        "otherNumAtRisk": 53
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 53,
+        "otherNumAtRisk": 53
+      }
+    ],
+    "withdrawals_total": 12,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Lack of Efficacy": 10,
+      "Protocol Violation": 1
+    }
+  },
+  {
+    "nct": "NCT01248975",
+    "title": "Safety and Efficacy Study Adding GSK2190915 to Mid-dose Inhaled Corticosteroid/Long Acting Beta Agonist Combination Treatment for Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 145,
+    "n_arms": 3,
+    "interventions": [
+      "FP/SAL 250/50mcg BID",
+      "GSK2190915 200mg QD (AM)",
+      "GSK2190915 100mg QD (AM)",
+      "Montelukast 10mg QD (PM)",
+      "Placebo tablets (2) (AM)",
+      "Placebo capsule (PM)"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00968201",
+    "title": "Chronic Asthma Study in 2- to 5-Year-Old Patients (MK0476-072 )",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 689,
+    "n_arms": 2,
+    "interventions": [
+      "montelukast sodium",
+      "Comparator: Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 27,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 109,
+    "ae_other_num_affected": 4225,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 228,
+        "otherNumAtRisk": 228
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 157,
+        "otherNumAtRisk": 157
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 461,
+        "otherNumAtRisk": 461
+      }
+    ],
+    "withdrawals_total": 475,
+    "withdrawal_reasons": {
+      "Adverse Event": 51,
+      "Lack of Efficacy": 1,
+      "Lost to Follow-up": 29,
+      "Protocol Violation": 55,
+      "Withdrawal by Subject": 72,
+      "Site Error": 1,
+      "Patient Relocated": 2,
+      "Noncompliance": 3,
+      "Other": 2,
+      "Study Terminated for Admin Reasons": 259
+    }
+  },
+  {
+    "nct": "NCT01444430",
+    "title": "A 6 Month Safety Study Comparing Symbicort With Inhaled Corticosteroid Only in Asthmatic Adults and Adolescents",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 12460,
+    "n_arms": 2,
+    "interventions": [
+      "Symbicort pMDI",
+      "budesonide pMDI"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 8,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 311,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 5846,
+        "otherNumAtRisk": 5846
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 5847,
+        "otherNumAtRisk": 5847
+      }
+    ],
+    "withdrawals_total": 142,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 125,
+      "Death": 14,
+      "Lost to Follow-up": 2,
+      "CRF termination module not completed.": 1
+    }
+  },
+  {
+    "nct": "NCT00861926",
+    "title": "Study on Foster Efficacy Maintenance and Reliever vs Foster Maintenance + Salbutamol Reliever in Asthmatics (MART2)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1714,
+    "n_arms": 2,
+    "interventions": [
+      "Salbutamol",
+      "Beclomethasone dipropionate + Formoterol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 20,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 83,
+    "ae_other_num_affected": 1321,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 854,
+        "otherNumAtRisk": 854
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 854,
+        "otherNumAtRisk": 854
+      }
+    ],
+    "withdrawals_total": 208,
+    "withdrawal_reasons": {
+      "Adverse Event": 28,
+      "Lack of Therapeutic Response": 7,
+      "Lost to Follow-up": 18,
+      "Protocol Violation": 58,
+      "Poor Compliance to Study Drug": 24,
+      "Death": 3,
+      "Withdrawal by Subject": 62,
+      "Miscellaneous": 8
+    }
+  },
+  {
+    "nct": "NCT01867125",
+    "title": "A Study of Lebrikizumab in Participants With Uncontrolled Asthma Who Are on Inhaled Corticosteroids and a Second Controller Medication",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1081,
+    "n_arms": 3,
+    "interventions": [
+      "Lebrikizumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 10,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 213,
+    "ae_other_num_affected": 1959,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 362,
+        "otherNumAtRisk": 362
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 159,
+        "otherNumAtRisk": 159
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 157,
+        "otherNumAtRisk": 157
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 360,
+        "otherNumAtRisk": 360
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 359,
+        "otherNumAtRisk": 359
+      }
+    ],
+    "withdrawals_total": 206,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 137,
+      "Adverse Event": 19,
+      "Lost to Follow-up": 17,
+      "Physician Decision": 8,
+      "Lack of Efficacy": 6,
+      "Other": 11,
+      "Non-Compliance": 7,
+      "Death": 1
+    }
+  },
+  {
+    "nct": "NCT04032834",
+    "title": "A Comparison of VR647 and Conventionally Nebulized Budesonide in Healthy Volunteers and Adult Asthma Subjects",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 34,
+    "n_arms": 16,
+    "interventions": [
+      "VR647 Inhalation Suspension (budesonide) 1 mg/2 mL delivered by the VR647 Inhalation System (AKITA JET) with mouthpiece",
+      "VR647 Inhalation Suspension (budesonide) 1 mg/2 mL delivered by the VR647 Inhalation System (AKITA JET) with facemask",
+      "1 mg/2 mL Pulmicort Respules delivered by a conventional jet nebulizer (PARI VIOS) with mouthpiece",
+      "1 mg/2 mL Pulmicort Respules delivered by a conventional jet nebulizer (PARI VIOS) with facemask",
+      "0.5 mg/2 mL Pulmicort Respules delivered by a conventional jet nebulizer (PARI VIOS) with mouthpiece",
+      "0.5 mg/2 mL Pulmicort Respules delivered by a conventional jet nebulizer (PARI VIOS) with facemask"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03373045",
+    "title": "Observational Study of Characteristics, Treatment and Outcomes With Severe Asthma in the United States (CHRONICLE)",
+    "phase": [],
+    "enrollment": 18,
+    "n_arms": 1,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02169323",
+    "title": "Step-down of Inhaled Corticosteroids (ICS) in Non-eosinophilic Asthmatics",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 43,
+    "n_arms": 1,
+    "interventions": [
+      "Step-down"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04609904",
+    "title": "Study to Assess PT010 in Adult and Adolescent Participants With Inadequately Controlled Asthma (LOGOS)",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 2187,
+    "n_arms": 4,
+    "interventions": [
+      "BGF MDI 320/28.8/9.6 \u03bcg",
+      "BGF MDI 320/14.4/9.6 \u03bcg",
+      "BFF MDI 320/9.6 \u03bcg",
+      "BFF pMDI 320/9 \u03bcg"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 16,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 199,
+    "ae_other_num_affected": 676,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 384,
+        "otherNumAtRisk": 384
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 585,
+        "otherNumAtRisk": 585
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 604,
+        "otherNumAtRisk": 604
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 594,
+        "otherNumAtRisk": 594
+      }
+    ],
+    "withdrawals_total": 188,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 110,
+      "Adverse Event": 12,
+      "Lost to Follow-up": 16,
+      "Reasons not specified": 14,
+      "Lack of Efficacy": 11,
+      "Physician Decision": 8,
+      "Pregnancy": 3,
+      "Death": 7,
+      "Development of study-specific criteria": 1,
+      "Other": 1,
+      "Non-compliance with study drug": 5
+    }
+  },
+  {
+    "nct": "NCT00393952",
+    "title": "New Combination Inhaler (FlutiForm HFA MDI 100/10 \u00b5g and 250/10 \u00b5g) Versus Fluticasone and Formoterol Administered Alone, and Placebo in Patients With Moderate to Severe Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 557,
+    "n_arms": 5,
+    "interventions": [
+      "Fluticasone propionate/Formoterol fumarate 250/10",
+      "Placebo",
+      "Fluticasone propionate/Formoterol fumarate 100/10",
+      "Fluticasone propionate 250",
+      "Formoterol fumarate 10"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02754310",
+    "title": "Repeated Versus Varied Simulation Scenarios to Teach Medical Students the Management of a Pediatric Asthma Exacerbation",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 85,
+    "n_arms": 2,
+    "interventions": [
+      "Variation of scenarios",
+      "Repeated scenarios"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 8,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 43,
+        "otherNumAtRisk": 43
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 42,
+        "otherNumAtRisk": 42
+      }
+    ],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00252824",
+    "title": "STYLE - Symbicort Single Inhaler Therapy vs Conventional Therapy in Treatment of Persistent Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 1000,
+    "n_arms": 0,
+    "interventions": [
+      "Budesonide/formoterol Turbuhaler vs Conventional Best Asthma Therapy"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05091333",
+    "title": "FASENRA Regulatory Postmarketing Surveillance in Korea",
+    "phase": [],
+    "enrollment": 51,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04184284",
+    "title": "Change in Patient-Reported Outcomes in Severe Eosinophilic Asthma Patients Treated With Benralizumab Under Real-life Conditions",
+    "phase": [],
+    "enrollment": 246,
+    "n_arms": 2,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00381355",
+    "title": "RCT of a Written Action Plan vs. Usual Care in Children With Acute Asthma",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 218,
+    "n_arms": 0,
+    "interventions": [
+      "Written Action Plan for Acute Asthma"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01288482",
+    "title": "AeroEclipse II Agreement",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 32,
+    "n_arms": 1,
+    "interventions": [
+      "AeroEclipse II breath-actuated nebulizer",
+      "English-Wright continuous-mode nebulizer"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT06795906",
+    "title": "A Safety, Pharmacokinetic, and Pharmacodynamic Study of Once Daily Inhaled AZD8630 in Adults With Asthma",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 24,
+    "n_arms": 2,
+    "interventions": [
+      "AZD8630",
+      "Placebo",
+      "Saphira device"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05829265",
+    "title": "Feasibility of an Asthma Online Social Intervention",
+    "phase": [],
+    "enrollment": 526,
+    "n_arms": 1,
+    "interventions": [
+      "A digital social intervention by primary care clinicians."
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02720081",
+    "title": "Study of MK-1029 in Participants With Persistent Asthma That Cannot Be Controlled With Montelukast (MK-1029-015)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 142,
+    "n_arms": 2,
+    "interventions": [
+      "MK-1029 150 mg",
+      "MK-1029 Matching-image Placebo",
+      "Montelukast 10 mg",
+      "Albuterol/Salbutamol 90 mcg - 100 mcg per inhalation"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 26,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 1,
+    "ae_other_num_affected": 19,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 70,
+        "otherNumAtRisk": 70
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 69,
+        "otherNumAtRisk": 69
+      }
+    ],
+    "withdrawals_total": 8,
+    "withdrawal_reasons": {
+      "Adverse Event": 3,
+      "Protocol Violation": 5
+    }
+  },
+  {
+    "nct": "NCT00242411",
+    "title": "MONO: Symbicort\u00ae Single Inhaler Therapy and Conventional Best Standard Treatment for the Treatment of Persistent Asthma in Adolescents and Adults",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 1900,
+    "n_arms": 0,
+    "interventions": [
+      "Budesonide/Formoterol Turbuhaler",
+      "Conventional Best Asthma Therapy"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01270464",
+    "title": "A Study to Evaluate the Efficacy and Safety of Reslizumab (0.3 or 3.0 mg/kg) as Treatment for Patients (12-75 Years of Age) With Eosinophilic Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 315,
+    "n_arms": 3,
+    "interventions": [
+      "Reslizumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 8,
+    "ae_other_num_affected": 81,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 105,
+        "otherNumAtRisk": 105
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 103,
+        "otherNumAtRisk": 103
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 103,
+        "otherNumAtRisk": 103
+      }
+    ],
+    "withdrawals_total": 50,
+    "withdrawal_reasons": {
+      "Protocol Violation": 9,
+      "Lack of Efficacy": 6,
+      "Adverse Event": 17,
+      "Withdrawal by Subject": 7,
+      "Lost to Follow-up": 6,
+      "Other": 5
+    }
+  },
+  {
+    "nct": "NCT01184118",
+    "title": "DREAM: Does Inhaled Fluticasone REsult in Obstructive Sleep Apnea Manifestations?",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 36,
+    "n_arms": 2,
+    "interventions": [
+      "FP 220 mcg 2 puffs BID"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 3,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 18,
+        "otherNumAtRisk": 18
+      }
+    ],
+    "withdrawals_total": 18,
+    "withdrawal_reasons": {
+      "Only asthma step 1 - screen fail": 1,
+      "No physiologic confirmation of asthma": 8,
+      "FEV1 <60% predicted": 2,
+      "Exclusionary medical condition": 2,
+      "Withdrawal by Subject": 5
+    }
+  },
+  {
+    "nct": "NCT00201058",
+    "title": "Tailored Asthma Management for Urban Teens",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 450,
+    "n_arms": 2,
+    "interventions": [
+      "Tailored Web-based Asthma Management",
+      "Generic web-based asthma education"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00781443",
+    "title": "A Study to Evaluate MILR1444A in the Prevention of Allergen-Induced Airway Obstruction in Adults With Mild Allergic Asthma",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 29,
+    "n_arms": 2,
+    "interventions": [
+      "lebrikizumab (MILR1444A)",
+      "placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01156792",
+    "title": "Safety and Efficacy Study of Adding GSK2190915 to Low Dose Inhaled Corticosteroid Treatment for Asthma Subjects > or = 12 Years of Age",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 162,
+    "n_arms": 5,
+    "interventions": [
+      "FP 100",
+      "GSK2190915 100",
+      "GSK2190915 300",
+      "montelukast",
+      "placebo",
+      "FP/SAL 100/50"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 12,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 1,
+    "ae_other_num_affected": 17,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 104,
+        "otherNumAtRisk": 104
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 103,
+        "otherNumAtRisk": 103
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 96,
+        "otherNumAtRisk": 96
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 99,
+        "otherNumAtRisk": 99
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 104,
+        "otherNumAtRisk": 104
+      }
+    ],
+    "withdrawals_total": 69,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Lack of Efficacy": 36,
+      "Protocol Violation": 6,
+      "Lost to Follow-up": 3,
+      "Physician Decision": 3,
+      "Withdrawal by Subject": 9,
+      "other Sponsor Decision (Protocol Amendme": 11
+    }
+  },
+  {
+    "nct": "NCT01784146",
+    "title": "Plethysmography Opto-electronic and Asthma",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 27,
+    "n_arms": 4,
+    "interventions": [
+      "Oxygen",
+      "Heliox",
+      "PEEP"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00441441",
+    "title": "A 12-Week Study To Assess The Safety Of Fluticasone Propionate/Salmeterol 100/50 Hydrofluoroalkane (HFA) Versus Fluticasone Propionate 100 HFA In Children With Asthma",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 351,
+    "n_arms": 2,
+    "interventions": [
+      "fluticasone propionate",
+      "fluticasone propionate/salmeterol"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 24,
+    "n_primary_outcomes": 14,
+    "ae_serious_num_affected": 1,
+    "ae_other_num_affected": 182,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 173,
+        "otherNumAtRisk": 173
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 177,
+        "otherNumAtRisk": 177
+      }
+    ],
+    "withdrawals_total": 25,
+    "withdrawal_reasons": {
+      "Adverse Event": 3,
+      "Protocol Violation": 10,
+      "Exacerbation of asthma": 3,
+      "Withdrawal by Subject": 3,
+      "Other": 6
+    }
+  },
+  {
+    "nct": "NCT01462344",
+    "title": "6-month Safety and Benefit Study of ADVAIR in Children 4-11 Years Old",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 6250,
+    "n_arms": 4,
+    "interventions": [
+      "ADVAIR 100/50mcg",
+      "ADVAIR 250/50mcg",
+      "FLOVENT 100mcg",
+      "FLOVENT 250mcg"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 8,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 128,
+    "ae_other_num_affected": 82,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 3107,
+        "otherNumAtRisk": 3107
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 3101,
+        "otherNumAtRisk": 3101
+      }
+    ],
+    "withdrawals_total": 733,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 471,
+      "Adverse Event": 47,
+      "Asthma Exacerbation": 69,
+      "Lack of Efficacy": 11,
+      "Protocol Violation": 121,
+      "Lost to Follow-up": 14
+    }
+  },
+  {
+    "nct": "NCT01018186",
+    "title": "Fluticasone Furoate/GW642444 Inhalation Powder Long-Term Safety Study",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 503,
+    "n_arms": 2,
+    "interventions": [
+      "Fluticasone Furoate/GW642444",
+      "Fluticasone propionate"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 27,
+    "n_primary_outcomes": 27,
+    "ae_serious_num_affected": 11,
+    "ae_other_num_affected": 533,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 201,
+        "otherNumAtRisk": 201
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 202,
+        "otherNumAtRisk": 202
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 100,
+        "otherNumAtRisk": 100
+      }
+    ],
+    "withdrawals_total": 224,
+    "withdrawal_reasons": {
+      "Protocol Violation": 19,
+      "Lost to Follow-up": 10,
+      "Physician Decision": 7,
+      "Withdrawal by Subject": 37,
+      "Did Not Meet Continuation Criteria": 97,
+      "Adverse Event": 14,
+      "Lack of Efficacy": 6,
+      "Protocol-defined Stopping Criteria": 34
+    }
+  },
+  {
+    "nct": "NCT04550962",
+    "title": "Description of Characteristics, Such as Age, Previous and Concurrent Treatments, Associated Diseases, of Patients With Asthma Treated With Dupilumab (DUPIXENT)",
+    "phase": [],
+    "enrollment": 376,
+    "n_arms": 1,
+    "interventions": [
+      "Dupilumab SAR231893"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01624974",
+    "title": "Study to Evaluate the Effectiveness and Safety of MK-1029 in the Treatment of Persistent Asthma That is Not Controlled With Montelukast (ML) in Adults (MK-1029-011)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 107,
+    "n_arms": 2,
+    "interventions": [
+      "MK-1029",
+      "Placebo",
+      "Montelukast (ML)"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 3,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 32,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 96,
+        "otherNumAtRisk": 96
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 97,
+        "otherNumAtRisk": 97
+      }
+    ],
+    "withdrawals_total": 26,
+    "withdrawal_reasons": {
+      "Lack of Efficacy": 5,
+      "Non-Compliance with Protocol": 3,
+      "Physician Decision": 11,
+      "Protocol Violation": 1,
+      "Adverse Event": 4,
+      "Withdrawal by Subject": 1,
+      "Non-Compliance with Study Drug": 1
+    }
+  }
+]

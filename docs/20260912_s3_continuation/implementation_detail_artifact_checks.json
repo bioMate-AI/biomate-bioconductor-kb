@@ -1,0 +1,31 @@
+{
+  "input_checks": {
+    "guide_pools_disjoint": true,
+    "control_target_source_rows_disjoint": true,
+    "control_target_guides_disjoint": true,
+    "aggregates_recomputed_exactly": true,
+    "control_profiles": 348
+  },
+  "target_profiles": 384,
+  "target_aggregates": 192,
+  "genes": 132,
+  "targets": 16,
+  "donors": [
+    "CE0006864",
+    "CE0008162",
+    "CE0008678",
+    "CE0010866"
+  ],
+  "counts_dtype": "int64",
+  "effects_dtype": "float64",
+  "target_symbols_missing_from_readouts": [],
+  "guide_count_per_aggregate": [
+    2
+  ],
+  "source_rows_unique": true,
+  "effects_recomputed_exactly": true,
+  "saved_prediction_dtypes": [
+    "float64"
+  ],
+  "hardened_evaluator_all_saved_arrays_identical": 34
+}

@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-10T02:50:11.630Z",
+  "scope": "Deployed connector session route; no workflow execution",
+  "passed": true,
+  "responseCharacters": 1571,
+  "state": "chat_only",
+  "isMultiIntent": false,
+  "hasWorkflow": false,
+  "fields": [
+    "response",
+    "state",
+    "workflow_suggested",
+    "subIntentResults",
+    "isMultiIntent",
+    "suggestions",
+    "prerequisitesValidation",
+    "clarification"
+  ]
+}

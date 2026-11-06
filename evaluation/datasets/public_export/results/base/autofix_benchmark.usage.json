@@ -1,0 +1,16 @@
+{
+  "task": "autofix_benchmark",
+  "mode": null,
+  "model": "base",
+  "n": 100,
+  "n_with_usage": 100,
+  "input_tokens_total": 20852,
+  "output_tokens_total": null,
+  "input_tokens_mean": 208.52,
+  "output_tokens_mean": 0.0,
+  "latency_ms_p50": 756,
+  "latency_ms_p95": 847,
+  "latency_ms_mean": 743.73,
+  "n_with_latency": 100,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

@@ -1,0 +1,40 @@
+# Spatial transcriptomics domain deps (Voyager Visium ESDA stack) — SLIMMED.
+#
+# Baked into bioc-domain-spatial:3.20-deps.
+#
+# BASE = bioc-domain-single_cell:3.20-slim (~2 GB compressed), NOT the old
+# bioc-domain-transcriptomics:3.20 base (~9.78 GB compressed). The fat
+# transcriptomics base carried the entire 519-package transcriptomics stack
+# (clusterProfiler/pathview/ChIPpeakAnno/GenomicFeatures/…), which transitively
+# pulled the huge reactome.db / GO.db / org.*.db / TxDb.* annotation databases —
+# reactome.db's bundled reactome.sqlite alone is ~hundreds of MB and was the file
+# the Batch node ran out of disk unpacking (CannotPullContainerError: no space
+# left on device on biomate-nextflow-ce-v2). None of that stack is used by the
+# minimal Voyager Visium ESDA (load SFE → QC → logNormCounts → HVG → spatial graph
+# → Moran's I → plots). The single_cell:3.20-slim base already carries
+# SpatialExperiment / SingleCellExperiment / SummarizedExperiment / scater / scran /
+# scuttle / ggplot2 / patchwork / DropletUtils, so this list only needs to add the
+# geospatial + Voyager stack on top.
+#
+# The matching geospatial SYSTEM libraries (libgdal/libgeos/libproj/libudunits)
+# are apt-installed in Dockerfile.spatial BEFORE this deps pass (sf/spdep fail to
+# compile without them).
+#
+# esda_run.R requires: SpatialFeatureExperiment, SpatialExperiment, Voyager,
+# SFEData, scater, scran, ggplot2, jsonlite (sf/spdep pulled transitively by
+# Voyager/SFE for the spatial neighbourhood graph + Moran's I).
+Voyager
+SpatialFeatureExperiment
+SpatialExperiment
+SFEData
+sf
+spdep
+scater
+scran
+scuttle
+BiocNeighbors
+BiocSingular
+scales
+ggplot2
+patchwork
+jsonlite

@@ -216,7 +216,7 @@ with open("run_3d_chondrogenic_aggregate_assay_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("run_3d_chondrogenic_aggregate_assay_output.txt", "w") as f:
-    f.write("Biomni: Run 3D Chondrogenic Aggregate Assay" + NL)
+    f.write("BioMate: Run 3D Chondrogenic Aggregate Assay" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

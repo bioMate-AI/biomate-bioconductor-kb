@@ -56,7 +56,7 @@ with open("simulate_generalized_lotka_volterra_dynamics_results.json", "w") as f
 # Create human-readable output
 NL = chr(10)
 with open("simulate_generalized_lotka_volterra_dynamics_output.txt", "w") as f:
-    f.write("Biomni: Simulate Generalized Lotka Volterra Dynamics Results" + NL)
+    f.write("BioMate: Simulate Generalized Lotka Volterra Dynamics Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -1,0 +1,16 @@
+{
+  "task": "param_prefill",
+  "mode": null,
+  "model": "qwen/qwen3.8-27b",
+  "n": 170,
+  "n_with_usage": 170,
+  "input_tokens_total": 21085,
+  "output_tokens_total": 4101,
+  "input_tokens_mean": 124.02941176470588,
+  "output_tokens_mean": 24.123529411764707,
+  "latency_ms_p50": 797,
+  "latency_ms_p95": 2859,
+  "latency_ms_mean": 1134.3235294117646,
+  "n_with_latency": 170,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

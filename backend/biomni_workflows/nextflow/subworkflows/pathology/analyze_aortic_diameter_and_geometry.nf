@@ -50,7 +50,7 @@ with open("analyze_aortic_diameter_and_geometry_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_aortic_diameter_and_geometry_output.txt", "w") as f:
-    f.write("Biomni: Analyze Aortic Diameter And Geometry Results" + NL)
+    f.write("BioMate: Analyze Aortic Diameter And Geometry Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -54,7 +54,7 @@ with open("analyze_fatty_acid_composition_by_gc_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_fatty_acid_composition_by_gc_output.txt", "w") as f:
-    f.write("Biomni: Analyze Fatty Acid Composition By Gc Results" + NL)
+    f.write("BioMate: Analyze Fatty Acid Composition By Gc Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

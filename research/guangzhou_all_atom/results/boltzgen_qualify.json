@@ -1,0 +1,18 @@
+{
+  "output_files": 138,
+  "structure_files": 55,
+  "summary_files": 4,
+  "sample_structures": [
+    "cyclicdesign.cif",
+    "final_ranked_designs/intermediate_ranked_10_designs/rank07_cyclicdesign_3.cif",
+    "final_ranked_designs/intermediate_ranked_10_designs/rank02_cyclicdesign_7.cif",
+    "final_ranked_designs/intermediate_ranked_10_designs/rank08_cyclicdesign_0.cif",
+    "final_ranked_designs/intermediate_ranked_10_designs/rank03_cyclicdesign_4.cif"
+  ],
+  "sample_summaries": [
+    "final_ranked_designs/all_designs_metrics.csv",
+    "final_ranked_designs/final_designs_metrics_2.csv",
+    "intermediate_designs_inverse_folded/aggregate_metrics_analyze.csv",
+    "intermediate_designs_inverse_folded/per_target_metrics_analyze.csv"
+  ]
+}

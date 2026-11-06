@@ -1961,7 +1961,15 @@ class TestCompoundProfiles:
         assert overrides.get("hbd_limit") == 10
 
     def test_druglike_profile_fires_mw_gate_at_600da(self, tmp_path):
-        """compound_druglike: compound at 600 Da fires advisory MW gate (>500 Da)."""
+        """compound_druglike: a compound above the 500 Da Ro5 limit fires the
+        advisory high-MW gate with threshold=500.
+
+        This asserts the *intended* behaviour of the compound_druglike profile:
+        its ``compound_mw_limit=500`` override must actually gate a 563 Da
+        compound. The previous version of this test asserted only ``True`` (it
+        "ran without crashing") — a false-green that would pass even if the MW
+        gate never fired. We now assert on the collected gate/warning events.
+        """
         try:
             from rdkit import Chem
             from rdkit.Chem import Descriptors
@@ -1969,22 +1977,53 @@ class TestCompoundProfiles:
             pytest.skip("RDKit not available")
 
         def _write_heavy_smiles(d):
-            # Use a valid large SMILES (simple long chain) — just use a text file
-            # with a high-MW SMILES approximation
+            # C40 straight chain, MW ~563 Da — above druglike Ro5 (500 Da),
+            # below the default 900 Da ceiling. So it MUST be gated by the
+            # druglike profile and NOT by the default profile.
             (d / "compounds.txt").write_text(
                 "# high MW compound\n"
-                "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\n"  # C40, MW ~562 Da
+                "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\n"
             )
         h, events = _make_handler(tmp_path, "drug_discovery", {})
         # Apply compound_druglike profile via override
         from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
         overrides = NextflowQCGateHandler.get_profile_overrides("compound_druglike")
+        assert overrides.get("compound_mw_limit") == 500.0, (
+            "compound_druglike profile must set compound_mw_limit=500"
+        )
         h.qc_overrides = overrides
         _submit(h, "SMILES_QC", "ee", "00000030", tmp_path, _write_heavy_smiles)
-        # May produce advisory high_mw_count warning
-        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
-        # Test passes if no exception is raised — profile is applied without error
-        assert True  # Profile loading and gate logic ran without crashing
+
+        # Collect every MW-related gate/warning event.
+        mw_events = []
+        for typ, payload in events:
+            if typ not in ("qc_gate_triggered", "qc_warning"):
+                continue
+            for f in payload.get("failures", []) + payload.get("warnings", []):
+                if f.get("metric") == "high_mw_count":
+                    mw_events.append(f)
+
+        # A 563 Da compound under the druglike (500 Da) profile MUST fire the
+        # advisory high-MW gate, and the gate's reported threshold must be the
+        # profile's 500 Da limit — not the hardcoded 900 Da default.
+        #
+        # KNOWN BUG surfaced by this assertion (see report): _parse_smiles_metrics
+        # counts high_mw_count against a HARDCODED 900 Da limit and ignores
+        # self.qc_overrides["compound_mw_limit"], so the druglike 500 Da override
+        # never affects the COUNT — high_mw_count stays 0 for a 563 Da compound
+        # and this gate never fires. If this test fails here, the fix is in
+        # qc_trace_monitor._parse_smiles_metrics (read the override for mw_limit),
+        # NOT in this test.
+        assert mw_events, (
+            "compound_druglike profile did not fire the high-MW advisory gate "
+            "for a 563 Da compound (expected threshold=500 Da). This indicates "
+            "_parse_smiles_metrics is not honoring the compound_mw_limit override "
+            "when counting high_mw_count (it uses a hardcoded 900 Da limit)."
+        )
+        assert any(int(f.get("threshold", 0)) == 500 for f in mw_events), (
+            f"high-MW gate fired but with the wrong threshold; expected 500 Da "
+            f"(druglike Ro5), got: {[f.get('threshold') for f in mw_events]}"
+        )
 
     def test_all_new_profiles_registered(self):
         """All 5 new profiles are present in QC_NAMED_PROFILES."""
@@ -3011,3 +3050,144 @@ class TestCryoEM_ModelQuality(unittest.TestCase):
         }
         _qc_passed, failures = h._check_qc_thresholds("MOLPROBITY", metrics)
         self.assertEqual(len(failures), 0)
+
+
+# ===========================================================================
+# Mona — Untargeted LC-MS metabolomics researcher
+# Chain: xcms (peak detection/alignment) → CAMERA (annotation) → biosigner
+# Gates (all advisory): pooled-QC CV ≤ 30% (Dunn 2011 / Broadhurst 2018),
+#   feature count ≥ 500 (advisory band), missing-value fraction ≤ 20%.
+# ===========================================================================
+
+class TestMonaMetabolomics:
+    """Mona runs an untargeted LC-MS metabolomics assay through xcms/CAMERA."""
+
+    @staticmethod
+    def _write_feature_matrix(subdir: Path, n_features, qc_cv_pct, missing_pct=0.0):
+        """
+        Write an xcms-style dataMatrix.tsv with 3 pooled-QC columns and
+        3 biological sample columns. QC columns are set so the per-feature
+        CV is approximately ``qc_cv_pct``; ``missing_pct`` fraction of the
+        numeric cells are zeroed to simulate missing values.
+        """
+        import statistics as _stats
+        header = ["featureID", "QC_01", "QC_02", "QC_03", "S_01", "S_02", "S_03"]
+        rows = ["\t".join(header)]
+        # Build QC triplet with target CV around a mean of 1000.
+        # For a 3-value set, choose values (m-d, m, m+d): CV = stdev/mean.
+        mean_v = 1000.0
+        # stdev of (m-d, m, m+d) = d * sqrt(1) = d (population/sample: sample stdev = d*sqrt(1)? )
+        # sample stdev of [m-d, m, m+d] = sqrt(((d^2)+(0)+(d^2))/2) = d
+        d = (qc_cv_pct / 100.0) * mean_v
+        qc_vals = [mean_v - d, mean_v, mean_v + d]
+        # sanity: computed CV
+        _ = (_stats.stdev(qc_vals) / _stats.mean(qc_vals)) * 100.0
+        total_cells = n_features * 6  # 6 numeric columns
+        target_missing = int((missing_pct / 100.0) * total_cells)
+        missing_written = 0
+        for i in range(n_features):
+            cells = [f"feat_{i}"]
+            numeric = [qc_vals[0], qc_vals[1], qc_vals[2], 900.0, 1000.0, 1100.0]
+            # zero out cells to reach the missing target (bio columns first)
+            for j in range(len(numeric) - 1, -1, -1):
+                if missing_written < target_missing:
+                    numeric[j] = 0.0
+                    missing_written += 1
+            cells += [f"{v:.1f}" for v in numeric]
+            rows.append("\t".join(cells))
+        (subdir / "dataMatrix.tsv").write_text("\n".join(rows) + "\n")
+
+    def test_mona_good_run_no_gate(self, tmp_path):
+        """5% QC CV, 3000 features, 0% missing → no gate fires."""
+        h, events = _make_handler(tmp_path, "metabolomics")
+        _submit(h, "XCMS", "mm", "00000091", tmp_path,
+                lambda d: self._write_feature_matrix(d, 3000, 5.0, 0.0))
+        assert [e for e in events if e[0] == "qc_gate_triggered"] == []
+
+    def test_mona_high_qc_cv_fires_advisory(self, tmp_path):
+        """45% pooled-QC CV > 30% → SILVER advisory gate."""
+        h, events = _make_handler(tmp_path, "XCMS_metabolomics")
+        _submit(h, "XCMS", "mm", "00000092", tmp_path,
+                lambda d: self._write_feature_matrix(d, 2000, 45.0, 0.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        cv_fail = next((f for f in gate[0][1]["failures"]
+                        if f["metric"] == "qc_cv_median_pct"), None)
+        assert cv_fail is not None
+        assert cv_fail.get("advisory") is True
+        assert cv_fail["value"] > 30.0
+
+    def test_mona_low_feature_count_fires_bronze_advisory(self, tmp_path):
+        """120 features < 500 → BRONZE advisory gate."""
+        h, events = _make_handler(tmp_path, "metabolomics")
+        _submit(h, "CAMERA", "mm", "00000093", tmp_path,
+                lambda d: self._write_feature_matrix(d, 120, 5.0, 0.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        feat_fail = next((f for f in gate[0][1]["failures"]
+                          if f["metric"] == "feature_count"), None)
+        assert feat_fail is not None
+        assert feat_fail.get("advisory") is True
+        assert feat_fail["value"] == 120
+
+    def test_mona_high_missing_fraction_fires_advisory(self, tmp_path):
+        """~40% missing values > 20% → SILVER advisory gate."""
+        h, events = _make_handler(tmp_path, "metabolomics")
+        _submit(h, "BIOSIGNER", "mm", "00000094", tmp_path,
+                lambda d: self._write_feature_matrix(d, 1000, 5.0, 40.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        miss_fail = next((f for f in gate[0][1]["failures"]
+                          if f["metric"] == "missing_value_pct"), None)
+        assert miss_fail is not None
+        assert miss_fail.get("advisory") is True
+        assert miss_fail["value"] > 20.0
+
+    def test_mona_all_gates_advisory_do_not_block(self, tmp_path):
+        """All three metabolomics failures are advisory → qc_passed is True."""
+        h = NextflowQCGateHandler(
+            invocation_id="mona-direct", work_dir=tmp_path,
+            sse_callback=lambda t, d: None, app=Mock(),
+            workflow_domain="metabolomics",
+        )
+        metrics = {
+            "qc_cv_median_pct": 45.0,
+            "feature_count": 120,
+            "missing_value_pct": 40.0,
+        }
+        qc_passed, failures = h._check_qc_thresholds("XCMS", metrics)
+        assert qc_passed is True, "metabolomics gates are advisory — must not block"
+        assert {f["metric"] for f in failures} == {
+            "qc_cv_median_pct", "feature_count", "missing_value_pct"
+        }
+        assert all(f.get("advisory") for f in failures)
+
+    def test_mona_metaboigniter_process_routes(self, tmp_path):
+        """METABOIGNITER process name routes to metabolomics parser + verdict."""
+        h, events = _make_handler(tmp_path, "metabolomics")
+        _submit(h, "METABOIGNITER", "mm", "00000095", tmp_path,
+                lambda d: self._write_feature_matrix(d, 120, 5.0, 0.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        assert any(f["metric"] == "feature_count" for f in gate[0][1]["failures"])
+
+    def test_mona_no_files_no_gate(self, tmp_path):
+        """No metabolomics output files → parser returns None, no gate."""
+        h, events = _make_handler(tmp_path, "metabolomics")
+        _submit(h, "XCMS", "mm", "00000096", tmp_path, None)
+        assert events == []
+
+    def test_mona_json_report_metrics_parsed(self, tmp_path):
+        """Pre-computed metabolomics_report.json is parsed for all three metrics."""
+        def _writer(d):
+            (d / "metabolomics_report.json").write_text(json.dumps({
+                "qc_cv_median_pct": 42.0,
+                "feature_count": 300,
+                "missing_value_pct": 25.0,
+            }))
+        h, events = _make_handler(tmp_path, "metabolomics")
+        _submit(h, "ASICS", "mm", "00000097", tmp_path, _writer)
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        failed = {f["metric"] for f in gate[0][1]["failures"]}
+        assert failed == {"qc_cv_median_pct", "feature_count", "missing_value_pct"}

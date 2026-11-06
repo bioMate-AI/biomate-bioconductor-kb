@@ -190,7 +190,7 @@ with open("create_affine_transform_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("create_affine_transform_output.txt", "w") as f:
-    f.write("Biomni: Create Affine Transform" + NL)
+    f.write("BioMate: Create Affine Transform" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

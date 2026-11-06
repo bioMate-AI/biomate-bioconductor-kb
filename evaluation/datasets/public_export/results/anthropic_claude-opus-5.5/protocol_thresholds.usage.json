@@ -1,0 +1,16 @@
+{
+  "task": "protocol_thresholds",
+  "mode": null,
+  "model": "anthropic/claude-opus-5.5",
+  "n": 100,
+  "n_with_usage": 100,
+  "input_tokens_total": 19959,
+  "output_tokens_total": 14947,
+  "input_tokens_mean": 199.59,
+  "output_tokens_mean": 149.47,
+  "latency_ms_p50": 5829,
+  "latency_ms_p95": 8832,
+  "latency_ms_mean": 6370.49,
+  "n_with_latency": 100,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

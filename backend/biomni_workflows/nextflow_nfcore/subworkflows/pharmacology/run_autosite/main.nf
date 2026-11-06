@@ -172,7 +172,7 @@ with open("run_autosite_results.json", "w") as f:
 
 NL = chr(10)
 with open("run_autosite_output.txt", "w") as f:
-    f.write("Biomni: Run Autosite" + NL)
+    f.write("BioMate: Run Autosite" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

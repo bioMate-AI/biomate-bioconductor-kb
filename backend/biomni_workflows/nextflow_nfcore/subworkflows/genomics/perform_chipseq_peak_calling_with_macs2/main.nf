@@ -4,6 +4,11 @@
  * Perform ChIP-seq peak calling using MACS2 to identify genomic regions with significant binding.
  *
  * nf-core style module generated from tested Galaxy wrapper
+ *
+ * Quick-run demo default: with no --chip_seq_file/--control_file, falls back to the canonical
+ * MACS CTCF ChIP-seq test pair (chr22, ~50k-read single-end ChIP + matched input control, from
+ * macs3-project/MACS) and runs the SAME macs2 callpeak path on that REAL public data. Honest-fail
+ * only if the demo download fails (never fabricated peaks).
  */
 
 nextflow.enable.dsl = 2
@@ -22,22 +27,50 @@ process PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2 {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    // Peak-calling engine = MACS3 (the maintained, CLI-compatible successor to MACS2).
+    // Why not macs2: biomni-tools:x86 ships no macs2 (real Batch probe: `which macs2` empty),
+    // AND every available bioconda macs2 biocontainer (2.2.9.1 py39/py310 _5) fails at runtime
+    // with `undefined symbol: __log_finite` — their compiled .so links a glibc math alias that
+    // modern glibc dropped (verified broken on 2 builds in isolation, 2026-10-04). MACS3 is built
+    // against modern glibc; `macs3 callpeak` takes the same -t/-c/-n/-g/-q args and emits the
+    // same *_peaks.narrowPeak / *_peaks.xls / *_summits.bed. Literal directive (merfish/voyager
+    // pattern); always-on host-libz + /opt/aws-cli mounts make quay biocontainers work on Batch.
+    container 'quay.io/biocontainers/macs3:3.0.5--py312h9639c01_0'
 
     input:
-    val(meta)  // Meta information for this run
+    // ChIP (treatment) + input/control alignments are STAGED path inputs so Nextflow
+    // localises them into the task work dir — this is what makes `os.path.exists()`
+    // true inside the container and lets the pipeline actually REACH `macs2 callpeak`.
+    // Previously the process took only `val(meta)` with no staged files, so the Python
+    // body always saw chip_seq_file=None and returned early in fake "demo mode" before
+    // peak calling (root cause of "ChIP-seq did not reach peak calling").
+    tuple val(meta), path(chip_seq_file), path(control_file)
 
     output:
     tuple val(meta), path("perform_chipseq_peak_calling_with_macs2_results.json"), emit: results
     tuple val(meta), path("perform_chipseq_peak_calling_with_macs2_output.txt"), emit: output
+    // Real MACS2 peak-calling artefacts (published when callpeak succeeds).
+    tuple val(meta), path("*_peaks.narrowPeak"), emit: narrowpeak, optional: true
+    tuple val(meta), path("*_peaks.xls"),        emit: peaks_xls, optional: true
+    tuple val(meta), path("*_summits.bed"),      emit: summits,   optional: true
     path "versions.yml", emit: versions
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_CHIP_SEQ_FILE="${params.chip_seq_file?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_CONTROL_FILE="${params.control_file?.toString()?.replace('"', '\\"') ?: 'null'}"
+    # Export parameters as environment variables. The ChIP + control files are the
+    # STAGED input basenames (localised by Nextflow), NOT raw params — so they exist
+    # on disk inside the task and peak calling is reachable.
+    #
+    # The built-in demo pair (and many public ChIP/control tracks) arrive gzipped (.bed.gz).
+    # Decompress any gzipped staged input in-place with the real `gzip` tool so macs2 (-f AUTO)
+    # can read plain BED/BAM. User-supplied plain BAM/BED are left untouched (the test is false).
+    CHIP_IN="${chip_seq_file}"
+    CTRL_IN="${control_file}"
+    if [ "\${CHIP_IN##*.}" = "gz" ]; then gzip -dc "\$CHIP_IN" > "\${CHIP_IN%.gz}" && CHIP_IN="\${CHIP_IN%.gz}"; fi
+    if [ "\${CTRL_IN##*.}" = "gz" ]; then gzip -dc "\$CTRL_IN" > "\${CTRL_IN%.gz}" && CTRL_IN="\${CTRL_IN%.gz}"; fi
+    export PARAM_CHIP_SEQ_FILE="\$CHIP_IN"
+    export PARAM_CONTROL_FILE="\$CTRL_IN"
     export PARAM_OUTPUT_NAME="${params.output_name?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_GENOME_SIZE="${params.genome_size?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_Q_VALUE="${params.q_value?.toString()?.replace('"', '\\"') ?: 'null'}"
@@ -112,19 +145,20 @@ def perform_chipseq_peak_calling_with_macs2(
     log = f"ChIP-seq Peak Calling with MACS2 - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n"
     log += "=" * 80 + "\\n\\n"
 
-    # Validate input files
+    # Validate input files. These MUST exist (they are staged Nextflow path inputs).
+    # Honest-fail if absent — never fabricate "demo"/"simulated" peaks (CLAUDE.md:
+    # no fabrication; a fake success log masks a real missing-input failure).
     if chip_seq_file is None or not os.path.exists(str(chip_seq_file)):
-        log += f"Note: ChIP-seq file not provided or does not exist: {chip_seq_file}\\n"
-        log += "Running in demo mode with simulated results.\\n\\n"
-        log += "## Demo Results\\n"
-        log += "In production, provide valid BAM/BED files for actual peak calling.\\n"
-        log += "MACS2 would identify genomic regions with significant protein-DNA binding.\\n"
-        return log
+        raise FileNotFoundError(
+            f"ChIP-seq (treatment) file not found: {chip_seq_file}. "
+            "A real BAM/BED must be staged; refusing to emit fabricated demo peaks."
+        )
 
     if control_file is None or not os.path.exists(str(control_file)):
-        log += f"Note: Control file not provided or does not exist: {control_file}\\n"
-        log += "Running in demo mode with simulated results.\\n"
-        return log
+        raise FileNotFoundError(
+            f"Control/input file not found: {control_file}. "
+            "A real BAM/BED must be staged; refusing to emit fabricated demo peaks."
+        )
 
     # Create output directory if needed
     output_dir = os.path.dirname(output_name)
@@ -143,25 +177,28 @@ def perform_chipseq_peak_calling_with_macs2(
     log += f"- Genome size: {genome_size}\\n"
     log += f"- q-value cutoff: {q_value}\\n\\n"
 
-    # Check if MACS2 is installed
+    # Check the peak caller is installed. Engine = MACS3 (maintained macs2 successor; see the
+    # container directive note for why the macs2 biocontainers are unusable).
     try:
         check_process = subprocess.run(
-            ["macs2", "--version"],
+            ["macs3", "--version"],
             check=False,
             capture_output=True,
             timeout=5,
         )
-        log += f"MACS2 is available: {check_process.stdout.decode().strip() if check_process.stdout else check_process.stderr.decode().strip()}\\n\\n"
+        log += f"MACS3 (MACS2 successor) is available: {check_process.stdout.decode().strip() if check_process.stdout else check_process.stderr.decode().strip()}\\n\\n"
     except (subprocess.SubprocessError, FileNotFoundError):
-        log += "Error: MACS2 is not installed or not available in the system PATH.\\n"
-        log += "Please install MACS2 using: pip install macs2\\n"
-        return log
+        # Honest-fail: the container must provide the peak caller. Do not return a "success"
+        # log that silently skipped peak calling.
+        raise RuntimeError(
+            "MACS3 is not installed or not on PATH in this container. Peak calling cannot run."
+        )
     except Exception as e:
-        log += f"Error checking for MACS2: {str(e)}\\n"
+        log += f"Error checking for MACS3: {str(e)}\\n"
 
     # Construct MACS2 command
     macs2_cmd = [
-        "macs2",
+        "macs3",
         "callpeak",
         "-t",
         chip_seq_file,
@@ -190,10 +227,24 @@ def perform_chipseq_peak_calling_with_macs2(
         f"{output_dir_prefix}{output_name}_summits.bed",
     ]
 
+    def _run_macs(cmd):
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+
     try:
-        # Run MACS2
-        log += "Running MACS2 peak calling...\\n"
-        process = subprocess.run(macs2_cmd, capture_output=True, text=True, check=True, timeout=300)
+        # Run MACS3. Model building needs >=100 paired peaks to estimate a fragment size;
+        # single-end / sparse ChIP (including the built-in demo) can't build it. macs3 itself
+        # recommends --nomodel --extsize, so auto-fall back to that when model building fails —
+        # sparse/SE data then still produces peaks instead of hard-failing (robust for real
+        # single-end data, not a demo-only hack).
+        log += "Running MACS3 peak calling...\\n"
+        process = _run_macs(macs2_cmd)
+        if process.returncode != 0 and ("build the model" in (process.stderr or "") or "--nomodel" in (process.stderr or "")):
+            log += "Model-building could not estimate a fragment size (sparse/single-end input); retrying with --nomodel --extsize 200.\\n"
+            macs2_cmd_nomodel = macs2_cmd + ["--nomodel", "--extsize", "200"]
+            log += " ".join(macs2_cmd_nomodel) + "\\n"
+            process = _run_macs(macs2_cmd_nomodel)
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, macs2_cmd, output=process.stdout, stderr=process.stderr)
 
         # Log stdout and stderr (truncate if too long)
         stdout_text = process.stdout
@@ -295,7 +346,7 @@ with open("perform_chipseq_peak_calling_with_macs2_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("perform_chipseq_peak_calling_with_macs2_output.txt", "w") as f:
-    f.write("Biomni: Perform Chipseq Peak Calling With Macs2" + NL)
+    f.write("BioMate: Perform Chipseq Peak Calling With Macs2" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):
@@ -333,10 +384,36 @@ workflow PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2_WORKFLOW {
     versions = PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2.out.versions
 }
 
-// Entry workflow for standalone execution
+// Entry workflow for standalone execution.
+// Builds the staged [meta, chip, control] channel and REACHES macs2 callpeak.
+//
+// Built-in demo default (mirrors merfish/metaboanalystr): when no ChIP/control pair is supplied,
+// fall back to the canonical MACS CTCF ChIP-seq test pair — a single-end CTCF ChIP track plus its
+// matched input control, chr22 subset (~50k reads each) from the macs3-project/MACS repository —
+// so a param-less "quick run" works end-to-end on REAL, clearly-labeled public data. The demo
+// files are staged, decompressed in the process, and run through the SAME macs2 callpeak path.
+// Honest-fail only if the demo download itself fails (never fabricated/synthetic peaks).
 workflow {
-    // Create channel with meta map
-    ch_input = Channel.of([id: 'run'])
+    def demo        = ( !params.chip_seq_file || !params.control_file )
+    // Canonical MACS test pair — real public CTCF ChIP-seq (NA12878), chr22, ~50k single-end reads.
+    def demo_chip   = 'https://raw.githubusercontent.com/macs3-project/MACS/master/test/CTCF_SE_ChIP_chr22_50k.bed.gz'
+    def demo_ctrl   = 'https://raw.githubusercontent.com/macs3-project/MACS/master/test/CTCF_SE_CTRL_chr22_50k.bed.gz'
+    def chip_src    = demo ? demo_chip : params.chip_seq_file
+    def control_src = demo ? demo_ctrl : params.control_file
+
+    if( demo ) {
+        log.warn "[demo] no --chip_seq_file/--control_file supplied -> using canonical MACS CTCF " +
+                 "ChIP-seq demo pair (CTCF_SE_ChIP_chr22_50k + CTCF_SE_CTRL_chr22_50k, chr22 ~50k " +
+                 "reads each, macs3-project/MACS test data)"
+    }
+
+    ch_input = Channel.of(
+        tuple(
+            [ id: (params.output_name ?: (demo ? 'ctcf_demo' : 'run')) ],
+            file(chip_src,    checkIfExists: true),
+            file(control_src, checkIfExists: true)
+        )
+    )
 
     PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2_WORKFLOW(ch_input)
 

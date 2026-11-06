@@ -277,7 +277,7 @@ with open("simulate_whole_cell_ode_model_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("simulate_whole_cell_ode_model_output.txt", "w") as f:
-    f.write("Biomni: Simulate Whole Cell Ode Model" + NL)
+    f.write("BioMate: Simulate Whole Cell Ode Model" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

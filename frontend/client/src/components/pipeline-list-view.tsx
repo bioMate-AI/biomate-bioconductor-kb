@@ -25,7 +25,9 @@ export interface PipelineStep {
   workflowPath?: string
   nextflowPath?: string
   params: Record<string, any>
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'blocked' | 'submitting'
+  dependsOn?: number[]
+  dimensions?: Record<string, string>
   outputTypes?: string[]
   /** step id whose output feeds this step — also accepted as inputFrom */
   usesStepId?: string
@@ -47,6 +49,7 @@ export interface PipelineListViewProps {
   onModifyStep?: (stepId: string, message: string) => void
   onClose?: () => void
   isReadOnly?: boolean
+  chainStatus?: string
   chainRunId?: string
   /**
    * S4: Step-by-step approval gate.
@@ -110,6 +113,16 @@ function StepStatusBadge({ status }: StatusBadgeProps) {
       label: 'RUNNING',
       icon: <Loader2 className="h-3 w-3 animate-spin" />,
       className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
+    },
+    submitting: {
+      label: 'SUBMITTING',
+      icon: <Loader2 className="h-3 w-3 animate-spin" />,
+      className: 'bg-blue-100 text-blue-700 border-blue-200',
+    },
+    blocked: {
+      label: 'BLOCKED',
+      icon: <XCircle className="h-3 w-3" />,
+      className: 'bg-red-100 text-red-700 border-red-200',
     },
     completed: {
       label: 'COMPLETED',
@@ -247,8 +260,16 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showAppr
           </p>
         )}
 
+        {step.dependsOn != null && (
+          <p className="text-xs text-muted-foreground">
+            {step.dependsOn.length ? `Requires steps ${step.dependsOn.join(', ')}` : 'No prerequisite steps'}
+          </p>
+        )}
+        {step.dimensions && (
+          <p className="text-xs text-muted-foreground">{Object.entries(step.dimensions).map(([axis, value]) => `${axis}: ${value}`).join(' · ')}</p>
+        )}
         {/* Error message */}
-        {step.status === 'failed' && step.errorMessage && (
+        {(step.status === 'failed' || step.status === 'blocked') && step.errorMessage && (
           <p className="text-xs text-red-600 dark:text-red-400 mt-1 leading-snug">
             ⚠ {step.errorMessage}
           </p>
@@ -297,6 +318,7 @@ export function PipelineListView({
   onClose,
   isReadOnly = false,
   chainRunId,
+  chainStatus,
   approvalGate = false,
   onApproveStep,
 }: PipelineListViewProps) {
@@ -314,7 +336,9 @@ export function PipelineListView({
     onConfirm?.(steps)
   }
 
-  const anyRunning = steps.some(s => s.status === 'running')
+  const dependencyPlan = steps.some(step => step.dependsOn != null)
+  const submittedGraph = dependencyPlan && Boolean(chainRunId)
+  const anyRunning = steps.some(s => s.status === 'running' || s.status === 'submitting')
   const anyPending = steps.some(s => s.status === 'pending')
 
   // S4: In approval-gate mode, the "Confirm & Run" button is only shown when
@@ -323,7 +347,7 @@ export function PipelineListView({
   const confirmLabel = approvalGate && !pipelineStarted
     ? 'Confirm & Run Step 1'
     : 'Confirm & Run Pipeline'
-  const confirmDisabled = isReadOnly || anyRunning || steps.length === 0 || (approvalGate && pipelineStarted)
+  const confirmDisabled = submittedGraph || isReadOnly || anyRunning || steps.length === 0 || (approvalGate && pipelineStarted)
 
   /**
    * Build a rendering plan: group parallel steps together so we can
@@ -404,6 +428,12 @@ export function PipelineListView({
         </div>
       </div>
 
+      {dependencyPlan && !chainRunId && (
+        <p className="px-4 py-2 text-xs text-muted-foreground">
+          Confirm to run all steps. Independent steps may run concurrently; dependent steps wait for their prerequisites.
+        </p>
+      )}
+      {chainStatus && <p className="px-4 py-2 text-xs" data-testid="pipeline-parent-status">Pipeline status: {chainStatus}</p>}
       <Separator />
 
       {/* ── Step list ── */}
@@ -488,7 +518,9 @@ export function PipelineListView({
       {/* ── Footer / Confirm ── */}
       <div className="px-4 py-3 flex items-center justify-between gap-3">
         <span className="text-xs text-muted-foreground">
-          {anyRunning
+          {submittedGraph && !anyRunning
+            ? 'Plan submitted — see run status above'
+            : anyRunning
             ? 'Pipeline is running…'
             : isReadOnly
             ? 'Run in progress — edits disabled'
@@ -497,7 +529,7 @@ export function PipelineListView({
             : `${steps.length} step${steps.length !== 1 ? 's' : ''} ready`}
         </span>
         {/* S4: hide the footer run button once the pipeline has started in approval-gate mode */}
-        {!(approvalGate && pipelineStarted) && (
+        {!submittedGraph && !(approvalGate && pipelineStarted) && (
           <Button
             data-testid="pipeline-confirm-run"
             onClick={handleConfirm}

@@ -1,0 +1,16 @@
+{
+  "task": "workflow_generation",
+  "mode": null,
+  "model": "openai/gpt-6.1-sol-pro",
+  "n": 40,
+  "n_with_usage": 40,
+  "input_tokens_total": 71752,
+  "output_tokens_total": 2119,
+  "input_tokens_mean": 1793.8,
+  "output_tokens_mean": 52.975,
+  "latency_ms_p50": 4209,
+  "latency_ms_p95": 7674,
+  "latency_ms_mean": 4831.175,
+  "n_with_latency": 40,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

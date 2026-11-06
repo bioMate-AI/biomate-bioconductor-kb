@@ -1,0 +1,34 @@
+{
+ "y_norm_threshold": 1.0920406363803912,
+ "n_peptides": 7011,
+ "folds": {
+  "0": {
+   "n_held": 2881,
+   "n_held_hits": 368,
+   "n_train_after_dedup": 4121,
+   "n_sources": 1,
+   "top_source_share_of_hits": 1.0
+  },
+  "1": {
+   "n_held": 1519,
+   "n_held_hits": 157,
+   "n_train_after_dedup": 5492,
+   "n_sources": 1,
+   "top_source_share_of_hits": 1.0
+  },
+  "2": {
+   "n_held": 1306,
+   "n_held_hits": 51,
+   "n_train_after_dedup": 5413,
+   "n_sources": 19,
+   "top_source_share_of_hits": 0.333
+  },
+  "3": {
+   "n_held": 1305,
+   "n_held_hits": 131,
+   "n_train_after_dedup": 5505,
+   "n_sources": 21,
+   "top_source_share_of_hits": 0.29
+  }
+ }
+}

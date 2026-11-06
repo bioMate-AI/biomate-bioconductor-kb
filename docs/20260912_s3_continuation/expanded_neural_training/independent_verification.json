@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "checkpoints_replayed": 16,
+  "fold_gene_panels_reconstructed": 16,
+  "outer_metrics_recomputed": 36,
+  "max_prediction_difference": 1.1102230246251565e-16,
+  "independent_label_normalization": true,
+  "fit_only_gene_selection_scalers_and_attenuation_verified": true,
+  "inner_epoch_selection_verified_from_recorded_histories": true,
+  "limitations": "Inner histories were checked for selection consistency, not independently retrained. Outer held-out diagnostic metrics are logged but never used in selection. Four donors are reused across folds.",
+  "dependency_sha256": {
+    "evaluate_downstream_state.py": "24b34a9e06b4b649d1a52591903d6f62e011e7b665e13eff9d0d5c8fd8ff4e91",
+    "evaluate_baseline_state.py": "de4fbc7eaf225421219ec21dabf8cdaa38ece27e61de9816892365a55eae1e53"
+  },
+  "artifact_sha256": {
+    "train.py": "b2fe02cae566b6d57ac7821549387945b87f9c48d1787bcc81bc0ae94a06aee9",
+    "predictions.npz": "54418adaa7323632cb82361c53cac9f39e4539b085b14160162e3328c4ee55e7",
+    "results.json": "ad94f3ac746fbaa58cbdbbb0b2d9dd046a3e18f87c9f6e4195a017864a7e540b"
+  }
+}

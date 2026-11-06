@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
+  isActiveJob,
   getRunPrimaryCta,
+  getOutputReadinessHint,
   isRunNeedsAttention,
   mapRunBucket,
   type RunListItem,
@@ -92,4 +94,50 @@ describe("run-manager-utils", () => {
     })
     expect(getRunPrimaryCta(run)).toBe("Open Logs")
   })
+
+  it("does not advertise outputs for an explicitly stdout-only workflow", () => {
+    const run = buildRun({
+      execution: {
+        status: "completed",
+        artifactReadiness: {
+          meetsContract: true,
+          completionContract: {
+            mode: "stdout_only",
+            state: "stdout_only",
+            registeredOutputCount: 0,
+            meetsContract: true,
+          },
+        },
+      },
+    })
+    expect(getOutputReadinessHint(run)).toBe("completed via stdout/log output")
+    expect(getRunPrimaryCta(run)).toBe("Open Logs")
+    expect(isRunNeedsAttention(run)).toBe(false)
+  })
+
+  it("flags a generic completed run with no registered artifacts", () => {
+    const run = buildRun({
+      execution: {
+        status: "completed",
+        artifactReadiness: {
+          hasOutputs: true, // an executor hint is not a registered artifact
+          meetsContract: true,
+          completionContract: {
+            mode: "artifacts_required",
+            state: "artifact_unavailable",
+            registeredOutputCount: 0,
+            meetsContract: false,
+          },
+        },
+      },
+    })
+    expect(getOutputReadinessHint(run)).toBe("completed; result artifacts unavailable")
+    expect(getRunPrimaryCta(run)).toBe("Open Logs")
+    expect(isRunNeedsAttention(run)).toBe(true)
+  })
+})
+
+it('keeps terminal history and unstarted drafts out of Running jobs', () => {
+  for (const status of ['running', 'queued', 'paused', 'submitted']) expect(isActiveJob(buildRun({ execution: { status } }))).toBe(true)
+  for (const status of ['completed', 'failed', 'cancelled', 'configuring', 'unknown']) expect(isActiveJob(buildRun({ execution: { status } }))).toBe(false)
 })

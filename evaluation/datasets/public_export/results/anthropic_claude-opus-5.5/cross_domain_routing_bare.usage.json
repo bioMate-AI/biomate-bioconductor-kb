@@ -1,0 +1,16 @@
+{
+  "task": "cross_domain_routing",
+  "mode": "bare",
+  "model": "anthropic/claude-opus-5.5",
+  "n": 200,
+  "n_with_usage": 186,
+  "input_tokens_total": 32357,
+  "output_tokens_total": 26286,
+  "input_tokens_mean": 173.96236559139786,
+  "output_tokens_mean": 141.32258064516128,
+  "latency_ms_p50": 5430,
+  "latency_ms_p95": 9850,
+  "latency_ms_mean": 5618.67,
+  "n_with_latency": 200,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

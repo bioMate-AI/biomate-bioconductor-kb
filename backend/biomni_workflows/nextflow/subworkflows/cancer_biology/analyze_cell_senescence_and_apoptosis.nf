@@ -48,7 +48,7 @@ with open("analyze_cell_senescence_and_apoptosis_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_cell_senescence_and_apoptosis_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cell Senescence And Apoptosis Results" + NL)
+    f.write("BioMate: Analyze Cell Senescence And Apoptosis Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

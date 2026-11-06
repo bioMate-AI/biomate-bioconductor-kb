@@ -16,8 +16,9 @@
  *   download → download link for unknown binary formats
  */
 
+import { t } from "@/lib/i18n";
 import { useState, useEffect, useRef } from "react";
-import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop } from "lucide-react";
+import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop, Maximize2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { DensityMapViewer } from "./viewers/density-map-viewer";
@@ -25,6 +26,13 @@ import { FscCurveChart } from "./viewers/fsc-curve-chart";
 import { MotionHistogramChart } from "./viewers/motion-histogram-chart";
 import { CtfQualityChart } from "./viewers/ctf-quality-chart";
 import { InteractiveLauncher } from "./interactive-launcher";
+import { TableGrid, InlineTextViewer, InlineTableViewer } from "./file-content-view";
+import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
+import { PlddtChart } from "./viewers/plddt-chart";
+import { SeqTracks, type SeqTrack, type FlaggedInterval } from "./viewers/seq-tracks";
+import { HitGrid, type ChemHit, type HitVerdict } from "./viewers/hit-grid";
+import { PaeHeatmap } from "./viewers/pae-heatmap";
+import { SingleCellSummaryPanel } from "./viewers/single-cell-summary";
 // 3Dmol.js loaded dynamically inside InlineStructureViewer so the structure
 // path doesn't pull ~700 KB into the main bundle.
 
@@ -34,12 +42,24 @@ import { InteractiveLauncher } from "./interactive-launcher";
 
 export interface StepOutputPreviewProps {
   runId: string;
-  file: { name: string; path: string; extension: string };
+  file: { name: string; path: string; extension: string; size?: number };
   onClose: () => void;
   /**
    * Optional project ID threaded through from callers with project context.
    */
   projectId?: string | null;
+  /**
+   * Optional "Open full step view" affordance. When provided, a button is shown
+   * in the preview header that opens the step-as-object surface (StepDetail):
+   * provenance, resolved params with origin badges, and a rendered ⇄ raw toggle.
+   */
+  onOpenFullStepView?: () => void;
+  /**
+   * Optional max-height class for the text/table inline viewers. Defaults to the
+   * compact run-output height; a larger preview surface (e.g. the Outputs modal
+   * pane) passes a taller value like "max-h-[70vh]".
+   */
+  maxHClass?: string;
 }
 
 interface FetchedContent {
@@ -104,13 +124,40 @@ function pickInteractiveTool(ext: string): {
 } {
   const e = ext.toLowerCase().replace(/^\./, '');
   if (SINGLECELL_EXTS.has(e))
-    return { tool: 'cellxgene', label: 'Explore in CellxGene' };
+    return { tool: 'cellxgene', label: t('preview.explore_cellxgene') };
   if (R_EXTS.has(e) || e === 'rda')
-    return { tool: 'rstudio', label: 'Open in RStudio' };
+    return { tool: 'rstudio', label: t('preview.open_rstudio') };
   if (TABLE_EXTS.has(e))
-    return { tool: 'rstudio', label: 'Analyze in RStudio' };
+    return { tool: 'rstudio', label: t('preview.analyze_rstudio') };
   // sequences, annotations, VCF, text — Jupyter is the universal fallback
-  return { tool: 'jupyter', label: 'Open in Jupyter' };
+  return { tool: 'jupyter', label: t('preview.open_jupyter') };
+}
+
+/** Download URL for a step output — the honest fallback when the matching
+ *  interactive tool isn't provisioned in this environment. */
+function stepFileDownloadUrl(runId: string, file: { name: string; path: string }): string {
+  return `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
+}
+
+/** Shown in place of an "Open in <tool>" button when that interactive tool
+ *  isn't launchable here (it would 400). Offers the download instead of a dead
+ *  button, so the user can analyze the file locally. */
+function InteractiveUnavailableNote({
+  runId, file, toolLabel,
+}: { runId: string; file: { name: string; path: string }; toolLabel: string }) {
+  return (
+    <div className="flex flex-col gap-2" data-testid="interactive-unavailable">
+      <p className="text-xs text-muted-foreground">
+        {toolLabel} isn’t enabled in this environment. Download the file to analyze it locally.
+      </p>
+      <a href={stepFileDownloadUrl(runId, file)} download={file.name}>
+        <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs">
+          <Download className="h-3.5 w-3.5" />
+          {t('preview.download_file', { name: file.name })}
+        </Button>
+      </a>
+    </div>
+  );
 }
 
 /** Viewers that need text content (not a blob URL). */
@@ -134,112 +181,9 @@ const SELF_FETCHING: ViewerKind[] = ['density', 'r-object', 'singlecell'];
 //   ...
 // ---------------------------------------------------------------------------
 
-function parseStar(text: string): { headers: string[]; rows: string[][] } | null {
-  const lines = text.split('\n');
-  const headers: string[] = [];
-  let inLoop = false;
-  let dataStartIdx = -1;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (line === 'loop_') { inLoop = true; continue; }
-    if (inLoop && line.startsWith('_')) {
-      // "_rlnColumnName #N" — take just the column name, strip leading _
-      headers.push(line.split(/\s+/)[0].slice(1));
-    } else if (inLoop && headers.length > 0 && line && !line.startsWith('#') && !line.startsWith('data_')) {
-      dataStartIdx = i;
-      break;
-    }
-  }
-
-  if (headers.length === 0 || dataStartIdx < 0) return null;
-
-  const rows: string[][] = [];
-  for (let i = dataStartIdx; i < lines.length && rows.length < 200; i++) {
-    const line = lines[i].trim();
-    if (!line || line.startsWith('#') || line.startsWith('data_') || line.startsWith('loop_') || line.startsWith('_')) continue;
-    rows.push(line.split(/\s+/));
-  }
-
-  return rows.length > 0 ? { headers, rows } : null;
-}
-
-// ---------------------------------------------------------------------------
-// Inline table viewer (CSV / TSV / JSON / STAR)
-// ---------------------------------------------------------------------------
-
-function InlineTableViewer({ text, ext }: { text: string; ext: string }) {
-  const lines = text.trim().split('\n').filter(Boolean);
-  if (lines.length === 0) return <p className="text-xs text-muted-foreground">Empty file</p>;
-
-  // STAR / RELION format (used by CryoSPARC and RELION for particle tables)
-  if (ext === 'star' || (text.includes('loop_') && text.includes('_rln'))) {
-    const star = parseStar(text);
-    if (star) {
-      return (
-        <>
-          <p className="text-[10px] text-muted-foreground mb-1">STAR/RELION format · {star.rows.length} particles shown</p>
-          <TableGrid headers={star.headers} rows={star.rows} totalRows={star.rows.length} />
-        </>
-      );
-    }
-  }
-
-  // JSON array
-  const trimmed = text.trim();
-  if (trimmed.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(trimmed) as Record<string, unknown>[];
-      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
-        const headers = Object.keys(parsed[0]);
-        const rows = parsed.slice(0, 200).map(item =>
-          headers.map(h => item[h] != null ? String(item[h]) : '')
-        );
-        return <TableGrid headers={headers} rows={rows} totalRows={parsed.length} />;
-      }
-    } catch { /* fall through */ }
-  }
-
-  // Delimiter detection (CSV / TSV)
-  const firstLine = lines[0];
-  const tabCount   = (firstLine.match(/\t/g)  || []).length;
-  const commaCount = (firstLine.match(/,/g)   || []).length;
-  const delimiter  = tabCount >= commaCount ? '\t' : ',';
-  const headers = firstLine.split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
-  const rows = lines.slice(1, 201).map(l => l.split(delimiter).map(c => c.trim().replace(/^"|"$/g, '')));
-
-  return <TableGrid headers={headers} rows={rows} totalRows={lines.length - 1} />;
-}
-
-function TableGrid({ headers, rows, totalRows }: { headers: string[]; rows: string[][]; totalRows: number }) {
-  return (
-    <div className="overflow-auto max-h-64 rounded border text-xs font-mono">
-      <table className="min-w-full">
-        <thead className="sticky top-0 bg-muted">
-          <tr>
-            {headers.map((h, i) => (
-              <th key={i} className="px-2 py-1 text-left font-semibold whitespace-nowrap border-b">{h || `Col ${i + 1}`}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, ri) => (
-            <tr key={ri} className="hover:bg-muted/40 border-b last:border-0">
-              {headers.map((_, ci) => (
-                <td key={ci} className="px-2 py-0.5 max-w-[180px] truncate" title={row[ci]}>{row[ci] ?? ''}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {totalRows > 200 && (
-        <p className="text-[10px] text-muted-foreground px-2 py-1">
-          Showing first 200 of {totalRows} rows
-        </p>
-      )}
-    </div>
-  );
-}
+// parseStar, InlineTableViewer, fmtCell, TableGrid and InlineTextViewer now live
+// in ./file-content-view (shared with the files-module dataset preview) and are
+// imported at the top of this file.
 
 // ---------------------------------------------------------------------------
 // Image viewer with click-to-zoom lightbox
@@ -352,31 +296,7 @@ function InlineAnnotationViewer({ text, ext }: { text: string; ext: string }) {
 // Text viewer with tail toggle (log files are useful from the end)
 // ---------------------------------------------------------------------------
 
-function InlineTextViewer({ text }: { text: string }) {
-  const cleanText = stripAnsi(text);
-  const lines = cleanText.split('\n');
-  const [showTail, setShowTail] = useState(lines.length > 50);
-  const displayed = showTail ? lines.slice(-80).join('\n') : cleanText;
-  return (
-    <div>
-      {lines.length > 50 && (
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] text-muted-foreground">{lines.length} lines total</span>
-          <button
-            onClick={() => setShowTail(t => !t)}
-            className="text-[10px] text-primary flex items-center gap-0.5 hover:underline"
-          >
-            {showTail ? <><ChevronDown className="h-3 w-3" />Show from start</> : <><ChevronUp className="h-3 w-3" />Show tail (last 80 lines)</>}
-          </button>
-        </div>
-      )}
-      <pre className={cn("text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap")}>
-        {showTail && lines.length > 80 && <span className="text-muted-foreground italic">… {lines.length - 80} lines above …{'\n'}</span>}
-        {displayed}
-      </pre>
-    </div>
-  );
-}
+// InlineTextViewer now lives in ./file-content-view (imported above).
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -394,7 +314,7 @@ function DensityPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -424,7 +344,9 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [summary, setSummary] = useState<RdsSummary | null>(null);
   const [sidecarTried, setSidecarTried] = useState(false);
-  const output = { id: file.path, name: file.name, size: 0, type: file.extension };
+  const { data: itAvail } = useInteractiveToolsAvailable();
+  const rstudioAvailable = !itAvail || itAvail.tools.rstudio; // optimistic until known
+  const output = { id: file.path, name: file.name, size: file.size ?? 0, type: file.extension };
 
   // Try to fetch the sidecar produced alongside the .rds (best-effort, graceful).
   useEffect(() => {
@@ -459,7 +381,7 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -492,26 +414,40 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
         </p>
       )}
 
-      <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => setLauncherOpen(true)}>
-        <Laptop className="h-3.5 w-3.5" />
-        Open in RStudio
-      </Button>
-      <InteractiveLauncher
-        open={launcherOpen}
-        onOpenChange={setLauncherOpen}
-        outputs={[output]}
-        initialTool="rstudio"
-      />
+      {rstudioAvailable ? (
+        <>
+          <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => setLauncherOpen(true)}>
+            <Laptop className="h-3.5 w-3.5" />
+            Open in RStudio
+          </Button>
+          <InteractiveLauncher
+            open={launcherOpen}
+            onOpenChange={setLauncherOpen}
+            outputs={[output]}
+            initialTool="rstudio"
+          />
+        </>
+      ) : (
+        <InteractiveUnavailableNote runId={runId} file={file} toolLabel="RStudio" />
+      )}
     </div>
   );
 }
 
 /** Single-cell AnnData / Loom preview — binary format; cannot be read inline.
  *  Offers CellxGene (ideal for .h5ad / .loom) and Jupyter as fallback. */
-function SingleCellPreview({ runId: _runId, file, onClose }: StepOutputPreviewProps) {
+function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [launcherTool, setLauncherTool] = useState<'cellxgene' | 'jupyter'>('cellxgene');
-  const output = { id: file.path, name: file.name, size: 0, type: file.extension };
+  // Whether the in-app summary sidecar is missing (→ interactive/download is the
+  // primary path); starts false so we don't flash a fallback before it loads.
+  const [summaryAbsent, setSummaryAbsent] = useState(false);
+  const { data: itAvail } = useInteractiveToolsAvailable();
+  // Optimistic until availability is known; hide a tool once known-unavailable.
+  const cellxgeneAvailable = !itAvail || itAvail.tools.cellxgene;
+  const jupyterAvailable = !itAvail || itAvail.tools.jupyter;
+  const anyAvailable = cellxgeneAvailable || jupyterAvailable;
+  const output = { id: file.path, name: file.name, size: file.size ?? 0, type: file.extension };
 
   const openWith = (tool: 'cellxgene' | 'jupyter') => {
     setLauncherTool(tool);
@@ -525,29 +461,48 @@ function SingleCellPreview({ runId: _runId, file, onClose }: StepOutputPreviewPr
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        Single-cell AnnData / Loom object — open interactively to explore.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => openWith('cellxgene')}>
-          <Laptop className="h-3.5 w-3.5" />
-          Explore in CellxGene
-        </Button>
-        <Button size="sm" variant="ghost" className="gap-1.5 h-7 text-xs" onClick={() => openWith('jupyter')}>
-          <Laptop className="h-3.5 w-3.5" />
-          Open in Jupyter
-        </Button>
-      </div>
-      <InteractiveLauncher
-        open={launcherOpen}
-        onOpenChange={setLauncherOpen}
-        outputs={[output]}
-        initialTool={launcherTool}
-      />
+
+      {/* In-app summary (UMAP + clusters + markers) from the pipeline's sidecar,
+          when present. Self-hides and calls onAbsent when there's no sidecar. */}
+      <SingleCellSummaryPanel runId={runId} file={file} onAbsent={() => setSummaryAbsent(true)} />
+
+      {/* Deeper exploration (secondary when the summary is shown) / fallback. */}
+      {anyAvailable ? (
+        <div className="mt-3">
+          <p className="text-[11px] text-muted-foreground mb-1">
+            {summaryAbsent ? 'Single-cell object — open interactively to explore.' : 'Explore interactively:'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {cellxgeneAvailable && (
+              <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => openWith('cellxgene')}>
+                <Laptop className="h-3.5 w-3.5" />
+                {t('preview.explore_cellxgene')}
+              </Button>
+            )}
+            {jupyterAvailable && (
+              <Button size="sm" variant="ghost" className="gap-1.5 h-7 text-xs" onClick={() => openWith('jupyter')}>
+                <Laptop className="h-3.5 w-3.5" />
+                {t('preview.open_jupyter')}
+              </Button>
+            )}
+          </div>
+          <InteractiveLauncher
+            open={launcherOpen}
+            onOpenChange={setLauncherOpen}
+            outputs={[output]}
+            initialTool={launcherTool}
+          />
+        </div>
+      ) : summaryAbsent ? (
+        // No in-app summary AND no interactive tool → offer the download.
+        <div className="mt-3">
+          <InteractiveUnavailableNote runId={runId} file={file} toolLabel="Interactive viewers (CellxGene/Jupyter)" />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -594,7 +549,116 @@ function CryoChartPreview({ runId, file, onClose, projectId, chartType }: StepOu
   );
 }
 
-export function StepOutputPreview({ runId, file, onClose, projectId }: StepOutputPreviewProps) {
+/**
+ * Detect DL-model JSON sidecar outputs that carry a domain-specific evidence
+ * payload (genomic score tracks, ranked chemical hits). These follow the same
+ * convention as the CryoEM JSON reports: a well-known filename suffix names the
+ * viewer, and the JSON body IS the viewer's data contract (Spec 08 §8.5 —
+ * "domain-specific outputs use their own viewers within these classes").
+ */
+function resolveDlJsonViewer(fileName: string): 'seq-tracks' | 'hit-grid' | 'pae' | null {
+  const n = fileName.toLowerCase();
+  if (n.includes('seqtracks') || n.includes('seq_tracks') || n.includes('_tracks')) return 'seq-tracks';
+  if (n.includes('hitgrid') || n.includes('hit_grid') || n.includes('_hits')) return 'hit-grid';
+  // Predicted-structure PAE sidecars (AlphaFold/Boltz/ColabFold): *_pae.json,
+  // predicted_aligned_error.json.
+  if (n.includes('pae') || n.includes('predicted_aligned_error')) return 'pae';
+  return null;
+}
+
+// Normalise the various PAE JSON shapes to an n×n matrix. AlphaFold/ColabFold
+// emit {predicted_aligned_error}, {pae}, or a single-element list wrapping one
+// of those; anything else yields [] and PaeHeatmap shows its honest empty state.
+function normalizePae(data: any): number[][] {
+  if (!data) return [];
+  const src = Array.isArray(data) ? data[0] : data;
+  const m = src?.predicted_aligned_error ?? src?.pae ?? null;
+  return Array.isArray(m) && Array.isArray(m[0]) ? (m as number[][]) : [];
+}
+
+// The WS1 hit verdicts are open strings; narrow to the viewer's union, default "held".
+const HIT_VERDICTS: HitVerdict[] = ['accepted', 'flagged', 'rejected', 'held'];
+function toHitVerdict(v: unknown): HitVerdict {
+  return typeof v === 'string' && (HIT_VERDICTS as string[]).includes(v) ? (v as HitVerdict) : 'held';
+}
+
+/**
+ * Fetches a DL-domain JSON output and renders the matching evidence viewer.
+ * The viewers own their honest empty states, so a malformed / empty body shows
+ * "no data" rather than a fabricated result.
+ */
+function DlJsonPreview({ runId, file, onClose, viewerKind }: StepOutputPreviewProps & {
+  viewerKind: 'seq-tracks' | 'hit-grid' | 'pae'
+}) {
+  const [data, setData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(stepFileUrl)
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(e => { if (!cancelled) setError(String(e)); });
+    return () => { cancelled = true; };
+  }, [stepFileUrl]);
+
+  // Normalise the JSON body to the viewer's prop contract. Missing arrays
+  // become empty — the viewer renders its own honest empty state.
+  const tracks: SeqTrack[] = viewerKind === 'seq-tracks'
+    ? (Array.isArray(data?.tracks) ? data.tracks : [])
+    : [];
+  const flagged: FlaggedInterval[] = viewerKind === 'seq-tracks'
+    ? (Array.isArray(data?.flagged) ? data.flagged : [])
+    : [];
+  const hits: ChemHit[] = viewerKind === 'hit-grid' && Array.isArray(data?.hits)
+    ? data.hits.map((h: any) => ({
+        id: String(h.id ?? ''),
+        smiles: h.smiles,
+        // A held/unscored hit has no measured score — keep it null (NOT 0) so
+        // HitGrid sorts it as unranked rather than as the worst real score.
+        score: typeof h.score === 'number' ? h.score : null,
+        confidence: h.confidence,
+        herg: h.herg ?? '—',
+        drugLike: h.drugLike ?? '—',
+        verdict: toHitVerdict(h.verdict),
+      }))
+    : [];
+
+  return (
+    <div className="mt-2" data-testid="dl-json-preview">
+      <div className="flex items-center justify-between mb-2 gap-2 px-1">
+        <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      {error && <p className="text-xs text-destructive">{t('preview.failed', { error })}</p>}
+      {data && viewerKind === 'seq-tracks' && (
+        <SeqTracks
+          locus={typeof data.locus === 'string' ? data.locus : 'user-supplied'}
+          tracks={tracks}
+          flagged={flagged}
+          bp={typeof data.bp === 'number' ? data.bp : undefined}
+        />
+      )}
+      {data && viewerKind === 'hit-grid' && (
+        <HitGrid
+          hits={hits}
+          modelName={typeof data.modelName === 'string' ? data.modelName : undefined}
+          modelId={typeof data.modelId === 'string' ? data.modelId : undefined}
+        />
+      )}
+      {data && viewerKind === 'pae' && (
+        <PaeHeatmap pae={normalizePae(data)} />
+      )}
+    </div>
+  );
+}
+
+export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullStepView, maxHClass }: StepOutputPreviewProps) {
   const ext = file.extension.toLowerCase().replace(/^\./, '');
   const viewer = resolveViewer(ext);
 
@@ -619,13 +683,18 @@ export function StepOutputPreview({ runId, file, onClose, projectId }: StepOutpu
     if (chartType) {
       return <CryoChartPreview runId={runId} file={file} onClose={onClose} projectId={projectId} chartType={chartType} />;
     }
+    // DL-model JSON sidecars (genomic tracks / ranked chemical hits).
+    const dlKind = resolveDlJsonViewer(file.name);
+    if (dlKind) {
+      return <DlJsonPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewerKind={dlKind} />;
+    }
   }
 
-  return <FetchingPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewer={viewer} ext={ext} />;
+  return <FetchingPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewer={viewer} ext={ext} onOpenFullStepView={onOpenFullStepView} maxHClass={maxHClass} />;
 }
 
 function FetchingPreview({
-  runId, file, onClose, projectId, viewer, ext,
+  runId, file, onClose, projectId, viewer, ext, onOpenFullStepView, maxHClass,
 }: StepOutputPreviewProps & { viewer: ViewerKind; ext: string }) {
   const [content, setContent] = useState<FetchedContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -689,7 +758,20 @@ function FetchingPreview({
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          {onOpenFullStepView && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 px-1.5 shrink-0 text-[11px]"
+              onClick={onOpenFullStepView}
+              data-testid="open-full-step-view"
+              title={t('preview.full_step_view_tip')}
+            >
+              <Maximize2 className="h-3 w-3" />
+              {t('preview.full_step_view')}
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -698,62 +780,22 @@ function FetchingPreview({
       {loading && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading preview…
+          {t('preview.loading')}
         </div>
       )}
       {error && (
         <div className="text-xs text-destructive bg-destructive/10 rounded p-2">
-          Failed to load file: {error}
+          {t('preview.failed', { error })}
         </div>
       )}
       {!loading && !error && content && (
-        <ViewerContent viewer={viewer} content={content} file={file} ext={ext} />
+        <ViewerContent viewer={viewer} content={content} file={file} ext={ext} maxHClass={maxHClass} />
       )}
 
-      {/* Secondary action: open in the appropriate interactive tool.
-          Shown for table/text/sequence/annotation/vcf viewers — all file types
-          a biologist might want to analyse further. Image, PDF, structure,
-          and density viewers are excluded (not useful in Jupyter/RStudio). */}
-      {(['table', 'text', 'sequence', 'annotation', 'vcf'] as ViewerKind[]).includes(viewer)
-        && !loading && !error && (() => {
-          const { tool, label } = pickInteractiveTool(ext);
-          return (
-            <div className="mt-2 pt-2 border-t flex items-center gap-2 flex-wrap">
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 h-7 text-xs"
-                onClick={() => { setLauncherTool(tool); setLauncherOpen(true); }}
-              >
-                <Laptop className="h-3.5 w-3.5" />
-                {label}
-              </Button>
-              {tool !== 'jupyter' && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="gap-1.5 h-7 text-xs"
-                  onClick={() => { setLauncherTool('jupyter'); setLauncherOpen(true); }}
-                  data-tool="jupyter"
-                >
-                  <Laptop className="h-3.5 w-3.5" />
-                  Open in Jupyter
-                </Button>
-              )}
-              <span className="text-[10px] text-muted-foreground">Opens with this file pre-loaded</span>
-            </div>
-          );
-        })()
-      }
-
-      {(['table', 'text', 'sequence', 'annotation', 'vcf'] as ViewerKind[]).includes(viewer) && (
-        <InteractiveLauncher
-          open={launcherOpen}
-          onOpenChange={setLauncherOpen}
-          outputs={[{ id: file.path, name: file.name, size: 0, type: file.extension }]}
-          initialTool={launcherTool}
-        />
-      )}
+      {/* Per-file "Open in Jupyter / Analyze in RStudio" buttons removed
+          2026-10-20 (UI refinement): too much per row. Interactive sessions
+          launch once from the "Interactive panel" button at the top of the
+          output list, where files are selected — not per preview. */}
     </div>
   );
 }
@@ -763,12 +805,13 @@ function FetchingPreview({
 // ---------------------------------------------------------------------------
 
 function ViewerContent({
-  viewer, content, file, ext,
+  viewer, content, file, ext, maxHClass,
 }: {
   viewer: ViewerKind;
   content: FetchedContent;
   file: { name: string; path: string; extension: string };
   ext: string;
+  maxHClass?: string;
 }) {
   switch (viewer) {
     case 'image':
@@ -787,12 +830,37 @@ function ViewerContent({
       );
 
     case 'html':
+      // FIX #9.3 — a 256px iframe sandboxed with ONLY `allow-scripts` renders
+      // JS-driven pipeline reports (Nextflow dag.html / report.html, MultiQC)
+      // as a blank box: they need same-origin storage/XHR and a usable height.
+      // We deliberately do NOT add `allow-same-origin`: `content.url` is a
+      // blob: URL minted from the app's own origin, so a sandboxed iframe with
+      // allow-scripts + allow-same-origin would inherit THIS app's origin and
+      // let arbitrary report HTML read our cookies / localStorage / call our
+      // credentialed APIs (stored-XSS). Instead we open the full report in a
+      // new top-level tab (isolated browsing context, rel="noopener noreferrer"
+      // severs window.opener), which also gives the report real screen space —
+      // a 256px pane could never usefully display a full Nextflow report.
       return (
-        <iframe src={content.url} sandbox="allow-scripts" className="w-full h-64 border rounded" title={file.name} />
+        <div className="w-full border rounded p-4 flex flex-col items-center gap-2 bg-muted/40 text-center">
+          <ExternalLink className="h-5 w-5 text-muted-foreground" />
+          <div className="text-xs text-muted-foreground max-w-xs">
+            This is an interactive HTML report. Open it in a new tab for the full view.
+          </div>
+          <a
+            href={content.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Open full report in a new tab
+          </a>
+        </div>
       );
 
     case 'table':
-      return content.text != null ? <InlineTableViewer text={content.text} ext={ext} /> : null;
+      return content.text != null ? <InlineTableViewer text={content.text} ext={ext} maxHClass={maxHClass} /> : null;
 
     case 'sequence':
       return content.text != null ? <InlineSequenceViewer text={content.text} /> : null;
@@ -812,7 +880,7 @@ function ViewerContent({
     }
 
     case 'text':
-      return content.text != null ? <InlineTextViewer text={content.text} /> : null;
+      return content.text != null ? <InlineTextViewer text={content.text} maxHClass={maxHClass} /> : null;
 
     case 'density':
       // Handled above in the self-fetching early-return path; unreachable here.
@@ -823,7 +891,7 @@ function ViewerContent({
       return (
         <a href={content.url} download={file.name} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
           <Download className="h-3.5 w-3.5" />
-          Download {file.name}
+          {t('preview.download_file', { name: file.name })}
         </a>
       );
   }
@@ -831,20 +899,71 @@ function ViewerContent({
 
 
 /**
+ * Parse per-residue pLDDT from a PDB's B-factor column.
+ *
+ * Spec 14 §14.2: a predicted structure carries "pLDDT in the B-factor column".
+ * AlphaFold/ESMFold/Boltz write the per-residue confidence (0–100) into the
+ * temperature-factor field of every atom. We read the CA (alpha-carbon) atom of
+ * each residue — one representative value per residue, in residue order.
+ *
+ * PDB ATOM record fixed columns (0-based):
+ *   [12:16] atom name · [17:20] resName · [22:26] resSeq · [60:66] tempFactor
+ *
+ * Returns [] when the file is not a per-residue-confidence PDB (no CA B-factors,
+ * or values outside the 0–100 pLDDT range) — the caller then shows no chart
+ * rather than a fabricated one.
+ */
+export function parsePlddtFromPdb(text: string): number[] {
+  const out: number[] = [];
+  const seen = new Set<string>();
+  for (const line of text.split('\n')) {
+    if (!line.startsWith('ATOM') && !line.startsWith('HETATM')) continue;
+    const atomName = line.slice(12, 16).trim();
+    if (atomName !== 'CA') continue;
+    const chain = line.slice(21, 22);
+    const resSeq = line.slice(22, 27).trim(); // include insertion code column
+    const key = `${chain}:${resSeq}`;
+    if (seen.has(key)) continue; // one value per residue (skip altlocs)
+    const b = parseFloat(line.slice(60, 66));
+    if (!Number.isFinite(b)) continue;
+    seen.add(key);
+    out.push(b);
+  }
+  if (out.length === 0) return [];
+  // pLDDT is 0–100. If every value is outside that band (e.g. a crystal
+  // structure's real temperature factors), it is not a confidence column — do
+  // not present it as one.
+  const inBand = out.every((v) => v >= 0 && v <= 100);
+  return inBand ? out : [];
+}
+
+/**
  * InlineStructureViewer — 3Dmol.js rendering of PDB / mmCIF text content
  * fetched by the parent. Dynamic import keeps 3Dmol out of the main bundle.
  * Falls back to a text dump when WebGL or 3Dmol init fails.
+ *
+ * When the file is a predicted structure (per-residue pLDDT in the B-factor
+ * column) it renders the PlddtChart beside the 3D view (Spec 08 §8.5 — "a
+ * predicted structure opens the 3D view with its per-residue confidence
+ * chart"). Clicking a residue in the chart centres the 3D view on it: chart
+ * selection and structure selection are one selection, not two.
  */
 function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // 3Dmol viewer instance, kept so the pLDDT chart's residue click can drive it.
+  const viewerRef = useRef<any>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'fallback'>('loading');
   const [style, setStyle] = useState<'cartoon' | 'stick' | 'sphere' | 'line'>('cartoon');
+
+  const format = ext === 'cif' || ext === 'mmcif' ? 'cif' : 'pdb';
+  // pLDDT only lives in the B-factor column of PDB-format predicted structures.
+  const plddt = format === 'pdb' ? parsePlddtFromPdb(text) : [];
+  const hasConfidence = plddt.length > 0;
 
   useEffect(() => {
     if (!containerRef.current || !text) return;
     let cancelled = false;
     const container = containerRef.current;
-    const format = ext === 'cif' || ext === 'mmcif' ? 'cif' : 'pdb';
 
     import('3dmol')
       .then((mod) => {
@@ -864,6 +983,7 @@ function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
           viewer.setStyle({}, styleObj[style]);
           viewer.zoomTo();
           viewer.render();
+          viewerRef.current = viewer;
           (container as HTMLDivElement & { __viewer?: unknown }).__viewer = viewer;
           setStatus('ready');
         } catch (e) {
@@ -876,19 +996,36 @@ function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
         if (!cancelled) setStatus('fallback');
       });
 
-    return () => { cancelled = true; };
-  }, [text, ext, style]);
+    return () => { cancelled = true; viewerRef.current = null; };
+  }, [text, ext, style, format]);
+
+  // Centre the 3D view on a residue when the pLDDT chart fires a selection.
+  const centreOnResidue = (residue: number) => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    try {
+      const sel = { resi: residue };
+      // Highlight the selected residue as sticks over the base cartoon so the
+      // centred position is legible, then zoom the camera to it.
+      viewer.setStyle({}, { cartoon: { color: 'spectrum' } });
+      viewer.setStyle(sel, { cartoon: { color: 'spectrum' }, stick: { radius: 0.2, color: 'orange' } });
+      viewer.zoomTo(sel);
+      viewer.render();
+    } catch (e) {
+      console.warn('[InlineStructureViewer] centreOnResidue failed:', e);
+    }
+  };
 
   if (status === 'fallback') {
     return (
-      <pre className="text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap">
+      <pre className="text-xs font-mono bg-muted p-2 rounded max-h-40 overflow-auto whitespace-pre-wrap">
         {text.slice(0, 4000)}{text.length > 4000 ? '\n…' : ''}
       </pre>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid="inline-structure-viewer" data-has-confidence={hasConfidence ? 'true' : 'false'}>
       <div className="flex items-center gap-1">
         <span className="text-xs text-muted-foreground mr-1">Style:</span>
         {(['cartoon', 'stick', 'sphere', 'line'] as const).map((s) => (
@@ -911,6 +1048,9 @@ function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
         className="w-full bg-white rounded border"
         style={{ height: 320, position: 'relative' }}
       />
+      {hasConfidence && (
+        <PlddtChart plddt={plddt} onSelectResidue={centreOnResidue} />
+      )}
     </div>
   );
 }

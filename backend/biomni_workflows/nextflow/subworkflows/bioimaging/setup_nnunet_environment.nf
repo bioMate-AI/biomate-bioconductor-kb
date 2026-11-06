@@ -52,7 +52,7 @@ with open("setup_nnunet_environment_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("setup_nnunet_environment_output.txt", "w") as f:
-    f.write("Biomni: Setup Nnunet Environment Results" + NL)
+    f.write("BioMate: Setup Nnunet Environment Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

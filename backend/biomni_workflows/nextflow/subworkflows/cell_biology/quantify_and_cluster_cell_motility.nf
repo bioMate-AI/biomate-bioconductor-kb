@@ -52,7 +52,7 @@ with open("quantify_and_cluster_cell_motility_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("quantify_and_cluster_cell_motility_output.txt", "w") as f:
-    f.write("Biomni: Quantify And Cluster Cell Motility Results" + NL)
+    f.write("BioMate: Quantify And Cluster Cell Motility Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

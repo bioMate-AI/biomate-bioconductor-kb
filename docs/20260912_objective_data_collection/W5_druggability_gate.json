@@ -1,0 +1,963 @@
+{
+  "summary": {
+    "workstream": "W5",
+    "role": "GATE (druggability modality-fit filter \u2014 not a learned score)",
+    "intended_program_modality": "cyclic peptides",
+    "n_targets": 20,
+    "sources": {
+      "bindingdb": "s3://knowledge-datasets-1759951976/biomni_data_lake/BindingDB_All_202409.tsv.gz (BindingDB_All_202409); streamed single-pass, matched on UniProt SwissProt primary/secondary accession (cols 43/44)",
+      "chembl": "druggability_chembl.json (public ChEMBL API)",
+      "uniprot": "rest.uniprot.org localization/keywords"
+    },
+    "tallies": {
+      "small_molecule_modality": {
+        "n": 5,
+        "genes": [
+          "JAK1",
+          "JAK2",
+          "JAK3",
+          "BTK",
+          "S1PR1"
+        ]
+      },
+      "biologic_modality": {
+        "n": 15,
+        "genes": [
+          "IL6R",
+          "TNF",
+          "MS4A1",
+          "TNFSF13B",
+          "IL17A",
+          "IL23A",
+          "IL4R",
+          "IL5",
+          "TSLP",
+          "IL5RA",
+          "CTLA4",
+          "IFNAR1",
+          "IL1B",
+          "IL13",
+          "IL12B"
+        ]
+      },
+      "ppi_interface_targets": {
+        "n": 14,
+        "genes": [
+          "IL6R",
+          "TNF",
+          "TNFSF13B",
+          "IL17A",
+          "IL23A",
+          "IL4R",
+          "IL5",
+          "TSLP",
+          "IL5RA",
+          "CTLA4",
+          "IFNAR1",
+          "IL1B",
+          "IL13",
+          "IL12B"
+        ]
+      },
+      "cyclic_peptide_fit_candidates_heuristic": {
+        "n": 14,
+        "genes": [
+          "IL6R",
+          "TNF",
+          "TNFSF13B",
+          "IL17A",
+          "IL23A",
+          "IL4R",
+          "IL5",
+          "TSLP",
+          "IL5RA",
+          "CTLA4",
+          "IFNAR1",
+          "IL1B",
+          "IL13",
+          "IL12B"
+        ]
+      },
+      "cyclic_peptide_fit_low_heuristic": {
+        "n": 6,
+        "genes": [
+          "MS4A1",
+          "JAK1",
+          "JAK2",
+          "JAK3",
+          "BTK",
+          "S1PR1"
+        ]
+      },
+      "small_molecule_untested_in_bindingdb": {
+        "n": 9,
+        "genes": [
+          "IL6R",
+          "MS4A1",
+          "TNFSF13B",
+          "IL23A",
+          "IL4R",
+          "TSLP",
+          "IL5RA",
+          "IL13",
+          "IL12B"
+        ]
+      }
+    },
+    "discipline": [
+      "GATE not training label; training_eligible=false for every record.",
+      "'untested' != 'inactive': targets with zero BindingDB small-molecule rows are small-molecule-UNTESTED, NOT declared undruggable. Measured inactivity counted only from real weak values (>=10 uM) and '>' censored high values, reported separately per target.",
+      "modality_class and cyclic_peptide_fit_heuristic are HEURISTICS from target class + localization + PPI-interface biology + BindingDB ligandability \u2014 NOT measured cyclic-peptide engagement."
+    ],
+    "caveats_what_druggable_by_cyclic_peptide_actually_requires_that_we_DONT_have": [
+      "NO measured cyclic-peptide binding for any of the 20 targets. BindingDB affinities here are overwhelmingly small molecules; the counts prove the INTERFACE is chemically engageable, not that a cyclic peptide binds it.",
+      "No structural epitope/hotspot analysis (interface area, hotspot residue density, pocket vs flat interface) \u2014 a flat interface can still be a poor cyclic-peptide site.",
+      "No membrane-permeability assessment. Intracellular targets (JAK1/2/3, BTK) would require cell-penetrant macrocycles \u2014 an unsolved general problem; 'PPI-interface' heuristic does NOT rescue them.",
+      "No selectivity / paralog cross-reactivity data (e.g. JAK1 vs JAK2, IL12B shared p40 with IL23).",
+      "No developability (protease stability, half-life, manufacturability) or PK for a peptide format.",
+      "BindingDB coverage is literature/patent-biased: absence of rows reflects what has been screened, not intrinsic undruggability.",
+      "Target-family / PPI-interface / pocket flags are curated from established biology for these 20 well-characterized proteins; not machine-derived from a structure database."
+    ],
+    "training_eligible": false
+  },
+  "targets": [
+    {
+      "gene": "IL6R",
+      "uniprot": "P08887",
+      "intended_clinical_modality": "anti-IL6R mAb (tocilizumab/sarilumab)",
+      "chembl_id": "CHEMBL2364155",
+      "chembl_n_mechanisms": 4,
+      "chembl_action_types": [
+        "ANTAGONIST",
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 0,
+        "note": "no BindingDB rows matched this UniProt accession \u2014 small-molecule UNTESTED (NOT proven inactive)"
+      },
+      "small_molecule_ligandability_tier": "small-molecule-untested (no BindingDB small-molecule data)",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "cytokine receptor (IL-6Ra)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": true,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Cell membrane",
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "TNF",
+      "uniprot": "P01375",
+      "intended_clinical_modality": "anti-TNF (adalimumab etc.)",
+      "chembl_id": "CHEMBL3588728",
+      "chembl_n_mechanisms": 0,
+      "chembl_action_types": [],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 3136,
+        "n_distinct_chembl_ligands": 159,
+        "n_affinity_values": 3421,
+        "measurement_type_counts": {
+          "IC50": 2038,
+          "Ki": 288,
+          "Kd": 50,
+          "EC50": 1045
+        },
+        "min_affinity_nM": 0.03,
+        "median_affinity_nM": 652.1,
+        "n_potent_le_100nM": 1062,
+        "n_potent_le_1uM": 1690,
+        "n_measured_weak_ge_10uM": 810,
+        "n_censored_greater_than": 405,
+        "top_organisms": {
+          "Homo sapiens": 3136
+        }
+      },
+      "small_molecule_ligandability_tier": "small-molecule-tractable (validated)",
+      "modality_class": "biologic-primary; small-molecule/PPI-inhibitor emerging",
+      "target_family": "TNF-superfamily ligand (trimer)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": false,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Cell membrane",
+          "Membrane",
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate-strong",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide",
+        "1690 potent (<=1uM) small-molecule/PPI-inhibitor binders in BindingDB prove the interface is chemically engageable (supports macrocycle feasibility, though not cyclic-peptide-specific)"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "MS4A1",
+      "uniprot": "P11836",
+      "intended_clinical_modality": "anti-CD20 (rituximab)",
+      "chembl_id": "CHEMBL2058",
+      "chembl_n_mechanisms": 19,
+      "chembl_action_types": [
+        "BINDING AGENT",
+        "CROSS-LINKING AGENT"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 0,
+        "note": "no BindingDB rows matched this UniProt accession \u2014 small-molecule UNTESTED (NOT proven inactive)"
+      },
+      "small_molecule_ligandability_tier": "small-molecule-untested (no BindingDB small-molecule data)",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "4-TM cell-surface antigen (CD20)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": false,
+      "localization": {
+        "secreted": false,
+        "surface_membrane": true,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Cell membrane"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "low",
+      "cyclic_peptide_fit_reasons": [
+        "cell-surface extracellular domain \u2014 accessible without cell penetration"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "TNFSF13B",
+      "uniprot": "Q9Y275",
+      "intended_clinical_modality": "anti-BAFF (belimumab)",
+      "chembl_id": "CHEMBL2364158",
+      "chembl_n_mechanisms": 7,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 0,
+        "note": "no BindingDB rows matched this UniProt accession \u2014 small-molecule UNTESTED (NOT proven inactive)"
+      },
+      "small_molecule_ligandability_tier": "small-molecule-untested (no BindingDB small-molecule data)",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "TNF-superfamily ligand (BAFF)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": false,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Cell membrane",
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "JAK1",
+      "uniprot": "P23458",
+      "intended_clinical_modality": "JAK inhibitor",
+      "chembl_id": "CHEMBL2835",
+      "chembl_n_mechanisms": 17,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 20983,
+        "n_distinct_chembl_ligands": 943,
+        "n_affinity_values": 20981,
+        "measurement_type_counts": {
+          "Ki": 4908,
+          "IC50": 15328,
+          "Kd": 277,
+          "EC50": 471
+        },
+        "min_affinity_nM": 0.00125,
+        "median_affinity_nM": 14.0,
+        "n_potent_le_100nM": 14453,
+        "n_potent_le_1uM": 17675,
+        "n_measured_weak_ge_10uM": 773,
+        "n_censored_greater_than": 1919,
+        "top_organisms": {
+          "Homo sapiens": 18057
+        }
+      },
+      "small_molecule_ligandability_tier": "small-molecule-tractable (validated)",
+      "modality_class": "small-molecule",
+      "target_family": "tyrosine kinase (JAK)",
+      "has_deep_smallmolecule_pocket": true,
+      "is_ppi_interface_target": false,
+      "localization": {
+        "secreted": false,
+        "surface_membrane": false,
+        "intracellular": true,
+        "uniprot_subcellular": [
+          "Endomembrane system"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "low",
+      "cyclic_peptide_fit_reasons": [
+        "intracellular target \u2014 a cyclic peptide would need cell penetration (a hard, unsolved constraint) -> poor fit unless a penetrant macrocycle",
+        "deep orthosteric small-molecule pocket already well served by small molecules; cyclic peptide not the differentiating modality"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "JAK2",
+      "uniprot": "O60674",
+      "intended_clinical_modality": "JAK inhibitor",
+      "chembl_id": "CHEMBL2971",
+      "chembl_n_mechanisms": 25,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 25991,
+        "n_distinct_chembl_ligands": 1784,
+        "n_affinity_values": 25987,
+        "measurement_type_counts": {
+          "IC50": 19688,
+          "Ki": 5039,
+          "Kd": 925,
+          "EC50": 340
+        },
+        "min_affinity_nM": 0.001,
+        "median_affinity_nM": 61.0,
+        "n_potent_le_100nM": 14358,
+        "n_potent_le_1uM": 19510,
+        "n_measured_weak_ge_10uM": 1949,
+        "n_censored_greater_than": 3358,
+        "top_organisms": {
+          "Homo sapiens": 22414
+        }
+      },
+      "small_molecule_ligandability_tier": "small-molecule-tractable (validated)",
+      "modality_class": "small-molecule",
+      "target_family": "tyrosine kinase (JAK)",
+      "has_deep_smallmolecule_pocket": true,
+      "is_ppi_interface_target": false,
+      "localization": {
+        "secreted": false,
+        "surface_membrane": false,
+        "intracellular": true,
+        "uniprot_subcellular": [
+          "Cytoplasm",
+          "Endomembrane system",
+          "Nucleus"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "low",
+      "cyclic_peptide_fit_reasons": [
+        "intracellular target \u2014 a cyclic peptide would need cell penetration (a hard, unsolved constraint) -> poor fit unless a penetrant macrocycle",
+        "deep orthosteric small-molecule pocket already well served by small molecules; cyclic peptide not the differentiating modality"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "JAK3",
+      "uniprot": "P52333",
+      "intended_clinical_modality": "JAK inhibitor",
+      "chembl_id": "CHEMBL2148",
+      "chembl_n_mechanisms": 13,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 14740,
+        "n_distinct_chembl_ligands": 1253,
+        "n_affinity_values": 14851,
+        "measurement_type_counts": {
+          "IC50": 12449,
+          "Ki": 1993,
+          "Kd": 190,
+          "EC50": 221
+        },
+        "min_affinity_nM": 0.000578,
+        "median_affinity_nM": 111.0,
+        "n_potent_le_100nM": 7082,
+        "n_potent_le_1uM": 9831,
+        "n_measured_weak_ge_10uM": 2231,
+        "n_censored_greater_than": 2899,
+        "top_organisms": {
+          "Homo sapiens": 13632
+        }
+      },
+      "small_molecule_ligandability_tier": "small-molecule-tractable (validated)",
+      "modality_class": "small-molecule",
+      "target_family": "tyrosine kinase (JAK)",
+      "has_deep_smallmolecule_pocket": true,
+      "is_ppi_interface_target": false,
+      "localization": {
+        "secreted": false,
+        "surface_membrane": false,
+        "intracellular": true,
+        "uniprot_subcellular": [
+          "Cytoplasm",
+          "Endomembrane system"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "low",
+      "cyclic_peptide_fit_reasons": [
+        "intracellular target \u2014 a cyclic peptide would need cell penetration (a hard, unsolved constraint) -> poor fit unless a penetrant macrocycle",
+        "deep orthosteric small-molecule pocket already well served by small molecules; cyclic peptide not the differentiating modality"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "BTK",
+      "uniprot": "Q06187",
+      "intended_clinical_modality": "BTK inhibitor",
+      "chembl_id": "CHEMBL5251",
+      "chembl_n_mechanisms": 22,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 23249,
+        "n_distinct_chembl_ligands": 693,
+        "n_affinity_values": 23248,
+        "measurement_type_counts": {
+          "IC50": 22082,
+          "Kd": 167,
+          "Ki": 271,
+          "EC50": 729
+        },
+        "min_affinity_nM": 0.00026,
+        "median_affinity_nM": 30.0,
+        "n_potent_le_100nM": 16462,
+        "n_potent_le_1uM": 20806,
+        "n_measured_weak_ge_10uM": 751,
+        "n_censored_greater_than": 1102,
+        "top_organisms": {
+          "Homo sapiens": 21123
+        }
+      },
+      "small_molecule_ligandability_tier": "small-molecule-tractable (validated)",
+      "modality_class": "small-molecule",
+      "target_family": "tyrosine kinase (TEC/BTK)",
+      "has_deep_smallmolecule_pocket": true,
+      "is_ppi_interface_target": false,
+      "localization": {
+        "secreted": false,
+        "surface_membrane": false,
+        "intracellular": true,
+        "uniprot_subcellular": [
+          "Cell membrane",
+          "Cytoplasm",
+          "Membrane raft",
+          "Nucleus"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "low",
+      "cyclic_peptide_fit_reasons": [
+        "intracellular target \u2014 a cyclic peptide would need cell penetration (a hard, unsolved constraint) -> poor fit unless a penetrant macrocycle",
+        "deep orthosteric small-molecule pocket already well served by small molecules; cyclic peptide not the differentiating modality"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "IL17A",
+      "uniprot": "Q16552",
+      "intended_clinical_modality": "anti-IL17",
+      "chembl_id": "CHEMBL3390822",
+      "chembl_n_mechanisms": 11,
+      "chembl_action_types": [
+        "BINDING AGENT",
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 346,
+        "n_distinct_chembl_ligands": 1,
+        "n_affinity_values": 346,
+        "measurement_type_counts": {
+          "IC50": 327,
+          "Kd": 19
+        },
+        "min_affinity_nM": 0.794328,
+        "median_affinity_nM": 151.0,
+        "n_potent_le_100nM": 142,
+        "n_potent_le_1uM": 276,
+        "n_measured_weak_ge_10uM": 29,
+        "n_censored_greater_than": 12,
+        "top_organisms": {}
+      },
+      "small_molecule_ligandability_tier": "small-molecule-tractable (validated)",
+      "modality_class": "biologic-primary; small-molecule/PPI-inhibitor emerging",
+      "target_family": "secreted cytokine (IL-17 homodimer)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": false,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate-strong",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide",
+        "276 potent (<=1uM) small-molecule/PPI-inhibitor binders in BindingDB prove the interface is chemically engageable (supports macrocycle feasibility, though not cyclic-peptide-specific)"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "IL23A",
+      "uniprot": "Q9NPF7",
+      "intended_clinical_modality": "anti-IL23",
+      "chembl_id": "CHEMBL2364154",
+      "chembl_n_mechanisms": 8,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 0,
+        "note": "no BindingDB rows matched this UniProt accession \u2014 small-molecule UNTESTED (NOT proven inactive)"
+      },
+      "small_molecule_ligandability_tier": "small-molecule-untested (no BindingDB small-molecule data)",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "secreted cytokine (IL-23 p19/p40)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": false,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "IL4R",
+      "uniprot": "P24394",
+      "intended_clinical_modality": "anti-IL4R (dupilumab)",
+      "chembl_id": "CHEMBL3580490",
+      "chembl_n_mechanisms": 1,
+      "chembl_action_types": [
+        "ANTAGONIST"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 0,
+        "note": "no BindingDB rows matched this UniProt accession \u2014 small-molecule UNTESTED (NOT proven inactive)"
+      },
+      "small_molecule_ligandability_tier": "small-molecule-untested (no BindingDB small-molecule data)",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "cytokine receptor (IL-4Ra)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": true,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Cell membrane",
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "IL5",
+      "uniprot": "P05113",
+      "intended_clinical_modality": "anti-IL5 (mepolizumab)",
+      "chembl_id": "CHEMBL1169600",
+      "chembl_n_mechanisms": 3,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 1,
+        "n_distinct_chembl_ligands": 0,
+        "n_affinity_values": 1,
+        "measurement_type_counts": {
+          "IC50": 1
+        },
+        "min_affinity_nM": 26800.0,
+        "median_affinity_nM": 26800.0,
+        "n_potent_le_100nM": 0,
+        "n_potent_le_1uM": 0,
+        "n_measured_weak_ge_10uM": 1,
+        "n_censored_greater_than": 0,
+        "top_organisms": {
+          "Homo sapiens": 1
+        }
+      },
+      "small_molecule_ligandability_tier": "small-molecule-weak/limited",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "secreted cytokine (IL-5)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": false,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "TSLP",
+      "uniprot": "Q969D9",
+      "intended_clinical_modality": "anti-TSLP (tezepelumab)",
+      "chembl_id": "CHEMBL3712931",
+      "chembl_n_mechanisms": 2,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 0,
+        "note": "no BindingDB rows matched this UniProt accession \u2014 small-molecule UNTESTED (NOT proven inactive)"
+      },
+      "small_molecule_ligandability_tier": "small-molecule-untested (no BindingDB small-molecule data)",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "secreted cytokine (TSLP)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": false,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "IL5RA",
+      "uniprot": "Q01344",
+      "intended_clinical_modality": "anti-IL5R (benralizumab)",
+      "chembl_id": "CHEMBL3580483",
+      "chembl_n_mechanisms": 1,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 0,
+        "note": "no BindingDB rows matched this UniProt accession \u2014 small-molecule UNTESTED (NOT proven inactive)"
+      },
+      "small_molecule_ligandability_tier": "small-molecule-untested (no BindingDB small-molecule data)",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "cytokine receptor (IL-5Ra)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": false,
+        "surface_membrane": true,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Membrane"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "cell-surface extracellular domain \u2014 accessible without cell penetration"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "CTLA4",
+      "uniprot": "P16410",
+      "intended_clinical_modality": "CTLA4-Ig (abatacept)",
+      "chembl_id": "CHEMBL2364164",
+      "chembl_n_mechanisms": 6,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 1,
+        "n_distinct_chembl_ligands": 0,
+        "n_affinity_values": 1,
+        "measurement_type_counts": {
+          "Kd": 1
+        },
+        "min_affinity_nM": 31.0,
+        "median_affinity_nM": 31.0,
+        "n_potent_le_100nM": 1,
+        "n_potent_le_1uM": 1,
+        "n_measured_weak_ge_10uM": 0,
+        "n_censored_greater_than": 0,
+        "top_organisms": {}
+      },
+      "small_molecule_ligandability_tier": "small-molecule-weak/limited",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "Ig-superfamily costimulatory receptor",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": false,
+        "surface_membrane": true,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Cell membrane"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "cell-surface extracellular domain \u2014 accessible without cell penetration"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "IFNAR1",
+      "uniprot": "P17181",
+      "intended_clinical_modality": "anti-IFNAR (anifrolumab)",
+      "chembl_id": "CHEMBL1887",
+      "chembl_n_mechanisms": 1,
+      "chembl_action_types": [
+        "ANTAGONIST"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 1,
+        "n_distinct_chembl_ligands": 1,
+        "n_affinity_values": 1,
+        "measurement_type_counts": {
+          "Kd": 1
+        },
+        "min_affinity_nM": 4000.0,
+        "median_affinity_nM": 4000.0,
+        "n_potent_le_100nM": 0,
+        "n_potent_le_1uM": 0,
+        "n_measured_weak_ge_10uM": 0,
+        "n_censored_greater_than": 0,
+        "top_organisms": {}
+      },
+      "small_molecule_ligandability_tier": "small-molecule-weak/limited",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "cytokine receptor (IFNAR1)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": false,
+        "surface_membrane": true,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Cell membrane",
+          "Late endosome",
+          "Lysosome"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "cell-surface extracellular domain \u2014 accessible without cell penetration"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "S1PR1",
+      "uniprot": "P21453",
+      "intended_clinical_modality": "S1P modulator",
+      "chembl_id": "CHEMBL4333",
+      "chembl_n_mechanisms": 8,
+      "chembl_action_types": [
+        "AGONIST",
+        "MODULATOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 7702,
+        "n_distinct_chembl_ligands": 1515,
+        "n_affinity_values": 7702,
+        "measurement_type_counts": {
+          "IC50": 1694,
+          "EC50": 5851,
+          "Ki": 148,
+          "Kd": 9
+        },
+        "min_affinity_nM": 0.005,
+        "median_affinity_nM": 323.05,
+        "n_potent_le_100nM": 2785,
+        "n_potent_le_1uM": 3987,
+        "n_measured_weak_ge_10uM": 2078,
+        "n_censored_greater_than": 1697,
+        "top_organisms": {
+          "Homo sapiens": 7702
+        }
+      },
+      "small_molecule_ligandability_tier": "small-molecule-tractable (validated)",
+      "modality_class": "small-molecule",
+      "target_family": "lipid GPCR (S1P1)",
+      "has_deep_smallmolecule_pocket": true,
+      "is_ppi_interface_target": false,
+      "localization": {
+        "secreted": false,
+        "surface_membrane": true,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Cell membrane",
+          "Endosome",
+          "Membrane raft"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "low",
+      "cyclic_peptide_fit_reasons": [
+        "cell-surface extracellular domain \u2014 accessible without cell penetration",
+        "deep orthosteric small-molecule pocket already well served by small molecules; cyclic peptide not the differentiating modality"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "IL1B",
+      "uniprot": "P01584",
+      "intended_clinical_modality": "anti-IL1",
+      "chembl_id": "CHEMBL1909490",
+      "chembl_n_mechanisms": 5,
+      "chembl_action_types": [
+        "INHIBITOR",
+        "NEGATIVE ALLOSTERIC MODULATOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 449,
+        "n_distinct_chembl_ligands": 7,
+        "n_affinity_values": 449,
+        "measurement_type_counts": {
+          "Ki": 1,
+          "IC50": 448
+        },
+        "min_affinity_nM": 0.4,
+        "median_affinity_nM": 136.0,
+        "n_potent_le_100nM": 220,
+        "n_potent_le_1uM": 408,
+        "n_measured_weak_ge_10uM": 20,
+        "n_censored_greater_than": 32,
+        "top_organisms": {
+          "Homo sapiens": 449
+        }
+      },
+      "small_molecule_ligandability_tier": "small-molecule-tractable (validated)",
+      "modality_class": "biologic-primary; small-molecule/PPI-inhibitor emerging",
+      "target_family": "secreted cytokine (IL-1b)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": false,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Cytoplasm, cytosol",
+          "Lysosome",
+          "Secreted",
+          "Secreted, extracellular exosome"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate-strong",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide",
+        "408 potent (<=1uM) small-molecule/PPI-inhibitor binders in BindingDB prove the interface is chemically engageable (supports macrocycle feasibility, though not cyclic-peptide-specific)"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "IL13",
+      "uniprot": "P35225",
+      "intended_clinical_modality": "anti-IL13",
+      "chembl_id": "CHEMBL3580486",
+      "chembl_n_mechanisms": 8,
+      "chembl_action_types": [
+        "INHIBITOR"
+      ],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 0,
+        "note": "no BindingDB rows matched this UniProt accession \u2014 small-molecule UNTESTED (NOT proven inactive)"
+      },
+      "small_molecule_ligandability_tier": "small-molecule-untested (no BindingDB small-molecule data)",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "secreted cytokine (IL-13)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": false,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide"
+      ],
+      "training_eligible": false
+    },
+    {
+      "gene": "IL12B",
+      "uniprot": "P29460",
+      "intended_clinical_modality": "anti-IL12/23",
+      "chembl_id": "CHEMBL3580484",
+      "chembl_n_mechanisms": 0,
+      "chembl_action_types": [],
+      "bindingdb_ligandability": {
+        "n_measurement_rows": 0,
+        "note": "no BindingDB rows matched this UniProt accession \u2014 small-molecule UNTESTED (NOT proven inactive)"
+      },
+      "small_molecule_ligandability_tier": "small-molecule-untested (no BindingDB small-molecule data)",
+      "modality_class": "biologic (antibody / Fc-fusion accessible)",
+      "target_family": "secreted cytokine (IL-12/23 p40)",
+      "has_deep_smallmolecule_pocket": false,
+      "is_ppi_interface_target": true,
+      "localization": {
+        "secreted": true,
+        "surface_membrane": false,
+        "intracellular": false,
+        "uniprot_subcellular": [
+          "Secreted"
+        ]
+      },
+      "cyclic_peptide_fit_heuristic": "candidate",
+      "cyclic_peptide_fit_reasons": [
+        "mechanism is a protein-protein interface (cytokine:receptor / ligand / costimulatory) \u2014 the interface class cyclic peptides are best suited to",
+        "secreted/extracellular \u2014 accessible to a non-cell-penetrant cyclic peptide"
+      ],
+      "training_eligible": false
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+# Independent neural implementation audit
+
+Both preserved runs passed independent checkpoint replay. Version 1 replayed 16 saved models with maximum absolute prediction difference 1.11e-16. Version 2 replayed 16 with maximum difference 8.33e-17. Each audit rebuilt the raw count labels, control states, four outer readout panels, training-only scaler statistics and attenuation priors without importing the training driver. All 36 outer MSE values and donor averages per run matched. The 12 inner panels were reconstructed and checked for excluded target genes, but their indices were not saved for direct artifact comparison.
+
+Inspection found no use of outer donor effects in fitting, gene selection, preprocessing or epoch selection. Inner folds similarly select genes from their fitting donors. The nuisance training prior omits the donor receiving that prior. Its readout panel is selected on the enclosing fitting population, which is valid for the outer evaluation but is not a fully cross-fitted gene-selection pipeline. The one-hot categories use the known complete target/condition design, not held-out outcomes.
+
+Version 1 logs held-out diagnostic MSE at intermediate outer epochs; these values are not used by any model selection code. Version 2 uses the expanded epoch grid, including zero training. Every zero-epoch saved output head was exactly zero, and its predictions exactly matched the guide-shrinkage baseline. Inner epoch decisions were independently recalculated from saved histories; inner optimization trajectories were not independently retrained.
+
+No production implementation correction was needed for replay. The first independent verification attempt mistakenly used log1p counts per million rather than the established log1p counts per ten thousand. The assertion failures exposed that verifier error; the independent verifier was corrected and both runs passed. Production artifacts were unchanged.
+
+Limitations: the second protocol was developed after observing the first experiment, so these remain development results. Four donors are reused across folds. Readout panels differ across folds, making the aggregate a score of the training-selected readout procedure rather than a fixed gene panel. Held-out donor non-targeting controls are used as pretreatment state, so this evaluates control-assisted donor transfer. Ridge uses fixed alpha 10 while neural epochs are tuned; it is a limited comparator, not an optimized ridge benchmark. No novel-target or independent-cohort neural claim is supported.
+
+Verification JSON files include hashes of the driver, predictions, results and the two imported preprocessing modules. Final checkpoints support inference replay; optimizer states were not retained for exact training resumption.

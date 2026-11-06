@@ -238,7 +238,7 @@ with open("calculate_brain_adc_map_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("calculate_brain_adc_map_output.txt", "w") as f:
-    f.write("Biomni: Calculate Brain Adc Map" + NL)
+    f.write("BioMate: Calculate Brain Adc Map" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -89,6 +89,80 @@ export function getExecutionAsyncGuidance(
   };
 }
 
+/**
+ * Decide whether a workflow-GENERATION failure is a transient hiccup that is
+ * worth an automatic client-side retry, versus a deterministic failure that
+ * would just fail again (and must be surfaced immediately so the user can act).
+ *
+ * TRANSIENT (retry): network blip, request timeout, empty/incomplete stream,
+ *   server 5xx, rate-limit / overload, generic upstream "temporary" errors.
+ * DETERMINISTIC (do NOT retry): HTTP 4xx (400/401/403/404/409/422 — bad input,
+ *   auth, validation), clarification/needs-input responses, aborted-by-user.
+ *
+ * We are deliberately conservative: only classify as transient when we have a
+ * positive signal. An unrecognised error is treated as NON-transient so we
+ * never retry a real bug into a hang.
+ */
+export function isTransientChatError(
+  error: string | null | undefined,
+  opts: { httpStatus?: number | null; aborted?: boolean } = {}
+): boolean {
+  // User pressed stop — never a retry candidate.
+  if (opts.aborted) return false;
+
+  const status = opts.httpStatus ?? null;
+  if (status != null) {
+    // Explicit deterministic client errors — retrying is pointless/harmful.
+    // (429 is handled below as transient.)
+    if (status >= 400 && status < 500 && status !== 429) return false;
+    // 5xx and 429 are transient.
+    if (status === 429 || (status >= 500 && status < 600)) return true;
+  }
+
+  const lower = normalizeError(error).toLowerCase();
+  if (!lower) return false;
+
+  // Deterministic / non-retryable signals take precedence.
+  const isDeterministic =
+    lower.includes("clarif") ||
+    lower.includes("needs_input") ||
+    lower.includes("needs input") ||
+    lower.includes("validation") ||
+    lower.includes("invalid") ||
+    lower.includes("unauthorized") ||
+    lower.includes("forbidden") ||
+    lower.includes("not found") ||
+    lower.includes("bad request") ||
+    lower.includes("unprocessable");
+  if (isDeterministic) return false;
+
+  const { isTimeout, isNetworkRelated } = classifyError(lower);
+  if (isTimeout || isNetworkRelated) return true;
+
+  // Empty / incomplete stream, rate-limit / overload, and generic
+  // upstream "temporary" errors are transient.
+  return (
+    lower.includes("no final payload") ||
+    lower.includes("streaming response body unavailable") ||
+    lower.includes("temporarily busy") ||
+    lower.includes("ratelimit") ||
+    lower.includes("rate limit") ||
+    lower.includes("too many") ||
+    lower.includes("overload") ||
+    lower.includes("temporary") ||
+    lower.includes("try again") ||
+    lower.includes("econnreset") ||
+    lower.includes("econnrefused") ||
+    lower.includes("socket hang up") ||
+    lower.includes("502") ||
+    lower.includes("503") ||
+    lower.includes("504") ||
+    lower.includes("gateway") ||
+    lower.includes("upstream") ||
+    lower.includes("maintenance") // legacy '__maintenance__' sentinel from older builds
+  );
+}
+
 export function getChatAsyncGuidance(
   rawError: string | null | undefined,
   options: { isOnline?: boolean } = {}

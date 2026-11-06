@@ -1,0 +1,210 @@
+{
+  "target": "5o45",
+  "n_designs": 10,
+  "n_ok": 10,
+  "within_target_ranking": [
+    {
+      "design": "R1-01",
+      "seq": "GAYTSKSTGVTF",
+      "dG": -53.47,
+      "ring": true
+    },
+    {
+      "design": "R1-02",
+      "seq": "SSPFPVFKEFSP",
+      "dG": -42.87,
+      "ring": true
+    },
+    {
+      "design": "R1-13",
+      "seq": "SNGPAELEEAVGVKI",
+      "dG": -39.85,
+      "ring": true
+    },
+    {
+      "design": "R1-11",
+      "seq": "SAPEVLRPYSSNPK",
+      "dG": -37.89,
+      "ring": true
+    },
+    {
+      "design": "R1-12",
+      "seq": "AAPEVLRKYTSLP",
+      "dG": -37.05,
+      "ring": true
+    },
+    {
+      "design": "R1-14",
+      "seq": "SSNPAAK IDPM",
+      "dG": -35.93,
+      "ring": true
+    },
+    {
+      "design": "R1-05",
+      "seq": "ARTPEDLEEAVRTGKP",
+      "dG": -31.98,
+      "ring": true
+    },
+    {
+      "design": "R1-04",
+      "seq": "GGYTSSATGVTF",
+      "dG": -31.91,
+      "ring": true
+    },
+    {
+      "design": "R1-06",
+      "seq": "LGVETSNPAIAELAKM",
+      "dG": -30.2,
+      "ring": true
+    },
+    {
+      "design": "R1-10",
+      "seq": "GGSGEGKKLAEELGLK",
+      "dG": -28.93,
+      "ring": true
+    }
+  ],
+  "note": "Within-TARGET MM-GBSA ranking of designs for one receptor (the valid use). Implicit GBn2 minimized single-point, CHARMM36m, cyclic via psfgen CYCP patch. RELATIVE ranking, not absolute affinity; entropy omitted; confirm finalists with FEP. Trust only ring=true rows.",
+  "all": [
+    {
+      "target": "5o45",
+      "design": "R1-01",
+      "nrec_res": 129,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "GAYTSKSTGVTF",
+      "dG_bind_kcal_mol": -53.47,
+      "E_complex_kcal": -3900.3,
+      "E_receptor_kcal": -3871.2,
+      "E_ligand_kcal": 24.4,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "5o45",
+      "design": "R1-02",
+      "nrec_res": 129,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "SSPFPVFKEFSP",
+      "dG_bind_kcal_mol": -42.87,
+      "E_complex_kcal": -3836.4,
+      "E_receptor_kcal": -3904.7,
+      "E_ligand_kcal": 111.1,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "5o45",
+      "design": "R1-04",
+      "nrec_res": 129,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "GGYTSSATGVTF",
+      "dG_bind_kcal_mol": -31.91,
+      "E_complex_kcal": -3855.3,
+      "E_receptor_kcal": -3878.9,
+      "E_ligand_kcal": 55.4,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "5o45",
+      "design": "R1-05",
+      "nrec_res": 129,
+      "npep_res": 16,
+      "ligand_ring_closed": true,
+      "seq": "ARTPEDLEEAVRTGKP",
+      "dG_bind_kcal_mol": -31.98,
+      "E_complex_kcal": -4880.9,
+      "E_receptor_kcal": -3884.7,
+      "E_ligand_kcal": -964.2,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "5o45",
+      "design": "R1-06",
+      "nrec_res": 129,
+      "npep_res": 16,
+      "ligand_ring_closed": true,
+      "seq": "LGVETSNPAIAELAKM",
+      "dG_bind_kcal_mol": -30.2,
+      "E_complex_kcal": -4066.5,
+      "E_receptor_kcal": -3856.8,
+      "E_ligand_kcal": -179.5,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "5o45",
+      "design": "R1-10",
+      "nrec_res": 129,
+      "npep_res": 16,
+      "ligand_ring_closed": true,
+      "seq": "GGSGEGKKLAEELGLK",
+      "dG_bind_kcal_mol": -28.93,
+      "E_complex_kcal": -4262.8,
+      "E_receptor_kcal": -3858.0,
+      "E_ligand_kcal": -375.8,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "5o45",
+      "design": "R1-11",
+      "nrec_res": 129,
+      "npep_res": 14,
+      "ligand_ring_closed": true,
+      "seq": "SAPEVLRPYSSNPK",
+      "dG_bind_kcal_mol": -37.89,
+      "E_complex_kcal": -4270.6,
+      "E_receptor_kcal": -3891.9,
+      "E_ligand_kcal": -340.8,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "5o45",
+      "design": "R1-12",
+      "nrec_res": 129,
+      "npep_res": 13,
+      "ligand_ring_closed": true,
+      "seq": "AAPEVLRKYTSLP",
+      "dG_bind_kcal_mol": -37.05,
+      "E_complex_kcal": -4220.1,
+      "E_receptor_kcal": -3840.0,
+      "E_ligand_kcal": -343.0,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "5o45",
+      "design": "R1-13",
+      "nrec_res": 129,
+      "npep_res": 15,
+      "ligand_ring_closed": true,
+      "seq": "SNGPAELEEAVGVKI",
+      "dG_bind_kcal_mol": -39.85,
+      "E_complex_kcal": -4167.0,
+      "E_receptor_kcal": -3874.6,
+      "E_ligand_kcal": -252.6,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "5o45",
+      "design": "R1-14",
+      "nrec_res": 129,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "SSNPAAK IDPM",
+      "dG_bind_kcal_mol": -35.93,
+      "E_complex_kcal": -3970.8,
+      "E_receptor_kcal": -3865.5,
+      "E_ligand_kcal": -69.4,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    }
+  ]
+}

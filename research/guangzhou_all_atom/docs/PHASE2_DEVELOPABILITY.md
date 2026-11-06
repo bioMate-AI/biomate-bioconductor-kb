@@ -1,0 +1,167 @@
+# Phase 2 — developability-aware generation (Bet 1) kickoff
+
+Chosen direction after Phase 1 (working cyclic generator: slide-AAR 0.23 vs 0.17 random). Build
+the differentiator from [[BET1_DESIGN]]: generation coupled to calibrated developability
+predictors. Grounded in an inventory of what already exists (memory principle: don't rebuild).
+
+## Inventory (S3 `cyclic_peptide/`) — what exists, honestly
+Permeability predictors from earlier (July) work already trained on CycPeptMPDB (n≈8466):
+| model | random-split R² | scaffold-split R² (leak-free) |
+|---|---:|---:|
+| histGBM descriptors (`fm_probe`) | 0.47 | ~0.25 |
+| gnn+desc (`model/`) | 0.40 | — |
+| histGBM 2D/3D (`scorer/`) | 0.27 | 0.11–0.13 |
+| singletask histGBM (`multitask`) | — | 0.29 |
+| D-MPNN chemprop (`dmpnn_peptideclm`) | 0.27 | — |
+| **published references** | — | **CPMP 0.67 / CycPeptMP 0.77** |
+
+**Honest gap:** our permeability predictors generalize poorly (scaffold R² 0.1–0.3) vs the
+published 0.67–0.77. Good enough for *ranking* (the offline replay showed guided > random on
+top-decile recovery), NOT good enough to trust as a precise oracle. Guidance must therefore be
+uncertainty-aware and humble, not treated as ground truth.
+
+Also present: offline DMTA replay (`replay_permeability.py`, `permeability_replay.json`) — the
+acquisition loop already validated. Missing: a **stability** predictor (PepMSND leak-free folds
+were rebuilt in `results/pepmsnd_fold_rebuild.json` / `data/processed/pepmsnd_stability_folds.csv`
+for exactly this).
+
+## Phase-2 plan (re-scoped to the honest state)
+1. **Stability predictor** (the clear gap) — train + calibrate on the PepMSND leak-free folds
+   (binary label). Report AUROC + calibration (ECE) with proper cross-fold CV. CPU, cheap.
+2. **Developability-scored generation** — connect the fine-tuned cyclic generator to the
+   predictors: generate cyclic candidates → build RDKit mol/SMILES → score permeability +
+   stability (with uncertainty) → rank. Reports the developability distribution of generated
+   designs + the top candidates. This is the "generate → verify" loop, in silico.
+3. **Uncertainty-aware acquisition** — extend the existing replay to multi-property (perm +
+   stability) EI + information-gain; validate vs random/greedy at equal label budget.
+4. **(stretch) Strengthen permeability** toward the published references — the current cap
+   (~0.3 scaffold) limits guidance quality; a stronger predictor (or CycPeptMP-style model) is
+   the real lever, but is its own effort.
+
+## Progress (2026-09-15)
+- **Step 1 — stability predictor ✅** ECFP4 + bootstrap-bagged HistGBM on the PepMSND leak-free
+  folds: OOF AUROC **0.842**, ECE 0.053, epistemic std 0.127. `results/stability_predictor_metrics.json`.
+- **Step 2 — developability-scored generation ✅** Scored all 272 cyclic designs (from the eval
+  `none` run) → predicted stability + uncertainty, ranked (`score_generation.py`,
+  `results/generation_developability.json`). Designs mean P(stable) 0.462 vs reference 0.438 —
+  **reference-level** (generation isn't yet guided toward stability); top-10 at 0.83–0.91,
+  uncertainty 0.06–0.15. The generate→verify→rank loop is demonstrated end-to-end, in silico.
+  - **Observation to watch:** many top-ranked designs are **cysteine-rich** — the generator (fine-
+    tuned partly on disulfide-cyclized peptides) produces CYS-heavy sequences, and the stability
+    model may score CYS-rich peptides high by association. Flag before trusting; a real synthesis/
+    assay would test it.
+
+- **Step 3 — property-directed selection ✅** (`property_guided_selection.py`,
+  `results/property_guided_selection.json`) Best-of-k by predicted stability on the 272 designs
+  (4/target): k=1→0.461, k=2→0.553, k=3→0.605, k=4→**0.635** vs random pick 0.462 — a **+0.17
+  lift**, monotonic with budget. The generate→verify→**select** (acquisition) loop works end-to-end.
+  Proxy caveat: selecting by the same predictor we report; the lift shows a selectable spread, not
+  proven real stability (needs wet lab). Larger-N budget needs a GPU generation run.
+
+### Differentiable latent stability surrogate (step 4, in progress) — design
+
+Goal: true sampler-guidance (bias generation toward stability), not just best-of-N selection.
+Obstacle: the stability model is a fingerprint HistGBM (non-differentiable through the latent),
+and labels/structures don't bridge — PepMSND has SMILES+labels but no structures; PebBDB cyclics
+have structures but no stability labels.
+
+Solution — **distillation**: PebBDB cyclic peptides have BOTH a structure (encode → generator
+latent Z via the AE) AND a SMILES (score with the HistGBM → pseudo-label). Train a small
+differentiable MLP `g(pooled Z) → P(stable)` to match the HistGBM on these pairs. Then during
+LDM sampling, use `g` as an `energy_func` (like the closure guidance) to push the generated
+latent toward higher predicted stability — differentiable, in-latent property guidance.
+
+**BLOCKED — discovered obstacle (2026-09-15):** even with the distillation surrogate, PepGLAD's
+guidance hook cannot steer stability. Verified in `models/LDM/diffusion/dpm_full.py:sample`: the
+energy gradient is `grad(energy, X_t)` — taken w.r.t. the **structure coordinates** — and applied
+only to `X_next` (`trans_x.denoise(..., guidance=...)`); the feature/sequence latent `H_next` is
+denoised **without** guidance. Stability/permeability are **chemistry/sequence** properties
+(functions of `H`, not `X`-geometry), so a surrogate `g` plugged into this hook would only move
+coordinates, not steer stability. The closure guidance worked precisely because closure IS a
+geometric (X) property.
+
+**Conclusion:** true differentiable property-guidance needs (a) the distillation surrogate AND
+(b) a **diffusion-core modification to also guide `H_next`** (apply an H-space energy gradient in
+`trans_h.denoise`). That's a real research build. Until then, **generate-and-select (step 3,
+working, +0.17 lift) is the correct method for steering chemistry properties on this backbone** —
+the sampler can gradient-steer geometry, not sequence. This is why selection, not guidance, is
+the right Bet-1 mechanism here today.
+
+### Step 5 — scaled selection budget (2026-09-15)
+Generated 1088 cyclic designs (16/target, `none` guidance, 100% serialized) and extended the
+best-of-k stability curve (`results/property_guided_selection_n16.json`):
+
+| k | 1 | 2 | 4 | 8 | 12 | 16 |
+|---|---:|---:|---:|---:|---:|---:|
+| best-of-k P(stable) | 0.473 | 0.563 | 0.647 | 0.711 | 0.746 | **0.769** |
+
+Random-pick baseline 0.471 throughout → **+0.30 lift at k=16**, monotonic with **diminishing
+returns** (0.75→0.77 from k=12→16). The generator's design distribution has enough developability
+spread that budget keeps extracting better designs, but with a knee around k≈8–12. Same proxy
+caveat (select-by-predictor; wet lab needed for ground truth).
+
+### Step 6 — multi-property screen (2026-09-15): the KEY finding
+Scored all 1088 designs on both endpoints (`results/multi_property_selection.json`):
+- predicted-stable: **46%** (selectable spread, as before)
+- predicted-permeable (log Papp > −6): **0.2%**; mean log Papp **−6.89**, q90 −6.56
+- **dual-developable (stable AND permeable): 0 / 1088 (0.0%)**
+
+**The generator produces binders that are predicted non-permeable** — the classic peptide wall.
+Decisive implication: **selection cannot fix permeability** — best-of-N only picks from what's
+generated, and ~0 permeable candidates exist to pick. This is the strongest argument that
+permeability requires **changing what is generated** (property-guided/conditioned generation) or
+the right **chemistry**: real permeable cyclic peptides rely on N-methylation / backbone
+modification / true macrocyclization — i.e. **non-natural monomers (Phase-1b)**, which the current
+natural-AA generator cannot produce. Top designs are large, polar, CYS-rich (K/D/E/Q-heavy) —
+exactly the composition that kills permeability. (Caveat: permeability model R²~0.23 is noisy, but
+mean −6.89 well below −6 is directionally robust and matches domain knowledge.)
+
+This reframes Bet-1 priorities: the reliable win is **stability selection**; the permeability
+frontier needs generation-side changes + non-natural chemistry + a stronger predictor — not more
+selection. And, as always, wet lab is the gate on all of it.
+
+### Step 7 — chemistry→permeability analysis (2026-09-15): Phase-1b validated by data
+Quantified permeability drivers on 8466 CycPeptMPDB peptides + compared to generated designs
+(`results/chemistry_permeability_analysis.json`):
+- **N-methylation drives permeability** (monotonic): mean log Papp by N-Me count 0→−6.30,
+  1-2→−6.05, 3-5→−5.78, 6+→−5.76 (r=+0.17, strongest positive); H-bond donors hurt (r=−0.10).
+- **Generated designs are in a non-permeable region of chemistry space:** MW 1994 vs 949
+  (permeable subset), **N-methyls 0 vs 2.9**, HBD 31 vs 3.7, TPSA 823 vs 209.
+
+**Conclusion (evidence-based):** the permeability failure is **representational, not training** —
+the natural-AA generator *cannot* produce N-methylated peptides and emits large, polar sequences.
+Permeable cyclic peptides require: **N-methylation (non-natural monomers → Phase-1b)**, true
+**macrocyclization** (the open Phase-1 closure gap — cyclization also cuts HBD/TPSA), and a bias
+toward **smaller / less-polar** designs. (Nuance: designs scored as LINEAR overstate HBD/TPSA;
+cyclization would lower them — but MW 2× and zero N-Me are real representational gaps.)
+
+This is the concrete spec for Phase-1b: extend the monomer vocab to N-methylated / non-natural
+residues so the generator can even enter permeable chemistry space. It also confirms selection is
+futile for permeability — the target region isn't in the natural-AA output distribution at all.
+
+### Phase-1b scope (non-natural monomers) — honest cost
+Requires: (a) extend the block vocab + per-monomer atom/geometry tables (aa_feature) beyond the 24
+natural blocks to HELM non-natural monomers; (b) extend the sequence-design head; (c) **3D
+structural training data of non-natural-monomer peptides in-pocket — which we do NOT have** (HELM
+gives monomer chemistry, CycPeptMPDB gives SMILES+permeability but not PepGLAD-format complexes).
+A multi-week research effort gated on structural data, not a quick build. The data-grounded case
+above justifies the investment; the data gap is the blocker to surface before committing.
+
+### Bet-1 remaining levers (scoped)
+1. **Differentiable latent stability surrogate** → true sampler-guidance (bias sampling, not just
+   select). The current predictor (fingerprint HistGBM) isn't differentiable through the latent.
+2. **Scale generation budget** (more attempts/target) → extend the best-of-N curve higher (GPU).
+3. **Fold in permeability** — match its CycPeptMPDB featurization; strengthen past scaffold-R² 0.1–0.3.
+4. **Close macrocyclization** (Phase-1 atom-space closure) so designs are scored as true cyclics.
+
+## Honest guardrails
+- Predictors are ranking-grade, not oracle-grade (scaffold R² 0.1–0.3); report uncertainty and
+  applicability-domain, never imply calibrated potency.
+- No wet lab → "learn" is simulated (offline replay), not a closed prospective loop.
+- Generated-peptide → SMILES conversion for the SMILES-based predictors is a real integration
+  step (esp. for cyclic/non-standard); validate the conversion before trusting scores.
+
+## First step (starting now)
+Stability predictor on the PepMSND leak-free folds — cheap, self-contained, uses the folds we
+built, and gives the second developability endpoint with honest calibration. Then wire
+developability-scored generation.

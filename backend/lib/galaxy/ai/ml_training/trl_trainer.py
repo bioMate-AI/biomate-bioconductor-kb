@@ -22,7 +22,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from .config import TrainingConfig
 from .datasets import LoadedDataset
@@ -30,12 +30,101 @@ from .chemprop_trainer import TrainingResult
 
 log = logging.getLogger(__name__)
 
+# Reward assigned to a completion that fails a severity:"block" gate component, below
+# any achievable weighted sum of in-[-1,1] components so a blocked completion always
+# ranks last within its GRPO group ("gate before score").
+GATE_FLOOR = -10.0
+
 
 # ---------------------------------------------------------------------------
 # GRPO reward functions — callable(completions, **kwargs) -> list[float]
 # (TRL passes `completions` as a list of strings and `prompts` via kwargs.)
 # ---------------------------------------------------------------------------
-def make_reward_fn(kind: str, keyword: str = "") -> Callable[..., list[float]]:
+def _composite_component(comp: dict) -> tuple[float, Callable[[str], float]]:
+    """Compile one declarative reward component into (weight, scorer(str)->float).
+
+    A fixed interpreter — no `eval`/arbitrary code — so a reward_spec is safe to
+    accept from a user or a project rule. Scores are in [-1, 1].
+    """
+    kind = comp.get("kind")
+    weight = float(comp.get("weight", 1.0))
+    terms = [str(t).lower() for t in comp.get("terms", [])]
+    if kind == "contains_any":
+        fn: Callable[[str], float] = lambda c: 1.0 if any(t in c.lower() for t in terms) else 0.0
+    elif kind == "contains_all":
+        fn = lambda c: 1.0 if terms and all(t in c.lower() for t in terms) else 0.0
+    elif kind == "banned":
+        fn = lambda c: -1.0 if any(t in c.lower() for t in terms) else 0.0
+    elif kind == "regex":
+        pat = re.compile(str(comp.get("pattern", "")), re.IGNORECASE)
+        fn = lambda c: 1.0 if pat.search(c) else 0.0
+    elif kind == "length_target":
+        target = max(int(comp.get("target", 20) or 20), 1)
+        fn = lambda c: float(-abs(len(c.split()) - target) / target)
+    elif kind == "numeric":
+        fn = lambda c: 1.0 if re.search(r"\d", c) else 0.0
+    elif kind == "json_valid":
+        def fn(c: str) -> float:
+            try:
+                json.loads(c.strip())
+                return 1.0
+            except Exception:
+                return 0.0
+    elif kind == "numeric_threshold":
+        # G1: parse a number (the one after `near`, else the first) and compare to
+        # `value` with `op`. +1 satisfied, -1 violated, 0 if no number to judge.
+        op = str(comp.get("op", ""))
+        try:
+            thr = float(comp.get("value"))
+        except (TypeError, ValueError):
+            thr = None
+        near = str(comp.get("near", "")).lower()
+        _num = re.compile(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
+
+        def fn(c: str) -> float:
+            if thr is None:
+                return 0.0
+            s = str(c)
+            m = None
+            if near:
+                idx = s.lower().find(near)
+                if idx >= 0:
+                    m = _num.search(s, idx + len(near))
+            if m is None:
+                m = _num.search(s)
+            if not m:
+                return 0.0
+            x = float(m.group())
+            ok = {"<": x < thr, "<=": x <= thr, ">": x > thr, ">=": x >= thr,
+                  "==": x == thr, "!=": x != thr}.get(op, False)
+            return 1.0 if ok else -1.0
+    elif kind == "implies":
+        # G6 (relational/conditional): if any if_term present, all then_terms must be.
+        if_terms = [str(t).lower() for t in comp.get("if_terms", [])]
+        then_terms = [str(t).lower() for t in comp.get("then_terms", [])]
+
+        def fn(c: str) -> float:
+            lc = c.lower()
+            if not any(t in lc for t in if_terms):
+                return 0.0  # rule not triggered
+            return 1.0 if all(t in lc for t in then_terms) else -1.0
+    elif kind == "order":
+        # G7 (ordering): `before` must appear before `after`.
+        before = str(comp.get("before", "")).lower()
+        after = str(comp.get("after", "")).lower()
+
+        def fn(c: str) -> float:
+            lc = c.lower()
+            i_b, i_a = lc.find(before), lc.find(after)
+            if i_b < 0 or i_a < 0:
+                return 0.0  # can't evaluate
+            return 1.0 if i_b < i_a else -1.0
+    else:
+        fn = lambda c: 0.0
+    return weight, fn
+
+
+def make_reward_fn(kind: str, keyword: str = "", reward_spec: Optional[list] = None) -> Callable[..., list[float]]:
     kw = (keyword or "").strip().lower()
 
     def _length(completions, **_) -> list[float]:
@@ -51,6 +140,34 @@ def make_reward_fn(kind: str, keyword: str = "") -> Callable[..., list[float]]:
 
     def _numeric_answer(completions, **_) -> list[float]:
         return [1.0 if re.search(r"\d", str(c)) else 0.0 for c in completions]
+
+    if kind == "composite":
+        # Weighted sum of declarative knowledge/rule components — the injectable
+        # reward surface (parity with REINVENT4's multi-objective reward).
+        #
+        # "Gate before score" (SRVL Pillar C): a component may carry severity:"block".
+        # If any block-severity component fails, the completion is FLOORED to GATE_FLOOR
+        # and the weighted sum is NOT added — a polished-but-non-compliant answer can
+        # never be rescued by positive soft components. The gate is evaluated by the
+        # SAME declarative spec via rule_gates, so one authored rule drives both the
+        # inference gate and this training reward. Specs with no severity key are
+        # unchanged (gate_spec is empty → pure weighted sum), so this is backward-
+        # compatible.
+        from .rule_gates import evaluate_rule_gates
+        scorers = [_composite_component(c) for c in (reward_spec or [])]
+        gate_spec = [c for c in (reward_spec or [])
+                     if isinstance(c, dict) and c.get("severity") == "block"]
+
+        def _composite(completions, **_) -> list[float]:
+            out = []
+            for c in completions:
+                s = str(c)
+                if gate_spec and not evaluate_rule_gates(gate_spec, {"text": s}).passed:
+                    out.append(GATE_FLOOR)   # blocked: gate before score
+                    continue
+                out.append(float(sum(w * fn(s) for (w, fn) in scorers)))
+            return out
+        return _composite
 
     return {"length": _length, "keyword": _keyword, "numeric_answer": _numeric_answer}[kind]
 
@@ -153,7 +270,7 @@ def _train_grpo(cfg: TrainingConfig, artifact_dir: str) -> TrainingResult:
     train_ds = Dataset.from_list(rows)
 
     tok, model, peft_config = _load_base(llm.base_model, llm.adapter, llm.max_sequence_length)
-    reward_fn = make_reward_fn(llm.reward, llm.reward_keyword)
+    reward_fn = make_reward_fn(llm.reward, llm.reward_keyword, llm.reward_spec)
     out_dir = str(Path(artifact_dir) / "trl_grpo_run")
     args = GRPOConfig(
         output_dir=out_dir,
@@ -213,7 +330,10 @@ def _finish(cfg: TrainingConfig, artifact_dir: str, model_type: str,
         model_type=model_type, artifact_dir=artifact_dir, metrics=metrics,
         n_train=n_train, n_val=0, n_test=0, framework_version=fw,
         extra={"model_dir": model_dir, "base_model": cfg.llm.base_model,
-               "adapter": cfg.llm.adapter, "task": "text_generation", **extra},
+               "adapter": cfg.llm.adapter, "task": "text_generation",
+               # TRL trains on every row; val_frac/test_frac are not applied.
+               "split": {"requested": cfg.dataset.split, "method": "none_all_rows_train"},
+               **extra},
     )
     (Path(artifact_dir) / "manifest.json").write_text(json.dumps({
         "name": cfg.name, "model_type": result.model_type, "task_type": cfg.task_type,

@@ -241,7 +241,7 @@ export function GalaxyRecommendations({
               Recommended Datasets ({datasets.length})
               <Badge variant="outline" className="text-xs">
                 <Sparkles className="h-3 w-3 mr-1" />
-                BioMNI
+                BioMate
               </Badge>
             </CardTitle>
           </CardHeader>

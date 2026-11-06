@@ -1,0 +1,162 @@
+{
+ "K": 5,
+ "fold_rule": "WS3 folds_v1.csv (sha256 a896c580..., amendment A6): family-held-out rotation",
+ "n_targets": 793,
+ "n_families": 317,
+ "families_per_fold": {
+  "0": 1,
+  "1": 67,
+  "2": 82,
+  "3": 84,
+  "4": 83
+ },
+ "targets_per_fold": {
+  "0": 130,
+  "1": 91,
+  "2": 170,
+  "3": 204,
+  "4": 198
+ },
+ "folds": {
+  "0": {
+   "held_out_targets": 130,
+   "held_out_benchmark_compounds": 11579,
+   "train_pair_rows_before": 14746,
+   "train_compounds_before": 10294,
+   "dropped_same_compound_or_flat_structure": 7486,
+   "dropped_tanimoto_ge_0.9": 760,
+   "train_pair_rows_after": 2901,
+   "train_compounds_after": 2048,
+   "train_targets": 384,
+   "train_families": 211,
+   "train_labels": {
+    "inactive": 1508,
+    "pos": 1393
+   }
+  },
+  "1": {
+   "held_out_targets": 91,
+   "held_out_benchmark_compounds": 7951,
+   "train_pair_rows_before": 21197,
+   "train_compounds_before": 11715,
+   "dropped_same_compound_or_flat_structure": 5432,
+   "dropped_tanimoto_ge_0.9": 1216,
+   "train_pair_rows_after": 8497,
+   "train_compounds_after": 5067,
+   "train_targets": 499,
+   "train_families": 197,
+   "train_labels": {
+    "pos": 6466,
+    "inactive": 2031
+   }
+  },
+  "2": {
+   "held_out_targets": 170,
+   "held_out_benchmark_compounds": 10805,
+   "train_pair_rows_before": 20687,
+   "train_compounds_before": 12255,
+   "dropped_same_compound_or_flat_structure": 8797,
+   "dropped_tanimoto_ge_0.9": 999,
+   "train_pair_rows_after": 3750,
+   "train_compounds_after": 2459,
+   "train_targets": 340,
+   "train_families": 138,
+   "train_labels": {
+    "pos": 2472,
+    "inactive": 1278
+   }
+  },
+  "3": {
+   "held_out_targets": 204,
+   "held_out_benchmark_compounds": 10984,
+   "train_pair_rows_before": 20806,
+   "train_compounds_before": 12370,
+   "dropped_same_compound_or_flat_structure": 9132,
+   "dropped_tanimoto_ge_0.9": 1189,
+   "train_pair_rows_after": 3007,
+   "train_compounds_after": 2049,
+   "train_targets": 334,
+   "train_families": 153,
+   "train_labels": {
+    "pos": 1646,
+    "inactive": 1361
+   }
+  },
+  "4": {
+   "held_out_targets": 198,
+   "held_out_benchmark_compounds": 11585,
+   "train_pair_rows_before": 20896,
+   "train_compounds_before": 12391,
+   "dropped_same_compound_or_flat_structure": 9637,
+   "dropped_tanimoto_ge_0.9": 882,
+   "train_pair_rows_after": 2743,
+   "train_compounds_after": 1872,
+   "train_targets": 356,
+   "train_families": 142,
+   "train_labels": {
+    "pos": 1425,
+    "inactive": 1318
+   }
+  }
+ },
+ "cycpept_random_split_val_flat_in_train": {
+  "n_val": 1094,
+  "overlap": 754,
+  "frac": 0.689
+ },
+ "cycpept_source_grouped_folds_before_dedup": [
+  {
+   "fold": 0,
+   "n_heldout": 1001,
+   "flat_overlap_with_train_sources": 2,
+   "frac": 0.002
+  },
+  {
+   "fold": 1,
+   "n_heldout": 1666,
+   "flat_overlap_with_train_sources": 19,
+   "frac": 0.011
+  },
+  {
+   "fold": 2,
+   "n_heldout": 250,
+   "flat_overlap_with_train_sources": 9,
+   "frac": 0.036
+  },
+  {
+   "fold": 3,
+   "n_heldout": 4268,
+   "flat_overlap_with_train_sources": 20,
+   "frac": 0.005
+  },
+  {
+   "fold": 4,
+   "n_heldout": 113,
+   "flat_overlap_with_train_sources": 10,
+   "frac": 0.088
+  }
+ ],
+ "cycpept_source_grouped_note": "same peptide measured by several sources: after source-grouping the remaining overlap is removed from TRAINING by flat-structure dedup (train minus held-out flat set), reported as 0 by construction",
+ "cycpept_vs_benchmark": {
+  "cycpept_unique_flat": 2497,
+  "benchmark_unique_flat": 14599,
+  "shared_flat": 12
+ },
+ "display_target_families_in_benchmark": {
+  "targets_matching_display_genes": [
+   {
+    "target_key": "Q8NBP7",
+    "genes": "PCSK9",
+    "family": "Ff90157a3",
+    "fold": 4
+   }
+  ]
+ },
+ "bound_cyclic_v2": {
+  "entries": 784,
+  "status_ok": 776,
+  "with_X_placeholders": 222,
+  "median_len": 15.0
+ },
+ "composition_note": "C2 = affinity pairs (per-fold train files) + CycPeptMPDB (source-grouped) + display pools (in-family exclusion rule applies) + bound-cyclic PDB sequences; general SMILES <= 20 % of tokens; NOT trained until WS3 confirms the fold rule."
+}

@@ -1,0 +1,20 @@
+# second fetch: campaign/benchmark ledger sources + mechanism/stability fundamentals (Europe PMC OA, 2026-10-29)
+PMC12643943 RFpeptides
+PMC12507698 BindCraft
+PMC12723675 BindCraft peptides evaluation
+PMC13243568 barcode-free macrocycle screening
+PMC12464979 mRNA display RNA binders
+PMC13361436 cyclic peptides PPI survival guide
+PMC13516041 phage display review
+PMC13523643 membrane-traversing peptides mechanism
+PMC10003141 passive permeation physical models
+PMC10673305 computational passive permeability review
+PMC11815851 permeability benchmarking guidelines
+PMC12557401 chemical modification strategies solubility permeability
+PMC8229464 backbone N-methylation permeability review
+PMC12990023 scarce data permeability prediction
+PMC13250981 chameleonicity QM
+PMC13134636 macrobicycle heterocycle IMHB
+PMC12929930 grazoprevir chameleon
+PMC11037548 GaMD permeability
+PMC13242000 placeholder-should-fail-to-test-error-path

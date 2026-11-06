@@ -101,7 +101,7 @@ def extract_pdf_content(url: str) -> str:
                     else:
                         url = pdf_links[0]
                 else:
-                    return f"No PDF file found at {url}. Please provide a direct link to a PDF file."
+                    raise ValueError(f"No PDF file found at {url}. Provide a direct link to a PDF file.")
 
         # Download the PDF
         response = requests.get(url, timeout=30)
@@ -109,7 +109,7 @@ def extract_pdf_content(url: str) -> str:
         # Check if we actually got a PDF file (by checking content type or magic bytes)
         content_type = response.headers.get("Content-Type", "").lower()
         if "application/pdf" not in content_type and not response.content.startswith(b"%PDF"):
-            return f"The URL did not return a valid PDF file. Content type: {content_type}"
+            raise ValueError(f"The URL did not return a valid PDF file. Content type: {content_type}")
 
         pdf_file = BytesIO(response.content)
 
@@ -132,9 +132,9 @@ def extract_pdf_content(url: str) -> str:
         return text
 
     except requests.exceptions.RequestException as e:
-        return f"Error downloading PDF: {str(e)}"
+        raise RuntimeError(f"Error downloading PDF: {str(e)}")
     except Exception as e:
-        return f"Error extracting text from PDF: {str(e)}"
+        raise RuntimeError(f"Error extracting text from PDF: {str(e)}")
 
 # Execute the function
 try:
@@ -169,7 +169,7 @@ with open("extract_pdf_content_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("extract_pdf_content_output.txt", "w") as f:
-    f.write("Biomni: Extract Pdf Content" + NL)
+    f.write("BioMate: Extract Pdf Content" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

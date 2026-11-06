@@ -1,0 +1,232 @@
+{
+  "suite": "complex_task_production_boundary_probes_v1",
+  "executed_at": "2026-10-10T02:33:52.528Z",
+  "scope": "Real local production helpers with synthetic inputs; no LLM, server, tool job or scientific result.",
+  "summary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "results": [
+    {
+      "id": "six_same_workflow_cases_preserve_parameters",
+      "passed": true,
+      "expected": [
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_A"
+        },
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_B"
+        },
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_C"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_A"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_B"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_C"
+        }
+      ],
+      "actual": [
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_A"
+        },
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_B"
+        },
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_C"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_A"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_B"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_C"
+        }
+      ]
+    },
+    {
+      "id": "six_same_workflow_cases_preserve_identity",
+      "passed": true,
+      "expected": [
+        "inhibitor_A:target_A",
+        "inhibitor_A:target_B",
+        "inhibitor_A:target_C",
+        "inhibitor_B:target_A",
+        "inhibitor_B:target_B",
+        "inhibitor_B:target_C"
+      ],
+      "actual": [
+        "inhibitor_A:target_A",
+        "inhibitor_A:target_B",
+        "inhibitor_A:target_C",
+        "inhibitor_B:target_A",
+        "inhibitor_B:target_B",
+        "inhibitor_B:target_C"
+      ]
+    },
+    {
+      "id": "six_cases_preserve_dimensions",
+      "passed": true,
+      "expected": [
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_A"
+        },
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_B"
+        },
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_C"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_A"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_B"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_C"
+        }
+      ],
+      "actual": [
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_A"
+        },
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_B"
+        },
+        {
+          "inhibitor": "inhibitor_A",
+          "target": "target_C"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_A"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_B"
+        },
+        {
+          "inhibitor": "inhibitor_B",
+          "target": "target_C"
+        }
+      ]
+    },
+    {
+      "id": "diamond_graph_preserves_dependencies",
+      "passed": true,
+      "expected": [
+        [],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "actual": [
+        [],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "id": "handoff_preserves_context",
+      "passed": true,
+      "expected": {
+        "organism": {
+          "from_run_param": "genome",
+          "transform": "genome_to_organism"
+        }
+      },
+      "actual": {
+        "organism": {
+          "from_run_param": "genome",
+          "transform": "genome_to_organism"
+        }
+      }
+    },
+    {
+      "id": "blocked_is_not_pending",
+      "passed": true,
+      "expected": "blocked",
+      "actual": "blocked"
+    },
+    {
+      "id": "submitting_is_not_pending",
+      "passed": true,
+      "expected": "submitting",
+      "actual": "submitting"
+    },
+    {
+      "id": "partial_is_terminal_not_running",
+      "passed": true,
+      "expected": "partial",
+      "actual": "partial"
+    },
+    {
+      "id": "invalid_ground_truth_metrics_have_no_winner",
+      "passed": true,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "id": "no_pairwise_comparison_has_no_winner",
+      "passed": true,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "id": "nonoverlapping_methods_have_no_winner",
+      "passed": true,
+      "expected": null,
+      "actual": null
+    },
+    {
+      "id": "valid_ground_truth_comparison_still_selects_best",
+      "passed": true,
+      "expected": "matching",
+      "actual": "matching"
+    }
+  ]
+}

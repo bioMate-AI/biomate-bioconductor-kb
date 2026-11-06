@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 02 — Data analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Data analysis</h1>
+<p class="docmeta"><span>BioMate · Function-module spec 02</span><span>Status: for review</span><span>Lane: Instant → Cloud</span></p>
+
+<p class="lede">One module for everything done <em>to the user's own data</em>, with two gears: <strong>ad-hoc compute</strong> in seconds, and <strong>validated workflows</strong> in minutes to hours. Merging what used to be two peer entries is the central claim of this spec: the intent is identical — "do this to my data" — and the choice between gears is a judgement about how much rigour the question deserves, which the system is better placed to make than a user reading a menu.</p>
+
+<h2><span class="num">2.1</span>The two gears</h2>
+<table class="st">
+<thead><tr><th></th><th>Ad-hoc compute</th><th>Validated workflow</th></tr></thead>
+<tbody>
+<tr><td>Time</td><td>Seconds, in the conversation.</td><td>Minutes to hours, as a run object.</td></tr>
+<tr><td>What it is</td><td>Code written for this question and executed in a network-isolated sandbox, with the code shown.</td><td>A versioned multi-step pipeline with quality gates.</td></tr>
+<tr><td>Reproducibility</td><td>The code and its inputs are kept; re-running is re-executing that code.</td><td>Full: pinned tool versions, a resolved-parameter record per step, cached upstream steps.</td></tr>
+<tr><td>Evidence produced</td><td>A number, a table, a figure — and the code that made it.</td><td>Typed outputs per step, gate verdicts, an audit-ready report.</td></tr>
+<tr><td>Right for</td><td>Looking, checking, reshaping, one-off statistics.</td><td>Anything a figure, a filing or a decision will rest on.</td></tr>
+<tr><td>Wrong for</td><td>Results that will be published or submitted.</td><td>"What's the median of column three?"</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Why one module</span><p>A user who wants a median does not think "I need the ad-hoc compute product". They think "look at my data". Two entries forced that irrelevant decision at the front door, and users chose wrong in both directions — casual questions into 40-minute pipelines, and manuscript figures out of unversioned sandbox code.</p></div>
+
+<h2><span class="num">2.2</span>Gear arbitration</h2>
+<p>BioMate picks, states the pick, and lets the user overturn it. The pick is a chip in the composer before anything runs.</p>
+<ol>
+<li><strong>Consequence.</strong> Words like <em>figure</em>, <em>manuscript</em>, <em>submission</em>, <em>report</em> — or a project whose output requirement names a template — push to workflow.</li>
+<li><strong>Named method.</strong> A request naming an established method (DESeq2, docking, variant calling) is a workflow, because the method has a validated implementation with gates.</li>
+<li><strong>Scale.</strong> Work that cannot finish in the conversation is a workflow regardless of intent.</li>
+<li><strong>Everything else is compute.</strong> Reshaping, summarising, correlating, plotting — the default gear, because it is the cheap one and the reversible one.</li>
+</ol>
+<figure>
+<div class="wire">user: "summarise this table and plot the two arms"
+      → ● Instant · compute      [use a validated workflow instead?]
+
+user: "differential expression, treated vs control, for figure 2"
+      → ● Cloud · workflow · Transcriptomics    [just compute it quickly?]</div>
+<figcaption>The pick is always stated with the escape hatch adjacent. Overriding is one click and never buried.</figcaption>
+</figure>
+<div class="note"><span class="lbl">Escalation mid-thread</span><p>An ad-hoc result can be promoted: <em>Redo this as a validated run</em>. The compute code becomes the starting configuration, the run appears in the project, and the two results sit side by side so the user can see whether rigour changed the answer. This is the single most important path in the module, because it is how casual exploration becomes publishable work without being retyped.</p></div>
+
+<h2><span class="num">2.3</span>Views — ad-hoc compute</h2>
+<h3>2.3.1 The result message <span class="tag ship">shipped, extended</span></h3>
+<figure>
+<div class="wire">┌────────────────────────────────────────────────────────── ┐
+│ ● Instant · compute        sandbox · no network           │
+│                                                           │
+│  [ figure or table ]                                      │
+│                                                           │
+│  Median library size 18.2 M; two samples under 5 M.       │
+│                                                           │
+│  ▸ Show the code        ▸ Inputs (2 files)                │
+│  [ Save output to project ]  [ Redo as validated run ]    │
+└────────────────────────────────────────────────────────── ┘</div>
+<figcaption>Ad-hoc result. The code is one disclosure away, never hidden behind a menu, never shown by default.</figcaption>
+</figure>
+<table class="el">
+<thead><tr><th>Element</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>lane chip</td><td>States compute and that the sandbox has no network. Clicking explains the isolation guarantee.</td></tr>
+<tr><td>output</td><td>Rendered by evidence class (Spec 00 §0.7). A table gets sort and column stats; a figure gets the image stage.</td></tr>
+<tr><td>Show the code</td><td>Expands the executed source, with its language and runtime version. Editable — editing re-runs and appends a new result rather than mutating this one.</td></tr>
+<tr><td>Inputs</td><td>Data chips for every file read. Each chip opens the dataset object (Spec 04).</td></tr>
+<tr><td>Save output to project</td><td>Writes the artifact into the project's files with its provenance — the code, the inputs, the timestamp.</td></tr>
+<tr><td>Redo as validated run</td><td>Escalation. Opens the workflow panel pre-configured from this question.</td></tr>
+</tbody>
+</table>
+<h3>2.3.2 Failure states</h3>
+<table class="st">
+<thead><tr><th>Situation</th><th>What the UI does</th></tr></thead>
+<tbody>
+<tr><td>Code errors</td><td>Shows the error and the failing line, and offers a repair — never silently retries with different code and presents the result as the first answer.</td></tr>
+<tr><td>Data does not support the question</td><td>Says which column or shape is missing. Offers the dataset's quality view rather than guessing a column mapping.</td></tr>
+<tr><td>Ambiguous columns</td><td>Asks once, in words, naming the candidates. Does not pick the first match.</td></tr>
+<tr><td>Result is suspiciously trivial</td><td>Flags it — a correlation over four rows is reported with its n, not as a coefficient alone.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">2.4</span>Views — validated workflows</h2>
+<p>The workflow gear is entered three ways: from the cold-start card, from the router, or by escalating a compute result. All three land on the same place — the workflow panel, on its <em>Workflow settings</em> section, with nothing yet run. The panel itself is Spec 07; this section covers only how the module presents choices <em>before</em> the panel. Skipping, gates and per-step parameters are specified there and in Spec 08.</p>
+
+<h3>2.4.1 Domains and shapes</h3>
+<p>Inside the opened module card, the Validated workflows track shows six domain chips: Genomics, Transcriptomics, Drug discovery, Structural biology, Clinical, Proteomics. Selecting one replaces the examples with that domain's <strong>shapes</strong>.</p>
+<table class="st">
+<thead><tr><th>A shape carries</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>What it achieves, in the user's words</td><td>"Differential expression between two conditions"</td></tr>
+<tr><td>What it needs</td><td>needs: counts matrix + design</td></tr>
+<tr><td>How long it takes</td><td>~40 min</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Inventory rule</span><p>A shape is not a workflow name. It is an <em>achievement</em>, and the pipeline, its version and its parameters resolve inside the session. Three shapes per domain, chosen editorially — enough to show the range, not enough to become a catalog. No counts anywhere: never "12 workflows available".</p></div>
+
+<h3>2.4.2 Input resolution</h3>
+<p>The panel resolves inputs from the project rather than asking for uploads. Each input slot (<code>.slot</code>) shows the required role, the resolved dataset as a data chip, and a note on how it was resolved. Three slot states:</p>
+<table class="st">
+<thead><tr><th>Slot state</th><th>Appearance</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>Resolved</td><td>Data chip with the dataset name and version.</td><td>Click opens the dataset object. Swap is available but not the default gesture.</td></tr>
+<tr><td>Unresolved</td><td><em>Browse project files</em> button, plus a <span class="tag">required</span> marker if mandatory.</td><td>Opens the project's file picker — scoped to files whose shape can fill the role.</td></tr>
+<tr><td>Blocked</td><td>Amber chip: <em>license not accepted</em>, and the run button is disabled.</td><td>Accept licence inline; the acceptance is recorded in the run's audit trail.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">2.5</span>Skipping phases <span class="tag new">new</span></h2>
+<p>Not every run needs every phase. A user re-analysing a dataset that already passed QC should not pay for QC again. Skipping is therefore a first-class configuration choice, not an error path.</p>
+<ul>
+<li>Before the run: a <em>Phases to run</em> list of switches, with a live count — "18 of 22 steps".</li>
+<li>During the run: a pending phase can still be skipped from its own card. A running or completed phase cannot.</li>
+<li>A skipped phase is dashed and struck through, tagged SKIPPED in neutral grey — <strong>never red</strong>.</li>
+<li>Downstream phases that depended on it show a gated row: "Phase B was skipped — this phase reads that phase's cached output instead of a fresh one."</li>
+<li>The report's QC audit records the skip, so a reader of the report knows what was not checked.</li>
+</ul>
+
+<h3>2.5.1 Not everything is skippable <span class="tag new">new</span></h3>
+<div class="rule"><span class="lbl">Declared-skip rule</span><p>A skip is <strong>a capability the workflow declares</strong>, not a universal affordance the UI grants. A toggle appears only where the pipeline exposes a skip parameter for that phase <em>and</em> the dependency graph survives its removal. Offering a skip that the backend cannot honour, or that would orphan a downstream input, is worse than offering none — it produces a run that fails deep in phase C for a reason the user chose two screens earlier.</p></div>
+<p>Three states, therefore, not two:</p>
+<table class="st">
+<thead><tr><th>State</th><th>Appearance</th><th>Copy</th></tr></thead>
+<tbody>
+<tr><td>Skippable</td><td>An active switch, with the declared parameter shown in mono beneath it — <code>--skip-qc</code>.</td><td>"Downstream steps read the cached output of the previous run."</td></tr>
+<tr><td>Load-bearing</td><td>The switch is <strong>disabled, not absent</strong>, and the row carries a neutral chip.</td><td>"Can't skip · B, C depend on it" — plus the reason: "Phase B and C read A's alignments directly. The workflow declares no skip parameter for it."</td></tr>
+<tr><td>Skippable but consequential</td><td>An active switch with a plain-language warning.</td><td>"D would have nothing to work on" — the user may still do it; they are told what it costs.</td></tr>
+</tbody>
+</table>
+<p>The distinction is derived from two sources that must agree: the workflow's <em>declared</em> skip parameters, and a validation of the dependency graph with that phase removed. Where they disagree, the phase is treated as load-bearing — the conservative direction, because a false "you may skip this" is a broken run and a false "you may not" is only an inconvenience.</p>
+
+<h2><span class="num">2.6</span>Cross-module handoffs</h2>
+<table class="st">
+<thead><tr><th>From</th><th>To</th><th>How</th></tr></thead>
+<tbody>
+<tr><td>Compute</td><td>Workflow</td><td><em>Redo as validated run</em> — code becomes configuration.</td></tr>
+<tr><td>Workflow output</td><td>Dataset</td><td>An output tagged as a dataset opens as a first-class dataset object (Spec 04). The counts matrix and the DE results both are.</td></tr><tr><td>Workflow output</td><td>Models</td><td>A result table can be handed to Models as training data, carrying its quality flags (Spec 03 §3.3).</td></tr>
+<tr><td>Analysis</td><td>Search</td><td>A finding can be sent to Search for evidence: "is this known?" — with the numbers as context.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">2.7</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Whether an ad-hoc result should expire from the thread if never saved, or persist indefinitely as a conversation artifact.</li>
+<li><span class="tag open">open</span> Whether escalation should re-run the compute step inside the validated run for comparison, or trust the two results to be compared visually.</li>
+<li><span class="tag open">open</span> Whether domain chips should be personalised by the user's history — and if so, whether that violates the no-inventory rule by implying a ranking.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 02 · Data analysis</span><span>Next: 03 — Models</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

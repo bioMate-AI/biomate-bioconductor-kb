@@ -1,0 +1,71 @@
+{
+ "n": 6960,
+ "n_sources": 41,
+ "base_hit_rate": 0.102,
+ "Lipinski Ro5 (MW<=500, logP<=5, HBD<=5, HBA<=10)": {
+  "pass_n": 118,
+  "pass_frac": 0.017,
+  "hit_rate_pass": 0.297,
+  "hit_rate_fail": 0.099,
+  "odds_ratio": 3.88,
+  "or_ci95": [
+   0.04,
+   74.95
+  ]
+ },
+ "Veber (rot<=10, TPSA<=140)": {
+  "pass_n": 544,
+  "pass_frac": 0.078,
+  "hit_rate_pass": 0.195,
+  "hit_rate_fail": 0.094,
+  "odds_ratio": 2.33,
+  "or_ci95": [
+   0.18,
+   62.27
+  ]
+ },
+ "N-methylated (>=1 N-Me amide) [KB: N-methylation heuristic]": {
+  "pass_n": 6052,
+  "pass_frac": 0.87,
+  "hit_rate_pass": 0.113,
+  "hit_rate_fail": 0.028,
+  "odds_ratio": 4.43,
+  "or_ci95": [
+   0.32,
+   58.42
+  ]
+ },
+ "N-methylated (>=2)": {
+  "pass_n": 4298,
+  "pass_frac": 0.618,
+  "hit_rate_pass": 0.155,
+  "hit_rate_fail": 0.017,
+  "odds_ratio": 10.82,
+  "or_ci95": [
+   0.38,
+   61.65
+  ]
+ },
+ "PAINS-free [KB liability domain]": {
+  "pass_n": 6960,
+  "pass_frac": 1.0,
+  "hit_rate_pass": 0.102,
+  "hit_rate_fail": null,
+  "odds_ratio": 0.11,
+  "or_ci95": [
+   0.01,
+   0.61
+  ]
+ },
+ "BRENK-free [KB liability domain]": {
+  "pass_n": 6544,
+  "pass_frac": 0.94,
+  "hit_rate_pass": 0.105,
+  "hit_rate_fail": 0.053,
+  "odds_ratio": 2.06,
+  "or_ci95": [
+   0.47,
+   9.56
+  ]
+ }
+}

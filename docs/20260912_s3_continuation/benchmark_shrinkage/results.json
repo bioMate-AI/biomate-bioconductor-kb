@@ -1,0 +1,220 @@
+{
+  "equal_donor_mse": {
+    "no_change": 0.015533995683084272,
+    "condition_mean": 0.016095434074395457,
+    "target_condition_mean": 0.018533572845006237,
+    "guide_shrunk_target_condition_mean": 0.015336401445961961
+  },
+  "folds": [
+    {
+      "test_donor": "CE0006864",
+      "coefficients": {
+        "Rest": 0.050491812170749835,
+        "Stim48hr": 0.10423828332729891,
+        "Stim8hr": 0.07052898685298024
+      },
+      "metrics": {
+        "no_change": {
+          "mse": 0.012841735625434655,
+          "spearman": null,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 0,
+          "constant_prediction_rows": 48,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "condition_mean": {
+          "mse": 0.013559213556561209,
+          "spearman": 0.0062178597483941,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "target_condition_mean": {
+          "mse": 0.01553446093772902,
+          "spearman": 0.06900845655616648,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "guide_shrunk_target_condition_mean": {
+          "mse": 0.012623631125287395,
+          "spearman": 0.06900845655616648,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        }
+      }
+    },
+    {
+      "test_donor": "CE0008162",
+      "coefficients": {
+        "Rest": 0.10090988380044906,
+        "Stim48hr": 0.12595293922271825,
+        "Stim8hr": 0.08812179279565374
+      },
+      "metrics": {
+        "no_change": {
+          "mse": 0.011054111136869748,
+          "spearman": null,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 0,
+          "constant_prediction_rows": 48,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "condition_mean": {
+          "mse": 0.012742805907424931,
+          "spearman": -0.0031163200807969396,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "target_condition_mean": {
+          "mse": 0.016254316184086806,
+          "spearman": 0.04354076027739253,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "guide_shrunk_target_condition_mean": {
+          "mse": 0.010938909336494674,
+          "spearman": 0.04354076027739253,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        }
+      }
+    },
+    {
+      "test_donor": "CE0008678",
+      "coefficients": {
+        "Rest": 0.029102982785274196,
+        "Stim48hr": 0.11206981845884037,
+        "Stim8hr": 0.028665146050256343
+      },
+      "metrics": {
+        "no_change": {
+          "mse": 0.017811793423614063,
+          "spearman": null,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 0,
+          "constant_prediction_rows": 48,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "condition_mean": {
+          "mse": 0.018268990329334666,
+          "spearman": 0.0621820088195826,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "target_condition_mean": {
+          "mse": 0.01923759940042209,
+          "spearman": 0.06930096828428367,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "guide_shrunk_target_condition_mean": {
+          "mse": 0.01757672740042061,
+          "spearman": 0.06930096828428367,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        }
+      }
+    },
+    {
+      "test_donor": "CE0010866",
+      "coefficients": {
+        "Rest": 0.09600789391830504,
+        "Stim48hr": 0.08587657511940461,
+        "Stim8hr": 0.0759159450223991
+      },
+      "metrics": {
+        "no_change": {
+          "mse": 0.020428342546418624,
+          "spearman": null,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 0,
+          "constant_prediction_rows": 48,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "condition_mean": {
+          "mse": 0.01981072650426102,
+          "spearman": 0.17167187138561188,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "target_condition_mean": {
+          "mse": 0.02310791485778703,
+          "spearman": 0.06552096122706809,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        },
+        "guide_shrunk_target_condition_mean": {
+          "mse": 0.020206337921645168,
+          "spearman": 0.06552096122706809,
+          "rows": 48,
+          "mse_rows": 48,
+          "spearman_rows": 48,
+          "constant_prediction_rows": 0,
+          "constant_target_rows": 0,
+          "fewer_than_three_readouts": 0
+        }
+      }
+    }
+  ],
+  "heldout_nan_corruption_checks": 4,
+  "protocol": "Same frozen132 reference-only labels and downstream score as original benchmark. Per-condition attenuation from training donor guide pairs using disjoint reference pools; all target gene readouts excluded when fitting coefficients. Existing per-row downstream masks retained for scoring. No retuning of previous ridge models, no heldout effect fitting. Reused development benchmark, not promotion or untouched validation. Correlation valid counts retained per fold.",
+  "labels_exactly_match_prior": true,
+  "input_sha256": {
+    "targets": "619c0e9257a09500c01321954429d9222f5296065c1768c1c9153f80c9d351ea",
+    "baseline": "90dd86ec2fb393564e636cd9a25eb3c7cb960808cc67104f53b3abda5baf6836",
+    "controls": "442a0b4500c305787d869efc0ad8e8e6c48028e3c65d9b7a17e31180c6405d4e",
+    "prior_predictions": "06ce4ec377a8eea541111afe4f777d51c5c617864c2ebc9f62ad9a22123b40ea"
+  },
+  "code_sha256": "e0976f3b10eb527089db7692d68ec338ec14a95b83ef1a3129bdef9478c11453"
+}

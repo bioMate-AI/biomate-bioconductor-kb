@@ -54,7 +54,7 @@ with open("simulate_thyroid_hormone_pharmacokinetics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("simulate_thyroid_hormone_pharmacokinetics_output.txt", "w") as f:
-    f.write("Biomni: Simulate Thyroid Hormone Pharmacokinetics Results" + NL)
+    f.write("BioMate: Simulate Thyroid Hormone Pharmacokinetics Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

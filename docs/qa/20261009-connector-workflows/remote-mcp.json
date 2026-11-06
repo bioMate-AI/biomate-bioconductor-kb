@@ -1,0 +1,134 @@
+[
+  {
+    "method": "initialize",
+    "http": 200,
+    "result": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {
+          "experimental": {},
+          "tools": {
+            "listChanged": false
+          }
+        },
+        "serverInfo": {
+          "name": "biomate",
+          "version": "2.0.0"
+        }
+      }
+    }
+  },
+  {
+    "method": "tools/list",
+    "http": 200,
+    "result": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "tools": [
+          {
+            "name": "search_workflow",
+            "title": "Search Workflows",
+            "description": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language. Returns ranked workflow cards with id, name, domain, one-line description, and estimated BioMate cloud cost. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "Natural language description of the analysis."
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Max results (default 5, max 20).",
+                  "default": 5
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "Optional domain filter: transcriptomics, genomics, proteomics, drug_discovery, cryo_em, etc."
+                }
+              },
+              "required": [
+                "query"
+              ]
+            },
+            "annotations": {
+              "title": "Search Workflows",
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": false,
+              "openWorldHint": true
+            }
+          },
+          {
+            "name": "get_run",
+            "title": "Get Run Details",
+            "description": "Return everything about a run in one call: status (pending|running|completed|failed), per-phase and per-step progress with timestamps, output files with download URLs, structured findings, QC gate results, and any auto-loop remediations applied. Replaces get_run_status + get_run_results + step-level findings polling.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "run_id": {
+                  "type": "string",
+                  "description": "Run ID."
+                },
+                "include_findings": {
+                  "type": "boolean",
+                  "description": "Include structured findings cards (default true).",
+                  "default": true
+                }
+              },
+              "required": [
+                "run_id"
+              ]
+            },
+            "annotations": {
+              "title": "Get Run Details",
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": false,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "list_runs",
+            "title": "List Runs",
+            "description": "List the user's recent runs with status and timestamps. Filter by status or experiment.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "limit": {
+                  "type": "integer",
+                  "description": "Max runs to return (default 10).",
+                  "default": 10
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "running",
+                    "completed",
+                    "failed",
+                    "pending"
+                  ],
+                  "default": "all"
+                },
+                "experiment_id": {
+                  "type": "string",
+                  "description": "Optional experiment filter."
+                }
+              }
+            },
+            "annotations": {
+              "title": "List Runs",
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": false,
+              "openWorldHint": false
+            }
+          }
+        ]
+      }
+    }
+  }
+]

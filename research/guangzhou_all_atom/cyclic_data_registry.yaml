@@ -1,0 +1,251 @@
+# Unified Cyclic-Peptide Data Registry
+# -------------------------------------
+# Single catalogue of every held cyclic-peptide dataset. Canonical store is S3;
+# local_path (relative to this file's dir) is an optional on-disk cache. Counts are
+# REAL (verified 2026-10-04 by reading headers / index lengths / summary JSONs),
+# not estimates. Consumed by cyclic_data_registry.py (load/catalog/verify).
+#
+# modality  : binding | permeability | conformer | structure | sequence | reference
+# format    : csv | json | jsonl | archive  (archive = tarball; load() won't auto-open, use fetch())
+# loadable  : true  => load(name) returns a DataFrame/dict/list without manual extraction
+#             false => archive-only; load() raises with the S3 URI + extraction note
+s3_bucket: knowledge-datasets-1759951976
+s3_prefix: cyclic_peptide
+
+datasets:
+  cycpeptmpdb:
+    description: >-
+      CycPeptMPDB — membrane-permeability database of cyclic peptides (PAMPA/Caco2/MDCK/RRCK
+      + RDKit physchem descriptors). The primary permeability training table.
+    modality: permeability
+    format: csv
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/raw/CycPeptMPDB_Peptide_All.csv
+    local_path: data/raw/CycPeptMPDB_Peptide_All.csv
+    record_count: 8466
+    unit: peptides
+    key_columns: [ID, SMILES, HELM, Sequence, Monomer_Length, Permeability, PAMPA, Caco2, MDCK, RRCK, TPSA, _3DPSA, qed]
+    loadable: true
+    license: CC BY-NC-SA (non-commercial) — do not redistribute derived CSVs
+    feeds: [score_permeability]
+
+  binding_affinity_v1:
+    description: >-
+      Harmonised measured binding affinities (ChEMBL + BindingDB) for peptide ligands.
+      pAffinity target = 9 - log10(affinity_nM). 36,102 rows are cyclic; 2,702 unique
+      UniProt targets; includes PD-L1 (434) and avb6 (227) slices. Track-A1 binding model trains here.
+    modality: binding
+    format: csv
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/binding_affinity_v1/binding_affinity_v1.csv
+    local_path: data/raw/binding_affinity/binding_affinity_v1.csv
+    record_count: 136730
+    cyclic_count: 36102
+    unit: measurements
+    key_columns: [id, sequence_or_smiles, smiles, sequence, target_uniprot, target_name, affinity_nM, affinity_type, relation, source, cyclic_bool, is_pdl1, is_avb6, n_measurements]
+    loadable: true
+    license: ChEMBL (CC BY-SA) + BindingDB — check per-source terms before redistribution
+    feeds: [score_binding]
+    summary_json: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/binding_affinity_v1/binding_affinity_summary.json
+
+  bindingdb_peptide:
+    description: >-
+      BindingDB peptide subset (raw feed that, with ChEMBL, was harmonised into
+      binding_affinity_v1). Retained as provenance / re-harmonisation source.
+    modality: binding
+    format: csv
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/bindingdb_peptide/202609/bindingdb_peptide_subset.csv
+    local_path: null
+    record_count: 171006
+    unit: rows (BindingDB peptide subset CSV; harmonization summary reports 170,868 raw BindingDB rows pre-dedup)
+    key_columns: [smiles, ligand_name, target, uniprot, Ki_nM, Kd_nM, IC50_nM, EC50_nM]
+    loadable: true
+    license: BindingDB terms
+    feeds: [score_binding]
+    notes: feed-only; the harmonised, deduplicated product is binding_affinity_v1.
+
+  approved_cyclic_peptide_drugs:
+    description: >-
+      Curated reference table of FDA/EMA-approved cyclic-peptide drugs (cyclization type,
+      origin, discovery method, target mechanism, indication, approval year). Reference anchor set.
+    modality: reference
+    format: csv
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/approved_cyclic_peptide_drugs/approved_cyclic_peptide_drugs.csv
+    local_path: data/approved_cyclic_peptide_drugs.csv
+    record_count: 54
+    unit: approved drugs
+    key_columns: [name, brand, category, cyclization_type, origin, discovery_method, target_mechanism, indication, first_approval_year, agency]
+    loadable: true
+    license: curated internally from public labels
+    feeds: [reference]
+
+  cremp_partial:
+    description: >-
+      CREMP — conformer-rotamer ensembles for macrocyclic peptides. summary.csv carries one row
+      per ensemble (energies, conformer counts). Full 3D geometries are in large archives
+      (pickle.tar.gz ~29 GB, sdf_and_json.tar.bz2 ~14 GB) — S3 only, not auto-fetched.
+    modality: conformer
+    format: csv
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/cremp_partial/summary.csv
+    local_path: null
+    record_count: 36198
+    unit: conformer ensembles
+    key_columns: [sequence, smiles, num_monomers, num_atoms, totalconfs, uniqueconfs, lowestenergy, ensembleenergy, ensemblefreeenergy]
+    loadable: true
+    license: CREMP (CC BY) — attribute
+    feeds: [fold_selfconsistency, score_permeability, score_binding]
+    archives:
+      pickle: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/cremp_partial/pickle.tar.gz
+      sdf_json: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/cremp_partial/sdf_and_json.tar.bz2
+
+  macroconf:
+    description: >-
+      MacroConf — macrocycle conformational-sampling benchmark dataset (NMR-referenced
+      solution ensembles). Reference for conformer-generation validation.
+    modality: conformer
+    format: archive
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/macroconf/1fa6a74345334bae2235b3775180f209a1c923ed/dataset.tar.gz
+    local_path: data/raw/macroconf
+    record_count: null
+    unit: macrocycle systems
+    loadable: false
+    license: see source (Bigginlab MacroConf)
+    feeds: [fold_selfconsistency]
+
+  pepbdb:
+    description: >-
+      PepBDB protein-peptide complex structures with a cyclic-peptide index (head-to-tail /
+      disulfide heuristic detection) and a sequence-hash-disjoint train/test split.
+    modality: structure
+    format: json
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbdb/20200318/pepbdb_cyclic_index.json
+    local_path: null
+    record_count: 13481
+    cyclic_count: 890
+    unit: peptide entries (890 cyclic / 446 unique-seq clusters)
+    key_columns: [summary, entries]
+    loadable: true
+    license: PepBDB (academic)
+    feeds: [target_prep, fold_selfconsistency]
+    structures_archive: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbdb/20200318/pepbdb-20200318.tgz
+
+  pepbench:
+    description: >-
+      PepBench (from PepGLAD) — protein-peptide complex benchmark + splits. 6,105 non-redundant
+      complexes (4,157 train / 114 val), 93-peptide LNR test set, 70,498 ProtFrag augmentation
+      fragments. Structures + index files are in tarballs (S3).
+    modality: structure
+    format: archive
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbench/v2/
+    local_path: null
+    record_count: 6105
+    unit: complexes (train 4157 / val 114; + 93 LNR test; + 70498 ProtFrag)
+    loadable: false
+    license: PepGLAD / PepBench (academic)
+    feeds: [generate, fold_selfconsistency]
+    archives:
+      train_valid: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbench/v2/train_valid.tar.gz
+      lnr_test: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbench/v2/LNR.tar.gz
+      protfrag: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/pepbench/v2/ProtFrag.tar.gz
+
+  rcsb_cyclic_index:
+    description: >-
+      Text-based candidate index of RCSB/PDB entries likely to contain cyclic peptides
+      (cyclicity NOT structurally verified — a candidate shortlist for target/pocket mining).
+    modality: structure
+    format: json
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/rcsb_cyclic_index/20260914/rcsb_cyclic_index.json
+    local_path: null
+    record_count: 28662
+    unit: candidate PDB entry IDs
+    key_columns: [query, n_entries, note, entry_ids]
+    loadable: true
+    license: RCSB PDB (public)
+    feeds: [target_prep]
+
+  bound_cyclic_agg:
+    description: >-
+      Aggregated set of experimentally bound cyclic-peptide complexes mined from the PDB
+      (disulfide / sidechain-backbone / head-to-tail), deduplicated. v2 aggregate = 776 unique.
+    modality: structure
+    format: jsonl
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/bound_cyclic_agg/bound_cyclic_manifest.jsonl
+    local_path: data/bound_cyclic/agg/bound_cyclic_manifest.jsonl
+    record_count: 776
+    unit: bound cyclic complexes
+    loadable: true
+    license: RCSB PDB (public)
+    feeds: [generate, fold_selfconsistency]
+    summary_json: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/bound_cyclic_agg/summary.json
+
+  bound_cyclic_v1:
+    description: >-
+      First-pass mined bound cyclic complexes (235 hits from 5,000 examined; 4.7% cyclic hit
+      rate). Superseded by bound_cyclic_agg but retained for provenance.
+    modality: structure
+    format: jsonl
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/bound_cyclic_v1/bound_cyclic_manifest.jsonl
+    local_path: data/bound_cyclic/v1/bound_cyclic_manifest.jsonl
+    record_count: 236
+    unit: bound cyclic complexes (manifest.jsonl holds 236 unique PDB IDs; summary.json reports 235)
+    loadable: true
+    license: RCSB PDB (public)
+    feeds: [generate]
+    summary_json: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/bound_cyclic_v1/summary.json
+
+  nme_v1:
+    description: >-
+      N-methylation (non-canonical) dataset — monomer blocks partitioned train/val/test for
+      the non-canonical vocabulary / N-methyl modeling. 1,225 trainable records; 2,834 NMe residues.
+    modality: sequence
+    format: jsonl
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/nme_v1/nme_dataset.jsonl/records.jsonl
+    local_path: null
+    record_count: 1225
+    unit: trainable records (train 1104 / val 46 / test 75)
+    loadable: true
+    license: derived from public structures
+    feeds: [generate]
+    manifest_json: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/nme_v1/nme_dataset.jsonl/manifest.json
+
+  helm_monomers:
+    description: >-
+      HELM non-canonical monomer library (building blocks for HELM notation parsing /
+      non-canonical vocabulary). Archive.
+    modality: reference
+    format: archive
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/helm_monomers/fecc972f4707bc4e0cc34b7de3713cdba559e177/helm_monomers.tgz
+    local_path: null
+    record_count: null
+    unit: monomer library
+    loadable: false
+    license: HELM (Pistoia Alliance, open)
+    feeds: [generate, synth_rfq]
+
+  peptideclm2_pepmsnd:
+    description: >-
+      PeptideCLM-2 / PepMSND source dataset (peptide sequences + stability signal). Archive;
+      the derived, split stability table is pepmsnd_stability_folds (below).
+    modality: sequence
+    format: archive
+    s3_uri: s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/peptideclm2_pepmsnd/6b9708d4cb05717307d310daaf1c0f88c71ff084/dataset.tar.gz
+    local_path: data/raw/peptideclm2_pepmsnd
+    record_count: null
+    unit: peptide sequences
+    loadable: false
+    license: see PeptideCLM / PepMSND sources
+    feeds: [score_developability]
+
+  pepmsnd_stability_folds:
+    description: >-
+      Derived, leak-controlled stability folds (Murcko/cluster-disjoint) built from PepMSND by
+      rebuild_stability_folds.py — the stability-classifier training table.
+    modality: sequence
+    format: csv
+    s3_uri: null
+    local_path: data/processed/pepmsnd_stability_folds.csv
+    record_count: 605
+    unit: peptides (fold-assigned)
+    key_columns: [fold, label, label_conflict, canonical_smiles, n_source_rows, source_ids, source_clusters, label_votes]
+    loadable: true
+    license: derived (CC BY-NC-SA upstream) — do not redistribute
+    feeds: [score_developability]
+    notes: DERIVED artifact (gitignored under data/processed/); rebuild with rebuild_stability_folds.py.

@@ -1,0 +1,50 @@
+{
+  "target": "pdl2",
+  "n_designs": 2,
+  "n_ok": 2,
+  "within_target_ranking": [
+    {
+      "design": "PDL1-G1-09",
+      "seq": "VKWINIDIEYPQ",
+      "dG": -25.9,
+      "ring": true
+    },
+    {
+      "design": "PDL1-K-05",
+      "seq": "WYFPLITENKSG",
+      "dG": -24.59,
+      "ring": true
+    }
+  ],
+  "note": "Within-TARGET MM-GBSA ranking of designs for one receptor (the valid use). Implicit GBn2 minimized single-point, CHARMM36m, cyclic via psfgen CYCP patch. RELATIVE ranking, not absolute affinity; entropy omitted; confirm finalists with FEP. Trust only ring=true rows.",
+  "all": [
+    {
+      "target": "pdl2",
+      "design": "PDL1-G1-09",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "VKWINIDIEYPQ",
+      "dG_bind_kcal_mol": -25.9,
+      "E_complex_kcal": -3293.7,
+      "E_receptor_kcal": -3081.0,
+      "E_ligand_kcal": -186.8,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "pdl2",
+      "design": "PDL1-K-05",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "WYFPLITENKSG",
+      "dG_bind_kcal_mol": -24.59,
+      "E_complex_kcal": -3140.5,
+      "E_receptor_kcal": -3062.9,
+      "E_ligand_kcal": -53.1,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    }
+  ]
+}

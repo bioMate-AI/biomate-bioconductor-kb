@@ -186,7 +186,7 @@ with open("create_deformable_transform_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("create_deformable_transform_output.txt", "w") as f:
-    f.write("Biomni: Create Deformable Transform" + NL)
+    f.write("BioMate: Create Deformable Transform" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

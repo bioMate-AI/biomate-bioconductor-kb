@@ -1,0 +1,2402 @@
+{
+  "date": "2026-10-09T21:35:17.606Z",
+  "base": "https://dev-public.biomate.ai",
+  "package": "@biomate/mcp-server@0.1.0",
+  "entrySha256": "3437d90c8b971ab8d4d4ac144458f2a07c620ebb99c51a4d02181dc6b0dd65cc",
+  "auth": "shared fixture JWT; installer OAuth NOT verified",
+  "checks": [
+    {
+      "step": "initialize/list",
+      "passed": true,
+      "tools": [
+        "biomate_session",
+        "search_workflow",
+        "get_workflow_spec",
+        "run_workflow",
+        "watch_run",
+        "get_run",
+        "cancel_run",
+        "list_runs",
+        "preview_file",
+        "export_report",
+        "analyze_results",
+        "explain_error",
+        "query_database",
+        "resolve_accession",
+        "browse_data",
+        "fetch_public_data",
+        "recall_memory",
+        "search_literature",
+        "upload_file",
+        "list_instruments",
+        "get_instrument_status",
+        "run_instrument_protocol"
+      ]
+    },
+    {
+      "step": "published-package-vs-docs-tool-count",
+      "passed": false,
+      "expected": 19,
+      "actual": 22
+    },
+    {
+      "step": "search_workflow",
+      "args": {
+        "query": "Predict ADMET Properties",
+        "limit": 3
+      },
+      "passed": true,
+      "result": {
+        "success": true,
+        "workflow_type": "nextflow",
+        "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+        "workflow_name": "Predict ADMET Properties (AI)",
+        "format": "nextflow",
+        "source": "template_reuse",
+        "confidence": 78,
+        "message": "Found workflow: Predict ADMET Properties (AI)",
+        "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+        "domain": "drug_discovery",
+        "step_count": 1,
+        "candidate_workflows": [
+          {
+            "name": "Predict Admet Properties",
+            "description": "pharmacology/predict_admet_properties Predicts ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) properties for a list of compounds using: 1. RDKit molecular descriptors (hERG IC50 est",
+            "domain": "drug_discovery",
+            "score": 82,
+            "filename": "nextflow_nfcore/subworkflows/drug_discovery/predict_admet_properties/main.nf"
+          },
+          {
+            "name": "Predict ADMET Properties (AI)",
+            "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Ca",
+            "domain": "drug_discovery",
+            "score": 78,
+            "filename": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf"
+          },
+          {
+            "name": "Admet Pred",
+            "description": "pharmacology/ADMET_pred (fixed 2026-05-21) ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) safety screening. Uses RDKit molecular descriptors to estimate: - hERG IC50 (μM): Aronov 20",
+            "domain": "drug_discovery",
+            "score": 41,
+            "filename": "nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred/main.nf"
+          },
+          {
+            "name": "cyclic_peptide_design",
+            "description": "De novo cyclic peptide design pipeline for PPI targets with oral macrocycle optimization. 5-phase pipeline: (A) target pocket analysis with curated autoimmune hotspot DB (IL17A/IL6R/CALCA/PTPN22), (B)",
+            "domain": "drug_discovery",
+            "score": 32,
+            "filename": "biomate-ai-tools/cyclic_peptide_design/main.nf"
+          },
+          {
+            "name": "adc_design",
+            "description": "Comprehensive ADC (Antibody-Drug Conjugate) design workflow covering payload selection (MMAE/MMAF/DM1/DM4/SN-38/PBD dimer/calicheamicin), linker optimization (cleavable: val-cit, disulfide, pH-sensiti",
+            "domain": "drug_discovery",
+            "score": 31,
+            "filename": "nf-core-workflows/modules/biomate-ai-tools/adc_design/main.nf"
+          }
+        ],
+        "scientific_rationale": {
+          "tools_used": [
+            "Predict Admet Properties"
+          ],
+          "when_to_use": [
+            "Pharmacological modeling and drug analysis"
+          ],
+          "do_not_use_when": [
+            "Predictions are estimates - experimental validation required",
+            "Training data biased toward drug-like small molecules",
+            "May not generalize to novel chemotypes"
+          ],
+          "data_requirements": {},
+          "key_assumptions": [],
+          "common_pitfalls": [],
+          "parameter_hints": [
+            {
+              "param": "ADMET_model_type",
+              "recommended": "MPNN",
+              "rationale": "",
+              "tool": "Predict Admet Properties"
+            },
+            {
+              "param": "smiles_list",
+              "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+              "rationale": "",
+              "tool": "Predict Admet Properties"
+            }
+          ]
+        },
+        "parameter_metadata": {
+          "smiles_list": {
+            "type": "string",
+            "label": "Smiles List",
+            "level": "optional"
+          },
+          "ADMET_model_type": {
+            "type": "string",
+            "label": "Admet Model Type",
+            "level": "optional"
+          },
+          "admet_shard_size": {
+            "type": "integer",
+            "label": "Admet Shard Size",
+            "level": "optional"
+          }
+        },
+        "required_params": [],
+        "optional_params": [
+          {
+            "name": "smiles_list",
+            "label": "Smiles List",
+            "description": "Smiles List",
+            "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+            "type": "string"
+          },
+          {
+            "name": "ADMET_model_type",
+            "label": "Admet Model Type",
+            "description": "Admet Model Type",
+            "default": "MPNN",
+            "type": "string"
+          },
+          {
+            "name": "admet_shard_size",
+            "label": "Admet Shard Size",
+            "description": "Admet Shard Size",
+            "default": 25,
+            "type": "integer"
+          }
+        ],
+        "param_prefill_deferred": true,
+        "workflow_ga": {
+          "name": "Predict ADMET Properties (AI)",
+          "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+          "annotation": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+          "tags": [
+            "drug_discovery",
+            "biomni",
+            "nextflow",
+            "predict_admet_properties",
+            "preferred",
+            "model_type:ai_chemprop",
+            "chemprop",
+            "admet_ai"
+          ],
+          "format": "nextflow",
+          "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+          "workflow_type": "nextflow",
+          "steps": {
+            "0": {
+              "id": "0",
+              "name": "Admet Infer Shard",
+              "tool_id": "ADMET_INFER_SHARD",
+              "annotation": "Admet Infer Shard",
+              "description": "",
+              "type": "tool",
+              "parameters": {},
+              "inputs": {},
+              "phase_group": "",
+              "phase_label": ""
+            },
+            "1": {
+              "id": "1",
+              "name": "Predict Admet Properties",
+              "tool_id": "PREDICT_ADMET_PROPERTIES",
+              "annotation": "Predict Admet Properties",
+              "description": "",
+              "type": "tool",
+              "parameters": {
+                "smiles_list": {
+                  "type": "string",
+                  "label": "Smiles List",
+                  "default": null
+                },
+                "ADMET_model_type": {
+                  "type": "string",
+                  "label": "Admet Model Type",
+                  "default": null
+                },
+                "admet_shard_size": {
+                  "type": "string",
+                  "label": "Admet Shard Size",
+                  "default": null
+                }
+              },
+              "inputs": {},
+              "phase_group": "",
+              "phase_label": ""
+            }
+          },
+          "parameters": {
+            "smiles_list": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+            "ADMET_model_type": "MPNN",
+            "admet_shard_size": 25
+          },
+          "parameter_metadata": {
+            "smiles_list": {
+              "type": "string",
+              "label": "Smiles List",
+              "level": "optional"
+            },
+            "ADMET_model_type": {
+              "type": "string",
+              "label": "Admet Model Type",
+              "level": "optional"
+            },
+            "admet_shard_size": {
+              "type": "integer",
+              "label": "Admet Shard Size",
+              "level": "optional"
+            }
+          },
+          "required_params": [],
+          "optional_params": [
+            {
+              "name": "smiles_list",
+              "label": "Smiles List",
+              "description": "Smiles List",
+              "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+              "type": "string"
+            },
+            {
+              "name": "ADMET_model_type",
+              "label": "Admet Model Type",
+              "description": "Admet Model Type",
+              "default": "MPNN",
+              "type": "string"
+            },
+            {
+              "name": "admet_shard_size",
+              "label": "Admet Shard Size",
+              "description": "Admet Shard Size",
+              "default": 25,
+              "type": "integer"
+            }
+          ],
+          "hardware_requirements": {
+            "gpu_required": false,
+            "min_memory_gb": 16,
+            "tools_analyzed": 1,
+            "tool_runtime_hints": [
+              {
+                "tool_id": "biomni/pharmacology/predict_admet_properties",
+                "tool_name": "predict_admet_properties",
+                "gpu": false,
+                "memory_gb": 16,
+                "container_image": null,
+                "runtime_type": "biomni_local"
+              }
+            ],
+            "source": "ai_tool_db.execution_info"
+          },
+          "scientific_rationale": {
+            "tools_used": [
+              "Predict Admet Properties"
+            ],
+            "when_to_use": [
+              "Pharmacological modeling and drug analysis"
+            ],
+            "do_not_use_when": [
+              "Predictions are estimates - experimental validation required",
+              "Training data biased toward drug-like small molecules",
+              "May not generalize to novel chemotypes"
+            ],
+            "data_requirements": {},
+            "key_assumptions": [],
+            "common_pitfalls": [],
+            "parameter_hints": [
+              {
+                "param": "ADMET_model_type",
+                "recommended": "MPNN",
+                "rationale": "",
+                "tool": "Predict Admet Properties"
+              },
+              {
+                "param": "smiles_list",
+                "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                "rationale": "",
+                "tool": "Predict Admet Properties"
+              }
+            ]
+          }
+        },
+        "hardware_requirements": {
+          "gpu_required": false,
+          "min_memory_gb": 16,
+          "tools_analyzed": 1,
+          "tool_runtime_hints": [
+            {
+              "tool_id": "biomni/pharmacology/predict_admet_properties",
+              "tool_name": "predict_admet_properties",
+              "gpu": false,
+              "memory_gb": 16,
+              "container_image": null,
+              "runtime_type": "biomni_local"
+            }
+          ],
+          "source": "ai_tool_db.execution_info"
+        },
+        "datasets_assigned": false,
+        "generated_parameters": [
+          {
+            "name": "smiles_list",
+            "label": "Smiles List",
+            "description": "Smiles List",
+            "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+            "type": "string"
+          },
+          {
+            "name": "ADMET_model_type",
+            "label": "Admet Model Type",
+            "description": "Admet Model Type",
+            "default": "MPNN",
+            "type": "string"
+          },
+          {
+            "name": "admet_shard_size",
+            "label": "Admet Shard Size",
+            "description": "Admet Shard Size",
+            "default": 25,
+            "type": "integer"
+          }
+        ],
+        "validation": {
+          "is_valid": true,
+          "issues": [],
+          "warnings": [],
+          "suggestions": []
+        },
+        "tool_installation": {
+          "success": true,
+          "message": "Nextflow workflow",
+          "failed_tools": []
+        }
+      }
+    },
+    {
+      "step": "get_workflow_spec",
+      "args": {
+        "workflow_id": "Predict ADMET Properties (AI)"
+      },
+      "passed": true,
+      "result": {
+        "success": true,
+        "workflow_type": "nextflow",
+        "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+        "workflow_name": "Predict ADMET Properties (AI)",
+        "format": "nextflow",
+        "source": "template_reuse",
+        "confidence": 102,
+        "message": "Found workflow: Predict ADMET Properties (AI)",
+        "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+        "domain": "drug_discovery",
+        "step_count": 1,
+        "candidate_workflows": [
+          {
+            "name": "Predict ADMET Properties (AI)",
+            "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Ca",
+            "domain": "drug_discovery",
+            "score": 102,
+            "filename": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf"
+          },
+          {
+            "name": "Predict Admet Properties",
+            "description": "pharmacology/predict_admet_properties Predicts ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) properties for a list of compounds using: 1. RDKit molecular descriptors (hERG IC50 est",
+            "domain": "drug_discovery",
+            "score": 75,
+            "filename": "nextflow_nfcore/subworkflows/drug_discovery/predict_admet_properties/main.nf"
+          },
+          {
+            "name": "Admet Pred",
+            "description": "pharmacology/ADMET_pred (fixed 2026-05-21) ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) safety screening. Uses RDKit molecular descriptors to estimate: - hERG IC50 (μM): Aronov 20",
+            "domain": "drug_discovery",
+            "score": 41,
+            "filename": "nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred/main.nf"
+          },
+          {
+            "name": "cyclic_peptide_design",
+            "description": "De novo cyclic peptide design pipeline for PPI targets with oral macrocycle optimization. 5-phase pipeline: (A) target pocket analysis with curated autoimmune hotspot DB (IL17A/IL6R/CALCA/PTPN22), (B)",
+            "domain": "drug_discovery",
+            "score": 32,
+            "filename": "biomate-ai-tools/cyclic_peptide_design/main.nf"
+          },
+          {
+            "name": "adc_design",
+            "description": "Comprehensive ADC (Antibody-Drug Conjugate) design workflow covering payload selection (MMAE/MMAF/DM1/DM4/SN-38/PBD dimer/calicheamicin), linker optimization (cleavable: val-cit, disulfide, pH-sensiti",
+            "domain": "drug_discovery",
+            "score": 31,
+            "filename": "nf-core-workflows/modules/biomate-ai-tools/adc_design/main.nf"
+          }
+        ],
+        "scientific_rationale": {
+          "tools_used": [
+            "Predict Admet Properties"
+          ],
+          "when_to_use": [
+            "Pharmacological modeling and drug analysis"
+          ],
+          "do_not_use_when": [
+            "Predictions are estimates - experimental validation required",
+            "Training data biased toward drug-like small molecules",
+            "May not generalize to novel chemotypes"
+          ],
+          "data_requirements": {},
+          "key_assumptions": [],
+          "common_pitfalls": [],
+          "parameter_hints": [
+            {
+              "param": "ADMET_model_type",
+              "recommended": "MPNN",
+              "rationale": "",
+              "tool": "Predict Admet Properties"
+            },
+            {
+              "param": "smiles_list",
+              "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+              "rationale": "",
+              "tool": "Predict Admet Properties"
+            }
+          ]
+        },
+        "parameter_metadata": {
+          "smiles_list": {
+            "type": "string",
+            "label": "Smiles List",
+            "level": "optional"
+          },
+          "ADMET_model_type": {
+            "type": "string",
+            "label": "Admet Model Type",
+            "level": "optional"
+          },
+          "admet_shard_size": {
+            "type": "integer",
+            "label": "Admet Shard Size",
+            "level": "optional"
+          }
+        },
+        "required_params": [],
+        "optional_params": [
+          {
+            "name": "smiles_list",
+            "label": "Smiles List",
+            "description": "Smiles List",
+            "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+            "type": "string"
+          },
+          {
+            "name": "ADMET_model_type",
+            "label": "Admet Model Type",
+            "description": "Admet Model Type",
+            "default": "MPNN",
+            "type": "string"
+          },
+          {
+            "name": "admet_shard_size",
+            "label": "Admet Shard Size",
+            "description": "Admet Shard Size",
+            "default": 25,
+            "type": "integer"
+          }
+        ],
+        "param_prefill_deferred": false,
+        "workflow_ga": {
+          "name": "Predict ADMET Properties (AI)",
+          "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+          "annotation": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+          "tags": [
+            "drug_discovery",
+            "biomni",
+            "nextflow",
+            "predict_admet_properties",
+            "preferred",
+            "model_type:ai_chemprop",
+            "chemprop",
+            "admet_ai"
+          ],
+          "format": "nextflow",
+          "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+          "workflow_type": "nextflow",
+          "steps": {
+            "0": {
+              "id": "0",
+              "name": "Admet Infer Shard",
+              "tool_id": "ADMET_INFER_SHARD",
+              "annotation": "Admet Infer Shard",
+              "description": "",
+              "type": "tool",
+              "parameters": {},
+              "inputs": {},
+              "phase_group": "",
+              "phase_label": ""
+            },
+            "1": {
+              "id": "1",
+              "name": "Predict Admet Properties",
+              "tool_id": "PREDICT_ADMET_PROPERTIES",
+              "annotation": "Predict Admet Properties",
+              "description": "",
+              "type": "tool",
+              "parameters": {
+                "smiles_list": {
+                  "type": "string",
+                  "label": "Smiles List",
+                  "default": null
+                },
+                "ADMET_model_type": {
+                  "type": "string",
+                  "label": "Admet Model Type",
+                  "default": null
+                },
+                "admet_shard_size": {
+                  "type": "string",
+                  "label": "Admet Shard Size",
+                  "default": null
+                }
+              },
+              "inputs": {},
+              "phase_group": "",
+              "phase_label": ""
+            }
+          },
+          "parameters": {
+            "smiles_list": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+            "ADMET_model_type": "MPNN",
+            "admet_shard_size": 25
+          },
+          "parameter_metadata": {
+            "smiles_list": {
+              "type": "string",
+              "label": "Smiles List",
+              "level": "optional"
+            },
+            "ADMET_model_type": {
+              "type": "string",
+              "label": "Admet Model Type",
+              "level": "optional"
+            },
+            "admet_shard_size": {
+              "type": "integer",
+              "label": "Admet Shard Size",
+              "level": "optional"
+            }
+          },
+          "required_params": [],
+          "optional_params": [
+            {
+              "name": "smiles_list",
+              "label": "Smiles List",
+              "description": "Smiles List",
+              "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+              "type": "string"
+            },
+            {
+              "name": "ADMET_model_type",
+              "label": "Admet Model Type",
+              "description": "Admet Model Type",
+              "default": "MPNN",
+              "type": "string"
+            },
+            {
+              "name": "admet_shard_size",
+              "label": "Admet Shard Size",
+              "description": "Admet Shard Size",
+              "default": 25,
+              "type": "integer"
+            }
+          ],
+          "hardware_requirements": {
+            "gpu_required": false,
+            "min_memory_gb": 16,
+            "tools_analyzed": 1,
+            "tool_runtime_hints": [
+              {
+                "tool_id": "biomni/pharmacology/predict_admet_properties",
+                "tool_name": "predict_admet_properties",
+                "gpu": false,
+                "memory_gb": 16,
+                "container_image": null,
+                "runtime_type": "biomni_local"
+              }
+            ],
+            "source": "ai_tool_db.execution_info"
+          },
+          "scientific_rationale": {
+            "tools_used": [
+              "Predict Admet Properties"
+            ],
+            "when_to_use": [
+              "Pharmacological modeling and drug analysis"
+            ],
+            "do_not_use_when": [
+              "Predictions are estimates - experimental validation required",
+              "Training data biased toward drug-like small molecules",
+              "May not generalize to novel chemotypes"
+            ],
+            "data_requirements": {},
+            "key_assumptions": [],
+            "common_pitfalls": [],
+            "parameter_hints": [
+              {
+                "param": "ADMET_model_type",
+                "recommended": "MPNN",
+                "rationale": "",
+                "tool": "Predict Admet Properties"
+              },
+              {
+                "param": "smiles_list",
+                "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                "rationale": "",
+                "tool": "Predict Admet Properties"
+              }
+            ]
+          }
+        },
+        "hardware_requirements": {
+          "gpu_required": false,
+          "min_memory_gb": 16,
+          "tools_analyzed": 1,
+          "tool_runtime_hints": [
+            {
+              "tool_id": "biomni/pharmacology/predict_admet_properties",
+              "tool_name": "predict_admet_properties",
+              "gpu": false,
+              "memory_gb": 16,
+              "container_image": null,
+              "runtime_type": "biomni_local"
+            }
+          ],
+          "source": "ai_tool_db.execution_info"
+        },
+        "datasets_assigned": false,
+        "generated_parameters": [
+          {
+            "name": "smiles_list",
+            "label": "Smiles List",
+            "description": "Smiles List",
+            "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+            "type": "string"
+          },
+          {
+            "name": "ADMET_model_type",
+            "label": "Admet Model Type",
+            "description": "Admet Model Type",
+            "default": "MPNN",
+            "type": "string"
+          },
+          {
+            "name": "admet_shard_size",
+            "label": "Admet Shard Size",
+            "description": "Admet Shard Size",
+            "default": 25,
+            "type": "integer"
+          }
+        ],
+        "validation": {
+          "is_valid": true,
+          "issues": [],
+          "warnings": [],
+          "suggestions": []
+        },
+        "tool_installation": {
+          "success": true,
+          "message": "Nextflow workflow",
+          "failed_tools": []
+        }
+      }
+    },
+    {
+      "step": "get_run",
+      "args": {
+        "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2"
+      },
+      "passed": true,
+      "result": {
+        "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+        "galaxyInvocationId": "17fd97a3-5165-4184-93fa-a832575f252b",
+        "nextflowRunId": "1376bf13-1b04-4923-a68d-49eb30376b26",
+        "s3Outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e688392f",
+        "status": "completed",
+        "startedAt": "2026-10-09T21:31:40.555Z",
+        "workflowName": "Predict ADMET Properties (AI)"
+      }
+    },
+    {
+      "step": "get-run-output-contract",
+      "passed": false,
+      "reason": "Published preview_file instructs users to copy s3_uri from get_run.output_files"
+    },
+    {
+      "step": "analyze_results",
+      "args": {
+        "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+        "question": "Summarize the actual outputs for the three input compounds, identify the prediction model used and its limitations. Do not infer clinical safety."
+      },
+      "passed": true,
+      "result": {
+        "success": true,
+        "analysis": [
+          {
+            "prediction_model": "ADMET-AI (MPNN, Chemprop-RDKit; Swanson et al. 2023) combined with empirical heuristics (Lombardo 2002 for Vd, Lobell & Sivarajah 2003 for fu_plasma, BCS/logP for CLr)",
+            "limitations": "These values are computational predictions for hypothesis generation only. Models contain inherent error margins (e.g., RMSE ~0.15 log units for fu_plasma; ~0.48 log-units for vd_lkg) and heuristics like cl_renal_fraction are directional only. All values require experimental confirmation before use in regulatory PBPK submissions.",
+            "compound_summaries": [
+              {
+                "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
+                "predicted_properties": {
+                  "molecular_weight_Da": 180.2,
+                  "logP": 1.31,
+                  "hERG_inhibition_probability": 0.003,
+                  "DILI_probability": 0.855,
+                  "DILI_risk": "high",
+                  "plasma_protein_binding_percent": 73.2,
+                  "fu_plasma_predicted": 0.6837,
+                  "Caco-2_logPapp": -4.406,
+                  "BBB_penetration_probability": 0.811,
+                  "oral_bioavailability_probability": 0.873,
+                  "CYP2D6_inhibitor_probability": 0.007,
+                  "CYP3A4_substrate_probability": 0.093,
+                  "ClinTox_probability": 0.137,
+                  "cl_renal_fraction_estimated": 0.4,
+                  "vd_lkg_estimated": 4.137
+                }
+              },
+              {
+                "smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+                "predicted_properties": {
+                  "molecular_weight_Da": 194.2,
+                  "logP": -1.029,
+                  "hERG_inhibition_probability": 0.115,
+                  "DILI_probability": 0.875,
+                  "DILI_risk": "high",
+                  "plasma_protein_binding_percent": 29.2,
+                  "fu_plasma_predicted": 0.99,
+                  "Caco-2_logPapp": -4.11,
+                  "BBB_penetration_probability": 0.97,
+                  "oral_bioavailability_probability": 0.936,
+                  "CYP2D6_inhibitor_probability": 0.001,
+                  "CYP3A4_substrate_probability": 0.487,
+                  "ClinTox_probability": 0.072,
+                  "cl_renal_fraction_estimated": 0.7,
+                  "vd_lkg_estimated": 0.361
+                }
+              },
+              {
+                "smiles": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+                "predicted_properties": {
+                  "molecular_weight_Da": 206.3,
+                  "logP": 3.073,
+                  "hERG_inhibition_probability": 0.008,
+                  "DILI_probability": 0.487,
+                  "DILI_risk": "medium",
+                  "plasma_protein_binding_percent": 90.7,
+                  "fu_plasma_predicted": 0.0491,
+                  "Caco-2_logPapp": -4.285,
+                  "BBB_penetration_probability": 0.511,
+                  "oral_bioavailability_probability": 0.945,
+                  "CYP2D6_inhibitor_probability": 0.008,
+                  "CYP3A4_substrate_probability": 0.258,
+                  "ClinTox_probability": 0.012,
+                  "cl_renal_fraction_estimated": 0.15,
+                  "vd_lkg_estimated": 25.006
+                }
+              }
+            ]
+          }
+        ],
+        "output_files_sampled": [
+          "pk_summary.json",
+          "predict_admet_properties_output.txt",
+          "predict_admet_properties_results.json",
+          "qc_metrics.json",
+          "toxicity_report.json"
+        ],
+        "llm_model": "claude-sonnet-4-6",
+        "workflow_name": "Predict ADMET Properties (AI)"
+      }
+    },
+    {
+      "step": "export_report",
+      "args": {
+        "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+        "format": "markdown"
+      },
+      "passed": false,
+      "result": {
+        "error": "/api/workflows/runs/85e8bae6-8836-4abc-a062-44dd2fde30c2/findings/report → HTTP 404: {\"error\":\"Findings report not yet available\"}"
+      }
+    }
+  ],
+  "recordingGate": "HOLD",
+  "previousAttempt": {
+    "date": "2026-10-09T21:32:09.245Z",
+    "base": "https://dev-public.biomate.ai",
+    "package": "@biomate/mcp-server@0.1.0",
+    "entrySha256": "3437d90c8b971ab8d4d4ac144458f2a07c620ebb99c51a4d02181dc6b0dd65cc",
+    "auth": "shared fixture JWT; installer OAuth NOT verified",
+    "checks": [
+      {
+        "step": "initialize/list",
+        "passed": true,
+        "tools": [
+          "biomate_session",
+          "search_workflow",
+          "get_workflow_spec",
+          "run_workflow",
+          "watch_run",
+          "get_run",
+          "cancel_run",
+          "list_runs",
+          "preview_file",
+          "export_report",
+          "analyze_results",
+          "explain_error",
+          "query_database",
+          "resolve_accession",
+          "browse_data",
+          "fetch_public_data",
+          "recall_memory",
+          "search_literature",
+          "upload_file",
+          "list_instruments",
+          "get_instrument_status",
+          "run_instrument_protocol"
+        ]
+      },
+      {
+        "step": "published-package-vs-docs-tool-count",
+        "passed": false,
+        "expected": 19,
+        "actual": 22
+      },
+      {
+        "step": "search_workflow",
+        "args": {
+          "query": "Predict ADMET Properties",
+          "limit": 3
+        },
+        "passed": true,
+        "result": {
+          "success": true,
+          "workflow_type": "nextflow",
+          "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+          "workflow_name": "Predict ADMET Properties (AI)",
+          "format": "nextflow",
+          "source": "template_reuse",
+          "confidence": 78,
+          "message": "Found workflow: Predict ADMET Properties (AI)",
+          "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+          "domain": "drug_discovery",
+          "step_count": 1,
+          "candidate_workflows": [
+            {
+              "name": "Predict Admet Properties",
+              "description": "pharmacology/predict_admet_properties Predicts ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) properties for a list of compounds using: 1. RDKit molecular descriptors (hERG IC50 est",
+              "domain": "drug_discovery",
+              "score": 82,
+              "filename": "nextflow_nfcore/subworkflows/drug_discovery/predict_admet_properties/main.nf"
+            },
+            {
+              "name": "Predict ADMET Properties (AI)",
+              "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Ca",
+              "domain": "drug_discovery",
+              "score": 78,
+              "filename": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf"
+            },
+            {
+              "name": "Admet Pred",
+              "description": "pharmacology/ADMET_pred (fixed 2026-05-21) ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) safety screening. Uses RDKit molecular descriptors to estimate: - hERG IC50 (μM): Aronov 20",
+              "domain": "drug_discovery",
+              "score": 41,
+              "filename": "nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred/main.nf"
+            },
+            {
+              "name": "cyclic_peptide_design",
+              "description": "De novo cyclic peptide design pipeline for PPI targets with oral macrocycle optimization. 5-phase pipeline: (A) target pocket analysis with curated autoimmune hotspot DB (IL17A/IL6R/CALCA/PTPN22), (B)",
+              "domain": "drug_discovery",
+              "score": 32,
+              "filename": "biomate-ai-tools/cyclic_peptide_design/main.nf"
+            },
+            {
+              "name": "adc_design",
+              "description": "Comprehensive ADC (Antibody-Drug Conjugate) design workflow covering payload selection (MMAE/MMAF/DM1/DM4/SN-38/PBD dimer/calicheamicin), linker optimization (cleavable: val-cit, disulfide, pH-sensiti",
+              "domain": "drug_discovery",
+              "score": 31,
+              "filename": "nf-core-workflows/modules/biomate-ai-tools/adc_design/main.nf"
+            }
+          ],
+          "scientific_rationale": {
+            "tools_used": [
+              "Predict Admet Properties"
+            ],
+            "when_to_use": [
+              "Pharmacological modeling and drug analysis"
+            ],
+            "do_not_use_when": [
+              "Predictions are estimates - experimental validation required",
+              "Training data biased toward drug-like small molecules",
+              "May not generalize to novel chemotypes"
+            ],
+            "data_requirements": {},
+            "key_assumptions": [],
+            "common_pitfalls": [],
+            "parameter_hints": [
+              {
+                "param": "ADMET_model_type",
+                "recommended": "MPNN",
+                "rationale": "",
+                "tool": "Predict Admet Properties"
+              },
+              {
+                "param": "smiles_list",
+                "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                "rationale": "",
+                "tool": "Predict Admet Properties"
+              }
+            ]
+          },
+          "parameter_metadata": {
+            "smiles_list": {
+              "type": "string",
+              "label": "Smiles List",
+              "level": "optional"
+            },
+            "ADMET_model_type": {
+              "type": "string",
+              "label": "Admet Model Type",
+              "level": "optional"
+            },
+            "admet_shard_size": {
+              "type": "integer",
+              "label": "Admet Shard Size",
+              "level": "optional"
+            }
+          },
+          "required_params": [],
+          "optional_params": [
+            {
+              "name": "smiles_list",
+              "label": "Smiles List",
+              "description": "Smiles List",
+              "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+              "type": "string"
+            },
+            {
+              "name": "ADMET_model_type",
+              "label": "Admet Model Type",
+              "description": "Admet Model Type",
+              "default": "MPNN",
+              "type": "string"
+            },
+            {
+              "name": "admet_shard_size",
+              "label": "Admet Shard Size",
+              "description": "Admet Shard Size",
+              "default": 25,
+              "type": "integer"
+            }
+          ],
+          "param_prefill_deferred": true,
+          "workflow_ga": {
+            "name": "Predict ADMET Properties (AI)",
+            "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+            "annotation": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+            "tags": [
+              "drug_discovery",
+              "biomni",
+              "nextflow",
+              "predict_admet_properties",
+              "preferred",
+              "model_type:ai_chemprop",
+              "chemprop",
+              "admet_ai"
+            ],
+            "format": "nextflow",
+            "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+            "workflow_type": "nextflow",
+            "steps": {
+              "0": {
+                "id": "0",
+                "name": "Admet Infer Shard",
+                "tool_id": "ADMET_INFER_SHARD",
+                "annotation": "Admet Infer Shard",
+                "description": "",
+                "type": "tool",
+                "parameters": {},
+                "inputs": {},
+                "phase_group": "",
+                "phase_label": ""
+              },
+              "1": {
+                "id": "1",
+                "name": "Predict Admet Properties",
+                "tool_id": "PREDICT_ADMET_PROPERTIES",
+                "annotation": "Predict Admet Properties",
+                "description": "",
+                "type": "tool",
+                "parameters": {
+                  "smiles_list": {
+                    "type": "string",
+                    "label": "Smiles List",
+                    "default": null
+                  },
+                  "ADMET_model_type": {
+                    "type": "string",
+                    "label": "Admet Model Type",
+                    "default": null
+                  },
+                  "admet_shard_size": {
+                    "type": "string",
+                    "label": "Admet Shard Size",
+                    "default": null
+                  }
+                },
+                "inputs": {},
+                "phase_group": "",
+                "phase_label": ""
+              }
+            },
+            "parameters": {
+              "smiles_list": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+              "ADMET_model_type": "MPNN",
+              "admet_shard_size": 25
+            },
+            "parameter_metadata": {
+              "smiles_list": {
+                "type": "string",
+                "label": "Smiles List",
+                "level": "optional"
+              },
+              "ADMET_model_type": {
+                "type": "string",
+                "label": "Admet Model Type",
+                "level": "optional"
+              },
+              "admet_shard_size": {
+                "type": "integer",
+                "label": "Admet Shard Size",
+                "level": "optional"
+              }
+            },
+            "required_params": [],
+            "optional_params": [
+              {
+                "name": "smiles_list",
+                "label": "Smiles List",
+                "description": "Smiles List",
+                "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                "type": "string"
+              },
+              {
+                "name": "ADMET_model_type",
+                "label": "Admet Model Type",
+                "description": "Admet Model Type",
+                "default": "MPNN",
+                "type": "string"
+              },
+              {
+                "name": "admet_shard_size",
+                "label": "Admet Shard Size",
+                "description": "Admet Shard Size",
+                "default": 25,
+                "type": "integer"
+              }
+            ],
+            "hardware_requirements": {
+              "gpu_required": false,
+              "min_memory_gb": 16,
+              "tools_analyzed": 1,
+              "tool_runtime_hints": [
+                {
+                  "tool_id": "biomni/pharmacology/predict_admet_properties",
+                  "tool_name": "predict_admet_properties",
+                  "gpu": false,
+                  "memory_gb": 16,
+                  "container_image": null,
+                  "runtime_type": "biomni_local"
+                }
+              ],
+              "source": "ai_tool_db.execution_info"
+            },
+            "scientific_rationale": {
+              "tools_used": [
+                "Predict Admet Properties"
+              ],
+              "when_to_use": [
+                "Pharmacological modeling and drug analysis"
+              ],
+              "do_not_use_when": [
+                "Predictions are estimates - experimental validation required",
+                "Training data biased toward drug-like small molecules",
+                "May not generalize to novel chemotypes"
+              ],
+              "data_requirements": {},
+              "key_assumptions": [],
+              "common_pitfalls": [],
+              "parameter_hints": [
+                {
+                  "param": "ADMET_model_type",
+                  "recommended": "MPNN",
+                  "rationale": "",
+                  "tool": "Predict Admet Properties"
+                },
+                {
+                  "param": "smiles_list",
+                  "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                  "rationale": "",
+                  "tool": "Predict Admet Properties"
+                }
+              ]
+            }
+          },
+          "hardware_requirements": {
+            "gpu_required": false,
+            "min_memory_gb": 16,
+            "tools_analyzed": 1,
+            "tool_runtime_hints": [
+              {
+                "tool_id": "biomni/pharmacology/predict_admet_properties",
+                "tool_name": "predict_admet_properties",
+                "gpu": false,
+                "memory_gb": 16,
+                "container_image": null,
+                "runtime_type": "biomni_local"
+              }
+            ],
+            "source": "ai_tool_db.execution_info"
+          },
+          "datasets_assigned": false,
+          "generated_parameters": [
+            {
+              "name": "smiles_list",
+              "label": "Smiles List",
+              "description": "Smiles List",
+              "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+              "type": "string"
+            },
+            {
+              "name": "ADMET_model_type",
+              "label": "Admet Model Type",
+              "description": "Admet Model Type",
+              "default": "MPNN",
+              "type": "string"
+            },
+            {
+              "name": "admet_shard_size",
+              "label": "Admet Shard Size",
+              "description": "Admet Shard Size",
+              "default": 25,
+              "type": "integer"
+            }
+          ],
+          "validation": {
+            "is_valid": true,
+            "issues": [],
+            "warnings": [],
+            "suggestions": []
+          },
+          "tool_installation": {
+            "success": true,
+            "message": "Nextflow workflow",
+            "failed_tools": []
+          }
+        }
+      },
+      {
+        "step": "get_workflow_spec",
+        "args": {
+          "workflow_id": "Predict ADMET Properties (AI)"
+        },
+        "passed": true,
+        "result": {
+          "success": true,
+          "workflow_type": "nextflow",
+          "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+          "workflow_name": "Predict ADMET Properties (AI)",
+          "format": "nextflow",
+          "source": "template_reuse",
+          "confidence": 102,
+          "message": "Found workflow: Predict ADMET Properties (AI)",
+          "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+          "domain": "drug_discovery",
+          "step_count": 1,
+          "candidate_workflows": [
+            {
+              "name": "Predict ADMET Properties (AI)",
+              "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Ca",
+              "domain": "drug_discovery",
+              "score": 102,
+              "filename": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf"
+            },
+            {
+              "name": "Predict Admet Properties",
+              "description": "pharmacology/predict_admet_properties Predicts ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) properties for a list of compounds using: 1. RDKit molecular descriptors (hERG IC50 est",
+              "domain": "drug_discovery",
+              "score": 75,
+              "filename": "nextflow_nfcore/subworkflows/drug_discovery/predict_admet_properties/main.nf"
+            },
+            {
+              "name": "Admet Pred",
+              "description": "pharmacology/ADMET_pred (fixed 2026-05-21) ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) safety screening. Uses RDKit molecular descriptors to estimate: - hERG IC50 (μM): Aronov 20",
+              "domain": "drug_discovery",
+              "score": 41,
+              "filename": "nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred/main.nf"
+            },
+            {
+              "name": "cyclic_peptide_design",
+              "description": "De novo cyclic peptide design pipeline for PPI targets with oral macrocycle optimization. 5-phase pipeline: (A) target pocket analysis with curated autoimmune hotspot DB (IL17A/IL6R/CALCA/PTPN22), (B)",
+              "domain": "drug_discovery",
+              "score": 32,
+              "filename": "biomate-ai-tools/cyclic_peptide_design/main.nf"
+            },
+            {
+              "name": "adc_design",
+              "description": "Comprehensive ADC (Antibody-Drug Conjugate) design workflow covering payload selection (MMAE/MMAF/DM1/DM4/SN-38/PBD dimer/calicheamicin), linker optimization (cleavable: val-cit, disulfide, pH-sensiti",
+              "domain": "drug_discovery",
+              "score": 31,
+              "filename": "nf-core-workflows/modules/biomate-ai-tools/adc_design/main.nf"
+            }
+          ],
+          "scientific_rationale": {
+            "tools_used": [
+              "Predict Admet Properties"
+            ],
+            "when_to_use": [
+              "Pharmacological modeling and drug analysis"
+            ],
+            "do_not_use_when": [
+              "Predictions are estimates - experimental validation required",
+              "Training data biased toward drug-like small molecules",
+              "May not generalize to novel chemotypes"
+            ],
+            "data_requirements": {},
+            "key_assumptions": [],
+            "common_pitfalls": [],
+            "parameter_hints": [
+              {
+                "param": "ADMET_model_type",
+                "recommended": "MPNN",
+                "rationale": "",
+                "tool": "Predict Admet Properties"
+              },
+              {
+                "param": "smiles_list",
+                "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                "rationale": "",
+                "tool": "Predict Admet Properties"
+              }
+            ]
+          },
+          "parameter_metadata": {
+            "smiles_list": {
+              "type": "string",
+              "label": "Smiles List",
+              "level": "optional"
+            },
+            "ADMET_model_type": {
+              "type": "string",
+              "label": "Admet Model Type",
+              "level": "optional"
+            },
+            "admet_shard_size": {
+              "type": "integer",
+              "label": "Admet Shard Size",
+              "level": "optional"
+            }
+          },
+          "required_params": [],
+          "optional_params": [
+            {
+              "name": "smiles_list",
+              "label": "Smiles List",
+              "description": "Smiles List",
+              "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+              "type": "string"
+            },
+            {
+              "name": "ADMET_model_type",
+              "label": "Admet Model Type",
+              "description": "Admet Model Type",
+              "default": "MPNN",
+              "type": "string"
+            },
+            {
+              "name": "admet_shard_size",
+              "label": "Admet Shard Size",
+              "description": "Admet Shard Size",
+              "default": 25,
+              "type": "integer"
+            }
+          ],
+          "param_prefill_deferred": false,
+          "workflow_ga": {
+            "name": "Predict ADMET Properties (AI)",
+            "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+            "annotation": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+            "tags": [
+              "drug_discovery",
+              "biomni",
+              "nextflow",
+              "predict_admet_properties",
+              "preferred",
+              "model_type:ai_chemprop",
+              "chemprop",
+              "admet_ai"
+            ],
+            "format": "nextflow",
+            "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+            "workflow_type": "nextflow",
+            "steps": {
+              "0": {
+                "id": "0",
+                "name": "Admet Infer Shard",
+                "tool_id": "ADMET_INFER_SHARD",
+                "annotation": "Admet Infer Shard",
+                "description": "",
+                "type": "tool",
+                "parameters": {},
+                "inputs": {},
+                "phase_group": "",
+                "phase_label": ""
+              },
+              "1": {
+                "id": "1",
+                "name": "Predict Admet Properties",
+                "tool_id": "PREDICT_ADMET_PROPERTIES",
+                "annotation": "Predict Admet Properties",
+                "description": "",
+                "type": "tool",
+                "parameters": {
+                  "smiles_list": {
+                    "type": "string",
+                    "label": "Smiles List",
+                    "default": null
+                  },
+                  "ADMET_model_type": {
+                    "type": "string",
+                    "label": "Admet Model Type",
+                    "default": null
+                  },
+                  "admet_shard_size": {
+                    "type": "string",
+                    "label": "Admet Shard Size",
+                    "default": null
+                  }
+                },
+                "inputs": {},
+                "phase_group": "",
+                "phase_label": ""
+              }
+            },
+            "parameters": {
+              "smiles_list": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+              "ADMET_model_type": "MPNN",
+              "admet_shard_size": 25
+            },
+            "parameter_metadata": {
+              "smiles_list": {
+                "type": "string",
+                "label": "Smiles List",
+                "level": "optional"
+              },
+              "ADMET_model_type": {
+                "type": "string",
+                "label": "Admet Model Type",
+                "level": "optional"
+              },
+              "admet_shard_size": {
+                "type": "integer",
+                "label": "Admet Shard Size",
+                "level": "optional"
+              }
+            },
+            "required_params": [],
+            "optional_params": [
+              {
+                "name": "smiles_list",
+                "label": "Smiles List",
+                "description": "Smiles List",
+                "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                "type": "string"
+              },
+              {
+                "name": "ADMET_model_type",
+                "label": "Admet Model Type",
+                "description": "Admet Model Type",
+                "default": "MPNN",
+                "type": "string"
+              },
+              {
+                "name": "admet_shard_size",
+                "label": "Admet Shard Size",
+                "description": "Admet Shard Size",
+                "default": 25,
+                "type": "integer"
+              }
+            ],
+            "hardware_requirements": {
+              "gpu_required": false,
+              "min_memory_gb": 16,
+              "tools_analyzed": 1,
+              "tool_runtime_hints": [
+                {
+                  "tool_id": "biomni/pharmacology/predict_admet_properties",
+                  "tool_name": "predict_admet_properties",
+                  "gpu": false,
+                  "memory_gb": 16,
+                  "container_image": null,
+                  "runtime_type": "biomni_local"
+                }
+              ],
+              "source": "ai_tool_db.execution_info"
+            },
+            "scientific_rationale": {
+              "tools_used": [
+                "Predict Admet Properties"
+              ],
+              "when_to_use": [
+                "Pharmacological modeling and drug analysis"
+              ],
+              "do_not_use_when": [
+                "Predictions are estimates - experimental validation required",
+                "Training data biased toward drug-like small molecules",
+                "May not generalize to novel chemotypes"
+              ],
+              "data_requirements": {},
+              "key_assumptions": [],
+              "common_pitfalls": [],
+              "parameter_hints": [
+                {
+                  "param": "ADMET_model_type",
+                  "recommended": "MPNN",
+                  "rationale": "",
+                  "tool": "Predict Admet Properties"
+                },
+                {
+                  "param": "smiles_list",
+                  "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                  "rationale": "",
+                  "tool": "Predict Admet Properties"
+                }
+              ]
+            }
+          },
+          "hardware_requirements": {
+            "gpu_required": false,
+            "min_memory_gb": 16,
+            "tools_analyzed": 1,
+            "tool_runtime_hints": [
+              {
+                "tool_id": "biomni/pharmacology/predict_admet_properties",
+                "tool_name": "predict_admet_properties",
+                "gpu": false,
+                "memory_gb": 16,
+                "container_image": null,
+                "runtime_type": "biomni_local"
+              }
+            ],
+            "source": "ai_tool_db.execution_info"
+          },
+          "datasets_assigned": false,
+          "generated_parameters": [
+            {
+              "name": "smiles_list",
+              "label": "Smiles List",
+              "description": "Smiles List",
+              "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+              "type": "string"
+            },
+            {
+              "name": "ADMET_model_type",
+              "label": "Admet Model Type",
+              "description": "Admet Model Type",
+              "default": "MPNN",
+              "type": "string"
+            },
+            {
+              "name": "admet_shard_size",
+              "label": "Admet Shard Size",
+              "description": "Admet Shard Size",
+              "default": 25,
+              "type": "integer"
+            }
+          ],
+          "validation": {
+            "is_valid": true,
+            "issues": [],
+            "warnings": [],
+            "suggestions": []
+          },
+          "tool_installation": {
+            "success": true,
+            "message": "Nextflow workflow",
+            "failed_tools": []
+          }
+        }
+      },
+      {
+        "step": "get_run",
+        "args": {
+          "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2"
+        },
+        "passed": true,
+        "result": {
+          "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+          "galaxyInvocationId": "17fd97a3-5165-4184-93fa-a832575f252b",
+          "nextflowRunId": "1376bf13-1b04-4923-a68d-49eb30376b26",
+          "s3Outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e688392f",
+          "status": "running",
+          "startedAt": "2026-10-09T21:31:40.555Z",
+          "workflowName": "Predict ADMET Properties (AI)"
+        }
+      },
+      {
+        "step": "get_run",
+        "args": {
+          "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2"
+        },
+        "passed": true,
+        "result": {
+          "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+          "galaxyInvocationId": "17fd97a3-5165-4184-93fa-a832575f252b",
+          "nextflowRunId": "1376bf13-1b04-4923-a68d-49eb30376b26",
+          "s3Outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e688392f",
+          "status": "running",
+          "startedAt": "2026-10-09T21:31:40.555Z",
+          "workflowName": "Predict ADMET Properties (AI)"
+        }
+      },
+      {
+        "step": "get_run",
+        "args": {
+          "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2"
+        },
+        "passed": true,
+        "result": {
+          "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+          "galaxyInvocationId": "17fd97a3-5165-4184-93fa-a832575f252b",
+          "nextflowRunId": "1376bf13-1b04-4923-a68d-49eb30376b26",
+          "s3Outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e688392f",
+          "status": "running",
+          "startedAt": "2026-10-09T21:31:40.555Z",
+          "workflowName": "Predict ADMET Properties (AI)"
+        }
+      },
+      {
+        "step": "get_run",
+        "args": {
+          "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2"
+        },
+        "passed": true,
+        "result": {
+          "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+          "galaxyInvocationId": "17fd97a3-5165-4184-93fa-a832575f252b",
+          "nextflowRunId": "1376bf13-1b04-4923-a68d-49eb30376b26",
+          "s3Outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e688392f",
+          "status": "running",
+          "startedAt": "2026-10-09T21:31:40.555Z",
+          "workflowName": "Predict ADMET Properties (AI)"
+        }
+      },
+      {
+        "step": "get_run",
+        "args": {
+          "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2"
+        },
+        "passed": true,
+        "result": {
+          "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+          "galaxyInvocationId": "17fd97a3-5165-4184-93fa-a832575f252b",
+          "nextflowRunId": "1376bf13-1b04-4923-a68d-49eb30376b26",
+          "s3Outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e688392f",
+          "status": "running",
+          "startedAt": "2026-10-09T21:31:40.555Z",
+          "workflowName": "Predict ADMET Properties (AI)"
+        }
+      },
+      {
+        "step": "get_run",
+        "args": {
+          "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2"
+        },
+        "passed": true,
+        "result": {
+          "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+          "galaxyInvocationId": "17fd97a3-5165-4184-93fa-a832575f252b",
+          "nextflowRunId": "1376bf13-1b04-4923-a68d-49eb30376b26",
+          "s3Outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e688392f",
+          "status": "completed",
+          "startedAt": "2026-10-09T21:31:40.555Z",
+          "workflowName": "Predict ADMET Properties (AI)"
+        }
+      },
+      {
+        "step": "export_report",
+        "args": {
+          "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+          "format": "markdown"
+        },
+        "passed": false,
+        "result": {
+          "error": "/api/workflows/runs/85e8bae6-8836-4abc-a062-44dd2fde30c2/findings/report → HTTP 404: {\"error\":\"Findings report not yet available\"}"
+        }
+      }
+    ],
+    "recordingGate": "HOLD",
+    "previousAttempt": {
+      "date": "2026-10-09T21:31:25.518Z",
+      "base": "https://dev-public.biomate.ai",
+      "package": "@biomate/mcp-server@0.1.0",
+      "entrySha256": "3437d90c8b971ab8d4d4ac144458f2a07c620ebb99c51a4d02181dc6b0dd65cc",
+      "auth": "shared fixture JWT; installer OAuth NOT verified",
+      "checks": [
+        {
+          "step": "initialize/list",
+          "passed": true,
+          "tools": [
+            "biomate_session",
+            "search_workflow",
+            "get_workflow_spec",
+            "run_workflow",
+            "watch_run",
+            "get_run",
+            "cancel_run",
+            "list_runs",
+            "preview_file",
+            "export_report",
+            "analyze_results",
+            "explain_error",
+            "query_database",
+            "resolve_accession",
+            "browse_data",
+            "fetch_public_data",
+            "recall_memory",
+            "search_literature",
+            "upload_file",
+            "list_instruments",
+            "get_instrument_status",
+            "run_instrument_protocol"
+          ]
+        },
+        {
+          "step": "published-package-vs-docs-tool-count",
+          "passed": false,
+          "expected": 19,
+          "actual": 22
+        },
+        {
+          "step": "search_workflow",
+          "args": {
+            "query": "Predict ADMET Properties",
+            "limit": 3
+          },
+          "passed": true,
+          "result": {
+            "success": true,
+            "workflow_type": "nextflow",
+            "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+            "workflow_name": "Predict ADMET Properties (AI)",
+            "format": "nextflow",
+            "source": "template_reuse",
+            "confidence": 78,
+            "message": "Found workflow: Predict ADMET Properties (AI)",
+            "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+            "domain": "drug_discovery",
+            "step_count": 1,
+            "candidate_workflows": [
+              {
+                "name": "Predict Admet Properties",
+                "description": "pharmacology/predict_admet_properties Predicts ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) properties for a list of compounds using: 1. RDKit molecular descriptors (hERG IC50 est",
+                "domain": "drug_discovery",
+                "score": 82,
+                "filename": "nextflow_nfcore/subworkflows/drug_discovery/predict_admet_properties/main.nf"
+              },
+              {
+                "name": "Predict ADMET Properties (AI)",
+                "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Ca",
+                "domain": "drug_discovery",
+                "score": 78,
+                "filename": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf"
+              },
+              {
+                "name": "Admet Pred",
+                "description": "pharmacology/ADMET_pred (fixed 2026-05-21) ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) safety screening. Uses RDKit molecular descriptors to estimate: - hERG IC50 (μM): Aronov 20",
+                "domain": "drug_discovery",
+                "score": 41,
+                "filename": "nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred/main.nf"
+              },
+              {
+                "name": "cyclic_peptide_design",
+                "description": "De novo cyclic peptide design pipeline for PPI targets with oral macrocycle optimization. 5-phase pipeline: (A) target pocket analysis with curated autoimmune hotspot DB (IL17A/IL6R/CALCA/PTPN22), (B)",
+                "domain": "drug_discovery",
+                "score": 32,
+                "filename": "biomate-ai-tools/cyclic_peptide_design/main.nf"
+              },
+              {
+                "name": "adc_design",
+                "description": "Comprehensive ADC (Antibody-Drug Conjugate) design workflow covering payload selection (MMAE/MMAF/DM1/DM4/SN-38/PBD dimer/calicheamicin), linker optimization (cleavable: val-cit, disulfide, pH-sensiti",
+                "domain": "drug_discovery",
+                "score": 31,
+                "filename": "nf-core-workflows/modules/biomate-ai-tools/adc_design/main.nf"
+              }
+            ],
+            "scientific_rationale": {
+              "tools_used": [
+                "Predict Admet Properties"
+              ],
+              "when_to_use": [
+                "Pharmacological modeling and drug analysis"
+              ],
+              "do_not_use_when": [
+                "Predictions are estimates - experimental validation required",
+                "Training data biased toward drug-like small molecules",
+                "May not generalize to novel chemotypes"
+              ],
+              "data_requirements": {},
+              "key_assumptions": [],
+              "common_pitfalls": [],
+              "parameter_hints": [
+                {
+                  "param": "ADMET_model_type",
+                  "recommended": "MPNN",
+                  "rationale": "",
+                  "tool": "Predict Admet Properties"
+                },
+                {
+                  "param": "smiles_list",
+                  "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                  "rationale": "",
+                  "tool": "Predict Admet Properties"
+                }
+              ]
+            },
+            "parameter_metadata": {
+              "smiles_list": {
+                "type": "string",
+                "label": "Smiles List",
+                "level": "optional"
+              },
+              "ADMET_model_type": {
+                "type": "string",
+                "label": "Admet Model Type",
+                "level": "optional"
+              },
+              "admet_shard_size": {
+                "type": "integer",
+                "label": "Admet Shard Size",
+                "level": "optional"
+              }
+            },
+            "required_params": [],
+            "optional_params": [
+              {
+                "name": "smiles_list",
+                "label": "Smiles List",
+                "description": "Smiles List",
+                "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                "type": "string"
+              },
+              {
+                "name": "ADMET_model_type",
+                "label": "Admet Model Type",
+                "description": "Admet Model Type",
+                "default": "MPNN",
+                "type": "string"
+              },
+              {
+                "name": "admet_shard_size",
+                "label": "Admet Shard Size",
+                "description": "Admet Shard Size",
+                "default": 25,
+                "type": "integer"
+              }
+            ],
+            "param_prefill_deferred": true,
+            "workflow_ga": {
+              "name": "Predict ADMET Properties (AI)",
+              "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+              "annotation": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+              "tags": [
+                "drug_discovery",
+                "biomni",
+                "nextflow",
+                "predict_admet_properties",
+                "preferred",
+                "model_type:ai_chemprop",
+                "chemprop",
+                "admet_ai"
+              ],
+              "format": "nextflow",
+              "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+              "workflow_type": "nextflow",
+              "steps": {
+                "0": {
+                  "id": "0",
+                  "name": "Admet Infer Shard",
+                  "tool_id": "ADMET_INFER_SHARD",
+                  "annotation": "Admet Infer Shard",
+                  "description": "",
+                  "type": "tool",
+                  "parameters": {},
+                  "inputs": {},
+                  "phase_group": "",
+                  "phase_label": ""
+                },
+                "1": {
+                  "id": "1",
+                  "name": "Predict Admet Properties",
+                  "tool_id": "PREDICT_ADMET_PROPERTIES",
+                  "annotation": "Predict Admet Properties",
+                  "description": "",
+                  "type": "tool",
+                  "parameters": {
+                    "smiles_list": {
+                      "type": "string",
+                      "label": "Smiles List",
+                      "default": null
+                    },
+                    "ADMET_model_type": {
+                      "type": "string",
+                      "label": "Admet Model Type",
+                      "default": null
+                    },
+                    "admet_shard_size": {
+                      "type": "string",
+                      "label": "Admet Shard Size",
+                      "default": null
+                    }
+                  },
+                  "inputs": {},
+                  "phase_group": "",
+                  "phase_label": ""
+                }
+              },
+              "parameters": {
+                "smiles_list": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                "ADMET_model_type": "MPNN",
+                "admet_shard_size": 25
+              },
+              "parameter_metadata": {
+                "smiles_list": {
+                  "type": "string",
+                  "label": "Smiles List",
+                  "level": "optional"
+                },
+                "ADMET_model_type": {
+                  "type": "string",
+                  "label": "Admet Model Type",
+                  "level": "optional"
+                },
+                "admet_shard_size": {
+                  "type": "integer",
+                  "label": "Admet Shard Size",
+                  "level": "optional"
+                }
+              },
+              "required_params": [],
+              "optional_params": [
+                {
+                  "name": "smiles_list",
+                  "label": "Smiles List",
+                  "description": "Smiles List",
+                  "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                  "type": "string"
+                },
+                {
+                  "name": "ADMET_model_type",
+                  "label": "Admet Model Type",
+                  "description": "Admet Model Type",
+                  "default": "MPNN",
+                  "type": "string"
+                },
+                {
+                  "name": "admet_shard_size",
+                  "label": "Admet Shard Size",
+                  "description": "Admet Shard Size",
+                  "default": 25,
+                  "type": "integer"
+                }
+              ],
+              "hardware_requirements": {
+                "gpu_required": false,
+                "min_memory_gb": 16,
+                "tools_analyzed": 1,
+                "tool_runtime_hints": [
+                  {
+                    "tool_id": "biomni/pharmacology/predict_admet_properties",
+                    "tool_name": "predict_admet_properties",
+                    "gpu": false,
+                    "memory_gb": 16,
+                    "container_image": null,
+                    "runtime_type": "biomni_local"
+                  }
+                ],
+                "source": "ai_tool_db.execution_info"
+              },
+              "scientific_rationale": {
+                "tools_used": [
+                  "Predict Admet Properties"
+                ],
+                "when_to_use": [
+                  "Pharmacological modeling and drug analysis"
+                ],
+                "do_not_use_when": [
+                  "Predictions are estimates - experimental validation required",
+                  "Training data biased toward drug-like small molecules",
+                  "May not generalize to novel chemotypes"
+                ],
+                "data_requirements": {},
+                "key_assumptions": [],
+                "common_pitfalls": [],
+                "parameter_hints": [
+                  {
+                    "param": "ADMET_model_type",
+                    "recommended": "MPNN",
+                    "rationale": "",
+                    "tool": "Predict Admet Properties"
+                  },
+                  {
+                    "param": "smiles_list",
+                    "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                    "rationale": "",
+                    "tool": "Predict Admet Properties"
+                  }
+                ]
+              }
+            },
+            "hardware_requirements": {
+              "gpu_required": false,
+              "min_memory_gb": 16,
+              "tools_analyzed": 1,
+              "tool_runtime_hints": [
+                {
+                  "tool_id": "biomni/pharmacology/predict_admet_properties",
+                  "tool_name": "predict_admet_properties",
+                  "gpu": false,
+                  "memory_gb": 16,
+                  "container_image": null,
+                  "runtime_type": "biomni_local"
+                }
+              ],
+              "source": "ai_tool_db.execution_info"
+            },
+            "datasets_assigned": false,
+            "generated_parameters": [
+              {
+                "name": "smiles_list",
+                "label": "Smiles List",
+                "description": "Smiles List",
+                "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                "type": "string"
+              },
+              {
+                "name": "ADMET_model_type",
+                "label": "Admet Model Type",
+                "description": "Admet Model Type",
+                "default": "MPNN",
+                "type": "string"
+              },
+              {
+                "name": "admet_shard_size",
+                "label": "Admet Shard Size",
+                "description": "Admet Shard Size",
+                "default": 25,
+                "type": "integer"
+              }
+            ],
+            "validation": {
+              "is_valid": true,
+              "issues": [],
+              "warnings": [],
+              "suggestions": []
+            },
+            "tool_installation": {
+              "success": true,
+              "message": "Nextflow workflow",
+              "failed_tools": []
+            }
+          }
+        },
+        {
+          "step": "get_workflow_spec",
+          "args": {
+            "workflow_id": "Predict ADMET Properties (AI)"
+          },
+          "passed": true,
+          "result": {
+            "success": true,
+            "workflow_type": "nextflow",
+            "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+            "workflow_name": "Predict ADMET Properties (AI)",
+            "format": "nextflow",
+            "source": "template_reuse",
+            "confidence": 102,
+            "message": "Found workflow: Predict ADMET Properties (AI)",
+            "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+            "domain": "drug_discovery",
+            "step_count": 1,
+            "candidate_workflows": [
+              {
+                "name": "Predict ADMET Properties (AI)",
+                "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Ca",
+                "domain": "drug_discovery",
+                "score": 102,
+                "filename": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf"
+              },
+              {
+                "name": "Predict Admet Properties",
+                "description": "pharmacology/predict_admet_properties Predicts ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) properties for a list of compounds using: 1. RDKit molecular descriptors (hERG IC50 est",
+                "domain": "drug_discovery",
+                "score": 75,
+                "filename": "nextflow_nfcore/subworkflows/drug_discovery/predict_admet_properties/main.nf"
+              },
+              {
+                "name": "Admet Pred",
+                "description": "pharmacology/ADMET_pred (fixed 2026-05-21) ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) safety screening. Uses RDKit molecular descriptors to estimate: - hERG IC50 (μM): Aronov 20",
+                "domain": "drug_discovery",
+                "score": 41,
+                "filename": "nextflow_nfcore/subworkflows/drug_discovery/ADMET_pred/main.nf"
+              },
+              {
+                "name": "cyclic_peptide_design",
+                "description": "De novo cyclic peptide design pipeline for PPI targets with oral macrocycle optimization. 5-phase pipeline: (A) target pocket analysis with curated autoimmune hotspot DB (IL17A/IL6R/CALCA/PTPN22), (B)",
+                "domain": "drug_discovery",
+                "score": 32,
+                "filename": "biomate-ai-tools/cyclic_peptide_design/main.nf"
+              },
+              {
+                "name": "adc_design",
+                "description": "Comprehensive ADC (Antibody-Drug Conjugate) design workflow covering payload selection (MMAE/MMAF/DM1/DM4/SN-38/PBD dimer/calicheamicin), linker optimization (cleavable: val-cit, disulfide, pH-sensiti",
+                "domain": "drug_discovery",
+                "score": 31,
+                "filename": "nf-core-workflows/modules/biomate-ai-tools/adc_design/main.nf"
+              }
+            ],
+            "scientific_rationale": {
+              "tools_used": [
+                "Predict Admet Properties"
+              ],
+              "when_to_use": [
+                "Pharmacological modeling and drug analysis"
+              ],
+              "do_not_use_when": [
+                "Predictions are estimates - experimental validation required",
+                "Training data biased toward drug-like small molecules",
+                "May not generalize to novel chemotypes"
+              ],
+              "data_requirements": {},
+              "key_assumptions": [],
+              "common_pitfalls": [],
+              "parameter_hints": [
+                {
+                  "param": "ADMET_model_type",
+                  "recommended": "MPNN",
+                  "rationale": "",
+                  "tool": "Predict Admet Properties"
+                },
+                {
+                  "param": "smiles_list",
+                  "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                  "rationale": "",
+                  "tool": "Predict Admet Properties"
+                }
+              ]
+            },
+            "parameter_metadata": {
+              "smiles_list": {
+                "type": "string",
+                "label": "Smiles List",
+                "level": "optional"
+              },
+              "ADMET_model_type": {
+                "type": "string",
+                "label": "Admet Model Type",
+                "level": "optional"
+              },
+              "admet_shard_size": {
+                "type": "integer",
+                "label": "Admet Shard Size",
+                "level": "optional"
+              }
+            },
+            "required_params": [],
+            "optional_params": [
+              {
+                "name": "smiles_list",
+                "label": "Smiles List",
+                "description": "Smiles List",
+                "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                "type": "string"
+              },
+              {
+                "name": "ADMET_model_type",
+                "label": "Admet Model Type",
+                "description": "Admet Model Type",
+                "default": "MPNN",
+                "type": "string"
+              },
+              {
+                "name": "admet_shard_size",
+                "label": "Admet Shard Size",
+                "description": "Admet Shard Size",
+                "default": 25,
+                "type": "integer"
+              }
+            ],
+            "param_prefill_deferred": false,
+            "workflow_ga": {
+              "name": "Predict ADMET Properties (AI)",
+              "description": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+              "annotation": "AI-powered ADMET prediction using Chemprop graph neural networks (ADMET-AI, Swanson et al. J Chem Inf Model 2023). Trained on 2M+ experimental measurements from ChEMBL and TDC. Covers 15 endpoints: Caco-2 permeability, CYP1A2/2C9/2C19/2D6/3A4 inhibition, hERG cardiotoxicity, BBB penetration, aqueous solubility, plasma protein binding (PPBR), volume of distribution (VDss), half-life, LD50, lipophilicity. Preferred for all new ADMET screening. Use ADMET Pred (Legacy) only for backward compatibility.",
+              "tags": [
+                "drug_discovery",
+                "biomni",
+                "nextflow",
+                "predict_admet_properties",
+                "preferred",
+                "model_type:ai_chemprop",
+                "chemprop",
+                "admet_ai"
+              ],
+              "format": "nextflow",
+              "nextflow_path": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+              "workflow_type": "nextflow",
+              "steps": {
+                "0": {
+                  "id": "0",
+                  "name": "Admet Infer Shard",
+                  "tool_id": "ADMET_INFER_SHARD",
+                  "annotation": "Admet Infer Shard",
+                  "description": "",
+                  "type": "tool",
+                  "parameters": {},
+                  "inputs": {},
+                  "phase_group": "",
+                  "phase_label": ""
+                },
+                "1": {
+                  "id": "1",
+                  "name": "Predict Admet Properties",
+                  "tool_id": "PREDICT_ADMET_PROPERTIES",
+                  "annotation": "Predict Admet Properties",
+                  "description": "",
+                  "type": "tool",
+                  "parameters": {
+                    "smiles_list": {
+                      "type": "string",
+                      "label": "Smiles List",
+                      "default": null
+                    },
+                    "ADMET_model_type": {
+                      "type": "string",
+                      "label": "Admet Model Type",
+                      "default": null
+                    },
+                    "admet_shard_size": {
+                      "type": "string",
+                      "label": "Admet Shard Size",
+                      "default": null
+                    }
+                  },
+                  "inputs": {},
+                  "phase_group": "",
+                  "phase_label": ""
+                }
+              },
+              "parameters": {
+                "smiles_list": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                "ADMET_model_type": "MPNN",
+                "admet_shard_size": 25
+              },
+              "parameter_metadata": {
+                "smiles_list": {
+                  "type": "string",
+                  "label": "Smiles List",
+                  "level": "optional"
+                },
+                "ADMET_model_type": {
+                  "type": "string",
+                  "label": "Admet Model Type",
+                  "level": "optional"
+                },
+                "admet_shard_size": {
+                  "type": "integer",
+                  "label": "Admet Shard Size",
+                  "level": "optional"
+                }
+              },
+              "required_params": [],
+              "optional_params": [
+                {
+                  "name": "smiles_list",
+                  "label": "Smiles List",
+                  "description": "Smiles List",
+                  "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                  "type": "string"
+                },
+                {
+                  "name": "ADMET_model_type",
+                  "label": "Admet Model Type",
+                  "description": "Admet Model Type",
+                  "default": "MPNN",
+                  "type": "string"
+                },
+                {
+                  "name": "admet_shard_size",
+                  "label": "Admet Shard Size",
+                  "description": "Admet Shard Size",
+                  "default": 25,
+                  "type": "integer"
+                }
+              ],
+              "hardware_requirements": {
+                "gpu_required": false,
+                "min_memory_gb": 16,
+                "tools_analyzed": 1,
+                "tool_runtime_hints": [
+                  {
+                    "tool_id": "biomni/pharmacology/predict_admet_properties",
+                    "tool_name": "predict_admet_properties",
+                    "gpu": false,
+                    "memory_gb": 16,
+                    "container_image": null,
+                    "runtime_type": "biomni_local"
+                  }
+                ],
+                "source": "ai_tool_db.execution_info"
+              },
+              "scientific_rationale": {
+                "tools_used": [
+                  "Predict Admet Properties"
+                ],
+                "when_to_use": [
+                  "Pharmacological modeling and drug analysis"
+                ],
+                "do_not_use_when": [
+                  "Predictions are estimates - experimental validation required",
+                  "Training data biased toward drug-like small molecules",
+                  "May not generalize to novel chemotypes"
+                ],
+                "data_requirements": {},
+                "key_assumptions": [],
+                "common_pitfalls": [],
+                "parameter_hints": [
+                  {
+                    "param": "ADMET_model_type",
+                    "recommended": "MPNN",
+                    "rationale": "",
+                    "tool": "Predict Admet Properties"
+                  },
+                  {
+                    "param": "smiles_list",
+                    "recommended": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\", \"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+                    "rationale": "",
+                    "tool": "Predict Admet Properties"
+                  }
+                ]
+              }
+            },
+            "hardware_requirements": {
+              "gpu_required": false,
+              "min_memory_gb": 16,
+              "tools_analyzed": 1,
+              "tool_runtime_hints": [
+                {
+                  "tool_id": "biomni/pharmacology/predict_admet_properties",
+                  "tool_name": "predict_admet_properties",
+                  "gpu": false,
+                  "memory_gb": 16,
+                  "container_image": null,
+                  "runtime_type": "biomni_local"
+                }
+              ],
+              "source": "ai_tool_db.execution_info"
+            },
+            "datasets_assigned": false,
+            "generated_parameters": [
+              {
+                "name": "smiles_list",
+                "label": "Smiles List",
+                "description": "Smiles List",
+                "default": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\", \"OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC\"]",
+                "type": "string"
+              },
+              {
+                "name": "ADMET_model_type",
+                "label": "Admet Model Type",
+                "description": "Admet Model Type",
+                "default": "MPNN",
+                "type": "string"
+              },
+              {
+                "name": "admet_shard_size",
+                "label": "Admet Shard Size",
+                "description": "Admet Shard Size",
+                "default": 25,
+                "type": "integer"
+              }
+            ],
+            "validation": {
+              "is_valid": true,
+              "issues": [],
+              "warnings": [],
+              "suggestions": []
+            },
+            "tool_installation": {
+              "success": true,
+              "message": "Nextflow workflow",
+              "failed_tools": []
+            }
+          }
+        },
+        {
+          "step": "run_workflow",
+          "args": {
+            "workflow_id": "Predict ADMET Properties (AI)",
+            "params": {
+              "smiles_list": "[\"CC(=O)OC1=CC=CC=C1C(=O)O\",\"CN1C=NC2=C1C(=O)N(C(=O)N2C)C\",\"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O\"]",
+              "ADMET_model_type": "MPNN"
+            }
+          },
+          "passed": true,
+          "result": {
+            "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+            "galaxyInvocationId": "17fd97a3-5165-4184-93fa-a832575f252b",
+            "galaxyHistoryId": "nf-85e8bae6-8836-4abc-a062-44dd2fde30c2",
+            "executionEngine": "nextflow",
+            "nextflowRunId": "1376bf13-1b04-4923-a68d-49eb30376b26",
+            "status": "running",
+            "message": "Workflow queued (run_id: 1376bf13-1b04-4923-a68d-49eb30376b26)",
+            "outputs": {
+              "outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e688392f",
+              "workdir": "s3://biomate-nextflow-work/nextflow/work/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/1376bf13-1b04-4923-a68d-49eb30376b26"
+            }
+          }
+        },
+        {
+          "step": "get_run",
+          "args": {
+            "run_id": "85e8bae6-8836-4abc-a062-44dd2fde30c2"
+          },
+          "passed": true,
+          "result": {
+            "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+            "galaxyInvocationId": "17fd97a3-5165-4184-93fa-a832575f252b",
+            "nextflowRunId": "1376bf13-1b04-4923-a68d-49eb30376b26",
+            "s3Outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/e688392f",
+            "status": "running",
+            "startedAt": "2026-10-09T21:31:40.555Z",
+            "workflowName": "Predict ADMET Properties (AI)"
+          }
+        }
+      ],
+      "recordingGate": "HOLD",
+      "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+      "nextStep": "Recording held pending complete execution, output/science checks, live authorization and bilingual UI checks"
+    },
+    "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+    "runState": "completed",
+    "failure": "export_report failed; see sanitized evidence"
+  },
+  "runId": "85e8bae6-8836-4abc-a062-44dd2fde30c2",
+  "runState": "completed",
+  "failure": "export_report failed; see sanitized evidence"
+}

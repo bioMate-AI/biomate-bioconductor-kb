@@ -1,0 +1,22 @@
+; nvt.mdp — 200 ps NVT equilibration (position-restrained protein heavy atoms + Mn cage).
+integrator      = md
+dt              = 0.002
+nsteps          = 100000          ; 200 ps
+nstlist         = 20
+cutoff-scheme   = Verlet
+coulombtype     = PME
+rcoulomb        = 1.2
+rvdw            = 1.2
+vdw-modifier    = Potential-shift
+constraints     = h-bonds
+constraint-algorithm = lincs
+tcoupl          = V-rescale
+tc-grps         = System
+tau-t           = 0.1
+ref-t           = 300
+pcoupl          = no
+gen-vel         = yes
+gen-temp        = 300
+gen-seed        = -1
+define          = -DPOSRES        ; restrain protein + Mn during warm-up
+pbc             = xyz

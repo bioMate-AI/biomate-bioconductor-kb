@@ -1,0 +1,3 @@
+# Derived knowledge pool — regenerate with evaluation/local_trial/build_knowledge_pool.py
+# Manifest tracked; large JSONL not.
+*.jsonl

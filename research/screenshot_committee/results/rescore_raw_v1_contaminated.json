@@ -1,0 +1,2044 @@
+{
+  "committee": {
+    "openai": "openai/gpt-6.1-sol-pro",
+    "google": "google/gemini-3.1-pro-preview-customtools",
+    "anthropic": "anthropic/claude-opus-5.5"
+  },
+  "results": {
+    "t7-2-members-roles.png": {
+      "asset": "t7-2-members-roles.png",
+      "usecase": "tutorials:T7-projects-and-collaboration",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and readable, but the crop excludes key collaboration details; invite-role text is truncated to 'View...'.",
+            "ui_elements": "Owner badge, email input, invite-role selector, Invite button, and Generate share link control are visible. Copy/revoke controls, Editor/Viewer member rows with role dropdowns, and permissions card are absent.",
+            "content": "Only 'WPM Fixture' is listed as Owner; the intended postdoc (Editor) and collaborator (Viewer) are not shown. Fixture naming looks like test data.",
+            "clarity": "Shows the Owner's initial invite controls, not the complete Members & roles state required by the tutorial and alt text.",
+            "issues": [
+              "Missing postdoc (Editor) and collaborator (Viewer), including their role dropdowns.",
+              "Missing 'Your permissions here' card.",
+              "Share-link section shows only generation, not copy/revoke controls.",
+              "Invite-role label is truncated.",
+              "Visible member is named 'WPM Fixture'."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution, cropping, and legibility.",
+            "ui_elements": "Rendered correctly. Invite role dropdown shows 'View...' which is standard.",
+            "content": "Fails intended state. Missing the required member list with a postdoc (Editor) and collaborator (Viewer). Only shows the Owner using test fixture data ('WPM Fixture').",
+            "clarity": "Fails to illustrate managing multiple members with different roles as requested.",
+            "issues": [
+              "Missing postdoc (Editor) and collaborator (Viewer) in member list.",
+              "Missing role dropdowns in member list.",
+              "Uses obvious test fixture data instead of realistic personas."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible, but tightly cropped at the bottom: the member row sits on the edge and anything below it, including the expected 'Your permissions here' card, is cut off. There is a stray top border line.",
+            "ui_elements": "The 'You: Owner' badge, invite link box, email input, role selector and disabled Invite button are present. The role selector text is truncated to 'View\u2026' instead of showing the full role name. Only 'Generate share link' appears; no link has been generated, so copy and revoke controls are absent. The member list has no role dropdowns.",
+            "content": "The member list shows only the owner, 'WPM Fixture', with what looks like a real personal email (lifeifei163361@163.com). The intended postdoc (Editor) and collaborator (Viewer) are missing. The fixture or test account name and the real-looking email are not suitable for a manual.",
+            "clarity": "Does not match the intended state. It cannot demonstrate role assignment or role dropdowns, the share-link lifecycle, or the permissions card. The alt text describes elements that are not visible.",
+            "issues": [
+              "Member list is missing the postdoc (Editor) and collaborator (Viewer); only the owner is shown.",
+              "No per-member role dropdowns are visible.",
+              "Share link is not generated, so copy and revoke controls are not shown.",
+              "The 'Your permissions here' card named in the alt text is absent or cropped out.",
+              "Role selector label is truncated to 'View\u2026'.",
+              "Test fixture name 'WPM Fixture' and a real-looking personal email are exposed; replace with demo personas.",
+              "Bottom crop is too tight, and there is a stray top border line."
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "i12-1-connectors-dialog.png": {
+      "asset": "i12-1-connectors-dialog.png",
+      "usecase": "modules:I12-connectors-and-skills",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and readable, but the category strip is clipped at the right edge and the footer cuts off the dbSNP description.",
+            "ui_elements": "Rows and residency badges are consistently aligned; no per-connector scope selectors are visible.",
+            "content": "Shows Data sources > Public databases rather than the intended Scientific Databases tab. Visible database labels are coherent.",
+            "clarity": "Useful as a public-source catalog, but does not show the intended sidebar-opened dialog or scope configuration.",
+            "issues": [
+              "Full-page Connectors view shown instead of the intended dialog; sidebar context is absent.",
+              "Scientific Databases tab is not shown.",
+              "Per-connector scope selectors are missing from the visible rows.",
+              "Rightmost category label and bottom dbSNP description are clipped."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "High resolution and legible, but the right edge of the category filter bar is clipped ('Oth...').",
+            "ui_elements": "Clean and consistent list layout. Badges and tags are well-aligned.",
+            "content": "Displays 'Public databases' under 'Data sources' with 'CLOUD' residency badges. However, the 'per-connector scope selectors' mentioned in the intended state are missing from the connector rows (only static tags like 'Protein' or 'Structure' are visible).",
+            "clarity": "Provides a good overview of the connectors library, but fails to illustrate the specific 'scope selectors' feature required for this manual section.",
+            "issues": [
+              "Right edge of the category filter bar is clipped",
+              "Missing per-connector scope selectors mentioned in intended state"
+            ],
+            "severity": "minor"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "High-resolution and legible, but the crop is too wide. The category filter row is clipped at the right edge ('Oth\u2026'). The last row (dbSNP) is cut off behind the sticky footer. Rows have a large empty middle span between name and badge.",
+            "ui_elements": "Residency badges (CLOUD) are present. The badges are not column-aligned: their x-position shifts with the length of the category label (Protein vs Structure vs Genomics). Count chips are inconsistent: Data sources 64 and Models 11 have counts, but Skills & experts and MCP servers have none. Each filter shows a duplicate count pair (e.g. '6' plus '6\u2713') with no legend. There are no per-connector scope selectors on any row.",
+            "content": "Shows a full-page 'Workspace / Connectors' view, not a dialog opened from the sidebar. The tab path is Data sources > Public databases, not a 'Scientific Databases' tab. Every visible connector is CLOUD, so other residency types (on-prem, mounted, etc.) are not shown. The footer text 'Public sources are queried automatically' suggests scope is not user-selectable here, which contradicts the intended state.",
+            "clarity": "Readable as a catalogue of public sources. It does not illustrate the I12 points: there is no dialog context, no scope selectors, and no meaningful residency variety. The meaning of the 'N\u2713' chips is unexplained.",
+            "issues": [
+              "No per-connector scope selectors visible; the intended state requires them",
+              "Full page (Workspace / Connectors) instead of a dialog opened from the sidebar; no sidebar shown",
+              "Tab label 'Public databases' under 'Data sources' does not match the intended 'Scientific Databases' tab",
+              "Category filter row clipped at the right edge ('Oth\u2026')",
+              "Last row (dbSNP) clipped by the footer",
+              "Residency badges misaligned because their position depends on the category label width",
+              "Duplicate count chips (e.g. '64' and '64\u2713') with no legend",
+              "Inconsistent count chips across the top tabs (Skills & experts and MCP servers lack counts)",
+              "All rows CLOUD, so the residency badge legend is not demonstrated"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "s1-1-sidebar.png": {
+      "asset": "s1-1-sidebar.png",
+      "usecase": "tutorials:S1-sidebar-navigation",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible; very tall crop includes an unnecessary sliver of the main pane. A tools row is partially cut off above the account footer.",
+            "ui_elements": "Expanded sidebar, project controls, chat status dots, and account footer are visible and aligned; no obvious broken components.",
+            "content": "Navigation labels are consistent. E2E test projects, repeated truncated project names, and technical workflow chat titles make the example look uncurated.",
+            "clarity": "Shows all three intended bands and coloured chat-status dots, but excessive history and test entries distract from the navigation tutorial.",
+            "issues": [
+              "Crop out the narrow main-pane sliver.",
+              "Use fewer, recognisable projects and chats instead of E2E fixtures and repeated entries.",
+              "Avoid the partially visible tools row immediately above the footer."
+            ],
+            "severity": "minor"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Crop cuts off the very bottom of the user profile section. Right edge shows a sliver of main content, which is acceptable.",
+            "ui_elements": "Layout is broken at the bottom of the sidebar. The 'Settings & API Keys' and 'Import workflow' items are overlapping with the user profile footer bar. The text below 'Import workflow' is bisected by the footer's top border.",
+            "content": "Project list contains obvious automated test artifacts ('E2E Team Test...', 'E2E AUTHZ Test...'), which is unprofessional for a user manual. Should use realistic demo data.",
+            "clarity": "Shows the three bands as requested, but the broken footer UI and test data make it a poor example for documentation.",
+            "issues": [
+              "Overlapping/broken UI layout above the user profile footer",
+              "Project names are automated test artifacts instead of realistic demo data",
+              "Bottom of the user profile section is slightly cropped"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Tall, crisp sidebar capture, but the right edge includes a sliver of the main pane ('Pr', 'MG PE', 'New') and the footer menu is clipped.",
+            "ui_elements": "All three bands are present: Workspace (New Chat, Models), Projects (expanded project with Instructions/Files/New chat), and Other Chats with coloured status dots. The footer is broken: a third item below 'Import workflow' is cut off and overlaps the divider above the account row. 'Import workflow' is indented differently from 'Settings & API Keys'.",
+            "content": "The Projects list is full of internal test data (E2E Team/Share/AUTHZ Test 17910\u2026). It also shows four identical truncated 'IL-17A Cyclic Peptide P\u2026' rows. The chat list repeats 'New Chat' three times and 'Run wsi_he_nuclei_segme\u2026' twice. The section is labelled 'OTHER CHATS', while the intended state and alt text say 'Chat history'. The footer exposes a real-looking user/email ('WPM \u2026', 'lifeifei1\u2026').",
+            "clarity": "The overall structure matches the intended three-band layout and status dots are visible. However, the test clutter, duplicates and clipped footer make it look like a dev account rather than a clean fresh-login state.",
+            "issues": [
+              "Footer menu item below 'Import workflow' is clipped/overlapped by the divider (visual bug)",
+              "Inconsistent indentation of 'Import workflow' versus 'Settings & API Keys'",
+              "E2E test projects visible (E2E Team/Share/AUTHZ Test \u2026) \u2014 not manual-appropriate",
+              "Four indistinguishable truncated 'IL-17A Cyclic Peptide P\u2026' projects",
+              "Duplicate chats: 3\u00d7 'New Chat', 2\u00d7 'Run wsi_he_nuclei_segme\u2026'",
+              "Section label 'OTHER CHATS' does not match the 'Chat history' wording in the intended state and alt text",
+              "Personal account name/email shown in footer \u2014 use a demo account",
+              "Crop includes a partial main-pane sliver on the right edge"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t3-2-after-run-summary.png": {
+      "asset": "t3-2-after-run-summary.png",
+      "usecase": "tutorials:T3-running-a-workflow-and-reading-the-report",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but wide blank margins waste space and the bottom explanatory text is clipped.",
+            "ui_elements": "Two report tabs are correctly shown and aligned; both 'Download report' and 'Download findings' controls remain.",
+            "content": "Stale 'Download report' label remains. Findings are populated with metrics and interpretations, not withheld as intended.",
+            "clarity": "Results is selected, but this demonstrates available findings rather than honest withholding; no withholding explanation is visible.",
+            "issues": [
+              "Replace/remove the stale top-right 'Download report' control.",
+              "Use the intended withheld-findings state with an explicit explanation instead of populated ADMET results.",
+              "Tighten side margins and avoid clipping the bottom explanatory text."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Clear, legible, well-cropped.",
+            "ui_elements": "Clean, aligned, no rendering issues.",
+            "content": "Contains stale terminology. Top-right link says 'Download report', which is explicitly flagged as wrong. It should be 'Download findings' to match the new standard and the button at the bottom.",
+            "clarity": "Inconsistent terminology ('Download report' vs 'Download findings') reduces clarity and violates updated guidelines.",
+            "issues": [
+              "Top-right link uses deprecated 'Download report' text instead of 'Download findings'."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible. The bottom footer line ('Findings are generated directly from the run manifest\u2026') is cut off mid-text. Wide empty side margins. The raw runId line at the top is partially included and serves no purpose.",
+            "ui_elements": "Two tabs (Results / Reproducibility record) render correctly. A stale '\u2193 Download report' link in the header duplicates the in-card 'Download findings' button. The summary chips show three values with no compound attribution. The table repeats the same filename in every Source row.",
+            "content": "Contradicts the intended state. The alt says findings are withheld honestly, but the shot shows a full findings summary and key-results table. The legacy 'Download report' label coexists with the new 'Download findings'. Headline chips show only Compound 1 values (hERG 0.003, DILI 0.855, Oral 0.873) as if they were run-level. This hides Compound 2's elevated hERG risk (0.974) and is misleading.",
+            "clarity": "Does not illustrate the T3 'findings withheld' concept. A reader would see a populated report instead of the honest-withholding state. The two download actions are confusing.",
+            "issues": [
+              "Screenshot shows populated findings, not the intended 'findings withheld honestly' state",
+              "Stale 'Download report' link present alongside 'Download findings'",
+              "Summary chips show Compound 1 values only, unlabeled; misleading for a 2-compound run (masks Compound 2 hERG 0.974)",
+              "Footer disclaimer text clipped at bottom edge",
+              "Unneeded runId fragment at top; excess side whitespace"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "r5-outputs.png": {
+      "asset": "r5-outputs.png",
+      "usecase": "tutorials:W2-after-run-panel",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Legible text, but excessive side whitespace; Outputs heading is clipped at top and third file card cut off at bottom.",
+            "ui_elements": "Visible file cards and preview controls are aligned; intended Findings Summary, metric chips, expanded Key Results, and Download findings button are absent.",
+            "content": "Shows Outputs (6) with expanded file previews, not the requested populated findings card. Only three file cards are visible; report tabs cannot be verified.",
+            "clarity": "Wrong focus for W2-after-run-panel; does not demonstrate the Results findings state or the full six-file alternative.",
+            "issues": [
+              "Recapture the populated Findings Summary on Results with clickable summary number, metric chips, expanded Key Results, and Download findings.",
+              "Current crop clips the section heading and lower card.",
+              "Expanded previews prevent showing all six outputs described in the alternative text."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Poor cropping. The top header 'Outputs (6)' is sliced horizontally, and the bottom file viewer is cut off mid-content.",
+            "ui_elements": "File viewer components are visible but truncated due to cropping.",
+            "content": "Shows raw output files instead of the requested Findings Summary card on the Results tab. This appears to be the deprecated 'Outputs' view rather than the new 'Results' tab.",
+            "clarity": "Fails to illustrate the intended state. The user needs to see the Findings Summary card with metric chips and the 'Download findings' button, which are completely absent.",
+            "issues": [
+              "Screenshot shows raw file outputs instead of the Findings Summary card.",
+              "Top header is cut off.",
+              "Bottom of the screen is cut off mid-component."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Top is clipped: the 'Outputs (6)' header, search box and 'showing 6 of 6' are cut off. Every preview pane is cut mid-line ('\"vd_lkg\": 100', 'ClinTox : 0.137'). The third card is cut at the bottom. Large empty side margins. Text is legible and resolution is good.",
+            "ui_elements": "All three file cards are expanded at once, giving a long, repetitive stack. The TXT file uses a folder/box icon while the JSON files use {}, which is inconsistent. A filename is truncated ('predict_admet_properties_results.js\u2026'). The terse 'dl' link label is unclear. The Analyze in RStudio button appears on the JSON card but not the TXT card. That may be intentional, but it looks uneven.",
+            "content": "Values contradict each other: pk_summary fu_plasma 0.01 (~99% bound) conflicts with 'Plasma protein bind % : 73.2' in the ADMET output for the same compound. The output text header reads 'Biomni: Predict ADMET Properties', which is a possible third-party or internal branding leak in a BioMate manual. Nothing shows the current two-tab Results/Reproducibility record UI.",
+            "clarity": "Does not match the intended state. Intended was the Results tab with a populated Findings Summary card: summary paragraph with a clickable number, metric chips, Key Results expanded, and the Download findings button. This shot shows raw output-file previews. The alt text describes six files including versions.yml, but only three are visible. Wrong shot for W2-after-run-panel.",
+            "issues": [
+              "Wrong screen: shows the Outputs file list instead of the Findings Summary card on the Results tab",
+              "No findings card, summary paragraph, metric chips, Key Results section, or Download findings button visible",
+              "Top header (Outputs (6)/search) clipped; previews and third card cut mid-content",
+              "Contradictory data: fu_plasma 0.01 vs plasma protein binding 73.2%",
+              "'Biomni:' branding in output text",
+              "Alt text lists files (versions.yml, qc_metrics.json, toxicity_report.json) not visible",
+              "Inconsistent file-type icon for TXT; truncated filename; cryptic 'dl' label",
+              "All previews expanded at once, so the screen is long and repetitive with wasted side whitespace"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t3-3-after-run-outputs.png": {
+      "asset": "t3-3-after-run-outputs.png",
+      "usecase": "tutorials:T3-running-a-workflow-and-reading-the-report",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp text, but oversized side margins; heading/search controls are clipped at the top and the third output card is cut off below.",
+            "ui_elements": "Visible cards and actions are aligned. Preview text is vertically cut off; 'dl' is an unclear download label.",
+            "content": "Shows populated JSON/TXT artifacts, not placeholders. Report tabs and completion status are outside the crop, so current report structure cannot be verified.",
+            "clarity": "Demonstrates output previews, but not outputs grouped by step: visible cards are labeled 'run' with no step headings.",
+            "issues": [
+              "Recrop to include the Outputs heading and complete representative cards, reducing empty margins.",
+              "Show step grouping and completed-run context to match the intended state.",
+              "Expanded previews dominate the shot and obscure the output-list overview."
+            ],
+            "severity": "minor"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Arbitrary vertical crop cuts off the top search bar and the content within the file preview panes.",
+            "ui_elements": "File preview cards and buttons ('Analyze in RStudio', 'Open in Jupyter') are rendered clearly, though the content inside the preview boxes is clipped by the crop.",
+            "content": "Shows an 'Outputs' section (indicated by 'Outputs (8)' at the top left), which violates the new terminology rule. The after-run report should only have 'Results' and 'Reproducibility record'. This represents stale UI.",
+            "clarity": "Fails to match the current intended product state due to the use of outdated terminology ('Outputs').",
+            "issues": [
+              "Stale terminology: UI shows 'Outputs' instead of the new 'Results' tab",
+              "Vertical crop cuts off the top search bar and the bottom of the file preview contents"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "High-resolution and legible, but poorly cropped: the 'Outputs (8)' header, search box and 'showing 8 of 8' are sliced off at the top. The third card is cut off mid-JSON at the bottom. Large empty margins on both sides. Both preview panes are clipped mid-line ('\"vd_lkg\": 100', 'ClinTox').",
+            "ui_elements": "Header icons are inconsistent: a folder-like icon for the TXT file versus {} for the JSON files. A short filename is truncated ('predict_admet_properties_results.js\u2026') despite ample horizontal space. 'Open in Jupyter' has no button border in card 1 but is bordered in card 2. The terse 'dl' link label is unclear. Every preview is expanded at once, making the list very long. Every file is tagged '\u00b7 run', and no step headers are visible.",
+            "content": "Internal contradiction: the ADMET output gives plasma protein binding of 73.2% (fu \u2248 0.27), yet pk_summary.json states fu_plasma 0.01. The vd_lkg value of 100 L/kg for aspirin (CC(=O)OC1=CC=CC=C1C(=O)O) looks like a placeholder or default rather than a prediction. The TXT output header reads 'Biomni: Predict ADMET Properties', a foreign or legacy brand name instead of BioMate. It is unclear whether 'Outputs' sits inside the new 'Results' tab or reflects the old three-tab report, because no tabs or 'Download findings' button are visible.",
+            "clarity": "Does not match the intended 'Outputs grouped by step'. The shot shows a flat list of expanded previews with no step grouping and no surrounding report context (tabs, step names). Readers cannot tell where they are in the report, and the long raw JSON dominates the frame.",
+            "issues": [
+              "Top header (Outputs count/search) clipped; bottom card cut off mid-content",
+              "No step grouping visible, contrary to the alt text; all items labeled '\u00b7 run'",
+              "fu_plasma 0.01 contradicts plasma protein binding of 73.2% in the ADMET output",
+              "vd_lkg 100 for aspirin looks like a default or placeholder value",
+              "'Biomni:' brand string in tool output instead of BioMate",
+              "Inconsistent file-type icons (folder vs {})",
+              "Inconsistent 'Open in Jupyter' button styling between cards",
+              "Unnecessary filename truncation ('\u2026results.js\u2026')",
+              "Cryptic 'dl' link label; would read better as 'Download'",
+              "No tab context shown to confirm the new Results/Reproducibility record layout",
+              "Excessive side whitespace; all previews expanded, giving a cluttered crop"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "i08-1-outputs-tab.png": {
+      "asset": "i08-1-outputs-tab.png",
+      "usecase": "modules:I08-outputs-viewers-interactive",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but the section header is clipped at the top, the third viewer is cut off below, and wide side margins waste space.",
+            "ui_elements": "Visible rows align consistently and include filenames, types, view/download links, and viewer controls. One row filename is ellipsized.",
+            "content": "JSON/TXT previews are appropriate file content, not leaked UI code. Rows show only 'run', not a specific generating step.",
+            "clarity": "Demonstrates inline previews and notebook actions, but expanded viewers dominate the shot and obscure the intended file-list overview. 'dl' is less explicit than 'Download'.",
+            "issues": [
+              "Recrop to include the complete Outputs header and avoid the cut-off third viewer.",
+              "Use fewer expanded previews to show more complete file rows.",
+              "Show specific step provenance if the caption promises each file's step.",
+              "Replace 'dl' with 'Download' for clarity."
+            ],
+            "severity": "minor"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Poor top crop removes necessary page context (tabs).",
+            "ui_elements": "Severe clipping bug: the text inside the expanded grey viewer boxes is sliced horizontally at the bottom edge (e.g., 'vd_lkg' in the first box, 'ClinTox' in the second).",
+            "content": "The 'Outputs' header and alt text strongly suggest this is the deprecated 'Outputs' tab, violating the new 'Results' / 'Reproducibility record' structure.",
+            "clarity": "Fails to clearly show the intended state due to UI bugs and missing context.",
+            "issues": [
+              "Text content is clipped at the bottom of the expanded viewer containers.",
+              "Missing required tab context ('Results' / 'Reproducibility record').",
+              "Likely shows deprecated 'Outputs' tab UI."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "High resolution and legible, but poorly cropped. The top 'Outputs (8)' header, search box and 'showing 8 of 8' are sliced off, and the third card is cut off mid-JSON at the bottom. Wide empty side margins (~25% each). Both preview panes are clipped mid-line ('\"vd_lkg\": 100', 'ClinTox : 0.137').",
+            "ui_elements": "Row headers are consistent ({} icon, name, type, '\u00b7 run', view/dl). The TXT row uses a different folder/file glyph that is offset from the JSON rows' {} icon, so its name is misaligned. The third filename is truncated ('predict_admet_properties_results.js\u2026'). Action label 'dl' is a cryptic abbreviation for download. The RStudio button appears only on the JSON viewer, which is plausibly by design.",
+            "content": "The step column reads only 'run' for every file, which is uninformative. The TXT output header says 'Biomni: Predict ADMET Properties', a third-party/internal name leaking into BioMate output. The data contradict each other: pk_summary fu_plasma 0.01 (~99% bound) vs ADMET 'Plasma protein bind % : 73.2' for the same aspirin SMILES. The verbose disclaimer and reference block dominates the shot.",
+            "clarity": "Does not match the intended state. The alt text promises compact file rows showing step, name, type and view/download actions, but the shot is dominated by three expanded inline viewers. The row structure is hard to see and the list header is missing. A collapsed list with one optional expanded viewer would teach the section better.",
+            "issues": [
+              "Top header/search/count clipped; bottom card cut off",
+              "All viewers expanded \u2014 rows not the focus as alt text describes",
+              "Step shows generic 'run' for all files",
+              "'Biomni:' branding leak in TXT output",
+              "fu_plasma 0.01 contradicts PPB 73.2% for same compound",
+              "Inconsistent/misaligned icon on TXT row",
+              "Truncated filename 'predict_admet_properties_results.js\u2026'",
+              "Cryptic 'dl' label",
+              "Large empty side margins"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "r6-reproducibility.png": {
+      "asset": "r6-reproducibility.png",
+      "usecase": "tutorials:W2-after-run-panel",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible; excessive blank side margins reduce manual-scale readability. No clipping or overlap.",
+            "ui_elements": "Two-tab layout and accordions are aligned and intact; required Download findings control is absent.",
+            "content": "Stale Download report label. Outputs (9) contradicts the alt description's six outputs.",
+            "clarity": "Shows Reproducibility record, not the intended Results tab; Findings Summary paragraph, clickable number, metric chips, and expanded Key Results are not visible.",
+            "issues": [
+              "Wrong active tab and missing findings-card focus.",
+              "Replace Download report with Download findings.",
+              "Alt description says six outputs; screenshot lists nine.",
+              "Crop excess side whitespace."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution, clean crop, and legible text.",
+            "ui_elements": "Components are aligned and properly rendered. Accordions, tables, and buttons are intact.",
+            "content": "Violates terminology rule: The top-right button displays 'Download report' instead of the required 'Download findings'. The two-tab structure ('Results' and 'Reproducibility record') is correct.",
+            "clarity": "Image shows the Reproducibility record tab (matching the alt note) rather than the primary intended Results tab with the Findings Summary card. Combined with the stale button text, it is incorrect for the manual.",
+            "issues": [
+              "Stale UI: Top-right button says 'Download report' instead of 'Download findings'",
+              "State mismatch: Shows 'Reproducibility record' tab instead of the primary intended 'Results' tab with the Findings Summary card"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible. Large empty side margins. A raw monospace 'runId: fbd72e81-\u2026' debug line is clipped at the top edge, above the panel.",
+            "ui_elements": "Two-tab bar is correct (Results / Reproducibility record), but the header action reads 'Download report' instead of 'Download findings'. The 'Reproducibility record' heading is repeated as both the tab and the first collapsible section. Parameters show raw values ('version 1', 'toolParameters {}'). The SHA-256 column is all dashes before computing checksums, which is acceptable as on-demand.",
+            "content": "Stale 'Download report' label. Outputs (9) contradicts the alt text's 'six outputs'. Input bindings (0) with the 'run predates input-binding capture' note suggests a legacy or unrepresentative run for a tutorial. Timestamps, workflow name and run id are internally consistent.",
+            "clarity": "Does not match the intended state. The intent is the Results tab with a populated Findings Summary card (summary paragraph with a clickable number, metric chips, Key Results expanded, Download findings button). The shot shows the Reproducibility record tab instead, so the focus element 'findings-card' is absent.",
+            "issues": [
+              "Wrong tab captured: Reproducibility record shown instead of Results/Findings Summary card",
+              "Findings card, metric chips, Key Results and clickable number are all missing",
+              "Stale 'Download report' button; should be 'Download findings'",
+              "Stray raw 'runId:' debug line clipped at top of frame",
+              "Alt text says six outputs; screenshot shows Outputs (9)",
+              "Input bindings (0) / 'predates input-binding capture' makes this an unrepresentative demo run",
+              "Raw parameter dump ('toolParameters {}') looks unpolished",
+              "Redundant 'Reproducibility record' heading inside the same-named tab",
+              "Excess horizontal whitespace; crop tighter to the panel"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t3-4-after-run-reproducibility.png": {
+      "asset": "t3-4-after-run-reproducibility.png",
+      "usecase": "tutorials:T3-running-a-workflow-and-reading-the-report",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible; excessive side margins reduce useful scale in the manual. No clipping or overlap.",
+            "ui_elements": "Two tabs and accordion sections are aligned and intact. Requested Reproducibility bundle and Download all as ZIP controls are not visible.",
+            "content": "Correct Results/Reproducibility record tabs, but Download report is stale; current label must be Download findings. Intended-state note also uses the obsolete label.",
+            "clarity": "Clearly shows a completed run and the active Reproducibility record tab, but does not demonstrate the requested bundle/ZIP downloads.",
+            "issues": [
+              "Replace Download report with Download findings and update the manual instruction.",
+              "Capture a state showing Reproducibility bundle and Download all as ZIP.",
+              "Trim excessive side whitespace."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Clear, good resolution, adequate cropping.",
+            "ui_elements": "Missing requested buttons in the Outputs section.",
+            "content": "Stale UI: Top right button is 'Download report' instead of the required 'Download findings'.",
+            "clarity": "Does not match intended state due to missing buttons and incorrect terminology.",
+            "issues": [
+              "Top right button uses stale label 'Download report' instead of 'Download findings'.",
+              "Outputs section is missing the 'Reproducibility bundle' and 'Download all as ZIP' buttons specified in the intended state."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible, but there are wide empty white margins on both sides. A stray monospace 'runId: fbd72e81-\u2026' line sits above the panel and looks like leaked debug output. The shot is tall and cuts off at the bottom.",
+            "ui_elements": "The two-tab bar (Results / Reproducibility record) and the accordion sections render cleanly. The header action reads '\u2193 Download report' instead of 'Download findings'. The intended Outputs-section '\u2193 Reproducibility bundle' and '\u2193 Download all as ZIP' buttons are not visible. Every SHA-256 cell shows '\u2013' because checksums were not computed. Parameters show a raw '{}' for toolParameters.",
+            "content": "The tab structure matches the current two-tab design, but the stale 'Download report' label contradicts current UI ('Download findings'). The intended-state note is itself stale: it asks for 'Download report' plus bundle/ZIP buttons from the old Outputs layout. Input bindings (0) reads 'run predates input-binding capture, or has none', which undercuts a tutorial meant to show a complete record. Run metadata (workflow, id, status, timestamps) is internally consistent.",
+            "clarity": "It does show the Reproducibility record tab as the alt text says. However, it does not match the stated focus: the download button is not highlighted and the bundle/ZIP buttons are absent. Empty checksums, zero input bindings and '{}' parameters make it a weak example of a full audit trail.",
+            "issues": [
+              "Header button labeled '\u2193 Download report'; current UI is 'Download findings' (stale label or stale build)",
+              "Intended state references the old 'Download report' and Outputs-section 'Reproducibility bundle' / 'Download all as ZIP' buttons; update the spec to the current design",
+              "Bundle/ZIP buttons from the intended state are not shown",
+              "Raw 'runId: \u2026' debug line above the After run panel",
+              "SHA-256 column all '\u2013'; compute checksums before capturing",
+              "Input bindings (0) with 'run predates input-binding capture' message is a poor tutorial example; use a run with bound demo inputs",
+              "toolParameters shows raw '{}'",
+              "Excess horizontal whitespace; crop tighter"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "i09-1-three-tabs.png": {
+      "asset": "i09-1-three-tabs.png",
+      "usecase": "modules:I09-reports-and-reproducibility",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp, legible table; wide empty side margins and bottom text clipped. Tall crop excludes Outputs.",
+            "ui_elements": "Two tabs and Source column are aligned and intact; conflicting download controls remain.",
+            "content": "Correct Results/Reproducibility record tabs and Download findings button, but top-right Download report is stale. Summary chips show only Compound 1 values without identifying the compound.",
+            "clarity": "Shows Findings Summary and Key Results, but not the intended inline Outputs previews on the same screen.",
+            "issues": [
+              "Replace/remove stale top-right 'Download report' control.",
+              "Include the Outputs section and inline previews in the screenshot; they are not visible.",
+              "Label summary chips as Compound 1 to avoid implying they summarize both compounds.",
+              "Tighten side margins and avoid clipping bottom text."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and legibility, but cropped too high at the bottom.",
+            "ui_elements": "Components are aligned and render correctly without placeholders or broken styles.",
+            "content": "Violates terminology rules: shows the stale 'Download report' button at the top right, which contradicts the new 'Download findings' standard (though the correct button also appears at the bottom).",
+            "clarity": "Fails to match the intended state; the 'Outputs section just below' mentioned in the alt text is completely missing from the crop.",
+            "issues": [
+              "Stale 'Download report' button present at top right",
+              "Missing Outputs section due to tight bottom crop"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Legible, high-res capture, but wide empty side margins. The bottom is cut off mid-line: the italic footnote 'Findings are generated directly from the run manifest\u2026' is clipped. The Outputs section the intended state calls for is not in frame.",
+            "ui_elements": "Two-tab bar (Results / Reproducibility record) is correct, with Results active. The Findings Summary, metric chips, collapsible Key Results table with Source column, Caveats box and 'Download findings' button are all present and aligned. A stale top-right '\u2193 Download report' link sits alongside 'Download findings', giving two conflicting download actions. A raw 'runId: fbd72e81-\u2026' debug-style line sits above the AFTER RUN header.",
+            "content": "The 'Download report' label is old-UI terminology and contradicts the 'Download findings' button. The headline chips (hERG 0.003, DILI 0.855, Oral bioavailability 0.873) show only Compound 1 values without saying so, although the run covers 2 compounds; Compound 2 hERG is 0.974, so the chips can mislead. Each Source cell repeats the same filename. Interpretation wording is inconsistent: some rows give an Acceptable/Elevated judgment, others only restate the value (e.g., BBB, PPB, Caco-2, CYP3A4).",
+            "clarity": "Clearly shows the Results landing tab, the Findings Summary and the Key Results Source column. It does not show the outputs previewed inline 'just below' the summary, which is the point of the intended shot. The long table dominates the frame; collapsing it or cropping to fewer rows would let the Outputs section appear.",
+            "issues": [
+              "Stale 'Download report' link at top right; it should be removed or match 'Download findings'",
+              "Outputs section with inline previews is missing or cut off, so the shot does not match the intended state",
+              "Bottom footnote text is clipped",
+              "Raw 'runId:' line at top looks like debug output",
+              "Headline chips show only Compound 1 values, unlabeled, in a 2-compound run",
+              "Interpretation column is inconsistent; some rows lack a threshold judgment",
+              "Excess side whitespace"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "i09-2-reproducibility-record.png": {
+      "asset": "i09-2-reproducibility-record.png",
+      "usecase": "modules:I09-reports-and-reproducibility",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, without clipping or overlap; wide side margins waste space.",
+            "ui_elements": "Two tabs and aligned output columns are intact; Resolved parameters is collapsed.",
+            "content": "Correct tab names, but stale 'Download report' must be 'Download findings'. SHA-256 column is present; all checksums are uncomputed.",
+            "clarity": "Shows run identity and outputs, but not the intended resolved-parameter details.",
+            "issues": [
+              "Replace 'Download report' with 'Download findings'.",
+              "Expand Resolved parameters to match the intended state.",
+              "Tighten horizontal crop for better manual readability."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Clear, well-cropped, and legible with appropriate margins.",
+            "ui_elements": "Components are well-aligned and render correctly. Accordions and tables are properly formatted.",
+            "content": "Contains stale UI terminology. The top-right button reads 'Download report', which violates the new specification requiring 'Download findings'.",
+            "clarity": "Shows the correct tab, but the 'Resolved parameters' accordion is collapsed despite being explicitly mentioned in the intended state description.",
+            "issues": [
+              "Top-right button uses stale text 'Download report' instead of 'Download findings'",
+              "'Resolved parameters' accordion is collapsed, failing to show intended content"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible, with a full-height crop. Wide empty white margins on left and right waste space. A stray raw 'runId: fbd72e81-\u2026' monospace line sits above the panel, outside the card.",
+            "ui_elements": "Two-tab bar (Results / Reproducibility record) is correct. The top-right action reads 'Download report' (old label). The 'runId:' line looks like leaked debug output. The SHA-256 column is all dashes because 'Compute checksums' was not run. 'Reproducibility record' repeats as both tab name and accordion title. toolParameters shows raw '{}'. Both 'Parameters (2)' and a collapsed 'Resolved parameters' section appear, which is redundant and confusing.",
+            "content": "'Download report' is stale; it should be 'Download findings'. Input bindings (0) says 'run predates input-binding capture, or has none', which contradicts cold-start examples that attach demo data. dag.dot typed as 'binary' is questionable for a text DOT file. Parameters are trivial (version 1, empty toolParameters), so they don't illustrate resolved parameters.",
+            "clarity": "Only partly matches the intent. Identity and the outputs table are shown, but the resolved parameters are collapsed or empty and the SHA-256 column has no values. A reader cannot see what a checksum looks like or which parameters were resolved.",
+            "issues": [
+              "Stale 'Download report' button label; should be 'Download findings'",
+              "Raw debug 'runId: \u2026' line rendered above the after-run panel",
+              "SHA-256 column empty (all '\u2013'); compute checksums before capturing",
+              "Input bindings (0) with 'predates input-binding capture' note on a demo run that should have attached demo data",
+              "toolParameters shows raw '{}'; 'Resolved parameters' section is collapsed despite the alt text promising it",
+              "Duplicate 'Reproducibility record' tab and accordion heading",
+              "dag.dot labelled 'binary'",
+              "Excess side whitespace; crop tighter"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "r1-prerun-param-strip.png": {
+      "asset": "r1-prerun-param-strip.png",
+      "usecase": "tutorials:T11-drug-development-end-to-end",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive empty chat space dilutes the parameter-panel focus.",
+            "ui_elements": "Controls are aligned and Run is visible; required parameters contain a spurious 'OC1' field populated with a prompt fragment.",
+            "content": "SMILES inputs make the example self-contained. 'OC1' is malformed parameter extraction; background-run messaging contradicts the pre-run 'Confirm & Run' state.",
+            "clarity": "Shows the alternate ADMET parameter view, not Design & Generate rankings or per-objective results. Malformed parameters undermine its usefulness as a pre-run example.",
+            "issues": [
+              "Remove the spurious required 'OC1' parameter and its mixed SMILES/prose value.",
+              "Replace 'this run continues in the background' messaging while confirmation is still pending.",
+              "For the primary intended state, capture generated candidates ranked with per-objective columns; otherwise use a tighter crop of the corrected ADMET panel."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution, standard layout.",
+            "ui_elements": "Components render correctly.",
+            "content": "Major parsing error in parameter extraction. The AI incorrectly created a parameter 'OC1' containing a truncated fragment of the user's prompt ('CC=CC=C1C(=O)O and acetaminophen...').",
+            "clarity": "Matches alt intended state (pre-run parameters), but erroneous parameter values make it unsuitable for a tutorial.",
+            "issues": [
+              "Parameter 'OC1' contains mangled prompt text due to failed AI extraction."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible at full resolution, but about half the chat pane is empty white space. The top-left title is truncated ('Predict ADMET properties (hERG, DILI, oral').",
+            "ui_elements": "Workflow panel with tabs (Workflow settings 4 / Phases 1 / After run), parameter cards and a Confirm & Run button. A bogus 'OC1' required parameter has been generated from a SMILES fragment. The unlabeled checkbox and X icons under the title are unexplained.",
+            "content": "Wrong screen for the intent: this is the ADMET pre-run parameter view on a chat route, not /design results with ranked generated candidates. The 'OC1' param holds mis-parsed prompt text ('CC=CC=C1C(=O)O and acetaminophen CC(=O)Nc1ccc(O)cc1'). The panel says '1 phase' while the chat card says '2 steps'. The chat says 'run continues in the background' while the run is still unconfirmed and Run Manager shows 0.",
+            "clarity": "Does not match the intended state: no candidates, ranking or per-objective columns. Even as the alt (ADMET pre-run strip), the parsing bug makes it a poor teaching example.",
+            "issues": [
+              "Mismatch with intent: shows ADMET pre-run config instead of Design & Generate ranked-candidates results (T1 i11-3 view)",
+              "Parameter-extraction bug: spurious 'OC1' required parameter filled with a fragment of the prompt text",
+              "Inconsistent step count: panel shows '1 phase', chat card shows '2 steps'",
+              "Chat says the run 'continues in the background' before Confirm & Run is clicked; Run Manager shows 0",
+              "Page title truncated in header",
+              "Large empty dead space in chat pane",
+              "Unlabeled checkbox and X icons under the workflow title"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t3-1-workflow-panel.png": {
+      "asset": "t3-1-workflow-panel.png",
+      "usecase": "tutorials:T3-running-a-workflow-and-reading-the-report",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive empty chat space dilutes the workflow-panel focus.",
+            "ui_elements": "Three intended tabs are visible; Workflow settings and Required parameters are expanded. No empty required field or validation flag is shown; Confirm & Run appears enabled.",
+            "content": "Unexpected required field 'OC1' contains a fragment of the molecule prompt, suggesting incorrect parameter extraction. Chat says the run continues in the background despite the pre-run panel.",
+            "clarity": "Does not demonstrate the intended blocked pre-run state. The supplied alt text 'A completed workflow run' also contradicts that intended state.",
+            "issues": [
+              "All visible required fields are populated; the intended empty, flagged field is absent.",
+              "Confirm & Run is dark and apparently enabled, not visibly disabled.",
+              "'OC1' is an unexplained required parameter populated with mixed SMILES and prose.",
+              "Background-run messaging contradicts the idle/pre-run state.",
+              "Alt text describes a completed run rather than pre-run validation.",
+              "Crop more tightly around the workflow panel to reduce dead space."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and legibility. Full screen capture.",
+            "ui_elements": "All required parameters are filled; there is no empty required field flagged. The 'Confirm & Run' button is enabled (active state), not disabled as requested.",
+            "content": "The alt text 'A completed workflow run' contradicts the intended 'pre-run' state and the actual screenshot which shows the pre-run configuration panel.",
+            "clarity": "The screenshot fails to show the intended state. It shows a fully configured, ready-to-run workflow instead of one with missing required parameters and a disabled run button.",
+            "issues": [
+              "Required parameters are all filled; missing the intended empty flagged field.",
+              "Confirm & Run button is enabled instead of disabled.",
+              "Alt text implies a completed run, but the image shows a pre-run state."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture. The chat column is mostly empty below the message, and the page title is truncated ('Predict ADMET properties (hERG, DILI, oral'). The panel is the focus but is not cropped or emphasized.",
+            "ui_elements": "The three tabs (Workflow settings 4 \u00b7 Phases 1 \u00b7 After run) are visible and correct. The Parameters strip is expanded with the Required section open and Optional collapsed. The panel header shows an unlabeled empty checkbox-like square next to the close X. Confirm & Run renders as enabled (solid black), not disabled.",
+            "content": "A bogus required parameter 'OC1' appears, and its value is a fragment of the prompt ('CC=CC=C1C(=O)O and acetaminophen CC(=O)Nc1ccc(O)cc1'). This is a SMILES parsing/extraction bug. The panel says '1 phase' / Phases 1, but the chat card says '2 steps'. The chat says 'this run continues in the background' while the run has not started and Run Manager shows 0. No required field is empty or flagged.",
+            "clarity": "Does not match the intended state. Every required field is filled, no validation flag is shown, and the run button is enabled, so it cannot teach the 'fix the empty required field first' step. The alt text 'A completed workflow run' contradicts the pre-run state shown.",
+            "issues": [
+              "No empty required field flagged as specified in the intended state",
+              "Confirm & Run appears enabled; intended disabled",
+              "Spurious 'OC1' required parameter parsed from SMILES fragment with free-text value \u2014 real extraction bug",
+              "Phase/step count mismatch: '1 phase' in panel vs '2 steps' in chat card",
+              "Chat says run continues in background though run is idle (Run Manager 0)",
+              "Alt text 'A completed workflow run' contradicts pre-run idle state",
+              "Unlabeled square icon in panel header next to close X",
+              "Page title truncated; large dead space in chat area"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "r2-running.png": {
+      "asset": "r2-running.png",
+      "usecase": "tutorials:T11-drug-development-end-to-end",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive blank chat space reduces workflow prominence; conversation title is truncated.",
+            "ui_elements": "Phase card, progress, step statuses, QC gates, and pause/stop controls are visible and aligned.",
+            "content": "Self-contained ADMET example supplies two SMILES inputs. Technical labels such as 'Admet Infer Shard' and 'Cipa Qnet' need reader-friendly terminology.",
+            "clarity": "Matches the allowed alternative: ADMET running with phase and QC gates visible. Does not show the primary Design & Generate ranked-results state.",
+            "issues": [
+              "Crop or hide chat to emphasize the workflow and reduce dead space.",
+              "Conversation title ends abruptly at 'oral'.",
+              "Normalize technical labels and acronym casing for manual readers."
+            ],
+            "severity": "minor"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and framing.",
+            "ui_elements": "Broken UI elements in the right panel header; empty square boxes appear around the 'Running' badge and 'x', indicating missing icons or rendering failure.",
+            "content": "Matches the alt intended state, showing the ADMET workflow running with phase details and QC gates visible.",
+            "clarity": "The running state and QC gates are clearly visible, but the broken header icons detract from the professional quality required for documentation.",
+            "issues": [
+              "Missing icons/broken UI elements (empty squares) next to the 'Running' badge in the right panel header."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture, but the chat column is mostly empty white space. The page title is truncated ('Predict ADMET properties (hERG, DILI, oral'). The black Pause/Stop footer bar is visually heavy.",
+            "ui_elements": "The phase card is generically named 'Steps' with badge '2', which repeats the 'STEPS \u00b7 2' summary card above it and conflicts with the '1 phase' header. The two checkbox icons and the X beside the 'Running' pill have no labels. The step progress reads 0%/0/2. QC gate names appear as raw snake-case-style labels in monospace.",
+            "content": "This is an ADMET prediction run in chat for aspirin and acetaminophen, not Design & Generate results. Several QC gate operators contradict their names: 'Apd90 Prolongation Max Pct \u2265 30' uses \u2265 on a max, and 'Ead Probability Halt \u2265 0.7' reads as a pass condition rather than a halt. The CiPA qNet gates (\u2265 -30, \u2265 -40) are dubious for a hERG/DILI/oral/CYP request.",
+            "clarity": "Does not match the intended state: there are no generated candidates, no ranking and no per-objective columns, and the route is chat rather than /design. The alt text describes a different screen, so it misleads readers at this step of T11.",
+            "issues": [
+              "Wrong screen: shows a running ADMET workflow instead of the Design & Generate ranked-candidates results (/design, i11-3).",
+              "The alt text describes the ADMET run, not the intended design-results state.",
+              "Phase is labelled generically as 'Steps', duplicating the STEPS \u00b7 2 summary card and conflicting with '1 phase'.",
+              "QC gate operators contradict their names: a 'Max Pct' uses \u2265 and the 'Halt' threshold uses \u2265 0.7.",
+              "CiPA qNet gates look misapplied to an ADMET hERG/DILI/CYP request.",
+              "Checkbox and X icons next to 'Running' are unlabelled.",
+              "Page title is truncated.",
+              "Large empty chat area wastes space."
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "w1-1-phases.png": {
+      "asset": "w1-1-phases.png",
+      "usecase": "tutorials:W1-workflow-panel-tabs",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive blank chat space dilutes the panel focus; chat title is truncated.",
+            "ui_elements": "Expanded phase and step RUNNING spinners are visible; dark Pause/Stop bar is complete. No DONE step is shown (0/2 completed).",
+            "content": "Example is self-contained with two SMILES inputs. Supplied alt text incorrectly describes a finished run and output results; screenshot shows an active run.",
+            "clarity": "Partially matches: Phases is selected with an expanded RUNNING card, but capture is too early to demonstrate mixed DONE/RUNNING steps or a terminal transition.",
+            "issues": [
+              "Required DONE step is absent; first step is RUNNING and second is pending.",
+              "Alt text describes finished-run outputs not present in the screenshot.",
+              "Large unused chat area reduces emphasis on the workflow panel."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and framing, full screen captured.",
+            "ui_elements": "Broken UI elements at the top of the right panel under '1 phase' (empty checkboxes/squares and an 'X' around the 'Running' badge). Dark Pause/Stop bar is present.",
+            "content": "Fails intended state requirement: needs at least one step showing DONE and one showing RUNNING. Currently shows one RUNNING and one pending.",
+            "clarity": "Does not fully capture the intended state for the tutorial (missing the DONE to RUNNING transition state) and contains visible UI bugs.",
+            "issues": [
+              "Missing a DONE step in the expanded phase card as required by intended state.",
+              "Broken UI rendering (empty squares/X) next to the top 'Running' badge in the right panel."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture. The chat title is clipped ('Predict ADMET properties (hERG, DILI, oral'). The left chat pane is mostly empty, so the Phases panel (the focus) takes up only about a quarter of the frame.",
+            "ui_elements": "The phase card is expanded with a RUNNING spinner, and the dark Pause/Stop bar is visible at the bottom. The header shows unlabeled icon controls (two empty squares and an X) beside the 'Running' pill, which look like missing or broken icons. Step rows are laid out inconsistently: step 1 has 'Details' on its own line, while step 2 has 'Details' and 'Params' inline on the right. Step 2 has no status badge.",
+            "content": "The phase card is titled 'Steps', which reads like a placeholder rather than a phase name. 'Run Manager 0' shows while a run is active. Step names are machine-like title-cased identifiers ('Admet Infer Shard'). The QC gates use the CiPA cardiac thresholds; the '\u2265' direction on 'High Risk Threshold \u2265 -30' and 'Ead Probability Halt \u2265 0.7' is ambiguous. Progress reads 0% 0/2, so no step has completed.",
+            "clarity": "Partially matches the intended state. It shows one RUNNING phase, one RUNNING step and the Pause/Stop bar. It is missing the required DONE step row, so the idle\u2192running\u2192terminal transition is not demonstrated. The focus on panel-phases is weakened by the wide, empty frame.",
+            "issues": [
+              "No step row shows DONE (step 1 RUNNING, step 2 pending at 0/2); the intended state needs at least one DONE and one RUNNING",
+              "Phase card is titled generically 'Steps' (placeholder-like phase name)",
+              "'Run Manager 0' contradicts the visible active run",
+              "Unlabeled empty-square/X icons in the panel header look broken",
+              "Inconsistent placement of Details/Params links between step rows; step 2 has no status badge",
+              "Chat title truncated",
+              "QC gate comparator semantics ambiguous (\u2265 on 'High Risk Threshold' / 'Halt')",
+              "Large dead space in the chat pane; crop should be tighter on the panel"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "w1-2-workflow-settings.png": {
+      "asset": "w1-2-workflow-settings.png",
+      "usecase": "tutorials:W1-workflow-panel-tabs",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive empty chat space reduces emphasis on settings; chat title ends abruptly.",
+            "ui_elements": "Settings tab and Parameters are open; Required/Optional groups and Recommended/Override badges are visible. Only text fields are shown; no toggle, dropdown, number box, Browse field, or permissions card.",
+            "content": "Unexpected required 'OC1' field contains a fragment of the SMILES plus prompt prose, indicating incorrect parameter extraction. Example is self-contained with inline SMILES.",
+            "clarity": "Partially matches the intended state, but does not demonstrate mixed control types or the advertised 'Your permissions here' card.",
+            "issues": [
+              "Required 'OC1' parameter contains malformed extracted prompt content.",
+              "Missing intended toggle, dropdown, numeric control, and file field with Browse button.",
+              "'Your permissions here' card is absent.",
+              "Large unused chat area distracts from the tutorial target."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and layout, standard full-screen capture.",
+            "ui_elements": "Fails to show the requested mix of control types (toggle, dropdown, number box, file field); only text inputs are visible. Missing the 'Your permissions here' card mentioned in the alt text.",
+            "content": "The AI-extracted parameters appear as generic text inputs rather than typed controls. 'OC1' appears as a hallucinated parameter name rather than a valid input field.",
+            "clarity": "Does not match the intended state for the tutorial, as it lacks the specific UI components (varied control types, permissions card) it is supposed to demonstrate.",
+            "issues": [
+              "Missing toggle, dropdown, number box, and file field controls in Parameters section.",
+              "Missing 'Your permissions here' card.",
+              "Parameter 'OC1' seems incorrectly extracted/named.",
+              "All parameters are rendered as simple text inputs instead of appropriate control types."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible at full resolution. The page title is truncated ('Predict ADMET properties (hERG, DILI, oral'). There is large empty space in the chat column and below the parameters in the right panel.",
+            "ui_elements": "Tabs, the Required/Optional groups, the Recommended badges, the Override links and Confirm & Run all render. However, every parameter is a plain text box: there is no toggle, dropdown, number box, or file field with Browse. The square and X icons under the title have no labels.",
+            "content": "Real parsing bug: a parameter named 'OC1' holds a SMILES fragment plus prose ('CC=CC=C1C(=O)O and acetaminophen CC(=O)Nc1ccc(O)cc1'). The prompt was mis-split into a fake parameter. 'Admet Model Type' is free text containing a comma list rather than a dropdown. The chat card says '2 steps' while the panel says '1 phase'.",
+            "clarity": "The Required vs Optional grouping and the AI badge/Override are clear. The shot does not match the intended mixed-control state. The alt text describes a 'Your permissions here' card that is not shown.",
+            "issues": [
+              "Spurious 'OC1' parameter with a garbled SMILES/prose value (prompt-parsing bug)",
+              "No toggle, dropdown, number box or file+Browse control visible as intended",
+              "'Admet Model Type' shown as free text, not a dropdown",
+              "Inconsistent count: chat card '2 steps' vs panel '1 phase'",
+              "Alt text mentions a 'Your permissions here' card that is absent",
+              "Truncated page title in the header",
+              "Unlabeled square/X icons under the workflow title",
+              "Large dead space in the chat and panel areas"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "i11-3-multi-objective.png": {
+      "asset": "i11-3-multi-objective.png",
+      "usecase": "modules:I11-design-and-generate",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp, legible, fully framed; no clipping or overlap.",
+            "ui_elements": "Table, verdicts, links and footnote are complete and aligned.",
+            "content": "Separate objective values and descending ranking are shown. The property-envelope target is explicit (\u22651), but no drug-like/QED target is displayed despite the introduction promising each objective's target.",
+            "clarity": "Matches the intended ranked-candidate view; amber values and ranking-only score are explained. The missing QED target limits goal comparison.",
+            "issues": [
+              "Show the drug-like/QED target alongside its values to match the stated per-objective target presentation."
+            ],
+            "severity": "minor"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Clean crop, good resolution, legible text.",
+            "ui_elements": "Table renders correctly, status colors (amber/green/red) and icons are present and aligned.",
+            "content": "Text contradiction: The header explicitly states 'no single blended number', but the footnote defines the score as a 'mean of normalised per-objective scores', which is by definition a blended number. Additionally, the data in the 'property_envelope' column is exactly '0' for every single candidate, which looks like broken data or a very poor example for demonstrating multi-objective scoring.",
+            "clarity": "Confusing due to the direct contradiction in the explanatory text regarding blended numbers, and the static/failing data in one of the main objective columns.",
+            "issues": [
+              "Contradictory copy: header claims 'no single blended number' while footnote defines score as a mean.",
+              "Suspicious/unrealistic data: 'property_envelope' is 0 for all rows."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Clean, sharp, well cropped, no clipping or overlap. Slight empty space right of the property_envelope column.",
+            "ui_elements": "Table is complete and aligned, with no undefined or placeholder values. Rejected rows are greyed and every row has a 'why?' link. Units are shown twice: header suffixes (/QED, /fraction-in-window) plus a unit in every cell. Number formatting varies (1 vs 0.9766, 0.5 vs 0.4883, 0.636).",
+            "content": "The property_envelope value is 0 (amber, below the \u22651 goal) for all 8 candidates, so one of the two objectives carries no information. Each score is simply drug_like/2. The Accepted/Rejected split falls exactly on a score cutoff (0.3287 accepted, 0.318 rejected). This contradicts the caption's 'score column ranks only' and 'no single blended number' claims. QED is unitless but is shown as a unit ('1 QED').",
+            "clarity": "It does not convincingly show 'scored on each goal separately'. With a flat 0 envelope column and a verdict that tracks the blended score, the shot shows a single-number ranking. Readers cannot tell why BM-0004 is accepted and BM-0005 rejected.",
+            "issues": [
+              "property_envelope = 0 for every candidate: degenerate demo data, so the multi-objective view looks broken",
+              "Verdict appears thresholded on score* (0.3287 accepted vs 0.318 rejected), contradicting 'score ranks only' and 'not a composite'",
+              "All candidates miss the envelope goal (amber), yet 4 are Accepted with no visible rationale",
+              "Redundant units in both header and cells; 'QED' presented as a unit",
+              "Inconsistent decimal precision (1, 0.5, 0.636 vs 4 decimals)"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t11-2-design-candidates.png": {
+      "asset": "t11-2-design-candidates.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp, legible, well cropped; no clipping or overlap.",
+            "ui_elements": "Table, verdicts and why links are complete and aligned.",
+            "content": "Ranking-score footnote is explicit; property-envelope target is shown, but no drug_like/QED target appears despite the claim that each objective has its own target.",
+            "clarity": "Multi-objective comparison is understandable; acceptance criteria are not visible. Manual placement cannot be assessed because the screenshot is unreferenced.",
+            "issues": [
+              "Show the QED target or clarify that it is not displayed here.",
+              "Accepted/Rejected criteria require the why links; the screenshot alone does not explain them."
+            ],
+            "severity": "minor"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Crisp, legible, well-cropped.",
+            "ui_elements": "Table layout is clean and consistent.",
+            "content": "Data appears broken: the 'property_envelope' column shows '0' for all rows. While the text explains amber isn't an automatic rejection, an entirely zeroed column in a multi-objective view looks like a calculation error or poor dummy data.",
+            "clarity": "Text is clear, but the unrealistic data makes it a confusing example.",
+            "issues": [
+              "All values in 'property_envelope' column are 0, suggesting a data bug."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible, well-cropped card with no clipping or overlap. There is some dead horizontal space between the property_envelope and score columns.",
+            "ui_elements": "Table, header, why? links and verdict colours are complete and aligned. Rejected rows are greyed, but their why? links are faded too, so they look disabled. Number formatting is inconsistent: 1 / 0.636 / 0.5 / 0 sit beside 4-decimal values.",
+            "content": "property_envelope reads 0 fraction-in-window (\u22651) for every candidate, including BM-0001 with QED 1. This looks like a broken or degenerate computation, and it makes score just QED/2. Verdicts split Accepted/Rejected at roughly QED 0.65 even though the text says targets are not pass/fail gates, and no rejection criterion is shown. 'QED' is shown as a unit, though QED is a unitless score.",
+            "clarity": "The explanatory text and footnote are clear, but the uniform zero column undermines the multi-objective message. The shot is not referenced by any manual page, so it is an orphan asset with no use-case context.",
+            "issues": [
+              "property_envelope = 0 for all 8 candidates; likely a bug or bad demo data",
+              "the objective adds nothing to ranking (score = QED/2)",
+              "Accepted/Rejected verdict basis is unexplained and seems to contradict 'not a pass/fail gate'",
+              "'QED' presented as a unit",
+              "inconsistent decimal precision",
+              "why? links look disabled on rejected rows",
+              "wide empty gap before score column",
+              "screenshot unreferenced by any manual page"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "i05-0-data-hub.png": {
+      "asset": "i05-0-data-hub.png",
+      "usecase": "tutorials:T10-exploring-your-datasets",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible; both panes fully visible. Large margins and unused space below the file list dilute the focus.",
+            "ui_elements": "Header, actions and Preview/Lineage/Versions tabs are intact and aligned; tree filenames are truncated.",
+            "content": "Shows inputs/counts_matrix.csv, an input count matrix, rather than the intended result CSV.",
+            "clarity": "Clearly demonstrates an open dataset object in a selected project, but does not demonstrate exploring a result file.",
+            "issues": [
+              "Open a result CSV such as de_results.csv instead of inputs/counts_matrix.csv.",
+              "Reduce outer whitespace while retaining both panes and the dataset header/tabs."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution, clear layout, appropriate crop with no dead space or clipping.",
+            "ui_elements": "Clean, consistent, and well-aligned. No visible bugs, broken components, or placeholders.",
+            "content": "Valid dataset object content with realistic data. However, it shows an input file (counts_matrix.csv) rather than a result file as specified in the intended state.",
+            "clarity": "Clearly illustrates the two-pane Data hub and dataset object view as required.",
+            "issues": [
+              "Intended state requested a result CSV to be open, but an input CSV (counts_matrix.csv) is shown instead."
+            ],
+            "severity": "minor"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible. Both panes are fully in frame with no clipping. There is a large empty area below the tree in the left pane and wide unused margins and bottom whitespace, so the shot could be cropped tighter.",
+            "ui_elements": "Two-pane Data hub is complete. Left: file tree with Upload/refresh and row actions. Right: header (name, type, size, Good badge), Export RO-Crate / Use in chat / Download buttons, Preview/Lineage/Versions tabs, metadata table and Quality card. No broken, duplicated or placeholder elements. Tree names are truncated ('sample_metadata...', 'counts_matrix.c...'). The preview table shows only 12 of 21 columns with no visible horizontal-scroll cue.",
+            "content": "The open file is counts_matrix.csv, an input, not a result CSV such as de_results.csv. The tree shows only an 'inputs' folder with no results/outputs, so the intended 'result CSV' state is not met. Quality card shows EFFECTIVE N = 260, which equals the gene-row count. For a genes \u00d7 samples matrix, effective N would normally be the sample count (20), so this value looks wrong. The orange vs green vs grey status dots in the tree are unexplained. Other values are consistent: 21 columns = gene + 20 samples, 22.8 KB, text/csv.",
+            "clarity": "The two-pane layout with the dataset object (header + tabs) open on the right is clearly conveyed and matches the focus. However, it demonstrates an input file rather than a run result. Lineage and 'runs that read it' are less meaningful for an input, which weakens the tutorial step.",
+            "issues": [
+              "Shows input counts_matrix.csv instead of a result CSV (e.g. de_results.csv) as intended",
+              "No results/outputs folder in the tree; project appears to have no run outputs",
+              "EFFECTIVE N = 260 equals row (gene) count; likely should reflect samples (20) \u2014 questionable value",
+              "Filenames truncated in the tree",
+              "Preview truncates columns (12/21) without a scroll affordance",
+              "Status-dot colors in the tree are unexplained",
+              "Excess empty space in the left pane and at the bottom; crop tighter"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t10-1-dataset-preview.png": {
+      "asset": "t10-1-dataset-preview.png",
+      "usecase": "tutorials:T10-exploring-your-datasets",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but wide margins and a large empty file-pane area dilute the Preview-table focus.",
+            "ui_elements": "Preview is active; table, row-count note, metadata and controls are aligned and intact. No visible placeholders or overlap.",
+            "content": "Shows an input counts_matrix.csv under projects/\u2026/inputs/, not the requested run-produced results CSV. It also does not match the ADMET file/reference described in the supplied alt text.",
+            "clarity": "The sample table and 'First 8 rows of 260' note clearly demonstrate CSV preview, but the file provenance does not match the intended example.",
+            "issues": [
+              "Replace the input counts matrix with a real run-results CSV with meaningful result columns.",
+              "Update the alt text to describe the actual CSV preview.",
+              "Crop more tightly around the Preview table and row-count note."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "High resolution, clear layout, legible text. Minor empty space at the bottom but acceptable.",
+            "ui_elements": "All components (sidebar, tabs, buttons, table, metadata rows, quality panel) are present, aligned, and render correctly.",
+            "content": "Mismatch with intended state: shows an input file ('counts_matrix.csv') instead of a run-produced results CSV. It lacks the requested meaningful result columns (e.g., log2FoldChange, padj) and the reference path points to an input directory rather than a run output directory.",
+            "clarity": "Clearly demonstrates the Preview tab functionality for a tabular file, but the use of an input file instead of a result file misses the specific tutorial context requested.",
+            "issues": [
+              "Shows an input file ('counts_matrix.csv') instead of a results CSV.",
+              "Missing expected result columns (e.g., log2FoldChange, padj).",
+              "Reference path points to inputs, not run outputs as specified in the intended state."
+            ],
+            "severity": "minor"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible. Large dead space below the Files panel and under the dataset card. The sample table shows only 12 of 21 columns (gene, MG_01\u2013MG_10, HC_01) with no visible horizontal-scroll cue. Sidebar names are truncated ('counts_matrix.c\u2026', 'sample_metadata\u2026').",
+            "ui_elements": "Preview/Lineage/Versions tabs are complete and Preview is active. Header chips, actions and quality card render cleanly with no undefined or placeholder values. The Files list contains 'preview_checks.yml' and 'preview_checks.json', which look like leaked test fixtures. The grey/orange/green status dots have no legend.",
+            "content": "The file is a raw input counts matrix (projects/\u2026/inputs/counts_matrix.csv), not a run-produced results CSV with gene_id/log2FoldChange/padj as intended. The Reference path also contradicts the alt text, which promises nextflow/outputs/\u2026/run/\u2026. 'First 8 rows of 260' is consistent with ROWS 260 and COLUMNS 21. 'Effective N 260' equals the gene count for a genes\u00d7samples matrix, which is semantically odd.",
+            "clarity": "The Preview table and the row-count note are clearly visible, so the general mechanic is understandable. However, the shot does not show the intended results-file scenario, and the alt text describes a different file and path.",
+            "issues": [
+              "Shows input counts_matrix.csv instead of a results CSV (gene_id, log2FoldChange, padj) as intended",
+              "Reference path is projects/\u2026/inputs/\u2026, contradicting the alt text's nextflow/outputs/\u2026/run/\u2026 run-produced file",
+              "Preview table silently clipped: 12 of 21 columns visible with no scroll affordance",
+              "preview_checks.yml/json test fixtures visible in the inputs folder",
+              "Truncated filenames in the sidebar",
+              "Effective N = 260 (the gene count) is confusing for a count matrix",
+              "Excess empty space at the bottom and left; could crop tighter to the Preview table and note"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t10-2-dataset-lineage.png": {
+      "asset": "t10-2-dataset-lineage.png",
+      "usecase": "tutorials:T10-exploring-your-datasets",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, without overlap; excessive blank space below the content weakens the crop.",
+            "ui_elements": "Lineage tab is active and controls are aligned; no visible broken components. Required populated-lineage elements are absent.",
+            "content": "Shows inputs/counts_matrix.csv with 'Uploaded input \u2014 no upstream workflow produced this dataset,' not a run-output file.",
+            "clarity": "Does not demonstrate the intended result-file lineage or clickable producing-run link; contradicts the supplied alt text.",
+            "issues": [
+              "Capture a run-output file instead of the uploaded counts_matrix.csv.",
+              "Missing underlined 'Produced by run c40459b2\u2026' link and Workflow, Status, and Step rows, including 'Predict ADMET Properties (AI)'.",
+              "Crop excess lower whitespace to emphasize the Lineage panel."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Excessive empty space at the bottom; needs cropping to focus on the application UI.",
+            "ui_elements": "Clean and well-rendered; no visible defects, missing elements, or raw code.",
+            "content": "Incorrect file type selected. Shows an uploaded input ('counts_matrix.csv' in 'inputs' folder) instead of a run-output file. Lineage shows 'Uploaded input' instead of the required 'Produced by run' details.",
+            "clarity": "Completely misses the intended state. Fails to illustrate populated lineage for a result file, directly violating the capture instructions.",
+            "issues": [
+              "Selected an input file instead of a result file.",
+              "Lineage tab shows 'Uploaded input' instead of showing workflow/run details.",
+              "Poor cropping with significant dead space at the bottom."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible, but large dead space: the bottom ~40% of the frame and the empty lower file-tree pane are blank. The crop could be tighter on the detail panel.",
+            "ui_elements": "Components are complete and aligned. Lineage tab is active. Files tree, breadcrumbs, badges (text/csv, 22.8 KB, Good) and action buttons all render correctly. No broken or placeholder elements.",
+            "content": "Wrong capture target. The open file is the uploaded input counts_matrix.csv (inputs folder, Source=upload), and the panel reads 'Uploaded input \u2014 no upstream workflow produced this dataset.' There is no 'Produced by run' link and no Workflow/Status/Step rows. 'Read by' is empty. The project has only an inputs folder, so no run-output file exists to capture.",
+            "clarity": "Does not match the intended state. The tutorial step wants to demonstrate run-produced lineage (Produced by run c40459b2\u2026 link, Workflow 'Predict ADMET Properties (AI)', Step). This shot shows the empty or upload lineage case instead, and it contradicts the alt text.",
+            "issues": [
+              "Captured an uploaded input (counts_matrix.csv) instead of a run-output file; the capture note explicitly says not to use an uploaded input",
+              "Missing the 'Produced by run c40459b2\u2026' underlined clickable link",
+              "Missing the Workflow (Predict ADMET Properties (AI)), Status and Step rows",
+              "Alt text describes content that is not visible in the screenshot",
+              "Project shows no outputs folder; a run must exist before recapturing",
+              "Excess empty whitespace below the panel and in the files pane; crop tighter"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t10-4-dataset-versions.png": {
+      "asset": "t10-4-dataset-versions.png",
+      "usecase": "tutorials:T10-exploring-your-datasets",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive blank space below dilutes the version-list focus; crop tighter.",
+            "ui_elements": "Versions tab, note input, Add version button and helper are intact. v1 is bare; v2 repeats current in its heading and badge.",
+            "content": "Demo dataset and added v2 note are visible. v2 is current, contrary to the specified v1 \u00b7 current. Neither entry shows an author; v1 lacks note and timestamp.",
+            "clarity": "Append-only behavior is clear, but incomplete version metadata and the current-version mismatch prevent a full match to the intended state.",
+            "issues": [
+              "v1 shows only its version label, without note, author or timestamp.",
+              "v2 has a note and timestamp but no author.",
+              "Current version is v2, not the intended v1 \u00b7 current.",
+              "Current indicator is duplicated on v2.",
+              "Large unused lower area should be cropped."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Excessive empty white space at the bottom of the screen; should be cropped to focus on the relevant UI panels.",
+            "ui_elements": "The 'v1' version block is completely empty, lacking any metadata (timestamp, author) or placeholder, making it look broken.",
+            "content": "Author information is missing from the 'v2' entry, which contradicts the intended state description.",
+            "clarity": "The empty 'v1' block makes the version history feature appear buggy and confusing for a tutorial screenshot.",
+            "issues": [
+              "'v1' version block is completely empty (missing timestamp, author, and note)",
+              "Author information is missing from the 'v2' entry",
+              "Excessive dead space at the bottom requires cropping"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible. Over half the frame is dead white space below the detail card, and the left Files panel extends far below its 5 items. Crop tighter to the Versions card plus the file tree. File names are truncated ('sample_metadata...', 'counts_matrix.c...').",
+            "ui_elements": "Versions tab is active, and the note input, 'Add version' button and append-only helper text are all present. The v2 row duplicates the current state: it shows 'v2 \u00b7 current' in mono text plus a separate 'current' badge. The v1 row is an empty bar with no note, author or timestamp, so it looks unpopulated or broken. Neither entry shows an author.",
+            "content": "The data is self-contained demo data ('MG PBMC \u2014 sample data demo', note 'Re-derived after QC review (demo)'), which is fine. The alt text says 'v1 \u00b7 current', but the screenshot shows v2 as current, which contradicts the caption. The intended note/author/timestamp detail is only partly shown: v2 has a note and timestamp but no author, and v1 has nothing.",
+            "clarity": "Mostly matches the intent: Versions tab, two entries, and the append-only input and helper text. The reader can see how to add a note. However, the bare v1 row and the doubled 'current' label weaken the explanation of version history, and the alt text mismatch could confuse readers.",
+            "issues": [
+              "Alt text says 'v1 \u00b7 current' but the shot shows v2 as current; update the alt text or the shot.",
+              "Duplicate current indicator on v2 ('v2 \u00b7 current' text plus 'current' badge).",
+              "v1 entry shows no note, author or timestamp and looks empty or broken.",
+              "No author shown on any version entry, though the intended focus lists author.",
+              "Large empty whitespace below the card and an oversized empty Files panel; crop tighter.",
+              "Truncated file names in the tree."
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t6-1-instruments-tab.png": {
+      "asset": "t6-1-instruments-tab.png",
+      "usecase": "tutorials:T6-connecting-instruments",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, with no clipping or overlap; excessive blank space below the instrument row weakens the crop.",
+            "ui_elements": "Instruments tab selected; both sections, status/residency labels, and Add instrument button are visible and aligned.",
+            "content": "Demo LC-MS row, 'Not checked' status, 'on-prem' residency, and empty events message are internally consistent.",
+            "clarity": "Shows the requested instrument content, but appears as a full Connectors page rather than the intended open dialog.",
+            "issues": [
+              "Connectors page shown instead of the specified Connectors dialog.",
+              "Large unused lower area; crop more tightly around the Instruments section."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "High resolution and legible, but contains excessive empty white space at the bottom.",
+            "ui_elements": "All required components (tabs, sections, badges, buttons) are present, aligned, and correctly rendered.",
+            "content": "Labels, terminology, and data match the intended state for the Instruments tab perfectly.",
+            "clarity": "Clearly demonstrates the intended state, but a tighter crop would improve focus for a manual.",
+            "issues": [
+              "Excessive empty white space at the bottom of the screenshot; needs cropping."
+            ],
+            "severity": "minor"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible, but the content occupies only the top ~45%; the lower half is empty white space down to a stray divider line. Crop it to just below the instrument row.",
+            "ui_elements": "Instruments sub-tab is active and the 'My instruments (1)' header and '+ Add instrument' button are aligned. The status ('Not checked') and residency ('on-prem') labels appear as plain bold text with no visible badge or pill styling. 'Models & LLMs' and 'Skills & experts' use the same brain icon. The active top tab 'Data sources' has no visible selection indicator beyond bold text.",
+            "content": "Terminology is consistent: the residency legend (cloud/on-prem/mounted/this machine/prompt only) matches the row's 'on-prem' label, and the demo instrument 'Lab LC-MS (demo)' fits the self-contained cold-start example. 'New data events' shows only its empty state, which is acceptable. No stale report UI appears.",
+            "clarity": "Mostly matches the intended state: the Instruments tab, both sections, an instrument row with status and residency, and Add instrument are all shown. However, it renders as a full 'Workspace / Connectors' page rather than a dialog. The 'Not checked' status is less illustrative than a connected or online state.",
+            "issues": [
+              "Excessive empty space below content; crop tighter",
+              "Status/residency labels lack visible badge styling, so they read as plain text rather than badges",
+              "Duplicate brain icon for 'Models & LLMs' and 'Skills & experts' tabs",
+              "Shown as a full page (breadcrumb Workspace / Connectors) rather than the intended Connectors dialog",
+              "Instrument status 'Not checked' is less instructive; consider running Check first to show a real status"
+            ],
+            "severity": "minor"
+          }
+        }
+      },
+      "consensus": "minor"
+    },
+    "t7-0-project-overview.png": {
+      "asset": "t7-0-project-overview.png",
+      "usecase": "tutorials:T7-projects-and-collaboration",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp, legible text; excessive side whitespace and a skills row clipped at the bottom.",
+            "ui_elements": "Visible cards and controls are aligned; intended chats/files panel and Members & roles section are absent.",
+            "content": "Instructions clearly identify demo inputs without claiming completed results; referenced file attachments are not visible.",
+            "clarity": "Wrong screen: shows the Instructions page, not the project overview with Standing instructions above Members & roles in the right rail.",
+            "issues": [
+              "Replace with the project overview showing chats and files on the left and Standing instructions above Members & roles on the right.",
+              "Current crop cuts off the skills list and devotes most of the shot to unrelated expert selections."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and legibility.",
+            "ui_elements": "Components render correctly, no visible bugs.",
+            "content": "Content belongs to project settings, not the main project overview.",
+            "clarity": "Completely misses the intended state. Shows full-width Instructions page instead of the project overview with left sidebar (chats/files) and right rail (members).",
+            "issues": [
+              "Shows 'Instructions' page instead of 'Project page overview'",
+              "Missing left sidebar (chats/files)",
+              "Missing right rail (Members & roles)"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "High resolution and legible, but the card list is cut off at the bottom: the 'Structural Biologist' row is clipped mid-text. Wide empty margins sit left and right of the centered content column.",
+            "ui_elements": "Cards render cleanly. Edit affordances are inconsistent: Standing instructions uses a bare pencil icon while Output requirements uses a labeled 'Edit' button. No broken, undefined or placeholder elements.",
+            "content": "Terminology is consistent. Standing instructions correctly frame the GSE227835 MG PBMC files as demo inputs with no implied results. 'Skills & experts 0 on' matches the all-unchecked boxes. 'No output requirements yet.' is a valid empty state.",
+            "clarity": "Does not match the intended state. This is the dedicated Instructions sub-page (breadcrumb 'MG PBMC \u2014 sample data demo / Instructions'), not the project overview. There are no chats or files on the left, no right rail, and no Members & roles section, so the shot cannot illustrate the collaboration and roles content of T7.",
+            "issues": [
+              "Wrong screen: shows the Instructions page instead of the project overview with chats/files on the left and a right rail.",
+              "Members & roles section is absent, though the alt text and tutorial topic require it.",
+              "Standing instructions is a full-width card, not a right-rail card positioned above Members & roles.",
+              "Bottom is clipped mid-row at 'Structural Biologist'.",
+              "Inconsistent edit controls: pencil icon vs 'Edit' button.",
+              "Excess horizontal dead space around the content column."
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "t7-1-standing-instructions.png": {
+      "asset": "t7-1-standing-instructions.png",
+      "usecase": "tutorials:T7-projects-and-collaboration",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Text is legible, but the lower card is cut off and wide side margins waste space.",
+            "ui_elements": "Standing instructions card and edit icon appear intact; the next visible card is Output requirements, not Notes.",
+            "content": "Instructions reference GSE227835 MG PBMC demo files and MG_AChR_pos versus HC, not the intended mouse-liver, paired-end, GRCm39 setup.",
+            "clarity": "Shows the assistant-read subtitle clearly, but does not demonstrate the intended project state or private Notes card.",
+            "issues": [
+              "Standing instructions contain the wrong example.",
+              "Empty Notes card and its Private label are absent.",
+              "Output requirements card is clipped at the bottom.",
+              "Crop omits project-page context and Members & roles."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Poor crop with excessive empty white space on the left and right. The bottom card is clipped.",
+            "ui_elements": "Visible components are rendered correctly, but the edit button style differs between the two cards (icon vs button).",
+            "content": "Major mismatch with intended state. Standing instructions contain PBMC tutorial text instead of the specified 'mouse-liver/paired-end/GRCm39'. The card below is 'Output requirements' instead of the intended empty 'Notes' card.",
+            "clarity": "Fails to illustrate the intended state due to incorrect content and showing the wrong adjacent card. The excessive whitespace makes it a poor documentation image.",
+            "issues": [
+              "Standing instructions content does not match intended state (shows PBMC instead of mouse-liver)",
+              "Card below Standing instructions is 'Output requirements', not 'Notes'",
+              "Excessive empty white space on sides",
+              "Bottom card is clipped"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Text is crisp and legible, but the crop is a tight, wide strip with large empty side margins. The second card is clipped at the bottom edge.",
+            "ui_elements": "The Standing instructions card renders cleanly with its pencil edit icon. The card below is 'Output requirements' with a text 'Edit' button, not the intended Notes card. The two cards use inconsistent edit affordances (icon vs. button). The Edit button is cut off.",
+            "content": "The instructions text describes GSE227835 MG PBMC demo files (counts_matrix.csv, sample_metadata.csv, contrasts.csv; MG_AChR_pos vs HC). The intended content was mouse-liver / paired-end / GRCm39. The required subtitle 'Read by the assistant on every chat in this project.' is present.",
+            "clarity": "Does not match the intended state. The Notes card and its 'Private' label are absent, and none of the surrounding project page is visible: no right rail, no Members & roles section, no Files tab. The alt text's 'top of the right rail, above Members & roles' cannot be verified. Readers cannot orient themselves on the page.",
+            "issues": [
+              "Standing instructions content is the MG PBMC demo text, not the intended mouse-liver/paired-end/GRCm39 instructions",
+              "Notes card and its 'Private' label are missing; an 'Output requirements' card appears in its place",
+              "Output requirements card and its Edit button are clipped at the bottom",
+              "Inconsistent edit affordances: pencil icon vs. 'Edit' button",
+              "Crop is too tight: no project page context, right rail, Members & roles or Files tab, so the alt text cannot be verified",
+              "Large dead space to the left and right of the cards"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "w3-1-step-row.png": {
+      "asset": "w3-1-step-row.png",
+      "usecase": "modules:I07-full-step-view-provenance",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Main step row is legible, but the crop cuts through metadata above and the next row below.",
+            "ui_elements": "Completed status, Details action, and rerun action are visible and aligned; no broken elements apparent.",
+            "content": "Step is marked completed. Status and actions are in Chinese while the step name is English.",
+            "clarity": "Matches the intended completed-step view, but the Details action reads '\u8be6\u60c5', not 'Details', which may hinder English-manual readers.",
+            "issues": [
+              "Partial text and adjacent row are clipped at the crop edges.",
+              "Chinese action labels do not visually match the English 'Details' instruction."
+            ],
+            "severity": "minor"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Poor vertical crop, cutting off text at the top and the row at the bottom.",
+            "ui_elements": "Buttons and status badges are rendered in Chinese.",
+            "content": "UI text is in Chinese ('\u5df2\u5b8c\u6210', '\u8be6\u60c5', '\u91cd\u65b0\u8fd0\u884c'), contradicting the intended English manual context which explicitly refers to a 'Details' button.",
+            "clarity": "Unusable for an English manual due to the localization error and lack of surrounding context.",
+            "issues": [
+              "UI is in Chinese instead of English",
+              "Top and bottom text/rows are cut off by tight crop"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Very wide, short strip crop. The parameter line above is cut through mid-glyph at the top, and the next step row ('Predict Admet Properties\u2026') is half-clipped at the bottom. There is large empty space between the title and the right-side actions. The text that is visible is sharp.",
+            "ui_elements": "The completed row is intact: green dot, step title 'Admet Infer Shard', a 'completed' pill and two text actions. The Details action is styled as plain text with no button affordance, and it is not highlighted or called out. The partial neighbouring row adds clutter.",
+            "content": "The UI is rendered in Chinese: \u5df2\u5b8c\u6210 (Completed), \u8be6\u60c5 (Details), \u91cd\u65b0\u8fd0\u884c (Rerun). The alt text and manual refer to an English **Details** button, so the label the reader is told to click does not appear on screen. The step name and parameters (MPNN, shard size 25) look plausible.",
+            "clarity": "It roughly matches the intended state (a completed step row with a Details action). However, the locale mismatch, with no callout on the target button, makes it hard for an English reader to find 'Details'. The clipped context rows also distract.",
+            "issues": [
+              "UI captured in Chinese locale (\u5df2\u5b8c\u6210/\u8be6\u60c5/\u91cd\u65b0\u8fd0\u884c) while the manual and alt text reference the English 'Details' button",
+              "Top parameter line is clipped mid-text",
+              "Next step row is half-clipped at the bottom",
+              "No highlight or callout on the Details action being documented",
+              "Excess horizontal dead space between the step title and the status/actions"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "w3-2-fullstep-provenance.png": {
+      "asset": "w3-2-fullstep-provenance.png",
+      "usecase": "tutorials:W3-full-step-view",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp, legible, fully framed; no clipping or overlap.",
+            "ui_elements": "Modal and provenance row are intact, but parameter entries, origin badges, and output objects are absent.",
+            "content": "Shows 'tool not reported', version/duration n/a, 0 outputs, and no recorded parameters. Helper text says defaults are quiet, unlike the intended tagging of every parameter.",
+            "clarity": "An empty-record state, not the populated full step view needed for this tutorial.",
+            "issues": [
+              "Missing resolved parameters and default/project instruction/your change origin tags.",
+              "No output is shown; the screen explicitly reports 0 outputs.",
+              "Tool, version, and duration are unavailable, leaving provenance incomplete.",
+              "Default-origin guidance conflicts with the intended per-parameter tagging."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Clean crop, good resolution and legibility.",
+            "ui_elements": "Components are structurally intact but display empty/null states across the board.",
+            "content": "Content completely contradicts the intended state. Shows 'tool not reported', '0 outputs', and 'No parameters were recorded', whereas the manual expects to show resolved parameters with origin tags and actual outputs.",
+            "clarity": "Fails to illustrate the intended tutorial step. A user cannot learn about parameter tagging or provenance from an empty state.",
+            "issues": [
+              "Shows empty/unrecorded state instead of populated data",
+              "Missing resolved parameters and their origin tags",
+              "Missing output files",
+              "Tool and duration are not reported"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible, and the modal is fully in frame. There are small dark artifacts on the top edge near the center. There is a lot of dead space because both sections are empty.",
+            "ui_elements": "Header, provenance row, close button and parameter badge all render. The close button shows a heavy blue focus ring, which looks like a capture artifact. The empty-state messages use a monospace grey font, while the rest of the modal uses a sans-serif font. The 'no output files' message has no section heading and sits above the parameters heading. The 'duration n/a' text is monospace and is not aligned with the pills.",
+            "content": "The step ran with no recorded metadata: 'tool not reported (version n/a)', '0 outputs', 'duration n/a', 'No parameters were recorded', and a '0 not default' badge. The title 'Predict Admet Properties' looks auto-title-cased; the acronym should be 'ADMET'. The legend explains the default/project/override/unknown badges, but no badge appears anywhere on the screen.",
+            "clarity": "Does not match the intended state. The alt text promises resolved parameters tagged by origin (default, project instruction, your change) and an output. The shot shows a fully empty step, so it cannot teach what the full step view is for. The legend refers to badges the reader cannot see.",
+            "issues": [
+              "Captured an empty/degenerate step: no parameters, no outputs, tool and version not reported, duration n/a. It needs to be retaken on a step with real recorded provenance.",
+              "No origin-tagged parameter rows are visible (default / project instruction / your change / unknown), which contradicts the alt text.",
+              "No output is shown, despite the alt text saying there is one.",
+              "The provenance row is all placeholders ('tool not reported', 'version n/a', '0 outputs').",
+              "Title casing 'Admet' should be 'ADMET'.",
+              "Focus ring on the close button was left in the capture.",
+              "The outputs empty-state message has no section heading, and its order and placement relative to the parameters section is confusing.",
+              "Inconsistent fonts: monospace empty states versus sans-serif body text.",
+              "Minor dark artifacts on the top border."
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "domain-crispr-prerun.png": {
+      "asset": "domain-crispr-prerun.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible; substantial lower whitespace and awkward wrapping of the sample-sheet storage URI.",
+            "ui_elements": "Controls are aligned and run is appropriately disabled; analysis-plan preview starts mid-word ('ce separate').",
+            "content": "Demo count/design files are attached, but setup requires an absent Library File and FASTQ directory. Chat says the run continues despite the panel stating nothing will run.",
+            "clarity": "Shows blocked configuration, not a runnable demo. Unreferenced screenshot has no manual context to establish its purpose.",
+            "issues": [
+              "Count-table demo is blocked by missing Library File and required fastq_dir; supplied crispr_counts.tsv is not shown among mapped inputs.",
+              "Background-run message contradicts disabled Confirm & Run and 'Nothing will run' warning.",
+              "Analysis-plan preview begins mid-word."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and layout, but contains a visible text rendering issue.",
+            "ui_elements": "The text under 'Analysis plan' in the BioMate chat response is broken/truncated ('ce separate ranked gene lists...').",
+            "content": "There is a logical mismatch: the user prompt provides a counts matrix ('crispr_counts.tsv'), but the selected workflow is prompting for a 'Fastq Dir' and 'Library File', which is confusing for a standard example.",
+            "clarity": "The screenshot is confusing due to the UI text bug and the mismatch between user inputs and workflow requirements.",
+            "issues": [
+              "Text under 'Analysis plan' in the chat is truncated/broken ('ce separate...').",
+              "User provided a counts file but the workflow requires a Fastq directory, making it a confusing example."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture. Large empty areas in the lower chat and right panel. The S3 path wraps mid-token. The title is truncated ('\u2026screen: call') and the Analysis plan preview starts mid-word ('ce separate ranked\u2026').",
+            "ui_elements": "The step card says '4 steps' while the panel says '2 phases'. The Fastq Dir field carries a 'Default' badge but is empty. The chat says 'run continues in the background', yet Confirm & Run is disabled and Run Manager shows 0. The unlabeled checkbox and X icons under the title are ambiguous.",
+            "content": "The user attached crispr_counts.tsv, but it is not mapped to any input. Sample Sheet maps to crispr_design.csv, Library File is 'not set', and the run asks for a FASTQ directory, which contradicts the counts-table demo. A cold-start demo should be self-contained, but this one is blocked on 1 missing input plus a required param.",
+            "clarity": "Shows a stuck, blocked state with contradictory messaging. It is not referenced by any manual page, so it serves no documented use. If it were used, it would mislead users about the demo working out of the box.",
+            "issues": [
+              "crispr_counts.tsv attached but not mapped to any input",
+              "Asks for fastq_dir although a counts table was supplied (wrong workflow path)",
+              "Library File required \u2014 not set; demo is not self-contained",
+              "'4 steps' on chat card vs '2 phases' in panel",
+              "'Run continues in the background' while Confirm & Run is disabled and Run Manager shows 0",
+              "Fastq Dir marked 'Default' but empty",
+              "Truncated title and Analysis plan preview cut mid-word",
+              "Screenshot unreferenced by any manual page; remove or replace with a resolved state"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "domain-cryo-em-prerun.png": {
+      "asset": "domain-cryo-em-prerun.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but substantial empty space; Dataset Id value is cut off horizontally.",
+            "ui_elements": "Layout is aligned; disabled Confirm & Run has no visible explanation. Dataset Id displays a UUID mixed with s3_uri metadata.",
+            "content": "Demo context is self-contained with staged movies and an attached settings manifest. 'This run continues in the background' contradicts Run Manager 0 and the pre-run confirmation panel.",
+            "clarity": "Shows cryo-EM workflow setup, but execution status is ambiguous. No manual reference or intended state is supplied to validate placement.",
+            "issues": [
+              "Dataset Id contains a composite UUID/s3_uri string rather than a clean identifier; full value is not visible.",
+              "Chat claims an ongoing run while Run Manager shows 0 and the panel still shows Confirm & Run.",
+              "Disabled run action lacks a visible reason.",
+              "Large blank areas dilute the useful workflow details."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and layout. Chat title is truncated.",
+            "ui_elements": "Major bug: 'Dataset Id' field displays a raw concatenated string/object ('...162b3, s3_uri=s3://biomate'). Minor: duplicated path text under 'Movies Path'.",
+            "content": "Demo context is correctly attached. Parameter value is rendering raw code instead of a clean ID.",
+            "clarity": "Workflow setup state is understandable, but the raw data leak makes it unusable for documentation.",
+            "issues": [
+              "Raw concatenated string in 'Dataset Id' input field",
+              "Duplicated path text under 'Movies Path'"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture. Large dead space in the lower chat area and under the right panel's parameters. Chat title is truncated ('Process this cryo-EM dataset to a').",
+            "ui_elements": "The Dataset Id input shows a raw serialized value ('a4f5e2c6-\u2026, s3_uri=s3://biomate'), clipped mid-string. Movies Path is rendered twice (normal text plus a monospace duplicate). The collapsed 'Analysis plan' leaks an orphan fragment starting mid-sentence ('achieved from this subset\u2014\u2026'). 'Confirm & Run' is greyed out with no stated reason, although the required param appears filled. The square and X icons under the panel header are unlabeled.",
+            "content": "Steps and phases disagree: the chat card says '33 steps', the panel says '6 phases'. Demo data is attached (cryo_inputs.json, staged EMPIAR-10028), which is correct for cold start. The user bubble exposes prompt-scaffolding text ('Prepared demo context\u2026 report observed QC/resolution honestly'), which reads as internal. 'resolved \u00b7 format not checked' may confuse readers. No after-run report is shown, so the Results/Reproducibility check does not apply.",
+            "clarity": "The shot is not referenced by any manual page, so it serves no purpose in the manual. As a pre-run configuration view it is understandable, but the raw values, disabled CTA and leaked text reduce its usefulness. Either remove it or recapture it cleanly if it is meant to illustrate workflow setup.",
+            "issues": [
+              "Screenshot unreferenced by any manual page: delete it or link it to a page.",
+              "Dataset Id field shows raw serialized 'id, s3_uri=\u2026' string, truncated.",
+              "Duplicate Movies Path display (plain text and monospace).",
+              "Orphan mid-sentence text below the collapsed 'Analysis plan'.",
+              "'Confirm & Run' disabled with no visible reason.",
+              "'33 steps' (chat card) vs '6 phases' (panel) may confuse readers.",
+              "User prompt exposes internal demo-scaffolding instructions.",
+              "Chat title truncated.",
+              "Unlabeled square and X icon buttons.",
+              "Excess empty space."
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "domain-epigenomics-prerun.png": {
+      "asset": "domain-epigenomics-prerun.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive lower whitespace; title and analysis-plan preview are truncated.",
+            "ui_elements": "Controls are aligned, but required macs_gsize is presented alongside an 'Optional parameters' group; Confirm & Run is disabled.",
+            "content": "Demo request specifies built-in data and defaults, yet macs_gsize remains missing. 'This run continues in the background' contradicts the blocked pre-run state and Run Manager count of 0.",
+            "clarity": "Unreferenced asset; no manual placement to assess. Conflicting readiness messages obscure whether the workflow has started.",
+            "issues": [
+              "Required macs_gsize is unresolved despite the request to use demo defaults.",
+              "Parameters panel labels its two parameters optional while the chat identifies a required parameter.",
+              "Background-run messaging appears before the run can be confirmed.",
+              "Large unused area weakens the screenshot crop."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Clear resolution, but contains a visual glitch.",
+            "ui_elements": "Text bleeds out from under the collapsed 'Analysis plan' in the chat.",
+            "content": "Contradicts user prompt: prompt asks to use BED files, but right panel says 'no data inputs to bind'. Chat incorrectly states 'run continues in the background' while waiting for required input.",
+            "clarity": "Confusing due to contradictory state messages and data binding failure.",
+            "issues": [
+              "Text overflow under 'Analysis plan' in chat.",
+              "Right panel says 'no data inputs' despite prompt specifying BED files.",
+              "Chat says run is in background but it is waiting for required input."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp and legible full-window capture. The chat column has a large empty area below the action icons, and the header title is truncated ('Run perform_chipseq_peak_calling_with_macs2 usi...').",
+            "ui_elements": "The Analysis plan preview text starts mid-word ('trol_lambda.bw (background), qc_report.html...'), so it is clipped. The panel header shows an unlabeled checkbox/square icon next to an X. 'Confirm & Run' is disabled (grey). The clarification card uses a generic 'Provide the missing input' field with no hint of valid values in the input itself.",
+            "content": "Several statements contradict each other. The chat says 'You can keep chatting while this run continues in the background', yet no run has started (Run Manager 0, Confirm & Run disabled). macs_gsize is flagged as required, but the panel lists only 'Optional parameters (2 params)'. 'Inputs mapped' says no data inputs to bind, while the prompt references ChIP and control BED demo files. The prompt says MACS3 but the hint says 'MACS2 genome size'. The prompt asks for a named skill but the result is nf-core/chipseq. A cold-start demo should be self-contained, yet it blocks on a missing required parameter.",
+            "clarity": "This captures a blocked, half-configured state rather than a clean step. It is not referenced by any manual page, so it serves no documentation purpose and would confuse readers if reused.",
+            "issues": [
+              "Unreferenced screenshot; remove it or assign it to a page",
+              "Analysis plan preview truncated mid-word ('trol_lambda.bw')",
+              "'Run continues in the background' shown before any run exists (Run Manager 0, Confirm & Run disabled)",
+              "macs_gsize asked as required while the panel shows only Optional parameters",
+              "'No data inputs to bind' contradicts the ChIP/control BED demo files in the prompt",
+              "MACS3 in the prompt vs MACS2 in the parameter hint",
+              "Cold-start demo not self-contained: it prompts for a missing required parameter instead of using defaults",
+              "Requested skill perform_chipseq_peak_calling_with_macs2 resolved to nf-core/chipseq; naming is inconsistent",
+              "Truncated chat title; large empty space in the chat pane",
+              "Unlabeled square icon in the panel header"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "domain-histology-prerun.png": {
+      "asset": "domain-histology-prerun.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive central whitespace; analysis-plan preview starts mid-word and is truncated.",
+            "ui_elements": "Components are aligned; workflow card has the grammatical error '1 steps'.",
+            "content": "Demo slide is mapped, yet helper text still requests an upload. Chat says the run continues in the background while the panel shows 'Confirm & Run' and Run Manager shows 0.",
+            "clarity": "Unreferenced asset, so manual placement cannot be assessed; conflicting run-state messages obscure whether execution has started.",
+            "issues": [
+              "Analysis-plan preview begins 'ity, intensity, class)', losing context.",
+              "Upload instruction contradicts the mapped built-in demo input.",
+              "Background-running message conflicts with the pre-run confirmation state and zero runs.",
+              "Change '1 steps' to '1 step'.",
+              "Reduce excessive empty space for manual use."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and legibility.",
+            "ui_elements": "Text under 'Analysis plan' in chat is broken/clipped ('ity, intensity...'). Stray checkbox and 'X' icons under workflow title in right panel look like broken UI.",
+            "content": "Matches cold-start demo data scenario. Pre-run state, so after-run tab rules do not apply.",
+            "clarity": "Intent is clear, but UI bugs make it a poor documentation example.",
+            "issues": [
+              "Broken/clipped text under 'Analysis plan'",
+              "Stray icons under workflow title in right panel"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture. Large empty area in the lower chat pane and below the parameter cards in the right panel, but nothing is clipped at the frame edges.",
+            "ui_elements": "The collapsed Analysis plan preview starts mid-word ('ity, intensity, class)...'): the text is cut from the front, not the end. The workflow card reads '1 steps' (wrong plural). The input label 'Input Wsi' is a raw machine-cased name. Tabs, parameter cards and the Confirm & Run button are complete and aligned.",
+            "content": "The Inputs mapped card says 'This workflow needs a data file. Attach it with the paperclip', but the input is already mapped to the built-in CMU-1-Small-Region.svs demo slide. That contradicts the rule that cold-start examples are self-contained. Workflow name, 1 phase and 12 params (1 required + 11 optional) are consistent. No old report tabs appear.",
+            "clarity": "Readable as a pre-run review of workflow settings. It is not referenced by any manual page, so it currently serves no purpose. The attach-file instruction would mislead demo users.",
+            "issues": [
+              "Analysis plan preview truncated at the start ('ity, intensity, class)...'): leading text is clipped mid-word.",
+              "Inputs mapped tells the user to attach a data file even though the demo slide CMU-1-Small-Region.svs is already mapped; this contradicts the self-contained cold-start example.",
+              "'pathology \u00b7 1 steps' has the wrong plural; should be '1 step'.",
+              "Input label 'Input Wsi' shows raw casing; should be 'Input WSI' or a friendly label.",
+              "Screenshot is unreferenced by any manual page: either reference it or remove it.",
+              "Large dead space in the chat pane and right panel."
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "domain-metabolomics-prerun.png": {
+      "asset": "domain-metabolomics-prerun.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive vertical dead space; analysis-plan preview starts mid-word ('ow').",
+            "ui_elements": "Controls are aligned; both mapped inputs show 'not set' and 'optional \u2014 empty', with no visible demo binding.",
+            "content": "Chat says the run continues in the background, but 'Confirm & Run' and Run Manager 0 indicate it has not started. Requested cachexia demo data is not visibly confirmed.",
+            "clarity": "Unreferenced asset; no manual-state match can be assessed. Conflicting run status and unclear demo selection reduce instructional value.",
+            "issues": [
+              "Analysis-plan preview begins mid-word and is truncated.",
+              "Background-running message contradicts the pre-run confirmation state.",
+              "No visible confirmation that the requested built-in demo dataset is selected.",
+              "Large unused area weakens the screenshot crop."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and legibility. The crop captures the entire application window. There is a significant amount of empty space in the chat area, but it reflects the actual UI state.",
+            "ui_elements": "UI components are generally well-aligned and consistent. However, the text under 'Analysis plan' is cut off ('ow is now ready...'). The right panel shows 'Workflow settings', 'Phases', and 'After run' tabs, which is consistent with the pre-run state. The 'Confirm & Run' button is visible.",
+            "content": "The user prompt asks to run a workflow using built-in demo data. The right panel shows inputs as 'not set' and 'optional - empty', which contradicts the prompt's request to use the demo dataset. The text under 'Analysis plan' is truncated and starts mid-sentence.",
+            "clarity": "The screenshot shows the chat interface and the workflow configuration panel. However, the contradiction between the user prompt (requesting demo data) and the panel state (inputs not set) makes it confusing. The truncated text also reduces clarity.",
+            "issues": [
+              "Text under 'Analysis plan' is truncated ('ow is now ready...').",
+              "User prompt requests using demo data, but the right panel shows inputs as 'not set' and 'optional - empty'."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture. Large empty areas sit below the chat and in the right panel. The chat title is truncated ('\u2026workflow using its').",
+            "ui_elements": "Panel, tabs (Workflow settings 2 / Phases 5 / After run) and the Confirm & Run button render correctly. The analysis-plan preview text is clipped at its start ('ow is now ready\u2026'). The panel header has two unlabeled icons (square, X). Nothing shows 'undefined'.",
+            "content": "Contradictory. BioMate claims the workflow is ready with the cachexia demo dataset, but Inputs mapped shows Data and Metadata as 'not set' and 'optional \u2014 empty'. A cold-start example should show the demo data attached. The message 'You can keep chatting while this run continues in the background' appears before the run has been confirmed.",
+            "clarity": "The pre-run confirm state is understandable, but the empty inputs mislead about demo data. The shot is not referenced by any manual page, so it has no documentation purpose.",
+            "issues": [
+              "Data/Metadata inputs show 'not set' despite the demo-dataset request and BioMate's 'ready with cachexia demo dataset' claim. The cold-start demo data is not visibly attached.",
+              "The analysis-plan summary is truncated mid-word at its start ('ow is now ready\u2026').",
+              "'Run continues in the background' text shows while the run is still awaiting Confirm & Run.",
+              "The chat title is truncated ('\u2026using its').",
+              "Unlabeled square/X icons in the panel header.",
+              "Excess empty whitespace in the chat and panel.",
+              "The screenshot is unreferenced by any manual page; remove it or reference it."
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "domain-proteomics-prerun.png": {
+      "asset": "domain-proteomics-prerun.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible; substantial empty space below chat and a truncated analysis-plan preview.",
+            "ui_elements": "Aligned controls, but empty required sample fields carry misleading 'Default' badges; Confirm & Run is disabled.",
+            "content": "Demo file is mapped, but sample-data defaults are missing. 'No configuration required' and 'run continues in the background' contradict the required-input prompt and Run Manager count of 0. Minor grammar: '1 steps'.",
+            "clarity": "Shows a blocked setup rather than a self-contained demo run. Unreferenced asset; manual placement cannot be assessed.",
+            "issues": [
+              "Pulldown Sample and Control Sample are blank despite the request to use demo defaults.",
+              "Claims of no configuration and an ongoing run conflict with required inputs and disabled execution.",
+              "Empty required fields are labeled 'Default'.",
+              "Workflow card says '1 steps'."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution, legible.",
+            "ui_elements": "Components rendered correctly, no obvious visual bugs.",
+            "content": "Contradiction: AI response states 'no configuration required', but the UI immediately prompts for a missing required parameter ('Which pulldown_sample?') and the right panel shows empty required fields.",
+            "clarity": "Confusing due to contradictory system messages and UI state.",
+            "issues": [
+              "AI message contradicts UI state regarding required configuration."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture. Large empty areas in the chat column (below the action icons) and the right panel (above Confirm & Run). The header title is truncated ('\u2026workflow on its').",
+            "ui_elements": "Required 'Pulldown Sample' and 'Control Sample' fields are empty but carry 'Default' badges. 'Confirm & Run' is disabled. The analysis-plan preview starts mid-sentence ('immediately with sample data \u2014 no configuration\u2026'). The clarification card shows '1/2' but offers only a generic 'Provide the missing input' option. The unlabeled square/X icons under the panel title are ambiguous. '1 steps' is a pluralization bug.",
+            "content": "Contradictory cold-start behavior. The prompt and plan promise sample-data defaults with no configuration required. Yet BioMate asks 'Which pulldown_sample?' and the sample/control params have no values, so the demo is not self-contained. The input chip reads 'resolved \u00b7 format not checked' on a built-in demo file. The After-run tab is not shown, so the report structure cannot be verified.",
+            "clarity": "Not referenced by any manual page, so it serves no documented purpose. It shows a demo blocked on missing defaults, which would mislead readers about the one-click demo flow.",
+            "issues": [
+              "Cold-start demo not self-contained: pulldown_sample and control_sample are empty despite 'use the sample-data defaults' and the 'no configuration required' plan text",
+              "'Default' badges shown on empty required fields",
+              "BioMate asks the user for a required input that the demo should supply; 'Confirm & Run' is disabled",
+              "Chat header title is truncated ('\u2026workflow on its')",
+              "Analysis-plan preview text starts mid-sentence",
+              "'1 steps' pluralization bug",
+              "Clarification card shows '1/2' with only one generic option",
+              "Input marked 'format not checked' for a built-in demo file",
+              "Unlabeled square/X icons in the panel header",
+              "Large dead space in both the chat and right panels",
+              "Screenshot is unreferenced by any manual page: remove it or recapture it with defaults populated"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "domain-single-cell-prerun.png": {
+      "asset": "domain-single-cell-prerun.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but substantial empty chat space; long parameter values are clipped.",
+            "ui_elements": "Generally aligned; Dataset Id exposes serialized metadata including 's3_uri=', and the mapped filename has a stray closing bracket.",
+            "content": "Demo data is attached and human/2700 values match the prompt. Upload instructions persist despite mapped input; chat says the run continues while Confirm & Run is still pending.",
+            "clarity": "Shows pre-run configuration, but conflicting run-state messaging is confusing. No manual reference is supplied to assess placement.",
+            "issues": [
+              "Dataset Id displays serialized metadata rather than a clean identifier.",
+              "Mapped filename reads 'pbmc3k_raw.h5ad]' with a stray bracket.",
+              "Background-run message contradicts Run Manager 0 and Confirm & Run.",
+              "Inputs mapped still instructs the user to attach a file."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and framing.",
+            "ui_elements": "Broken UI below workflow title in right panel (empty checkbox and 'X' with no label). Stray closing bracket in 'Inputs mapped' section.",
+            "content": "Dataset Id parameter value appears to be raw, unformatted data (includes 's3_uri=...') rather than a clean ID.",
+            "clarity": "Intent is clear, but broken UI and raw data values make it unsuitable for documentation.",
+            "issues": [
+              "Empty checkbox and 'X' below workflow title in right panel",
+              "Stray closing bracket in 'Inputs mapped': 'pbmc3k_raw.h5ad]'",
+              "Dataset Id parameter shows raw/concatenated string instead of clean value"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture with no clipping. A large empty area in the middle and lower chat pane and below the parameters block wastes space.",
+            "ui_elements": "The Inputs mapped row reads 'Dataset Id \u2192 pbmc3k_raw.h5ad]' with a stray closing bracket. The Dataset Id field shows a raw serialized string ('2e03ddb9-\u2026, s3_uri=s3://bioma\u2026') instead of a clean value. The File Path field is a truncated S3 URI. Unlabeled square and X icons sit under the workflow title. Tabs, the Recommended/Override badges and the Confirm & Run button otherwise render consistently.",
+            "content": "The Inputs mapped helper still says 'This workflow needs a data file. Attach it with the paperclip\u2026' even though pbmc3k_raw.h5ad is already attached and mapped. The chat says 'You can keep chatting while this run continues in the background' although the run has not started (Confirm & Run is pending, Run Manager shows 0). The cold-start demo data is correctly attached (PBMC3k, organism human, cell count 2700). The After run tab is not shown, so the report layout cannot be checked.",
+            "clarity": "Shows the pre-run review state for nf-core/scdownstream reasonably well. The contradictory helper text and the raw ID string would confuse readers. The screenshot is not referenced by any manual page, so it is an orphan asset.",
+            "issues": [
+              "Stray ']' in 'Dataset Id \u2192 pbmc3k_raw.h5ad]' in the Inputs mapped card",
+              "Dataset Id field leaks a raw serialized value ('<uuid>, s3_uri=s3://\u2026') instead of a clean ID",
+              "Inputs mapped helper tells the user to attach a file that is already attached and mapped",
+              "'Run continues in the background' message shown before Confirm & Run is clicked (Run Manager 0)",
+              "Unlabeled square and X icons under the workflow header",
+              "Large empty dead space in the chat pane",
+              "Screenshot is unreferenced by any manual page: remove it or reference it"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "domain-structural-biology-prerun.png": {
+      "asset": "domain-structural-biology-prerun.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and legible, but excessive central/lower whitespace; FASTA path is cut off within its field.",
+            "ui_elements": "Mostly aligned; raw server-error JSON appears in chat and as a required 'Warnings' parameter marked Recommended.",
+            "content": "Demo files are shown, but 1LYZ.pdb upload failed while Reference Pdb still contains its filename. Chat claims the run continues despite Confirm & Run and Run Manager 0.",
+            "clarity": "Shows workflow setup with an unresolved upload failure, not a clean runnable example. No manual reference exists to assess placement or intended-state fit.",
+            "issues": [
+              "1LYZ.pdb upload reports Internal server error; reference-based assessment is not reliably self-contained.",
+              "Raw error JSON is exposed and promoted to a required Recommended workflow parameter.",
+              "Background-running message contradicts the pre-run confirmation state.",
+              "Large dead space and truncated FASTA path reduce documentation usefulness."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and legibility. Standard full-screen layout.",
+            "ui_elements": "Raw JSON error string '{\"error\":\"Internal server error\"}' is visible in the chat bubble and incorrectly mapped as a parameter value in the right panel. Empty checkbox next to 'x' icon in the right panel header appears broken or missing a label.",
+            "content": "Screenshot shows a failed upload state with an internal server error, which is inappropriate for a standard manual screenshot. The system incorrectly treats the error string as valid input data for the 'Warnings' parameter.",
+            "clarity": "Clearly depicts a buggy state; not useful for demonstrating intended functionality in a user manual.",
+            "issues": [
+              "Raw JSON error 'Internal server error' visible in user chat bubble",
+              "Error string incorrectly mapped as a parameter value in 'Warnings' field",
+              "Broken/empty checkbox UI element in right panel header"
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture. Large empty areas sit below the chat message and below the parameters panel. The page title is truncated ('Predict the structure for the attached'). The Fasta Path value is clipped mid-UUID.",
+            "ui_elements": "A raw backend error leaks into the UI: '[Upload warnings: 1LYZ.pdb ({\"error\":\"Internal server error\"})]' appears in the user message. The same error string is parsed into a bogus 'Warnings' required parameter tagged 'Recommended'. The unlabeled checkbox and X icons under the workflow header look orphaned.",
+            "content": "Several values contradict each other. 1LYZ.pdb failed to upload, yet 'Reference Pdb' shows a bare filename instead of an s3 path. 'Inputs mapped' says 'parameters only \u2014 no data inputs to bind' although two files are attached. The panel says '1 phase' / Phases 1, but the chat card says '2 steps'. The chat says 'this run continues in the background', yet nothing has been confirmed and Run Manager shows 0. The cold-start demo data is not self-contained because the attachment failed. The Analysis plan preview starts mid-sentence ('<1.5 \u00c5 backbone RMSD\u2026').",
+            "clarity": "This captures a broken state rather than a usable example. A reader would be confused by the error text and the fake 'Warnings' parameter. The shot is not referenced by any manual page, so it should be recaptured cleanly or removed.",
+            "issues": [
+              "Raw JSON 'Internal server error' shown in chat for 1LYZ.pdb upload",
+              "Upload warning ingested as a 'Warnings' required parameter with raw JSON value",
+              "Reference Pdb is an unresolved filename, not an s3 URI (failed upload); the run would likely fail",
+              "'No data inputs to bind' contradicts the attached FASTA/PDB",
+              "1 phase vs 2 steps inconsistency",
+              "'Run continues in the background' shown before Confirm & Run; Run Manager 0",
+              "Demo cold-start data not fully attached/self-contained",
+              "Title and Fasta Path value truncated",
+              "Analysis plan snippet begins with a mid-sentence fragment",
+              "Large dead space; screenshot unreferenced in manual"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    },
+    "domain-variant-calling-prerun.png": {
+      "asset": "domain-variant-calling-prerun.png",
+      "usecase": "unreferenced",
+      "reviews": {
+        "openai": {
+          "model": "openai/gpt-6.1-sol-pro",
+          "verdict": {
+            "quality": "Sharp and readable, but excessive lower whitespace; analysis-plan preview is a clipped sentence fragment and Dataset Id overflows visibly.",
+            "ui_elements": "Required Genome Coverage is blank despite a Default badge; mapped filename has a stray closing bracket; Dataset Id exposes UUID/S3 metadata.",
+            "content": "Demo reads and matching GRCh37 reference are attached, with appropriate clinical limitations. Background-run message contradicts missing required tools, disabled Confirm & Run, and Run Manager 0.",
+            "clarity": "Shows incomplete variant-calling setup, but conflicting run status obscures the next action. Unreferenced asset; no manual-page context to assess.",
+            "issues": [
+              "Mapped input displays 'sequencing_samples.csv]'.",
+              "Dataset Id displays clipped raw UUID/S3 metadata rather than a clean dataset label.",
+              "Genome Coverage is marked Default but has no visible value.",
+              "Claims the run continues in the background while required inputs remain unresolved and launch is disabled.",
+              "Analysis-plan preview starts mid-word ('e, validated databases...')."
+            ],
+            "severity": "major"
+          }
+        },
+        "google": {
+          "model": "google/gemini-3.1-pro-preview-customtools",
+          "verdict": {
+            "quality": "Good resolution and layout, though the 'Analysis plan' description text is abruptly truncated.",
+            "ui_elements": "Broken UI in the right panel: there are floating, unlabeled checkbox and 'x' icons directly under '5 phases'.",
+            "content": "The 'Dataset Id' in the Required parameters section displays a raw UUID and S3 URI ('8bec35ff-d15a... s3_uri=s3://...') instead of a user-friendly filename, which contradicts the 'Inputs mapped' section above it that maps Dataset Id to 'sequencing_samples.csv'.",
+            "clarity": "The intended state is a workflow configuration, but the presence of raw backend IDs and broken UI elements makes it unsuitable for documentation.",
+            "issues": [
+              "Floating, unlabeled checkbox and 'x' icons under the workflow title in the right panel.",
+              "'Dataset Id' parameter field exposes raw UUID and S3 URI instead of the mapped filename."
+            ],
+            "severity": "major"
+          }
+        },
+        "anthropic": {
+          "model": "anthropic/claude-opus-5.5",
+          "verdict": {
+            "quality": "Sharp, legible full-window capture. Large empty area in the chat column (\u2248y 1100\u20131350) and below the right panel. The page title is cut off ('Call variants on these samples and').",
+            "ui_elements": "Several defects. The 'Dataset Id \u2192 sequencing_samples.csv]' line has a stray bracket. The Dataset Id field shows a raw internal string (UUID plus 's3_uri=s3://biomate-\u2026'), which is clipped. Genome Coverage is marked required with a 'Default' badge but the field is empty. The panel header has two unlabeled icons (checkbox, X). The Analysis plan preview starts mid-sentence ('e, validated databases\u2026').",
+            "content": "Several contradictions. The chat card says '7 steps' but the panel says '5 phases'. 'Inputs mapped' tells the user to attach a data file with the paperclip, yet six files are already attached. The chat says 'this run continues in the background' while Run Manager shows 0 and Confirm & Run is disabled, so no run exists. The demo context mentions only 'tiny normal reads', but tumor files are attached and somatic analysis is selected. No after-run tab content is shown, so the Results/Reproducibility record tabs cannot be verified.",
+            "clarity": "The shot captures a mid-setup state with a pending 'Which tools?' question and missing required input. The inconsistencies would confuse readers. No manual page references it, so it currently adds no documentation value.",
+            "issues": [
+              "Not referenced by any manual page: orphan asset, remove or assign it",
+              "Step count mismatch: '7 steps' in the chat card vs '5 phases' in the panel",
+              "'Inputs mapped' shows the attach-file prompt despite attached files",
+              "Stray ']' in 'sequencing_samples.csv]'",
+              "Dataset Id shows a raw UUID/s3_uri string, truncated",
+              "Required Genome Coverage is empty but tagged 'Default'",
+              "'Run continues in the background' contradicts Run Manager 0 and the disabled Confirm & Run",
+              "Analysis plan snippet truncated mid-word at the start",
+              "Header title truncated",
+              "Unlabeled checkbox/X icons in the panel header",
+              "Demo context text (normal reads only) is inconsistent with the attached tumor files and somatic analysis type",
+              "Excess dead space in the lower chat area"
+            ],
+            "severity": "major"
+          }
+        }
+      },
+      "consensus": "major"
+    }
+  }
+}

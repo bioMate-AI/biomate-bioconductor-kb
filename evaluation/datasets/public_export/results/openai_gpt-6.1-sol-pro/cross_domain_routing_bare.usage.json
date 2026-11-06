@@ -1,0 +1,16 @@
+{
+  "task": "cross_domain_routing",
+  "mode": "bare",
+  "model": "openai/gpt-6.1-sol-pro",
+  "n": 200,
+  "n_with_usage": 200,
+  "input_tokens_total": 419260,
+  "output_tokens_total": 90395,
+  "input_tokens_mean": 2096.3,
+  "output_tokens_mean": 451.975,
+  "latency_ms_p50": 9963,
+  "latency_ms_p95": 29436,
+  "latency_ms_mean": 13083.79,
+  "n_with_latency": 200,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

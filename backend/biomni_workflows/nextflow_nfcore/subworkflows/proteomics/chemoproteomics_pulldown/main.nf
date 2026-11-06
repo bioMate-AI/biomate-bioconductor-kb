@@ -38,7 +38,7 @@ process CHEMOPROTEOMICS_PULLDOWN {
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
-    path input_file
+    val meta
 
     output:
     path "enrichment_ratios.tsv",   emit: enrichment_table
@@ -54,12 +54,48 @@ process CHEMOPROTEOMICS_PULLDOWN {
     import math
     import sys
     import os
+    import urllib.request
 
-    input_path    = "${input_file}"
-    pulldown_col  = "${params.pulldown_sample}" or None
-    control_col   = "${params.control_sample}" or None
+    def _norm(v):
+        return None if v in (None, "", "null", "None") else v
+
+    input_path    = _norm("${params.input_file}")
+    pulldown_col  = _norm("${params.pulldown_sample}")
+    control_col   = _norm("${params.control_sample}")
     min_ratio     = float("${params.min_ratio}")
     min_proteins  = int("${params.min_proteins}")
+
+    # ── 0. Resolve input: user-supplied table, else built-in REAL public demo ──
+    # Param-less quick run downloads a real MaxQuant proteinGroups.txt (LFQ-Analyst
+    # example data, Monash Bioinformatics Platform — a published label-free
+    # proteomics quantification table, ~1.9 MB, 1459 protein groups, 15 "LFQ
+    # intensity" columns). Clearly labeled [demo]; honest-fail if the download
+    # fails (never fabricate spectra/intensities — CLAUDE.md).
+    DEMO_URL = "https://raw.githubusercontent.com/MonashBioinformaticsPlatform/LFQ-Analyst/master/data/proteinGroups.txt"
+    demo_used = False
+    if input_path is None or not os.path.exists(input_path):
+        if input_path is not None:
+            print(f"WARN: --input_file '{input_path}' not found on disk; "
+                  f"falling back to the built-in [demo] dataset.", file=sys.stderr)
+        demo_used = True
+        input_path = "proteinGroups_demo.txt"
+        print(f"[demo] no --input_file supplied -> downloading real public MaxQuant "
+              f"proteinGroups.txt (LFQ-Analyst example data) from {DEMO_URL}", file=sys.stderr)
+        try:
+            req = urllib.request.Request(DEMO_URL, headers={"User-Agent": "biomate-nextflow-demo"})
+            with urllib.request.urlopen(req, timeout=120) as resp, open(input_path, "wb") as out:
+                out.write(resp.read())
+        except Exception as e:
+            print(f"ERROR: [demo] failed to download the demo proteinGroups.txt "
+                  f"({e!r}). Provide --input_file <proteinGroups.txt or CSV>; "
+                  f"refusing to fabricate proteomics data.", file=sys.stderr)
+            sys.exit(1)
+        if not os.path.exists(input_path) or os.path.getsize(input_path) < 10000:
+            print("ERROR: [demo] downloaded demo file is missing or too small; "
+                  "honest-fail (no fabricated output).", file=sys.stderr)
+            sys.exit(1)
+        print(f"[demo] using real public demo dataset: {input_path} "
+              f"({os.path.getsize(input_path)} bytes)", file=sys.stderr)
 
     # ── 1. Auto-detect delimiter ──────────────────────────────────────────────
     with open(input_path, newline="", errors="replace") as f:
@@ -167,6 +203,9 @@ process CHEMOPROTEOMICS_PULLDOWN {
 
     summary = {
         "success": True,
+        "demo": demo_used,
+        "input_source": ("[demo] LFQ-Analyst example proteinGroups.txt (Monash)"
+                         if demo_used else os.path.basename(input_path)),
         "n_proteins": n_proteins,
         "n_enriched_2x": n_enriched,
         "median_enrichment_ratio": round(median_ratio, 4),
@@ -192,12 +231,18 @@ process CHEMOPROTEOMICS_PULLDOWN {
 
     print(f"✓ Pulldown QC: median enrichment {median_ratio:.2f}× ({n_enriched}/{n_proteins} enriched)",
           file=sys.stderr)
+
+    # ── 5. versions.yml (declared output — MUST be written or Nextflow fails) ──
+    with open("versions.yml", "w") as f:
+        f.write("CHEMOPROTEOMICS_PULLDOWN:\\n")
+        f.write('  python: "%s"\\n' % sys.version.split()[0])
+        f.write('  input_source: "%s"\\n' % ("demo" if demo_used else "user"))
     """
 }
 
 workflow CHEMOPROTEOMICS_PULLDOWN_WORKFLOW {
     take:
-    ch_input  // channel: path(input_file)
+    ch_input  // channel: val(meta)  — input table resolved in-task (user --input_file or built-in demo)
 
     main:
     CHEMOPROTEOMICS_PULLDOWN(ch_input)
@@ -209,11 +254,19 @@ workflow CHEMOPROTEOMICS_PULLDOWN_WORKFLOW {
     versions         = CHEMOPROTEOMICS_PULLDOWN.out.versions
 }
 
+// Entry workflow.
+// Built-in demo default (mirrors merfish/chipseq): when no --input_file is supplied,
+// a param-less "quick run" downloads a REAL public MaxQuant proteinGroups.txt in-task
+// (LFQ-Analyst example data, Monash) and runs the SAME enrichment-ratio + QC path on it.
+// Honest-fail only if the in-task download fails (never fabricated intensities).
 workflow {
-    if (!params.input_file) {
-        error "Please provide --input_file <path to proteinGroups.txt or CSV>"
+    def demo = ( !params.input_file )
+    if( demo ) {
+        log.warn "[demo] no --input_file supplied -> using the built-in real public MaxQuant " +
+                 "proteinGroups.txt demo (LFQ-Analyst example data, Monash; ~1459 protein groups, " +
+                 "15 LFQ-intensity columns). Downloaded in-task; honest-fail if the download fails."
     }
-    ch_input = Channel.fromPath(params.input_file)
+    ch_input = Channel.of( [ id: (demo ? 'pulldown_demo' : 'pulldown_run') ] )
     CHEMOPROTEOMICS_PULLDOWN_WORKFLOW(ch_input)
     CHEMOPROTEOMICS_PULLDOWN_WORKFLOW.out.summary.view { "Summary: $it" }
 }

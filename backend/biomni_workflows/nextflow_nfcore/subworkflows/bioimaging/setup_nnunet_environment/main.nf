@@ -203,7 +203,7 @@ with open("setup_nnunet_environment_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("setup_nnunet_environment_output.txt", "w") as f:
-    f.write("Biomni: Setup Nnunet Environment" + NL)
+    f.write("BioMate: Setup Nnunet Environment" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

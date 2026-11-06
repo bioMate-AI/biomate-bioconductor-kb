@@ -1,0 +1,16 @@
+{
+  "task": "drug_discovery_e2e",
+  "mode": null,
+  "model": "sft",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 5167,
+  "output_tokens_total": null,
+  "input_tokens_mean": 344.46666666666664,
+  "output_tokens_mean": 0.0,
+  "latency_ms_p50": 2026,
+  "latency_ms_p95": 2087,
+  "latency_ms_mean": 2030.8,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

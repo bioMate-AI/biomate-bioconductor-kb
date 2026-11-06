@@ -48,7 +48,7 @@ with open("grade_adverse_events_using_vcog_ctcae_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("grade_adverse_events_using_vcog_ctcae_output.txt", "w") as f:
-    f.write("Biomni: Grade Adverse Events Using Vcog Ctcae Results" + NL)
+    f.write("BioMate: Grade Adverse Events Using Vcog Ctcae Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

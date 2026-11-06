@@ -1,0 +1,51 @@
+{
+  "chebi": {
+    "docs": 55446,
+    "~tok": 3686424
+  },
+  "code": {
+    "docs": 21003,
+    "~tok": 17249615
+  },
+  "db_kg": {
+    "docs": 23336,
+    "~tok": 575073
+  },
+  "edam": {
+    "docs": 2356,
+    "~tok": 139579
+  },
+  "go": {
+    "docs": 38092,
+    "~tok": 2884703
+  },
+  "gtn": {
+    "docs": 848,
+    "~tok": 1623900
+  },
+  "hetionet": {
+    "docs": 34717,
+    "~tok": 465917
+  },
+  "hpo": {
+    "docs": 17428,
+    "~tok": 1065347
+  },
+  "internal": {
+    "docs": 16487,
+    "~tok": 8966847
+  },
+  "so": {
+    "docs": 2403,
+    "~tok": 116824
+  },
+  "workflow_order": {
+    "docs": 3152,
+    "~tok": 617835
+  },
+  "TOTAL": {
+    "docs": 171280,
+    "~tok": 36787914
+  },
+  "license": "commercial-safe: internal(ours) + nf-core MIT + Bioconductor Artistic + CC0(Hetionet) + CC-BY(GTN) + open ontologies(GO/EDAM/SO/HPO/ChEBI)"
+}

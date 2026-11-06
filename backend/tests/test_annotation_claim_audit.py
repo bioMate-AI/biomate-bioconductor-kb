@@ -1,0 +1,87 @@
+"""annotation_claim_audit: removal-only, verbatim, two-model, guarded by the original text.
+
+Run: cd backend && PYTHONPATH=lib pytest tests/test_annotation_claim_audit.py -v
+"""
+import json
+import sqlite3
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend" / "lib"))
+from galaxy.ai.chain_composer import annotation_claim_audit as A  # noqa: E402
+
+ANN = "label-free quantification LFQ OpenMS mzML MaxQuant output processing proteinGroups isobaric labeling TMT iTRAQ quantitative proteomics"
+
+
+def _db(tmp_path, ann=ANN):
+    db = tmp_path / "wf.db"
+    c = sqlite3.connect(str(db))
+    c.execute("CREATE TABLE workflows (id INTEGER PRIMARY KEY, name TEXT, source TEXT, description TEXT, input_kinds TEXT, annotation TEXT, executable INTEGER)")
+    c.execute("INSERT INTO workflows VALUES (7,'lfq','nfcore','OpenMS LFQ from mzML','[\"raw_spectra\"]',?,1)", (ann,))
+    c.commit(); c.close()
+    return db
+
+
+def test_propose_keeps_only_verbatim_phrases(tmp_path):
+    llm = lambda _p: json.dumps({"remove": ["MaxQuant output processing", "TMT", "not in text"], "reason": "x"})
+    r = A.propose(_db(tmp_path), llm, workers=1)[0]
+    assert r["remove"] == ["MaxQuant output processing", "TMT"] and r["dropped_nonverbatim"] == 1
+
+
+def test_verify_applies_only_confirmed_phrases():
+    p = {"name": "lfq", "description": "", "kinds": "[]", "annotation": ANN, "remove": ["TMT", "OpenMS"]}
+    llm = lambda _p: json.dumps({"confirm": {"TMT": True, "OpenMS": False}})
+    assert A.verify([p], llm, workers=1)[0]["confirmed"] == ["TMT"]
+
+
+def test_cleaned_removes_phrases_and_collapses_space():
+    out = A.cleaned(ANN, ["MaxQuant output processing", "proteinGroups", "TMT"])
+    assert "MaxQuant" not in out and "TMT" not in out and "  " not in out
+    assert out.startswith("label-free quantification") and "iTRAQ" in out
+
+
+def test_apply_is_guarded_by_original_text(tmp_path):
+    db = _db(tmp_path)
+    v = {"name": "lfq", "annotation": ANN, "confirmed": ["TMT"]}
+    assert A.apply(db, [v]) == 1
+    assert A.apply(db, [v]) == 0  # annotation changed since the audit → left alone
+    assert "TMT" not in sqlite3.connect(str(db)).execute("select annotation from workflows").fetchone()[0]
+
+
+def test_failed_llm_proposes_nothing(tmp_path):
+    r = A.propose(_db(tmp_path), lambda _p: "garbage", workers=1)[0]
+    assert r["remove"] is None and r["status"] == "llm_failed"
+
+
+def test_cleaned_does_not_cut_inside_longer_words():
+    ann = "bam dedup stats samtools umicollapse BAM Samtools nf-core subworkflow umi index bam sam cram"
+    out = A.cleaned(ann, ["sam", "cram"])
+    assert "samtools" in out and "Samtools" in out
+    assert not out.endswith("sam cram") and " sam " not in f" {out} "
+
+
+def test_repair_fixes_rows_written_by_v1_only(tmp_path):
+    ann = "bam dedup stats samtools umicollapse index bam sam cram"
+    db = _db(tmp_path, ann)
+    v = {"name": "lfq", "annotation": ann, "confirmed": ["sam", "cram"]}
+    c = sqlite3.connect(str(db)); c.execute("update workflows set annotation=?", (A._cleaned_v1(ann, ["sam", "cram"]),)); c.commit(); c.close()
+    assert A.repair(db, [v]) == 1
+    assert "samtools" in sqlite3.connect(str(db)).execute("select annotation from workflows").fetchone()[0]
+    assert A.repair(db, [v]) == 0  # already repaired → untouched
+
+
+def test_apply_skips_upstream_authored_and_addresses_rows_by_id(tmp_path):
+    db = _db(tmp_path)
+    bioc = {"id": 7, "name": "lfq", "source": "bioconductor", "annotation": ANN, "confirmed": ["TMT"]}
+    assert A.apply(db, [bioc]) == 0  # package DESCRIPTION text is not edited
+    assert A.apply(db, [dict(bioc, source="nfcore", name="renamed-but-same-row")]) == 1  # id, not name
+
+
+def test_apply_refuses_an_inconsistent_fts_index(tmp_path, monkeypatch):
+    import pytest
+    db = _db(tmp_path)
+    def bad(_db):
+        raise RuntimeError("workflows_fts integrity-check failed")
+    monkeypatch.setattr(A, "assert_fts_consistent", bad)
+    with pytest.raises(RuntimeError):
+        A.apply(db, [{"id": 7, "name": "lfq", "source": "nfcore", "annotation": ANN, "confirmed": ["TMT"]}])

@@ -1,0 +1,494 @@
+{
+  "data": {
+    "__type": {
+      "fields": [
+        {
+          "name": "approvedSymbol",
+          "args": []
+        },
+        {
+          "name": "nameSynonyms",
+          "args": []
+        },
+        {
+          "name": "tractability",
+          "args": []
+        },
+        {
+          "name": "functionDescriptions",
+          "args": []
+        },
+        {
+          "name": "homologues",
+          "args": []
+        },
+        {
+          "name": "subcellularLocations",
+          "args": []
+        },
+        {
+          "name": "geneticConstraint",
+          "args": []
+        },
+        {
+          "name": "hallmarks",
+          "args": []
+        },
+        {
+          "name": "alternativeGenes",
+          "args": []
+        },
+        {
+          "name": "pathways",
+          "args": []
+        },
+        {
+          "name": "obsoleteSymbols",
+          "args": []
+        },
+        {
+          "name": "obsoleteNames",
+          "args": []
+        },
+        {
+          "name": "canonicalTranscript",
+          "args": []
+        },
+        {
+          "name": "approvedName",
+          "args": []
+        },
+        {
+          "name": "transcriptIds",
+          "args": []
+        },
+        {
+          "name": "genomicLocation",
+          "args": []
+        },
+        {
+          "name": "targetClass",
+          "args": []
+        },
+        {
+          "name": "id",
+          "args": []
+        },
+        {
+          "name": "tep",
+          "args": []
+        },
+        {
+          "name": "chemicalProbes",
+          "args": []
+        },
+        {
+          "name": "safetyLiabilities",
+          "args": []
+        },
+        {
+          "name": "biotype",
+          "args": []
+        },
+        {
+          "name": "synonyms",
+          "args": []
+        },
+        {
+          "name": "geneOntology",
+          "args": []
+        },
+        {
+          "name": "transcripts",
+          "args": []
+        },
+        {
+          "name": "proteinIds",
+          "args": []
+        },
+        {
+          "name": "symbolSynonyms",
+          "args": []
+        },
+        {
+          "name": "dbXrefs",
+          "args": []
+        },
+        {
+          "name": "credibleSets",
+          "args": [
+            {
+              "name": "page",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "Pagination",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "similarEntities",
+          "args": [
+            {
+              "name": "additionalIds",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            },
+            {
+              "name": "entityNames",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            },
+            {
+              "name": "threshold",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Float",
+                "ofType": null
+              }
+            },
+            {
+              "name": "size",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "literatureOcurrences",
+          "args": [
+            {
+              "name": "additionalIds",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            },
+            {
+              "name": "startYear",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "startMonth",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "endYear",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "endMonth",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "cursor",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "evidences",
+          "args": [
+            {
+              "name": "efoIds",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "name": null,
+                  "kind": "LIST"
+                }
+              }
+            },
+            {
+              "name": "datasourceIds",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            },
+            {
+              "name": "size",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "cursor",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "interactions",
+          "args": [
+            {
+              "name": "scoreThreshold",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Float",
+                "ofType": null
+              }
+            },
+            {
+              "name": "sourceDatabase",
+              "type": {
+                "kind": "ENUM",
+                "name": "InteractionSourceEnum",
+                "ofType": null
+              }
+            },
+            {
+              "name": "page",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "Pagination",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "mousePhenotypes",
+          "args": []
+        },
+        {
+          "name": "baselineExpression",
+          "args": [
+            {
+              "name": "page",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "Pagination",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "associatedDiseases",
+          "args": [
+            {
+              "name": "Bs",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            },
+            {
+              "name": "enableIndirect",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
+            },
+            {
+              "name": "datasources",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            },
+            {
+              "name": "includeMeasurements",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
+            },
+            {
+              "name": "facetFilters",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            },
+            {
+              "name": "BFilter",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "orderByScore",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "page",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "Pagination",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "prioritisation",
+          "args": []
+        },
+        {
+          "name": "isEssential",
+          "args": []
+        },
+        {
+          "name": "depMapEssentiality",
+          "args": []
+        },
+        {
+          "name": "pharmacogenomics",
+          "args": []
+        },
+        {
+          "name": "proteinCodingCoordinates",
+          "args": [
+            {
+              "name": "page",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "Pagination",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "drugAndClinicalCandidates",
+          "args": []
+        },
+        {
+          "name": "associationTimeSeries",
+          "args": [
+            {
+              "name": "efoId",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "name": "String",
+                  "kind": "SCALAR"
+                }
+              }
+            },
+            {
+              "name": "isDirect",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "name": "Boolean",
+                  "kind": "SCALAR"
+                }
+              }
+            },
+            {
+              "name": "aggregationTypes",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "name": null,
+                  "kind": "NON_NULL"
+                }
+              }
+            },
+            {
+              "name": "startYear",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "endYear",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "page",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "Pagination",
+                "ofType": null
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

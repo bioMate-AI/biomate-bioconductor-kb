@@ -1,0 +1,16 @@
+{
+  "task": "param_prefill",
+  "mode": null,
+  "model": "openai/gpt-6.1-sol-pro",
+  "n": 170,
+  "n_with_usage": 170,
+  "input_tokens_total": 319962,
+  "output_tokens_total": 27505,
+  "input_tokens_mean": 1882.129411764706,
+  "output_tokens_mean": 161.7941176470588,
+  "latency_ms_p50": 5826,
+  "latency_ms_p95": 11224,
+  "latency_ms_mean": 6222.129411764706,
+  "n_with_latency": 170,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

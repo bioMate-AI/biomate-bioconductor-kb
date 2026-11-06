@@ -1,0 +1,16 @@
+{
+  "http_status": 200,
+  "body": {
+    "runId": "47381c6c-7a32-4d7c-b8a6-59f10a12912a",
+    "galaxyInvocationId": "279bde70-b3d4-45bd-8be7-1a8b9f36aa52",
+    "galaxyHistoryId": "nf-47381c6c-7a32-4d7c-b8a6-59f10a12912a",
+    "executionEngine": "nextflow",
+    "nextflowRunId": "a1422bd1-d864-45d3-9584-db1697f6acbe",
+    "status": "running",
+    "message": "Workflow queued (run_id: a1422bd1-d864-45d3-9584-db1697f6acbe)",
+    "outputs": {
+      "outdir": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/0db9d56f",
+      "workdir": "s3://biomate-nextflow-work/nextflow/work/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/a1422bd1-d864-45d3-9584-db1697f6acbe"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "process": "PREDICT_ADMET_PROPERTIES",
+  "domain": "pharmacology",
+  "herg_ic50_uM": 0.0124,
+  "herg_safe_above_10uM": false,
+  "ames_positive": false,
+  "ames_probability": 0.1,
+  "dili_risk": "high",
+  "dili_probability": 0.855,
+  "dili_probability_threshold": 0.5,
+  "admet_dili_probability_passes": false,
+  "compounds_assessed": 2,
+  "evidence_tier": "GOLD-Redfern2003 / SILVER-Kazius2005 / SILVER-Mulliner2016",
+  "citation": "Redfern 2003 Cardiovasc Res 58:32; Kazius 2005 J Med Chem 48:312; Mulliner 2016 Chem Res Toxicol 29:757"
+}

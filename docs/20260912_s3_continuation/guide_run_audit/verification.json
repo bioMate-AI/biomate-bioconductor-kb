@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "donor_condition_groups": 12,
+  "runs_per_donor_condition": 1,
+  "existing_donor_condition_control_matching_already_matches_run": true,
+  "duplicate_guide_donor_condition_rows": 0,
+  "source_guides_per_target_histogram": {
+    "1": 511,
+    "2": 12200,
+    "3": 17,
+    "4": 2
+  },
+  "basic_qc_complete_2guide_targets": 3322,
+  "basic_qc_complete_3guide_targets": 1,
+  "frozen_32_guide_counts_verified": true,
+  "basic_qc_selection_independently_recomputed": true,
+  "basic_qc_selected_targets": [
+    "DNM3",
+    "TMCC2",
+    "SMIM24",
+    "PCOLCE",
+    "ECHS1",
+    "R3HDM1",
+    "MGMT",
+    "CORO2A",
+    "ERCC6L2",
+    "CBY1",
+    "SP4",
+    "DAB2",
+    "HOXC13",
+    "PLD4",
+    "NIPSNAP1",
+    "LTBP1"
+  ],
+  "basic_qc_selected_rows": 384,
+  "basic_qc_selected_outside_previous_panel": true,
+  "basic_qc_selection_uses_no_efficacy_or_expression": true,
+  "limitation": "Metadata and selection verification only; newly extracted counts are not checked here."
+}

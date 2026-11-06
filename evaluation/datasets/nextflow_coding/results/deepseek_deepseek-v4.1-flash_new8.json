@@ -1,0 +1,181 @@
+{
+  "model": "deepseek/deepseek-v4.1-flash",
+  "subset": "new_8_tasks",
+  "aggregate": {
+    "benchmark": "nextflow_coding",
+    "n_tasks": 8,
+    "tierA_pass_rate": 1.0,
+    "tierB_pass_rate": 0.75,
+    "tierC_pass_rate": 0.75,
+    "tierC_eligible": 8,
+    "mean_score": 0.835,
+    "by_kind": {
+      "convert_from_cwl": 1.0,
+      "convert_from_notebook": 1.0,
+      "convert_from_wdl": 1.0,
+      "decompose_script_to_pipeline": 0.34
+    },
+    "tokens": {
+      "prompt": 2677,
+      "completion": 4504
+    }
+  },
+  "results": [
+    {
+      "id": "convert_from_wdl_linear",
+      "kind": "convert_from_wdl",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "hello.txt",
+          "contains": [
+            "Hello, World!"
+          ],
+          "found": "work/fd/fef3e50e59f555d6369978249d8583/hello.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_wdl_scatter",
+      "kind": "convert_from_wdl",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "all.txt",
+          "contains": [
+            "item:a",
+            "item:b",
+            "item:c"
+          ],
+          "found": "work/18/b3e7938710758d147b2dfd29096270/all.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_cwl_tool",
+      "kind": "convert_from_cwl",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
+      "outputs": [
+        {
+          "glob": "out.txt",
+          "contains": [
+            "cwl-ok"
+          ],
+          "found": "work/0c/9510055b381ece4eeaa6f7b3f57440/out.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_cwl_workflow",
+      "kind": "convert_from_cwl",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "upper.txt",
+          "contains": [
+            "HELLO"
+          ],
+          "found": "work/ce/6409bf0f59a68f32395efdcc0d1760/upper.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_notebook_linear",
+      "kind": "convert_from_notebook",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "out.txt",
+          "contains": [
+            "ALPHA",
+            "BETA",
+            "GAMMA"
+          ],
+          "found": "work/d8/a64ad76f0b50bdf7256d75e686d6ad/out.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_notebook_map",
+      "kind": "convert_from_notebook",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "summary.txt",
+          "contains": [
+            "row:x",
+            "row:y",
+            "row:z"
+          ],
+          "found": "work/93/b6a64b9f7709999734810502b62164/summary.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "decompose_python_pipeline",
+      "kind": "decompose_script_to_pipeline",
+      "tierA_pass": true,
+      "tierB_pass": false,
+      "tierC_pass": false,
+      "runnable": true,
+      "min_processes": 3,
+      "n_processes": 2,
+      "outputs": null,
+      "score": 0.34
+    },
+    {
+      "id": "decompose_r_pipeline",
+      "kind": "decompose_script_to_pipeline",
+      "tierA_pass": true,
+      "tierB_pass": false,
+      "tierC_pass": false,
+      "runnable": true,
+      "min_processes": 3,
+      "n_processes": 2,
+      "outputs": null,
+      "score": 0.34
+    }
+  ]
+}

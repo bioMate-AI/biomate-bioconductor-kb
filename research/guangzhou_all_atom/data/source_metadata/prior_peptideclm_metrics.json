@@ -1,0 +1,38 @@
+{
+  "target": "Permeability",
+  "n": 8466,
+  "device": "cpu",
+  "results": {
+    "descriptors@random": {
+      "ridge": 0.2462502748820753,
+      "histgbm": 0.46650649833690416
+    },
+    "descriptors@scaffold": {
+      "ridge": 0.06805904143733188,
+      "histgbm": 0.3118774436821322
+    },
+    "peptideclm_emb@random": {
+      "ridge": 0.309985993257058,
+      "histgbm": 0.23823475317554899
+    },
+    "peptideclm_emb+desc@random": {
+      "ridge": 0.3855695542997889,
+      "histgbm": 0.44369463645820006
+    },
+    "peptideclm_emb@scaffold": {
+      "ridge": 0.017518388957575293,
+      "histgbm": 0.1203132482903938
+    },
+    "peptideclm_emb+desc@scaffold": {
+      "ridge": 0.04532116340244785,
+      "histgbm": 0.21233506096546206
+    }
+  },
+  "descriptor_floor_r2_ref": 0.29,
+  "peptideclm_repo": "aaronfeller/peptideclm-2-hybrid-base",
+  "verdict": {
+    "descriptor_floor_scaffold_r2": 0.3118774436821322,
+    "best_peptideclm_scaffold_r2": 0.21233506096546206,
+    "peptideclm_beats_floor": false
+  }
+}

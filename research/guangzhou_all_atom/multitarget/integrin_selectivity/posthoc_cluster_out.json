@@ -1,0 +1,23 @@
+{
+ "linear_RGD_peptides": {
+  "N1_mean": 0.599094449919851,
+  "M1_ridge_morgan": 1.292075892864812,
+  "M2_tanimoto_gp": 0.8684926211845625,
+  "n_cells_unc": 27,
+  "n_train": 8
+ },
+ "cyclic_RGD_pentapeptides": {
+  "N1_mean": 1.426822281108367,
+  "M1_ridge_morgan": 2.310210840432542,
+  "M2_tanimoto_gp": 1.9311073298397814,
+  "n_cells_unc": 18,
+  "n_train": 12
+ },
+ "other_ligands": {
+  "N1_mean": 0.9929998331724718,
+  "M1_ridge_morgan": 0.7368887605847865,
+  "M2_tanimoto_gp": 0.9002544350001167,
+  "n_cells_unc": 2,
+  "n_train": 12
+ }
+}

@@ -1,0 +1,23 @@
+{
+ "id": "gen-1793210153-MCh5WozDuTQC4CAOtUKH",
+ "object": "chat.completion",
+ "created": 1793210153,
+ "model": "anthropic/claude-opus-5.5",
+ "provider": "Claude Platform on AWS",
+ "system_fingerprint": null,
+ "service_tier": null,
+ "choices": [
+  {
+   "index": 0,
+   "logprobs": null,
+   "finish_reason": "content_filter",
+   "native_finish_reason": "refusal",
+   "message": {
+    "role": "assistant",
+    "content": null,
+    "refusal": null,
+    "reasoning": null
+   }
+  }
+ ]
+}

@@ -251,7 +251,7 @@ with open("calculate_similarity_metrics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("calculate_similarity_metrics_output.txt", "w") as f:
-    f.write("Biomni: Calculate Similarity Metrics" + NL)
+    f.write("BioMate: Calculate Similarity Metrics" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

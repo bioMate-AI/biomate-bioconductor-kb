@@ -1,0 +1,170 @@
+# Cyclic-LLM closed cycle — controls, placebo result, and honest-status reconciliation (2026-10-22)
+
+Continues the physics-verified closed-cycle work (`methodology_close.py`; thesis in
+`docs/20261021_CYCLIC_LLM_INNOVATION_THESIS.md`). This session added the missing **placebo control**,
+ran it, and reconciled two over-claims against the team's own rigor docs.
+
+## 1. The defensible closed-cycle result (unchanged)
+
+Verified-reward generator-DPO close on the collected v4 LM, with **anti-circular, cluster-disjoint**
+(monomer-Tanimoto ≥ 0.6) permeability oracles (reward oracle A, independent evaluator oracle B):
+`results/methodology_close_6seed_leakagesafe.json` — mean Δ(evaluator B) = **+0.098** (SE 0.011),
+6/6 seeds, Wilcoxon p = 0.031; reward-oracle→evaluator R² ≈ 0.07–0.17 and dB–dA corr = 0.19 (low →
+the gain is genuine generalization, not reward-hacking). Honest number; the earlier +0.251 was an
+inflated leaky hash-split.
+
+## 2. NEW — shuffled-reward placebo control (the missing control)
+
+**Question:** does DPO move the independent evaluator *regardless* of the reward (optimization pressure /
+diversity collapse), or only when the reward carries real signal? Added `--shuffle-reward` to
+`methodology_close.py`: permute the reward labels across candidates before building preference pairs, so
+chosen/rejected are random w.r.t. the true reward; the DPO machinery is otherwise identical. Matched
+config (gate-OFF, pool 600 / pairs 400 / steps 80 / eval 300), 5 seeds each.
+
+| condition | Δ(evaluator B) per seed | mean |
+|---|---|---|
+| **real reward** | 0.155, 0.138, 0.131, 0.096, 0.103 | **+0.124** |
+| **shuffled (placebo)** | 0.028, 0.022, 0.009, −0.024, 0.038 | **+0.014** |
+
+**Mann-Whitney U = 25/25 (perfect separation), one-sided p(real > shuffle) = 0.004.** (Caveat: with
+n = 5 per arm, 0.004 ≈ 1/C(10,5) is the *smallest attainable* one-sided p — any perfect separation yields
+it regardless of effect magnitude, so the p merely confirms clean separation; the real evidence is the
+**effect size**, mean +0.124 vs +0.014, a ~9× gap, with every real seed above every placebo seed.)
+Diversity is held in both
+arms (≈0.96 → 0.93–0.97), so the real-reward gain is not a diversity-collapse artifact. Result:
+`results/methodology_close_placebo_control.json`.
+
+**Interpretation.** The closed-cycle improvement is **attributable to the verified reward signal** — a
+permuted reward barely moves the evaluator (+0.014, within noise of 0), while the real reward moves it
+~9× more (+0.124). Together with the anti-circular dual-oracle and the cluster-disjoint split, the
+verified-reward DPO methodology now has the three controls a referee expects: leakage-safe split,
+anti-circular evaluator, and a reward-label placebo.
+
+(Note: the +0.124 here is the gate-OFF config; the reported headline remains the gate-ON leakage-safe
++0.098. The placebo compares real vs shuffle at the *same* config, which is what isolates the reward.)
+
+## 3. Honest-status reconciliation (two over-claims flagged this session)
+
+Cross-checked the `20261021_CYCLIC_LLM_PAPER_DRAFT.md` claims against the team's own rigor docs; added a
+dated reconciliation note at the top of the draft (not a rewrite — shared worktree):
+
+1. **The within-target AUC 0.94–0.96 is compromised by label-circularity.** Per
+   `docs/20261021_CYCLIC_LLM_WITHIN_TARGET_SOTA_BENCHMARK.md`: `is_binder` ≈ a threshold on display
+   `enrichment_log2fc`, so a trivial enrichment-sort scores **AUC ≈ 1.0 on all four targets and the LM
+   does not beat this null on any** (LM AUC 0.266–0.997, below chance on hPCSK9). The 0.94–0.96
+   establishes "beats composition baselines on PADI4," **not** SOTA/null-beating. A defensible claim
+   needs a non-circular label (measured affinity) on novel sequences vs the abundance null.
+2. **Nothing that has run is "physics-verified."** The closed loop uses a **measured-permeability ML
+   oracle**, not FEP/MM-GBSA (wired in `score.py`/`fep_batch.py` but `dry_run=True`, unrun; no
+   openmm/boltz locally). "Physics-verified closed cycle" is accurate only as proposed infra.
+
+## 4. Honest status of the thesis
+
+- **Proven (defensible):** a verified-reward DPO methodology that moves an independent, leakage-safe,
+  anti-circular evaluator on **permeability**, with a reward-label placebo control (p = 0.004). This is a
+  real methodological result — the loop learns from the verified signal.
+- **Unproven (the thesis's actual aspiration):** that a physics/binding reward breaks the **cross-target**
+  wall. Cross-target transfer is NULL (`xtarget_fm.json` Δ +0.007; own-LM LOTO null; BoltzGen FT Δiptm
+  −0.16; binding-model novel-target ceiling ≈ 0.42 Spearman = convergent data wall). The proof paths
+  (Slice-0 FIKK13) are themselves circular (`is_binder` ≈ abundance) and underpowered (n ≈ 13/class).
+
+## 5. Next steps (honest)
+
+- The permeability closed-cycle result is publishable as a **methodology** demonstration (generate →
+  verified-reward → DPO, with leakage/anti-circular/placebo controls), scoped to "the loop learns from a
+  verified property signal" — NOT as binding or cross-target.
+- To test the actual thesis needs a **non-circular binding reward** (measured affinity or a run FEP
+  control edge) and ≥3 same-chemistry targets for a clean LOTO — both currently blocked (physics engine
+  not local; same-chemistry targets n=2). Do not run the circular Slice-0 proof as-is.
+- Rescope the paper draft §3.1 per the reconciliation note before any submission.
+- Methodology-scoped closed-cycle paper section drafted: `docs/20261022_CYCLIC_LLM_CLOSED_CYCLE_METHODS_SECTION.md`.
+
+## 6b. UPDATE (2026-10-23) — grompp preflight CLEARED on EC2
+
+Using EC2 (spot c5.2xlarge, Amazon Linux 2023, ~$0.04, SSM-driven, terminated after), the FEP
+control-edge **grompp preflight now PASSES** — clearing the one blocker below ("topology not locally
+validated"). GROMACS 2024.5 built the CHARMM36m topology for the αvβ6 complex + 9-mer peptide
+(`PDB2GMX_EXIT=0`, `GROMPP_EXIT=0`, em.tpr 4.2 MB), and the **metal-aware** build (3 CaDA-Mn via
+`cada_mn.itp`, solvated, 16,439+ atoms) likewise grompp'd cleanly (`GROMPP_MN_EXIT=0`, em_mn.tpr 6.3 MB).
+`cada_mn.itp` is now validated by actual GROMACS grompp (previously only ParmEd/OpenMM). Reproducible
+recipe: `research/guangzhou_all_atom/fep/ec2_preflight/`. **Remaining:** pmx alchemical hybrid (Y1F+Y7F;
+pmx build failed, and keep chain P unmerged for the real run) + the GPU production FEP (~2 GPU-days,
+GATED). So the binding-reward path is no longer blocked by topology validation — only by the pmx hybrid
+build and the (gated) GPU spend.
+
+## 6c. UPDATE (2026-10-24, **CORRECTED 2026-10-25**) — control edge MISSES the measured value; NOT validated
+
+> **CORRECTION (2026-10-25).** The original claim below ("recovered ≈ 0 / the A2 anchor is cleared /
+> execution-verified binding reward") is **WRONG on two counts** and is retracted:
+> 1. **The expected answer is NOT 0.** The control edge CTRL-TRIVEHEXIN→CTRL-AVEBEHEXIN is exactly the
+>    Quigley 2023 **YY→FF** monomer edge (c[YRGDLAYp(NMe)K] → c[FRGDLAFp(NMe)K]); measured IC50 0.84 nM → 0.17 nM,
+>    so the **measured ΔΔG_bind = −0.95 kcal/mol** (FF ~5× tighter), not ≈0. Replacing the two Tyr-OH with Phe
+>    *improves* β6 packing — a real ~1 kcal/mol effect, not a null. (Quigley RSC Med Chem 2023, PMID 38099056.)
+> 2. **Our FEP missed it.** The computed −0.18 ± 0.15 kcal/mol gets the **sign right** (FF favored) but
+>    under-predicts the magnitude ~5× — a **miss** against a ~1 kcal/mol bar, **not** a validation.
+> Consequently the pipeline is **NOT** execution-verified for binding. The edge is also **metal-blind** (it
+> perturbs Tyr, never the RGD-Asp/MIDAS-Mn), so it carries **no** information about whether the CaDA-Mn metal
+> model is correct — exactly the energetics αvβ6 binding depends on. No candidate ΔΔG ladder is admissible on it.
+> The honest prerequisite is: dynamically validate CaDA-Mn + run a metal-*perturbing* positive control (Asp→Ala),
+> then re-run this edge against the measured −0.95. See `docs/20261025_SESSION_REVEAL_WORKS_RESOURCES_PERF_ERRORS.md`.
+
+The relative-FEP control edge ran end-to-end on AWS Batch GPU-spot. Both legs, 12 λ windows each, BAR estimator:
+
+```
+ΔG_solvent = 146.45 ± 0.28 kJ/mol
+ΔG_complex = 145.71 ± 0.56 kJ/mol
+ΔΔG_bind   = ΔG_complex − ΔG_solvent = −0.74 ± 0.63 kJ/mol  =  −0.18 ± 0.15 kcal/mol
+```
+
+**Interpretation (CORRECTED 2026-10-25):** the **measured** ΔΔG_bind for this YY→FF edge is **−0.95 kcal/mol**
+(Quigley 2023), not 0. Computed −0.18 ± 0.15 is the right sign but ~5× too small → a **miss** on a ~1 kcal/mol
+bar. So the pipeline reproduces alchemical bookkeeping but does **not** demonstrate it can predict the real
+binding change, and — because the edge is metal-blind — says nothing about the CaDA-Mn metal model. **No
+candidate ΔΔG ladder is admissible on this edge.** The §3-reconciliation caveat "nothing that has run is
+physics-verified for binding" therefore **still stands**. (The closed DPO loop still uses the permeability ML
+oracle; a trustworthy FEP binding reward is NOT yet available.)
+
+**Caveats (honest):** 0.5-ns/window, single replica, BAR *analytical* errors (not block/bootstrap), so the
+true uncertainty is somewhat larger than ±0.15 kcal/mol; the central value being ≈0 is the load-bearing
+result. A candidate (non-control) edge should use ≥1–2 ns/window and a convergence (BAR-overlap) gate.
+
+**How it ran (infra, matters for BioMate):** fan-out — one Batch GPU job per (leg, λ), 24 windows
+concurrent from the pre-equilibrated npt state, **all on spot** (`biomate-gpu-spot-queue`, g6.12xlarge,
+48 vCPU; FEP is CPU-PME-bound so sized by vCPU). Spot-resilient: `retryStrategy` RETRY on `Host EC2*`
+reclaim, `prod.cpt` streamed to S3 every 5 min + `-cpi` resume scoped to retries (`AWS_BATCH_JOB_ATTEMPT>1`),
+`tee` logging. One window hit a stale-checkpoint bug (resume read a prior 1-ns cpt against the new 0.5-ns
+tpr) → fixed at root cause (commits `d568d392f`, `f98b33f22`) and rerun clean. Total spend: a few dollars
+of spot, no on-demand. Driver: `research/guangzhou_all_atom/cyclic_llm/fep_production.py`
+(`--complex` / `--collect`). Result artifacts committed at
+`research/guangzhou_all_atom/cyclic_llm/results/fep_ctrl_build1_ddg/{ddg_result.json,bar_solvent.log,bar_complex.log}`
+(also on S3 at `s3://biomate-nextflow-work/cyclic_peptide/fep/avb6-fep-ctrl-build1/prod_out/ddg/`).
+
+## 6. FEP control-edge runbook (why it can't run here; exact steps on handoff)
+
+Goal: replace the permeability oracle with an **execution-verified binding reward** by first recovering
+the αvβ6 relative-FEP **control edge** (CTRL-TRIVEHEXIN → CTRL-AVEBEHEXIN, a double Y→F double
+perturbation = the Quigley YY→FF monomer edge; **measured ΔΔG = −0.95 kcal/mol, NOT ≈0** — see the §6c
+correction; recovering this measured value (not a null) is the real test). Architecture: AWS Batch GROMACS-CUDA GPU-spot (`fep_batch.py`; queue
+`biomate-gromacs-fep-gpu`, job-def `biomate-gromacs-cu12-gpu`).
+
+**Why it cannot run from this environment (verified 2026-10-22):**
+- No `boto3`/AWS credentials locally → cannot dispatch or even validate the queue/job-def.
+- No GROMACS + pmx on the local Mac **or** the Spark box (aarch64: `gmx`/`pmx`/`openmm` all MISSING) →
+  the alchemical **hybrid topology cannot be built**, and the GROMACS-CUDA image has **no pip/pmx**, so it
+  cannot be built in-container either.
+- Guards (correct): `MDRUN_CMD_READY=False` and an `in/FEP_INPUTS_READY` S3 sentinel — `dispatch_control_edge`
+  REFUSES to submit until a pre-built, staged system exists (prevents a predicted-failure GPU spend).
+
+**Ordered runbook (on a box with GROMACS 2024 + pmx + CHARMM36m-mut + AWS creds):**
+1. Build the hybrid + solvated/equilibrated legs OFFLINE, both legs (solvent + complex), with the
+   metal-aware CaDA-Mn parameters (`fep/forcefield/cada_mn.itp`): `pdb2gmx → pmx mutate (charmm36m-mut,
+   Y→F ×2) → gentop → solvate/genion`, then per-λ `.tpr` (12 λ windows).
+2. `gmx grompp` **preflight on CPU** (fail-fast) on the hybrid topology; must exit 0.
+3. Stage the built system to `s3://…/{run_id}/in/` and write the `in/FEP_INPUTS_READY` sentinel.
+4. Rewrite `_fep_command` to **mdrun-only** on the staged legs (em→nvt→npt→per-λ HREX production); set
+   `MDRUN_CMD_READY=True`.
+5. `python fep_batch.py --submit --run-id=<id>` → one GPU-spot job; read ΔΔG from `out/`. Control edge is
+   recovered iff |ΔΔG| ≈ 0 within error; only then is `_fep_ddg` admissible and the binding reward usable
+   in the closed loop.
+See `docs/20261019_AVB6_FEP_CONTROL_EDGE_REVIEW.md` and `docs/20261019_AVB6_CADA_AND_FEP_SETUP.md`.
+**Do not flip the guards or submit speculatively** (no-speculative-GPU-spend rule; the build must exist first).

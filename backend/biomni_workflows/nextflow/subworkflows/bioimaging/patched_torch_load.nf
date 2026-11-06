@@ -47,7 +47,7 @@ with open("patched_torch_load_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("patched_torch_load_output.txt", "w") as f:
-    f.write("Biomni: Patched Torch Load Results" + NL)
+    f.write("BioMate: Patched Torch Load Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -266,7 +266,7 @@ with open("analyze_protein_conservation_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_protein_conservation_output.txt", "w") as f:
-    f.write("Biomni: Analyze Protein Conservation" + NL)
+    f.write("BioMate: Analyze Protein Conservation" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

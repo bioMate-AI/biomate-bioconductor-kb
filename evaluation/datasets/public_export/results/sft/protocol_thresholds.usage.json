@@ -1,0 +1,16 @@
+{
+  "task": "protocol_thresholds",
+  "mode": null,
+  "model": "sft",
+  "n": 100,
+  "n_with_usage": 100,
+  "input_tokens_total": 12712,
+  "output_tokens_total": null,
+  "input_tokens_mean": 127.12,
+  "output_tokens_mean": 0.0,
+  "latency_ms_p50": 593,
+  "latency_ms_p95": 616,
+  "latency_ms_mean": 571.77,
+  "n_with_latency": 100,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

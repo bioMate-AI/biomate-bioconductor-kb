@@ -5,17 +5,20 @@ class RecentToolsService {
   private storageKey = 'biomate-recent-tools';
   private maxRecentTools = 20; // Keep only the 20 most recent tools
   
-  // Get all recent tools
+  // Get all recent tools.
+  // Returns an empty list when the user has used no tools yet — we never seed
+  // fabricated demo tools, because the dialog renders these as the user's real
+  // recent activity. An empty account must show the honest empty state.
   getAllRecent(): RecentTool[] {
     try {
       const stored = localStorage.getItem(this.storageKey);
-      if (!stored) return this.getDefaultRecent();
-      return JSON.parse(stored).sort((a: RecentTool, b: RecentTool) => 
+      if (!stored) return [];
+      return JSON.parse(stored).sort((a: RecentTool, b: RecentTool) =>
         new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime()
       );
     } catch (error) {
       console.error('Error loading recent tools:', error);
-      return this.getDefaultRecent();
+      return [];
     }
   }
   
@@ -101,60 +104,9 @@ class RecentToolsService {
     }
   }
   
-  private getDefaultRecent(): RecentTool[] {
-    return [
-      {
-        id: 'recent-default-1',
-        toolId: 'fastqc',
-        name: 'FastQC',
-        description: 'Quality control tool for high throughput sequence data',
-        category: 'quality-control',
-        complexity: 'simple',
-        lastUsed: new Date(Date.now() - 3600000), // 1 hour ago
-        usageCount: 5
-      },
-      {
-        id: 'recent-default-2',
-        toolId: 'hisat2',
-        name: 'HISAT2',
-        description: 'Graph-based alignment of next generation sequencing reads',
-        category: 'alignment',
-        complexity: 'intermediate',
-        lastUsed: new Date(Date.now() - 7200000), // 2 hours ago
-        usageCount: 3
-      },
-      {
-        id: 'recent-default-3',
-        toolId: 'samtools',
-        name: 'SAMtools',
-        description: 'Tools for manipulating alignments in SAM/BAM format',
-        category: 'data-sources',
-        complexity: 'simple',
-        lastUsed: new Date(Date.now() - 10800000), // 3 hours ago
-        usageCount: 8
-      },
-      {
-        id: 'recent-default-4',
-        toolId: 'deseq2',
-        name: 'DESeq2',
-        description: 'Differential gene expression analysis',
-        category: 'statistics',
-        complexity: 'complex',
-        lastUsed: new Date(Date.now() - 14400000), // 4 hours ago
-        usageCount: 2
-      },
-      {
-        id: 'recent-default-5',
-        toolId: 'trimmomatic',
-        name: 'Trimmomatic',
-        description: 'Flexible read trimming tool for Illumina NGS data',
-        category: 'quality-control',
-        complexity: 'simple',
-        lastUsed: new Date(Date.now() - 18000000), // 5 hours ago
-        usageCount: 4
-      }
-    ];
-  }
+  // NOTE: fabricated demo tools (FastQC, HISAT2, …) were removed — they were
+  // rendered as the user's own recent tool usage with fake usage counts and
+  // timestamps. An empty account must show the honest empty state.
 }
 
 export const recentToolsService = new RecentToolsService();

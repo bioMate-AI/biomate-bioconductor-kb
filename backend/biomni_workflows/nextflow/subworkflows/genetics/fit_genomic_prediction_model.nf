@@ -56,7 +56,7 @@ with open("fit_genomic_prediction_model_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("fit_genomic_prediction_model_output.txt", "w") as f:
-    f.write("Biomni: Fit Genomic Prediction Model Results" + NL)
+    f.write("BioMate: Fit Genomic Prediction Model Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

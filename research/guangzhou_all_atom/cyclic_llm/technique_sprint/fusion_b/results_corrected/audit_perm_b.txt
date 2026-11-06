@@ -1,0 +1,16 @@
+2013_CHUGAI k=5 s=0 PT     indep=0.548479519 pipeline=0.548479519 |diff|=0.00e+00
+2013_CHUGAI k=5 s=0 A      indep=0.072278660 pipeline=0.072278660 |diff|=4.16e-17
+2013_CHUGAI k=5 s=0 PTk    indep=0.554357764 pipeline=0.554357764 |diff|=0.00e+00
+2013_CHUGAI k=5 s=0 F1b_5  indep=0.441098949 pipeline=0.441098949 |diff|=5.55e-17
+2013_CHUGAI k=5 s=0 F2b_5  indep=0.556936342 pipeline=0.556936342 |diff|=0.00e+00
+2013_CHUGAI k=10 s=2 PT     indep=0.544910457 pipeline=0.544910457 |diff|=0.00e+00
+2013_CHUGAI k=10 s=2 A      indep=0.238146481 pipeline=0.238146481 |diff|=5.55e-17
+2013_CHUGAI k=10 s=2 PTk    indep=0.531808859 pipeline=0.531808859 |diff|=0.00e+00
+2013_CHUGAI k=10 s=2 F1b_5  indep=0.429793036 pipeline=0.429793036 |diff|=5.55e-17
+2013_CHUGAI k=10 s=2 F2b_5  indep=0.471064538 pipeline=0.471064538 |diff|=5.55e-17
+2013_CHUGAI k=25 s=4 PT     indep=0.547217268 pipeline=0.547217268 |diff|=0.00e+00
+2013_CHUGAI k=25 s=4 A      indep=0.303944719 pipeline=0.303944719 |diff|=5.55e-17
+2013_CHUGAI k=25 s=4 PTk    indep=0.567655771 pipeline=0.567655771 |diff|=0.00e+00
+2013_CHUGAI k=25 s=4 F1b_5  indep=0.403325705 pipeline=0.403325705 |diff|=5.55e-17
+2013_CHUGAI k=25 s=4 F2b_5  indep=0.526762980 pipeline=0.526762980 |diff|=0.00e+00
+WORST |diff| = 5.551115123125783e-17 PASS

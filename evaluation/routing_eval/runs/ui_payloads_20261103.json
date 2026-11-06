@@ -1,0 +1,1471 @@
+[
+ {
+  "module": "search",
+  "track": "Literature",
+  "mod": "default",
+  "seed": "What is the evidence linking this target to disease?",
+  "prompt": "What is the evidence linking this target to disease?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_target_info.json",
+   "pilot_reference_actives.smi",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 0
+ },
+ {
+  "module": "search",
+  "track": "Literature",
+  "mod": "default",
+  "seed": "Known SAR for this chemotype — what drives potency?",
+  "prompt": "Known SAR for this chemotype — what drives potency?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_target_info.json",
+   "pilot_reference_actives.smi",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 1
+ },
+ {
+  "module": "search",
+  "track": "Literature",
+  "mod": "default",
+  "seed": "Why do inhibitors of this target usually fail on selectivity?",
+  "prompt": "Why do inhibitors of this target usually fail on selectivity?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_target_info.json",
+   "pilot_reference_actives.smi",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 2
+ },
+ {
+  "module": "search",
+  "track": "Databases",
+  "mod": "default",
+  "seed": "Pull every reported structure for this target.",
+  "prompt": "Pull every reported structure for this target.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_target_info.json",
+   "pilot_reference_actives.smi",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 3
+ },
+ {
+  "module": "search",
+  "track": "Databases",
+  "mod": "default",
+  "seed": "Known off-targets for this chemotype?",
+  "prompt": "Known off-targets for this chemotype?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_target_info.json",
+   "pilot_reference_actives.smi",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 4
+ },
+ {
+  "module": "search",
+  "track": "Databases",
+  "mod": "default",
+  "seed": "Which trials targeted this pathway, and what were their endpoints?",
+  "prompt": "Which trials targeted this pathway, and what were their endpoints?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_target_info.json",
+   "pilot_reference_actives.smi",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 5
+ },
+ {
+  "module": "search",
+  "track": "Patents",
+  "mod": "default",
+  "seed": "Who holds composition-of-matter claims on this scaffold?",
+  "prompt": "Who holds composition-of-matter claims on this scaffold?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_target_info.json",
+   "pilot_reference_actives.smi",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 6
+ },
+ {
+  "module": "search",
+  "track": "Patents",
+  "mod": "default",
+  "seed": "Freedom-to-operate picture for this series.",
+  "prompt": "Freedom-to-operate picture for this series.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_target_info.json",
+   "pilot_reference_actives.smi",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 7
+ },
+ {
+  "module": "search",
+  "track": "Patents",
+  "mod": "default",
+  "seed": "Are my generated candidates inside anyone's claims?",
+  "prompt": "Are my generated candidates inside anyone's claims?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: human ABL1 / BCR-ABL1 (UniProt P00519), chronic myeloid leukemia. The chemotype/series is imatinib and the attached pilot reference actives. Use these exact identifiers instead of asking what “this target/series/scaffold” means. Patent searches concern US claims and should report publication numbers, dates and claim scope; do not imply a legal clearance.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_target_info.json",
+   "pilot_reference_actives.smi",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 8
+ },
+ {
+  "module": "search",
+  "track": "Internal",
+  "mod": "default",
+  "seed": "Explore the prepared MG demo project: which datasets and sample groups are available?",
+  "prompt": "Explore the prepared MG demo project: which datasets and sample groups are available?",
+  "files": [],
+  "idx": 9
+ },
+ {
+  "module": "search",
+  "track": "Internal",
+  "mod": "default",
+  "seed": "In the prepared MG demo project, summarize counts_matrix.csv and the MG_AChR_pos versus HC contrast in contrasts.csv.",
+  "prompt": "In the prepared MG demo project, summarize counts_matrix.csv and the MG_AChR_pos versus HC contrast in contrasts.csv.",
+  "files": [],
+  "idx": 10
+ },
+ {
+  "module": "analysis",
+  "track": "Ad-hoc compute",
+  "mod": "default",
+  "seed": "Summarise this assay table and plot potency against logP.",
+  "prompt": "Summarise this assay table and plot potency against logP.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the published human BACE1 assays in bace_assays.csv: compound_id, smiles, IC50_nM, pIC50 and logP. IC50_nM is converted from published pIC50. Plot logP versus pIC50 and report units.",
+  "files": [
+   "bace_assays.csv",
+   "demo_notes.md"
+  ],
+  "idx": 11
+ },
+ {
+  "module": "analysis",
+  "track": "Ad-hoc compute",
+  "mod": "default",
+  "seed": "Correlate predicted and measured IC50 for these compounds.",
+  "prompt": "Correlate predicted and measured IC50 for these compounds.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nCompare measured and predicted IC50_nM in predicted_measured.csv on the held-out BACE Valid/Test compounds. Predictions come from the documented teaching baseline, not a validated production predictor. Compare on a log scale.",
+  "files": [
+   "predicted_measured.csv",
+   "prediction_method.json",
+   "demo_notes.md"
+  ],
+  "idx": 12
+ },
+ {
+  "module": "analysis",
+  "track": "Ad-hoc compute",
+  "mod": "default",
+  "seed": "Reshape this plate readout into long format and save it.",
+  "prompt": "Reshape this plate readout into long format and save it.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nplate_layout.csv is an illustrative 8×12 reshaping of 96 published BACE IC50_nM values; plate_compounds.csv maps each well to compound_id and SMILES. It is not a newly measured plate. Reshape into well, compound_id, smiles, IC50_nM.",
+  "files": [
+   "plate_layout.csv",
+   "plate_compounds.csv",
+   "demo_notes.md"
+  ],
+  "idx": 13
+ },
+ {
+  "module": "analysis",
+  "track": "Validated workflows",
+  "mod": "default",
+  "seed": "Screen these SMILES for ADMET liabilities, hERG first.",
+  "prompt": "Screen these SMILES for ADMET liabilities, hERG first.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nScreen the SMILES column of pilot_compounds.csv. pilot_assay_results_arm3.csv contains curated published controls and illustrative analog annotations, not a new experiment; preserve those distinctions. Prioritize hERG, CYP3A4 and solubility. Distinguish predictions from supplied evidence.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_assay_results_arm3.csv",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 14
+ },
+ {
+  "module": "analysis",
+  "track": "Validated workflows",
+  "mod": "default",
+  "seed": "Differential expression between treated and control, then GO enrichment.",
+  "prompt": "Differential expression between treated and control, then GO enrichment.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the attached original airway GSE52778 counts and metadata. Human dexamethasone-treated airway smooth muscle cells: condition trt versus untrt, paired by cell. DESeq2 design ~ cell + condition, contrast trt/untrt; FDR 0.05. Gene IDs are Ensembl; do not reinterpret counts as a different experiment.",
+  "files": [
+   "airway_counts.csv",
+   "airway_metadata.csv",
+   "demo_notes.md"
+  ],
+  "idx": 15
+ },
+ {
+  "module": "analysis",
+  "track": "Validated workflows",
+  "mod": "default",
+  "seed": "Call variants on these samples and flag the clinically relevant ones.",
+  "prompt": "Call variants on these samples and flag the clinically relevant ones.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the paired nf-core/sarek tiny normal reads and the attached matching small GRCh37/b37 reference, NOT GRCh38. This is a small pipeline fixture, not a clinical diagnostic dataset. Do not claim clinical relevance from sparse test coverage; report callable regions and available annotations.",
+  "files": [
+   "normal_R1.fastq.gz",
+   "normal_R2.fastq.gz",
+   "tumor_R1.fastq.gz",
+   "tumor_R2.fastq.gz",
+   "reference_grch37.fasta",
+   "sequencing_samples.csv",
+   "demo_notes.md"
+  ],
+  "idx": 16
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: myasthenia gravis differential expression",
+  "prompt": "Run differential expression on the attached AChR+ myasthenia gravis PBMC demo data (GSE227835, 10 MG patients vs 10 healthy controls). Use the attached sample metadata and contrasts; identify key differentially expressed genes.",
+  "files": [
+   "counts_matrix.csv",
+   "sample_metadata.csv",
+   "contrasts.csv"
+  ],
+  "idx": 17
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: human cachexia metabolomics",
+  "prompt": "Run the metaboanalystr workflow using its built-in real human_cachexia demo dataset (77 samples, 63 metabolites). Use the public sample data defaults; do not require my own uploads.",
+  "files": [],
+  "idx": 18
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: EBV antibody titers (ELISA)",
+  "prompt": "Run the analyze_ebv_antibody_titers workflow using its built-in ELISA OD readings and standard-curve demo data; quantify antibody titers (VCA / EA / EBNA1, IgG & IgM) across the EBV-positive, EBV-active and EBV-negative sample groups. Use the public sample-data defaults; do not require my own uploads. (Demonstrates the soluble-protein ELISA → titer → group-comparison method used in immunology/rheumatology biomarker work.)",
+  "files": [],
+  "idx": 19
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: flow cytometry immunophenotyping",
+  "prompt": "Run analyze_flow_cytometry_immunophenotyping using its built-in real Accuri C6 FCS demo file; apply the default lymphocyte gating strategy and report marker-positive subset frequencies. Use the public sample-data defaults; do not require my own uploads. (Demonstrates the flow-cytometry gating → immune-subset quantification method used in rheumatology/immunology biomarker work.)",
+  "files": [],
+  "idx": 20
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: CAR-T construct design",
+  "prompt": "Run the cart_construct_design workflow to design a CD19-targeting CAR construct for B-cell indications: select CAR generation, costimulatory domain and format, and report the design rationale. Use the built-in defaults (target CD19, 2nd generation, auto costimulatory domain). This is an in-silico design exercise, not a validated construct; do not require my own uploads.",
+  "files": [],
+  "idx": 21
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: autoimmune cohort survival (Cox PH)",
+  "prompt": "Run survival_cox_proportional_hazards_regression on the attached demo autoimmune-cohort clinical data (60 patients: time-to-flare in months, event status, age, sex, treatment arm, disease-activity score). Fit a Cox proportional-hazards model to evaluate how treatment arm and disease-activity score affect flare-free survival; report hazard ratios with confidence intervals. (A responder-stratification / survival demonstration on synthetic demo clinical data, not a real cohort.)",
+  "files": [
+   "patient_clinical_data.csv"
+  ],
+  "idx": 22
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: CTCF ChIP-seq peak calling",
+  "prompt": "Run perform_chipseq_peak_calling_with_macs2 using its built-in MACS3 CTCF_SE ChIP and control chr22 50k-read BED demo files. Use the real public demo defaults.",
+  "files": [],
+  "idx": 23
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: histology nuclei segmentation",
+  "prompt": "Run wsi_he_nuclei_segmentation using the built-in real OpenSlide CMU-1-Small-Region.svs demo slide. Use the public sample data defaults.",
+  "files": [],
+  "idx": 24
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: ATAC-seq accessibility",
+  "prompt": "Run analyze_atac_seq_differential_accessibility using its built-in real nf-core treatment and control BAM demo pair. Use the public sample data defaults.",
+  "files": [],
+  "idx": 25
+ },
+ {
+  "module": "analysis",
+  "track": "Try sample data",
+  "mod": "default",
+  "seed": "Try sample data: proteomics pull-down QC",
+  "prompt": "Run the chemoproteomics_pulldown workflow on its built-in LFQ-Analyst proteinGroups.txt public demo dataset; use the sample-data defaults. (A workflow + QC demonstration on public demo data, not a biologically specific pull-down.)",
+  "files": [],
+  "idx": 26
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "default",
+  "seed": "Generate candidates for this target with drug-like properties.",
+  "prompt": "Generate candidates for this target with drug-like properties.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 27
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "default",
+  "seed": "Scaffold-hop away from this series but keep the binding pharmacophore.",
+  "prompt": "Scaffold-hop away from this series but keep the binding pharmacophore.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 28
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "default",
+  "seed": "Grow this fragment into a lead-like molecule.",
+  "prompt": "Grow this fragment into a lead-like molecule.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 29
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "sm",
+  "seed": "Generate 500 candidates for this target with drug-like properties.",
+  "prompt": "Generate 500 candidates for this target with drug-like properties.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 30
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "sm",
+  "seed": "Scaffold-hop away from this series but keep the binding pharmacophore.",
+  "prompt": "Scaffold-hop away from this series but keep the binding pharmacophore.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 31
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "sm",
+  "seed": "Grow this fragment into a lead-like molecule.",
+  "prompt": "Grow this fragment into a lead-like molecule.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 32
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "pep",
+  "seed": "Design cyclic peptides against this binding site.",
+  "prompt": "Design cyclic peptides against this binding site.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: BCL-XL, chain A of 1BXL; reference BAK BH3 helix is chain B (GQVGRQLAIIGDDINR). peptide_candidates.fasta contains the reference and explicitly unmeasured single-substitution design candidates. Preserve the BAK binding motif and specify cyclization/stapling chemistry before predicting. Report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty, not measured properties.",
+  "files": [
+   "1BXL.pdb",
+   "1BXL.fasta",
+   "peptide_candidates.fasta",
+   "peptide_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 33
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "pep",
+  "seed": "Propose stapled-peptide analogues of this helix.",
+  "prompt": "Propose stapled-peptide analogues of this helix.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: BCL-XL, chain A of 1BXL; reference BAK BH3 helix is chain B (GQVGRQLAIIGDDINR). peptide_candidates.fasta contains the reference and explicitly unmeasured single-substitution design candidates. Preserve the BAK binding motif and specify cyclization/stapling chemistry before predicting. Report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty, not measured properties.",
+  "files": [
+   "1BXL.pdb",
+   "1BXL.fasta",
+   "peptide_candidates.fasta",
+   "peptide_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 34
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "pep",
+  "seed": "Generate macrocycle candidates with good permeability.",
+  "prompt": "Generate macrocycle candidates with good permeability.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the attached 50 published BindingDB macrocyclic ligands annotated for human mu-opioid receptor (OPRM1). Ligand structures are validated SMILES, each with a ring of at least 12 atoms; preserve cyclization chemistry. Preserve measured Ki/Kd/IC50 units, and predict missing permeability/stability rather than inventing labels. Optimize/shortlist within this explicit input set.",
+  "files": [
+   "macrocycles.csv",
+   "macrocycle_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 35
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "bio",
+  "seed": "Design nanobody candidates against this epitope.",
+  "prompt": "Design nanobody candidates against this epitope.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 36
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "bio",
+  "seed": "Graft these CDRs onto a stable human framework. (protein design)",
+  "prompt": "Graft these CDRs onto a stable human framework. (protein design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 37
+ },
+ {
+  "module": "design",
+  "track": "Generate",
+  "mod": "bio",
+  "seed": "Propose enzyme variants with a redesigned active-site pocket. (protein design)",
+  "prompt": "Propose enzyme variants with a redesigned active-site pocket. (protein design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse hen egg-white lysozyme 1LYZ. Preserve catalytic Glu35/Asp52 and disulfide cysteines, with residue numbers from the supplied PDB. enzyme_candidates.fasta contains explicitly unmeasured variants outside catalytic residues. Predict activity/thermostability changes with uncertainty; do not claim measured improvements.",
+  "files": [
+   "1LYZ.pdb",
+   "1LYZ.fasta",
+   "enzyme_candidates.fasta",
+   "enzyme_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 38
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "default",
+  "seed": "Predict binding affinity for these candidates against my target.",
+  "prompt": "Predict binding affinity for these candidates against my target.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 39
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "default",
+  "seed": "Which of these would you expect to bind, and why?",
+  "prompt": "Which of these would you expect to bind, and why?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 40
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "default",
+  "seed": "Dock the top 50 and check the poses are plausible.",
+  "prompt": "Dock the top 50 and check the poses are plausible.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 41
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "default",
+  "seed": "Compute the relative binding free energy between two analogues against my target.",
+  "prompt": "Compute the relative binding free energy between two analogues against my target.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nDock the attached reference_actives ligands against the ABL1 ATP pocket in 1IEP.pdb (imatinib-bound kinase). Use the bound STI ligand to define the docking box, and report predicted poses/scores rather than measured affinities.",
+  "files": [
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 42
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "sm",
+  "seed": "Predict binding affinity for these candidates against my target.",
+  "prompt": "Predict binding affinity for these candidates against my target.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 43
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "sm",
+  "seed": "Which of these would you expect to bind, and why?",
+  "prompt": "Which of these would you expect to bind, and why?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 44
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "sm",
+  "seed": "Dock the top 50 and check the poses are plausible.",
+  "prompt": "Dock the top 50 and check the poses are plausible.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 45
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "sm",
+  "seed": "Compute the relative binding free energy between two analogues against my target.",
+  "prompt": "Compute the relative binding free energy between two analogues against my target.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nDock the attached reference_actives ligands against the ABL1 ATP pocket in 1IEP.pdb (imatinib-bound kinase). Use the bound STI ligand to define the docking box, and report predicted poses/scores rather than measured affinities.",
+  "files": [
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 46
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "pep",
+  "seed": "Predict binding and serum stability for these peptides.",
+  "prompt": "Predict binding and serum stability for these peptides.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: BCL-XL, chain A of 1BXL; reference BAK BH3 helix is chain B (GQVGRQLAIIGDDINR). peptide_candidates.fasta contains the reference and explicitly unmeasured single-substitution design candidates. Preserve the BAK binding motif and specify cyclization/stapling chemistry before predicting. Report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty, not measured properties.",
+  "files": [
+   "1BXL.pdb",
+   "1BXL.fasta",
+   "peptide_candidates.fasta",
+   "peptide_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 47
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "pep",
+  "seed": "Which macrocycles are likely to be cell-permeable?",
+  "prompt": "Which macrocycles are likely to be cell-permeable?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the attached 50 published BindingDB macrocyclic ligands annotated for human mu-opioid receptor (OPRM1). Ligand structures are validated SMILES, each with a ring of at least 12 atoms; preserve cyclization chemistry. Preserve measured Ki/Kd/IC50 units, and predict missing permeability/stability rather than inventing labels. Optimize/shortlist within this explicit input set.",
+  "files": [
+   "macrocycles.csv",
+   "macrocycle_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 48
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "pep",
+  "seed": "Screen these peptides for aggregation risk.",
+  "prompt": "Screen these peptides for aggregation risk.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: BCL-XL, chain A of 1BXL; reference BAK BH3 helix is chain B (GQVGRQLAIIGDDINR). peptide_candidates.fasta contains the reference and explicitly unmeasured single-substitution design candidates. Preserve the BAK binding motif and specify cyclization/stapling chemistry before predicting. Report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty, not measured properties.",
+  "files": [
+   "1BXL.pdb",
+   "1BXL.fasta",
+   "peptide_candidates.fasta",
+   "peptide_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 49
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "pep",
+  "seed": "Compute the relative binding free energy for a single-residue change in this peptide binder.",
+  "prompt": "Compute the relative binding free energy for a single-residue change in this peptide binder.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: BCL-XL, chain A of 1BXL; reference BAK BH3 helix is chain B (GQVGRQLAIIGDDINR). peptide_candidates.fasta contains the reference and explicitly unmeasured single-substitution design candidates. Preserve the BAK binding motif and specify cyclization/stapling chemistry before predicting. Report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty, not measured properties.",
+  "files": [
+   "1BXL.pdb",
+   "1BXL.fasta",
+   "peptide_candidates.fasta",
+   "peptide_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 50
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "bio",
+  "seed": "Predict developability liabilities for these antibody candidates.",
+  "prompt": "Predict developability liabilities for these antibody candidates.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 51
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "bio",
+  "seed": "Which variants keep affinity and lose aggregation risk? (protein design)",
+  "prompt": "Which variants keep affinity and lose aggregation risk? (protein design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 52
+ },
+ {
+  "module": "design",
+  "track": "Predict & filter",
+  "mod": "bio",
+  "seed": "Flag expression and stability risks across these designs. (protein design)",
+  "prompt": "Flag expression and stability risks across these designs. (protein design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 53
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "default",
+  "seed": "Optimise this series for potency without losing solubility.",
+  "prompt": "Optimise this series for potency without losing solubility.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 54
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "default",
+  "seed": "Improve druglikeness while keeping hERG above 30 µM.",
+  "prompt": "Improve druglikeness while keeping hERG above 30 µM.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 55
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "default",
+  "seed": "Fix the metabolic liability on this scaffold and re-score.",
+  "prompt": "Fix the metabolic liability on this scaffold and re-score.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 56
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "sm",
+  "seed": "Optimise this series for potency without losing solubility.",
+  "prompt": "Optimise this series for potency without losing solubility.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 57
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "sm",
+  "seed": "Improve druglikeness while keeping hERG above 30 µM.",
+  "prompt": "Improve druglikeness while keeping hERG above 30 µM.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 58
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "sm",
+  "seed": "Fix the metabolic liability on this scaffold and re-score.",
+  "prompt": "Fix the metabolic liability on this scaffold and re-score.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 59
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "pep",
+  "seed": "Improve serum stability without losing affinity. (peptide design)",
+  "prompt": "Improve serum stability without losing affinity. (peptide design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: BCL-XL, chain A of 1BXL; reference BAK BH3 helix is chain B (GQVGRQLAIIGDDINR). peptide_candidates.fasta contains the reference and explicitly unmeasured single-substitution design candidates. Preserve the BAK binding motif and specify cyclization/stapling chemistry before predicting. Report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty, not measured properties.",
+  "files": [
+   "1BXL.pdb",
+   "1BXL.fasta",
+   "peptide_candidates.fasta",
+   "peptide_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 60
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "pep",
+  "seed": "Reduce charge while keeping cell permeability. (peptide design)",
+  "prompt": "Reduce charge while keeping cell permeability. (peptide design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: BCL-XL, chain A of 1BXL; reference BAK BH3 helix is chain B (GQVGRQLAIIGDDINR). peptide_candidates.fasta contains the reference and explicitly unmeasured single-substitution design candidates. Preserve the BAK binding motif and specify cyclization/stapling chemistry before predicting. Report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty, not measured properties.",
+  "files": [
+   "1BXL.pdb",
+   "1BXL.fasta",
+   "peptide_candidates.fasta",
+   "peptide_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 61
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "pep",
+  "seed": "Optimise these macrocycles for both potency and solubility.",
+  "prompt": "Optimise these macrocycles for both potency and solubility.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the attached 50 published BindingDB macrocyclic ligands annotated for human mu-opioid receptor (OPRM1). Ligand structures are validated SMILES, each with a ring of at least 12 atoms; preserve cyclization chemistry. Preserve measured Ki/Kd/IC50 units, and predict missing permeability/stability rather than inventing labels. Optimize/shortlist within this explicit input set.",
+  "files": [
+   "macrocycles.csv",
+   "macrocycle_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 62
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "bio",
+  "seed": "Optimise this antibody for developability — aggregation and viscosity.",
+  "prompt": "Optimise this antibody for developability — aggregation and viscosity.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 63
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "bio",
+  "seed": "Humanise this nanobody and keep affinity.",
+  "prompt": "Humanise this nanobody and keep affinity.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 64
+ },
+ {
+  "module": "design",
+  "track": "Optimise properties · one pass",
+  "mod": "bio",
+  "seed": "Raise thermostability without losing catalytic activity. (protein design)",
+  "prompt": "Raise thermostability without losing catalytic activity. (protein design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse hen egg-white lysozyme 1LYZ. Preserve catalytic Glu35/Asp52 and disulfide cysteines, with residue numbers from the supplied PDB. enzyme_candidates.fasta contains explicitly unmeasured variants outside catalytic residues. Predict activity/thermostability changes with uncertainty; do not claim measured improvements.",
+  "files": [
+   "1LYZ.pdb",
+   "1LYZ.fasta",
+   "enzyme_candidates.fasta",
+   "enzyme_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 65
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "default",
+  "seed": "Rank these candidates for developability and show me the top 20.",
+  "prompt": "Rank these candidates for developability and show me the top 20.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 66
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "default",
+  "seed": "Which candidates pass every safety gate?",
+  "prompt": "Which candidates pass every safety gate?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 67
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "default",
+  "seed": "Triage this library into synthesise-now and park.",
+  "prompt": "Triage this library into synthesise-now and park.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 68
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "sm",
+  "seed": "Rank these 500 candidates for developability and show me the top 20.",
+  "prompt": "Rank these 500 candidates for developability and show me the top 20.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 69
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "sm",
+  "seed": "Which candidates pass every safety gate?",
+  "prompt": "Which candidates pass every safety gate?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 70
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "sm",
+  "seed": "Triage this library into synthesise-now and park.",
+  "prompt": "Triage this library into synthesise-now and park.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 71
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "pep",
+  "seed": "Rank these peptides on affinity, stability and permeability together.",
+  "prompt": "Rank these peptides on affinity, stability and permeability together.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: BCL-XL, chain A of 1BXL; reference BAK BH3 helix is chain B (GQVGRQLAIIGDDINR). peptide_candidates.fasta contains the reference and explicitly unmeasured single-substitution design candidates. Preserve the BAK binding motif and specify cyclization/stapling chemistry before predicting. Report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty, not measured properties.",
+  "files": [
+   "1BXL.pdb",
+   "1BXL.fasta",
+   "peptide_candidates.fasta",
+   "peptide_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 72
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "pep",
+  "seed": "Which macrocycles pass every developability gate?",
+  "prompt": "Which macrocycles pass every developability gate?\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the attached 50 published BindingDB macrocyclic ligands annotated for human mu-opioid receptor (OPRM1). Ligand structures are validated SMILES, each with a ring of at least 12 atoms; preserve cyclization chemistry. Preserve measured Ki/Kd/IC50 units, and predict missing permeability/stability rather than inventing labels. Optimize/shortlist within this explicit input set.",
+  "files": [
+   "macrocycles.csv",
+   "macrocycle_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 73
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "pep",
+  "seed": "Shortlist the top 20 peptides to synthesise first.",
+  "prompt": "Shortlist the top 20 peptides to synthesise first.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTarget: BCL-XL, chain A of 1BXL; reference BAK BH3 helix is chain B (GQVGRQLAIIGDDINR). peptide_candidates.fasta contains the reference and explicitly unmeasured single-substitution design candidates. Preserve the BAK binding motif and specify cyclization/stapling chemistry before predicting. Report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty, not measured properties.",
+  "files": [
+   "1BXL.pdb",
+   "1BXL.fasta",
+   "peptide_candidates.fasta",
+   "peptide_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 74
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "bio",
+  "seed": "Rank these designs on developability and expression risk. (protein design)",
+  "prompt": "Rank these designs on developability and expression risk. (protein design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 75
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "bio",
+  "seed": "Which variants pass every liability gate? (protein design)",
+  "prompt": "Which variants pass every liability gate? (protein design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 76
+ },
+ {
+  "module": "design",
+  "track": "Rank candidates",
+  "mod": "bio",
+  "seed": "Triage this design set into express-now and park. (protein design)",
+  "prompt": "Triage this design set into express-now and park. (protein design)\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse experimental H11-D4 nanobody–SARS-CoV-2 spike complex 6Z43. Target is spike RBD; epitope is the spike residues within 5 Å of nanobody chain X in the PDB author numbering. 6Z43.fasta identifies target and nanobody sequences including construct tags; nanobody_candidates.fasta contains explicitly unmeasured framework design variants. Preserve the supplied CDR sequence constraints; the human IgG b12 framework source is 1HZH.fasta, with numbering requirements in nanobody_constraints.json. Expression, affinity and developability are predictions, not assay results.",
+  "files": [
+   "6Z43.pdb",
+   "6Z43.fasta",
+   "1HZH.fasta",
+   "nanobody_candidates.fasta",
+   "nanobody_constraints.json",
+   "demo_notes.md"
+  ],
+  "idx": 77
+ },
+ {
+  "module": "models",
+  "track": "Train",
+  "mod": "default",
+  "seed": "Train a potency predictor on our in-house assay data.",
+  "prompt": "Train a potency predictor on our in-house assay data.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTrain a BACE1 potency predictor on the real published BACE assays, using SMILES and pIC50. The Train/Valid/Test splits are supplied. Preserve holdout separation, use scaffold-aware validation and report uncertainty/leakage checks; these are public tutorial data, not our in-house assays.",
+  "files": [
+   "bace_assays.csv",
+   "demo_notes.md"
+  ],
+  "idx": 78
+ },
+ {
+  "module": "models",
+  "track": "Train",
+  "mod": "default",
+  "seed": "Train an hERG classifier and gate the design loop on it.",
+  "prompt": "Train an hERG classifier and gate the design loop on it.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTrain using exact published ChEMBL240 (human KCNH2/hERG) IC50 measurements in herg.csv, units nM. herg_blocker = IC50_nM <10000. Split by compound/scaffold and audit repeated assay evidence; report class balance and validation before applying a design gate.",
+  "files": [
+   "herg.csv",
+   "demo_notes.md"
+  ],
+  "idx": 79
+ },
+ {
+  "module": "models",
+  "track": "Train",
+  "mod": "default",
+  "seed": "Train a solubility model from our historical plate data.",
+  "prompt": "Train a solubility model from our historical plate data.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTrain on the real Delaney/ESOL public dataset. Target is “measured log solubility in mols per litre”; input is smiles. Do not use “ESOL predicted log solubility” as a measured label or as an input feature (leakage). Use scaffold-aware held-out evaluation.",
+  "files": [
+   "solubility.csv",
+   "demo_notes.md"
+  ],
+  "idx": 80
+ },
+ {
+  "module": "models",
+  "track": "Adapt",
+  "mod": "default",
+  "seed": "Adapt the generative model to our chemical series.",
+  "prompt": "Adapt the generative model to our chemical series.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+  "files": [
+   "candidate_library.csv",
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 81
+ },
+ {
+  "module": "models",
+  "track": "Adapt",
+  "mod": "default",
+  "seed": "Fine-tune this property predictor on our measured compounds.",
+  "prompt": "Fine-tune this property predictor on our measured compounds.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nTrain a BACE1 potency predictor on the real published BACE assays, using SMILES and pIC50. The Train/Valid/Test splits are supplied. Preserve holdout separation, use scaffold-aware validation and report uncertainty/leakage checks; these are public tutorial data, not our in-house assays.",
+  "files": [
+   "bace_assays.csv",
+   "demo_notes.md"
+  ],
+  "idx": 82
+ },
+ {
+  "module": "models",
+  "track": "Optimise",
+  "mod": "default",
+  "seed": "Run the design–make–test loop on this series under a 96-assay budget.",
+  "prompt": "Run the design–make–test loop on this series under a 96-assay budget.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the published BACE1 assay data and 500-compound test library. Treat the supplied Train split as the available starting observations; keep Valid/Test measurements hidden during selection. Set a 96-assay proposal budget. Propose candidates and stop for actual measurement; do not fabricate new assay results or refit on invented observations.",
+  "files": [
+   "bace_assays.csv",
+   "candidate_library.csv",
+   "demo_notes.md"
+  ],
+  "idx": 83
+ },
+ {
+  "module": "models",
+  "track": "Optimise",
+  "mod": "default",
+  "seed": "Propose the next round and refit on the results.",
+  "prompt": "Propose the next round and refit on the results.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the published BACE1 assay data and 500-compound test library. Treat the supplied Train split as the available starting observations; keep Valid/Test measurements hidden during selection. Set a 96-assay proposal budget. Propose candidates and stop for actual measurement; do not fabricate new assay results or refit on invented observations.",
+  "files": [
+   "bace_assays.csv",
+   "candidate_library.csv",
+   "demo_notes.md"
+  ],
+  "idx": 84
+ },
+ {
+  "module": "domain:dd",
+  "track": "Screen a compound set for ADMET liabilities",
+  "mod": "default",
+  "seed": "Screen these SMILES for ADMET liabilities and rank them by developability: CC(=O)Oc1ccccc1C(=O)O, CN1C=NC2=C1C(=O)N(C(=O)N2C)C, CC(C)Cc1ccc(C(C)C(=O)O)cc1",
+  "prompt": "Screen these SMILES for ADMET liabilities and rank them by developability: CC(=O)Oc1ccccc1C(=O)O, CN1C=NC2=C1C(=O)N(C(=O)N2C)C, CC(C)Cc1ccc(C(C)C(=O)O)cc1\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nScreen only the three attached compounds: aspirin, caffeine and ibuprofen. Prioritize hERG, CYP3A4 and solubility. These are molecular inputs; compute predictions, do not invent assay results.",
+  "files": [
+   "example_smiles.csv",
+   "demo_notes.md"
+  ],
+  "idx": 85
+ },
+ {
+  "module": "domain:dd",
+  "track": "Dock a series against a target and rank poses",
+  "mod": "default",
+  "seed": "Dock this series against my target and rank the poses.",
+  "prompt": "Dock this series against my target and rank the poses.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nDock the attached reference_actives ligands against the ABL1 ATP pocket in 1IEP.pdb (imatinib-bound kinase). Use the bound STI ligand to define the docking box, and report predicted poses/scores rather than measured affinities.",
+  "files": [
+   "1IEP.pdb",
+   "pilot_reference_actives.smi",
+   "pilot_target_info.json",
+   "demo_notes.md"
+  ],
+  "idx": 86
+ },
+ {
+  "module": "domain:dd",
+  "track": "Explain why a hit series is failing on one property",
+  "mod": "default",
+  "seed": "Why might this hit series be failing on hERG? Cite the evidence.",
+  "prompt": "Why might this hit series be failing on hERG? Cite the evidence.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nScreen the SMILES column of pilot_compounds.csv. pilot_assay_results_arm3.csv contains curated published controls and illustrative analog annotations, not a new experiment; preserve those distinctions. Prioritize hERG, CYP3A4 and solubility. Distinguish predictions from supplied evidence.",
+  "files": [
+   "pilot_compounds.csv",
+   "pilot_assay_results_arm3.csv",
+   "pilot_README.md",
+   "demo_notes.md"
+  ],
+  "idx": 87
+ },
+ {
+  "module": "domain:txn",
+  "track": "Differential expression between two conditions",
+  "mod": "default",
+  "seed": "Run DESeq2 differential expression on the airway dataset (treated vs control), then GO enrichment. Human GRCh38.",
+  "prompt": "Run DESeq2 differential expression on the airway dataset (treated vs control), then GO enrichment.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the attached original airway GSE52778 counts and metadata. Human dexamethasone-treated airway smooth muscle cells: condition trt versus untrt, paired by cell. DESeq2 design ~ cell + condition, contrast trt/untrt; FDR 0.05. Gene IDs are Ensembl; do not reinterpret counts as a different experiment.",
+  "files": [
+   "airway_counts.csv",
+   "airway_metadata.csv",
+   "demo_notes.md"
+  ],
+  "idx": 88
+ },
+ {
+  "module": "domain:txn",
+  "track": "Subtype cells from single-cell RNA-seq",
+  "mod": "default",
+  "seed": "Cluster and annotate my single-cell RNA-seq and find the cell-type composition and markers.",
+  "prompt": "Cluster and annotate my single-cell RNA-seq and find the cell-type composition and markers.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the attached real 10x PBMC3k raw h5ad: 2,700 healthy human PBMCs. Perform QC, clustering, cell-type annotation and marker analysis; no disease/control contrast is present.",
+  "files": [
+   "pbmc3k_raw.h5ad",
+   "demo_notes.md"
+  ],
+  "idx": 89
+ },
+ {
+  "module": "domain:txn",
+  "track": "Integrate multi-omics across phenotypes",
+  "mod": "default",
+  "seed": "Integrate my multi-omics layers across phenotypes and show the shared factors that survive.",
+  "prompt": "Integrate my multi-omics layers across phenotypes and show the shared factors that survive.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the published mixOmics nutrimouse data: matched gene expression and lipid tables for 40 mice. Join by sample; genotype and diet are in nutrimouse_metadata.csv. Analyze shared factors and associations with genotype/diet.",
+  "files": [
+   "nutrimouse_gene.csv",
+   "nutrimouse_lipid.csv",
+   "nutrimouse_metadata.csv",
+   "demo_notes.md"
+  ],
+  "idx": 90
+ },
+ {
+  "module": "domain:gen",
+  "track": "Call variants and flag the clinically relevant ones",
+  "mod": "default",
+  "seed": "Call variants on these samples and flag the clinically relevant ones. Human GRCh38.",
+  "prompt": "Call variants on these samples and flag the clinically relevant ones.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the paired nf-core/sarek tiny normal reads and the attached matching small GRCh37/b37 reference, NOT GRCh38. This is a small pipeline fixture, not a clinical diagnostic dataset. Do not claim clinical relevance from sparse test coverage; report callable regions and available annotations.",
+  "files": [
+   "normal_R1.fastq.gz",
+   "normal_R2.fastq.gz",
+   "tumor_R1.fastq.gz",
+   "tumor_R2.fastq.gz",
+   "reference_grch37.fasta",
+   "sequencing_samples.csv",
+   "demo_notes.md"
+  ],
+  "idx": 91
+ },
+ {
+  "module": "domain:gen",
+  "track": "Compare variant burden between two cohorts",
+  "mod": "default",
+  "seed": "Compare variant burden between my responder and non-responder cohorts.",
+  "prompt": "Compare variant burden between my responder and non-responder cohorts.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the real nf-core Strelka normal/tumor VCF subsets and variant_samples.csv. There is one sample per group, not observed clinical responder/non-responder cohorts. Compare descriptive variant counts and genomic coverage; do not report a cohort significance test with n=1.",
+  "files": [
+   "Strelka_1234N_variants.vcf.gz",
+   "Strelka_9876T_variants.vcf.gz",
+   "variant_samples.csv",
+   "demo_notes.md"
+  ],
+  "idx": 92
+ },
+ {
+  "module": "domain:gen",
+  "track": "Check contamination and relatedness before analysis",
+  "mod": "default",
+  "seed": "Check these samples for contamination and relatedness before I analyse them.",
+  "prompt": "Check these samples for contamination and relatedness before I analyse them.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the paired nf-core/sarek tiny normal reads and the attached matching small GRCh37/b37 reference, NOT GRCh38. This is a small pipeline fixture, not a clinical diagnostic dataset. Do not claim clinical relevance from sparse test coverage; report callable regions and available annotations.",
+  "files": [
+   "normal_R1.fastq.gz",
+   "normal_R2.fastq.gz",
+   "tumor_R1.fastq.gz",
+   "tumor_R2.fastq.gz",
+   "reference_grch37.fasta",
+   "sequencing_samples.csv",
+   "demo_notes.md"
+  ],
+  "idx": 93
+ },
+ {
+  "module": "domain:fgen",
+  "track": "Call hits from a pooled CRISPR screen",
+  "mod": "default",
+  "seed": "Analyze my pooled CRISPR screen: call enriched/depleted hits at an FDR cutoff and rank the candidate dependency genes.",
+  "prompt": "Analyze my pooled CRISPR screen: call enriched/depleted hits at an FDR cutoff and rank the candidate dependency genes.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the official MAGeCK demo: sgRNA and Gene columns, HL60.initial/HL60.final and KBM7.initial/KBM7.final. Analyze final versus initial separately within each cell line and compare depletion effects between lines. There is one column per line/time, no replicate experiment: report that limitation and do not fabricate replicate correlations.",
+  "files": [
+   "crispr_counts.tsv",
+   "crispr_design.csv",
+   "demo_notes.md"
+  ],
+  "idx": 94
+ },
+ {
+  "module": "domain:fgen",
+  "track": "Compare screen hits across two conditions",
+  "mod": "default",
+  "seed": "Compare my CRISPR screen hits between the two conditions and flag condition-specific dependencies.",
+  "prompt": "Compare my CRISPR screen hits between the two conditions and flag condition-specific dependencies.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the official MAGeCK demo: sgRNA and Gene columns, HL60.initial/HL60.final and KBM7.initial/KBM7.final. Analyze final versus initial separately within each cell line and compare depletion effects between lines. There is one column per line/time, no replicate experiment: report that limitation and do not fabricate replicate correlations.",
+  "files": [
+   "crispr_counts.tsv",
+   "crispr_design.csv",
+   "demo_notes.md"
+  ],
+  "idx": 95
+ },
+ {
+  "module": "domain:fgen",
+  "track": "QC a screen before hit-calling",
+  "mod": "default",
+  "seed": "QC my CRISPR screen — guide representation, replicate correlation, and control separation — before hit-calling.",
+  "prompt": "QC my CRISPR screen — guide representation, replicate correlation, and control separation — before hit-calling.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the official MAGeCK demo: sgRNA and Gene columns, HL60.initial/HL60.final and KBM7.initial/KBM7.final. Analyze final versus initial separately within each cell line and compare depletion effects between lines. There is one column per line/time, no replicate experiment: report that limitation and do not fabricate replicate correlations.",
+  "files": [
+   "crispr_counts.tsv",
+   "crispr_design.csv",
+   "demo_notes.md"
+  ],
+  "idx": 96
+ },
+ {
+  "module": "domain:str",
+  "track": "Process a cryo-EM set to a density map",
+  "mod": "default",
+  "seed": "Process this cryo-EM dataset to a density map and report the resolution.",
+  "prompt": "Process this cryo-EM dataset to a density map and report the resolution.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the already staged EMPIAR-10028 beta-galactosidase movies at s3://biomate-cryo-data/empiar-10028/Micrographs/ (001_movie.mrcs through 020_movie.mrcs). cryo_inputs.json provides acquisition settings: pixel size 0.885 Å, 300 kV, Cs 2.7 mm, amplitude contrast 0.1, symmetry D2, particle diameter 180 Å. Bind the staged movie prefix as the workflow input, not this manifest as a micrograph. This 20-movie tutorial subset is not guaranteed to reconstruct the full-dataset resolution; report observed QC/resolution honestly.",
+  "files": [
+   "cryo_inputs.json",
+   "demo_notes.md"
+  ],
+  "idx": 97
+ },
+ {
+  "module": "domain:str",
+  "track": "Predict and assess a structure for a sequence",
+  "mod": "default",
+  "seed": "Predict the structure for this protein sequence and tell me where to trust it: MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEK",
+  "prompt": "Predict the structure for the attached lysozyme sequence and tell me where to trust it.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the experimental hen egg-white lysozyme sequence in 1LYZ.fasta for structure prediction and the supplied 1LYZ.pdb as a reference for assessment. Report model confidence and measured comparison separately.",
+  "files": [
+   "1LYZ.fasta",
+   "1LYZ.pdb",
+   "demo_notes.md"
+  ],
+  "idx": 98
+ },
+ {
+  "module": "domain:str",
+  "track": "Sharpen and post-process a cryo-EM map",
+  "mod": "default",
+  "seed": "Sharpen and post-process this cryo-EM density map, then re-estimate the local resolution.",
+  "prompt": "Sharpen and post-process this cryo-EM density map, then re-estimate the local resolution.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nSharpen and post-process the experimental EMD-5995 beta-galactosidase map at https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-5995/map/emd_5995.map.gz (EMPIAR-10028 reconstruction). Bind this public map URL as the density-map input; map_inputs.json is provenance, not map bytes. Estimate local resolution on the deposited map — half-maps are not provided, so report the method used and its limitation honestly rather than claiming a gold-standard half-map FSC.",
+  "files": [
+   "map_inputs.json",
+   "demo_notes.md"
+  ],
+  "idx": 99
+ },
+ {
+  "module": "domain:prot",
+  "track": "Quantify differential protein abundance between groups",
+  "mod": "default",
+  "seed": "Quantify differential protein abundance between my two groups.",
+  "prompt": "Quantify differential protein abundance between my two groups.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the real LFQ-Analyst MaxQuant proteinGroups.txt. Compare H versus L groups with five samples each; N is the third original group. proteomics_design.csv preserves original LFQ column names. Filter contaminants/reverse hits and report missingness and batch/sample QC.",
+  "files": [
+   "proteinGroups.txt",
+   "proteomics_design.csv",
+   "demo_notes.md"
+  ],
+  "idx": 100
+ },
+ {
+  "module": "domain:prot",
+  "track": "Reconcile a proteomic signal with a transcriptomic one",
+  "mod": "default",
+  "seed": "Reconcile my proteomic signal with the transcriptomic result.",
+  "prompt": "Reconcile my proteomic signal with the transcriptomic result.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the real matched mixOmics breast.TCGA training cohort (150 samples): mRNA and protein tables share sample IDs; subtype is in tcga_metadata.csv. Reconcile gene/protein names explicitly and analyze subtype-associated concordance; do not assume a one-to-one column match.",
+  "files": [
+   "tcga_mrna.csv",
+   "tcga_protein.csv",
+   "tcga_metadata.csv",
+   "demo_notes.md"
+  ],
+  "idx": 101
+ },
+ {
+  "module": "domain:prot",
+  "track": "Assess run-to-run quality across a batch",
+  "mod": "default",
+  "seed": "Assess run-to-run quality across this proteomics batch.",
+  "prompt": "Assess run-to-run quality across this proteomics batch.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the real LFQ-Analyst MaxQuant proteinGroups.txt. Compare H versus L groups with five samples each; N is the third original group. proteomics_design.csv preserves original LFQ column names. Filter contaminants/reverse hits and report missingness and batch/sample QC.",
+  "files": [
+   "proteinGroups.txt",
+   "proteomics_design.csv",
+   "demo_notes.md"
+  ],
+  "idx": 102
+ },
+ {
+  "module": "domain:clin",
+  "track": "Stratify a cohort by response and test the endpoint",
+  "mod": "default",
+  "seed": "Stratify this cohort by response and test the primary endpoint.",
+  "prompt": "Stratify this cohort by response and test the primary endpoint.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the public NCCTG lung cancer cohort from the survival package. The primary endpoint is overall survival: time in days; status 1=censored, 2=dead. Stratify by sex (1=male, 2=female), not an invented treatment-response variable. For risk prediction use age, sex, ph.ecog and wt.loss with nested cross-validation, missingness handled inside folds, and a survival-appropriate metric. These clinical covariates are not molecular biomarkers.",
+  "files": [
+   "clinical_cohort.csv",
+   "clinical_dictionary.json",
+   "demo_notes.md"
+  ],
+  "idx": 103
+ },
+ {
+  "module": "domain:clin",
+  "track": "Discover a biomarker panel and build a risk model",
+  "mod": "default",
+  "seed": "From this cohort, discover a biomarker panel and build a cross-validated, reproducible risk-prediction model with an honest performance estimate.",
+  "prompt": "From this cohort, discover a biomarker panel and build a cross-validated, reproducible risk-prediction model with an honest performance estimate.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nUse the public NCCTG lung cancer cohort from the survival package. The primary endpoint is overall survival: time in days; status 1=censored, 2=dead. Stratify by sex (1=male, 2=female), not an invented treatment-response variable. For risk prediction use age, sex, ph.ecog and wt.loss with nested cross-validation, missingness handled inside folds, and a survival-appropriate metric. These clinical covariates are not molecular biomarkers.",
+  "files": [
+   "clinical_cohort.csv",
+   "clinical_dictionary.json",
+   "demo_notes.md"
+  ],
+  "idx": 104
+ },
+ {
+  "module": "domain:clin",
+  "track": "Assemble the analysis section of a submission",
+  "mod": "default",
+  "seed": "Assemble the analysis section of my submission from these runs.",
+  "prompt": "Assemble the analysis section of my submission from these runs.\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental results. Use demo_notes.md for provenance and limitations.\nFor this prepared demo, first execute differential expression on the attached GSE227835 MG PBMC counts using sample metadata and contrasts (10 MG_AChR_pos vs 10 HC). Then assemble the analysis section from that actual completed run and its outputs. submission_records.json defines the inputs and required provenance; do not invent a completed run or its results.",
+  "files": [
+   "submission_records.json",
+   "submission_counts_matrix.csv",
+   "submission_sample_metadata.csv",
+   "submission_contrasts.csv",
+   "demo_notes.md"
+  ],
+  "idx": 105
+ }
+]

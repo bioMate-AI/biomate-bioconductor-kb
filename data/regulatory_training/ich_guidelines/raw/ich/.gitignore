@@ -1,0 +1,4 @@
+# Acquired on demand by scripts/fetch_ich_guidelines.py (public ICH/FDA/EMA
+# guideline PDFs). Not committed — ~5MB of binaries; fetch at deploy time.
+*.pdf
+*.part

@@ -1,0 +1,200 @@
+{
+  "files": 15,
+  "checks": [
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_seed0_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/full_seed0_external.npz",
+      "source_sha256": "ce19216ad9aa41e8617abcfb5238fd007cf44bd726ed78af42c87e45f5330ce2",
+      "destination_sha256": "52df83b4ce2c3761a1b2c62c2628a83850ca1aeb83fb8550f0d8d602dfad1625",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "9b11de37f6a534c25cdd503e8b87363a5e57fa0db553c276a4124a5cd190b32a",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_seed1_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/full_seed1_external.npz",
+      "source_sha256": "1bd8f1352df5c2434f820476fab623e4bea98b24c21b42ba48c8536ab17deb8a",
+      "destination_sha256": "e97d40a2bf5493296eab7c3d1cb0e7cf6aa55ab4ce46c02a4fb534079ccb42b9",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "e876d75f75e22677fec4f7cab915030be4a56f7ee4ebc3f2fb00107acd7b3fc7",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_seed2_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/full_seed2_external.npz",
+      "source_sha256": "2cc0a6833d023242e22a84eeb893fabb0aacfa9a961bdb231f62c845adf35c4e",
+      "destination_sha256": "a27e4d3b0ff827e9446def7f15b67451c2ced9f21a834f5b0bbc889a92e5bab2",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "e0c004a107e76156af799dd4cee8381dc8cbb929047a7c95187e6fd2bfe37d33",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_shuffled_kg_seed0_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/full_shuffled_kg_seed0_external.npz",
+      "source_sha256": "6e66ff01e84db0efd93f170b92c748fb7b80a49ba2baa1c094567d9f438d81b6",
+      "destination_sha256": "41503a31fdd0b5051bb07f498353a5173cb78362abf7960a33d24fc284bfb939",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "ebd85d459860778606e34eff5d339558f4d840ba4c0c4adb23cd8783c080199f",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_shuffled_kg_seed1_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/full_shuffled_kg_seed1_external.npz",
+      "source_sha256": "6e3055f27a78851357b1112105da2cf7f8b99225ea2c440fcda88731940cc9ce",
+      "destination_sha256": "e1f30c080e297adb22853ef84ce75df15f56a1688c0961fb12d8a33a34de4acc",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "f422cd53b2379b5f8bc0905c944cb974a498151f401320e0e212887e69769c15",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_shuffled_kg_seed2_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/full_shuffled_kg_seed2_external.npz",
+      "source_sha256": "2f72ee4c0508635303a28e5c4d4cfd75388dbf68b5bc8c8903abb5ab23965fe5",
+      "destination_sha256": "8bb76892a2b83014977bb7d411bf3214eb74e1ac709c49959f3cf7f9435c7403",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "afb8f539996f91a7ada92684850d93ebf3fd45a23f620f664405c8c18c3a9c92",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_kg_seed0_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/rna_kg_seed0_external.npz",
+      "source_sha256": "fb3b0a042b53cf8f6ebc4fe55c5a6a17d667956110c688af78f76e2fd2b7a4a1",
+      "destination_sha256": "09f267fe1e3f6cd9e63c91e092b33e2181014f2d49611ef955257847edb6e501",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "550324ddb9ac5ccd7780dfba11badc6ae83820a5c28cd81269b55efe2c6b3020",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_kg_seed1_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/rna_kg_seed1_external.npz",
+      "source_sha256": "a39fcfeec12e13c9edb3d8a7203d65caa75fc9c7d7c3da311c23cc977ab927ed",
+      "destination_sha256": "8a9edbf0060295a4374857632b7e9c51319a0debc9d9c2973314e811fd79836a",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "242b3324e5857287db9665ebecb5f6851b840c53b71ac51d385acb89f6aa422f",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_kg_seed2_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/rna_kg_seed2_external.npz",
+      "source_sha256": "81b9eff874f9c98f3c06a23611dac8f1f4eedbfb4be75276523827cc1925f40a",
+      "destination_sha256": "25d4dc03840bf2b6117f42dbccd86018ada67c464108527203c224c03539d73c",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "d11f9ab4fa3a475e76df567023c806d83a3898cdc6775349267f62f28dcfa9d1",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_protein_seed0_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/rna_protein_seed0_external.npz",
+      "source_sha256": "6f0da31eb4e6ed6ed9ffff0d2a8250a8b1387b95b920df96de3f5e9d98223955",
+      "destination_sha256": "5e7ee41471ee10d0c8e33860e093a9ef11455fbdb845c5ccb846e9cd553fac5e",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "c3a38c157e411dc65c87e48ed47caae6dcdc60cb2c4dbb9cab8372d693239db5",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_protein_seed1_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/rna_protein_seed1_external.npz",
+      "source_sha256": "3e7978d887f2213487be33c6b5e8075eae3461defe771afb3866f1acc3bbee85",
+      "destination_sha256": "37538e8a65b08f717f588e3fc9039d9d61ce332644060308c681c4b1aa2d04c1",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "da4dc5db7445d831a38a4f8b4537a3b63853b2ac94daf2aa5ac27a9bf8f4d0e4",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_protein_seed2_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/rna_protein_seed2_external.npz",
+      "source_sha256": "5281251a11c4fc04504eee469209a44027bb7539e464594bf7bedd38f6eb0522",
+      "destination_sha256": "1bb302a501304bc6be07be28f5b3d3647153c207a6fa14ab1ff0b02728652ba6",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "ae874bbf00d9d0766e5dfad1e3250ec52c5507447161580c24a68ce7cf2f054e",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_seed0_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/rna_seed0_external.npz",
+      "source_sha256": "b95587f6ef53f245fc2b3654418ac81f11ad189b7132ea80beaab24955200f8e",
+      "destination_sha256": "75e9fba9ca0f513b760b1c31c84de831916df07384fe32d888632bb47283a504",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "88d76bdd93e2f3fc8d2dea31ef809bec601ba3fed5b5da44bfdfbd49fc1723bb",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_seed1_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/rna_seed1_external.npz",
+      "source_sha256": "91dbb5dd0bb0cf35c5fa2907f2a12050ba4125834dcfca4b8b381b468fc1b8c4",
+      "destination_sha256": "3a48525bac0dc828d92b49285b37399e00da13c63b16c5a9aefacbd0c2db1816",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "d199a1ca46c873dc83fe7d253c29247c9619bf2f341e63e30e728b93d8464cdb",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    },
+    {
+      "source": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_seed2_external.npz",
+      "destination": "/tmp/immune_metadata_repaired_20260912/rna_seed2_external.npz",
+      "source_sha256": "2d756525f1ac87ce66b5bd8a388c5e4cba1c44b19e9d1b3b045c075b5f62bd04",
+      "destination_sha256": "ed4f576eb744c2ef6829f19d46968dbff5894ecfd135eece2ef09538708c5027",
+      "cells": 7865,
+      "numeric_and_other_members_unchanged": {
+        "prediction.npy": "6ac23efa6035e7e4dcb13dc0dc7c602fca93ad7c45f751baa17eb65b417e0693",
+        "target.npy": "c02ff14338eb598b9e16b268f2ea613aace6b414f46a7aa3240f6f2388615c45",
+        "marker_names.npy": "aa1629e616c15fbef2003484d24e213d105c7c422636721138ad55d7e2faf646"
+      },
+      "safe_load_all_fields": "pass"
+    }
+  ]
+}

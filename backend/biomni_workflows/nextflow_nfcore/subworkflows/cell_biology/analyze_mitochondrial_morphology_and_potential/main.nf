@@ -74,6 +74,34 @@ def auto_convert(val):
 
 
 
+def _fetch_if_remote(p):
+    # http(s)://, s3:// input -> download to a local file; 'demo'/local passthrough.
+    # (BioMate stages uploads as s3://; the executor bind-mounts the aws CLI at /opt/aws-cli.)
+    import os
+    if not (isinstance(p, str) and p.startswith(("http://", "https://", "s3://"))):
+        return p
+    dest = os.path.join(os.getcwd(), os.path.basename(p.split("?")[0]) or "mito_input.tif")
+    if p.startswith(("http://", "https://")):
+        import urllib.request
+        urllib.request.urlretrieve(p, dest)
+    else:
+        try:
+            import boto3, urllib.parse
+            u = urllib.parse.urlparse(p)
+            boto3.client("s3").download_file(u.netloc, u.path.lstrip("/"), dest)
+        except Exception as _e_boto:
+            import subprocess, shutil
+            aws_bin = shutil.which("aws") or next(
+                (q for q in ("/opt/aws-cli/aws", "/opt/aws-cli/bin/aws", "/usr/local/bin/aws") if os.path.exists(q)), None)
+            if not aws_bin:
+                raise RuntimeError(f"cannot fetch s3 image {p}: boto3 unavailable ({_e_boto!r}) and no aws CLI found")
+            r = subprocess.run([aws_bin, "s3", "cp", p, dest], capture_output=True, text=True)
+            if r.returncode != 0:
+                raise RuntimeError(f"aws s3 cp failed for {p}: {(r.stderr or '').strip()}")
+    print(f"Fetched remote input image [{p.split('://',1)[0]}]: {p}")
+    return dest
+
+
 def analyze_mitochondrial_morphology_and_potential(morphology_image_path, potential_image_path, output_dir="./output"):
     '''Quantifies metrics of mitochondrial morphology and membrane potential from fluorescence microscopy images.
 
@@ -148,7 +176,7 @@ def analyze_mitochondrial_morphology_and_potential(morphology_image_path, potent
             log.append(f"Morphology image shape: {morph_img.shape}")
             log.append(f"Potential image shape: {pot_img.shape}")
         except Exception as e:
-            return f"Error loading images: {str(e)}"
+            raise RuntimeError(f"Error loading images (morphology={morphology_image_path}, potential={potential_image_path}): {str(e)}")
 
     # Convert to grayscale if needed
     if len(morph_img.shape) > 2:
@@ -278,8 +306,8 @@ def analyze_mitochondrial_morphology_and_potential(morphology_image_path, potent
 # Execute the function
 try:
     result = analyze_mitochondrial_morphology_and_potential(
-        morphology_image_path=auto_convert(os.environ.get("PARAM_MORPHOLOGY_IMAGE_PATH", "")),
-        potential_image_path=auto_convert(os.environ.get("PARAM_POTENTIAL_IMAGE_PATH", "")),
+        morphology_image_path=_fetch_if_remote(auto_convert(os.environ.get("PARAM_MORPHOLOGY_IMAGE_PATH", ""))),
+        potential_image_path=_fetch_if_remote(auto_convert(os.environ.get("PARAM_POTENTIAL_IMAGE_PATH", ""))),
         output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "./output")),
     )
     success = True
@@ -310,7 +338,7 @@ with open("analyze_mitochondrial_morphology_and_potential_results.json", "w") as
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_mitochondrial_morphology_and_potential_output.txt", "w") as f:
-    f.write("Biomni: Analyze Mitochondrial Morphology And Potential" + NL)
+    f.write("BioMate: Analyze Mitochondrial Morphology And Potential" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

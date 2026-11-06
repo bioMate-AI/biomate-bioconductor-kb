@@ -237,7 +237,7 @@ with open("analyze_bacterial_growth_curve_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_bacterial_growth_curve_output.txt", "w") as f:
-    f.write("Biomni: Analyze Bacterial Growth Curve" + NL)
+    f.write("BioMate: Analyze Bacterial Growth Curve" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

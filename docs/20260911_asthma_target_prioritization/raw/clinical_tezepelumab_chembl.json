@@ -1,0 +1,162 @@
+{
+  "molecules": [
+    {
+      "atc_classifications": [
+        "R03DX11"
+      ],
+      "availability_type": 1,
+      "biotherapeutic": {
+        "biocomponents": [
+          {
+            "component_id": 30168,
+            "component_type": "Protein",
+            "description": "Light chain",
+            "organism": null,
+            "sequence": "SYVLTQPPSVSVAPGQTARITCGGNNLGSKSVHWYQQKPGQAPVLVVYDDSDRPSWIPERFSGSNSGNTATLTISRGEAGDEADYYCQVWDSSSDHVVFGGGTKLTVLGQPKAAPSVTLFPPSSEELQANKATLVCLISDFYPGAVTVAWKADSSPVKAGVETTTPSKQSNNKYAASSYLSLTPEQWKSHRSYSCQVTHEGSTVEKTVAPTECS",
+            "tax_id": null
+          },
+          {
+            "component_id": 28602,
+            "component_type": null,
+            "description": "Disulfide bridges location",
+            "organism": null,
+            "sequence": "22'-87' | 22'''-87''' | 22-96 | 22''-96'' | 136'-195' | 136'''-195''' | 136-213' | 136''-213''' | 149-205 | 149''-205'' | 224-224'' | 225-225'' | 228-228'' | 231-231'' | 262-322 | 262''-322'' | 368-426 | 368''-426''",
+            "tax_id": null
+          },
+          {
+            "component_id": 30169,
+            "component_type": "Protein",
+            "description": "Heavy chain",
+            "organism": null,
+            "sequence": "QMQLVESGGGVVQPGRSLRLSCAASGFTFRTYGMHWVRQAPGKGLEWVAVIWYDGSNKHYADSVKGRFTITRDNSKNTLNLQMNSLRAEDTAVYYCARAPQWELVHEAFDIWGQGTMVTVSSASTKGPSVFPLAPCSRSTSESTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSNFGTQTYTCNVDHKPSNTKVDKTVERKCCVECPPCPAPPVAGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVQFNWYVDGVEVHNAKTKPREEQFNSTFRVVSVLTVVHQDWLNGKEYKCKVSNKGLPAPIEKTISKTKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPMLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
+            "tax_id": null
+          }
+        ],
+        "description": null,
+        "helm_notation": null,
+        "molecule_chembl_id": "CHEMBL3707229"
+      },
+      "black_box_warning": 0,
+      "chemical_probe": 0,
+      "chirality": 1,
+      "cross_references": [
+        {
+          "xref_id": "human/EPAR/tezspire",
+          "xref_name": "tezspire",
+          "xref_src": "EMA"
+        }
+      ],
+      "dosed_ingredient": true,
+      "first_approval": 2021,
+      "first_in_class": 1,
+      "helm_notation": null,
+      "inorganic_flag": 0,
+      "max_phase": "4.0",
+      "molecule_chembl_id": "CHEMBL3707229",
+      "molecule_hierarchy": {
+        "active_chembl_id": "CHEMBL3707229",
+        "molecule_chembl_id": "CHEMBL3707229",
+        "parent_chembl_id": "CHEMBL3707229"
+      },
+      "molecule_properties": null,
+      "molecule_structures": null,
+      "molecule_synonyms": [
+        {
+          "molecule_synonym": "AMG 157",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "AMG 157"
+        },
+        {
+          "molecule_synonym": "AMG-157",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "AMG-157"
+        },
+        {
+          "molecule_synonym": "MEDI-19929",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "MEDI-19929"
+        },
+        {
+          "molecule_synonym": "MEDI19929",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "MEDI19929"
+        },
+        {
+          "molecule_synonym": "MEDI-9929",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "MEDI-9929"
+        },
+        {
+          "molecule_synonym": "MEDI9929",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "MEDI9929"
+        },
+        {
+          "molecule_synonym": "Tezepelumab",
+          "syn_type": "ATC",
+          "synonyms": "TEZEPELUMAB"
+        },
+        {
+          "molecule_synonym": "Tezepelumab",
+          "syn_type": "EMA",
+          "synonyms": "TEZEPELUMAB"
+        },
+        {
+          "molecule_synonym": "Tezepelumab",
+          "syn_type": "INN",
+          "synonyms": "TEZEPELUMAB"
+        },
+        {
+          "molecule_synonym": "Tezepelumab",
+          "syn_type": "OTHER",
+          "synonyms": "TEZEPELUMAB"
+        },
+        {
+          "molecule_synonym": "Tezepelumab",
+          "syn_type": "USAN",
+          "synonyms": "TEZEPELUMAB"
+        },
+        {
+          "molecule_synonym": "Tezepelumab ekko",
+          "syn_type": "OTHER",
+          "synonyms": "TEZEPELUMAB EKKO"
+        },
+        {
+          "molecule_synonym": "Tezepelumab-ekko",
+          "syn_type": "FDA",
+          "synonyms": "TEZEPELUMAB-EKKO"
+        },
+        {
+          "molecule_synonym": "Tezspire",
+          "syn_type": "TRADE_NAME",
+          "synonyms": "Tezspire"
+        }
+      ],
+      "molecule_type": "Antibody",
+      "natural_product": 0,
+      "oral": false,
+      "orphan": 0,
+      "parenteral": true,
+      "polymer_flag": 0,
+      "pref_name": "TEZEPELUMAB",
+      "prodrug": 0,
+      "score": 41.0,
+      "structure_type": "SEQ",
+      "therapeutic_flag": true,
+      "topical": false,
+      "usan_stem": "-mab",
+      "usan_stem_definition": "monoclonal antibodies: fully human",
+      "usan_substem": "-mab (-umab)",
+      "usan_year": 2014,
+      "veterinary": 0,
+      "withdrawn_flag": false
+    }
+  ],
+  "page_meta": {
+    "limit": 10,
+    "next": null,
+    "offset": 0,
+    "previous": null,
+    "total_count": 1
+  }
+}

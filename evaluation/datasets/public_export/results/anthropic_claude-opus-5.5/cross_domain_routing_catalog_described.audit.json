@@ -1,0 +1,8 @@
+{
+  "model": "anthropic/claude-opus-5.5",
+  "n": 200,
+  "empty": 18,
+  "hallucination": 0,
+  "max_tokens": 2000,
+  "menu": "described"
+}

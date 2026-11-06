@@ -1,0 +1,2 @@
+# Derived SFT episodes — regenerate with evaluation/local_trial/build_sft_episodes.py
+*.jsonl

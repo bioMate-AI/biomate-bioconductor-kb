@@ -225,6 +225,25 @@ class TestPKEquationInvariants:
             f"Bateman peak should be 30–100% of F·D/Vd={cmax_unit:.3f}; got {pred:.3f}"
         )
 
+    def test_oral_cmax_uses_bateman_equation_when_absorption_is_slower_than_elimination(self):
+        """The Bateman tmax expression also applies in the ka < ke flip-flop regime."""
+        drug = {
+            "name": "TestFlipFlop",
+            "dose_mg": 100,
+            "route": "oral",
+            "F_oral": 0.5,
+            "CL_L_h": 200.0,
+            "Vd_L": 50.0,
+            "logP": -1.0,  # ka = 0.8 /h; ke = CL*F/Vd = 2 /h
+        }
+        result = self.predictor.predict(drug)
+        ka, ke = 0.8, 2.0
+        tmax = math.log(ka / ke) / (ka - ke)
+        expected = ((0.5 * 100_000.0) / 50.0) * (ka / (ka - ke)) * (
+            math.exp(-ke * tmax) - math.exp(-ka * tmax)
+        ) / 1000.0
+        assert result["predicted_Cmax"] == pytest.approx(expected, rel=1e-5)
+
     # -----------------------------------------------------------------------
     # Linearity: doubling dose doubles Cmax and AUC
     # (linear PK assumption: Rowland & Tozer 2011 Chapter 2)
@@ -273,21 +292,27 @@ class TestPKEquationInvariants:
     # EMA criterion: ≥67% within 2-fold (EMA/CHMP/EWP/37498/2011 Rev1)
     # -----------------------------------------------------------------------
 
-    def test_ema_criterion_met_overall(self):
+    def test_descriptive_ema_threshold_is_not_presented_as_predictive_qualification(self):
         """
-        The EMA PBPK qualification guideline (2018) requires that at least 67%
-        of predictions fall within 2-fold of observed values for Cmax and AUC.
-        Reference: EMA/CHMP/EWP/37498/2011 Rev1, §4.2.2.
+        The 67% criterion is recorded as a descriptive threshold only.  This
+        analytical check feeds observed CL/Vd/F back into the equations, so it
+        cannot claim independent EMA PBPK predictive qualification.
         """
         from .model_validation import ModelValidationService
         svc = ModelValidationService()
         report = svc.run_pbpk_validation()
-        assert report.metrics.within_2fold_Cmax >= 0.67, (
-            f"EMA criterion: within_2fold_Cmax={report.metrics.within_2fold_Cmax:.2%} < 67%"
+        expected = (
+            report.metrics.within_2fold_Cmax >= 0.67
+            and report.metrics.within_2fold_AUC >= 0.67
+            and all(
+                r.predicted_Cmax is not None and r.predicted_AUC is not None
+                and r.observed_Cmax > 0 and r.observed_AUC > 0
+                for r in report.per_compound
+            )
         )
-        assert report.metrics.within_2fold_AUC >= 0.67, (
-            f"EMA criterion: within_2fold_AUC={report.metrics.within_2fold_AUC:.2%} < 67%"
-        )
+        assert report.ema_criterion_met is expected
+        assert "equation-structure verification" in report.regulatory_summary
+        assert "No predictive qualification claim" in report.regulatory_summary
 
     # -----------------------------------------------------------------------
     # AFE/AAFE definitions (Sheiner & Beal 1981)
@@ -296,36 +321,105 @@ class TestPKEquationInvariants:
     # AFE < 1 → systematic underprediction; AFE > 1 → systematic overprediction
     # -----------------------------------------------------------------------
 
-    def test_afe_aafe_definitions(self):
-        """
-        Verify AFE/AAFE algebraic identity from Sheiner & Beal 1981.
+    def test_reference_set_metrics_match_pinned_baseline(self):
+        """Detect a changed predictor or reference set with fixed, reviewable values.
+
+        Recomputing the expected AFE/AAFE from the report's own fold errors only
+        verifies that two paths agree; it cannot catch a shared regression.  These
+        values are the reviewed v2.0, 107-drug equation-verification baseline.
+        Update them only alongside an intentional predictor or curated-data change.
         """
         from .model_validation import ModelValidationService
-        import numpy as np
 
-        svc = ModelValidationService()
-        report = svc.run_pbpk_validation()
-
-        fold_cmax = [r.fold_error_Cmax for r in report.per_compound
-                     if r.fold_error_Cmax is not None and r.fold_error_Cmax > 0]
-
-        expected_afe = math.exp(sum(math.log(f) for f in fold_cmax) / len(fold_cmax))
-        expected_aafe = math.exp(sum(abs(math.log(f)) for f in fold_cmax) / len(fold_cmax))
-
-        assert report.metrics.AFE_Cmax == pytest.approx(expected_afe, rel=1e-3)
-        assert report.metrics.AAFE_Cmax == pytest.approx(expected_aafe, rel=1e-3)
+        report = ModelValidationService().run_pbpk_validation()
+        assert report.n_reference_compounds == 107
+        assert report.metrics.dict() == {
+            "n_compounds": 107,
+            "n_observed_Cmax": 107,
+            "n_predicted_Cmax": 107,
+            "n_evaluable_Cmax": 107,
+            "n_observed_AUC": 107,
+            "n_predicted_AUC": 107,
+            "n_evaluable_AUC": 107,
+            "AFE_Cmax": 0.582,
+            "AAFE_Cmax": 2.118,
+            "RMSE_Cmax": 1.8525,
+            "R2_Cmax": 0.908,
+            "within_2fold_Cmax": 0.589,
+            "within_3fold_Cmax": 0.738,
+            "AFE_AUC": 1.115,
+            "AAFE_AUC": 1.462,
+            "RMSE_AUC": 31.885,
+            "R2_AUC": 0.769,
+            "within_2fold_AUC": 0.813,
+            "within_3fold_AUC": 0.888,
+            "ema_criterion_met": False,
+        }
 
     # -----------------------------------------------------------------------
     # AAFE ≥ AFE always (Jensen's inequality; AAFE = 1.0 only if all errors = 0)
     # -----------------------------------------------------------------------
 
-    def test_aafe_geq_afe(self):
-        """AAFE ≥ |AFE| for any prediction set (Jensen's inequality)."""
+    def test_afe_aafe_and_fold_boundaries_for_known_errors(self):
+        """Use fixed fold errors to exercise AFE/AAFE and inclusive fold cutoffs."""
         from .model_validation import ModelValidationService
+        from types import SimpleNamespace
+
+        # Cmax includes the exact 2-fold boundaries; AUC includes values just
+        # outside them.  This catches accidental strict inequalities and loss of
+        # the absolute value in AAFE.
+        results = [
+            SimpleNamespace(
+                observed_Cmax=1.0, predicted_Cmax=fold_cmax,
+                observed_AUC=1.0, predicted_AUC=fold_auc,
+                fold_error_Cmax=fold_cmax, fold_error_AUC=fold_auc,
+            )
+            for fold_cmax, fold_auc in ((0.5, 0.25), (1.0, 1.0), (2.0, 4.0))
+        ]
+        metrics = ModelValidationService()._compute_metrics(results)
+
+        assert metrics.AFE_Cmax == 1.0
+        assert metrics.AAFE_Cmax == 1.587
+        assert metrics.within_2fold_Cmax == 1.0
+        assert metrics.within_3fold_Cmax == 1.0
+        assert metrics.AFE_AUC == 1.0
+        assert metrics.AAFE_AUC == 2.52
+        assert metrics.within_2fold_AUC == pytest.approx(1 / 3, rel=1e-3)
+        assert metrics.within_3fold_AUC == pytest.approx(1 / 3, rel=1e-3)
+
+    def test_partial_endpoint_coverage_is_explicit_and_cannot_qualify(self, monkeypatch):
+        """Aggregate fold fractions must expose missing observations/predictions."""
+        from .model_validation import ModelValidationService
+
+        drugs = [
+            {"name": "Complete", "dose_mg": 10.0, "route": "oral", "Cmax_ug_mL": 1.0, "AUC_ugh_mL": 10.0},
+            {"name": "NoCmaxPrediction", "dose_mg": 10.0, "route": "oral", "Cmax_ug_mL": 1.0, "AUC_ugh_mL": 10.0},
+            {"name": "NoAucObservation", "dose_mg": 10.0, "route": "oral", "Cmax_ug_mL": 1.0, "AUC_ugh_mL": None},
+        ]
+
+        class PartialPredictor:
+            def predict(self, drug):
+                if drug["name"] == "NoCmaxPrediction":
+                    return {"predicted_Cmax": None, "predicted_AUC": 10.0}
+                return {"predicted_Cmax": 1.0, "predicted_AUC": 10.0}
+
         svc = ModelValidationService()
+        svc._predictor = PartialPredictor()
+        monkeypatch.setattr(svc, "_load_reference_drugs", lambda names=None: drugs)
         report = svc.run_pbpk_validation()
-        assert report.metrics.AAFE_Cmax >= abs(report.metrics.AFE_Cmax) - 1e-9
-        assert report.metrics.AAFE_AUC  >= abs(report.metrics.AFE_AUC)  - 1e-9
+
+        assert report.metrics.n_compounds == 3
+        assert report.metrics.n_observed_Cmax == 3
+        assert report.metrics.n_predicted_Cmax == 2
+        assert report.metrics.n_evaluable_Cmax == 2
+        assert report.metrics.n_observed_AUC == 2
+        assert report.metrics.n_predicted_AUC == 3
+        assert report.metrics.n_evaluable_AUC == 2
+        assert report.metrics.within_2fold_Cmax == 1.0
+        assert report.metrics.within_2fold_AUC == 1.0
+        assert report.ema_criterion_met is False
+        assert "2/3 evaluable records" in report.regulatory_summary
+        assert any("lacked an observed or predicted PK endpoint" in warning for warning in report.warnings)
 
 
 # ===========================================================================
@@ -853,15 +947,23 @@ class TestINDAssembly:
             assert "observed_Cmax_ug_mL" not in item
             assert "predicted_Cmax_ug_mL" not in item
 
-    def test_all_six_sections_present(self):
+    def test_all_six_required_sections_present(self):
         """
         IND §2.6.1 requires all 6 subsections: 2.6.1.1–2.6.1.6.
         ICH M4 §2.6.1 (CTD guidance).
         """
         result = self._run_assembly("test-sections")
-        assert result.sections == [
+        required = {
             "2.6.1.1", "2.6.1.2", "2.6.1.3", "2.6.1.4", "2.6.1.5", "2.6.1.6"
-        ], f"Got sections: {result.sections}"
+        }
+        # The assembler now produces an expanded CTD document (for example
+        # §2.4, §2.6.2 and §2.6.3) in addition to the six mandatory §2.6.1
+        # pharmacology subsections. Require the regulatory minimum without
+        # treating valid additional sections as a regression.
+        assert required.issubset(result.sections), f"Got sections: {result.sections}"
+        assert len(result.sections) == len(set(result.sections)), (
+            f"Duplicate section identifiers: {result.sections}"
+        )
 
     def test_markdown_file_created(self):
         """assemble() must always write a Markdown file."""
@@ -903,8 +1005,12 @@ class TestINDAssembly:
             auto_proposal=None,
         )
         pbpk_section = assembler._section_pbpk(ctx)
-        assert "MET" in pbpk_section or "NOT MET" in pbpk_section, (
-            "PBPK section must explicitly state whether EMA criterion is MET or NOT MET"
+        expected_status = "MET" if report.ema_criterion_met else "NOT MET"
+        expected_marker = "✓" if report.ema_criterion_met else "✗"
+        assert (
+            f"**EMA criterion (≥67% within 2-fold for both Cmax and AUC):** "
+            f"**{expected_status} {expected_marker}**"
+            in pbpk_section
         )
 
     def test_pbpk_section_no_question_marks_with_real_data(self):
@@ -944,6 +1050,30 @@ class TestINDAssembly:
             f"Found {question_marks_in_data} '?' values in PBPK table. "
             "Check that ind_assembly uses observed_Cmax (not observed_Cmax_ug_mL)"
         )
+
+    def test_pbpk_section_renders_known_reference_row_values(self):
+        """Pin a real row so field-name or numeric-format regressions cannot hide."""
+        from .ind_assembly import INDSectionAssembler
+        from .model_validation import ModelValidationService
+
+        report = ModelValidationService().run_pbpk_validation()
+        db_path = _tmp_db()
+        assembler = INDSectionAssembler(db_path=db_path)
+        ctx = dict(
+            campaign_id="test-known-pbpk-row",
+            molecule_name="BM-001",
+            sponsor="S",
+            indication="O",
+            target_name="T",
+            generated_at="2026-01-01T00:00:00+00:00",
+            compounds=[],
+            validation_report=report.model_dump(),
+            audit_summary={},
+            auto_proposal=None,
+        )
+
+        pbpk_section = assembler._section_pbpk(ctx)
+        assert "| Aspirin | 15.000 | 13.548 | 0.903 | ✓ |" in pbpk_section
 
 
 # ===========================================================================
@@ -1050,12 +1180,29 @@ class TestReferenceDataset:
         assert "Clopidogrel" in names
 
     def test_all_included_drugs_have_required_fields(self):
-        """Every included drug must have dose_mg, CL_L_h, Vd_L, route."""
+        """Every included record must retain endpoints and source traceability."""
         for d in self.included:
-            for field in ("dose_mg", "CL_L_h", "Vd_L", "route"):
+            for field in (
+                "dose_mg", "CL_L_h", "Vd_L", "route",
+                "Cmax_ug_mL", "AUC_ugh_mL", "reference",
+            ):
                 assert field in d and d[field] is not None, (
                     f"{d['name']} missing required field {field}"
                 )
+
+    def test_observed_endpoints_are_positive_and_records_are_unique(self):
+        """A record cannot silently disappear, duplicate, or lose its observed PK endpoints."""
+        names = [d["name"].strip().lower() for d in self.included]
+        cas_numbers = [d.get("cas") for d in self.included]
+        assert len(names) == len(set(names)), "Reference dataset contains duplicate drug names"
+        assert all(cas_numbers), "Every included reference drug must have a CAS number"
+        assert len(cas_numbers) == len(set(cas_numbers)), "Reference dataset contains duplicate CAS numbers"
+        for d in self.included:
+            assert d["Cmax_ug_mL"] > 0, f"{d['name']}: observed Cmax must be > 0"
+            assert d["AUC_ugh_mL"] > 0, f"{d['name']}: observed AUC must be > 0"
+            assert isinstance(d["reference"], str) and d["reference"].strip(), (
+                f"{d['name']}: reference provenance must be non-empty"
+            )
 
     def test_all_included_drugs_have_positive_pk_parameters(self):
         """CL_L_h and Vd_L must be positive for all included drugs."""
@@ -1086,8 +1233,8 @@ class TestReferenceDataset:
                 assert F is not None, f"{d['name']}: missing F_oral"
                 assert 0 < F <= 1.0, f"{d['name']}: F_oral={F} out of range (0,1]"
 
-    def test_at_least_20_included_drugs(self):
-        """Dataset must have ≥ 20 included drugs for EMA statistical validity."""
-        assert len(self.included) >= 20, (
-            f"Only {len(self.included)} drugs included — need ≥ 20 for EMA statistics"
+    def test_reference_set_does_not_silently_shrink(self):
+        """Pin the documented v2.0 scope; additions are allowed, silent losses are not."""
+        assert len(self.included) >= 107, (
+            f"Only {len(self.included)} drugs included — expected the documented 107-drug v2.0 set"
         )

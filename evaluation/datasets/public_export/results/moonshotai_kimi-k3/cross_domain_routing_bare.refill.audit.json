@@ -1,0 +1,7 @@
+{
+  "model": "moonshotai/kimi-k3",
+  "refilled_empties": 21,
+  "still_empty_after": 0,
+  "method": "openrouter bare max_tokens=2000 retry=5",
+  "note": "only previously-empty items were regenerated; non-empty originals preserved"
+}

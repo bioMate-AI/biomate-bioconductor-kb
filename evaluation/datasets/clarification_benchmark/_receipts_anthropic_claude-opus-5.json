@@ -1,0 +1,50 @@
+[
+  {
+    "id": "h2_sheet_conflict",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Species/genome conflict: your request specifies human reads aligned to GRCh38, but the samplesheet 'genome' column is set to GRCm39 (mouse). These are different species, so this cannot be resolved by inference \u2014 aligning human reads to a mouse reference (or vice versa) would silently produce very low mapping rates and invalid results. Please confirm which is correct: (a) the reads are human and the samplesheet should be corrected to GRCh38, (b) the reads are actually mouse and should be aligned to GRCm39, or (c) this is a mixed/xenograft dataset requiring a combined or sequential (e.g., Xenome/disambiguate) alignment strategy. Also let me know whether the samplesheet should be updated in place."
+  },
+  {
+    "id": "h2_rnaseq_10x",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "nf-core/rnaseq is a bulk RNA-seq pipeline and cannot process 10x single-cell FASTQs correctly \u2014 R1 holds the cell barcode + UMI (~28 bp) rather than cDNA, so barcodes would never be demultiplexed and per-cell counts would be impossible (R1 would also likely fail trimming/alignment QC). Please confirm how to proceed: (a) switch to a single-cell pipeline \u2014 nf-core/scrnaseq (or Cell Ranger) \u2014 and specify the chemistry/version (e.g., 3' v3, 5' v2), expected cell number, and reference transcriptome; (b) if you genuinely want pseudo-bulk gene-level quantification, confirm that we should run nf-core/rnaseq on the cDNA read (R2) only, treating it as single-end and discarding barcode/UMI information; or (c) if these are actually bulk libraries mislabeled as 10x, confirm the library prep so we can validate read structure first."
+  },
+  {
+    "id": "h2_dock_no_receptor",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "No receptor structure is available in the working context \u2014 only ligands.smi is present, and 'the kinase' is never named, so the target cannot be resolved from file headers, manifests, or prior turns. Please specify the receptor to dock against: (a) a path to a prepared receptor file (PDB/PDBQT/mmCIF), or (b) an RCSB PDB ID / UniProt accession for the kinase (plus which chain and, for multi-structure entries, which conformational state, e.g. DFG-in vs DFG-out), and (c) how the binding site should be defined \u2014 ligand-derived box from a co-crystallized inhibitor in that structure, explicit box center/size coordinates, or blind docking. Also note whether any co-crystallized ligands, waters, or cofactors (e.g. ATP-site Mg2+) should be retained during preparation, since this materially changes the affinity ranking of all 500 ligands."
+  },
+  {
+    "id": "h2_tpm_deseq",
+    "action": "clarify",
+    "value": "TPM-normalized (decimal) matrix \u2014 detected from context, but incompatible with DESeq2",
+    "clarify_about": "expression.csv holds TPM-normalized decimals, but DESeq2's negative binomial model requires raw integer counts (un-normalized), so it cannot be run as-is. Do you have the raw count matrix (e.g., HTSeq/featureCounts/RSEM expected_counts) to use instead? If raw counts are unavailable, should I switch to a method appropriate for normalized data (e.g., limma-voom/limma-trend on log2(TPM+1), or a non-parametric test), or do you want TPMs rounded to integers despite the known bias \u2014 which I'd not recommend and would flag in the methods?"
+  },
+  {
+    "id": "h2_bam_hg19",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "The BAM's @SQ header indicates it was aligned to hg19/GRCh37 (contig names/lengths match GRCh37), but you asked for variant calls against hg38. Calling hg19-aligned reads against an hg38 reference would produce invalid results, so I can't simply proceed. Which do you want: (a) call variants on the existing hg19 alignment and report hg19 coordinates, (b) call on hg19 and then lift the resulting VCF over to hg38 (CrossMap/Picard LiftoverVcf, with the caveat that some variants will fail to lift), or (c) realign \u2014 revert the BAM to FASTQ and re-map to hg38 (most accurate, most compute)? Also please confirm the exact hg38 reference build/analysis set to use (e.g., GRCh38 no-alt analysis set, with or without alt contigs) and whether chromosome naming should be 'chr'-prefixed."
+  },
+  {
+    "id": "h2_fully_specified",
+    "action": "interpret",
+    "value": "germline small variants (SNVs + indels) via DeepVariant WGS model",
+    "clarify_about": ""
+  },
+  {
+    "id": "h2_no_groups",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Which samples belong to which experimental group, and the contrast to test. counts.tsv only has generic labels sample1\u2013sample6 with no condition/group metadata anywhere in the provided context, so the design formula and contrast cannot be determined. Assuming a split (e.g., sample1\u20133 = control vs sample4\u20136 = treatment) would fabricate the experimental design and could invert the sign of every log2 fold change. Please provide: (1) the group/condition for each of sample1\u2013sample6 (or a sample sheet), (2) the reference/baseline level, and (3) any batch or paired covariates to include in the design."
+  },
+  {
+    "id": "h2_truseq_strand",
+    "action": "interpret",
+    "value": "reverse (dUTP first-strand/antisense; e.g. featureCounts -s 2, HTSeq --stranded=reverse, Salmon ISR / kallisto --rf-stranded for paired-end)",
+    "clarify_about": ""
+  }
+]

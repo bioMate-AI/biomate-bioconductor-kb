@@ -1,0 +1,27 @@
+{
+  "keys": [
+    "id",
+    "runSequence",
+    "userId",
+    "projectId",
+    "chatSessionId",
+    "mode",
+    "workflowName",
+    "workflowDefinition",
+    "inputBindings",
+    "dataScope",
+    "parameters",
+    "execution",
+    "progress",
+    "steps",
+    "metrics",
+    "interactions",
+    "recommendations",
+    "createdAt",
+    "updatedAt",
+    "output_files",
+    "inline_findings"
+  ],
+  "executionStatus": "completed",
+  "workflowName": "Predict ADMET Properties (AI)"
+}

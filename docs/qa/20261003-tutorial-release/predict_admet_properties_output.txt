@@ -1,0 +1,41 @@
+Biomni: Predict ADMET Properties
+============================================================
+
+ADMET-AI Predictions (merged from parallel shards; Chemprop-RDKit; Swanson et al. 2023 Bioinformatics)
+=================================================================
+
+Compound: CC(=O)Oc1ccccc1C(=O)O
+  hERG inhibition             : 0.003
+  DILI probability            : 0.855
+  Plasma protein bind %       : 73.2
+  Caco-2 logPapp              : -4.406
+  BBB penetration             : 0.811
+  Oral bioavailability        : 0.873
+  CYP2D6 inhibitor            : 0.007
+  CYP3A4 substrate            : 0.093
+  ClinTox                     : 0.137
+----------------------------------------
+
+Compound: CN1C=NC2=C1C(=O)N(C(=O)N2C)C
+  hERG inhibition             : 0.115
+  DILI probability            : 0.875
+  Plasma protein bind %       : 29.2
+  Caco-2 logPapp              : -4.110
+  BBB penetration             : 0.970
+  Oral bioavailability        : 0.936
+  CYP2D6 inhibitor            : 0.001
+  CYP3A4 substrate            : 0.487
+  ClinTox                     : 0.072
+----------------------------------------
+
+Compound: CC(C)Cc1ccc(C(C)C(=O)O)cc1
+  hERG inhibition             : 0.008
+  DILI probability            : 0.487
+  Plasma protein bind %       : 90.7
+  Caco-2 logPapp              : -4.285
+  BBB penetration             : 0.511
+  Oral bioavailability        : 0.945
+  CYP2D6 inhibitor            : 0.008
+  CYP3A4 substrate            : 0.258
+  ClinTox                     : 0.012
+----------------------------------------

@@ -1,0 +1,16 @@
+{
+  "task": "cross_domain_routing",
+  "mode": "bare",
+  "model": "base",
+  "n": 200,
+  "n_with_usage": 200,
+  "input_tokens_total": 21461,
+  "output_tokens_total": null,
+  "input_tokens_mean": 107.305,
+  "output_tokens_mean": 0.0,
+  "latency_ms_p50": 984,
+  "latency_ms_p95": 1157,
+  "latency_ms_mean": 995.495,
+  "n_with_latency": 200,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

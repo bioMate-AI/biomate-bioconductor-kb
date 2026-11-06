@@ -1,0 +1,66 @@
+{
+  "ImageId": "ami-04678417fc39d7171",
+  "InstanceType": "r5.4xlarge",
+  "MinCount": 1,
+  "MaxCount": 1,
+  "KeyName": "biomate-local-trial-20260912",
+  "InstanceInitiatedShutdownBehavior": "terminate",
+  "InstanceMarketOptions": {
+    "MarketType": "spot",
+    "SpotOptions": {
+      "MaxPrice": "1.00",
+      "SpotInstanceType": "one-time",
+      "InstanceInterruptionBehavior": "terminate"
+    }
+  },
+  "NetworkInterfaces": [
+    {
+      "DeviceIndex": 0,
+      "SubnetId": "subnet-09e4dce46682a6c60",
+      "Groups": [
+        "sg-011121fdf81073ec8"
+      ],
+      "AssociatePublicIpAddress": true
+    }
+  ],
+  "BlockDeviceMappings": [
+    {
+      "DeviceName": "/dev/sda1",
+      "Ebs": {
+        "VolumeSize": 250,
+        "VolumeType": "gp3",
+        "Encrypted": true,
+        "DeleteOnTermination": true,
+        "Throughput": 500,
+        "Iops": 6000
+      }
+    }
+  ],
+  "MetadataOptions": {
+    "HttpTokens": "required",
+    "HttpEndpoint": "enabled"
+  },
+  "TagSpecifications": [
+    {
+      "ResourceType": "instance",
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "biomate-local-trial-20260912"
+        },
+        {
+          "Key": "Purpose",
+          "Value": "temporary-local-llm-trial"
+        },
+        {
+          "Key": "Owner",
+          "Value": "codex-user-authorized"
+        }
+      ]
+    }
+  ],
+  "UserData": "IyEvYmluL2Jhc2gKc2V0IC1ldW8gcGlwZWZhaWwKc2h1dGRvd24gLWggKzE4MApta2RpciAtcCAvb3B0L2Jpb21hdGUtdHJpYWwKY2hvd24gdWJ1bnR1OnVidW50dSAvb3B0L2Jpb21hdGUtdHJpYWwKZXhlYyA+ID4odGVlIC1hIC9vcHQvYmlvbWF0ZS10cmlhbC9ib290c3RyYXAubG9nKSAyPiYxCmV4cG9ydCBERUJJQU5fRlJPTlRFTkQ9bm9uaW50ZXJhY3RpdmUKYXB0LWdldCB1cGRhdGUgLXFxCmFwdC1nZXQgaW5zdGFsbCAteSAtcXEgZ2l0IGNtYWtlIHBrZy1jb25maWcgYnVpbGQtZXNzZW50aWFsIGxpYmN1cmw0LW9wZW5zc2wtZGV2IGxpYm9wZW5ibGFzLWRldiBweXRob24zLXZlbnYgdW56aXAKZnJlZSAtaApwcmludGYgJ0NQVSBwcmVwYXJhdGlvbiByZWFkeVxuJyA+IC9vcHQvYmlvbWF0ZS10cmlhbC9DUFVfUkVBRFkK",
+  "IamInstanceProfile": {
+    "Name": "biomate-core-trial-20260912"
+  }
+}

@@ -7,45 +7,51 @@ export default {
   ],
   theme: {
     extend: {
+      // Design-v2 radius scale (--bm-r-*), with the legacy single --radius as fallback.
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--bm-r-lg, var(--radius))",
+        md: "var(--bm-r-md, calc(var(--radius) - 2px))",
+        sm: "var(--bm-r-sm, calc(var(--radius) - 4px))",
       },
+      // Phase-0 token migration: every core color resolves to the design-v2 oklch
+      // palette (--bm-*, defined app-wide on :root + .dark in reference-design.css),
+      // falling back to the legacy shadcn HSL token if a --bm-* is ever undefined.
+      // Extends the pattern design already used for accent/border to the whole app,
+      // so the UI matches data_centroid_design_v2 beyond just the .wf-panel surfaces.
       colors: {
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        background: "var(--bm-bg, hsl(var(--background)))",
+        foreground: "var(--bm-text, hsl(var(--foreground)))",
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "var(--bm-bg-elev, hsl(var(--card)))",
+          foreground: "var(--bm-text, hsl(var(--card-foreground)))",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "var(--bm-bg-elev, hsl(var(--popover)))",
+          foreground: "var(--bm-text, hsl(var(--popover-foreground)))",
         },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
+          DEFAULT: "var(--bm-primary, hsl(var(--primary)))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "var(--bm-surface-2, hsl(var(--secondary)))",
+          foreground: "var(--bm-text, hsl(var(--secondary-foreground)))",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "var(--bm-surface-2, hsl(var(--muted)))",
+          foreground: "var(--bm-text-muted, hsl(var(--muted-foreground)))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "var(--bm-accent-soft, hsl(var(--accent)))",
+          foreground: "var(--bm-accent-ink, hsl(var(--accent-foreground)))",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
+          DEFAULT: "var(--bm-err, hsl(var(--destructive)))",
           foreground: "hsl(var(--destructive-foreground))",
         },
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
+        border: "var(--bm-border, hsl(var(--border)))",
+        input: "var(--bm-border, hsl(var(--input)))",
+        ring: "var(--bm-accent, hsl(var(--ring)))",
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
@@ -54,14 +60,14 @@ export default {
           "5": "hsl(var(--chart-5))",
         },
         sidebar: {
-          DEFAULT: "hsl(var(--sidebar))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
+          DEFAULT: "var(--bm-bg-elev, hsl(var(--sidebar)))",
+          foreground: "var(--bm-text, hsl(var(--sidebar-foreground)))",
+          primary: "var(--bm-primary, hsl(var(--sidebar-primary)))",
           "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
+          accent: "var(--bm-surface-2, hsl(var(--sidebar-accent)))",
+          "accent-foreground": "var(--bm-text, hsl(var(--sidebar-accent-foreground)))",
+          border: "var(--bm-border, hsl(var(--sidebar-border)))",
+          ring: "var(--bm-accent, hsl(var(--sidebar-ring)))",
         },
         // Bioinformatics theme colors
         bio: {

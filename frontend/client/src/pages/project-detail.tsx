@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
+import { useActiveProjectSafe } from "@/contexts/active-project-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -64,10 +65,43 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { projectService } from "@/lib/projects"
+import { ProjectGuidanceCards, ProjectInheritanceCard, ProjectInstructionsPage } from "@/components/project-guidance-cards"
 import { ProjectFileTree } from "@/components/project-file-tree"
 import { NextflowWorkflowViewer } from "@/components/nextflow-workflow-viewer"
+import { type RoleCapability } from "@/components/roles-verify"
 import type { Project } from "@shared/schema"
 import { cn } from "@/lib/utils"
+
+/** The three concrete project roles the server assigns (owner|editor|viewer). */
+export type ProjectRole = "owner" | "editor" | "viewer"
+
+// Rank so a role satisfies any capability requiring an equal-or-lower role.
+// owner ⊃ editor ⊃ viewer (owner can do everything an editor can, etc.).
+const ROLE_RANK: Record<ProjectRole, number> = { viewer: 0, editor: 1, owner: 2 }
+
+/**
+ * The per-project capability map (spec §0.14) as {capability, needs} — the
+ * `allowed` flag is derived per-user from their real role below. This is the
+ * single source of truth fed to <RolesCard>; it never grants a capability the
+ * server wouldn't (every "needs" role matches the server's write/owner gates:
+ * editor+ writes via _canWrite; owner-only for members/status/external actions).
+ */
+const PROJECT_CAP_MAP: Array<{ capability: string; needs: ProjectRole; needsLabel: string }> = [
+  { capability: "Read & download files", needs: "viewer", needsLabel: "Viewer" },
+  { capability: "Run analyses & edit project content", needs: "editor", needsLabel: "Editor" },
+  { capability: "Edit & publish the report", needs: "owner", needsLabel: "Owner" },
+  { capability: "Approve external transfer / spend / publish", needs: "owner", needsLabel: "Owner" },
+  { capability: "Manage members & roles", needs: "owner", needsLabel: "Owner" },
+]
+
+/** Build the RolesCard capability list for a given real role (disabled-not-hidden). */
+export function buildRoleCapabilities(role: ProjectRole): RoleCapability[] {
+  return PROJECT_CAP_MAP.map((c) => ({
+    capability: c.capability,
+    needs: c.needsLabel,
+    allowed: ROLE_RANK[role] >= ROLE_RANK[c.needs],
+  }))
+}
 
 interface ProjectDetailPageProps {
   projectId: string
@@ -77,11 +111,13 @@ interface ProjectDetailPageProps {
 
 export default function ProjectDetailPage({ projectId, onBack, initialTab }: ProjectDetailPageProps) {
   const [, navigate] = useLocation()
+  const projectContext = useActiveProjectSafe()
+  useEffect(() => { projectContext?.setActiveProjectId(projectId) }, [projectId])
   const [project, setProject] = useState<Project | null>(null)
   const [loadingProject, setLoadingProject] = useState(true)
   const [isEditingInstructions, setIsEditingInstructions] = useState(false)
   const [instructionsValue, setInstructionsValue] = useState("")
-  const validTabs = ["chat", "files", "workflows"]
+  const validTabs = ["chat", "files", "workflows", "instructions"]
   const [activeTab, setActiveTab] = useState(validTabs.includes(initialTab || "") ? initialTab! : "files")
 
   const [sessions, setSessions] = useState<any[]>([])
@@ -93,6 +129,20 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [savingOutputs, setSavingOutputs] = useState(false)
   const [saveOutputsMsg, setSaveOutputsMsg] = useState<string | null>(null)
   const [projectFiles, setProjectFiles] = useState<{ name: string; size?: number }[]>([])
+
+  // Plan / hypothesis objects (project_plans). Listed + created here.
+  const [plans, setPlans] = useState<any[]>([])
+  const [plansLoading, setPlansLoading] = useState(false)
+  const [newPlanGoal, setNewPlanGoal] = useState("")
+  const [newPlanHypothesis, setNewPlanHypothesis] = useState("")
+  const [creatingPlan, setCreatingPlan] = useState(false)
+
+  // Human-only notes (project_knowledge / knowledgeType='user_notes').
+  // NOT read by the assistant — distinct from Standing instructions (researchGoal).
+  const [notes, setNotes] = useState<any[]>([])
+  const [notesLoading, setNotesLoading] = useState(false)
+  const [newNote, setNewNote] = useState("")
+  const [savingNote, setSavingNote] = useState(false)
 
   // Inline tag editing
   const [editingTags, setEditingTags] = useState<string[]>([])
@@ -138,6 +188,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [isOwner, setIsOwner] = useState(false)
   // canEdit = owner OR editor member. Viewers are read-only; gates content controls.
   const [canEdit, setCanEdit] = useState(false)
+  // The current user's REAL role for this project (owner|editor|viewer), as
+  // returned by GET /api/projects/:id. Feeds RolesCard so the capability
+  // verdicts reflect actual server-side rights — never fabricated.
+  const [myRole, setMyRole] = useState<ProjectRole>("viewer")
   const [members, setMembers] = useState<Array<{ user_id: string; email: string; fullName?: string; role: string }>>([])
   const [shareEmail, setShareEmail] = useState("")
   const [shareRole, setShareRole] = useState<"viewer" | "editor">("viewer")
@@ -181,14 +235,18 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           if (data.isOwner !== undefined) setIsOwner(data.isOwner)
           // canEdit from server (owner|editor); fall back to isOwner for older payloads.
           setCanEdit(data.canEdit ?? data.isOwner ?? false)
+          // Real role from server; derive from isOwner/canEdit for older payloads.
+          const serverRole: ProjectRole | undefined =
+            data.role === "owner" || data.role === "editor" || data.role === "viewer" ? data.role : undefined
+          setMyRole(serverRole ?? (data.isOwner ? "owner" : data.canEdit ? "editor" : "viewer"))
         } else {
           const loc = projectService.getProject(projectId)
-          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true); setCanEdit(true) }
+          if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true); setCanEdit(true); setMyRole("owner") }
         }
       })
       .catch(() => {
         const loc = projectService.getProject(projectId)
-        if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true) }
+        if (loc) { setProject(loc); setInstructionsValue(loc.instructions || ""); setIsOwner(true); setMyRole("owner") }
       })
       .finally(() => setLoadingProject(false))
   }, [projectId])
@@ -299,6 +357,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       const data = await r.json().catch(() => ({}))
       if (!r.ok) { setTransferError(data.error ?? "Failed to transfer ownership"); return }
       setIsOwner(false)
+      setMyRole("editor")
       setTransferTarget(null)
       loadMembers()
     } catch { setTransferError("Failed to transfer ownership") }
@@ -349,8 +408,90 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       if (r.ok) {
         setProject(prev => prev ? { ...prev, instructions: instructionsValue.trim() } : prev)
         setIsEditingInstructions(false)
+        window.dispatchEvent(new CustomEvent("biomate:projects-updated"))
       }
     } catch { /* keep editing open */ }
+  }
+
+  const loadPlans = useCallback(async () => {
+    setPlansLoading(true)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/plans`, { credentials: "include" })
+      if (r.ok) setPlans((await r.json()).plans ?? [])
+    } catch { /* ignore */ }
+    finally { setPlansLoading(false) }
+  }, [projectId])
+
+  useEffect(() => { loadPlans() }, [loadPlans])
+
+  const handleCreatePlan = async () => {
+    const goal = newPlanGoal.trim()
+    if (!goal) return
+    setCreatingPlan(true)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/plans`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ goal, hypothesis: newPlanHypothesis.trim() || null }),
+      })
+      if (r.ok) {
+        setNewPlanGoal("")
+        setNewPlanHypothesis("")
+        loadPlans()
+      }
+    } catch { /* keep form open */ }
+    finally { setCreatingPlan(false) }
+  }
+
+  const loadNotes = useCallback(async () => {
+    setNotesLoading(true)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/notes-list`, { credentials: "include" })
+      if (r.ok) setNotes((await r.json()).notes ?? [])
+    } catch { /* ignore */ }
+    finally { setNotesLoading(false) }
+  }, [projectId])
+
+  useEffect(() => { loadNotes() }, [loadNotes])
+
+  const handleSaveNote = async () => {
+    const content = newNote.trim()
+    if (!content) return
+    setSavingNote(true)
+    try {
+      const r = await fetch(`/api/projects/${projectId}/notes-list`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content }),
+      })
+      if (r.ok) { setNewNote(""); loadNotes() }
+    } catch { /* keep text */ }
+    finally { setSavingNote(false) }
+  }
+
+  // Append a note's text into the Standing instructions (researchGoal), then
+  // persist via the same PATCH the instructions save uses. Trust boundary:
+  // Notes are human-only until explicitly promoted.
+  const handlePromoteNote = async (text: string) => {
+    if (!project) return
+    const line = (text || "").trim()
+    if (!line) return
+    const current = (instructionsValue || "").trim()
+    const next = current ? `${current}\n${line}` : line
+    try {
+      const r = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ researchGoal: next }),
+      })
+      if (r.ok) {
+        setInstructionsValue(next)
+        setProject(prev => prev ? { ...prev, instructions: next } as any : prev)
+      }
+    } catch { /* ignore */ }
   }
 
   const openChatWithProject = (sessionId?: string, prefilledMessage?: string) => {
@@ -472,9 +613,9 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden [overflow-wrap:anywhere]">
       {/* Header */}
-      <div className="border-b border-border px-6 py-4 shrink-0">
+      <div className="border-b border-border px-6 py-4 shrink-0" style={activeTab === "instructions" || activeTab === "workflows" ? { display: "none" } : undefined}>
         <div className="flex items-center gap-3 mb-3">
           <Button variant="ghost" size="sm" onClick={onBack} data-testid="button-back-to-projects">
             <ArrowLeft className="w-4 h-4 mr-2" />All projects
@@ -569,9 +710,9 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
       {/* Body */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={activeTab === "instructions" ? { display: "none" } : undefined}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0">
+            <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0" style={activeTab === "workflows" ? { display: "none" } : undefined}>
               <TabsTrigger value="chat" className="flex items-center gap-1.5" data-testid="tab-project-chat">
                 <MessageCircle className="w-3.5 h-3.5" />Chat
                 {sessions.length > 0 && (
@@ -581,9 +722,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               <TabsTrigger value="files" className="flex items-center gap-1.5" data-testid="tab-project-files">
                 <FileText className="w-3.5 h-3.5" />Files
               </TabsTrigger>
-              <TabsTrigger value="workflows" className="flex items-center gap-1.5" data-testid="tab-project-workflows">
-                <FlaskConical className="w-3.5 h-3.5" />Workflow Runs
-              </TabsTrigger>
+              {/* Project Runs tab hidden to avoid duplicating chat execution history. */}
             </TabsList>
 
             {/* CHAT TAB */}
@@ -649,7 +788,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             </TabsContent>
 
             {/* FILES TAB */}
-            <TabsContent value="files" className="flex-1 m-0 min-h-0" style={{ display: "flex", flexDirection: "column" }}>
+            <TabsContent value="files" className="flex-1 m-0 min-h-0" style={{ display: activeTab === "files" ? "flex" : "none", flexDirection: "column" }}>
               <div className="flex-1 p-4 min-h-0 flex flex-col">
                 <ProjectFileTree
                   projectId={projectId}
@@ -677,14 +816,13 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             <TabsContent value="workflows" className="flex-1 m-0 min-h-0 overflow-hidden" data-testid="tab-content-workflows">
               <div className="h-full flex min-h-0">
                 {/* Run list */}
-                <div className="w-72 border-r border-border flex flex-col shrink-0">
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30 shrink-0">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Runs</span>
-                    <button onClick={loadRuns} className="text-muted-foreground hover:text-foreground">
+                <div className={selectedRunId ? "hidden" : "flex-1 min-w-0 flex flex-col"}>
+                  <div className="px-4 sm:px-8 py-6 border-b border-border shrink-0"><p className="text-xs text-muted-foreground mb-2">{project.name} / Runs</p><div className="flex items-center justify-between"><h2 className="text-xl font-semibold">Runs <span className="text-sm font-normal text-muted-foreground">{runs.length}</span></h2>
+                    <button onClick={loadRuns} aria-label="Refresh runs" className="text-muted-foreground hover:text-foreground">
                       <RefreshCw className="w-3 h-3" />
                     </button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto">
+                  </div><p className="text-sm text-muted-foreground mt-3">Workflow runs started in this project. Open a run to see its settings, progress and results.</p></div>
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-8">
                     {runsLoading ? (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 justify-center">
                         <Loader2 className="w-4 h-4 animate-spin" />Loading…
@@ -693,10 +831,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground px-4">
                         <FlaskConical className="w-8 h-8 mb-2 opacity-30" />
                         <p className="text-xs font-medium">No runs yet</p>
-                        <p className="text-xs mt-1">Start a chat and ask BioMate to run a workflow.</p>
+                        <p className="text-sm mt-1">Start from a chat or a project file. Its run record will appear here.</p><div className="flex flex-wrap justify-center gap-2 mt-4"><Button size="sm" onClick={() => openChatWithProject()}>New chat in this project</Button><Button size="sm" variant="outline" onClick={() => navigate("/files")}>Open project files</Button></div>
                       </div>
                     ) : (
-                      <div className="py-1">
+                      <div className="space-y-2">
                         {runs.map((run: any) => {
                           const id = run.id ?? run.runId
                           const status = run.execution?.status ?? run.status ?? "unknown"
@@ -707,7 +845,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                             <button
                               key={id}
                               className={cn(
-                                "w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors border-b border-border/50",
+                                "w-full flex items-center gap-3 px-4 py-4 text-left rounded-lg border border-border hover:bg-muted/40 transition-colors",
                                 isSel && "bg-muted"
                               )}
                               onClick={() => setSelectedRunId(isSel ? null : id)}
@@ -715,9 +853,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                             >
                               {statusIcon(status)}
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate">{name}</p>
+                                <p className="text-sm font-medium truncate">{name}</p>
                                 <p className="text-xs text-muted-foreground">{relTime(ts)}</p>
                               </div>
+                              <span className="text-xs rounded-full border border-border px-2 py-1">{status.replace(/_/g, " ")}</span>
                             </button>
                           )
                         })}
@@ -727,7 +866,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 </div>
 
                 {/* Workflow viewer */}
-                <div className="flex-1 overflow-y-auto">
+                <div className={selectedRunId ? "flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden" : "hidden"}>
+                  {selectedRunId && <div className="px-4 sm:px-6 py-3 border-b border-border shrink-0"><Button variant="ghost" size="sm" onClick={() => setSelectedRunId(null)}><ArrowLeft className="w-3.5 h-3.5 mr-2" />Back to runs</Button></div>}
                   {selectedRunId ? (
                     (() => {
                       const run = runs.find((r: any) => (r.id ?? r.runId) === selectedRunId)
@@ -770,14 +910,15 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                               )}
                             </div>
                           )}
-                          <NextflowWorkflowViewer
+                          <div className="flex-1 min-h-0 min-w-0 overflow-hidden"><NextflowWorkflowViewer
                             runId={selectedRunId}
+                            invocationId={run?.execution?.galaxyInvocationId}
                             sessionId={run?.chatSessionId}
                             workflowId={run?.workflowName}
                             workflowDefinition={run?.workflowDefinition}
                             status={wfStatus}
                             errorMessage={run?.execution?.errorMessage}
-                          />
+                          /></div>
                         </>
                       )
                     })()
@@ -795,59 +936,205 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
         </div>
 
         {/* Right sidebar */}
-        <div className="w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden">
-          <div className="p-4 flex-1 overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-sm">Instructions</h3>
-              {canEdit && !isEditingInstructions && (
-                <Button
-                  variant="ghost" size="sm" className="h-7 w-7 p-0"
-                  onClick={() => setIsEditingInstructions(true)}
-                  data-testid="button-edit-instructions"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </Button>
+        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : activeTab === "workflows" ? "hidden" : "w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden"}>
+          {activeTab === "instructions" && <ProjectInstructionsPage projectId={projectId} projectName={project.name} canEdit={canEdit} instructions={project.instructions || ""} onInstructionsSaved={(t) => { setInstructionsValue(t); setProject(prev => prev ? { ...prev, instructions: t } : prev); }} />}
+          {activeTab !== "instructions" && <div className="p-4 flex-1 overflow-y-auto space-y-6">
+            {/* Standing instructions — the agent-read directives (persist to researchGoal). */}
+            <div data-testid="standing-instructions-card" className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : undefined}>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-medium text-sm">Standing instructions</h3>
+                {canEdit && !isEditingInstructions && (
+                  <Button
+                    variant="ghost" size="sm" className="h-7 w-7 p-0"
+                    onClick={() => setIsEditingInstructions(true)}
+                    data-testid="button-edit-instructions"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-3">Read by the assistant on every chat in this project.</p>
+
+              {isEditingInstructions ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={instructionsValue}
+                    onChange={e => setInstructionsValue(e.target.value)}
+                    placeholder="Add context, guidelines, or background the assistant should follow…"
+                    className="min-h-[140px] resize-none text-sm"
+                    data-testid="textarea-edit-instructions"
+                  />
+                  <div className="flex gap-1.5">
+                    <Button size="sm" className="h-7 text-xs" onClick={handleSaveInstructions} data-testid="button-save-instructions">
+                      <Save className="w-3 h-3 mr-1" />Save
+                    </Button>
+                    <Button
+                      variant="outline" size="sm" className="h-7 text-xs"
+                      onClick={() => { setInstructionsValue(project.instructions || ""); setIsEditingInstructions(false) }}
+                      data-testid="button-cancel-instructions"
+                    >
+                      <X className="w-3 h-3 mr-1" />Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : project.instructions ? (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.instructions}</p>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <FileText className="w-7 h-7 mx-auto mb-2 opacity-30" />
+                  <p className="text-xs">No instructions yet</p>
+                  <p className="text-xs opacity-70 mt-0.5">Add context to help BioMate</p>
+                </div>
               )}
             </div>
 
-            {isEditingInstructions ? (
-              <div className="space-y-2">
-                <Textarea
-                  value={instructionsValue}
-                  onChange={e => setInstructionsValue(e.target.value)}
-                  placeholder="Add context, guidelines, or background for this project…"
-                  className="min-h-[160px] resize-none text-sm"
-                  data-testid="textarea-edit-instructions"
-                />
-                <div className="flex gap-1.5">
-                  <Button size="sm" className="h-7 text-xs" onClick={handleSaveInstructions} data-testid="button-save-instructions">
-                    <Save className="w-3 h-3 mr-1" />Save
-                  </Button>
+            {activeTab === "instructions" && <ProjectGuidanceCards projectId={projectId} canEdit={canEdit} onOpenFiles={() => navigate("/files")} />}
+
+            <div className={activeTab === "instructions" ? "grid md:grid-cols-2 gap-4" : undefined}>
+            {/* Notes — human-only free text, NOT read by the assistant. */}
+            <div className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : "border-t border-border pt-4"} data-testid="notes-card">
+              <h3 className="font-medium text-sm">Notes</h3>
+              <p className="text-[11px] text-muted-foreground mb-3">
+                Private to you — <span className="font-medium">not read by the assistant</span>. Promote a note to make it a standing instruction.
+              </p>
+
+              {canEdit && (
+                <div className="space-y-1.5 mb-3">
+                  <Textarea
+                    value={newNote}
+                    onChange={e => setNewNote(e.target.value)}
+                    placeholder="Jot a note for yourself…"
+                    className="min-h-[64px] resize-none text-sm"
+                    data-testid="textarea-new-note"
+                  />
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="sm" className="h-7 text-xs"
+                      onClick={handleSaveNote}
+                      disabled={savingNote || !newNote.trim()}
+                      data-testid="button-save-note"
+                    >
+                      {savingNote ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}Add note
+                    </Button>
+                    {canEdit && newNote.trim() && (
+                      <Button
+                        variant="outline" size="sm" className="h-7 text-xs"
+                        onClick={() => handlePromoteNote(newNote)}
+                        title="Append this text to Standing instructions"
+                        data-testid="button-promote-new-note"
+                      >
+                        Promote to instruction ↑
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {notesLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading notes…
+                </div>
+              ) : notes.length === 0 ? (
+                <p className="text-xs text-muted-foreground" data-testid="notes-empty">No notes yet</p>
+              ) : (
+                <div className="space-y-2" data-testid="notes-list">
+                  {notes.map((n: any) => (
+                    <div key={n.id} className="rounded-md border border-border bg-background p-2.5" data-testid={`note-row-${n.id}`}>
+                      <p className="text-sm whitespace-pre-wrap">{n.content}</p>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-[10px] text-muted-foreground">{relTime(n.createdAt)}</span>
+                        {canEdit && (
+                          <button
+                            onClick={() => handlePromoteNote(n.content)}
+                            className="text-[11px] text-muted-foreground hover:text-primary"
+                            title="Append this note to Standing instructions"
+                            data-testid={`button-promote-note-${n.id}`}
+                          >
+                            Promote to instruction ↑
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {activeTab === "instructions" && <ProjectInheritanceCard onOpenFiles={() => navigate("/files")} />}
+            </div>
+
+            {/* Plan / hypothesis — first-class objects a run can cite (project_plans). */}
+            {activeTab !== "instructions" && <div className="border-t border-border pt-4" data-testid="plans-card">
+              <h3 className="font-medium text-sm mb-3">Plan / hypothesis</h3>
+
+              {canEdit && (
+                <div className="space-y-1.5 mb-3" data-testid="new-plan-form">
+                  <Input
+                    value={newPlanGoal}
+                    onChange={e => setNewPlanGoal(e.target.value)}
+                    placeholder="Goal (required)"
+                    className="h-8 text-sm"
+                    data-testid="input-plan-goal"
+                  />
+                  <Textarea
+                    value={newPlanHypothesis}
+                    onChange={e => setNewPlanHypothesis(e.target.value)}
+                    placeholder="Hypothesis (optional)"
+                    className="min-h-[56px] resize-none text-sm"
+                    data-testid="textarea-plan-hypothesis"
+                  />
                   <Button
-                    variant="outline" size="sm" className="h-7 text-xs"
-                    onClick={() => { setInstructionsValue(project.instructions || ""); setIsEditingInstructions(false) }}
-                    data-testid="button-cancel-instructions"
+                    size="sm" className="h-7 text-xs"
+                    onClick={handleCreatePlan}
+                    disabled={creatingPlan || !newPlanGoal.trim()}
+                    data-testid="button-create-plan"
                   >
-                    <X className="w-3 h-3 mr-1" />Cancel
+                    {creatingPlan ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plus className="w-3 h-3 mr-1" />}New plan
                   </Button>
                 </div>
-              </div>
-            ) : project.instructions ? (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.instructions}</p>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground">
-                <FileText className="w-7 h-7 mx-auto mb-2 opacity-30" />
-                <p className="text-xs">No instructions yet</p>
-                <p className="text-xs opacity-70 mt-0.5">Add context to help BioMate</p>
-              </div>
-            )}
-          </div>
+              )}
 
-          {/* Share section — owner-only invite UI + member list visible to all */}
-          <div className="border-t border-border p-4 shrink-0">
+              {plansLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading plans…
+                </div>
+              ) : plans.length === 0 ? (
+                <p className="text-xs text-muted-foreground" data-testid="plans-empty">No plans yet</p>
+              ) : (
+                <div className="space-y-2" data-testid="plans-list">
+                  {plans.map((p: any) => (
+                    <div key={p.id} className="rounded-md border border-border bg-background p-2.5" data-testid={`plan-row-${p.id}`}>
+                      <p className="text-sm font-medium whitespace-pre-wrap">{p.goal}</p>
+                      {p.hypothesis && (
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{p.hypothesis}</p>
+                      )}
+                      <span className="text-[10px] text-muted-foreground block mt-1.5">{relTime(p.created_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>}
+          </div>}
+
+          {/* Members & roles — owner-only invite UI + member list visible to all.
+              Rendered on every tab where the project panel is visible, INCLUDING
+              instructions: the files/chat tabs that used to host this panel now
+              redirect to /files (App.tsx), and the workflows tab hides the whole
+              panel, so instructions is the only reachable home — and T7 documents
+              Standing instructions + Members & roles together here. On instructions
+              it aligns to the same centered content column as the cards above. */}
+          {project && <div className={`border-t border-border p-4 shrink-0${activeTab === "instructions" ? " w-full max-w-4xl mx-auto sm:px-6" : ""}`} data-testid="members-panel">
             <div className="flex items-center gap-1.5 mb-3">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
-              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Shared with</h4>
+              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground flex-1">Members & roles</h4>
+              {/* The current user's OWN role for this project (real, from the server). */}
+              <span
+                data-testid="my-role-badge"
+                className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary capitalize"
+                title="Your role in this project"
+              >
+                You: {myRole}
+              </span>
             </div>
 
             {/* Share link — owner only */}
@@ -1005,9 +1292,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 )}
               </div>
             )}
-          </div>
 
-          <div className="border-t border-border p-4 shrink-0">
+            {/* Permissions summary removed at user request; server role checks remain in force. */}
+          </div>}
+
+          {activeTab !== "instructions" && <div className="border-t border-border p-4 shrink-0">
             <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-2">Details</h4>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
@@ -1029,7 +1318,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 <span>{relTime((project as any).updatedAt ?? project.lastActivity)}</span>
               </div>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
 

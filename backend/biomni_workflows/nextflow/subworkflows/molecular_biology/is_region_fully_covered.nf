@@ -52,7 +52,7 @@ with open("is_region_fully_covered_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("is_region_fully_covered_output.txt", "w") as f:
-    f.write("Biomni: Is Region Fully Covered Results" + NL)
+    f.write("BioMate: Is Region Fully Covered Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
