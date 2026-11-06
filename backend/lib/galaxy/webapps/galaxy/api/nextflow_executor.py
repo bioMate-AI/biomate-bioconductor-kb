@@ -7687,6 +7687,15 @@ def _execute_nextflow_impl(
             cmd.append("-resume")
             log.info(f"[Nextflow run {run_id}] Resuming from {request.resume_from_run_id}, work_dir={prev_work}")
 
+    # Real nf-core pipelines read list/map params as Groovy collections (e.g. proteomicslfq 1.0.0
+    # `input = [a.mzML, b.mzML]`); the JSON-string encoding below exists for BioMate's own .nf, whose
+    # auto_convert() json.loads them. A JSON string reached proteomicslfq as one non-file value
+    # ("EITHER spectra data OR an SDRF needs to be provided", 2026-11-06). For nf-core pipelines,
+    # collections go through -params-file as native JSON, which Nextflow loads as lists/maps.
+    _native_collections = (
+        "/nf-core-workflows/" in str(nf_path) and "/nf-core-workflows/modules/" not in str(nf_path)
+    )
+    _native_params: dict = {}
     if _has_multiline:
         # One or more params contain embedded newlines (inline CSV/SMILES/FASTA).
         # Nextflow 25.x --params-file silently drops multi-line string values
@@ -7715,6 +7724,8 @@ def _execute_nextflow_impl(
             if isinstance(value, bool):
                 _params_for_json[key] = value
             elif isinstance(value, (int, float)):
+                _params_for_json[key] = value
+            elif isinstance(value, (list, dict)) and _native_collections:
                 _params_for_json[key] = value
             elif isinstance(value, (list, dict)):
                 # Serialize collections as JSON, NOT str() — str([...]) emits a
@@ -7766,6 +7777,8 @@ def _execute_nextflow_impl(
                 cmd += ["--outdir", str(value)]
             elif isinstance(value, bool):
                 cmd += [f"--{key}", "true" if value else "false"]
+            elif isinstance(value, (list, dict)) and _native_collections:
+                _native_params[key] = value
             elif isinstance(value, (list, dict)):
                 # JSON, not str() — see the --params-file path above: str([...])
                 # emits a single-quoted Python repr that auto_convert(json.loads)
@@ -7788,6 +7801,12 @@ def _execute_nextflow_impl(
             else:
                 cmd += [f"--{key}", str(value)]
 
+    if _native_params:
+        import json as _np_json
+        _native_path = log_dir / "nf-params-collections.json"
+        _native_path.write_text(_np_json.dumps(_native_params, indent=2))
+        cmd += ["-params-file", str(_native_path)]
+        log.info(f"[Nextflow run {run_id}] -params-file (native collections): {list(_native_params)}")
     log.info(f"[Nextflow run {run_id}] cmd: {' '.join(cmd)}")
     log.info(f"[Nextflow run {run_id}] outdir: {outdir}")
     if selected_entry:

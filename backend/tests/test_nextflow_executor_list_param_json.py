@@ -105,3 +105,14 @@ def test_file_ref_regex_behaviour():
     # the shipped ext set must still cover the core data types (guards drift/removal)
     for e in ("csv", "tsv", "txt", "json", "rds", "h5ad"):
         assert ext.search(f"x.{e}"), f"shipped _FILE_REF_EXT_RE dropped .{e}"
+
+
+def test_nfcore_pipelines_get_native_collections_via_params_file():
+    # Real nf-core pipelines read list params as Groovy lists (proteomicslfq 1.0.0 `input`); a
+    # JSON-encoded string reached them as one non-file value. Collections for /nf-core-workflows/
+    # paths must go through `-params-file` as native JSON instead of a JSON-string CLI flag.
+    src = EXECUTOR.read_text()
+    assert "_native_collections = (" in src
+    assert '"/nf-core-workflows/" in str(nf_path)' in src
+    assert 'cmd += ["-params-file", str(_native_path)]' in src
+    assert "elif isinstance(value, (list, dict)) and _native_collections:" in src
