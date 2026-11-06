@@ -6,6 +6,8 @@ handler is mocked; wiring it to nextflow_executor._evaluate_qc_from_s3
 is Stage 3c.
 """
 
+from __future__ import annotations  # `float | None` annotations on Python 3.9
+
 import os
 import subprocess
 import sys

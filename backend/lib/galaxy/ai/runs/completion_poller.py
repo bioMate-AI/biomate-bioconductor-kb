@@ -45,7 +45,7 @@ import os
 import re
 import threading
 import time
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 try:
     import psutil  # type: ignore
@@ -223,6 +223,18 @@ class CompletionPoller:
                 # No Batch ids yet, at least one job still running, or the
                 # describe call failed — leave it for a later sweep.
                 return False
+            # "Every job submitted SO FAR is terminal" is not "the pipeline is done":
+            # between phases Nextflow has simply not submitted the next jobs yet. With the
+            # head alive this finalized live runs as succeeded mid-pipeline (nf-core/rnaseq,
+            # mnaseseq, slamseq 2026-11-06, still running at 38/76/29 tasks) and hid a later
+            # failure (proteomicslfq). While a Nextflow head for the run is alive, wait for the
+            # Nextflow log to record the end; then let the finalizer read the run's own trace
+            # and log rather than the Batch job list (a FAILED job whose retry succeeded does
+            # not fail the run).
+            if self._nextflow_head_alive(run_id, pid):
+                if not self._nextflow_log_ended(run_id):
+                    return False
+                batch_status = None
         # Either the local PID is gone, or every Batch job is terminal.
         if not self._store.acquire_completion_lock(run_id, ttl_s=120):
             return False
@@ -240,6 +252,51 @@ class CompletionPoller:
         except Exception:
             # Re-raise so _sweep logs with context.
             raise
+
+    @staticmethod
+    def _nextflow_head_alive(run_id: str, pid: Optional[Any] = None) -> bool:
+        """True if the run's recorded PID is alive, or any process's command line names
+        both nextflow and this run's directory (the head after a worker recycle)."""
+        if pid is not None:
+            try:
+                if _pid_exists(int(pid)):
+                    return True
+            except (TypeError, ValueError):
+                pass
+        import os
+        proc = "/proc"
+        if not os.path.isdir(proc):
+            return False
+        for entry in os.listdir(proc):
+            if not entry.isdigit():
+                continue
+            try:
+                with open(os.path.join(proc, entry, "cmdline"), "rb") as fh:
+                    cmd = fh.read().replace(b"\0", b" ")
+            except OSError:
+                continue
+            # The head's command line carries the run directory (/<run_id>/…: -c override
+            # config, -with-trace); match that path segment, not a bare substring.
+            if f"/{run_id}/".encode() in cmd and b"nextflow" in cmd:
+                return True
+        return False
+
+    @staticmethod
+    def _nextflow_log_ended(run_id: str) -> bool:
+        """True once the run's .nextflow.log records the session's end."""
+        import os
+        work_base = os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")
+        for rel in (("work", ".nextflow.log"), (".nextflow.log",)):
+            path = os.path.join(work_base, run_id, *rel)
+            try:
+                with open(path, "rb") as fh:
+                    fh.seek(max(0, os.path.getsize(path) - 65536))
+                    tail = fh.read().decode(errors="replace")
+            except OSError:
+                continue
+            if "Execution complete -- Goodbye" in tail or "Session aborted" in tail:
+                return True
+        return False
 
     def _batch_terminal_status(self, run_id: str, record: dict) -> Optional[str]:
         """Return 'succeeded'/'failed' iff EVERY AWS Batch job for this run is
