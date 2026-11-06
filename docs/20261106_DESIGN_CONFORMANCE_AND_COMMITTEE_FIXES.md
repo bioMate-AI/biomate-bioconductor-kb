@@ -142,8 +142,9 @@ From the instruction-panel audit:
    chat-specific (changed from the seed, or projectless); an untouched project seed is dropped from the
    payload (the server already injects it). Output requirements still ride the composer path (the
    server does NOT inject those). tsc + vitest 2206/0.
-2. **Silent 24k truncation** — `server/chat-context.ts` truncates composer instructions at 24,000
-   chars with no UI counter/`maxLength`.
+2. ✅ **Silent 24k truncation — FIXED.** The projectless composer-instructions textarea now has
+   `maxLength={24000}` (mirrors `MAX_COMPOSER_INSTRUCTIONS_LENGTH` in `server/chat-context.ts`) so input
+   can no longer be silently trimmed server-side, plus a counter that appears within 10% of the cap.
 3. **"A skill or expert" creation flow** — the add-connector "Set up" for skills lists packs + points
    to the composer rather than a describe-your-own-skill creation flow (design implies one).
 

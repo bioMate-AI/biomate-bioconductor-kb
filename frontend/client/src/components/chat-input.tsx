@@ -193,6 +193,9 @@ export function ChatInput({
   // of its instructions, matching how the Instructions page splits them) from the fresh project prop.
   const standingRuleCount = (activeProject?.instructions ?? "")
     .split("\n").map((s) => s.trim()).filter(Boolean).length
+  // Mirrors MAX_COMPOSER_INSTRUCTIONS_LENGTH in server/chat-context.ts. Enforce it in the UI so a
+  // long paste can't be SILENTLY truncated server-side with no signal to the user.
+  const COMPOSER_INSTRUCTIONS_MAX = 24_000
   const [instructions, setInstructions] = useState<string>(activeProject?.instructions ?? "")
   const [instructionsOpen, setInstructionsOpen] = useState(false)
   // Expert/skill packs toggled on for THIS composer (spec 06 §6.5). The ids
@@ -951,6 +954,7 @@ export function ChatInput({
                 onChange={(e) => setInstructions(e.target.value)}
                 placeholder={t('composer.instructions_placeholder')}
                 rows={2}
+                maxLength={COMPOSER_INSTRUCTIONS_MAX}
                 style={{
                   width: "100%", marginTop: 6, resize: "vertical",
                   minHeight: 44, maxHeight: 160,
@@ -962,6 +966,11 @@ export function ChatInput({
                   outline: "none",
                 }}
               />
+            )}
+            {instructionsOpen && instructions.length > COMPOSER_INSTRUCTIONS_MAX * 0.9 && (
+              <div data-testid="composer-instructions-limit" style={{ marginTop: 2, fontSize: 11, textAlign: "right", color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
+                {instructions.length.toLocaleString()} / {COMPOSER_INSTRUCTIONS_MAX.toLocaleString()} — longer input is trimmed before it reaches the model
+              </div>
             )}
           </div>
         )}
