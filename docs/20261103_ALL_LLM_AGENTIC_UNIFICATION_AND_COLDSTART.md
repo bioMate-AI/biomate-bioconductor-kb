@@ -650,7 +650,7 @@ Validation results are therefore judged from each run's `workflow-trace.txt` plu
 | imcyto | 22.10.8 -dsl1 | not runnable on Batch | the CellProfiler image's ENTRYPOINT runs `cellprofiler` instead of the task script ("You must specify a pipeline filename") |
 | diseasemodulediscovery | 26.04.6 | pipeline-internal | BIOPAX_VALIDATOR: "cannot execute: required file not found" |
 | scdownstream | 26.04.6 | pipeline-internal | SoupX "No plausible marker genes" on its test data (dev snapshot) |
-| cageseq | 22.10.8 -dsl1 | upstream data | test data removed from nf-core/test-datasets (404) |
+| cageseq | 22.10.8 -dsl1 | **pass** | 26/26 tasks. Its test data moved upstream into `reference/v1/` and `testdata/v1/` (the old paths 404); the validator supplies the new URLs. |
 
 **Batch disk (fixed, `3ab18e793`, applied 2026-11-06 by the owner).** Batch autoscaling adds instances, never disk. Every host booted with the AMI's 30 GB root, shared by every pulled image and all task scratch, and stopped-task containers were kept ~3 h. `scripts/batch_lt_storage.sh` created launch template `lt-099eb24c4fe1b477e` **v17**: a 200 GB gp3 encrypted root, plus ECS cleanup (stopped tasks after 15 min, image pruning every 10 min). ce-v2, hpc-v1 and ce-spot are pinned to v17. New hosts were verified with 200 GB gp3 encrypted volumes.
 
@@ -664,6 +664,19 @@ Run 8 re-ran the four disk-failed pipelines on v17, one at a time; all passed wi
 | eager | 26/26 | 8 min |
 
 Open design question from the owner: "we should not run multiple workflows in one machine". Batch packs jobs by resources, not by workflow. The options (per-run compute environment, single VM per run, per-tenant compute environment) are pending the owner's reason (disk vs data isolation).
+
+### 16.6b Run-record state: stuck, lost and never-launched runs (2026-11-06)
+Validating cageseq exposed that BioMate's run record lags or never reaches a terminal state. Galaxy finished cageseq at 16:01; the record flipped at 17:22.
+
+| Commit | Defect | Fix |
+|---|---|---|
+| `6da61ae01` / `133a1f10d` / `4cad9185f` | Params that equal a pipeline default were re-sent and tripped the input-path check (cageseq `input='data/*R1.fastq.gz'` → 422). The moved filter then referenced `run_id` before it was assigned (UnboundLocalError on every nf-core launch that dropped a param). The filter also dropped `params.input_paths`, which cageseq's code reads. | Params are sent only when they differ from the pipeline's default, and the filter runs before the input check. Logs are labelled by pipeline. "Known" params include every `params.X` the pipeline's code or configs read. |
+| `49e071207` | The stale-run reaper self-called the auth-protected status route with no credentials. Every call got a 401, yet the log said "reconciled N/N". | It calls the route as the run's owner and counts real outcomes. |
+| `075b900df` | The reaper saw only the newest 200 runs (dev: 52 running + 16 configuring in the DB; it saw 7–9). Never-launched runs (the Node process died mid-launch at a deploy) could never resolve. | It queries non-terminal runs directly. Runs still configuring/queued with no Galaxy id 6 h after creation are closed as failed. |
+| `bcd4144d0` → `291580abd` | Galaxy answers 404 "Run not found" forever for runs lost in container rebuilds. The first check read `err.response.status`, but the proxy rethrows `{status_code, detail}`, so nothing closed. | A tested helper, `isNextflowRunNotFound`, matches both error shapes. A run Galaxy no longer knows, more than 24 h after start, is closed as failed with an honest message. |
+| `d94fc53b9` | 3 lost runs had no owner account, so the user-scoped route couldn't be called for them. | The reaper asks Galaxy directly and applies the same rule. |
+
+Result on dev: 16 never-launched runs and 51 lost runs (Sept 28 – Oct 14) were closed; **0 non-terminal runs remain**. Run 11, after all param fixes: mnaseseq 81/81 and rnaseq 209/209, "completed successfully". The validator now polls the UI's status route (`9a350a884`).
 
 ### 16.7 Open
 - **Batch root volume:** raise it (new launch-template version; the CE audit in sync pins CEs to the latest version), then re-run validation for the disk-failed set. This needs owner approval because it changes shared AWS infra and EBS cost.
