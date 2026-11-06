@@ -502,6 +502,42 @@ jobs:
              else
                echo "WARNING: ADMET main.nf not found at $NF_FILE"
              fi'
+          # Backup bioc .nf files to backend-db volume so they survive Galaxy auto-restarts.
+          # The nfcore volume is re-initialized from the S3 tarball on every Galaxy docker
+          # restart (unless .initialized marker persists), wiping custom .nf uploads.
+          # The backend-db volume is never wiped — only galaxy_ai_tools.db is overwritten.
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+            root@${{ env.ECS_IP }} \
+            'NFCORE=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null) && \
+             DBVOL=$(docker volume inspect biomate-onprem_biomate-backend-db --format "{{.Mountpoint}}" 2>/dev/null) && \
+             if [ -n "$NFCORE" ] && [ -n "$DBVOL" ]; then \
+               mkdir -p "$DBVOL/custom-nf" && \
+               cp -r "$NFCORE/subworkflows/bioconductor" "$DBVOL/custom-nf/" && \
+               echo "Bioc .nf backup to $DBVOL/custom-nf/bioconductor — $(ls $DBVOL/custom-nf/bioconductor/ 2>/dev/null | wc -l) dirs"; \
+             else echo "WARNING: volume paths not found (NFCORE=$NFCORE DBVOL=$DBVOL)"; fi'
+
+      - name: Sync docker-compose.onprem.yml + recreate frontend (RC-2 nf-work volume)
+        # RC-2 fix: docker-compose.onprem.yml in the repo adds /app/nf-work:ro mount and
+        # NEXTFLOW_WORK_DIR to the frontend service.  The file on ECS is the old version
+        # (without these changes) so we must sync it and recreate the frontend container.
+        # Using `up -d --no-deps biomate-frontend` avoids a full stack restart.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          cat docker-compose.onprem.yml | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+              root@${{ env.ECS_IP }} \
+              'cat > /app/biomate/docker-compose.onprem.yml && echo "Compose file synced ($(wc -l < /app/biomate/docker-compose.onprem.yml) lines)"'
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+            root@${{ env.ECS_IP }} \
+            'cd /app/biomate && \
+             docker compose -f docker-compose.onprem.yml --env-file .env up -d --no-deps biomate-frontend 2>&1 | tail -10 && \
+             sleep 5 && \
+             docker inspect biomate-frontend --format "Mount nf-work: {{range .Mounts}}{{if eq .Destination \"/app/nf-work\"}}PRESENT{{end}}{{end}}" && \
+             docker exec biomate-frontend env | grep NEXTFLOW_WORK_DIR || echo "NEXTFLOW_WORK_DIR not set in frontend"'
 
       - name: Hot-deploy server bundle into running frontend container
         # MUST run AFTER Restart stack + galaxy restart — compose down/up recreates
@@ -844,6 +880,33 @@ jobs:
           [ "$FAIL" -eq 0 ] || { echo "One or more workflow tests FAILED"; exit 1; }
           echo "All 6 workflow tests COMPLETED"
 
+          # ── Restore bioc .nf files from backend-db backup (Galaxy may have auto-restarted) ──
+          # The nfcore volume is re-extracted from the S3 tarball on each Galaxy docker restart,
+          # wiping custom .nf uploads.  We backed them up to backend-db in the restart-stack job;
+          # restore them here before the RC-1 checks so the .nf refs are verifiable.
+          echo ""
+          echo "=== Restoring bioc .nf from backend-db backup (if Galaxy restarted) ==="
+          NFCORE_VOL=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows \
+            --format "{{.Mountpoint}}" 2>/dev/null)
+          DBVOL_PATH=$(docker volume inspect biomate-onprem_biomate-backend-db \
+            --format "{{.Mountpoint}}" 2>/dev/null)
+          if [ -n "$NFCORE_VOL" ] && [ -n "$DBVOL_PATH" ] && [ -d "$DBVOL_PATH/custom-nf/bioconductor" ]; then
+            for PKG in normqpcr proteomm mlinterfaces; do
+              TARGET="$NFCORE_VOL/subworkflows/bioconductor/$PKG"
+              SRC="$DBVOL_PATH/custom-nf/bioconductor/$PKG"
+              if ls "$TARGET/"*.nf >/dev/null 2>&1; then
+                echo "  $PKG: already present in nfcore volume (no restore needed)"
+              elif [ -d "$SRC" ]; then
+                mkdir -p "$TARGET"
+                cp "$SRC/"*.nf "$TARGET/" 2>/dev/null && echo "  $PKG: restored from backup" || echo "  $PKG: backup copy failed"
+              else
+                echo "  $PKG: WARNING no backup found at $SRC"
+              fi
+            done
+          else
+            echo "  WARNING: could not resolve volume paths or backup not found (NFCORE=$NFCORE_VOL DBVOL=$DBVOL_PATH)"
+          fi
+
           # ── RC-1 / RC-2 fix verification (bioconductor containers + step-file API) ──
           echo ""
           echo "=== [RC-1] Bioconductor container presence (pre-pull via GHA) ==="
@@ -891,7 +954,7 @@ jobs:
           echo "=== [RC-1] Container R-load test (proves quay.io images run) ==="
           for PAIR in \
             "quay.io/biocontainers/bioconductor-normqpcr:1.56.0--r45h575d39b_0:NormqPCR" \
-            "quay.io/biocontainers/bioconductor-proteomm:1.28.0--r45hdfd78af_0:ProteomMM" \
+            "quay.io/biocontainers/bioconductor-proteomm:1.28.0--r45hdfd78af_0:ProteoMM" \
             "quay.io/biocontainers/bioconductor-mlinterfaces:1.90.0--r45ha27e39d_0:MLInterfaces"; do
             IMG=$(echo "$PAIR" | awk -F: '{print $1":"$2}')
             PKG=$(echo "$PAIR" | awk -F: '{print $3}')
