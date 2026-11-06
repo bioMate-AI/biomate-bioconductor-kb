@@ -40,8 +40,7 @@ describe("status route closes runs Galaxy has lost", () => {
     const i = src.indexOf("const lostState =");
     expect(i).toBeGreaterThan(0);
     const block = src.slice(i, i + 1400);
-    expect(block).toContain("statusError?.response?.status === 404");
-    expect(block).toContain("/Run not found/i");
+    expect(block).toContain("isNextflowRunNotFound(statusError)");
     expect(block).toContain("24 * 60 * 60 * 1000");
     expect(block).toContain("status: 'failed'");
   });

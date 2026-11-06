@@ -60,6 +60,7 @@ import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
 import { createHash, randomBytes } from "crypto";
 import { authService } from "./auth-service";
+import { isNextflowRunNotFound } from "./nextflow-run-lost";
 import { emailService } from "./email-service";
 import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
 import { decideRunAccess } from "./run-access";
@@ -12937,8 +12938,7 @@ ${paramLines || '(none recorded)'}`;
           // A live run is always known to Galaxy, so a 404 a day after start means the state is
           // gone: close it as failed with an honest message.
           const lostState =
-            statusError?.response?.status === 404 &&
-            /Run not found/i.test(JSON.stringify(statusError?.response?.data ?? '')) &&
+            isNextflowRunNotFound(statusError) &&
             ['running', 'configuring', 'queued'].includes(String(run.execution?.status));
           const startedMs = new Date(run.execution?.startedAt || (run as any).createdAt || 0).getTime();
           if (lostState && startedMs > 0 && Date.now() - startedMs > 24 * 60 * 60 * 1000) {
