@@ -1304,12 +1304,32 @@ async function reconcileStaleRuns(): Promise<void> {
     if (stale.length === 0) return;
     const port = parseInt(process.env.PORT || '5000', 10);
     const batch = stale.slice(0, 25);
+    // The status route requires auth. The reaper used to call it with no credentials, got
+    // 401 on every run and still logged "reconciled" — so a finished run nobody had open
+    // stayed 'running' (nf-core/cageseq: Galaxy done 16:01, record flipped 17:22, 2026-11-06).
+    // Call it AS the run's owner (the route's ownership checks still apply) and count real
+    // outcomes.
+    let ok = 0;
+    const failed: string[] = [];
     for (const r of batch) {
-      await fetch(`http://127.0.0.1:${port}/api/workflows/runs/${(r as any).id}/status`, {
-        signal: AbortSignal.timeout(12000),
-      }).catch(() => undefined);
+      const id = (r as any).id;
+      const ownerId = (r as any).userId;
+      try {
+        const owner = ownerId ? await authService.getUserById(ownerId) : null;
+        if (!owner) { failed.push(`${id}:no-owner`); continue; }
+        const resp = await fetch(`http://127.0.0.1:${port}/api/workflows/runs/${id}/status`, {
+          headers: { Authorization: `Bearer ${authService.generateToken(owner as any)}` },
+          signal: AbortSignal.timeout(12000),
+        });
+        if (resp.ok) ok += 1; else failed.push(`${id}:${resp.status}`);
+      } catch (e: any) {
+        failed.push(`${id}:${e?.name || 'error'}`);
+      }
     }
-    console.log(`[run-reaper] reconciled ${batch.length}/${stale.length} stale non-terminal run(s)`);
+    console.log(
+      `[run-reaper] checked ${ok}/${batch.length} of ${stale.length} stale non-terminal run(s)` +
+        (failed.length ? `; failed: ${failed.slice(0, 10).join(', ')}` : ''),
+    );
   } catch (e: any) {
     console.warn('[run-reaper] sweep failed:', e?.message ?? e);
   }
