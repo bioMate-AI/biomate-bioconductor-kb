@@ -13,6 +13,7 @@ import { LanePreview, type LaneKind } from "./lane-preview"
 import { useDebounce } from "@/hooks/useDebounce"
 import { filesFromDataTransfer } from "@/lib/folder-drop"
 import { t } from "@/lib/i18n"
+import { outputRequirementsToPrompt } from "@/lib/output-requirements"
 
 interface AttachedFile {
   id: string
@@ -338,7 +339,9 @@ export function ChatInput({
       // context path as every other override. They ride as
       // `composerInstructions` so the backend can apply them as a reading
       // lens; empty instructions add nothing (honest-empty).
-      const trimmedInstructions = [instructions.trim(), projectOutputRequirements.trim() ? `Output requirements:\n${projectOutputRequirements.trim()}` : ""].filter(Boolean).join("\n\n")
+      // Render output requirements through the shared helper: ONLY formats the user left switched
+      // ON are sent, as prose (never the raw JSON store, which also carried the disabled ones).
+      const trimmedInstructions = [instructions.trim(), outputRequirementsToPrompt(projectOutputRequirements)].filter(Boolean).join("\n\n")
       const datasetReferences: ComposerDatasetReference[] = selectedDatasets.map((dataset) => ({
         id: dataset.value,
         name: dataset.name,

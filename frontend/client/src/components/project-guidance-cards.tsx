@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { normalizeSkillPack, type SkillPack } from './skills-selector';
+import { parseOutputFormats, EXAMPLE_OUTPUT_FORMATS, type OutputFormat } from '@/lib/output-requirements';
 
 /* ── Stream 4: project Instructions page (Rules · Output formats · Skills & experts · Memory) ──
    Appearance matches the data-centric prototype (claude_code_core/dataui/ProjectSetup.jsx):
@@ -9,7 +10,6 @@ import { normalizeSkillPack, type SkillPack } from './skills-selector';
    rules ↔ PATCH /api/projects/:id {researchGoal}, formats/skills ↔ instruction-settings,
    memory ↔ local stub seeded from notes-list. */
 
-type OutputFormat = { kind: 'report' | 'figure' | 'table' | 'naming'; name: string; detail: string; on: boolean };
 type MemoryItem = { id: string; text: string; source?: string };
 
 const S: Record<string, CSSProperties> = {
@@ -48,11 +48,7 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
   const [error, setError] = useState('');
 
   const parseRules = (t: string) => (t || '').split('\n').map(s => s.trim()).filter(Boolean);
-  const parseFormats = (raw: string): OutputFormat[] => {
-    if (!raw) return [];
-    try { const j = JSON.parse(raw); if (Array.isArray(j)) return j.filter(f => f && f.name).map(f => ({ kind: f.kind || 'report', name: String(f.name), detail: String(f.detail || ''), on: f.on !== false })); } catch { /* legacy free text */ }
-    return [{ kind: 'report', name: 'Output requirements', detail: raw, on: true }];
-  };
+  const parseFormats = (raw: string): OutputFormat[] => parseOutputFormats(raw);
 
   useEffect(() => { setRules(parseRules(instructions)); }, [instructions]);
 
@@ -150,9 +146,28 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
               {canEdit && <button className="linkish" title="Remove" onClick={() => saveSettings(selected, formats.filter((_, j) => j !== i))}>Remove</button>}
             </div>
           ))}
-          {formats.length === 0 && <span style={{ ...S.hint, display: 'block', padding: '6px 0' }}>No formats yet.</span>}
+          {formats.length === 0 && <span style={{ ...S.hint, display: 'block', padding: '6px 0' }}>No formats yet — add one, or start from an example below.</span>}
         </div>
-        {canEdit && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => saveSettings(selected, [...formats, { kind: 'report', name: 'New format', detail: 'Describe the template', on: true }])}>+ Add a format</button>}
+        {/* TEMPLATE EXAMPLES — output requirements are hard to define from a blank field, so show
+            concrete, editable examples of each kind (design: ProjectSetup.jsx `outputs`). "Use" adds
+            one (switched OFF so it never silently takes effect until the user turns it on). */}
+        {canEdit && (
+          <div style={{ border: '1px dashed var(--border)', borderRadius: 'var(--r-md, 8px)', background: 'var(--bg)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="instructions-formats-examples">
+            <span style={{ ...S.hint, fontWeight: 600 }}>Examples — what a good output format looks like</span>
+            {EXAMPLE_OUTPUT_FORMATS.map((ex, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <span className="chip">{ex.kind}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600 }}>{ex.name}</span>
+                  <span style={S.hint}>{ex.detail}</span>
+                </div>
+                <button className="btn sm ghost" title={`Add "${ex.name}" to your formats (added switched off — turn it on when ready)`} onClick={() => saveSettings(selected, [...formats, { ...ex }])}>Use</button>
+              </div>
+            ))}
+            <button className="btn sm" style={{ alignSelf: 'flex-start', marginTop: 2 }} data-testid="formats-seed-examples" onClick={() => saveSettings(selected, [...formats, ...EXAMPLE_OUTPUT_FORMATS.map(e => ({ ...e }))])}>Start from these examples</button>
+          </div>
+        )}
+        {canEdit && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => saveSettings(selected, [...formats, { kind: 'report', name: 'New format', detail: 'e.g. Findings first (≤200 words), then methods, then QC; figures at 300 dpi', on: true }])}>+ Add a format</button>}
       </section>
 
       {/* SKILLS & EXPERTS */}
