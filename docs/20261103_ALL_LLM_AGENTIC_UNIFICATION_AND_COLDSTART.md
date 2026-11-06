@@ -542,3 +542,25 @@ stubs skipped) → **50 rows confirmed**. Triage (`evaluation/routing_eval/domai
 `BIOMATE_DECOMP_OPENROUTER_KEY` (owner-approved; backup `.env.bak_pre_glm_*`; `OPENROUTER_API_KEY` not set). The first sync refused
 (2 uncommitted source files of another session in the shared worktree) and the frontend stayed on Flash — the arm was stopped before it
 could be mislabelled. It runs once the worktree is clean, after verifying the frontend env and the intent log.
+
+### 15.3 Which LLM decomposes best (fixed harness, 2026-11-05)
+Screen (1 run, 23 held-out rows, real curated-chain names, Sonnet 5.5 judge; `runs/decomp_screen_v2_rep1*`) of the newest models, then
+3 runs for the top two (`decomp_screen_v2_rep{2,3}*`), compared with GLM-5.2 / Gemini 3.8 Flash (`decomp_models_v2_*`):
+
+| Model | composite | failed calls | $/call |
+|---|---|---|---|
+| **GPT-5.6 Terra** | **0.472 ± 0.003** (3 runs) | 1/1/2 | 0.055 |
+| GLM-5.2 | 0.430 ± 0.023 (3 runs) | 0/0/2 | ~0.010 |
+| GPT-6.1 Terra | 0.414 ± 0.004 (3 runs) | 3/3/3 | 0.026 |
+| GPT-6.1 Sol | 0.401 (1 run) | 3 | 0.052 |
+| Gemini 3.1 Pro | 0.378 (1 run) | 1 | 0.068 |
+| Claude Sonnet 5.5 | 0.355 (1 run) | 0 | 0.081 |
+| Gemini 4 Argon | 0.335 (1 run) | 0 | 0.052 |
+| Claude Haiku 5.5 | 0.334 (1 run) | 4 | 0.004 |
+| Gemini 3.8 Flash | 0.322 ± 0.025 (3 runs) | 3/2/2 | 0.026 |
+| DeepSeek V4 Pro | 0.228 (1 run) | 5 | 0.025 |
+
+Paired (3-run row means): GPT-5.6 Terra − GLM-5.2 **+0.042 [−0.050, +0.136]** (8/6/9) — not distinguishable; GPT-5.6 Terra − Flash
+**+0.150 [+0.064, +0.238]** (11/1/11); GPT-6.1 Terra − GLM-5.2 −0.016 [−0.129, +0.092]. Not tested (owner: no premium): Claude Fable 5.1,
+GPT-6 Astra. Routing outcome on input_regime_v2, one clean rep: GLM-5.2 30/40 vs Flash 31/40 (the two other GLM reps were invalidated by
+restarts from concurrent syncs). **Dev runs GLM-5.2** (`/opt/biomate/.env`, owner-approved; Flash is the automatic fallback).

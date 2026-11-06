@@ -1,0 +1,24 @@
+[
+ {
+  "model": "openai/gpt-5.6-terra",
+  "n": 23,
+  "failed": 1,
+  "node_f1": 0.6376811594202898,
+  "edge_f1": 0.3538302277432712,
+  "structure": 0.43478260869565216,
+  "usd_per_call": 0.05455318181818182,
+  "median_secs": 9.221499999999999,
+  "chain_hint_acc": 0.8235294117647058
+ },
+ {
+  "model": "openai/gpt-6.1-terra",
+  "n": 23,
+  "failed": 3,
+  "node_f1": 0.5611801242236025,
+  "edge_f1": 0.3219461697722567,
+  "structure": 0.34782608695652173,
+  "usd_per_call": 0.0257624,
+  "median_secs": 11.136,
+  "chain_hint_acc": 0.29411764705882354
+ }
+]
