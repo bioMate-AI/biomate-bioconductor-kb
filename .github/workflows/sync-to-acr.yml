@@ -534,7 +534,7 @@ jobs:
             -o ConnectTimeout=30 -o ServerAliveInterval=30 \
             root@${{ env.ECS_IP }} \
             'cd /app/biomate && \
-             docker compose -f docker-compose.onprem.yml --env-file .env up -d --no-deps biomate-frontend 2>&1 | tail -10 && \
+             docker compose -f docker-compose.onprem.yml --env-file .env up -d --no-deps frontend 2>&1 | tail -10 && \
              sleep 5 && \
              docker inspect biomate-frontend --format "Mount nf-work: {{range .Mounts}}{{if eq .Destination \"/app/nf-work\"}}PRESENT{{end}}{{end}}" && \
              docker exec biomate-frontend env | grep NEXTFLOW_WORK_DIR || echo "NEXTFLOW_WORK_DIR not set in frontend"'
@@ -934,19 +934,25 @@ jobs:
           echo "=== [RC-1] .nf container refs (should be quay.io, not ECR) ==="
           VOLPATH_NF=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows \
             --format "{{.Mountpoint}}" 2>/dev/null)
+          echo "  Volume mountpoint: $VOLPATH_NF"
           for NF in \
             "subworkflows/bioconductor/normqpcr/delta_delta_cq_normalization.nf" \
             "subworkflows/bioconductor/proteomm/main.nf" \
             "subworkflows/bioconductor/mlinterfaces/multi_classifier_evaluation.nf"; do
             FILE="$VOLPATH_NF/$NF"
-            CLINE=$(grep 'container ' "$FILE" 2>/dev/null | head -1 | sed 's/.*container[[:space:]]*//' | tr -d '"')
             PKG=$(basename $(dirname $NF))
-            if echo "$CLINE" | grep -q "quay.io"; then
-              echo "  OK $PKG: $CLINE"
-            elif echo "$CLINE" | grep -q "ecr.amazonaws.com"; then
-              echo "  FAIL $PKG: still ECR — $CLINE"; BIOC_FAIL=1
+            if [ -f "$FILE" ]; then
+              echo "  EXISTS $PKG ($FILE, $(wc -l < "$FILE") lines)"
+              CLINE=$(grep 'container ' "$FILE" | head -1 | sed 's/.*container[[:space:]]*//' | tr -d '"')
+              if echo "$CLINE" | grep -q "quay.io"; then
+                echo "  OK $PKG: quay.io ref confirmed"
+              elif echo "$CLINE" | grep -q "ecr.amazonaws.com"; then
+                echo "  FAIL $PKG: still ECR — $CLINE"; BIOC_FAIL=1
+              else
+                echo "  WARN $PKG: container line = '$CLINE' (not quay.io or ECR — head -3: $(head -3 "$FILE"))"
+              fi
             else
-              echo "  MISSING $PKG: file not in volume ($FILE)"
+              echo "  MISSING $PKG: $FILE not on volume (dirs: $(ls "$VOLPATH_NF/subworkflows/bioconductor/$PKG/" 2>/dev/null | tr '\n' ' '))"
             fi
           done
 
