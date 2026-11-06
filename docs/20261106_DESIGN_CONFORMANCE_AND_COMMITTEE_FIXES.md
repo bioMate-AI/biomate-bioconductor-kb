@@ -160,3 +160,47 @@ From the instruction-panel audit:
 - dev deploys healthy: `b0ce4d134`, `b3cf79c50`, `12862c83` all `result=healthy`.
 - Live checks: ADMET shadow `cutover-safe`; CAR-T (LLM-path) regen returns good 7-result findings,
   no degraded persist, coalesce engaged.
+
+## E. Audit + test of the design-conformance batch (2026-11-06)
+Multi-model committee (Opus = composer/instructions; Sonnet = skill-creation + security) reviewed the
+five new commits; each finding verified against real code (and the backend YAML parser) before acting.
+
+### Live end-to-end test (dev, fixture account)
+The skill-creation flow was exercised against the REAL backend: `POST /api/skills/upload` with a
+generated file (incl. an adversarial title `Audit: "strict" reviewer` — colon + escaped quotes) →
+`{success:true, skill_id:"user-1-e2e-audit-reviewer", scope:"user", capability:"instructions_only"}`
+HTTP 200; it appeared in `GET /api/skills`; the JSON-encoded frontmatter validated (no YAML break).
+Test skill then deleted via `DELETE /api/skills/user-1-e2e-audit-reviewer` (note: the delete id is the
+full `user-<n>-<slug>`, not the bare slug). Full unit suite tsc-clean, 2240/0.
+
+### Skill-creation fixes (Sonnet)
+- **Finding 1 (CONFIRMED, must-fix):** `name:` was written BARE, so a YAML-1.1 magic slug
+  (`yes`/`on`/`no`/`off`/`true`/`null`/`2024`/`007`) was re-typed by PyYAML to bool/int/None →
+  `validate_skill_upload`'s `isinstance(name,str)` failed with a confusing 400. Reproduced with
+  `yaml.safe_load`. Fixed: `name: ${JSON.stringify(slug)}` (quoted → always a string). +8 param tests.
+- **Finding 4 (inclusivity):** a non-Latin name (e.g. Chinese) slugged to `''` → the form blocked the
+  user. Added `fallbackSlug` (stable `expert-<base36 hash>`, always regex-valid) via `resolveSkillSlug`.
+- **Finding 2:** strip control characters from title/description/body (PyYAML's reader rejects DEL etc.).
+- **Finding 3 (hardening):** drop 1-char trigger keywords (a trigger like "a" auto-fires on every
+  query). NOTE for backend follow-up: the skill *body* is inserted raw into the `<skill>` system block
+  (`skill_manager.py` system_block) — a body containing `</skill>` is a self prompt-injection surface;
+  the correct fix is backend escaping there (out of this frontend scope) — logged, not yet done.
+- 422 robustness: guard `typeof data.error === 'string'` so a non-string detail can't crash render.
+- Confirmed-correct (no action): JSON-encoded scalars can't inject YAML keys/newlines; `---` in the
+  body is preserved (frontmatter stops at first closing fence); no path traversal (backend builds the
+  path from the regex-constrained `name`, ignores client filename); slug collision → 409 surfaced; pack
+  description rendered as text (no XSS); created private skill does appear in the list.
+
+### Composer/instructions findings (Opus) — all 4 commits SAFE
+- **Finding 1 (low, staleness):** `saveRules` didn't dispatch `biomate:projects-updated`, so the chip
+  count could lag an in-place rule edit. Fixed: dispatch it (same as `saveSettings`).
+- **Finding 2 (low, drift):** the client `COMPOSER_INSTRUCTIONS_MAX` mirrored the server cap with no
+  guard. Added `lib/composer-instructions-cap.test.ts` (source-comparison mirror test, like
+  `MAX_DATASET_REFS`).
+- **Finding 3 (very low):** output requirements ride the composer path and have no length cap, so a
+  huge output-requirements store could still be server-trimmed past 24k (the textarea maxLength only
+  covers the projectless instructions field). Accepted as a known edge; logged.
+- Verified correct: outputRequirementsToPrompt drops `on:false`, preserves legacy free text, can't
+  throw; duplicate-injection fix loses no data (there is no in-project instructions editor); chip count
+  matches the Rules page exactly; maxLength char/byte consistent with the server slice; no test-id
+  collision.

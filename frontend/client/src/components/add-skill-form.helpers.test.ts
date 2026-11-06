@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { skillSlug, buildSkillMarkdown } from './add-skill-form';
+import { skillSlug, buildSkillMarkdown, fallbackSlug, resolveSkillSlug } from './add-skill-form';
+
+const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 describe('skillSlug — backend rule [a-z0-9]+(?:-[a-z0-9]+)*, max 64', () => {
   it('kebab-cases a normal name', () => {
@@ -23,10 +25,10 @@ describe('skillSlug — backend rule [a-z0-9]+(?:-[a-z0-9]+)*, max 64', () => {
 describe('buildSkillMarkdown — valid frontmatter the backend can parse', () => {
   const base = { slug: 'rev', title: 'Reviewer', description: 'Reviews write-ups', body: 'Do the thing', triggers: [] as string[], domains: [] as string[] };
 
-  it('emits name (bare slug), JSON-quoted title/description, and the body after the fence', () => {
+  it('emits a quoted name, JSON-quoted title/description, and the body after the fence', () => {
     const md = buildSkillMarkdown(base);
     expect(md.startsWith('---\n')).toBe(true);
-    expect(md).toContain('\nname: rev\n');
+    expect(md).toContain('\nname: "rev"\n');
     expect(md).toContain('title: "Reviewer"');
     expect(md).toContain('description: "Reviews write-ups"');
     expect(md).toContain('domains: []');
@@ -50,5 +52,37 @@ describe('buildSkillMarkdown — valid frontmatter the backend can parse', () =>
 
   it('falls back to the slug for title when none given', () => {
     expect(buildSkillMarkdown({ ...base, title: '' })).toContain('title: "rev"');
+  });
+
+  // Committee finding 1: `name` must be QUOTED. A bare YAML 1.1 magic token (yes/on/no/off/null or a
+  // pure-digit slug like 2024/007) is re-typed to bool/int/None by PyYAML → the backend's
+  // isinstance(name,str) check fails with a confusing 400. Quoting forces a string in every YAML.
+  it.each(['yes', 'on', 'no', 'off', 'true', 'null', '2024', '007'])('quotes a YAML-magic name %s', (slug) => {
+    expect(buildSkillMarkdown({ ...base, slug })).toContain(`name: "${slug}"`);
+  });
+
+  // Committee finding 2: control characters are stripped (PyYAML's reader rejects DEL etc.).
+  it('strips control characters from title/description/body', () => {
+    const md = buildSkillMarkdown({ ...base, title: 'A\u007FB', description: 'c\u0000d', body: 'e\u0008f' });
+    expect(md).toContain('title: "AB"');
+    expect(md).toContain('description: "cd"');
+    expect(md).toContain('ef');
+  });
+});
+
+describe('fallbackSlug / resolveSkillSlug — non-Latin names stay usable (finding 4)', () => {
+  it('fallbackSlug always matches the backend name regex', () => {
+    for (const t of ['肿瘤审阅专家', 'Экспертиза', '  ', 'x']) {
+      expect(fallbackSlug(t)).toMatch(NAME_RE);
+      expect(fallbackSlug(t).length).toBeLessThanOrEqual(64);
+    }
+  });
+  it('fallbackSlug is stable for the same title', () => {
+    expect(fallbackSlug('肿瘤审阅专家')).toBe(fallbackSlug('肿瘤审阅专家'));
+  });
+  it('resolveSkillSlug: Latin → kebab; non-Latin → fallback; empty → ""', () => {
+    expect(resolveSkillSlug('Oncology reviewer')).toBe('oncology-reviewer');
+    expect(resolveSkillSlug('肿瘤审阅专家')).toMatch(NAME_RE); // not '' → user can proceed
+    expect(resolveSkillSlug('   ')).toBe('');
   });
 });

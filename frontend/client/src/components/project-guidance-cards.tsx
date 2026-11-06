@@ -74,6 +74,9 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
       const r = await fetch(`/api/projects/${projectId}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ researchGoal: next.join('\n') || null }) });
       if (!r.ok) throw new Error('Could not save rules.');
       onInstructionsSaved(next.join('\n'));
+      // Let the composer (and anything keyed on project state) refetch so e.g. the instructions-chip
+      // count reflects an added/removed rule without a reload — same event saveSettings dispatches.
+      window.dispatchEvent(new Event('biomate:projects-updated'));
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save rules.'); }
   }
   async function saveSettings(ids: string[], fmts: OutputFormat[]) {

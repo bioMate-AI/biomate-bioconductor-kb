@@ -31,24 +31,44 @@ export function skillSlug(title: string): string {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s) ? s : '';
 }
 
-const splitCsv = (s: string): string[] => s.split(',').map((x) => x.trim()).filter(Boolean);
+/** Stable fallback id when a title has no Latin letters/digits (e.g. Chinese), so a non-Latin name
+ *  is still usable instead of blocking the user. Always matches the backend name regex. */
+export function fallbackSlug(title: string): string {
+  let h = 0;
+  for (let i = 0; i < title.length; i++) h = (Math.imul(h, 31) + title.charCodeAt(i)) | 0;
+  return `expert-${(h >>> 0).toString(36)}`;
+}
 
-/** Build a valid skill file. String scalars and lists are JSON-encoded so a colon or quote the user
- *  typed can never break the YAML frontmatter (YAML flow syntax is a superset of JSON). */
+/** The id the backend will store: a kebab-case slug, or a stable fallback for a non-Latin name. */
+export function resolveSkillSlug(title: string): string {
+  const t = title.trim();
+  if (!t) return '';
+  return skillSlug(t) || fallbackSlug(t);
+}
+
+// Strip control characters (keep tab/newline) — PyYAML's reader rejects DEL/other non-printables and
+// fails the whole upload with an opaque "invalid YAML"; the user never typed anything that needs them.
+const stripControl = (s: string): string => s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+const splitCsv = (s: string): string[] => s.split(',').map((x) => stripControl(x).trim()).filter(Boolean);
+
+/** Build a valid skill file. Every scalar/list is JSON-encoded — including `name` — so a colon,
+ *  quote, or a YAML 1.1 magic token the user typed (yes/on/no/off/null/2024) can never break the
+ *  frontmatter or be re-typed to a bool/int/None (which fails the backend's isinstance(name,str)
+ *  check). YAML flow syntax is a superset of JSON. */
 export function buildSkillMarkdown(opts: {
   slug: string; title: string; description: string; body: string; triggers: string[]; domains: string[];
 }): string {
   const frontmatter = [
     '---',
-    `name: ${opts.slug}`,
-    `title: ${JSON.stringify(opts.title || opts.slug)}`,
-    `description: ${JSON.stringify(opts.description)}`,
+    `name: ${JSON.stringify(opts.slug)}`,
+    `title: ${JSON.stringify(stripControl(opts.title) || opts.slug)}`,
+    `description: ${JSON.stringify(stripControl(opts.description))}`,
     `domains: ${JSON.stringify(opts.domains)}`,
     ...(opts.triggers.length ? [`triggers: ${JSON.stringify(opts.triggers)}`] : []),
     '---',
     '',
   ].join('\n');
-  return frontmatter + opts.body.trim() + '\n';
+  return frontmatter + stripControl(opts.body).trim() + '\n';
 }
 
 export function AddSkillForm({ onCreated }: { onCreated?: () => void }) {
@@ -61,7 +81,7 @@ export function AddSkillForm({ onCreated }: { onCreated?: () => void }) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
-  const slug = skillSlug(title);
+  const slug = resolveSkillSlug(title);
   const canSave = !!slug && !!description.trim() && !!body.trim() && !saving;
 
   const save = async () => {
@@ -73,7 +93,8 @@ export function AddSkillForm({ onCreated }: { onCreated?: () => void }) {
     try {
       const content = buildSkillMarkdown({
         slug, title: title.trim(), description: description.trim(), body,
-        triggers: splitCsv(triggers), domains: splitCsv(domains),
+        // Drop 1-char triggers: a trigger like "a" auto-fires the expert on nearly every query.
+        triggers: splitCsv(triggers).filter((t) => t.length >= 2), domains: splitCsv(domains),
       });
       const r = await fetch('/api/skills/upload', {
         method: 'POST', credentials: 'include',
@@ -82,8 +103,11 @@ export function AddSkillForm({ onCreated }: { onCreated?: () => void }) {
       });
       const data = await r.json().catch(() => ({} as any));
       if (!r.ok || data?.success === false) {
+        // `error` is normally a string, but a 422 (never from this form) carries a non-string detail;
+        // guard so a bad shape can't crash the render.
+        const msg = typeof data?.error === 'string' ? data.error : '';
         setErr(
-          data?.error ||
+          msg ||
           (r.status === 409
             ? 'This needs personal Galaxy access, or a skill with that name already exists.'
             : `Could not create the expert (${r.status}).`),
