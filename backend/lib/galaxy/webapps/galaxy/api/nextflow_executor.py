@@ -3200,7 +3200,7 @@ process {{
         if admet_container:
             admet_container_override = f"""
 process {{
-  withName: ~/.*ADMET.*/ {{
+  withName: '/.*ADMET.*/' {{
     container = '{admet_container}'
   }}
 }}
