@@ -1291,10 +1291,36 @@ fs.mkdir(uploadDir, { recursive: true }).then(() => {
 // each sweep is capped so a backlog can't hammer Galaxy.
 async function reconcileStaleRuns(): Promise<void> {
   try {
-    const runs = await storage.getExecutionRuns(undefined, undefined, undefined, 200);
+    const runs = await storage.getNonTerminalExecutionRuns(500);
     const now = Date.now();
     const GRACE_MS = 15 * 60 * 1000;
-    const stale = runs.filter((r) => {
+    // A run still 'configuring'/'queued' with no Galaxy/Nextflow id never launched: the Node
+    // process died between creating the record and the launch call (a deploy restart — e.g.
+    // nf-core/scdownstream at the 502 of 2026-11-06 02:50). Nothing in Galaxy can reconcile it,
+    // so after a generous window (staging large inputs can be slow) close it out as failed.
+    const NEVER_LAUNCHED_MS = 6 * 60 * 60 * 1000;
+    const neverLaunched = runs.filter((r) => {
+      const ex = (r as any).execution || {};
+      if (!['configuring', 'queued'].includes(ex.status)) return false;
+      if (ex.nextflowRunId || ex.galaxyInvocationId) return false;
+      const t = new Date((r as any).createdAt || 0).getTime();
+      return t > 0 && now - t > NEVER_LAUNCHED_MS;
+    });
+    for (const r of neverLaunched) {
+      await storage.updateExecutionRun((r as any).id, {
+        execution: {
+          ...(r as any).execution,
+          status: 'failed',
+          completedAt: new Date(),
+          errorMessage: 'The launch was interrupted before the workflow started (server restart). Please run it again.',
+        },
+      }).catch(() => undefined);
+    }
+    if (neverLaunched.length) {
+      console.log(`[run-reaper] closed ${neverLaunched.length} never-launched run(s) as failed`);
+    }
+    const closed = new Set(neverLaunched.map((r) => (r as any).id));
+    const stale = runs.filter((r) => !closed.has((r as any).id)).filter((r) => {
       const st = (r as any).execution?.status;
       if (!['running', 'configuring', 'queued'].includes(st)) return false;
       const started = (r as any).execution?.startedAt || (r as any).createdAt;

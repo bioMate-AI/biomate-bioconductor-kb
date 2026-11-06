@@ -16,6 +16,20 @@ describe("run-reaper calls the status route authenticated and checks the result"
 
   it("counts a call as done only when the response is ok", () => {
     expect(body).toContain("if (resp.ok) ok += 1;");
-    expect(body).not.toContain(".catch(() => undefined);");
+    // The old log claimed every self-call reconciled, whatever the response was.
+    expect(body).not.toContain("reconciled ${batch.length}/${stale.length}");
+  });
+});
+
+describe("run-reaper sweeps every stuck run and closes never-launched ones", () => {
+  const src = readFileSync(join(__dirname, "routes.ts"), "utf8");
+  const body = src.slice(src.indexOf("async function reconcileStaleRuns"), src.indexOf("setInterval(() => { void reconcileStaleRuns(); }"));
+  it("queries non-terminal runs directly, not the newest-N window", () => {
+    expect(body).toContain("storage.getNonTerminalExecutionRuns(");
+    expect(body).not.toContain("storage.getExecutionRuns(");
+  });
+  it("fails configuring/queued runs with no Galaxy id after the window", () => {
+    expect(body).toMatch(/NEVER_LAUNCHED_MS = 6 \* 60 \* 60 \* 1000/);
+    expect(body).toContain("if (ex.nextflowRunId || ex.galaxyInvocationId) return false;");
   });
 });
