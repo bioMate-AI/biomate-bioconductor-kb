@@ -45,6 +45,11 @@ TEST_PARAMS = {
                          "aligner": "star", "protocol": "10XV2"},
     "nf-core/mag": {"input": TD + "mag/samplesheets/samplesheet.multirun.v4.csv"},
     "nf-core/ampliseq": {"input": TD + "ampliseq/samplesheets/Samplesheet.tsv", "metadata": TD + "ampliseq/samplesheets/Metadata.tsv"},
+    # cageseq 1.0.x's conf/test.config still points at test-datasets/cageseq/{reference,testdata}/…; upstream moved
+    # the same files into versioned v1/ folders (old paths 404, new ones 200, checked 2026-11-06).
+    "nf-core/cageseq": {"fasta": TD + "cageseq/reference/v1/chr_sub.fasta", "gtf": TD + "cageseq/reference/v1/chr_sub.gtf",
+                        "input_paths": [["cage 1", TD + "cageseq/testdata/v1/cage1.fastq.gz"],
+                                        ["cage 2", TD + "cageseq/testdata/v1/cage2.fastq.gz"]]},
     "nf-core/scdownstream": {"input": TD.rstrip("/") + "/4d8b9974c14cf11280d29bfe16f94e284793e499/samplesheet.csv"},
 }
 
