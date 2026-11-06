@@ -13035,6 +13035,21 @@ Rules:
         return res.status(404).json({ error: 'Run not found' });
       }
 
+      // On-prem local executor: if filePath is still a bare filename (no path separator),
+      // redirect to Galaxy's local-download proxy which resolves rel_path under the run's outdir.
+      // This handles the case where AfterRunReport sends only f.name (bare filename) instead of
+      // f.local_path (full absolute path), because the React client bundle predates the fix.
+      if (!isS3Path && !filePath.includes('/') && run && process.env.NEXTFLOW_WORK_DIR) {
+        const nfRunId = run?.execution?.nextflowRunId || '';
+        if (nfRunId) {
+          console.log(`[step-file] bare filename "${filePath}" on on-prem → Galaxy local-download proxy`);
+          return res.redirect(
+            `/api/galaxy-proxy/api/nextflow/outputs/local-download` +
+            `?run_id=${encodeURIComponent(nfRunId)}&rel_path=${encodeURIComponent(filePath)}`
+          );
+        }
+      }
+
       // --- S3 path: proxy via AWS SDK ---
       if (filePath.startsWith('s3://')) {
         const s3Match = filePath.match(/^s3:\/\/([^/]+)\/(.+)$/);
