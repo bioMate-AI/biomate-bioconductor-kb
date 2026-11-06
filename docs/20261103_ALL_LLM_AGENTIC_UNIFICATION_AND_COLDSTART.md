@@ -619,7 +619,30 @@ Node stores `error_summary` as errorMessage. It handles both the 22.10/25.10 log
 ### 16.5 Sync churn
 Seven pipelines with dev-snapshot pins (`1.0dev`, …) were re-cloned on every sync, because no fetchable version matches such a pin. Sync now records the fetched version as the pin (`26e3803d1`).
 
-### 16.6 Open
+### 16.6 Defects found by running the test profiles (all fixed, 2026-11-06)
+Each was found from a failed or suspicious validation run. Each fix applies to every pipeline in its class, never to a single catalog row.
+
+| Commit | Defect | Evidence | Fix |
+|---|---|---|---|
+| `2a0e60c7` | List/map params were sent to nf-core pipelines as JSON strings. BioMate's own `.nf` files parse those with `json.loads`, but nf-core pipelines read real Groovy lists. | proteomicslfq 1.0.0 received its 6 mzML inputs as one string and aborted: "EITHER spectra data OR an SDRF needs to be provided". | Collections for `/nf-core-workflows/` pipelines go through `-params-file` as native JSON. |
+| `2fe9ce1a` | Fixed per-label resource tiers overrode each pipeline's own `check_max(params.max_cpus)` caps. | mnaseseq's test profile caps CPUs at 2, but process_high was forced to 12. TrimGalore then ran `--cores 4`, which its Python 2 cutadapt rejects. | Pipelines that have `conf/base.config` size their own labels; only the process_high queue routing is kept. |
+| `f8cc10fb` | Display-stub defaults were sent as CLI params, overriding the pipeline's config and its `-profile`. Stub-only param names also reached the pipeline. | proteomicslfq got `add_decoys=true` on a database that already has decoys (PeptideIndexer abort), `max_cpus 8`, and the nonexistent `enable_umi`. proteogenomicsdb skipped its decoy and clean steps. | Param builders now show only params the executed pipeline declares, with its own defaults (config value, else schema value). The executor also drops undeclared params for every caller. The validator sends only the profile plus the required values. |
+| `0b8fe587` | Failed runs ended up with `errorMessage = null`. | Every failed validation run. | `updateExecutionRunStatus(id, 'failed')` no longer erases an already-recorded error. Runs finalized elsewhere get the error filled in from Galaxy's `error_summary`. |
+| `694d3a9c` | The completion poller marked live runs **succeeded mid-pipeline**. With the Nextflow head still alive, "every Batch job submitted so far is terminal" was read as "the run is done". | rnaseq, mnaseseq and slamseq were marked succeeded at 38/76/29 tasks while their heads were still running. proteomicslfq's later failure was hidden. | While a head for the run is alive, the poller waits for `.nextflow.log` to say `Execution complete -- Goodbye`, then lets the finalizer read the run's trace/log. A FAILED Batch job whose retry succeeded does not fail the run. |
+
+Validation results are therefore judged from each run's `workflow-trace.txt` plus its Nextflow log end line, not from the reported status. Run-4 results recorded before `f8cc10fb` (eager, diaproteomics, clipseq, proteogenomicsdb) are being re-run as run 6, because stub defaults may have overridden their test profiles.
+
+**Status by pipeline** (traces checked):
+
+| Status | Pipelines |
+|---|---|
+| Passed | createpanelrefs (26.04.6, all tasks completed). The eager, diaproteomics and clipseq passes predate `f8cc10fb` and are being re-checked in run 6. |
+| Not runnable as released (→ executable=0 with this evidence) | moleculardynamics (DSL1 `into` inside a DSL2 module); dualrnaseq (calls `$baseDir/bin` by absolute path, absent on Batch); imcyto (the CellProfiler image's ENTRYPOINT runs instead of the task script); diseasemodulediscovery (BIOPAX_VALIDATOR: "cannot execute: required file not found") |
+| Upstream data | cageseq: test data removed from nf-core/test-datasets (404) |
+| Pipeline-internal | scdownstream: SoupX "No plausible marker genes" on its test data (dev snapshot) |
+| Disk-limited | The 30 GB Batch root volume filled even with 2 concurrent validation pipelines. slamseq hit `No space left on device`. |
+
+### 16.7 Open
 - **Batch root volume:** raise it (new launch-template version; the CE audit in sync pins CEs to the latest version), then re-run validation for the disk-failed set. This needs owner approval because it changes shared AWS infra and EBS cost.
 - **executable=0 with evidence:** moleculardynamics (broken upstream code) and dualrnaseq (absolute-path bin calls). Re-enable spatialxe and genephylo, then turn on `BIOMATE_ENFORCE_EXECUTABLE`.
 - **Not started yet:** nf-core/quantms for raw proteomics.
