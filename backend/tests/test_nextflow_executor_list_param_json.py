@@ -116,3 +116,10 @@ def test_nfcore_pipelines_get_native_collections_via_params_file():
     assert '"/nf-core-workflows/" in str(nf_path)' in src
     assert 'cmd += ["-params-file", str(_native_path)]' in src
     assert "elif isinstance(value, (list, dict)) and _native_collections:" in src
+
+
+def test_nfcore_param_filter_runs_before_input_path_check():
+    # Pipeline-default relative globs (cageseq input='data/*R1.fastq.gz') must be dropped before
+    # _validate_input_paths rejects them as missing local paths.
+    src = EXECUTOR.read_text()
+    assert src.index("_as_default = [k for k, v in params.items()") < src.index("    _validate_input_paths(params)")
