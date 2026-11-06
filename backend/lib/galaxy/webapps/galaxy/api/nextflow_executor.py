@@ -3197,9 +3197,10 @@ docker {{
 {docker_executable_line}
   // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
   // --user root: task containers need write access to the nf-work bind-mount.
-  // --pull never: use locally-loaded images only; skip registry check so Docker registry
-  //   mirrors (e.g. DaoCloud on Alibaba Cloud ECS) don't block pre-loaded on-prem images.
-  runOptions = '--entrypoint "" --user root --network {docker_network} --pull never'
+  // --pull missing: pull from registry only when image is not in local cache.
+  //   Pre-pulled images (e.g. via GHA sync workflow) are used directly; registry is only
+  //   contacted for images not yet cached (e.g. quay.io bioconductor containers on first run).
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull missing'
 }}
 {_arm64_env_block}
 
@@ -3946,7 +3947,11 @@ _TRACE_SKIP_FILES = frozenset({
 
 
 def _scan_task_work_dir(work_dir: str) -> List[str]:
-    """List output files in a Nextflow task work directory, skipping internal files."""
+    """List output files in a Nextflow task work directory, skipping internal files.
+
+    Returns full absolute paths so the step-file API can serve them directly
+    without resolving relative to CWD (which causes 403 on the allowed-roots check).
+    """
     p = Path(work_dir)
     if not p.is_dir():
         return []
@@ -3957,7 +3962,7 @@ def _scan_task_work_dir(work_dir: str) -> List[str]:
                 continue
             if entry.name in _TRACE_SKIP_FILES:
                 continue
-            files.append(entry.name)
+            files.append(str(entry))
     except PermissionError:
         pass
     return sorted(files)

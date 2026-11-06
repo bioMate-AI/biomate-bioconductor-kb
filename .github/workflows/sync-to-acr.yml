@@ -388,6 +388,26 @@ jobs:
                docker info 2>/dev/null | grep -A3 "Registry Mirrors" || echo "(mirror info not shown)"
              fi'
 
+      - name: Pre-pull bioconductor containers for ECS demo
+        # Pull the quay.io bioconductor images needed for demo test cases before
+        # the stack restarts.  With --pull missing in nextflow.config, these are
+        # used from local cache on first run (no slow pull at workflow-start time).
+        # Images pre-pulled here: normqpcr (TC-22 qPCR), proteomm (TC-25 proteomics),
+        # mlinterfaces (TC-15 ML classification).
+        # Pull is best-effort (|| true): if quay.io is unreachable the deploy still
+        # proceeds; first-run will be slower but --pull missing handles it at runtime.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
+            root@${{ env.ECS_IP }} \
+            'echo "=== Pre-pulling bioconductor containers ===" && \
+             docker pull quay.io/biocontainers/bioconductor-normqpcr:1.56.0--r45h575d39b_0 2>&1 | tail -3 || echo "normqpcr pull failed (will pull on first run)" && \
+             docker pull quay.io/biocontainers/bioconductor-proteomm:1.28.0--r45hdfd78af_0 2>&1 | tail -3 || echo "proteomm pull failed (will pull on first run)" && \
+             docker pull quay.io/biocontainers/bioconductor-mlinterfaces:1.90.0--r45ha27e39d_0 2>&1 | tail -3 || echo "mlinterfaces pull failed (will pull on first run)" && \
+             echo "=== Bioconductor container pre-pull done ==="'
+
       - name: Restart stack
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
@@ -449,7 +469,10 @@ jobs:
             backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/herg_cardiac_safety_qsar/main.nf \
             backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf \
             backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/cns_penetration_prediction/main.nf \
-            backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cyp_ddi_panel/main.nf; do
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cyp_ddi_panel/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/proteomm/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/mlinterfaces/multi_classifier_evaluation.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/normqpcr/delta_delta_cq_normalization.nf; do
             REL=$(echo "$NF_LOCAL" | sed 's|backend/biomni_workflows/nextflow_nfcore/||')
             echo "Uploading $NF_LOCAL ($REL) …"
             cat "$NF_LOCAL" | \

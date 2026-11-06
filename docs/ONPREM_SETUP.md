@@ -2,7 +2,8 @@
 
 > 适用版本：`docker-compose.onprem.yml`  
 > 目标读者：现场实施工程师  
-> 前置要求：Docker ≥ 24、Docker Compose v2、≥ 16 GB RAM（Ollama 离线模式需要 ≥ 32 GB）
+> 前置要求：Docker ≥ 24、Docker Compose v2、≥ 16 GB RAM（Ollama 离线模式需要 ≥ 32 GB）  
+> **部署前置清单 / 验收标准：** 见 [ONPREM_DELIVERY_CHECKLIST.md](ONPREM_DELIVERY_CHECKLIST.md)
 
 ---
 
@@ -147,39 +148,48 @@ docker exec biomate-galaxy printenv BIOMATE_ADMET_CONTAINER
 
 ## 1. 快速启动
 
+> **推荐入口：使用 `install.sh` 一键安装。** 脚本会自动检测 CPU 架构（海光 C86 / 鲲鹏）、探测 Docker GID、生成密钥、拉取镜像并启动服务。不要直接运行 `docker compose up`，会跳过所有自动检测步骤。
+
+BioMate 以部署包形式交付，乙方工程师已将安装包（`biomate-deploy-<版本>.tar.gz`）传入服务器。
+
 ```bash
-# 1. 克隆代码
-git clone <your-repo-url> biomate && cd biomate
+# 1. 解压部署包（包路径由工程师提供）
+tar -xzf /tmp/biomate-deploy-<版本>.tar.gz -C /app/
+cd /app/biomate
 
-# 2. 生成 .env 文件
-cp .env.onprem.example .env
-# 编辑 .env，至少填写以下必填项（见下方说明）
-nano .env
+# 2. 运行一键安装脚本（交互式，按提示填写）
+bash install.sh
 
-# 3. 启动
-docker compose -f docker-compose.onprem.yml up -d
+# 脚本会依次引导：
+#   - 选择 LLM 提供商（千问 / DeepSeek / 智谱 / 内网模型）
+#   - 填写数据库密码（自定义，≥ 8 位）
+#   - 填写 MinIO 密码（自定义，≥ 8 位）
+#   - JWT / Session / Galaxy API 密钥（自动随机生成，无需手动填写）
+#   - 自动拉取镜像、启动服务、等待健康检查
 
-# 4. 查看启动日志
-docker compose -f docker-compose.onprem.yml logs -f
-
-# 5. 访问
-# 浏览器打开 http://<服务器IP>:5000
+# 3. 安装完成后访问
+# 浏览器打开 http://<本机IP>:5000
 ```
 
-### .env 必填项
+### 密钥说明
+
+| 配置项 | 如何获得 | 说明 |
+|--------|---------|------|
+| `POSTGRES_PASSWORD` | 自行设置 | 数据库密码，≥ 8 位，含字母和数字 |
+| `MINIO_ROOT_PASSWORD` | 自行设置 | 对象存储密码，≥ 8 位 |
+| `JWT_SECRET` | `install.sh` 自动生成 | 无需手动填写 |
+| `SESSION_SECRET` | `install.sh` 自动生成 | 无需手动填写 |
+| `GALAXY_API_KEY` | `install.sh` 自动生成 | 无需手动填写 |
+| LLM API Key | 由甲方提供（见第 2 节） | 千问 / DeepSeek 等 |
+
+### 创建管理员账号
+
+安装脚本完成后，用浏览器注册第一个用户，然后执行：
 
 ```bash
-# 数据库密码（自行设置，复杂度要够）
-POSTGRES_PASSWORD=your_strong_password
-
-# JWT / Session 密钥（随机生成，不要用简单字符串）
-JWT_SECRET=$(openssl rand -hex 32)
-SESSION_SECRET=$(openssl rand -hex 32)
-
-# LLM 提供商 API Key（根据下面第2节选择一个）
-ANTHROPIC_API_KEY=sk-ant-...
-# 或
-DEEPSEEK_API_KEY=sk-...
+# 将注册的邮箱升级为管理员（替换 admin@example.com 为实际邮箱）
+docker exec -it biomate-postgres psql -U biomate -d biomate -c \
+  "UPDATE users SET subscription_tier = 'admin' WHERE email = 'admin@example.com';"
 ```
 
 ---

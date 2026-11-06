@@ -482,6 +482,9 @@ services:
       # On-prem 使用 docker profile (biomate/biomni-tools 容器本地运行).
       # false → routes.ts 选择 'docker' profile; true → 'aws' (Batch).
       NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
+      # Must match NEXTFLOW_WORK_DIR in galaxy-backend so the step-file allowed-roots
+      # check passes for per-task work dir files served from the nf-work volume above.
+      NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
 
       # ── 网络 ──────────────────────────────────────────────────────────────
       FORCE_HTTPS:   ${FORCE_HTTPS:-0}
@@ -526,8 +529,13 @@ services:
       # 3. 在下方 volumes 取消 /tmp/biomate_code 挂载注释
       # 4. 在下方 depends_on 取消 sandbox-launcher 注释
 
-    # volumes:  # Uncomment and add entries when enabling sandbox-launcher (run_code support):
-    #   - /tmp/biomate_code:/tmp/biomate_code
+    volumes:
+      # Nextflow task work dirs — read-only mount so the step-file API can serve per-step
+      # output files directly without proxying through Galaxy.  Galaxy writes here;
+      # the frontend only reads.  Same host path as the galaxy-backend volume above.
+      - /app/nf-work:/app/nf-work:ro
+      # Uncomment when enabling sandbox-launcher (run_code support):
+      # - /tmp/biomate_code:/tmp/biomate_code
 
     depends_on:
       postgres:
