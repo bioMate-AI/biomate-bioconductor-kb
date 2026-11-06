@@ -117,4 +117,36 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     const q = await screen.findByTestId("dataset-quality", {}, { timeout: 4000 })
     expect(within(q).getByText("Data QC")).toBeInTheDocument()
   })
+
+  it("lineage 'what came out' — a consumer run's produced dataset opens as its own object", async () => {
+    // Extend the route mock with the project's files so the lineage section can
+    // resolve each consumer run's produced datasets (spec 04 §4.5.3).
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url.includes("/api/projects/") && url.endsWith("/files")) {
+        return ({ ok: true, status: 200, json: async () => ({
+          files: [
+            { id: "out-de", name: "de_results_v2.tsv", source: "run_output", run_id: "run-def-222" },
+            { id: "up-raw", name: "counts.tsv", source: "upload", run_id: null },
+          ],
+        }), text: async () => "" }) as unknown as Response
+      }
+      return base(input)
+    }) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={RUN} projectId="proj-rna" onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(screen.getByTestId("dataset-tab-wherefrom"))
+    // under the named consumer run, its produced dataset is listed and openable
+    const produced = await screen.findByTestId("dataset-produced-run-def-222", {}, { timeout: 4000 })
+    const link = within(produced).getByTestId("dataset-produced-output")
+    expect(link).toHaveAttribute("href", "/files?file=out-de")
+    expect(link.textContent).toContain("de_results_v2.tsv")
+    // the uploaded (non-run_output) file is NOT listed as "produced"
+    expect(produced.textContent).not.toContain("counts.tsv")
+  })
 })

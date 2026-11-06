@@ -320,7 +320,9 @@
     "col_watch": "watch",
     "col_watch_missing": "Over 20% of the sampled values are missing.",
     "columns_sample_note": "Profiled from the first {{n}} sampled rows — % missing and distinct are over the sample, not the whole file.",
-    "columns_not_tabular": "This file isn't a table, so there are no columns to profile. Open it in Jupyter or ask in chat to inspect it."
+    "columns_not_tabular": "This file isn't a table, so there are no columns to profile. Open it in Jupyter or ask in chat to inspect it.",
+    "produced": "Produced",
+    "open_as_dataset_title": "Open the dataset object — preview, versions and lineage — in Files"
   },
   "data_hub": {
     "choose_project": "Choose a project",

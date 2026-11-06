@@ -271,6 +271,7 @@ export default function DataHubPage() {
             {selected ? (
               <DatasetObject
                 dataset={toDatasetRef(selected)}
+                projectId={activeProjectId ?? undefined}
                 preview={<DatasetFilePreview projectId={activeProjectId!} fileId={selected.id} name={selected.name} />}
                 onBack={() => setSelected(null)}
                 onDownload={() => handleDownload(selected)}

@@ -23,7 +23,7 @@
  * These are tracked as backend work in the audit doc.
  */
 
-import { useState, type ReactNode } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -52,6 +52,7 @@ import {
 } from "./datasets-api"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
+import { resolveViewer } from "../viewers/inline-content-viewers"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
 export interface DatasetRef {
@@ -103,6 +104,10 @@ interface DatasetObjectProps {
   onDownload?: () => void
   /** Open the workflow run that produced (or reads) this dataset. */
   onOpenRun?: (runId: string) => void
+  /** Project the dataset lives in — lets the lineage section resolve each
+   *  consumer run's produced datasets (project_files) so "what came out" chains
+   *  as openable dataset objects (spec 04 §4.5.3). */
+  projectId?: string
   /** Ask in chat FROM this dataset — opens the composer with it attached. */
   onAnalyze?: () => void
   /** Run a full QC workflow ON this dataset through BioMate's engine. */
@@ -130,6 +135,7 @@ export function DatasetObject({
   onRunQC,
   className,
   preview,
+  projectId,
 }: DatasetObjectProps) {
   // "Where it came from" + Versions lazily fetch their backing data on first open.
   const [wherefromOpened, setWherefromOpened] = useState(false)
@@ -155,6 +161,33 @@ export function DatasetObject({
 
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+
+  // Lineage "what came out" (spec 04 §4.5.3): beneath each run that read this
+  // file, the datasets that run produced — each openable as its own object. Run
+  // outputs are registered into project_files (source='run_output'); resolve
+  // them by run_id so a produced counts matrix / DE table chains as an object
+  // rather than needing a separate lineage viewer. Lazy (Where-it-came-from only).
+  const [producedByRun, setProducedByRun] = useState<Record<string, Array<{ id: string; name: string; ext: string }>>>({})
+  useEffect(() => {
+    if (!wherefromOpened || !projectId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files`, { credentials: "include" })
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        const files = (data?.files ?? []) as Array<{ id?: string; name?: string; source?: string; run_id?: string | null }>
+        const byRun: Record<string, Array<{ id: string; name: string; ext: string }>> = {}
+        for (const f of files) {
+          if (!f?.id || !f?.name || f.source !== "run_output" || !f.run_id) continue
+          const ext = (f.name.split(".").pop() || "").toLowerCase()
+          ;(byRun[f.run_id] = byRun[f.run_id] || []).push({ id: f.id, name: f.name, ext })
+        }
+        if (!cancelled) setProducedByRun(byRun)
+      } catch { /* best-effort — the produced list just won't show */ }
+    })()
+    return () => { cancelled = true }
+  }, [wherefromOpened, projectId])
 
   const consumers = consumersQ.data?.consumers ?? []
   const propConsumers = dataset.consumers ?? []
@@ -658,19 +691,43 @@ export function DatasetObject({
                   <Skeleton className="h-8 w-full" />
                 </div>
               ) : consumers.length ? (
-                consumers.map((c) => (
-                  <div
-                    key={c.runId}
-                    role={onOpenRun ? "button" : undefined}
-                    onClick={onOpenRun ? () => onOpenRun(c.runId) : undefined}
-                    className={`flex items-center gap-2 rounded border px-2 py-1 text-xs${onOpenRun ? " cursor-pointer hover:bg-muted/50" : ""}`}
-                    data-testid={`dataset-consumer-${c.runId}`}
-                  >
-                    <Badge variant="outline" className="text-xs">{t('dataset_obj.reads')}</Badge>
-                    <span className="truncate">{c.workflow ?? t('dataset_obj.open_run')}</span>
-                    {c.status && <Badge variant="outline" className="text-xs ml-auto">{c.status}</Badge>}
+                consumers.map((c) => {
+                  const produced = producedByRun[c.runId] ?? []
+                  return (
+                  <div key={c.runId} className="space-y-1">
+                    <div
+                      role={onOpenRun ? "button" : undefined}
+                      onClick={onOpenRun ? () => onOpenRun(c.runId) : undefined}
+                      className={`flex items-center gap-2 rounded border px-2 py-1 text-xs${onOpenRun ? " cursor-pointer hover:bg-muted/50" : ""}`}
+                      data-testid={`dataset-consumer-${c.runId}`}
+                    >
+                      <Badge variant="outline" className="text-xs">{t('dataset_obj.reads')}</Badge>
+                      <span className="truncate">{c.workflow ?? t('dataset_obj.open_run')}</span>
+                      {c.status && <Badge variant="outline" className="text-xs ml-auto">{c.status}</Badge>}
+                    </div>
+                    {/* What came out — datasets this run produced, each openable as
+                        its own object (spec §4.5.3). Typed by evidence class. */}
+                    {produced.length > 0 && (
+                      <div className="ml-4 space-y-1 border-l pl-2" data-testid={`dataset-produced-${c.runId}`}>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('dataset_obj.produced')}</p>
+                        {produced.map((p) => (
+                          <a
+                            key={p.id}
+                            href={`/files?file=${encodeURIComponent(p.id)}`}
+                            className="flex items-center gap-2 rounded border px-2 py-1 text-xs hover:bg-muted/50 no-underline text-inherit"
+                            data-testid="dataset-produced-output"
+                            title={t('dataset_obj.open_as_dataset_title')}
+                          >
+                            <Badge variant="outline" className="text-xs">{resolveViewer(p.ext)}</Badge>
+                            <span className="font-mono truncate">{p.name}</span>
+                            <span className="ml-auto text-muted-foreground" aria-hidden>↗</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))
+                  )
+                })
               ) : propConsumers.length ? (
                 propConsumers.map((c) => (
                   <div key={c} className="flex items-center gap-2 rounded border px-2 py-1 text-xs" data-testid={`dataset-consumer-${c}`}>
@@ -683,8 +740,6 @@ export function DatasetObject({
                   {t('dataset_obj.no_consumers')}
                 </p>
               )}
-              {/* FUTURE: the "Produced" list (typed outputs that open as dataset
-                  objects) — not available from the lineage endpoint yet. */}
             </div>
           </div>)}
       </CardContent>
