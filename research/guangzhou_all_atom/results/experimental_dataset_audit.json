@@ -1,0 +1,39 @@
+{
+  "pepmsnd": {
+    "rows": 640,
+    "unique_raw_smiles": 605,
+    "labels": {
+      "0": 367,
+      "1": 273
+    },
+    "clusters": {
+      "3": 64,
+      "4": 64,
+      "5": 64,
+      "2": 64,
+      "1": 64,
+      "6": 64,
+      "8": 64,
+      "9": 64,
+      "7": 64,
+      "10": 64
+    },
+    "note": "This snapshot contains binary labels, not raw half-life measurements. Threshold, species/environment encodings, and original assay provenance must be verified."
+  },
+  "macroconf": {
+    "rows": 69,
+    "unique_ids": 69,
+    "unique_nonempty_smiles": 68,
+    "solvents": {
+      "CDCl3": 1,
+      "DMSO": 45,
+      "DMSO; 90% H2O 10% CD3CN": 1,
+      "CDCl3, DMSO": 3,
+      "TFE": 1,
+      "DMSO H2O mixture": 1,
+      "aqueous solution": 16,
+      "aqueous solution, DMSO, MeOH, CDCl3": 1
+    },
+    "note": "Publication describes 68 compounds; actual CSV has 69 rows including solvent-specific entries. Do not equate rows with independent molecules."
+  }
+}

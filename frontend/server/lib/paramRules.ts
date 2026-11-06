@@ -248,3 +248,49 @@ export function validateAgainstSchema(
   const unknownKeys = Object.keys(params).filter((k) => !schemaKeySet.has(k));
   return { enumViolations, missingRequired, unknownKeys };
 }
+
+/**
+ * Coerce numeric-typed params to clean numeric strings (mutates `params`).
+ *
+ * LLM free-text extraction frequently captures prose punctuation that bleeds
+ * into a numeric value — e.g. the query "(subsample: max_spots=500000)." yields
+ * max_spots="500000)". When the downstream Nextflow workflow does
+ * `params.max_spots as int` (Groovy) that string throws a NumberFormatException
+ * and fails the entire run in seconds (observed on wgs_germline_gatk →
+ * FASTERQ_DUMP, 2026-10-07).
+ *
+ * For every schema param of type "number" we extract the leading numeric token
+ * (int / float / scientific) when the value carries a digit but is not already
+ * clean, and replace the value with that token. We deliberately:
+ *   - leave already-clean values untouched,
+ *   - leave pure non-numeric sentinels untouched (e.g. "null", "auto", "none"
+ *     — optional-numeric sentinels some workflows accept, cf. auc_observed),
+ *     so we never turn a valid sentinel into a dropped/garbled param,
+ *   - strip thousands separators ("500,000" -> "500000").
+ *
+ * Returns one note per value changed, for provenance + logging.
+ */
+export function coerceNumericParams(
+  params: Record<string, string | string[]>,
+  schema: WorkflowSchema,
+): Array<{ key: string; from: string; to: string }> {
+  const notes: Array<{ key: string; from: string; to: string }> = [];
+  const CLEAN_RE = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
+  const TOKEN_RE = /-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+  for (const p of schema.params) {
+    if (p.type !== "number") continue;
+    const v = params[p.name];
+    if (v === undefined || Array.isArray(v)) continue; // numeric params are scalars
+    const raw = String(v).trim();
+    if (raw === "") continue;
+    if (CLEAN_RE.test(raw)) continue; // already a clean number
+    if (!/\d/.test(raw)) continue; // sentinel like "null"/"auto" — leave as-is
+    const deComma = raw.replace(/(?<=\d),(?=\d)/g, ""); // 500,000 -> 500000
+    const m = deComma.match(TOKEN_RE);
+    if (m && m[0] !== raw) {
+      params[p.name] = m[0];
+      notes.push({ key: p.name, from: raw, to: m[0] });
+    }
+  }
+  return notes;
+}

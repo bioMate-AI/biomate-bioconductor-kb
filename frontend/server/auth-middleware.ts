@@ -253,6 +253,13 @@ export async function optionalAuth(
     // Verify token
     const payload = authService.verifyToken(token);
 
+    // A password-only MFA challenge is not a session. Optional endpoints may
+    // serve public content, but must never resolve its user/private namespace.
+    if (payload.type === 'mfa_challenge') {
+      next();
+      return;
+    }
+
     // Get user from database
     const user = await authService.getUserById(payload.userId);
     if (user) {

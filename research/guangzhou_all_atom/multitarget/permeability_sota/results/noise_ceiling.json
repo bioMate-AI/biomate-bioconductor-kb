@@ -1,0 +1,38 @@
+{
+ "all_assays_pooled_same_assay_pairs": {
+  "n_pairs": 99,
+  "sigma2_noise": 0.29695959595959603,
+  "sigma_noise": 0.5449399929896832,
+  "var_y_all": 0.6256606348864013,
+  "ceiling_r2": 0.5253663417492875,
+  "ceiling_rmse_floor": 0.5449399929896832,
+  "var_y_of_duplicated_peptides": 1.1481050655194094
+ },
+ "PAMPA": {
+  "n_pairs": 64,
+  "sigma2_noise": 0.44884140625,
+  "sigma_noise": 0.6699562718939199,
+  "var_y_all": 0.6078650523210054,
+  "ceiling_r2": 0.26161011471840157,
+  "ceiling_rmse_floor": 0.6699562718939199,
+  "var_y_of_duplicated_peptides": 0.4237547511312217
+ },
+ "Caco2": {
+  "n_pairs": 32,
+  "sigma2_noise": 0.005282812499999995,
+  "sigma_noise": 0.07268295880053312,
+  "var_y_all": 0.45850128157106196,
+  "ceiling_r2": 0.9884780856404625,
+  "ceiling_rmse_floor": 0.07268295880053312,
+  "var_y_of_duplicated_peptides": 0.1757843095551813
+ },
+ "pampa_vs_caco2_same_peptide": {
+  "n": 332,
+  "pearson": 0.2746240956573105,
+  "mean_abs_diff": 2.0374440619621343
+ },
+ "within_source_replicates": {
+  "n_groups": 47,
+  "sigma2_noise": 0.25276528038984236
+ }
+}

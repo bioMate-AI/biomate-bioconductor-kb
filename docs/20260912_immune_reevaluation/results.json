@@ -1,0 +1,219 @@
+{
+  "baseline_floor": {
+    "train_mean": 0.0567,
+    "additive": 0.0432,
+    "no_change": 0.0
+  },
+  "baseline_per_seed": [
+    {
+      "seed": 0,
+      "n_train_rows": 234,
+      "n_test_rows": 97,
+      "train_mean": {
+        "mean": 0.0334,
+        "std": 0.1882,
+        "median": 0.0116,
+        "n": 97
+      },
+      "additive": {
+        "mean": 0.021,
+        "std": 0.1826,
+        "median": 0.0193,
+        "n": 97
+      },
+      "no_change": {
+        "mean": null,
+        "std": null,
+        "n": 0
+      }
+    },
+    {
+      "seed": 1,
+      "n_train_rows": 233,
+      "n_test_rows": 98,
+      "train_mean": {
+        "mean": 0.0737,
+        "std": 0.1863,
+        "median": 0.0717,
+        "n": 98
+      },
+      "additive": {
+        "mean": 0.0532,
+        "std": 0.1829,
+        "median": 0.0487,
+        "n": 98
+      },
+      "no_change": {
+        "mean": null,
+        "std": null,
+        "n": 0
+      }
+    },
+    {
+      "seed": 2,
+      "n_train_rows": 232,
+      "n_test_rows": 99,
+      "train_mean": {
+        "mean": 0.0626,
+        "std": 0.1894,
+        "median": 0.0581,
+        "n": 99
+      },
+      "additive": {
+        "mean": 0.0551,
+        "std": 0.171,
+        "median": 0.0591,
+        "n": 99
+      },
+      "no_change": {
+        "mean": null,
+        "std": null,
+        "n": 0
+      }
+    }
+  ],
+  "runs": [
+    {
+      "arm": "ERM",
+      "seed": 0,
+      "rho": {
+        "mean": 0.0331,
+        "std": 0.1888,
+        "median": 0.0163,
+        "n": 97
+      },
+      "mse": 0.1283402293920517,
+      "roundtrip": "pass",
+      "test_rows": 97,
+      "target_coverage": 1.0
+    },
+    {
+      "arm": "IRM",
+      "seed": 0,
+      "rho": {
+        "mean": 0.0331,
+        "std": 0.1888,
+        "median": 0.0163,
+        "n": 97
+      },
+      "mse": 0.12834088504314423,
+      "roundtrip": "pass",
+      "test_rows": 97,
+      "target_coverage": 1.0
+    },
+    {
+      "arm": "shuffled_ERM",
+      "seed": 0,
+      "rho": {
+        "mean": 0.0331,
+        "std": 0.188,
+        "median": 0.0171,
+        "n": 97
+      },
+      "mse": 0.1283065527677536,
+      "roundtrip": "pass",
+      "test_rows": 97,
+      "target_coverage": 1.0
+    },
+    {
+      "arm": "ERM",
+      "seed": 1,
+      "rho": {
+        "mean": 0.0737,
+        "std": 0.185,
+        "median": 0.0681,
+        "n": 98
+      },
+      "mse": 0.11063187569379807,
+      "roundtrip": "pass",
+      "test_rows": 98,
+      "target_coverage": 1.0
+    },
+    {
+      "arm": "IRM",
+      "seed": 1,
+      "rho": {
+        "mean": 0.0737,
+        "std": 0.1851,
+        "median": 0.0683,
+        "n": 98
+      },
+      "mse": 0.11064092069864273,
+      "roundtrip": "pass",
+      "test_rows": 98,
+      "target_coverage": 1.0
+    },
+    {
+      "arm": "shuffled_ERM",
+      "seed": 1,
+      "rho": {
+        "mean": 0.0734,
+        "std": 0.1887,
+        "median": 0.0771,
+        "n": 98
+      },
+      "mse": 0.11067630350589752,
+      "roundtrip": "pass",
+      "test_rows": 98,
+      "target_coverage": 1.0
+    },
+    {
+      "arm": "ERM",
+      "seed": 2,
+      "rho": {
+        "mean": 0.0628,
+        "std": 0.1914,
+        "median": 0.0637,
+        "n": 99
+      },
+      "mse": 0.13785645365715027,
+      "roundtrip": "pass",
+      "test_rows": 99,
+      "target_coverage": 1.0
+    },
+    {
+      "arm": "IRM",
+      "seed": 2,
+      "rho": {
+        "mean": 0.0628,
+        "std": 0.1914,
+        "median": 0.0639,
+        "n": 99
+      },
+      "mse": 0.1378578096628189,
+      "roundtrip": "pass",
+      "test_rows": 99,
+      "target_coverage": 1.0
+    },
+    {
+      "arm": "shuffled_ERM",
+      "seed": 2,
+      "rho": {
+        "mean": 0.0626,
+        "std": 0.1865,
+        "median": 0.062,
+        "n": 99
+      },
+      "mse": 0.13782751560211182,
+      "roundtrip": "pass",
+      "test_rows": 99,
+      "target_coverage": 1.0
+    }
+  ],
+  "summary": {
+    "ERM": {
+      "mean_seed_rho": 0.05653333333333333,
+      "mean_seed_mse": 0.125609519581
+    },
+    "IRM": {
+      "mean_seed_rho": 0.05653333333333333,
+      "mean_seed_mse": 0.12561320513486862
+    },
+    "shuffled_ERM": {
+      "mean_seed_rho": 0.056366666666666676,
+      "mean_seed_mse": 0.125603457291921
+    }
+  },
+  "scientific_status": "development comparison only; no promotion",
+  "baseline_aggregation": "pooled eligible test rows across seeds; compare run rho per seed against baseline_per_seed; seed means in summary are descriptive"
+}

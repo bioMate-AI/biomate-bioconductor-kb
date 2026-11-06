@@ -20,7 +20,8 @@ import traceback
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
 
 from backend.lib.galaxy.ai.drug_discovery.generators import (
-    Generator, GenerationSpec, BricsGenerator, BioNeMoGenerator, get_generator,
+    Generator, GenerationSpec, BricsGenerator, BioNeMoGenerator,
+    Reinvent4Generator, get_generator,
 )
 from backend.lib.galaxy.ai.drug_discovery.denovo_pipeline import (
     DeNovoPipeline, ObjectiveSpec, LoopResult,
@@ -159,6 +160,56 @@ def test_bionemo_shape_with_fake_client():
 
 
 # ---------------------------------------------------------------------------
+# Tests: REINVENT4 generator (real learned generator; honesty contract)
+# ---------------------------------------------------------------------------
+
+def test_reinvent4_registered_and_learned():
+    print("test_reinvent4_registered_and_learned")
+    r = get_generator("reinvent4")
+    check(isinstance(r, Reinvent4Generator), "factory returns Reinvent4Generator")
+    check(r.is_learned is True, "REINVENT4 labelled as learned")
+    check(r.name == "reinvent4", "REINVENT4 honestly named")
+    check(r.model == "reinvent", "'reinvent4' == de-novo sampling mode")
+    check(get_generator("reinvent4_mol2mol").model == "mol2mol",
+          "'reinvent4_mol2mol' == analog/scaffold-hop mode")
+    try:
+        Reinvent4Generator(model="bogus")
+        check(False, "bad model should raise")
+    except ValueError:
+        check(True, "unsupported model raises ValueError")
+
+
+def test_reinvent4_honest_failure_no_fabrication():
+    """
+    With no reinvent CLI and no prior checkpoint present, Reinvent4Generator must
+    return [] and record the reason — NEVER fabricate or enumerate molecules.
+    """
+    print("test_reinvent4_honest_failure_no_fabrication")
+    # Point at a directory guaranteed to have no priors, and a CLI that can't
+    # resolve, so both honesty branches are exercised.
+    r = Reinvent4Generator(model="reinvent",
+                           priors_dir="/nonexistent/reinvent4/priors",
+                           cli="definitely-not-a-real-binary-xyz")
+    out = r.propose(GenerationSpec(seed_smiles="c1ccccc1", n_molecules=5))
+    check(out == [], "unavailable REINVENT4 yields ZERO molecules (no fabrication)")
+    check(r.last_status.get("ok") is False, "status records failure")
+    check("reason" in r.last_status, "status records a reason")
+
+
+def test_reinvent4_mol2mol_requires_seed():
+    """mol2mol mode without a seed must fail honestly (no de-novo silent fallback)."""
+    print("test_reinvent4_mol2mol_requires_seed")
+    # Force CLI+prior 'present' via monkeypatching so we reach the seed check.
+    r = Reinvent4Generator(model="mol2mol")
+    r._resolve_cli = lambda: ["reinvent"]          # pretend CLI resolves
+    r._resolve_prior = lambda: "/tmp/fake.prior"   # pretend prior resolves
+    out = r.propose(GenerationSpec(seed_smiles=None, n_molecules=5))
+    check(out == [], "mol2mol without seed yields ZERO molecules")
+    check(r.last_status.get("reason") == "mol2mol_requires_seed_smiles",
+          "reason names the missing seed")
+
+
+# ---------------------------------------------------------------------------
 # Tests: closed loop wiring (fake generator + fake predictors)
 # ---------------------------------------------------------------------------
 
@@ -263,7 +314,10 @@ def main():
     # Generator-abstraction / honesty tests need no DB or heavy deps.
     for t in (test_generator_honesty,
               test_bionemo_honest_failure_no_fabrication,
-              test_bionemo_shape_with_fake_client):
+              test_bionemo_shape_with_fake_client,
+              test_reinvent4_registered_and_learned,
+              test_reinvent4_honest_failure_no_fabrication,
+              test_reinvent4_mol2mol_requires_seed):
         try:
             t()
         except Exception:

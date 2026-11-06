@@ -1,0 +1,18 @@
+[
+  {
+    "file": "GSE113156_RAW.tar",
+    "bytes": 1853440,
+    "sha256": "d054b0d851dc39611fc09502fe4000ed8c7803e4112a24882028b4fa20f9ff43",
+    "source": "NCBI GEO FTP GSE113156",
+    "status": "downloaded",
+    "training_eligible": false
+  },
+  {
+    "file": "GSE113156_series_matrix.txt.gz",
+    "bytes": 3408,
+    "sha256": "7eb73990d9b33d9b0cd8404040ee195df530e947dfd7c41e6c1c2c0ba346a4f9",
+    "source": "NCBI GEO FTP GSE113156",
+    "status": "downloaded",
+    "training_eligible": false
+  }
+]

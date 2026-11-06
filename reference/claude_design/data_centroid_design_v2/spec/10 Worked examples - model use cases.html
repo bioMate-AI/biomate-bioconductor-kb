@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 10 — Worked examples: model use cases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Worked examples: model use cases</h1>
+<p class="docmeta"><span>BioMate · Spec 10 · addendum to Spec 03</span><span>Status: built</span><span>Lane: Cloud</span></p>
+
+<p class="lede">The Models module had a registry, a training surface and a loop, but no page that showed a model use case end to end. This addendum specifies four worked cases — one per track — on a single spine: what model, what it was given, what came back, how much of the answer to trust, and what it left behind. It also renames two tracks whose labels named techniques instead of jobs.</p>
+
+<h2><span class="num">10.1</span>Track renames</h2>
+<table class="st prose">
+<thead><tr><th>Was</th><th>Now</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Adapt <span class="mono">fine-tune</span></td><td><strong>Tune on our data</strong> <span class="mono">base frozen, your delta kept separate</span></td><td>"Adapt" covered two unrelated jobs: fine-tuning a scientific model, and learning how BioMate writes. The lane now states what the user controls, not the algorithm.</td></tr>
+<tr><td>Optimise <span class="mono">RL &amp; active learning</span></td><td><strong>Propose &amp; test in rounds</strong> <span class="mono">a budget you set, not an algorithm you pick</span></td><td>Reinforcement learning is machinery. The user's job is rounds under a budget, with a bench round-trip in the middle.</td></tr>
+<tr><td>Models tab "Adapt"</td><td>Models tab <strong>House style</strong></td><td>That surface learns wording and house conventions from your edits. It states explicitly that it never changes a predicted number, and points to Tune on our data for the scientific case.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Rule</span><p>A user-facing label names a job. Techniques (LoRA, active learning, Bayesian optimisation) appear in the run's Methods, where they are checkable, not in navigation, where they are jargon.</p></div>
+
+<h2><span class="num">10.2</span>Boundary with Design &amp; generate</h2>
+<table class="st prose">
+<thead><tr><th></th><th>Design &amp; generate</th><th>Models</th></tr></thead>
+<tbody>
+<tr><td>You want</td><td>Candidates.</td><td>A model.</td></tr>
+<tr><td>Consumes</td><td>Constraints and objectives.</td><td>Your data (train / tune), or nothing (pre-trained).</td></tr>
+<tr><td>Produces</td><td>A ranked shortlist you can order.</td><td>A versioned artifact with held-out evidence.</td></tr>
+<tr><td>Ends in</td><td>A bench order.</td><td>A registration decision.</td></tr>
+<tr><td>Overlap resolved</td><td>Optimise properties = one multi-objective pass, no bench round-trip.</td><td>Propose &amp; test in rounds = sequential rounds with a budget and returns.</td></tr>
+<tr><td>Overlap resolved</td><td>Structure prediction as a filtering stage on candidates.</td><td>Structure prediction as a single-shot instrument call.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">10.3</span>The four cases</h2>
+<table class="st prose">
+<thead><tr><th>Track</th><th>Case</th><th>Model</th><th>Verdict shown</th></tr></thead>
+<tbody>
+<tr><td>Run a model</td><td>Predict the fold of this sequence and show me where the model is unsure.</td><td><span class="mono">fold-predict v2.3</span> · pre-trained, weights pinned</td><td>pLDDT 84.2 · two regions below the usable floor</td></tr>
+<tr><td>Train</td><td>Train a potency predictor on our in-house assay data.</td><td><span class="mono">potency-gp v3</span> · candidate</td><td>RMSE 0.62 · clears the floor · not registered</td></tr>
+<tr><td>Tune on our data</td><td>Adapt the generative model to our chemical series.</td><td><span class="mono">molgen v4.1 + adapter</span></td><td>in-series 12% → 71% · novelty flagged</td></tr>
+<tr><td>Propose &amp; test in rounds</td><td>Run the design–make–test loop on this series under a 96-assay budget.</td><td><span class="mono">admet-herg v3</span> + <span class="mono">potency-gp v2</span></td><td>pIC50 7.1 → 7.9 · 3 of 12 returned no data</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">10.4</span>Case page anatomy</h2>
+<figure>
+<div class="wire">┌───────────────────────────────────────────────────────────────┐
+│ Fibrosis target triage / Models / Train                       │
+│ Train a potency predictor on our in-house assay data. [Back]  │
+│ ● From scratch, on your data   potency-gp v3 (candidate)      │
+├───────────────────────────────────────────────────────────────┤
+│ WHAT THIS WAS GIVEN                                           │
+│ Training data   assay_2026_08.csv · v4   a version, not a name│
+│ Split           scaffold · 70/15/15      random split leaks   │
+│ Excluded        311 censored values      kept as inequalities │
+│ ● Featurise ● Fit ● Held-out evaluation ● Gate ○ Offer        │
+├───────────────────────────────────────────────────────────────┤
+│ WHAT CAME BACK        medium confidence        1 flagged      │
+│ It clears the floor, and it is narrower than it looks         │
+│ HELD OUT   RMSE 0.62 log · Spearman 0.71 …                    │
+│ WHERE IT APPLIES  aminopyrimidines + 3 neighbouring series    │
+│ BOUNDARY  Passing a gate means it cleared a floor on one      │
+│ held-out split — not that predictions are correct elsewhere.  │
+├───────────────────────────────────────────────────────────────┤
+│ MEASURED AGAINST A FLOOR                                      │
+│ RMSE · held out    0.62 log   ≤ 0.75 to gate a loop    pass   │
+│ Calibration        0.78       0.75–0.85                pass   │
+├───────────────────────────────────────────────────────────────┤
+│ WHAT IT LEFT BEHIND        every artefact is a file           │
+│ potency-gp_v3.pkl      model artefact      [Open in Files]    │
+│ train_report.md        report              [Open & edit][⇩]   │
+│ WHAT TO DO NEXT  [Register as v3] [Model object] [Fix upstream]│
+└───────────────────────────────────────────────────────────────┘</div>
+<figcaption>One spine for all four tracks, so a pre-trained inference and a closed loop read alike.</figcaption>
+</figure>
+
+<table class="el">
+<thead><tr><th>Element</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>model chip</td><td>Name and version, as a link into the model object. Only names that exist in the registry may appear here.</td></tr>
+<tr><td>what this was given</td><td>Inputs resolved to versions, plus the decision each row encodes and why. Includes what was <em>excluded</em> and on what rule.</td></tr>
+<tr><td>stages</td><td>The run's phases as chips. Before the result exists they read "waiting"; nothing is reported until the evaluation stage finishes.</td></tr>
+<tr><td>what came back</td><td>A headline sentence, then labelled blocks. One block is always the honest one — what it learned that you may not want, the flag, or the round still in flight.</td></tr>
+<tr><td>boundary</td><td>What the result is not evidence for. Present on all four cases.</td></tr>
+<tr><td>floor table</td><td>Metric · value · threshold · pass/flag. A floor, not a ranking; clearing it by more does not make a model better.</td></tr>
+<tr><td>artefacts</td><td>Each artefact is a file in the project. Reports get "Open &amp; edit" plus the download menu; tables and model artefacts get "Open in Files".</td></tr>
+<tr><td>next steps</td><td>Decisions, never automatic actions: register, open the model object, open the report, or run the thing the result recommends.</td></tr>
+<tr><td>register <span class="tag new">new</span></td><td>Writes to the registry through one helper: the registry row and the model card both move, the previous version is marked superseded rather than deleted, and every surface re-reads live. The toast and the registry can no longer disagree.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">10.5</span>Registry additions</h2>
+<p>Two models were added so that every case names an object that can be opened: <span class="mono">fold-predict v2.3</span> (pre-trained protein structure, weights pinned, benchmark evidence re-runnable by us) and <span class="mono">molgen v4.1</span> (public generative base; your adapter recorded as a delta, never merged into the base, with the adapter as a call argument so base behaviour stays reachable). Each has full evidence, lineage, consumers, interface and version history.</p>
+
+<h2><span class="num">10.6</span>Case reports</h2>
+<p>Each case leaves its own report — <span class="mono">fold_report.md</span>, <span class="mono">train_report.md</span>, <span class="mono">adapt_report.md</span>, <span class="mono">loop_report.md</span> — in <span class="mono">runs/models/</span>, each with its own sections, versions and edit proposals. No case borrows another run's document.</p>
+
+<h2><span class="num">10.7</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Whether a flagged model (e.g. the novelty flag on the tuned generator) should be registrable at all, or only usable inside the run that produced it.</li>
+<li><span class="tag open">open</span> Whether "House style" belongs in Models at all, or under project Instructions.</li>
+<li><span class="tag open">open</span> A biologics-native worked case for Train / Tune / Rounds — the current three are small-molecule.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 10 · Model use cases</span><span>Amends: 03</span><span>Next: 11 — Design &amp; generate</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

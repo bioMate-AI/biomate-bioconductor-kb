@@ -1,0 +1,13 @@
+{
+ "n_train_complexes": 135,
+ "default_confidence": 0.837,
+ "random": 0.837,
+ "oracle": 0.97,
+ "S0_C0.3_all_samples": 0.821,
+ "S1_C0.01": 0.831,
+ "S1_C0.03": 0.841,
+ "S1_C0.1": 0.843,
+ "S1_C0.3": 0.84,
+ "S1_C1.0": 0.839,
+ "S1_chosen_C": 0.1
+}

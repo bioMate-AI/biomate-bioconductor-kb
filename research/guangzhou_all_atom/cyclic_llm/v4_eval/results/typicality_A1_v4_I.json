@@ -1,0 +1,17 @@
+{
+ "which": "I",
+ "scores_file": "scores_A1_v4.csv",
+ "n_items": 206,
+ "n_targets": 9,
+ "typicality_auc": {
+  "point": 0.3026,
+  "lo": 0.16,
+  "hi": 0.458,
+  "n_families": 5
+ },
+ "spearman_score_vs_typicality": 0.0163,
+ "flag": "TYPICALITY_SHORTCUT",
+ "flag_reasons": [
+  "typicality_auc_ci_excludes_0.5"
+ ]
+}

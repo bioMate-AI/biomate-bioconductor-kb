@@ -38,11 +38,15 @@ C_OK=$'\033[32m'; C_FAIL=$'\033[31m'; C_WARN=$'\033[33m'; C_DIM=$'\033[2m'; C_RS
 
 # domain -> e2e spec file (bash-3.2-safe: a case, not an assoc array)
 spec_for() {
+  # NOTE 2026-10-05: the original spec files were deleted in the "161 stale E2E
+  # files" cleanup (commit 1a12b4e8c), so this harness silently produced
+  # "No tests found" for every domain. Remapped to the real-execution suites
+  # that actually exist (verified present). See docs/20261005_REAL_RUN_HARNESS_FIX.md.
   case "$1" in
-    admet)  echo "e2e/drug-discovery-full-e2e.e2e.ts" ;;
-    rnaseq) echo "e2e/complete-workflow.e2e.ts" ;;
-    wgs)    echo "e2e/germline-complete-e2e.e2e.ts" ;;
-    cryoem) echo "e2e/cryoem-real-e2e.e2e.ts" ;;
+    admet)  echo "e2e/realrun-admet.e2e.ts" ;;             # real ADMET auto-loop run
+    rnaseq) echo "e2e/project-real-run-capstone.e2e.ts" ;; # GSE227835 → nf-core/differentialabundance (DESeq2)
+    wgs)    echo "e2e/wgs-capstone.e2e.ts" ;;              # real germline variant calling
+    cryoem) echo "e2e/cryoem-capstone.e2e.ts" ;;           # real cryo-EM (GPU, ~$1.50)
     *)      echo "" ;;
   esac
 }
@@ -74,7 +78,17 @@ for d in $DOMAINS; do
   # Best-effort run_id extraction from the test's own logging.
   rid="$(grep -hoiE "run[_ ]?id[\": =]+[0-9a-f-]{36}" "$log" | grep -oE "[0-9a-f-]{36}" | head -1)"
   [ -n "$rid" ] || rid="—"
-  if [ "$rc" -eq 0 ]; then res="PASS"; else res="FAIL(rc=$rc)"; FAILS=$((FAILS+1)); fi
+  # Playwright exits 0 for a SKIPPED/fixme test too — don't let that masquerade as a
+  # real green run. Detect "N skipped" with zero passed and report SKIP distinctly.
+  if [ "$rc" -eq 0 ]; then
+    if grep -qE '[0-9]+ skipped' "$log" && ! grep -qE '[0-9]+ passed' "$log"; then
+      res="SKIP(no run)"
+    else
+      res="PASS"
+    fi
+  else
+    res="FAIL(rc=$rc)"; FAILS=$((FAILS+1))
+  fi
   RESULTS="${RESULTS}${d}|${res}|${rid}"$'\n'
   printf "  → %s  run_id=%s\n\n" "$res" "$rid" | tee -a "$SUMMARY"
 done
@@ -82,7 +96,7 @@ done
 printf "\n${C_WARN}════ SUMMARY ════${C_RST}\n" | tee -a "$SUMMARY"
 printf "%s" "$RESULTS" | while IFS='|' read -r d res rid; do
   [ -n "$d" ] || continue
-  case "$res" in PASS) c=$C_OK;; *) c=$C_FAIL;; esac
+  case "$res" in PASS) c=$C_OK;; SKIP*) c=$C_WARN;; *) c=$C_FAIL;; esac
   printf "  ${c}%-8s %-12s${C_RST} run_id=%s\n" "$d" "$res" "$rid" | tee -a "$SUMMARY"
 done
 printf "\n%s\n" "$([ "$FAILS" -eq 0 ] && echo "${C_OK}ALL GREEN${C_RST}" || echo "${C_FAIL}${FAILS} domain(s) failed${C_RST}")" | tee -a "$SUMMARY"

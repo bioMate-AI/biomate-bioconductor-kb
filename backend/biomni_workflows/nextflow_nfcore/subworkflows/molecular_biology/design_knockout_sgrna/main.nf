@@ -208,7 +208,7 @@ with open("design_knockout_sgrna_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("design_knockout_sgrna_output.txt", "w") as f:
-    f.write("Biomni: Design Knockout Sgrna" + NL)
+    f.write("BioMate: Design Knockout Sgrna" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

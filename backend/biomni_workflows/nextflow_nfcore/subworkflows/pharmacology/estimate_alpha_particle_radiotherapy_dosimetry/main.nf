@@ -222,7 +222,7 @@ with open("estimate_alpha_particle_radiotherapy_dosimetry_results.json", "w") as
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("estimate_alpha_particle_radiotherapy_dosimetry_output.txt", "w") as f:
-    f.write("Biomni: Estimate Alpha Particle Radiotherapy Dosimetry" + NL)
+    f.write("BioMate: Estimate Alpha Particle Radiotherapy Dosimetry" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

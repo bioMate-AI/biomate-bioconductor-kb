@@ -1,0 +1,71 @@
+{
+  "model": "qwen-small-sft_v3",
+  "macro_over_tasks": 0.537,
+  "per_task": {
+    "dataset_prerequisite_check": {
+      "score": 0.404,
+      "n": 60
+    },
+    "knowledge_recall": {
+      "score": 0.379,
+      "n": 60
+    },
+    "tool_recommendation": {
+      "score": 0.591,
+      "n": 60
+    },
+    "task_decomposition": {
+      "score": 0.519,
+      "n": 60
+    },
+    "workflow_routing": {
+      "score": 0.728,
+      "n": 60
+    },
+    "scientific_qa": {
+      "score": 0.422,
+      "n": 60
+    },
+    "parameter_extraction": {
+      "score": 0.576,
+      "n": 60
+    },
+    "clarification_request": {
+      "score": 0.451,
+      "n": 60
+    },
+    "log_diagnosis": {
+      "score": 0.611,
+      "n": 60
+    },
+    "autofix_repair": {
+      "score": 0.682,
+      "n": 60
+    },
+    "workflow_generation": {
+      "score": 0.502,
+      "n": 60
+    },
+    "multi_workflow_chaining": {
+      "score": 0.442,
+      "n": 23
+    },
+    "findings_interpretation": {
+      "score": 0.452,
+      "n": 60
+    },
+    "lane_arbitration": {
+      "score": 0.382,
+      "n": 60
+    },
+    "design_constraint": {
+      "score": 0.884,
+      "n": 60
+    },
+    "model_selection": {
+      "score": 0.571,
+      "n": 60
+    }
+  },
+  "eval": "family-disjoint corpus_eval"
+}

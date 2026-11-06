@@ -1,0 +1,75 @@
+# bioc-domain-pathology — WSI H&E nuclei segmentation stack (OpenSlide + Cellpose + scikit-image)
+#
+# ⚠️ DRAFT — NOT YET BUILT OR TESTED. Do not treat as working until an x86 build succeeds AND a real
+# pathology/wsi_he_nuclei_segmentation run passes on Batch. The whole reason this file exists is that
+# NO registry image bundles OpenSlide + cellpose + scikit-image (mulled-hash probes all 401, and the
+# single-tool cellpose biocontainer ships neither OpenSlide nor scikit-image — see
+# docs/20261004_PATHOLOGY_WSI_CONTAINER_FINDINGS.md). This is a starting point for whoever builds it.
+#
+# ── What the workflow needs in this image ─────────────────────────────────────
+#   pathology/wsi_he_nuclei_segmentation/main.nf runs a python3 body that imports, in order:
+#     openslide (python binding + the libopenslide C library), cellpose, skimage (scikit-image),
+#     numpy, scipy. It honest-fails at import time if any are missing. The task also downloads the
+#     demo slide (CMU-1-Small-Region.svs) at runtime via urllib, so network egress at run time is
+#     enough — no data is baked in.
+#   The executor supplies the aws CLI (host /opt/aws-cli bind-mount) and libz (host mount), so this
+#   image does NOT need the aws CLI; it only needs python3 + the four libs importable.
+#
+# ── Base choice ───────────────────────────────────────────────────────────────
+#   Python/conda, NOT the R bioc-domain-* family. micromamba gives a clean conda-forge stack where
+#   `openslide` (the C lib) and `openslide-python` install together and link correctly — the exact
+#   pairing that no registry image provides. cellpose is pip-installed (it pulls torch; CPU wheel to
+#   keep size down — this workflow does CPU segmentation on a small slide).
+#
+# ── Build + push (x86_64; cross-arch from Apple Silicon is slow/fragile — build on an x86 box or
+#    CodeBuild) ──────────────────────────────────────────────────────────────────
+#   REPO=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-pathology
+#   aws ecr create-repository --repository-name biomate/bioc-domain-pathology --region us-west-2  # once
+#   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 399683337364.dkr.ecr.us-west-2.amazonaws.com
+#   docker build --platform linux/amd64 -f Dockerfile.pathology -t $REPO:1.0 .
+#   docker push $REPO:1.0
+#
+# ── After a successful build+push, to finish wiring the workflow ────────────────
+#   1. In pathology/wsi_he_nuclei_segmentation/main.nf, change the `container` directive to
+#      '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-pathology:1.0' (literal).
+#   2. Run the workflow param-less on Batch (it auto-downloads CMU-1-Small-Region.svs). Confirm it
+#      segments nuclei and writes the qc_summary.json + report (NOT just exit 0 — inspect outputs).
+#   3. Only then flip executable=1 for the workflow in the DB. Honesty over a green checkmark.
+#
+# ── Sanity gate (build fails if any of the four libs can't import) ──────────────
+FROM mambaorg/micromamba:1.5.10
+
+USER root
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+ENV PATH=/opt/conda/bin:$PATH
+
+# OpenSlide C library + python binding + scikit-image + numeric stack from conda-forge, where the
+# openslide / openslide-python pairing is maintained and links correctly. --no-install-recommends
+# equivalent is conda's default; clean in the same layer.
+RUN micromamba install -y -n base -c conda-forge \
+      python=3.10 \
+      procps-ng \
+      openslide \
+      openslide-python \
+      scikit-image \
+      matplotlib-base \
+      numpy \
+      scipy \
+      pillow \
+      tifffile \
+    && micromamba clean -a -y
+
+# Cellpose (pulls torch). CPU-only torch wheel to keep the image small; this workflow segments a
+# small slide on CPU. Install torch from the PyTorch CPU index FIRST (its own --index-url), THEN
+# cellpose from PyPI (torch already satisfied) — do NOT put both under --index-url, that index has
+# no cellpose (real build 2026-10-04: "No matching distribution found for cellpose").
+RUN /opt/conda/bin/pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+ && /opt/conda/bin/pip install --no-cache-dir "cellpose==3.1.0" \
+ && rm -rf /root/.cache/pip
+
+# Build-time sanity gate: the image MUST be able to import everything the workflow needs, or the
+# build fails here instead of at run time on Batch. One-liner (portable: no Dockerfile heredoc).
+# `__library_version__` exercises the OpenSlide C-library loader (import alone can succeed with the
+# C lib missing on some builds).
+RUN python3 -c "import openslide, cellpose, skimage, numpy, scipy, matplotlib; from skimage.draw import rectangle_perimeter; print('OK imports'); print('OpenSlide C lib', openslide.__library_version__); print('SANITY_OK')"

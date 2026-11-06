@@ -1,0 +1,166 @@
+[
+ {
+  "idx": 0,
+  "module": "domain_retag",
+  "track": "retag",
+  "mod": "dep\\b|msqrob|proda|deqms|proteomm|diaprote|proteom|maxquant|msstats|protein",
+  "seed": "I have a MaxQuant proteinGroups.txt from label-free LC-MS/MS, 3 KO vs 3 WT. Find the differentially abundant proteins.",
+  "prompt": "I have a MaxQuant proteinGroups.txt from label-free LC-MS/MS, 3 KO vs 3 WT. Find the differentially abundant proteins.",
+  "strict": "^(dep|proda|msqrob2.*|deqms|proteomm|msstats.*|limma.*|.*differential.*protein.*)$"
+ },
+ {
+  "idx": 1,
+  "module": "domain_retag",
+  "track": "retag",
+  "mod": "dep\\b|msqrob|proda|deqms|proteomm|diaprote|proteom|maxquant|msstats|protein",
+  "seed": "Run differential protein abundance on my DIA-NN precursor report, treated vs control, 4 replicates each.",
+  "prompt": "Run differential protein abundance on my DIA-NN precursor report, treated vs control, 4 replicates each.",
+  "strict": "^(dep|proda|msqrob2.*|deqms|proteomm|msstats.*|limma.*|.*differential.*protein.*)$"
+ },
+ {
+  "idx": 2,
+  "module": "domain_retag",
+  "track": "retag",
+  "mod": "dep\\b|msqrob|proda|deqms|proteomm|diaprote|proteom|maxquant|msstats|protein",
+  "seed": "I have peptide-level intensities from TMT proteomics. Test which proteins change between conditions, handling missing values.",
+  "prompt": "I have peptide-level intensities from TMT proteomics. Test which proteins change between conditions, handling missing values.",
+  "strict": "^(dep|proda|msqrob2.*|deqms|proteomm|msstats.*|limma.*|.*differential.*protein.*)$"
+ },
+ {
+  "idx": 3,
+  "module": "domain_retag",
+  "track": "retag",
+  "mod": "dep\\b|msqrob|proda|deqms|proteomm|diaprote|proteom|maxquant|msstats|protein",
+  "seed": "Analyze my label-free quantitative proteomics protein table for differential expression with moderated variance.",
+  "prompt": "Analyze my label-free quantitative proteomics protein table for differential expression with moderated variance.",
+  "strict": "^(dep|proda|msqrob2.*|deqms|proteomm|msstats.*|limma.*|.*differential.*protein.*)$"
+ },
+ {
+  "idx": 4,
+  "module": "domain_retag",
+  "track": "retag",
+  "mod": "methyl|rnbeads|ramwas|minfi|champ|bismark|\\bdmr|450k|epic|meffil|sesame",
+  "seed": "Run a methylome-wide association study on my Illumina EPIC array beta values against a continuous phenotype.",
+  "prompt": "Run a methylome-wide association study on my Illumina EPIC array beta values against a continuous phenotype."
+ },
+ {
+  "idx": 5,
+  "module": "domain_retag",
+  "track": "retag",
+  "mod": "methyl|rnbeads|ramwas|minfi|champ|bismark|\\bdmr|450k|epic|meffil|sesame",
+  "seed": "Genome-scale DNA methylation array analysis with QC and differential methylation between tumor and normal samples.",
+  "prompt": "Genome-scale DNA methylation array analysis with QC and differential methylation between tumor and normal samples."
+ },
+ {
+  "idx": 6,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "rnaseq",
+  "seed": "Run nf-core/rnaseq on my paired-end FASTQ files, human GRCh38.",
+  "prompt": "Run nf-core/rnaseq on my paired-end FASTQ files, human GRCh38."
+ },
+ {
+  "idx": 7,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "deseq|edger|limma|differential",
+  "seed": "Differential expression with DESeq2 on my gene count matrix, KO vs WT, 3 replicates each.",
+  "prompt": "Differential expression with DESeq2 on my gene count matrix, KO vs WT, 3 replicates each."
+ },
+ {
+  "idx": 8,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "sarek|gatk|haplotype|germline|variant",
+  "seed": "Germline variant calling on my human WGS FASTQ files with GATK best practices.",
+  "prompt": "Germline variant calling on my human WGS FASTQ files with GATK best practices."
+ },
+ {
+  "idx": 9,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "atac",
+  "seed": "ATAC-seq peak calling and QC from paired-end FASTQ files.",
+  "prompt": "ATAC-seq peak calling and QC from paired-end FASTQ files."
+ },
+ {
+  "idx": 10,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "chip|macs",
+  "seed": "ChIP-seq peak calling with MACS2 on my H3K27ac samples with input controls.",
+  "prompt": "ChIP-seq peak calling with MACS2 on my H3K27ac samples with input controls."
+ },
+ {
+  "idx": 11,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "admet",
+  "seed": "ADMET screening for these SMILES: CCO, c1ccccc1O, CC(=O)Oc1ccccc1C(=O)O",
+  "prompt": "ADMET screening for these SMILES: CCO, c1ccccc1O, CC(=O)Oc1ccccc1C(=O)O"
+ },
+ {
+  "idx": 12,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "scrna|seurat|scanpy|single|cluster|cell",
+  "seed": "Cluster and annotate cell types in my 10x Genomics scRNA-seq CellRanger output.",
+  "prompt": "Cluster and annotate cell types in my 10x Genomics scRNA-seq CellRanger output."
+ },
+ {
+  "idx": 13,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "ampliseq|16s|amplicon|dada|qiime|microbi",
+  "seed": "16S rRNA amplicon microbiome analysis of my gut samples.",
+  "prompt": "16S rRNA amplicon microbiome analysis of my gut samples."
+ },
+ {
+  "idx": 14,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "faers|safety|pharmacovig|adverse|signal",
+  "seed": "Pharmacovigilance: analyze FDA FAERS adverse event signals for atorvastatin.",
+  "prompt": "Pharmacovigilance: analyze FDA FAERS adverse event signals for atorvastatin."
+ },
+ {
+  "idx": 15,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "gsea|enrich|fgsea|clusterprofiler|pathway",
+  "seed": "Gene set enrichment analysis of my ranked gene list against Hallmark gene sets.",
+  "prompt": "Gene set enrichment analysis of my ranked gene list against Hallmark gene sets."
+ },
+ {
+  "idx": 16,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "xcms|metabol",
+  "seed": "Untargeted LC-MS metabolomics feature detection and alignment with xcms.",
+  "prompt": "Untargeted LC-MS metabolomics feature detection and alignment with xcms."
+ },
+ {
+  "idx": 17,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "crispr|mageck|screen|barcode",
+  "seed": "Count sgRNA barcodes from my pooled CRISPR knockout screen FASTQs and call gene-level hits.",
+  "prompt": "Count sgRNA barcodes from my pooled CRISPR knockout screen FASTQs and call gene-level hits."
+ },
+ {
+  "idx": 18,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "methylseq|bismark|bisulf|wgbs|methyl",
+  "seed": "Bisulfite sequencing (WGBS) methylation calling from FASTQ files, mouse.",
+  "prompt": "Bisulfite sequencing (WGBS) methylation calling from FASTQ files, mouse."
+ },
+ {
+  "idx": 19,
+  "module": "domain_retag",
+  "track": "ctl",
+  "mod": "mag|metagenom|kraken|binning|assembl",
+  "seed": "Shotgun metagenomics: taxonomic profiling and genome binning from my stool sample reads.",
+  "prompt": "Shotgun metagenomics: taxonomic profiling and genome binning from my stool sample reads."
+ }
+]

@@ -1,0 +1,52 @@
+{
+  "package": "MetaboAnalystR",
+  "requirements": [
+    "MetaboAnalystR",
+    "OptiLCMS",
+    "impute",
+    "pcaMethods",
+    "siggenes",
+    "globaltest",
+    "GlobalAncova",
+    "Rgraphviz",
+    "KEGGgraph",
+    "SSPA",
+    "sva",
+    "limma",
+    "crmn",
+    "pls",
+    "caret",
+    "e1071",
+    "igraph",
+    "fitdistrplus",
+    "ellipse",
+    "scatterplot3d",
+    "pheatmap",
+    "RColorBrewer",
+    "pROC",
+    "data.table",
+    "plotly",
+    "Cairo"
+  ],
+  "by_workflow": {
+    "main.nf": [
+      "MetaboAnalystR",
+      "OptiLCMS",
+      "impute",
+      "pcaMethods",
+      "siggenes",
+      "globaltest",
+      "GlobalAncova",
+      "Rgraphviz",
+      "KEGGgraph",
+      "SSPA",
+      "sva",
+      "limma",
+      "crmn",
+      "pls",
+      "caret",
+      "e1071",
+      "igraph"
+    ]
+  }
+}

@@ -213,7 +213,7 @@ with open("get_plasmid_sequence_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("get_plasmid_sequence_output.txt", "w") as f:
-    f.write("Biomni: Get Plasmid Sequence" + NL)
+    f.write("BioMate: Get Plasmid Sequence" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

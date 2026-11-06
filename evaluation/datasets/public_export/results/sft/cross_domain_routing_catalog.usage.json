@@ -1,0 +1,16 @@
+{
+  "task": "cross_domain_routing",
+  "mode": "catalog",
+  "model": "sft",
+  "n": 200,
+  "n_with_usage": 200,
+  "input_tokens_total": 106261,
+  "output_tokens_total": null,
+  "input_tokens_mean": 531.305,
+  "output_tokens_mean": 0.0,
+  "latency_ms_p50": 1535,
+  "latency_ms_p95": 2258,
+  "latency_ms_mean": 1595.885,
+  "n_with_latency": 200,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

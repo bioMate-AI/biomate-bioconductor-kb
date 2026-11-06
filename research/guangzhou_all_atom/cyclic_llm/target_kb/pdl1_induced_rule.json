@@ -1,0 +1,14 @@
+{
+  "target": "pdl1",
+  "induced_rule": [
+    "single_handle",
+    "has_handle",
+    "flank_aromatic_p7"
+  ],
+  "coverage": {
+    "pos_covered": "1/1",
+    "neg_excluded": "2/3",
+    "fp": 1,
+    "fn": 0
+  }
+}

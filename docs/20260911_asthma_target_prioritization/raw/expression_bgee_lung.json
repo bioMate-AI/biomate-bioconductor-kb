@@ -1,0 +1,6 @@
+
+{ "head": { "link": [], "vars": ["gene"] },
+  "results": { "distinct": false, "ordered": true, "bindings": [
+    { "gene": { "type": "uri", "value": "http://omabrowser.org/ontology/oma#GENE_ENSG00000115602" }},
+    { "gene": { "type": "uri", "value": "http://omabrowser.org/ontology/oma#GENE_ENSG00000137033" }},
+    { "gene": { "type": "uri", "value": "http://omabrowser.org/ontology/oma#GENE_ENSG00000145777" }} ] } }

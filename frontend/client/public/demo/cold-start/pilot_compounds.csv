@@ -1,0 +1,16 @@
+compound_id,name,smiles,class,indication,known_herg_ic50_uM,known_dili_risk,known_ames_positive,literature_source,notes
+CPD001,Imatinib,CC1=CC=C(C=C1)NC(=O)C2=CC=CC(=C2)NC3=NC=CC(=N3)C4=CC=CN4C,TKI,CML/GIST,>30,Low,No,PMID:11423618,BCR-ABL1 reference inhibitor
+CPD002,Dasatinib,CC(=O)NC1=CC(=C(C=C1)Cl)NC(=O)C2=CC(=NC(=N2)NC3=CC=CC=C3)N4CCN(CC4)CC,TKI,CML,1.6,Low,No,PMID:16908953,Dual BCR-ABL/SRC; hERG liability at therapeutic window
+CPD003,Nilotinib,CC1=NC(=C(C=N1)C(=O)NC2=CC(=CC(=C2)C(F)(F)F)C3=CN=CC(=C3)C)C,TKI,CML,0.8,Moderate,No,PMID:17259629,High potency; hERG risk; QTc prolongation in clinic
+CPD004,Bosutinib,COC1=C(OC)C=C2C(=C1)NC(=O)C(=C2)C3=CC(=CC(=C3)Cl)OC,TKI,CML,>30,Low,No,PMID:18056490,Minimal hERG; lower gastrointestinal toxicity
+CPD005,Ponatinib,OC(=O)C1=CC=C(C=C1)NC(=O)C1=C(C)N=CC(=C1)C1=CC=C2C(=C1)C1=CC=CC=C1C(=O)N2C,TKI,CML/ALL,0.9,Moderate,No,PMID:22328085,T315I active; vascular risk; hERG concern
+CPD006,Asciminib,CC1=NC(=CC(=C1)F)NC(=O)C1=CN=C2N(C1=O)C(C)(C)CC2,Allosteric TKI,CML,>30,Low,No,PMID:33186634,STAMP inhibitor; myristate pocket; clean hERG
+CPD007,Gleevec-analog-1,CC1=CC=C(C=C1)NC(=O)C2=CC(=CC=C2)NC3=NC=CC(=N3)C4=CC=CN4,TKI analog,Test,>30,Low,No,Internal,Structural imatinib analog with minor ring modification
+CPD008,Gleevec-analog-2,CC1=CC=C(C=C1)NC(=O)C2=CC(=CC=C2)NC3=NC=CC(=N3)C4=CC=CN4CC,TKI analog,Test,>30,Low,No,Internal,N-methyl imatinib analog
+CPD009,Terfenadine,CC(C)(C)c1ccc(cc1)C(O)CCCN1CCC(CC1)C(O)(c2ccccc2)c2ccccc2,Antihistamine,Allergic rhinitis,0.08,Low,No,PMID:8093691,WITHDRAWN — severe hERG inhibition (QT prolongation)
+CPD010,Cisapride,COC1CN(CCCOC2=CC=C(F)C=C2)CCC1NC(=O)C1=CC(=C(OC)C=C1N)Cl,Prokinetic,GI motility,0.05,Low,No,PMID:10601444,WITHDRAWN — severe hERG inhibition
+CPD011,Metoclopramide,CCN(CC)CCNC(=O)C1=CC(=C(C=C1N)OC)Cl,Antiemetic,Nausea/vomiting,>100,Low,No,PMID:6323555,Safe hERG; negative control for cardiac safety
+CPD012,Erlotinib,COCCOC1=CC2=C(C=C1OCCOC)NC(=NC2=O)NC3=CC=CC(=C3)C#C,TKI,NSCLC,>30,Low,No,PMID:15118073,EGFR inhibitor; added for target cross-reactivity test
+CPD013,Gefitinib,COC1=CC2=C(C=C1OCCCN3CCOCC3)NC(=NC2=O)NC4=CC(=C(C=C4)F)Cl,TKI,NSCLC,>30,Low,No,PMID:12649387,EGFR inhibitor; for selectivity comparison
+CPD014,Doxorubicin,COC1=C2CC(C[C@@H]3C[C@H](O[C@H]4C[C@@H](N)[C@H](O)[C@@H](C)O4)[C@H](O)[C@@H](C(=O)CO)O3)OC2=C(O)C3=C1C(=O)c1cccc(O)c1C3=O,Anthracycline,Cancer,4.8,High,No,PMID:19773448,Positive DILI control; known cardiotoxicity
+CPD015,Acetaminophen,CC(=O)NC1=CC=C(O)C=C1,Analgesic,Pain/fever,>100,Moderate,No,PMID:25536282,Positive DILI control at high dose; known hepatotoxicity

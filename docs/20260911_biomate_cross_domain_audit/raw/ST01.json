@@ -1,0 +1,269 @@
+{
+  "id": "ST01",
+  "base_url": "https://dev-public.biomate.ai",
+  "prompt": "Fictional structural-biology QA: a reconstruction reports global FSC resolution 3.2 angstrom. No local-resolution map, model validation, independent conformational populations or ligand occupancy analysis is supplied. What does the reported number support, and can we claim a drug-induced conformational mechanism from it? Do not invent missing analyses or run a workflow.",
+  "checks": [
+    "resolution not mechanism proof",
+    "identifies missing validation",
+    "no invented conformation results"
+  ],
+  "events": [
+    {
+      "event": "ready",
+      "data": {
+        "ok": true
+      }
+    },
+    {
+      "event": "tool_event",
+      "data": {
+        "type": "status",
+        "tool_use_id": "research_agent",
+        "name": "research_query",
+        "message": "Searching relevant literature and databases\u2026"
+      }
+    },
+    {
+      "event": "tool_event",
+      "data": {
+        "type": "status",
+        "tool_use_id": "research_agent",
+        "name": "research_query",
+        "message": "Synthesizing findings and generating response\u2026"
+      }
+    },
+    {
+      "event": "delta",
+      "data": {
+        "text": "**Result**\n\nA global FSC resolution of 3.2 \u00c5 reports the average signal-to-noise ratio across the entire reconstruction \u2014 it does **not** support claims of drug-induced conformational mechanism. The metric alone indicates that secondary structure and some side-chain detail are statistically resolvable in the most ordered regions, but provides no information about local resolution heterogeneity, ligand presence, ligand occupancy, or whether the observed conformation is drug-bound or a pre-existing ensemble state.\n\n**Rationale**\n\nGlobal FSC is a single, aggregate quality metric. It masks regions of poor resolution (flexible loops, transient states) and cannot distinguish between a genuinely drug-induced conformer and an averaged population or crystal-packing artifact. To claim a mechanistic effect, you would need: (1) local-resolution analysis (cryoSPARC 3D variability, ResMap, or Phenix local resolution) confirming the drug-binding pocket is resolved; (2) 3D classification or multi-body refinement demonstrating discrete, drug-bound conformational populations; (3) ligand occupancy refinement and B-factor analysis proving the ligand is actually present and ordered; and (4) comparison to apo or inactive-state reconstructions to establish that the conformation is *specifically* induced rather than pre-existing.\n\nWithout these, the 3.2 \u00c5 number is uninformative about mechanism. It is a necessary but entirely insufficient condition for any drug-target mechanistic claim.\n\n---\n\n**Note:** No papers from the provided list address cryo-EM FSC interpretation or structural validation of drug-binding mechanisms. The citations offered in the research agent response (forestry certification, medical abstracts) are not relevant to this structural biology question. I cannot cite unsupplied evidence."
+      }
+    },
+    {
+      "event": "final",
+      "data": {
+        "response": "**Result**\n\nA global FSC resolution of 3.2 \u00c5 reports the average signal-to-noise ratio across the entire reconstruction \u2014 it does **not** support claims of drug-induced conformational mechanism. The metric alone indicates that secondary structure and some side-chain detail are statistically resolvable in the most ordered regions, but provides no information about local resolution heterogeneity, ligand presence, ligand occupancy, or whether the observed conformation is drug-bound or a pre-existing ensemble state.\n\n**Rationale**\n\nGlobal FSC is a single, aggregate quality metric. It masks regions of poor resolution (flexible loops, transient states) and cannot distinguish between a genuinely drug-induced conformer and an averaged population or crystal-packing artifact. To claim a mechanistic effect, you would need: (1) local-resolution analysis (cryoSPARC 3D variability, ResMap, or Phenix local resolution) confirming the drug-binding pocket is resolved; (2) 3D classification or multi-body refinement demonstrating discrete, drug-bound conformational populations; (3) ligand occupancy refinement and B-factor analysis proving the ligand is actually present and ordered; and (4) comparison to apo or inactive-state reconstructions to establish that the conformation is *specifically* induced rather than pre-existing.\n\nWithout these, the 3.2 \u00c5 number is uninformative about mechanism. It is a necessary but entirely insufficient condition for any drug-target mechanistic claim.\n\n---\n\n**Note:** No papers from the provided list address cryo-EM FSC interpretation or structural validation of drug-binding mechanisms. The citations offered in the research agent response (forestry certification, medical abstracts) are not relevant to this structural biology question. I cannot cite unsupplied evidence.",
+        "state": "chat_only",
+        "suggestions": [
+          "Tell me more about the tools",
+          "Show me the workflow steps",
+          "What data formats do I need?",
+          "How long will this take?"
+        ],
+        "workflow": null,
+        "prerequisitesValidation": null,
+        "metadata": {
+          "intentType": "research_question",
+          "inlineParameters": {
+            "reported_resolution": "3.2 angstrom"
+          },
+          "workflowSuggestion": {
+            "shouldGenerate": false,
+            "userIntent": "Fictional structural-biology QA: a reconstruction reports global FSC resolution 3.2 angstrom. No local-resolution map, model validation, independent conformational populations or ligand occupancy analysis is supplied. What does the reported number support, and can we claim a drug-induced conformational mechanism from it? Do not invent missing analyses or run a workflow.",
+            "confidence": 0,
+            "reasoning": "Intent type \"research_question\" \u2014 workflow generation not flagged"
+          },
+          "sources": {
+            "toolSearchUsed": false,
+            "datasetRAGUsed": false,
+            "workflowGenerated": false,
+            "thinkingUsed": false,
+            "researchAgentUsed": true,
+            "benchmarkAgentUsed": false
+          },
+          "memoryUsed": false,
+          "workflowGenerationDiagnostics": null,
+          "llm_usage": {
+            "model": "gpt-5.6-luna",
+            "input_tokens": 93,
+            "output_tokens": 453,
+            "cost_usd": 0.007074,
+            "duration_ms": 32302
+          }
+        },
+        "isMultiIntent": false,
+        "researchResponse": {
+          "success": true,
+          "query": "Fictional structural-biology QA: a reconstruction reports global FSC resolution 3.2 angstrom. No local-resolution map, model validation, independent conformational populations or ligand occupancy analysis is supplied. What does the reported number support, and can we claim a drug-induced conformational mechanism from it? Do not invent missing analyses or run a workflow.",
+          "answer": "A global Fourier Shell Correlation (FSC) resolution of 3.2 \u00c5 only supports the overall average signal-to-noise ratio of the reconstructed density map. This metric indicates that secondary structural elements and some bulky side chains are likely resolvable in the most rigid, stable regions of the macromolecule, but it does not guarantee uniform resolution across the entire complex. \n\nYou cannot claim a drug-induced conformational mechanism from this single metric. Without local-resolution maps, independent conformational population analysis (such as 3D classification), or ligand occupancy validation, it is impossible to confirm whether the drug-binding pocket is actually resolved, whether the ligand is genuinely present, or if the observed state is specifically induced by the drug rather than being a pre-existing or averaged conformation. \n\nTo substantiate such mechanistic claims, researchers must use tools like **cryoSPARC** for local resolution estimation and 3D variability analysis, alongside **Phenix** for rigorous model-to-map validation and ligand occupancy refinement. The specific structural biology validation of cryo-EM FSC metrics is not directly demonstrated in the provided literature, which primarily discusses the acronym FSC in the context of forestry certification and food supply chains [9, 12, 38].",
+          "citations": [
+            {
+              "title": "Full GSA 2025 Abstract Book PDF",
+              "authors": [],
+              "year": 2025,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": null
+            },
+            {
+              "title": "Calibrating Long-form Generations From Large Language Models",
+              "authors": [
+                "Yukun Huang",
+                "Yixin Liu",
+                "Raghuveer Thirukovalluru"
+              ],
+              "year": 2024,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": null
+            },
+            {
+              "title": "Abstracts from the 2024 Annual Meeting of the Society of General Internal Medicine",
+              "authors": [],
+              "year": 2024,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": null
+            },
+            {
+              "title": "Pelvic ring injuries",
+              "authors": [
+                "Hester Banierink"
+              ],
+              "year": 2022,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": null
+            },
+            {
+              "title": "Abstracts",
+              "authors": [],
+              "year": 2020,
+              "journal": "Unknown",
+              "doi": null,
+              "pmid": null
+            }
+          ],
+          "benchmark_evidence": null,
+          "confidence": 0.8,
+          "follow_up_questions": [],
+          "methods_used": [
+            "intent",
+            "key_terms",
+            "domain",
+            "is_tool_comparison",
+            "is_method_question"
+          ],
+          "source": "research_agent"
+        }
+      }
+    },
+    {
+      "event": "done",
+      "data": {
+        "ok": true
+      }
+    }
+  ],
+  "http_status": 200,
+  "transport": "complete",
+  "elapsed_seconds": 32.58,
+  "response_text": "**Result**\n\nA global FSC resolution of 3.2 \u00c5 reports the average signal-to-noise ratio across the entire reconstruction \u2014 it does **not** support claims of drug-induced conformational mechanism. The metric alone indicates that secondary structure and some side-chain detail are statistically resolvable in the most ordered regions, but provides no information about local resolution heterogeneity, ligand presence, ligand occupancy, or whether the observed conformation is drug-bound or a pre-existing ensemble state.\n\n**Rationale**\n\nGlobal FSC is a single, aggregate quality metric. It masks regions of poor resolution (flexible loops, transient states) and cannot distinguish between a genuinely drug-induced conformer and an averaged population or crystal-packing artifact. To claim a mechanistic effect, you would need: (1) local-resolution analysis (cryoSPARC 3D variability, ResMap, or Phenix local resolution) confirming the drug-binding pocket is resolved; (2) 3D classification or multi-body refinement demonstrating discrete, drug-bound conformational populations; (3) ligand occupancy refinement and B-factor analysis proving the ligand is actually present and ordered; and (4) comparison to apo or inactive-state reconstructions to establish that the conformation is *specifically* induced rather than pre-existing.\n\nWithout these, the 3.2 \u00c5 number is uninformative about mechanism. It is a necessary but entirely insufficient condition for any drug-target mechanistic claim.\n\n---\n\n**Note:** No papers from the provided list address cryo-EM FSC interpretation or structural validation of drug-binding mechanisms. The citations offered in the research agent response (forestry certification, medical abstracts) are not relevant to this structural biology question. I cannot cite unsupplied evidence.",
+  "final": [
+    {
+      "response": "**Result**\n\nA global FSC resolution of 3.2 \u00c5 reports the average signal-to-noise ratio across the entire reconstruction \u2014 it does **not** support claims of drug-induced conformational mechanism. The metric alone indicates that secondary structure and some side-chain detail are statistically resolvable in the most ordered regions, but provides no information about local resolution heterogeneity, ligand presence, ligand occupancy, or whether the observed conformation is drug-bound or a pre-existing ensemble state.\n\n**Rationale**\n\nGlobal FSC is a single, aggregate quality metric. It masks regions of poor resolution (flexible loops, transient states) and cannot distinguish between a genuinely drug-induced conformer and an averaged population or crystal-packing artifact. To claim a mechanistic effect, you would need: (1) local-resolution analysis (cryoSPARC 3D variability, ResMap, or Phenix local resolution) confirming the drug-binding pocket is resolved; (2) 3D classification or multi-body refinement demonstrating discrete, drug-bound conformational populations; (3) ligand occupancy refinement and B-factor analysis proving the ligand is actually present and ordered; and (4) comparison to apo or inactive-state reconstructions to establish that the conformation is *specifically* induced rather than pre-existing.\n\nWithout these, the 3.2 \u00c5 number is uninformative about mechanism. It is a necessary but entirely insufficient condition for any drug-target mechanistic claim.\n\n---\n\n**Note:** No papers from the provided list address cryo-EM FSC interpretation or structural validation of drug-binding mechanisms. The citations offered in the research agent response (forestry certification, medical abstracts) are not relevant to this structural biology question. I cannot cite unsupplied evidence.",
+      "state": "chat_only",
+      "suggestions": [
+        "Tell me more about the tools",
+        "Show me the workflow steps",
+        "What data formats do I need?",
+        "How long will this take?"
+      ],
+      "workflow": null,
+      "prerequisitesValidation": null,
+      "metadata": {
+        "intentType": "research_question",
+        "inlineParameters": {
+          "reported_resolution": "3.2 angstrom"
+        },
+        "workflowSuggestion": {
+          "shouldGenerate": false,
+          "userIntent": "Fictional structural-biology QA: a reconstruction reports global FSC resolution 3.2 angstrom. No local-resolution map, model validation, independent conformational populations or ligand occupancy analysis is supplied. What does the reported number support, and can we claim a drug-induced conformational mechanism from it? Do not invent missing analyses or run a workflow.",
+          "confidence": 0,
+          "reasoning": "Intent type \"research_question\" \u2014 workflow generation not flagged"
+        },
+        "sources": {
+          "toolSearchUsed": false,
+          "datasetRAGUsed": false,
+          "workflowGenerated": false,
+          "thinkingUsed": false,
+          "researchAgentUsed": true,
+          "benchmarkAgentUsed": false
+        },
+        "memoryUsed": false,
+        "workflowGenerationDiagnostics": null,
+        "llm_usage": {
+          "model": "gpt-5.6-luna",
+          "input_tokens": 93,
+          "output_tokens": 453,
+          "cost_usd": 0.007074,
+          "duration_ms": 32302
+        }
+      },
+      "isMultiIntent": false,
+      "researchResponse": {
+        "success": true,
+        "query": "Fictional structural-biology QA: a reconstruction reports global FSC resolution 3.2 angstrom. No local-resolution map, model validation, independent conformational populations or ligand occupancy analysis is supplied. What does the reported number support, and can we claim a drug-induced conformational mechanism from it? Do not invent missing analyses or run a workflow.",
+        "answer": "A global Fourier Shell Correlation (FSC) resolution of 3.2 \u00c5 only supports the overall average signal-to-noise ratio of the reconstructed density map. This metric indicates that secondary structural elements and some bulky side chains are likely resolvable in the most rigid, stable regions of the macromolecule, but it does not guarantee uniform resolution across the entire complex. \n\nYou cannot claim a drug-induced conformational mechanism from this single metric. Without local-resolution maps, independent conformational population analysis (such as 3D classification), or ligand occupancy validation, it is impossible to confirm whether the drug-binding pocket is actually resolved, whether the ligand is genuinely present, or if the observed state is specifically induced by the drug rather than being a pre-existing or averaged conformation. \n\nTo substantiate such mechanistic claims, researchers must use tools like **cryoSPARC** for local resolution estimation and 3D variability analysis, alongside **Phenix** for rigorous model-to-map validation and ligand occupancy refinement. The specific structural biology validation of cryo-EM FSC metrics is not directly demonstrated in the provided literature, which primarily discusses the acronym FSC in the context of forestry certification and food supply chains [9, 12, 38].",
+        "citations": [
+          {
+            "title": "Full GSA 2025 Abstract Book PDF",
+            "authors": [],
+            "year": 2025,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": null
+          },
+          {
+            "title": "Calibrating Long-form Generations From Large Language Models",
+            "authors": [
+              "Yukun Huang",
+              "Yixin Liu",
+              "Raghuveer Thirukovalluru"
+            ],
+            "year": 2024,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": null
+          },
+          {
+            "title": "Abstracts from the 2024 Annual Meeting of the Society of General Internal Medicine",
+            "authors": [],
+            "year": 2024,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": null
+          },
+          {
+            "title": "Pelvic ring injuries",
+            "authors": [
+              "Hester Banierink"
+            ],
+            "year": 2022,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": null
+          },
+          {
+            "title": "Abstracts",
+            "authors": [],
+            "year": 2020,
+            "journal": "Unknown",
+            "doi": null,
+            "pmid": null
+          }
+        ],
+        "benchmark_evidence": null,
+        "confidence": 0.8,
+        "follow_up_questions": [],
+        "methods_used": [
+          "intent",
+          "key_terms",
+          "domain",
+          "is_tool_comparison",
+          "is_method_question"
+        ],
+        "source": "research_agent"
+      }
+    }
+  ]
+}

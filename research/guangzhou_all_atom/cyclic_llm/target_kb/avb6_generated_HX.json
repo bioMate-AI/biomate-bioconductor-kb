@@ -1,0 +1,154 @@
+{
+  "H": [
+    "has_rgd",
+    "has_rgdl",
+    "flank_aromatic_p1",
+    "flank_aromatic_p7"
+  ],
+  "X": [
+    {
+      "helm": "cyclo(F-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "G",
+        "p7": "[2Nal]"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.89
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-G-[Phe4F]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "G",
+        "p7": "[Phe4F]"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.89
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-G-[Phe4Cl]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "G",
+        "p7": "[Phe4Cl]"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.89
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "S",
+        "p7": "[2Nal]"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X3(P6), X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.89
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-S-[Phe4F]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "S",
+        "p7": "[Phe4F]"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X3(P6), X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.89
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-S-[Phe4Cl]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "S",
+        "p7": "[Phe4Cl]"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X3(P6), X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.89
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "[2Nal]"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 1.0
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "[Phe4F]"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 1.0
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[Phe4Cl]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "[Phe4Cl]"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 1.0
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-S-Y-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "S",
+        "p7": "Y"
+      },
+      "ncaa_count": 0,
+      "fto_verdict": "literally OUTSIDE at X3(P6)",
+      "doe": "HIGH",
+      "nearest_patented_id": 0.78
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-S-W-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "S",
+        "p7": "W"
+      },
+      "ncaa_count": 0,
+      "fto_verdict": "literally OUTSIDE at X3(P6)",
+      "doe": "HIGH",
+      "nearest_patented_id": 0.78
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-S-F-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "S",
+        "p7": "F"
+      },
+      "ncaa_count": 0,
+      "fto_verdict": "literally OUTSIDE at X3(P6)",
+      "doe": "HIGH",
+      "nearest_patented_id": 0.89
+    }
+  ]
+}

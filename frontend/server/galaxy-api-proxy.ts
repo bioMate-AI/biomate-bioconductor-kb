@@ -26,6 +26,44 @@ import type {
   WorkflowGenerationResponse,
 } from '../shared/galaxy-types';
 
+/** Galaxy rejected the API key itself — "Provided API key is not valid." (row missing or
+ *  deleted, e.g. after a Galaxy DB reset) or "...has expired." (not the user's newest key).
+ *  Most endpoints answer 401 / err_code 401001; the tool API (POST /api/tools, i.e. uploads)
+ *  answers the same rejection as 403 / err_code 403001 (dev, 2026-11-04). Other 401s/403s
+ *  (permissions, missing auth) are not key rejections. */
+export function isRejectedGalaxyKey(error: any): boolean {
+  const res = error?.response;
+  if (res?.status !== 401 && res?.status !== 403) return false;
+  const data = res.data || {};
+  return data.err_code === (res.status === 401 ? 401001 : 403001)
+    || /API key (is not valid|has expired)/i.test(String(data.err_msg || ''));
+}
+
+/** fetch() to Galaxy with mid-session key recovery — the raw-fetch counterpart of
+ *  forUser(key, onKeyRejected). Sends with `userKey`, else `adminKey` (unchanged key choice).
+ *  On Galaxy's rejected-key 401 (401001) for the USER's key, `recover` is asked once for a new
+ *  key and the request is retried with it; every other response is returned untouched (the
+ *  401 body is read from a clone, so the returned Response is still readable). `init.body`
+ *  must be re-sendable (string / Buffer / FormData — not a stream). */
+export async function fetchGalaxyWithKeyRecovery(
+  url: string,
+  init: RequestInit,
+  userKey: string | null | undefined,
+  adminKey: string,
+  recover?: () => Promise<string | null>,
+): Promise<Response> {
+  const send = (key: string) =>
+    fetch(url, { ...init, headers: { ...((init.headers as Record<string, string>) || {}), 'X-API-Key': key } });
+  const resp = await send(userKey || adminKey);
+  if ((resp.status !== 401 && resp.status !== 403) || !userKey || !recover) return resp;
+  const body = await resp.clone().json().catch(() => null);
+  if (!isRejectedGalaxyKey({ response: { status: resp.status, data: body } })) return resp;
+  const fresh = await recover().catch(() => null);
+  if (!fresh || fresh === userKey) return resp;
+  console.warn('[galaxy] per-user Galaxy key was rejected mid-session (direct fetch) — re-provisioned, retrying once');
+  return send(fresh);
+}
+
 export class GalaxyAPIProxy {
   public client: AxiosInstance;
   private galaxyUrl: string;
@@ -88,8 +126,17 @@ export class GalaxyAPIProxy {
    * to achieve per-user isolation in Galaxy.
    *
    * Falls back to this (admin) proxy if userApiKey is null/undefined.
+   *
+   * `onKeyRejected` is mid-session recovery: the stored key is otherwise only validated
+   * (and re-provisioned) at LOGIN, so when Galaxy starts rejecting it during a session
+   * (e.g. a Galaxy DB reset or key revocation) every request failed with 401 "Provided API
+   * key is not valid." until the user logged in again. On that specific error the request is
+   * retried once with the key `onKeyRejected` returns (null = no recovery, original error).
    */
-  forUser(userApiKey: string | null | undefined): GalaxyAPIProxy {
+  forUser(
+    userApiKey: string | null | undefined,
+    onKeyRejected?: () => Promise<string | null>,
+  ): GalaxyAPIProxy {
     if (!userApiKey) return this;
     // Skip connection validation and logging for per-user proxies — they share the same Galaxy URL
     const proxy = Object.create(GalaxyAPIProxy.prototype) as GalaxyAPIProxy;
@@ -97,7 +144,7 @@ export class GalaxyAPIProxy {
     (proxy as any).apiKey = userApiKey;
     (proxy as any).isConnected = true;
     (proxy as any).connectionError = null;
-    (proxy as any).client = axios.create({
+    const client = axios.create({
       baseURL: this.galaxyUrl,
       timeout: 300000, // 5 min — same as admin proxy; workflow gen can take >60s on cold start
       headers: {
@@ -105,9 +152,25 @@ export class GalaxyAPIProxy {
         'X-API-Key': userApiKey,
       },
     });
-    (proxy as any).client.interceptors.response.use(
+    (proxy as any).client = client;
+    (proxy as any).onKeyRejected = onKeyRejected;  // used by the raw-fetch paths (uploadDataset)
+    let currentKey = userApiKey;
+    client.interceptors.response.use(
       (response: any) => response,
-      (error: AxiosError) => {
+      async (error: AxiosError) => {
+        const cfg: any = error.config;
+        if (onKeyRejected && cfg && !cfg.__galaxyKeyRetried && isRejectedGalaxyKey(error)) {
+          cfg.__galaxyKeyRetried = true;
+          const fresh = await onKeyRejected().catch(() => null);
+          if (fresh && fresh !== currentKey) {
+            currentKey = fresh;
+            (proxy as any).apiKey = fresh;
+            client.defaults.headers['X-API-Key'] = fresh;
+            cfg.headers['X-API-Key'] = fresh;
+            console.warn('[GalaxyAPIProxy] per-user Galaxy key was rejected mid-session — re-provisioned, retrying once');
+            return client.request(cfg);
+          }
+        }
         const galaxyError: GalaxyAPIError = {
           error: error.code || 'UNKNOWN_ERROR',
           message: error.message || 'An unknown error occurred',
@@ -552,21 +615,67 @@ export class GalaxyAPIProxy {
    * Upload a dataset to a Galaxy history
    */
   async uploadDataset(filePath: string, historyId: string, fileName: string): Promise<string> {
-    const FormData = require('form-data');
-    const fs = require('fs');
+    // Upload via the `upload1` tool on POST /api/tools — the bioblend-proven,
+    // version-stable path. (The old POST /api/histories/{id}/contents multipart
+    // is a JSON content-creation endpoint, NOT a raw-file upload; Galaxy 25.x
+    // rejects a file part there with HTTP 400, which silently killed HDA creation
+    // for every uploaded input.) The file part is `files_0|file_data`; the tool
+    // inputs go as a JSON-encoded `inputs` field referencing that part.
+    //
+    // Uses global fetch + FormData/Blob (Node 18+/undici, already used by
+    // provisionGalaxyUser): the `form-data` npm package is not a dependency and a
+    // dynamic require() throws in the ESM server bundle. fetch also sets the
+    // multipart boundary itself, avoiding axios' JSON default content-type.
+    const fileBuf = fs.readFileSync(filePath);
+    const buildForm = () => {
+      const form = new FormData();
+      form.append('history_id', historyId);
+      form.append('tool_id', 'upload1');
+      form.append('inputs', JSON.stringify({
+        file_type: 'auto',
+        dbkey: '?',
+        'files_0|type': 'upload_dataset',
+        'files_0|NAME': fileName,
+      }));
+      form.append('files_0|file_data', new Blob([fileBuf]), fileName);
+      return form;
+    };
 
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(filePath));
-    formData.append('file_type', 'auto');
-
-    const response = await this.client.post(
-      `/api/histories/${historyId}/contents`,
-      formData,
-      {
-        headers: formData.getHeaders()
+    const url = `${this.galaxyUrl}/api/tools`;
+    const send = async (key: string | undefined) => {
+      try {
+        return await fetch(url, {
+          method: 'POST',
+          headers: key ? { 'x-api-key': key } : {},
+          body: buildForm() as any,
+        });
+      } catch (err: any) {
+        throw new Error(`Galaxy upload1 request failed: ${err?.message ?? err}`);
       }
-    );
-    return response.data.id;
+    };
+    let resp: any = await send(this.apiKey);
+    // Mid-session key recovery for this raw-fetch path (the axios interceptor in forUser does not
+    // see it): on Galaxy's rejected-key answer (403001 here) get a fresh key once and resend.
+    const onKeyRejected: (() => Promise<string | null>) | undefined = (this as any).onKeyRejected;
+    if ((resp.status === 401 || resp.status === 403) && onKeyRejected) {
+      const body = await resp.clone().json().catch(() => null);
+      if (isRejectedGalaxyKey({ response: { status: resp.status, data: body } })) {
+        const fresh = await onKeyRejected().catch(() => null);
+        if (fresh && fresh !== this.apiKey) {
+          this.apiKey = fresh;
+          console.warn('[GalaxyAPIProxy] per-user Galaxy key was rejected on upload — re-provisioned, retrying once');
+          resp = await send(fresh);
+        }
+      }
+    }
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => '');
+      throw new Error(`Galaxy upload1 failed (HTTP ${resp.status}): ${String(body).slice(0, 400)}`);
+    }
+    const data: any = await resp.json().catch(() => ({}));
+    const out = data?.outputs?.[0]?.id || data?.output_collections?.[0]?.id || data?.id;
+    if (!out) throw new Error(`upload1 returned no output id: ${JSON.stringify(data).slice(0, 300)}`);
+    return out;
   }
 
   /**
@@ -739,6 +848,8 @@ export class GalaxyAPIProxy {
         ...(request.preferred_domains?.length ? { preferred_domains: request.preferred_domains } : {}),
         ...(request.penalized_domains?.length ? { penalized_domains: request.penalized_domains } : {}),
         ...(request.key_terms?.length ? { key_terms: request.key_terms } : {}),
+        // [] is meaningful ("the user states no input data" — suppresses text detection), so pass it through.
+        ...(Array.isArray(request.user_input_kinds) ? { user_input_kinds: request.user_input_kinds } : {}),
         ...(request.session_datasets?.length ? { session_datasets: request.session_datasets } : {}),
         ...(request.credential_map ? { credential_map: request.credential_map } : {}),
       };
@@ -1320,6 +1431,39 @@ export class GalaxyAPIProxy {
   }>> {
     const response = await this.client.get('/api/entry_points?running=true');
     return response.data;
+  }
+
+  // Cache the (static-per-environment) interactive-tool availability so the
+  // per-render UI probe is one cheap Galaxy round-trip at most every 5 min.
+  private _itAvailabilityCache: { at: number; data: Record<string, boolean> } | null = null;
+
+  /**
+   * Whether each given interactive tool id is actually installed in this
+   * Galaxy's toolbox. A launch hits POST /api/tools with the tool_id; when the
+   * tool isn't registered Galaxy 400s the launch. We probe GET /api/tools/{id}
+   * so the UI can hide "Open in RStudio/Jupyter/…" buttons that would fail,
+   * rather than offering a dead affordance. Fails closed (false) on any error.
+   */
+  async getInteractiveToolAvailability(toolIds: string[]): Promise<Record<string, boolean>> {
+    const now = Date.now();
+    if (this._itAvailabilityCache && now - this._itAvailabilityCache.at < 300_000) {
+      return this._itAvailabilityCache.data;
+    }
+    const out: Record<string, boolean> = {};
+    await Promise.all(
+      toolIds.map(async (id) => {
+        try {
+          const r = await this.client.get(`/api/tools/${encodeURIComponent(id)}`, {
+            params: { io_details: false },
+          });
+          out[id] = r.status === 200;
+        } catch {
+          out[id] = false;
+        }
+      }),
+    );
+    this._itAvailabilityCache = { at: now, data: out };
+    return out;
   }
 
   // --- Workflow Subworkflows ---

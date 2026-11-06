@@ -173,7 +173,7 @@ with open("retrieve_topk_repurposing_drugs_from_disease_txgnn_results.json", "w"
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("retrieve_topk_repurposing_drugs_from_disease_txgnn_output.txt", "w") as f:
-    f.write("Biomni: Retrieve Topk Repurposing Drugs From Disease Txgnn" + NL)
+    f.write("BioMate: Retrieve Topk Repurposing Drugs From Disease Txgnn" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

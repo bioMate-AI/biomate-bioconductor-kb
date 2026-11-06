@@ -1,0 +1,23 @@
+[
+  {
+    "model": "anthropic/claude-opus-5",
+    "category": 0.4,
+    "outcome": 0.85,
+    "safety": 0.95,
+    "n": 20
+  },
+  {
+    "model": "openai/gpt-6.1-sol-pro",
+    "category": 0.2,
+    "outcome": 0.75,
+    "safety": 0.95,
+    "n": 20
+  },
+  {
+    "model": "z-ai/glm-5.2",
+    "category": 0.2,
+    "outcome": 0.7,
+    "safety": 1.0,
+    "n": 20
+  }
+]

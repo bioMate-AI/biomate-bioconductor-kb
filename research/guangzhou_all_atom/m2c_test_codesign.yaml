@@ -1,0 +1,40 @@
+# =====================================================================================================
+# m2c_test_codesign.yaml — generate.py test config for the 2c held-out bound-cyclic test split.
+# Consumed by the STOCK generate.py (runtime/PepGLAD/generate.py). CO-DESIGN mode (neither seq_only nor
+# struct_only) so cal_metrics.py computes the FULL meaningful panel: Slide AAR + RMSD(CA) + DockQ +
+# Sequence/Struct/Codesign Diversity + Consistency.
+#
+# Provenance: copied from configs/pepbench/test_codesign.yaml; only the test mmap_dir/specify_index and
+# n_samples differ. Paths filled by run_m2c_ldm_finetune.sh via overwrite_values.
+# =====================================================================================================
+
+dataset:
+  test:
+    class: CoDesignDataset                     # STOCK (receptor present)
+    mmap_dir: ./data/bound_cyclic_pepglad/processed
+    specify_index: ./data/bound_cyclic_pepglad/processed/test_index.txt   # the HELD-OUT test split
+    backbone_only: false
+    use_covariance_matrix: true                # receptor present -> matches training normalization
+
+dataloader:
+  num_workers: 4
+  batch_size: 16                               # tiny test set; small batch keeps the per-batch reverse-
+                                               # diffusion sample within T4/L4 memory
+
+backbone_only: false
+# struct_only/seq_only default false (co-design). Declared here so the launcher/eval can flip struct_only via
+# overwrite_values (which requires the key to ALREADY EXIST — get_parent_dict raises KeyError otherwise).
+struct_only: false
+seq_only: false
+# n_samples per target: >=2 REQUIRED for Diversity/Consistency. Stock used 40; on a tiny test set 16 is a
+# reasonable diversity/consistency estimate while keeping sampling wall-time bounded (sampling is the slow
+# part). Filled/overridable by the launcher (N_SAMPLES).
+n_samples: 16
+
+# Energy-guided sampling (stock default). REQUIRES setup_latent_guidance.py to have been run on the ckpt
+# first (it asserts consec_dist_mean is set — verified in ldm.py:138-140). The eval driver
+# (m2c_eval.py) runs setup_latent_guidance BEFORE generate when energy_func == default. To skip guidance
+# entirely, set sample_opt.energy_func: null (then no setup step is needed).
+sample_opt:
+  energy_func: default
+  energy_lambda: 0.8

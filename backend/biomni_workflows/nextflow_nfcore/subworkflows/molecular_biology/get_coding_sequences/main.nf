@@ -149,7 +149,7 @@ with open("get_coding_sequences_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("get_coding_sequences_output.txt", "w") as f:
-    f.write("Biomni: Get Coding Sequences" + NL)
+    f.write("BioMate: Get Coding Sequences" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,16 @@
+{
+  "task": "pbpk_benchmark",
+  "mode": null,
+  "model": "base",
+  "n": 15,
+  "n_with_usage": 15,
+  "input_tokens_total": 2461,
+  "output_tokens_total": null,
+  "input_tokens_mean": 164.06666666666666,
+  "output_tokens_mean": 0.0,
+  "latency_ms_p50": 706,
+  "latency_ms_p95": 1024,
+  "latency_ms_mean": 742.6666666666666,
+  "n_with_latency": 15,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

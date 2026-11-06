@@ -1,0 +1,43 @@
+{
+ "n_written": 1116,
+ "n_ok": 528,
+ "n_failed": 588,
+ "n_sources": 5,
+ "evaluable": false,
+ "spearman_bw": 0.2245,
+ "spearman_min_psa": 0.2234,
+ "per_source": {
+  "2015_Wang": {
+   "n": 48,
+   "bw": 0.5468
+  },
+  "2016_Furukawa": {
+   "n": 392,
+   "bw": 0.1972
+  },
+  "2020_Barlow": {
+   "n": 26,
+   "bw": 0.3095
+  },
+  "2022_Taechalertpaisarn": {
+   "n": 42,
+   "bw": 0.1393
+  },
+  "2024_Ly": {
+   "n": 20,
+   "bw": 0.197
+  }
+ },
+ "ci95_cluster_boot": [
+  0.163,
+  0.4182
+ ],
+ "median_neff": 1.22,
+ "verdict": "VOID",
+ "ref_4D_reference_only": {
+  "n_joined": 440,
+  "Water_3D_PSA_neg_spearman_vs_z": 0.1997,
+  "Hexane_3D_PSA_neg_spearman_vs_z": 0.2105,
+  "dPSA_water_minus_hexane_neg_spearman_vs_z": 0.0159
+ }
+}

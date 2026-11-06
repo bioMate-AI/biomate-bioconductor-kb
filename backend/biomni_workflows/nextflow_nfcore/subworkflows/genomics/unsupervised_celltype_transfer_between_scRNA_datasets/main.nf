@@ -253,7 +253,7 @@ with open("unsupervised_celltype_transfer_between_scRNA_datasets_results.json", 
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("unsupervised_celltype_transfer_between_scRNA_datasets_output.txt", "w") as f:
-    f.write("Biomni: Unsupervised Celltype Transfer Between Scrna Datasets" + NL)
+    f.write("BioMate: Unsupervised Celltype Transfer Between Scrna Datasets" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

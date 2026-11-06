@@ -1,0 +1,98 @@
+{
+  "page": 1,
+  "pageSize": 5,
+  "totalHits": 4495,
+  "isTotalHitsExact": false,
+  "sortBy": "relevance",
+  "sortOrder": "descending",
+  "suggestion": [],
+  "expandedEfoTerms": [
+    "atopic asthma",
+    "occupational asthma",
+    "chronic obstructive asthma",
+    "chronic asthma",
+    "adult-onset asthma",
+    "status asthmaticus",
+    "allergic form of asthma",
+    "childhood asthma",
+    "asthma of childhood",
+    "paediatric asthma",
+    "allergic asthma",
+    "childhood onset asthma",
+    "bronchial asthma",
+    "aspirin-induced asthma",
+    "t2-high asthma",
+    "adult onset asthma",
+    "pediatric asthma"
+  ],
+  "expandedSynonyms": [
+    "bronchial asthma",
+    "asthma"
+  ],
+  "query": "asthma epithelial",
+  "facets": null,
+  "hits": [
+    {
+      "accession": "E-GEOD-34466",
+      "type": "study",
+      "title": "Airway Epithelial miRNA Expression in Asthma",
+      "author": "Andrea Barczak",
+      "links": 3,
+      "files": 128,
+      "release_date": "2012-12-05",
+      "views": 60,
+      "isPublic": true,
+      "content": "E-GEOD-34466 Airway Epithelial miRNA Expression in Asthma transcription profiling by array EFO EFO_0002768 Homo sapiens We performed genome-wide profiling of miRNA expression in the airway epithelial compartment in asthma to identify miRNA pathways associated with epithelial abnormalities using"
+    },
+    {
+      "accession": "E-GEOD-44037",
+      "type": "study",
+      "title": "Expression data from airway epithelial cells from patients with asthma, rhinitis, and helathy controls",
+      "author": "Ariane Wagener Silvia Luiten Aeilko Zwinderman Cornelis van Drunen Peter Sterk",
+      "links": 2,
+      "files": 70,
+      "release_date": "2013-02-05",
+      "views": 89,
+      "isPublic": true,
+      "content": "E-GEOD-44037 Expression data from airway epithelial cells from patients with asthma, rhinitis, and helathy controls transcription profiling by array EFO EFO_0002768 Homo sapiens The link between upper and lower airways in patients with both asthma and allergic rhinitis is still poorly understood"
+    },
+    {
+      "accession": "E-GEOD-67472",
+      "type": "study",
+      "title": "Airway epithelial gene expression in asthma versus healthy controls",
+      "author": "Stephanie Christenson Joseph Arron Katrina Steiling Maarten van den Berge Kahkeshan Hijazi Pieter Hiemstra Dirkje Postma Marc Lenburg Avrum Spira Prescott Woodruff",
+      "links": 2,
+      "files": 212,
+      "release_date": "2015-04-01",
+      "views": 104,
+      "isPublic": true,
+      "content": "E-GEOD-67472 Airway epithelial gene expression in asthma versus healthy controls transcription profiling by array EFO EFO_0002768 Homo sapiens Airway epithelial brushings were obtained for microarray analysis by research bronchoscopy in 62 subjects with mild-to-moderate asthma not on inhaled"
+    },
+    {
+      "accession": "E-GEOD-25230",
+      "type": "study",
+      "title": "microRNA expression data in bronchial epithelial cells from healthy and asthmatic donors",
+      "author": "Melanie Jardim Lisa Dailey David Diaz-Sanchez",
+      "links": 2,
+      "files": 30,
+      "release_date": "2012-10-31",
+      "views": 52,
+      "isPublic": true,
+      "content": "E-GEOD-25230 microRNA expression data in bronchial epithelial cells from healthy and asthmatic donors transcription profiling by array EFO EFO_0002768 Homo sapiens Airway inflammation is the hallmark of asthma and suggests a dysregulation of homeostatic mechanisms. MicroRNAs (miRNAs) are key"
+    },
+    {
+      "accession": "E-GEOD-51392",
+      "type": "study",
+      "title": "Expression data from airway epithelial cells stimulated with Poly(I:C) from patients with asthma, rhinitis, and healthy controls",
+      "author": "Ariane Wagener Silvia Luiten Aeilko Zwinderman Cornelis van Drunen Peter Sterk",
+      "links": 2,
+      "files": 138,
+      "release_date": "2013-10-18",
+      "views": 64,
+      "isPublic": true,
+      "content": "E-GEOD-51392 Expression data from airway epithelial cells stimulated with Poly(I:C) from patients with asthma, rhinitis, and healthy controls transcription profiling by array EFO EFO_0002768 Homo sapiens Rhinovirus infections are the most common cause of asthma exacerbations. The complex responses"
+    }
+  ],
+  "nextCursor": null,
+  "tooManyExpansionTerms": false
+}

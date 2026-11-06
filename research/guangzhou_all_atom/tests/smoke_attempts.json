@@ -1,0 +1,29 @@
+{
+  "purpose": "Software fixtures only; not generator output or therapeutic candidates",
+  "attempts": [
+    {
+      "sample_id": "linear_reference",
+      "smiles": "C[C@H](N)C(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)O"
+    },
+    {
+      "sample_id": "linear_duplicate",
+      "smiles": "C[C@H](N)C(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)O"
+    },
+    {
+      "sample_id": "linear_other",
+      "smiles": "C[C@H](NC(=O)[C@H](Cc1ccccc1)NC(=O)CN)C(=O)O"
+    },
+    {
+      "sample_id": "cyclic",
+      "smiles": "O=C1NCC(=O)NC1"
+    },
+    {
+      "sample_id": "cyclic_alternate_order",
+      "smiles": "C1NC(=O)CNC1=O"
+    },
+    {
+      "sample_id": "failed",
+      "smiles": null
+    }
+  ]
+}

@@ -1,3 +1,12 @@
+import { normalizeQcEvents } from "../shared/qc-assessment";
+import { matchDescriptor } from "../shared/findings-descriptors";
+import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } from "../shared/findings-extract";
+import { registerVoiceRoutes } from "./voice-routes";
+import { classifyChainRunStatus } from './chain-run-status';
+import { isOrphanInterrupt } from './nextflow-run-status';
+import { readConnectorSession } from "./connector-session";
+import { createConnectorRunTools } from "./connector-run-tools";
+import { localOnly, localMessagesClient } from './local-llm.js';
 import type { Express } from "express";
 import express from "express";
 import { requestContextMiddleware } from "./request-context";
@@ -10,20 +19,31 @@ import { createServer, request as httpRequest, type Server } from "http";
 import { execSync as _execSync } from "node:child_process";
 import { WebSocket as _WSClient, WebSocketServer } from "ws";
 import { storage } from "./storage";
+import { deriveRunMetricsPatch, resolveInlineFindings, finalizeRunSteps } from "./run-record-metrics";
 import OpenAI from "openai";
 import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys, featureFlags } from "../shared/schema";
 import { generateApiKey, listApiKeys } from "./api-key-service";
-import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
+import type { InsertInviteCode, ExecutionRunStatus, InstrumentType, ExecutionRun } from "../shared/schema";
 import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
 import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
+import { selectReferencedDatasets, type DatasetReference } from "./dataset-reference-selection";
+import { validateRemoteFileUrl } from "./remote-source-validation";
+import { resolveProjectFileReferences } from "./project-file-references";
+import { _isOwnerOrMember } from "./project-routes";
+import { appendComposerInstructions } from "./chat-context";
+import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
-import { GalaxyAPIProxy } from "./galaxy-api-proxy";
+import { GalaxyAPIProxy, fetchGalaxyWithKeyRecovery } from "./galaxy-api-proxy";
+import { ALLOWED_UPLOAD_EXTENSIONS, isAllowedUploadName, UnsupportedUploadTypeError } from "./upload-file-types";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
+import { assessOutputCompletion } from "./output-completion-contract";
 import { GalaxyAssistant, type ModelConfig, stripNarratedToolCalls, StreamToolCallFilter } from "./galaxy-assistant";
+import { humanizeWorkflowName } from "./workflow-display-name";
+import { isRunnableWorkflow } from "./workflow-runnable";
 import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
 import { memoryService } from "./memory-repository";
@@ -42,6 +62,10 @@ import { createHash, randomBytes } from "crypto";
 import { authService } from "./auth-service";
 import { emailService } from "./email-service";
 import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
+import { decideRunAccess } from "./run-access";
+import { decideOutputAccess, decideInvocationAccess } from "./output-access";
+import { assembleReproducibilityRecord, enrichOutputsWithChecksums } from "./reproducibility-record";
+import { reportVersionStore } from "./report-version-store";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
 import { s3Service } from "./s3-client";
@@ -59,6 +83,7 @@ import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
 import { decryptField, encryptField } from "./field-encrypt";
+import { hasPersonalSkillAccess } from './skill-access';
 import { checkSafety, hashMessage } from "./safety-guardrails";
 import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
 import {
@@ -71,6 +96,7 @@ import {
   buildNextflowComputeConfig,
   evaluateHardwareGate,
 } from "./execution-env-policy";
+import { buildNextflowLaunchParameters } from "./nextflow-launch-params";
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
 import { registerConnectorAdapters } from "./connector-adapters";
@@ -129,9 +155,67 @@ export function rewriteInteractiveToolUrl(rawUrl: string): string {
  * (e.g. existing users provisioned before this feature, or when Galaxy is unreachable).
  */
 function userProxy(req: express.Request): GalaxyAPIProxy {
-  const rawApiKey = (req.user as any)?.galaxyApiKey as string | null | undefined;
+  const user = req.user as any;
+  const rawApiKey = user?.galaxyApiKey as string | null | undefined;
   const userApiKey = rawApiKey ? decryptField(rawApiKey) : rawApiKey;
-  return galaxyAPIBackend.forUser(userApiKey);
+  // If Galaxy rejects the stored key mid-session, re-provision once and retry (see forUser).
+  const recover = user?.id && user?.email
+    ? () => authService.recoverGalaxyKey(String(user.id), String(user.email))
+    : undefined;
+  return galaxyAPIBackend.forUser(userApiKey, recover);
+}
+
+/**
+ * fetch() to Galaxy as the signed-in user, for routes that call Galaxy directly instead of
+ * through userProxy(): same key choice as before (user key, else shared admin key) plus the
+ * same mid-session recovery (see fetchGalaxyWithKeyRecovery / userProxy).
+ */
+function fetchGalaxyAsUser(req: express.Request, url: string, init: RequestInit = {}): Promise<Response> {
+  const user = req.user as any;
+  const raw = user?.galaxyApiKey as string | undefined;
+  const recover = user?.id && user?.email
+    ? () => authService.recoverGalaxyKey(String(user.id), String(user.email))
+    : undefined;
+  return fetchGalaxyWithKeyRecovery(url, init, raw ? decryptField(raw) : null, process.env.GALAXY_API_KEY || '', recover);
+}
+
+/**
+ * Forward an /api/... request to the Python backend (the "Galaxy" server) as the signed-in user:
+ * same path + query, JSON body for methods other than GET/HEAD/DELETE, and the response relayed
+ * back (JSON parsed, otherwise raw bytes; Content-Type and Content-Disposition passed through).
+ * The key and its mid-session recovery come from fetchGalaxyAsUser. Shared by the ind-report,
+ * regulatory, grounded and DL passthroughs (previously four copies of this body).
+ */
+function backendPassthrough(label: string) {
+  return async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${req.path}${queryStr}`;
+      const fetchOpts: RequestInit = {
+        method: req.method.toUpperCase(),
+        headers: { 'Content-Type': req.headers['content-type'] || 'application/json' },
+        signal: AbortSignal.timeout(120000),
+      };
+      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
+        fetchOpts.body = JSON.stringify(req.body);
+      }
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      res.setHeader('Content-Type', contentType);
+      const cd = resp.headers.get('content-disposition');
+      if (cd) res.setHeader('Content-Disposition', cd);
+      res.status(resp.status);
+      if (contentType.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        return res.json(data);
+      }
+      return res.send(Buffer.from(await resp.arrayBuffer()));
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json({ error: `${label} proxy error`, detail: err.message });
+    }
+  };
 }
 
 // Initialize state poller and SSE manager
@@ -153,31 +237,6 @@ function getFileType(extension: string): string {
   return 'binary';
 }
 
-const WORKFLOW_DISPLAY_NAMES: Record<string, string> = {
-  allometric_scaling:         "Allometric Scaling / FIH Dose Prediction",
-  clinical_trial_simulation:  "Clinical Trial Simulation",
-  pbpk_pediatric:             "Pediatric PBPK Simulation",
-  cyclic_peptide_design:      "Cyclic Peptide Design",
-  magma_gene_analysis:        "MAGMA Gene-Set Analysis",
-  clusterprofiler:            "ClusterProfiler Enrichment Analysis",
-  deseq2:                     "DESeq2 Differential Expression",
-  fcrn_antibody_pk:           "FcRn Antibody PK Simulation",
-  lnp_formulation_optimization: "LNP Formulation Optimization",
-  ich_s5_reproductive_tox:    "ICH S5 Reproductive Toxicology",
-  ich_s7a_safety_pharmacology:"ICH S7A Safety Pharmacology",
-  adaptive_trial_design:      "Adaptive Trial Design",
-};
-
-function humanizeWorkflowName(name: string): string {
-  if (!name) return name;
-  const mapped = WORKFLOW_DISPLAY_NAMES[name.toLowerCase()];
-  if (mapped) return mapped;
-  // If the name is all-lowercase with underscores (slug), title-case it
-  if (/^[a-z0-9_/-]+$/.test(name) && name.includes('_')) {
-    return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  }
-  return name;
-}
 
 // Correct domain labels that are wrong in the Galaxy DB record.
 // Keyed by lowercase workflow name substring; value is the canonical domain.
@@ -264,6 +323,51 @@ function toValidRunStatus(raw: string | undefined | null): ExecutionRunStatus {
   if (mapped) return mapped;
   console.error(`[Status] Unknown status "${raw}" — mapping to "failed"`);
   return 'failed';
+}
+
+/**
+ * Populate `run.metrics` from a completed run's output files + runtime, best-effort.
+ * Idempotent and merge-based (via storage.updateExecutionRunMetrics), never throws, and
+ * returns the (possibly updated) run so callers can keep their local handle fresh.
+ * See deriveRunMetricsPatch for what is populated vs. left at zero (resources.*).
+ */
+async function populateCompletionMetrics(
+  run: ExecutionRun,
+  nextflowStatus: any,
+): Promise<ExecutionRun> {
+  try {
+    const patch = deriveRunMetricsPatch(run, nextflowStatus);
+    if (patch) {
+      return (await storage.updateExecutionRunMetrics(run.id, patch)) || run;
+    }
+  } catch (e: any) {
+    console.warn("[ExecutionRun] metrics population failed:", e?.message || e);
+  }
+  return run;
+}
+
+/**
+ * Fix #8: finalize a terminal run's per-step records (status away from the
+ * creation-time "pending", outputs grouped by producing step) so the
+ * step-detail panel is informative. Pure derivation lives in
+ * `finalizeRunSteps`; this wrapper persists the rewritten steps when they
+ * changed. Idempotent — `finalizeRunSteps` returns null once steps are final,
+ * so re-reads do not re-write. See run-record-metrics.ts for the derivation
+ * boundary (timing/tool_version left omitted; no per-task trace Node-side).
+ */
+async function finalizeCompletionSteps(
+  run: ExecutionRun,
+  nextflowStatus: any,
+): Promise<ExecutionRun> {
+  try {
+    const steps = finalizeRunSteps(run, nextflowStatus);
+    if (steps) {
+      return (await storage.updateExecutionRun(run.id, { steps })) || run;
+    }
+  } catch (e: any) {
+    console.warn("[ExecutionRun] step finalization failed:", e?.message || e);
+  }
+  return run;
 }
 
 type AutofixLifecycleState =
@@ -740,7 +844,7 @@ if (typeof parsedThinkingBudget === "number" && Number.isFinite(parsedThinkingBu
 // Start with whichever LLM key is available; Gemini (GOOGLE_API_KEY) is the
 // backbone and Anthropic is used for memory, embeddings, and fallback.
 // Neither key alone blocks startup — the assistant degrades gracefully.
-const _hasAnyLLMKey = !!(
+const _hasAnyLLMKey = localOnly() || !!(
   process.env.ANTHROPIC_API_KEY ||
   process.env.GOOGLE_API_KEY ||
   process.env.GEMINI_API_KEY ||
@@ -780,7 +884,8 @@ async function executeOpenClaudeTool(
   toolName: string,
   input: Record<string, any>,
   userId: string | null,
-  req: any
+  req: any,
+  goalContext: string = ""
 ): Promise<any> {
   const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
   const authHeader = req.headers.authorization || "";
@@ -834,11 +939,48 @@ async function executeOpenClaudeTool(
             message: `No workflow found matching '${input.workflow_id}'. Use search_workflow first to find the correct workflow name.`,
           };
         }
-        if (input.params && Object.keys(input.params).length > 0) {
-          workflowDef.parameters = { ...(workflowDef.parameters ?? {}), ...input.params };
+
+        const isEmptyVal = (v: any) =>
+          v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+        const mergedParams: Record<string, any> = { ...(input.params || {}) };
+
+        // Guardrail: if any REQUIRED param is still unfilled after applying the
+        // model's input.params, re-prefill from the GOAL text. The inner LLM
+        // reliably fills the first run_workflow call but omits params on the 2nd+
+        // parallel call, so a multi-workflow session launches later workflows with
+        // empty required_params → missing_required_params at the execute gate.
+        // This deterministic backstop prefills each workflow from the goal,
+        // resolved against THAT workflow's own schema (so the SMILES land on the
+        // right param name). Model-supplied params remain authoritative.
+        const reqParams: any[] = Array.isArray(workflowDef.required_params) ? workflowDef.required_params : [];
+        const needsPrefill = reqParams.some(
+          (p: any) => p?.name && isEmptyVal(mergedParams[p.name]) && isEmptyVal(p.value) && isEmptyVal(p.default));
+        if (needsPrefill && goalContext) {
+          try {
+            const prefill = await post("/api/workflows/search", {
+              query: `${input.workflow_id}\n\n${goalContext}`,
+              limit: 1,
+              defer_param_prefill: false,
+            });
+            const pdef = prefill?.workflow_ga;
+            const pall: any[] = [
+              ...(Array.isArray(pdef?.required_params) ? pdef.required_params : []),
+              ...(Array.isArray(pdef?.optional_params) ? pdef.optional_params : []),
+            ];
+            for (const p of pall) {
+              if (p?.name && isEmptyVal(mergedParams[p.name]) && !isEmptyVal(p.value)) {
+                mergedParams[p.name] = p.value; // fill the gap; model params win on conflict
+              }
+            }
+          } catch { /* prefill best-effort; execute gate still validates */ }
+        }
+
+        if (Object.keys(mergedParams).length > 0) {
+          workflowDef.parameters = { ...(workflowDef.parameters ?? {}), ...mergedParams };
         }
         return await post("/api/workflows/execute", {
           workflowDefinition: workflowDef,
+          ...(Object.keys(mergedParams).length > 0 ? { params: mergedParams } : {}),
           ...(input.message ? { message: input.message } : {}),
         });
       }
@@ -1132,6 +1274,51 @@ fs.mkdir(uploadDir, { recursive: true }).then(() => {
   setInterval(cleanStaleUploads, 6 * 60 * 60 * 1000);
 }).catch(() => {});
 
+// ── Stale-run reaper ────────────────────────────────────────────────────────
+// Background reconciliation for non-terminal runs whose completion was never
+// finalized (launching gunicorn worker died mid-run, container restart, or the
+// AWS Batch completion callback never fired). The /api/workflows/runs/:id/status
+// endpoint already reconciles a run against Galaxy's authoritative Nextflow state
+// when it is polled — but the dashboard LIST returns stored status, so an orphan
+// nobody opens shows 'running' forever (observed: runs stuck 'running' 5–7 days).
+//
+// This reaper self-polls that status endpoint for stale non-terminal runs, so the
+// SAME reconciliation runs without anyone opening them. It is SAFE: the status
+// endpoint only finalizes a run when Galaxy itself reports a terminal Nextflow
+// state (succeeded/failed/error, or non-batch 'interrupted') — a legitimately
+// long run that Galaxy still reports 'running' is never touched. Batch runs stay
+// deferred to Galaxy's Batch verdict. A 15-min grace avoids racing fresh runs;
+// each sweep is capped so a backlog can't hammer Galaxy.
+async function reconcileStaleRuns(): Promise<void> {
+  try {
+    const runs = await storage.getExecutionRuns(undefined, undefined, undefined, 200);
+    const now = Date.now();
+    const GRACE_MS = 15 * 60 * 1000;
+    const stale = runs.filter((r) => {
+      const st = (r as any).execution?.status;
+      if (!['running', 'configuring', 'queued'].includes(st)) return false;
+      const started = (r as any).execution?.startedAt || (r as any).createdAt;
+      const t = started ? new Date(started).getTime() : 0;
+      return t > 0 && now - t > GRACE_MS;
+    });
+    if (stale.length === 0) return;
+    const port = parseInt(process.env.PORT || '5000', 10);
+    const batch = stale.slice(0, 25);
+    for (const r of batch) {
+      await fetch(`http://127.0.0.1:${port}/api/workflows/runs/${(r as any).id}/status`, {
+        signal: AbortSignal.timeout(12000),
+      }).catch(() => undefined);
+    }
+    console.log(`[run-reaper] reconciled ${batch.length}/${stale.length} stale non-terminal run(s)`);
+  } catch (e: any) {
+    console.warn('[run-reaper] sweep failed:', e?.message ?? e);
+  }
+}
+if (!process.env.VITEST && process.env.NODE_ENV !== 'test') {
+  setTimeout(() => { void reconcileStaleRuns(); }, 60 * 1000);
+  setInterval(() => { void reconcileStaleRuns(); }, 10 * 60 * 1000);
+}
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
@@ -1150,37 +1337,11 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     // Accept common bioinformatics formats
-    const allowedExtensions = [
-      '.fastq', '.fastq.gz', '.fq', '.fq.gz',
-      '.bam', '.sam', '.cram',
-      '.mzml', '.mzxml', '.mgf',
-      '.csv', '.tsv', '.txt', '.tab',
-      '.fasta', '.fa', '.fna', '.fas', '.faa', '.fap',
-      '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf',
-      '.h5ad', '.h5', '.hdf5', '.loom',
-      '.json', '.xml',
-      // Research papers / literature
-      '.pdf',
-      // Images for multimodal biomedical read (histology, gels/blots, plots, scans)
-      '.png', '.jpg', '.jpeg', '.gif', '.webp',
-      // Cryo-EM / electron microscopy formats
-      '.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.spi', '.dm4', '.map',
-      // Archive formats (capsule data, bulk uploads)
-      '.zip', '.tar', '.tar.gz', '.tgz',
-      // Notebook and R formats
-      '.ipynb', '.rds', '.rda', '.xlsx', '.xls',
-      // Phylogenomics / alignment formats
-      '.nwk', '.newick', '.treefile', '.tree', '.mafft', '.clipkit', '.iqtree', '.log',
-      // Generic compressed and model/distance/tree files
-      '.gz', '.mldist', '.model', '.phy', '.phylip', '.aln', '.bionj', '.contree', '.splits', '.nxs', '.nexus',
-      // Nextflow / workflow definition files (user-uploaded .nf pipelines for sandbox execution)
-      '.nf', '.config', '.groovy',
-    ];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedExtensions.some(allowed => file.originalname.toLowerCase().endsWith(allowed))) {
+    // Accepted types: server/upload-file-types.ts (tested against every UI demo asset).
+    if (isAllowedUploadName(file.originalname)) {
       cb(null, true);
     } else {
-      cb(new Error(`File type not supported. Allowed: ${allowedExtensions.join(', ')}`));
+      cb(new UnsupportedUploadTypeError(`File type not supported: ${path.extname(file.originalname) || file.originalname}. Allowed: ${ALLOWED_UPLOAD_EXTENSIONS.join(', ')}`));
     }
   },
 });
@@ -1417,6 +1578,46 @@ ${auditLog.length > 0 ? `
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  registerVoiceRoutes(app, authenticateToken);
+  /** Resolve either BioMate's run ID or the Galaxy invocation alias and apply
+   * the single owner/project-member policy used by every output surface. */
+  const resolveAuthorizedRun = async (req: any, res: any, anyRunId: string): Promise<any | null> => {
+    let run = await storage.getExecutionRun(anyRunId);
+    if (!run) run = await storage.getExecutionRunByGalaxyId(anyRunId);
+    if (!run) {
+      res.status(404).json({ error: "Run not found" });
+      return null;
+    }
+    const decision = await decideRunAccess(
+      run,
+      req.user?.id ? String(req.user.id) : null,
+      (storage as any).getUserProjects?.bind(storage),
+    );
+    if (!decision.allowed) {
+      res.status(decision.status).json({ error: decision.error });
+      return null;
+    }
+    return run;
+  };
+  // Dependency bundle for the output/invocation authorization resolver — the
+  // same owner/project-member policy as resolveAuthorizedRun, applied to
+  // surfaces addressed by output/invocation id. See output-access.ts.
+  const outputAccessDeps = {
+    getOutput: (id: string) => storage.getOutput(id),
+    getInvocation: (id: string) => storage.getInvocation(id),
+    getRunByGalaxyId: (gid: string) => storage.getExecutionRunByGalaxyId(gid),
+    getInvocationByGalaxyId: (gid: string) => storage.getInvocationByGalaxyId(gid),
+    getUserProjects: (storage as any).getUserProjects?.bind(storage),
+    // Canonical-id path (L1c): resolve a `${runId}:${s3Key}` output at the RUN
+    // level (owner persisted on the ExecutionRun → durable across restarts) and
+    // serve the matching output from the canonical resolver.
+    getExecutionRun: (id: string) => storage.getExecutionRun(id) as any,
+    getExecutionRunByGalaxyId: (gid: string) => storage.getExecutionRunByGalaxyId(gid) as any,
+    listRunOutputs: async (runId: string) => {
+      const { runsOutputsService } = await import("./services/runs-outputs-service");
+      return runsOutputsService.list(runId);
+    },
+  };
   // Initialize repositories
   await parameterRepository.initialize();
   await workflowRepository.initialize();
@@ -2720,8 +2921,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        // Redirect to dashboard with token
-        res.redirect(`/dashboard?oauth_success=true`);
+        // Land in the real chat workspace after OAuth. The old dashboard was
+        // a retired mock-data page, not a valid post-login destination.
+        res.redirect(`/?oauth_success=true`);
       } catch (error: any) {
         console.error('[OAuth] Google callback error:', error);
         res.redirect('/login?error=oauth_error');
@@ -2756,8 +2958,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        // Redirect to dashboard with token
-        res.redirect(`/dashboard?oauth_success=true`);
+        // Land in the real chat workspace after OAuth. The old dashboard was
+        // a retired mock-data page, not a valid post-login destination.
+        res.redirect(`/?oauth_success=true`);
       } catch (error: any) {
         console.error('[OAuth] GitHub callback error:', error);
         res.redirect('/login?error=oauth_error');
@@ -3570,10 +3773,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Galaxy / BioMate histories API
   app.get("/api/galaxy/histories", optionalAuth, async (req, res) => {
+    // A failure to reach Galaxy or the DB must NOT look like "you have no data".
+    // A genuinely empty account returns 200 + []; an upstream/DB failure returns
+    // a non-2xx with the real cause so the UI can show a retry state.
+
+    // 1. Galaxy histories (upstream). Only a successful (possibly empty) response
+    //    counts as data — a thrown error means Galaxy is down or the per-user key
+    //    was rejected, which must surface, not be masked as [].
+    let galaxyShaped: any[];
     try {
       const proxy = userProxy(req);
-      const galaxyHistories = await proxy.getHistories().catch(() => []);
-      const galaxyShaped = (galaxyHistories || []).map((h: any) => ({
+      const galaxyHistories = await proxy.getHistories();
+      galaxyShaped = (galaxyHistories || []).map((h: any) => ({
         id: h.id,
         name: h.name,
         count: h.count ?? h.dataset_count ?? 0,
@@ -3582,12 +3793,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         update_time: h.update_time ?? h.update_date ?? '',
         source: 'galaxy' as const,
       }));
+    } catch (err: any) {
+      // GalaxyAPIProxy's interceptor throws { error, message, status_code, detail }.
+      const upstreamStatus: number | undefined = err?.status_code;
+      const upstreamBody = err?.detail != null
+        ? (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)).slice(0, 500)
+        : undefined;
+      console.error(
+        '[Histories] Galaxy getHistories FAILED: upstreamStatus=%s message=%s body=%s',
+        upstreamStatus, err?.message, upstreamBody || '(none)'
+      );
+      return res.status(502).json({
+        error: 'GalaxyUpstreamError',
+        message: `Could not load Galaxy histories${upstreamStatus ? ` (upstream HTTP ${upstreamStatus})` : ''}: ${err?.message || 'unknown upstream error'}`,
+        upstreamStatus,
+        upstreamBody,
+      });
+    }
 
-      // Also include completed BioMate execution runs as virtual histories so users
-      // can browse workflow output files through the same "BioMate history" tab.
+    // 2. Completed BioMate execution runs as virtual histories so users can browse
+    //    workflow output files through the same "BioMate history" tab. A DB failure
+    //    here is a real error (getExecutionRuns already falls back to memory on a
+    //    query error, so a throw past that is genuinely unexpected) and must surface.
+    let runHistories: any[];
+    try {
       const userId = (req as any).userId || (req as any).user?.id;
-      const execRuns = await storage.getExecutionRuns(userId, undefined, undefined, 20).catch(() => []);
-      const runHistories = execRuns
+      const execRuns = await storage.getExecutionRuns(userId, undefined, undefined, 20);
+      runHistories = execRuns
         .filter((r: any) => r.execution?.status === 'completed' && r.execution?.nextflowOutputDir)
         .map((r: any) => ({
           id: `run:${r.id}`,
@@ -3602,12 +3834,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           runId: r.id,
           outputDir: r.execution?.nextflowOutputDir,
         }));
-
-      res.json({ histories: [...galaxyShaped, ...runHistories] });
     } catch (err: any) {
-      console.error('[Histories] fetch failed:', err.message);
-      res.json({ histories: [] });
+      console.error('[Histories] DB getExecutionRuns FAILED:', err?.message, err?.stack);
+      return res.status(500).json({
+        error: 'DatabaseError',
+        message: `Could not load BioMate run histories: ${err?.message || 'unknown database error'}`,
+      });
     }
+
+    res.json({ histories: [...galaxyShaped, ...runHistories] });
   });
 
   app.get("/api/galaxy/histories/:historyId/datasets", optionalAuth, async (req, res) => {
@@ -3635,14 +3870,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...process.env,
           ...((_nfKey && _nfSecret) ? { AWS_ACCESS_KEY_ID: _nfKey, AWS_SECRET_ACCESS_KEY: _nfSecret } : {}),
         };
-        const rawLs = await execP(
-          `aws s3 ls "${s3Prefix}" --recursive`,
-          { env: _s3Env }
-        ).then(({ stdout }) => stdout).catch((e: any) => {
-          console.warn('[HistoryDatasets/run] S3 ls error code=%s stderr=%s',
-            e?.code, e?.stderr?.slice?.(0, 120));
-          return (e?.stdout as string) || '';
-        });
+        // `aws s3 ls --recursive` exits non-zero in two very different cases:
+        //   (a) a genuinely empty / not-yet-populated prefix (no stderr) — a valid empty result
+        //   (b) a real failure: AccessDenied, NoSuchBucket, bad/expired creds (stderr set)
+        // Only (b) must surface as an error; masking it as [] looks like "no outputs".
+        let rawLs: string;
+        try {
+          const { stdout } = await execP(`aws s3 ls "${s3Prefix}" --recursive`, { env: _s3Env });
+          rawLs = stdout;
+        } catch (e: any) {
+          const stderr = (e?.stderr || '').toString();
+          const stdout = (e?.stdout || '').toString();
+          const isRealFailure = /error occurred|Unable to locate credentials|AccessDenied|NoSuchBucket|InvalidAccessKeyId|ExpiredToken|SignatureDoesNotMatch|could not connect|fatal error/i.test(stderr);
+          if (isRealFailure) {
+            console.error('[HistoryDatasets/run] S3 ls FAILED code=%s stderr=%s',
+              e?.code, stderr.slice(0, 500));
+            return res.status(502).json({
+              error: 'S3ListError',
+              message: `Could not list run outputs from S3: ${stderr.slice(0, 300) || `aws exited ${e?.code}`}`,
+              s3Prefix,
+            });
+          }
+          // Non-zero exit with no error signature (empty prefix) → valid empty listing.
+          console.warn('[HistoryDatasets/run] S3 ls empty/non-error exit code=%s', e?.code);
+          rawLs = stdout;
+        }
         // aws s3 ls --recursive format: "YYYY-MM-DD HH:MM:SS   <bytes>  <key>"
         const datasets: any[] = [];
         for (const line of rawLs.split('\n')) {
@@ -3677,8 +3929,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
       res.json({ datasets: shaped });
     } catch (err: any) {
-      console.error('[HistoryDatasets] fetch failed:', err.message);
-      res.json({ datasets: [] });
+      // The non-run path's only throw is the Galaxy contents call, whose interceptor
+      // raises { error, message, status_code, detail }. Surface it as an upstream
+      // failure rather than a fake-empty dataset list.
+      const upstreamStatus: number | undefined = err?.status_code;
+      const upstreamBody = err?.detail != null
+        ? (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)).slice(0, 500)
+        : undefined;
+      const isUpstream = typeof upstreamStatus === 'number';
+      console.error(
+        '[HistoryDatasets] fetch FAILED: upstreamStatus=%s message=%s body=%s',
+        upstreamStatus, err?.message, upstreamBody || '(none)'
+      );
+      return res.status(isUpstream ? 502 : 500).json({
+        error: isUpstream ? 'GalaxyUpstreamError' : 'HistoryDatasetsError',
+        message: `Could not load datasets${upstreamStatus ? ` (upstream HTTP ${upstreamStatus})` : ''}: ${err?.message || 'unknown error'}`,
+        upstreamStatus,
+        upstreamBody,
+      });
     }
   });
 
@@ -3855,29 +4123,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Connector: directory scan-preview (guided "Add a connector" → A directory) ──
+  // Scans a directory and reports file types + counts + "what each will become" so
+  // the user sees the result BEFORE anything is attached. SECURE BY DEFAULT: only a
+  // path that resolves (realpath) INSIDE a configured allow-root may be scanned.
+  //   BIOMATE_CONNECTOR_SCAN_ROOTS = colon-separated absolute roots (on-prem shares).
+  //   Empty (the cloud default) ⇒ every path is refused — user shares aren't on the
+  //   server there, and scanning arbitrary server paths must never be possible.
+  // Modelled on Galaxy library_datasets.py path-safety: realpath + allowed-roots
+  // prefix check, and symlinks are never followed during the walk (no escape).
+  const connectorScanRoots = (): string[] =>
+    (process.env.BIOMATE_CONNECTOR_SCAN_ROOTS || "")
+      .split(":").map(s => s.trim()).filter(Boolean);
+
+  const resolveScanDir = async (p: unknown): Promise<{ dir?: string; error?: string }> => {
+    const roots = connectorScanRoots();
+    if (roots.length === 0) {
+      return { error: "Directory scanning is not enabled on this deployment. It is an on-prem feature — set BIOMATE_CONNECTOR_SCAN_ROOTS to the shares you want to allow." };
+    }
+    if (!p || typeof p !== "string" || !p.startsWith("/")) {
+      return { error: "Provide an absolute directory path (e.g. /mnt/share/run_2026)." };
+    }
+    let real: string;
+    try { real = await fs.realpath(p); } catch { return { error: "Path does not exist or is not readable." }; }
+    let st; try { st = await fs.stat(real); } catch { return { error: "Path is not readable." }; }
+    if (!st.isDirectory()) return { error: "That path is a file, not a directory." };
+    for (const root of roots) {
+      let rr: string; try { rr = await fs.realpath(root); } catch { continue; }
+      if (real === rr || real.startsWith(rr + path.sep)) return { dir: real };
+    }
+    return { error: "That path is outside the directories this deployment allows scanning." };
+  };
+
+  // extension → { label, becomes } so the preview says what each file turns into.
+  const EXT_KIND: Record<string, { label: string; becomes: string }> = {
+    fastq: { label: "FASTQ", becomes: "sequencing reads" }, "fastq.gz": { label: "FASTQ (gz)", becomes: "sequencing reads" },
+    fq: { label: "FASTQ", becomes: "sequencing reads" }, "fq.gz": { label: "FASTQ (gz)", becomes: "sequencing reads" },
+    bam: { label: "BAM", becomes: "aligned reads" }, sam: { label: "SAM", becomes: "aligned reads" }, cram: { label: "CRAM", becomes: "aligned reads" },
+    vcf: { label: "VCF", becomes: "variants" }, "vcf.gz": { label: "VCF (gz)", becomes: "variants" },
+    bed: { label: "BED", becomes: "genomic intervals" }, gff: { label: "GFF", becomes: "annotations" }, gtf: { label: "GTF", becomes: "annotations" },
+    fa: { label: "FASTA", becomes: "sequences" }, fasta: { label: "FASTA", becomes: "sequences" }, fna: { label: "FASTA", becomes: "sequences" },
+    tsv: { label: "TSV", becomes: "a table" }, csv: { label: "CSV", becomes: "a table" }, txt: { label: "Text", becomes: "a text table" },
+    mrc: { label: "MRC", becomes: "cryo-EM movie/map" }, mrcs: { label: "MRCS", becomes: "cryo-EM stack" }, tif: { label: "TIFF", becomes: "an image" }, tiff: { label: "TIFF", becomes: "an image" },
+    mzml: { label: "mzML", becomes: "mass-spec data" }, mzxml: { label: "mzXML", becomes: "mass-spec data" }, raw: { label: "RAW", becomes: "mass-spec data" },
+    pdb: { label: "PDB", becomes: "a structure" }, cif: { label: "mmCIF", becomes: "a structure" }, sdf: { label: "SDF", becomes: "molecules" }, mol2: { label: "MOL2", becomes: "molecules" },
+    h5: { label: "HDF5", becomes: "an array dataset" }, h5ad: { label: "AnnData", becomes: "single-cell data" }, loom: { label: "Loom", becomes: "single-cell data" },
+    json: { label: "JSON", becomes: "structured data" }, yaml: { label: "YAML", becomes: "config" }, yml: { label: "YAML", becomes: "config" },
+    png: { label: "PNG", becomes: "an image" }, jpg: { label: "JPEG", becomes: "an image" }, jpeg: { label: "JPEG", becomes: "an image" }, pdf: { label: "PDF", becomes: "a report" },
+  };
+  const classifyExt = (name: string): { ext: string; label: string; becomes: string } => {
+    const lower = name.toLowerCase();
+    // Prefer a known compound extension (fastq.gz, vcf.gz, …) over the bare suffix.
+    const compound = lower.match(/\.([a-z0-9]+\.gz)$/)?.[1] || "";
+    const simple = lower.includes(".") ? lower.slice(lower.lastIndexOf(".") + 1) : "";
+    const key = compound && EXT_KIND[compound] ? compound : simple;
+    const k = EXT_KIND[key];
+    return { ext: key || "(no ext)", label: k?.label || (key ? key.toUpperCase() : "Other"), becomes: k?.becomes || "a file" };
+  };
+
+  app.post("/api/connectors/directory/scan", optionalAuth, express.json(), async (req, res) => {
+    const { dir, error } = await resolveScanDir(req.body?.path);
+    if (error || !dir) return res.json({ ok: false, message: error });
+    try {
+      const MAX_FILES = 20000, MAX_DEPTH = 8;
+      const byExt = new Map<string, { label: string; becomes: string; count: number; bytes: number }>();
+      let totalFiles = 0, totalBytes = 0, truncated = false, skippedLinks = 0;
+      const walk = async (d: string, depth: number): Promise<void> => {
+        if (depth > MAX_DEPTH || totalFiles >= MAX_FILES) return;
+        let entries;
+        try { entries = await fs.readdir(d, { withFileTypes: true }); } catch { return; }
+        for (const e of entries) {
+          if (totalFiles >= MAX_FILES) { truncated = true; break; }
+          if (e.isSymbolicLink()) { skippedLinks++; continue; } // never follow symlinks (no escape)
+          const full = path.join(d, e.name);
+          if (e.isDirectory()) { await walk(full, depth + 1); continue; }
+          if (!e.isFile()) continue;
+          let size = 0; try { size = (await fs.stat(full)).size; } catch { /* unreadable; count anyway */ }
+          const { ext, label, becomes } = classifyExt(e.name);
+          const cur = byExt.get(ext) || { label, becomes, count: 0, bytes: 0 };
+          cur.count++; cur.bytes += size; byExt.set(ext, cur);
+          totalFiles++; totalBytes += size;
+        }
+      };
+      await walk(dir, 0);
+      const mapping = Array.from(byExt.entries())
+        .map(([ext, v]) => ({ ext, label: v.label, becomes: v.becomes, count: v.count, bytes: v.bytes }))
+        .sort((a, b) => b.count - a.count);
+      const warnings: string[] = [];
+      if (truncated) warnings.push(`Only the first ${MAX_FILES.toLocaleString()} files were counted — the directory is larger.`);
+      if (skippedLinks > 0) warnings.push(`${skippedLinks} symbolic link(s) were skipped (links are never followed).`);
+      return res.json({ ok: true, summary: { totalFiles, totalBytes, root: dir }, mapping, warnings });
+    } catch (e: any) {
+      console.error("[ConnectorScan] Error:", e);
+      return res.json({ ok: false, message: e?.message || "Scan failed" });
+    }
+  });
+
+  app.post("/api/connectors/directory/attach", optionalAuth, express.json(), async (req, res) => {
+    const { dir, error } = await resolveScanDir(req.body?.path);
+    if (error || !dir) return res.json({ ok: false, message: error });
+    const mode = req.body?.mode === "copy" ? "copy" : "index";
+    try {
+      // Index-in-place: register the directory as ONE path dataset object (residency
+      // "mount" — nothing copied). Copy-in isn't a server-side bulk copy here; it
+      // still registers the path and records the intent (a true copy belongs to a
+      // background job). Reuses the same session-ref shape as /register-path.
+      const displayName = dir.split("/").filter(Boolean).pop() || dir;
+      const datasetId = `dir-${Date.now()}`;
+      if (req.session) {
+        if (!(req.session as any).uploadedDatasets) (req.session as any).uploadedDatasets = [];
+        ((req.session as any).uploadedDatasets as any[]).push({
+          dataset_id: datasetId,
+          galaxy_dataset_id: null,
+          name: displayName,
+          description: `Connected directory (${mode === "index" ? "indexed in place" : "copy-in requested"}) — residency: mount`,
+          file_type: "path",
+          file_size: 0,
+          file_path: dir,
+          param_name: null,
+        });
+        (req.session as any).uploadedDatasets = capDatasetReferences((req.session as any).uploadedDatasets as any[]);
+      }
+      return res.json({ ok: true, created: 1, message: `Connected ${displayName} — indexed in place as a dataset object (nothing copied).` });
+    } catch (e: any) {
+      console.error("[ConnectorAttach] Error:", e);
+      return res.json({ ok: false, message: e?.message || "Attach failed" });
+    }
+  });
+
   // URL Import API - Galaxy fetches file from URL (no size limit, faster for large files)
   // Leverages Galaxy's built-in URL fetching capabilities (HTTP, FTP, S3)
   app.post("/api/datasets/import-url", authenticateToken, checkBillingQuota('URL import'), async (req, res) => {
     try {
       const { url, filename } = req.body;
+      const validated = validateRemoteFileUrl(url);
+      if (!validated.ok) return res.status(400).json({ error: validated.error });
+      const remoteUrl = validated.url.toString();
+      const remoteFilename = filename || validated.filename;
 
-      if (!url) {
-        return res.status(400).json({ error: "URL is required" });
-      }
-
-      // Validate URL format
-      try {
-        const parsedUrl = new URL(url);
-        if (!['http:', 'https:', 'ftp:', 's3:'].includes(parsedUrl.protocol)) {
-          return res.status(400).json({
-            error: "Unsupported protocol. Use HTTP, HTTPS, FTP, or S3 URLs."
-          });
-        }
-      } catch {
-        return res.status(400).json({ error: "Invalid URL format" });
-      }
-
-      console.log(`[URLImport] Importing from URL: ${url}`);
+      console.log(`[URLImport] Importing remote file ${validated.url.origin}${validated.url.pathname}`);
 
       // Get or create Galaxy history
       let historyId = req.session?.galaxyHistoryId as string | undefined;
@@ -3902,9 +4286,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const datasetId = uuidv4();
         const galaxyDatasetId = await userProxy(req).uploadFromUrl(
-          url,
+          remoteUrl,
           historyId,
-          filename || url.split('/').pop() || 'imported-file'
+          remoteFilename,
         );
 
         console.log(`[URLImport] Galaxy dataset created: ${galaxyDatasetId}`);
@@ -3917,11 +4301,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           req.session.uploadedDatasets.push({
             dataset_id: datasetId,
             galaxy_dataset_id: galaxyDatasetId,
-            name: filename || url.split('/').pop() || 'imported-file',
-            description: `Imported from URL: ${url}`,
+            name: remoteFilename,
+            description: `Imported from URL: ${remoteUrl}`,
             file_type: 'auto',
             file_size: 0, // Size unknown until Galaxy fetches it
-            source_url: url,  // Nextflow can fetch HTTP/S3 URLs directly
+            source_url: remoteUrl,  // Nextflow can fetch HTTP/S3 URLs directly
           });
           req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
         }
@@ -3930,9 +4314,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           dataset_id: datasetId,
           galaxy_dataset_id: galaxyDatasetId,
           galaxy_history_id: historyId,
-          name: filename || url.split('/').pop(),
+          name: remoteFilename,
           source: 'url',
-          source_url: url,
+          source_url: remoteUrl,
           uploaded_at: new Date().toISOString(),
         });
       } catch (error: any) {
@@ -4848,6 +5232,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Auto-save a completed project-scoped run's outputs into its project
+      // Files (idempotent; no-op when the run has no project).
+      if (status === 'completed') { void autoSaveCompletedRunOutputs(run); }
+
       return res.json({ ok: true, runId: run.id, status });
     } catch (e: any) {
       return res.status(500).json({ error: 'update failed', message: e?.message ?? String(e) });
@@ -4927,11 +5315,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fullPath = `${targetPath}${queryStr}`;
 
       // Forward with user's Galaxy API key if available
-      const _rawKey3636 = (req as any).user?.galaxyApiKey as string | undefined;
-      const apiKey = (_rawKey3636 ? decryptField(_rawKey3636) : null) || process.env.GALAXY_API_KEY || '';
       const headers: Record<string, string> = {
         'Content-Type': req.headers['content-type'] || 'application/json',
-        'X-API-Key': apiKey,
       };
 
       const fetchOpts: RequestInit = {
@@ -4964,7 +5349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
 
       // Stream response back
       const contentType = resp.headers.get('content-type') || 'application/json';
@@ -5005,8 +5390,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: any, res: any) => {
       try {
         const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-        const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
-        const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
         if (!req.file) {
           return res.status(400).json({ error: 'no file in multipart upload' });
         }
@@ -5015,11 +5398,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: req.file.mimetype || 'application/octet-stream',
         });
         fd.append('file', blob, req.file.originalname || 'upload');
-        const resp = await fetch(
+        const resp = await fetchGalaxyAsUser(req,
           `${galaxyUrl}/api/ind-report/projects/${encodeURIComponent(req.params.projectId)}/attachments`,
           {
             method: 'POST',
-            headers: { 'X-API-Key': apiKey },
+            headers: {},
             body: fd,
             signal: AbortSignal.timeout(120000),
           },
@@ -5042,42 +5425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   POST   /api/ind-report/projects
   //   PATCH  /api/ind-report/projects/:id/compounds
   // ─────────────────────────────────────────────────────────────────────────
-  app.all("/api/ind-report/*", optionalAuth, async (req: any, res: any) => {
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
-      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
-      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
-      const headers: Record<string, string> = {
-        'Content-Type': req.headers['content-type'] || 'application/json',
-        'X-API-Key': apiKey,
-      };
-      const fetchOpts: RequestInit = {
-        method: req.method.toUpperCase(),
-        headers,
-        signal: AbortSignal.timeout(120000),
-      };
-      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
-        fetchOpts.body = JSON.stringify(req.body);
-      }
-      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
-      const contentType = resp.headers.get('content-type') || 'application/json';
-      res.setHeader('Content-Type', contentType);
-      const cd = resp.headers.get('content-disposition');
-      if (cd) res.setHeader('Content-Disposition', cd);
-      res.status(resp.status);
-      if (contentType.includes('application/json')) {
-        const data = await resp.json().catch(() => ({}));
-        return res.json(data);
-      }
-      const buf = Buffer.from(await resp.arrayBuffer());
-      return res.send(buf);
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json({ error: 'IND report proxy error', detail: err.message });
-    }
-  });
+  app.all("/api/ind-report/*", optionalAuth, backendPassthrough("IND report"));
 
   // Proxy /api/regulatory/* to the Galaxy backend. These are galaxy-served routes
   // (active_adapter, generate_smoke, generate_stream, feedback/queue) that the
@@ -5086,42 +5434,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // which had no /api/regulatory handler). Mirrors the /api/ind-report/* proxy
   // above. Does NOT shadow the frontend's own /api/regulatory_llm/* routes — the
   // `/api/regulatory/` prefix (trailing slash) cannot match `/api/regulatory_llm/`.
-  app.all("/api/regulatory/*", optionalAuth, async (req: any, res: any) => {
+  app.all("/api/regulatory/*", optionalAuth, backendPassthrough("regulatory"));
+
+  // Grounded Standards Assistant — evidence-tiered, provenance-honest answering.
+  // Proxies POST /api/grounded/answer to the Galaxy backend router
+  // (webapps/galaxy/api/grounded.py), which resolves the tenant from the
+  // authenticated Galaxy session so isolation cannot be spoofed by the caller.
+  // Mirrors the /api/regulatory/* proxy above.
+  app.all("/api/grounded/*", optionalAuth, backendPassthrough("grounded"));
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DL upgrade wave-1/wave-2 — Models + Design&Generate surfaces.
+  // Proxy the Galaxy-served WS1 endpoints to the browser, mirroring the
+  // /api/ind-report/* and /api/regulatory/* proxies above (optionalAuth,
+  // user's decrypted Galaxy API key with GALAXY_API_KEY fallback, JSON or
+  // binary passthrough). Consumed by frontend components/models/* and
+  // components/design-generate/*:
+  //   GET  /api/models                       (registry list)
+  //   GET  /api/models/:id                   (model object)
+  //   POST /api/models/:id/infer             (submit inference)
+  //   GET  /api/inference/:runId/result      (poll inference result)
+  //   GET  /api/model-tracks/train           (Train track: training runs)
+  //   GET  /api/model-tracks/adapt           (Adapt track: learned edit pairs)
+  //   GET  /api/model-tracks/optimise        (Optimise track: DMTA loop)
+  //   POST /api/generate                     (submit generation)
+  //   GET  /api/generate/:runId              (poll generation run)
+  // A single shared handler keeps behavior identical across all six.
+  const _dlProxyHandler = backendPassthrough("DL surface");
+
+  // Dedicated handler for the Adapt-track retrain: proxy to Galaxy (the job runs
+  // synchronously there — queued → running → succeeded via the worker tick),
+  // then register it as a FIRST-CLASS run so it appears in the Runs dashboard
+  // alongside Nextflow runs. It is tagged workflow_type:"training" and
+  // executionEngine:"pipeline" — never faked as a Nextflow subprocess. The run
+  // reflects the terminal status Galaxy returned (no long-poll needed).
+  const _adaptRetrainHandler = async (req: any, res: any) => {
+    // 1) proxy to Galaxy exactly like _dlProxyHandler, but capture the JSON.
+    let galaxyJson: any = {};
+    let galaxyStatus = 200;
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const fullPath = `${req.path}${queryStr}`;
-      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
-      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
-      const headers: Record<string, string> = {
-        'Content-Type': req.headers['content-type'] || 'application/json',
-        'X-API-Key': apiKey,
-      };
-      const fetchOpts: RequestInit = {
-        method: req.method.toUpperCase(),
-        headers,
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
         signal: AbortSignal.timeout(120000),
-      };
-      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
-        fetchOpts.body = JSON.stringify(req.body);
-      }
-      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
-      const contentType = resp.headers.get('content-type') || 'application/json';
-      res.setHeader('Content-Type', contentType);
-      const cd = resp.headers.get('content-disposition');
-      if (cd) res.setHeader('Content-Disposition', cd);
-      res.status(resp.status);
-      if (contentType.includes('application/json')) {
-        const data = await resp.json().catch(() => ({}));
-        return res.json(data);
-      }
-      const buf = Buffer.from(await resp.arrayBuffer());
-      return res.send(buf);
+      });
+      galaxyStatus = resp.status;
+      galaxyJson = await resp.json().catch(() => ({}));
     } catch (err: any) {
       const status = err.response?.status || 502;
-      return res.status(status).json({ error: 'regulatory proxy error', detail: err.message });
+      return res.status(status).json({ error: 'DL surface proxy error', detail: err.message });
     }
-  });
+
+    // 2) Best-effort: register a first-class run reflecting the job outcome.
+    //    A failure to register must NOT change the API response the UI sees.
+    try {
+      const userId = (req as any).user?.id || undefined;
+      const projectId = (req.query?.project as string) || undefined;
+      // Galaxy job status → dashboard status vocabulary.
+      const jobStatus = String(galaxyJson?.status || 'queued');
+      const dashStatus: ExecutionRunStatus =
+        jobStatus === 'succeeded' ? 'completed'
+        : jobStatus === 'failed' || jobStatus === 'cancelled' ? 'failed'
+        : jobStatus === 'running' ? 'running'
+        : 'queued';
+      const pairCount = galaxyJson?.edit_pair_count;
+      const run = await storage.createExecutionRun(
+        {
+          workflowDefinition: {
+            name: 'Adaptation retrain',
+            workflow_type: 'training',
+            description:
+              typeof galaxyJson?.message === 'string' && galaxyJson.message
+                ? galaxyJson.message
+                : 'Retrain over the active edit pairs (prompt-rules compile).',
+            steps: {
+              '1': { label: 'Compile edit pairs', tool_id: 'adapt_compile' },
+            },
+          },
+          executionConfig: { mode: 'production', executionEngine: 'pipeline' },
+        } as any,
+        userId,
+        projectId,
+      );
+      // Reflect the terminal status the job already reached.
+      await storage.updateExecutionRunStatus(
+        run.id,
+        dashStatus,
+        dashStatus === 'failed' ? String(galaxyJson?.message || 'retrain failed') : undefined,
+      );
+      if (dashStatus === 'completed') {
+        await storage.updateExecutionRunProgress(run.id, 1, 0, 'Compile edit pairs');
+      }
+      // Surface the run id so the UI can deep-link to it.
+      galaxyJson = { ...galaxyJson, runId: run.id, edit_pair_count: pairCount };
+    } catch (e: any) {
+      console.warn('[model-tracks] retrain run registration failed:', e?.message);
+    }
+
+    return res.status(galaxyStatus).json(galaxyJson);
+  };
+
+  // Bare-path matchers (Express "/*" wildcards require a following segment, so
+  // the collection roots are registered explicitly) plus their sub-paths.
+  app.all("/api/models", optionalAuth, _dlProxyHandler);
+  app.all("/api/models/*", optionalAuth, _dlProxyHandler);
+  // Project-scoped Models track reads (Train / Adapt / Optimise). Distinct
+  // prefix so they don't fall under the greedy /api/models/:id detail route.
+  // The retrain POST is registered FIRST (more specific) so it can register a
+  // first-class run; everything else falls through to the shared proxy.
+  app.post("/api/model-tracks/adapt/retrain", optionalAuth, _adaptRetrainHandler);
+  app.all("/api/model-tracks/*", optionalAuth, _dlProxyHandler);
+  app.all("/api/inference/*", optionalAuth, _dlProxyHandler);
+  app.all("/api/generate", optionalAuth, _dlProxyHandler);
+  app.all("/api/generate/*", optionalAuth, _dlProxyHandler);
+  // Tier-1 data surface — perception-at-ingest profiler.
+  //   POST /api/perception/profile  { datasetRef }  -> DataProfile (+ planImpact)
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
+  // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
+  app.all("/api/perception/*", optionalAuth, _dlProxyHandler);
+  // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
+  //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step
+  //   GET  /api/datasets/:ref/consumers  -> runs that read it as input
+  //   GET  /api/datasets/:ref/versions   -> version history (v1 + append log)
+  //   POST /api/datasets/:ref/versions   -> append a version-log entry { note }
+  //   GET  /api/datasets/:ref/ro-crate   -> RO-Crate metadata (download)
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/datasets_object.py. Derived
+  // from run-output provenance + input params BioMate already tracks + an
+  // append-only version log; honest empty lists / minimal crate where a source
+  // doesn't exist. Consumed by components/datasets/* (DatasetObject
+  // Lineage/Consumers/Versions tabs + Export RO-Crate). app.all forwards every
+  // method (incl. the POST body) — the single wildcard already covers the new
+  // versions-POST + ro-crate-GET routes, no extra registration needed.
+  // Same proxy as /api/models. :ref is URL-encoded by the client (S3 keys /
+  // paths contain "/"); the backend catch-all + urldecode handles it.
+  app.all("/api/datasets/*", optionalAuth, _dlProxyHandler);
+
+  // Server-side lane arbiter — the composer's LanePreview calls this on a
+  // debounce so its advisory Instant/Cloud verdict matches how the query will
+  // actually route (spec 00 §0.3, §2.2). Same proxy as /api/models.
+  //   POST /api/route/classify  { text }  -> { lane, domain, why, intent, confidence }
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py (route_classify),
+  // wrapping the real UnifiedIntentRouter. Advisory + non-blocking; the client
+  // falls back to its local heuristic on error/timeout.
+  app.all("/api/route/*", optionalAuth, _dlProxyHandler);
 
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
@@ -5173,11 +5632,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { invocationId } = req.params;
       const inv = await storage.getInvocation(invocationId).catch(() => null);
       const backendId = inv?.galaxyInvocationId || invocationId;
+
+      // Resolve the durable run record up front. The Galaxy backend's in-memory
+      // run store only tracks ACTIVE runs, so only this Node layer (Postgres)
+      // can map a reopened/completed invocation to its outdir/domain. Pass those
+      // to the backend so it can evaluate QC gates on-demand from the durable S3
+      // outputs when the live monitor is gone (the common case: AWS Batch runs
+      // whose Galaxy-side completion thread was orphaned never ran QC at all, so
+      // there is no live monitor, no audit log, AND no sidecar yet).
+      const run = (await storage.getExecutionRun(invocationId).catch(() => null))
+        || (await storage.getExecutionRunByGalaxyId(invocationId).catch(() => null));
+      const storedOutdir: string = (run as any)?.execution?.nextflowOutputDir || '';
+      const nfRunId: string = (run as any)?.execution?.nextflowRunId || (run as any)?.id || '';
+      const storedWorkdir: string = (run as any)?.execution?.nextflowWorkDir || '';
+      const wfDomain: string = (run as any)?.workflowDefinition?.domain || '';
+      const onDemandParams: Record<string, string> = { ...(req.query || {}) };
+      if (storedOutdir) onDemandParams.outdir = storedOutdir;
+      if (wfDomain) onDemandParams.workflow_domain = wfDomain;
+      if (nfRunId) onDemandParams.run_id = nfRunId;
+      if (storedWorkdir) onDemandParams.workdir = storedWorkdir;
+
       const response = await (galaxyAPIProxy.client as any).get(
         `/api/invocations/${backendId}/qc-events`,
-        { params: req.query }
+        { params: onDemandParams }
       );
-      return res.status(response.status).json(response.data);
+      const qd: any = response.data;
+      // Backend served a report (live_monitor / audit_jsonl / s3_ondemand) → done.
+      const noLiveQc = qd && (qd.source === 'not_found' ||
+        (Array.isArray(qd.events) && qd.events.length === 0 && Number(qd.gates_triggered || 0) === 0));
+      if (noLiveQc && run) {
+        // Secondary net: if on-demand eval didn't produce a report but a sidecar
+        // exists from a prior evaluation, serve it directly via presign.
+        try {
+          const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+          const sidecarBase = storedOutdir || `s3://${s3Bucket}/nextflow/outputs/${nfRunId}`;
+          const s3Uri = `${sidecarBase.replace(/\/?$/, '')}/output/qc_events.json`;
+          const galaxyUrl2 = process.env.GALAXY_URL || 'http://localhost:8081';
+          const presignResp = await fetch(
+            `${galaxyUrl2}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=${nfRunId}&presigned_only=1`,
+            { signal: AbortSignal.timeout(5_000) }
+          );
+          if (presignResp.ok) {
+            const { url } = await presignResp.json() as { url: string };
+            const dataResp = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+            if (dataResp.ok) {
+              const report = await dataResp.json() as any;
+              return res.status(200).json({ ...report, events: normalizeQcEvents(report) });
+            }
+          }
+        } catch { /* sidecar unavailable — serve the backend response as-is */ }
+      }
+      return res.status(response.status).json({ ...qd, events: normalizeQcEvents(qd) });
     } catch (err: any) {
       const status = err.response?.status || 502;
       // AfterRunReport hides the tab on any non-200; a 404 here is the
@@ -5214,11 +5719,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/workflows/:name/citations", async (req: any, res: any) => {
     try {
       const { name } = req.params;
-      const response = await (galaxyAPIProxy.client as any).get(
-        `/api/workflows/${encodeURIComponent(name)}/citations`,
-        { params: req.query }
+      // The Galaxy side exposes POST /api/ai_assistant/workflow_citations
+      // (resolves the workflow by name → _build_workflow_citations: curated
+      // tool_knowledge + domain-landmark papers, NOT the confabulation-prone
+      // literature path). It returns a bare array; the frontend accepts either
+      // an array or { citations }.
+      const response = await (galaxyAPIProxy.client as any).post(
+        `/api/ai_assistant/workflow_citations`,
+        { name }
       );
-      return res.status(response.status).json(response.data);
+      const data = response.data;
+      const citations = Array.isArray(data) ? data : (data?.citations || []);
+      return res.status(200).json({ citations, count: citations.length });
     } catch (err: any) {
       const status = err.response?.status || 404;
       return res.status(status).json(err.response?.data || { citations: [], count: 0 });
@@ -5641,7 +6153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .join('\n');
 
         // If no AI key, produce a structured template without LLM synthesis
-        if (!apiKey) {
+        if (!apiKey && !localOnly()) {
           const fallback = [
             `BioMate AI — Report`,
             `${'='.repeat(60)}`,
@@ -5821,7 +6333,7 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
         // ── Step-by-step report generation with Claude Sonnet 4.5 ─────────────
         // Route through the canonical fallback chain
         // (backend/config/llm_providers.yml: gemini-3.1-pro-preview primary,
-        // gemini-3.5-flash-preview / claude-sonnet-4-5 / gpt-4o / qwen3:32b
+        // gemini-3.8-flash-preview / claude-sonnet-4-5 / gpt-4o / qwen3:32b
         // fallbacks). Replaces the previous direct Anthropic SDK call that
         // hardcoded claude-sonnet-4-5 and bypassed the YAML chain.
         const { llmGenerate } = await import('./llm-client');
@@ -6248,7 +6760,20 @@ ${paramLines || '(none recorded)'}`;
           const { memoryService } = await import('./memory-repository');
           const _u = req.user as any;
           await memoryService.ensureLtmUser(String(_u.id), _u.email, _u.fullName ?? _u.name);
-          _resolvedProjectId = (await memoryService.resolveProjectForChat(context?.projectId)) ?? undefined;
+          // A project id is client supplied, so it is only a *candidate*.
+          // Resolve it through the legacy policy helper, then enforce the
+          // same owner/member boundary as project files/runs before using it
+          // for project context, LTM association, or persistence.  Without
+          // this gate an authenticated caller could attach a guessed project
+          // UUID and receive its research goal/instructions in the prompt.
+          const requestedProjectId = await memoryService.resolveProjectForChat(context?.projectId);
+          if (requestedProjectId && await _isOwnerOrMember(requestedProjectId, String(_u.id))) {
+            _resolvedProjectId = requestedProjectId;
+          } else if (requestedProjectId) {
+            // Do not reveal whether the project exists; treat it exactly like
+            // an absent project and keep the chat project-less.
+            console.warn('[chat-stream] ignoring unauthorized project context');
+          }
           if (_resolvedSessionId) {
             _ltmSessionUuid = await memoryService.ensureChatLtmSession(
               String(_u.id),
@@ -6298,6 +6823,40 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Standing instructions the user explicitly promoted from a Search &
+      // evidence answer ("Make instruction"). Injected SELECTIVELY: discrete
+      // rows (not one ever-growing blob), project-scoped, and capped so a long
+      // list can never flood the prompt. Each line is length-bounded too.
+      if (_resolvedProjectId) {
+        try {
+          const _instr = await memoryService.projects.getProjectKnowledge(
+            _resolvedProjectId,
+            'project_instruction',
+          );
+          const _lines = (_instr || [])
+            .map((k: any) => String(k.content ?? '').trim())
+            .filter(Boolean)
+            .slice(0, 8)
+            .map((l: string) => `- ${l.slice(0, 300)}`);
+          if (_lines.length) {
+            const _block = `Standing instructions set by the user (apply when relevant):\n${_lines.join('\n')}`;
+            _projectContext = _projectContext ? `${_projectContext}\n${_block}` : _block;
+          }
+        } catch {
+          // Non-fatal — never break chat on an instruction lookup failure.
+        }
+      }
+
+      // Composer instructions are deliberately request-scoped: a user can
+      // steer one chat without silently overwriting the project's standing
+      // instructions. Keep a bounded, normalized value before it reaches an
+      // LLM prompt. Non-string input is ignored rather than coerced.
+      const composerContext = appendComposerInstructions(
+        _projectContext,
+        context?.composerInstructions,
+      );
+      _projectContext = composerContext.projectContext;
+
       // Load user's own LLM keys if stored; decrypt for this request only.
       let _userAnthropicApiKey: string | undefined;
       let _openrouterKey: string | undefined;
@@ -6343,6 +6902,113 @@ ${paramLines || '(none recorded)'}`;
         _openaiBaseUrl = process.env.LLM_API_URL || undefined;
         if (!_selectedModel) _selectedModel = process.env.LLM_MODEL || process.env.GALAXY_AI_LLM_MODEL || 'qwen-max';
       }
+      // Resolve chat dataset references BEFORE building enrichedContext.
+      // Session-cached datasets resolve synchronously, but a file the user
+      // picked from the "Project files" tab arrives as a project_files.id UUID
+      // that is NOT in this session cache — resolving it needs an authorized DB
+      // lookup + Batch staging (both async), so it can't live inside the object
+      // literal. Exact-id resolution only: never a same-named or newer file.
+      const _sessionDatasetsResolved = await (async () => {
+        const direct: Array<any> = req.session?.uploadedDatasets?.length
+          ? req.session.uploadedDatasets.map((d: any) => ({
+              id: d.galaxy_dataset_id || d.dataset_id,
+              name: d.name,
+              type: d.file_type || 'unknown',
+              file_path: d.file_path || null,
+              param_name: d.param_name || null,
+              // s3_uri: durable S3 reference for Nextflow/Batch params
+              // (use id for run_code/read_file; use s3_uri for workflow params)
+              s3_uri: d.s3_uri || null,
+            }))
+          : (_historyDatasets ?? []);
+        // Dedupe: a recovered entry whose id is already in direct is dropped.
+        const seen = new Set(direct.map((d: any) => d.id));
+        const recovered = _recoveredDatasets
+          .filter((r) => !seen.has(r.id))
+          .map((r) => ({
+            id: r.id,
+            name: r.name,
+            type: r.type,
+            file_path: null,
+            param_name: null,
+            recovered: true,
+            sourceSessionId: r.sourceSessionId,
+          }));
+        const combined = [...direct, ...recovered];
+        const requestedReferences = Array.isArray(context?.datasetReferences)
+          ? context.datasetReferences
+              .filter((reference: any): reference is DatasetReference =>
+                !!reference && typeof reference.id === 'string' && reference.id.trim().length > 0,
+              )
+              .slice(0, MAX_DATASET_REFS)
+          : undefined;
+        const selection = selectReferencedDatasets(combined, requestedReferences);
+        if (requestedReferences?.length) {
+          console.log(`[chat-stream] request dataset selection: ${selection.datasets.length}/${requestedReferences.length} resolved`);
+        }
+        const byId = new Map(selection.datasets.map((dataset: any) => [dataset.id, dataset]));
+
+        // Server-side project-file resolution. References not found in the
+        // session cache may be files the user picked from the "Project files"
+        // tab (project_files.id UUIDs). Resolve them against the AUTHORIZED
+        // project only — owner/member gate + exact id match, never by name —
+        // then stage the exact s3_key into the Batch-readable bucket so a
+        // selectable file is also runnable. Cross-project / deleted / unknown
+        // ids stay unresolved; we never substitute a same-named or newer file.
+        const _uid = req.user ? String((req.user as any).id) : undefined;
+        const _stagedCache = (req.session as any) ?? undefined;
+        if (_stagedCache && !_stagedCache.stagedProjectFileUris) _stagedCache.stagedProjectFileUris = {};
+        const projectFileResolved = await resolveProjectFileReferences(
+          (selection.missingIds ?? []).map((id) => ({ id })),
+          _resolvedProjectId,
+          _uid,
+          {
+            isOwnerOrMember: _isOwnerOrMember,
+            queryFilesByIds: async (pid, ids) =>
+              (await pool.query(
+                `SELECT id, name, s3_key FROM project_files WHERE project_id = $1 AND id = ANY($2::uuid[])`,
+                [pid, ids],
+              )).rows,
+            stageToBatch: (s3Key, pid, fileName) =>
+              _stageProjectFileToNextflow(process.env.S3_BUCKET_NAME || '', s3Key, pid, fileName),
+            cacheGet: (id) => _stagedCache?.stagedProjectFileUris?.[id],
+            cacheSet: (id, uri) => { if (_stagedCache?.stagedProjectFileUris) _stagedCache.stagedProjectFileUris[id] = uri; },
+          },
+        );
+        if (projectFileResolved.size) {
+          console.log(`[chat-stream] resolved ${projectFileResolved.size} project-file reference(s) to authorized S3 inputs`);
+        }
+
+        // A history-selected dataset may not be cached in this Express session
+        // yet. Keep its exact ID for on-demand resolution rather than falsely
+        // treating it as unavailable or substituting another session dataset
+        // with the same name.
+        const exactSelection = requestedReferences?.map((reference: { id: string; name?: string }) =>
+          byId.get(reference.id)
+          ?? projectFileResolved.get(reference.id)
+          ?? {
+            id: reference.id,
+            name: reference.name || reference.id,
+            type: 'selected reference',
+            referenceUnresolved: true,
+          },
+        );
+        // Unresolved = requested references resolved by neither the session
+        // cache nor the authorized project files. A file that resolved but
+        // failed to stage (s3_uri=null) is NOT unresolved — it degrades to
+        // execute-time by-name staging.
+        // Guard: `context` is undefined when the request body omits a `context`
+        // field (the normal case for a plain chat message) — assigning onto it
+        // unconditionally crashed the whole /api/chat/stream path. Downstream
+        // readers (6293, 6490, 10225) all tolerate the field being absent.
+        if (context) {
+          (context as any).datasetReferenceUnresolvedIds = (selection.missingIds ?? [])
+            .filter((id) => !projectFileResolved.has(id));
+        }
+        return exactSelection?.length
+          ? exactSelection
+          : (combined.length > 0 ? combined : undefined);
+      })();
 
       const enrichedContext = {
         ...(context || {}),
@@ -6351,6 +7017,7 @@ ${paramLines || '(none recorded)'}`;
         sessionId: _resolvedSessionId,
         projectId: _resolvedProjectId,
         projectContext: _projectContext,
+        composerInstructions: composerContext.composerInstructions,
         userAnthropicApiKey: _userAnthropicApiKey,
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
@@ -6363,8 +7030,11 @@ ${paramLines || '(none recorded)'}`;
         previousMessages: _historyMessages,
         billingUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
-        // Inject integer userId so memory-integration can load user preferences/corrections
-        userId: req.user ? Number((req.user as any).id) : (context?.userId),
+        // The user's id as stored (UUID). It was Number(id) — NaN for UUID ids, and NaN is falsy, so
+        // every per-user chat feature keyed on context.userId was silently skipped: recent runs and
+        // their errors, cross-session/episode/correction memory, domain profile (found 2026-11-04 when
+        // "why is the run failing?" got no run context although the account had 246 failed runs).
+        userId: req.user ? (req.user as any).id : (context?.userId),
         // Session-uploaded datasets: activates WorkflowDatasetSelector + domain-specialist format context
         // file_path is included so AI can auto-populate file-type params (e.g. movies_path, reads, input).
         // When the in-memory Express session has none (e.g. cross-device, post-refresh), fall back to
@@ -6376,35 +7046,10 @@ ${paramLines || '(none recorded)'}`;
         // direct ones. The sessionDatasetsBlock in galaxy-assistant.ts
         // labels recovered ones distinctly so the LLM doesn't claim the
         // user just attached them.
-        sessionDatasets: (() => {
-          const direct: Array<any> = req.session?.uploadedDatasets?.length
-            ? req.session.uploadedDatasets.map((d: any) => ({
-                id: d.galaxy_dataset_id || d.dataset_id,
-                name: d.name,
-                type: d.file_type || 'unknown',
-                file_path: d.file_path || null,
-                param_name: d.param_name || null,
-                // s3_uri: durable S3 reference for Nextflow/Batch params
-                // (use id for run_code/read_file; use s3_uri for workflow params)
-                s3_uri: d.s3_uri || null,
-              }))
-            : (_historyDatasets ?? []);
-          // Dedupe: a recovered entry whose id is already in direct is dropped.
-          const seen = new Set(direct.map((d: any) => d.id));
-          const recovered = _recoveredDatasets
-            .filter((r) => !seen.has(r.id))
-            .map((r) => ({
-              id: r.id,
-              name: r.name,
-              type: r.type,
-              file_path: null,
-              param_name: null,
-              recovered: true,
-              sourceSessionId: r.sourceSessionId,
-            }));
-          const combined = [...direct, ...recovered];
-          return combined.length > 0 ? combined : undefined;
-        })(),
+        sessionDatasets: _sessionDatasetsResolved,
+        datasetReferenceUnresolvedIds: (context as any)?.datasetReferenceUnresolvedIds?.length
+          ? (context as any).datasetReferenceUnresolvedIds
+          : undefined,
         // Per-tool credential map built from user's vault — forwarded to AI backend for routing
         credentialMap: credentialMap || undefined,
         // Per-request Galaxy proxy scoped to the authenticated user's own
@@ -6412,6 +7057,8 @@ ${paramLines || '(none recorded)'}`;
         // generate_workflow doesn't fall back to the shared admin key, which
         // returns 401 from Galaxy whenever its api_keys row is missing/rotated.
         galaxyAPIOverride: req.user ? userProxy(req) : undefined,
+        // Never expose the shared admin's private skill namespace via proxy fallback.
+        skillPrivateAccess: hasPersonalSkillAccess(req.user as any),
       };
 
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
@@ -6422,13 +7069,15 @@ ${paramLines || '(none recorded)'}`;
             safeMessage,
             enrichedContext as unknown as MemoryEnhancedContext,
             (chunk) => safeSend("delta", { text: chunk }),
-            (event) => safeSend("tool_event", event)
+            (event) => safeSend("tool_event", event),
+            (stage, detail) => safeSend("progress", { stage, detail })
           )
         : await galaxyAssistant.processMessage(
             safeMessage,
             enrichedContext,
             (chunk) => safeSend("delta", { text: chunk }),
-            (event) => safeSend("tool_event", event)
+            (event) => safeSend("tool_event", event),
+            (stage, detail) => safeSend("progress", { stage, detail })
           );
 
       let prerequisitesValidation = null;
@@ -6462,13 +7111,11 @@ ${paramLines || '(none recorded)'}`;
         }, 'support@biomate.ai').catch((e: any) => console.error('[EmailAlert] send failed:', e.message));
       }
 
-      const runnableWorkflow = !!(
-        workflowPayload?.success &&
-        !workflowPayload?.error &&
-        (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path ||
-         workflowPayload?.workflow_type === "chain" || workflowPayload?.chain_name ||
-         workflowPayload?.workflow_type === "cryosparc")
-      );
+      // Single source of truth in ./workflow-runnable (unit-tested in
+      // workflow-runnable.test.ts). Accepts workflow_ga / nextflow_path / chain /
+      // cryosparc / a non-empty 'pipeline' card (processSequentialPipeline), all with
+      // success && !error.
+      const runnableWorkflow = isRunnableWorkflow(workflowPayload);
       const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
 
       const workflowGenerationDiagnostics = (() => {
@@ -6615,7 +7262,7 @@ ${paramLines || '(none recorded)'}`;
               'claude-sonnet-4-6':          {i:  3.00,  o: 15.00},
               'claude-sonnet-4-5-20250929': {i:  3.00,  o: 15.00},
               'claude-haiku-4-5-20251001':  {i:  0.25,  o:  1.25},
-              'gemini-3.5-flash':     {i:  0.075, o:  0.30},
+              'gemini-3.8-flash':     {i:  0.075, o:  0.30},
             };
             const p = pricing[model] ?? {i: 3.00, o: 15.00};
             const cost = (inTok * p.i + outTok * p.o) / 1_000_000;
@@ -6626,6 +7273,10 @@ ${paramLines || '(none recorded)'}`;
         isMultiIntent: assistantResponse.isMultiIntent || false,
         researchResponse: assistantResponse.researchResponse,
         benchmarkEvidence: assistantResponse.benchmarkEvidence,
+        // Surface the ids this turn's selected references could NOT resolve to a
+        // real, authorized dataset, so the client can thread them into the
+        // execute request and the server-side gate (inputs_unresolved) engages.
+        datasetReferenceUnresolvedIds: (enrichedContext as any).datasetReferenceUnresolvedIds,
       };
 
       // Normalize slug-style workflow names to human-readable display names in the payload
@@ -6752,7 +7403,8 @@ ${paramLines || '(none recorded)'}`;
         // For chain results workflow_ga is empty; surface chain_display_name + step names
         // so consumers (routing eval, UI) can identify constituent workflows.
         const chainStepNames: string[] = (workflowPayload.chain_steps || [])
-          .map((s: any) => s.workflow_name || s.name || "")
+          // Curated chains send step names as strings; composed chains send step objects.
+          .map((s: any) => (typeof s === "string" ? s : s?.workflow_name || s?.name || ""))
           .filter(Boolean);
         safeSend("workflow_ready", {
           // workflow_name resolution order:
@@ -6823,7 +7475,7 @@ ${paramLines || '(none recorded)'}`;
         return res.status(400).json({ error: "messages array is required" });
       }
 
-      if (!process.env.ANTHROPIC_API_KEY) {
+      if (!process.env.ANTHROPIC_API_KEY && !localOnly()) {
         return res.status(503).json({
           error: "Context compression not available. ANTHROPIC_API_KEY is not configured."
         });
@@ -6836,7 +7488,7 @@ ${paramLines || '(none recorded)'}`;
       });
 
       // Get compressor instance
-      const compressor = getContextCompressor(process.env.ANTHROPIC_API_KEY);
+      const compressor = getContextCompressor(process.env.ANTHROPIC_API_KEY || '');
 
       // Compress messages
       const result = await compressor.compressMessages(messages, {
@@ -7340,7 +7992,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/users/credentials/map');
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7350,7 +8002,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/users/credentials', { params: req.query });
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7360,7 +8012,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.post('/api/users/credentials', req.body);
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7370,7 +8022,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.delete(`/api/users/credentials/${req.params.toolId}`);
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7406,7 +8058,7 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/users/credentials', { params: { tool: 's3' } });
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -7416,7 +8068,123 @@ ${paramLines || '(none recorded)'}`;
       const response = await proxy.client.get('/api/nextflow/license-requirements', { params: req.query });
       res.json(response.data);
     } catch (error: any) {
-      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Private DB connections (Capability A) — proxy to Galaxy backend private_db_api.
+  // Executor runs in the Galaxy backend (SQLAlchemy driver + Vault-stored creds).
+  // Node only forwards; it never sees or stores DB credentials.
+  // Routes target /api/biomate/* (NOT /api/users/*) to avoid the Galaxy
+  // /api/users/{user_id} collision — see 20260923 fix.
+  // ---------------------------------------------------------------------------
+  app.get("/api/databases/connections", optionalAuth, async (req, res) => {
+    try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
+      const proxy = userProxy(req);
+      const response = await proxy.client.get('/api/biomate/db-connections');
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
+    }
+  });
+
+  app.post("/api/databases/connections", optionalAuth, express.json(), async (req, res) => {
+    try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
+      const proxy = userProxy(req);
+      const response = await proxy.client.post('/api/biomate/db-connections', req.body);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
+    }
+  });
+
+  app.delete("/api/databases/connections/:connId", optionalAuth, async (req, res) => {
+    try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
+      const proxy = userProxy(req);
+      const response = await proxy.client.delete(`/api/biomate/db-connections/${encodeURIComponent(req.params.connId)}`);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
+    }
+  });
+
+  // Test a saved connection (SELECT 1 + list schemas)
+  app.post("/api/databases/connections/:connId/test", optionalAuth, async (req, res) => {
+    try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
+      const proxy = userProxy(req);
+      const response = await proxy.client.post(`/api/biomate/db-connections/${encodeURIComponent(req.params.connId)}/test`, {});
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
+    }
+  });
+
+  // Verify raw params before saving
+  app.post("/api/databases/connections/verify", optionalAuth, express.json(), async (req, res) => {
+    try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
+      const proxy = userProxy(req);
+      const response = await proxy.client.post('/api/biomate/db-connections/verify', req.body);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // External MCP servers (Capability B) — proxy to Galaxy backend external_mcp_api.
+  // The registry (SSRF check + stdio-reject + per-user Vault ownership) lives in
+  // the Galaxy backend; Node only forwards via the user-scoped proxy. Auth headers
+  // never touch Node — they are stored encrypted in Vault by the backend.
+  // Matches the mcp-server-form.tsx contract: /api/mcp/servers GET/POST/DELETE.
+  // ---------------------------------------------------------------------------
+  app.get("/api/mcp/servers", optionalAuth, async (req, res) => {
+    try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
+      const proxy = userProxy(req);
+      const response = await proxy.client.get('/api/biomate/mcp-servers');
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
+    }
+  });
+
+  app.post("/api/mcp/servers", optionalAuth, express.json(), async (req, res) => {
+    try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
+      const proxy = userProxy(req);
+      const response = await proxy.client.post('/api/biomate/mcp-servers', req.body);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
+    }
+  });
+
+  app.delete("/api/mcp/servers/:serverId", optionalAuth, async (req, res) => {
+    try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
+      const proxy = userProxy(req);
+      const response = await proxy.client.delete(`/api/biomate/mcp-servers/${encodeURIComponent(req.params.serverId)}`);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
+    }
+  });
+
+  // Re-run the tools/list handshake for a single server (discover / refresh tools).
+  app.post("/api/mcp/servers/:serverId/tools", optionalAuth, async (req, res) => {
+    try {
+      if (!(req as any).user?.id) return res.status(401).json({ error: "Authentication required" });
+      const proxy = userProxy(req);
+      const response = await proxy.client.post(`/api/biomate/mcp-servers/${encodeURIComponent(req.params.serverId)}/tools`, {});
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.status_code || error.response?.status || 500).json(error.detail || error.response?.data || { error: error.message });
     }
   });
 
@@ -8376,7 +9144,7 @@ ${paramLines || '(none recorded)'}`;
       if (['.nf', '.ga', '.yml', '.yaml'].includes(ext)) {
         cb(null, true);
       } else {
-        cb(new Error('Only .nf, .ga, .yml, and .yaml workflow files are supported'));
+        cb(new UnsupportedUploadTypeError('Only .nf, .ga, .yml, and .yaml workflow files are supported'));
       }
     },
   });
@@ -8689,13 +9457,30 @@ ${paramLines || '(none recorded)'}`;
   // POST /api/skills/detect   — auto-detect from query
   // POST /api/skills/block    — build system prompt block for skill IDs
 
-  app.get("/api/skills", optionalAuth, async (_req, res) => {
+  app.get("/api/skills", optionalAuth, async (req, res) => {
     try {
-      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      const upstream = await fetch(`${galaxyUrl}/api/skills`);
-      res.status(upstream.status).json(await upstream.json());
+      const privateAccess = hasPersonalSkillAccess(req.user as any);
+      const upstream = await (privateAccess ? userProxy(req) : galaxyAPIBackend).client.get('/api/skills', {
+        params: { include_private: privateAccess, source: req.query.source, domain: req.query.domain },
+      });
+      res.status(upstream.status).json(upstream.data);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/skills/upload", authenticateToken, express.json({ limit: '300kb' }), async (req, res) => {
+    // A missing personal key must not turn this into a shared-admin upload.
+    if (!hasPersonalSkillAccess(req.user as any)) {
+      return res.status(409).json({ error: 'Personal Galaxy access is required to import private skills.' });
+    }
+    try {
+      const upstream = await userProxy(req).client.post('/api/skills/upload', {
+        content: req.body?.content, filename: req.body?.filename,
+      });
+      res.status(upstream.status).json(upstream.data);
+    } catch (err: any) {
+      res.status(err.status_code || 502).json({ error: err.detail?.detail || err.message });
     }
   });
 
@@ -8703,15 +9488,25 @@ ${paramLines || '(none recorded)'}`;
     try {
       const { query, preferred_domains } = req.body || {};
       if (!query) return res.status(400).json({ error: "query required" });
-      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      const upstream = await fetch(`${galaxyUrl}/api/skills/detect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, preferred_domains }),
+      const privateAccess = hasPersonalSkillAccess(req.user as any);
+      const upstream = await (privateAccess ? userProxy(req) : galaxyAPIBackend).client.post('/api/skills/detect', {
+        query, preferred_domains, include_private: privateAccess,
       });
-      res.status(upstream.status).json(await upstream.json());
+      res.status(upstream.status).json(upstream.data);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/skills/:skillId", authenticateToken, async (req, res) => {
+    if (!hasPersonalSkillAccess(req.user as any)) {
+      return res.status(409).json({ error: 'Personal Galaxy access is required to manage private skills.' });
+    }
+    try {
+      const upstream = await userProxy(req).client.delete(`/api/skills/${encodeURIComponent(req.params.skillId)}`);
+      res.status(upstream.status).json(upstream.data);
+    } catch (err: any) {
+      res.status(err.status_code || 502).json({ error: err.detail?.detail || err.message });
     }
   });
 
@@ -8719,15 +9514,13 @@ ${paramLines || '(none recorded)'}`;
     try {
       const { skill_ids } = req.body || {};
       if (!skill_ids?.length) return res.status(400).json({ error: "skill_ids required" });
-      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      const upstream = await fetch(`${galaxyUrl}/api/skills/block`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skill_ids }),
+      const privateAccess = hasPersonalSkillAccess(req.user as any);
+      const upstream = await (privateAccess ? userProxy(req) : galaxyAPIBackend).client.post('/api/skills/block', {
+        skill_ids, include_private: privateAccess,
       });
-      res.status(upstream.status).json(await upstream.json());
+      res.status(upstream.status).json(upstream.data);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      res.status(err.status_code || 502).json({ error: err.detail?.detail || err.message });
     }
   });
 
@@ -9170,6 +9963,23 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // Per-phase declared-skip + DAG-dependency analysis (spec 02 §2.5.1).
+  // Consumed by the SkipDependency panel in the workflow viewer.
+  app.get("/api/nextflow/skip-analysis", optionalAuth, async (req, res) => {
+    try {
+      const nfPath = String(req.query.nextflow_path || '');
+      if (!nfPath) return res.status(400).json({ error: "nextflow_path required" });
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const r = await fetch(`${galaxyUrl}/api/nextflow/skip-analysis?nextflow_path=${encodeURIComponent(nfPath)}`, {
+        headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' },
+      });
+      const data = await r.json();
+      res.status(r.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/invocations/:id/nextflow/status", async (req, res) => {
     try {
       const invocation = await storage.getInvocation(req.params.id);
@@ -9200,6 +10010,13 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get outputs for a specific invocation (also accepts ExecutionRun IDs)
+  // @deprecated (L1d) — SUPERSEDED by the canonical `GET /api/runs/:anyId/outputs`
+  //   (routes.ts, backed by runsOutputsService.list). That resolver is
+  //   restart-durable (persisted ExecutionRun + manifest) and returns canonical
+  //   `${runId}:${s3Key}` ids; this endpoint reads the in-memory invocation/
+  //   OutputDataset maps that die on a container recycle. Kept for one release
+  //   for any UI still calling it. Do NOT delete/redirect yet (see plan L1d —
+  //   MemStorage map demotion is deferred as too risky without the full migration).
   app.get("/api/invocations/:id/outputs", async (req, res) => {
     try {
       const resolveInvocation = async (identifier: string) => {
@@ -9711,12 +10528,13 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Get a specific output by ID
-  app.get("/api/outputs/:id", async (req, res) => {
+  app.get("/api/outputs/:id", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
       res.json(output);
     } catch (error: any) {
       console.error("Error fetching output:", error);
@@ -9725,20 +10543,37 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Download output file from Galaxy
-  app.get("/api/outputs/:id/download", async (req, res) => {
+  app.get("/api/outputs/:id/download", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
 
-      // Fetch file from Galaxy or local runtime artifact fallback.
+      // Fetch file from Galaxy, local runtime artifact, or S3. Nextflow outputs
+      // have neither a galaxyDatasetId nor a local path — their bytes live in S3
+      // (recorded at metadata.s3Uri). Without the S3 branch these outputs return
+      // "no downloadable source" even though they exist and are authorized.
       let fileStream: any;
       const localPath = String((output as any)?.metadata?.localPath || "");
+      const s3Uri = String((output as any)?.s3Uri || (output as any)?.metadata?.s3Uri || "");
       if (output.galaxyDatasetId) {
         fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
       } else if (localPath) {
         fileStream = createReadStream(localPath);
+      } else if (s3Uri) {
+        const m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+        if (!m) {
+          return res.status(404).json({ error: "Output has no downloadable source" });
+        }
+        const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+        const s3 = new S3Client({
+          region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || "us-east-1",
+          followRegionRedirects: true,
+        });
+        const obj: any = await s3.send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
+        fileStream = obj.Body;
       } else {
         return res.status(404).json({ error: "Output has no downloadable source" });
       }
@@ -9756,9 +10591,12 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Download all outputs for an invocation as ZIP
-  app.get("/api/invocations/:id/download-all", async (req, res) => {
+  app.get("/api/invocations/:id/download-all", authenticateToken, async (req, res) => {
     try {
-      // Accept either a WorkflowInvocation ID or an ExecutionRun ID.
+      // Accept a WorkflowInvocation ID, a galaxyInvocationId, or an ExecutionRun
+      // ID. Nextflow runs often have NO WorkflowInvocation PK row — their outputs
+      // are keyed by galaxyInvocationId and the owner lives on the ExecutionRun —
+      // so resolve the owning run by galaxy id / run id and authorize via that.
       let invocation = await storage.getInvocation(req.params.id);
       if (!invocation) {
         const byGalaxyId = await storage.getInvocationByGalaxyId(req.params.id);
@@ -9775,12 +10613,44 @@ ${paramLines || '(none recorded)'}`;
           }
         }
       }
+
+      // Fallback: no WorkflowInvocation row, but the id maps to an owning
+      // ExecutionRun (by galaxy id or run id). Authorize via the run and stream
+      // the outputs keyed by the galaxy id.
+      let ownerRun: any = undefined;
+      let outputKey = req.params.id;
+      let displayName = "workflow";
       if (!invocation) {
+        ownerRun =
+          (await storage.getExecutionRunByGalaxyId(req.params.id)) ||
+          (await storage.getExecutionRun(req.params.id));
+        if (ownerRun) {
+          outputKey = ownerRun.execution?.galaxyInvocationId || req.params.id;
+          displayName = ownerRun.workflowName || ownerRun.name || "workflow";
+        }
+      }
+
+      if (!invocation && !ownerRun) {
         return res.status(404).json({ error: "Invocation not found" });
       }
 
-      const outputs = await storage.getInvocationOutputs(invocation.id);
-      if (!outputs || outputs.length === 0) {
+      const accessInput = invocation
+        ? invocation
+        : { userId: ownerRun.userId ?? ownerRun.execution?.userId ?? null, projectId: ownerRun.projectId ?? null, galaxyInvocationId: outputKey };
+      const invAccess = await decideInvocationAccess(accessInput as any, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!invAccess.allowed) {
+        return res.status(invAccess.status).json({ error: invAccess.error });
+      }
+
+      // Outputs via the canonical resolver (L1b): it streams S3-backed nextflow
+      // outputs, which the old getInvocationOutputs path silently skipped (only
+      // galaxyDatasetId/localPath were archived). Fall back to the legacy store
+      // only when the resolver is empty (pure Galaxy invocations).
+      const { runsOutputsService: _rosZip } = await import("./services/runs-outputs-service");
+      const runResolverId = (ownerRun as any)?.id || (invocation as any)?.galaxyInvocationId || outputKey || req.params.id;
+      const canonical = await _rosZip.list(runResolverId);
+      const legacy = canonical.length ? [] : await storage.getInvocationOutputs(invocation ? invocation.id : outputKey);
+      if (canonical.length === 0 && legacy.length === 0) {
         return res.status(404).json({ error: "No outputs found for this invocation" });
       }
 
@@ -9788,7 +10658,9 @@ ${paramLines || '(none recorded)'}`;
       const archive = archiver('zip', { zlib: { level: 9 } });
 
       // Set response headers
-      const zipFilename = `${invocation.workflowName || 'workflow'}_outputs_${invocation.id.slice(0, 8)}.zip`;
+      const zipBase = invocation ? (invocation.workflowName || 'workflow') : displayName;
+      const zipId = (invocation ? invocation.id : outputKey).slice(0, 8);
+      const zipFilename = `${zipBase}_outputs_${zipId}.zip`;
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
 
@@ -9803,23 +10675,43 @@ ${paramLines || '(none recorded)'}`;
         }
       });
 
-      // Add each output to the archive
-      for (const output of outputs) {
+      // Stream canonical (S3) outputs directly from their s3Uri — the fix for the
+      // silent S3-skip. Names come from the resolver (already include extension).
+      if (canonical.length) {
+        const { S3Client: _S3Z, GetObjectCommand: _GZ } = await import("@aws-sdk/client-s3");
+        // Default credential chain + region redirects — the same path the record
+        // checksum + single-file download use successfully for these buckets.
+        const _s3z = new _S3Z({
+          region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || "us-east-1",
+          followRegionRedirects: true,
+        });
+        for (const o of canonical) {
+          try {
+            const m = (o.s3Uri || "").match(/^s3:\/\/([^/]+)\/(.+)$/);
+            if (!m) continue;
+            const obj: any = await _s3z.send(new _GZ({ Bucket: m[1], Key: m[2] }));
+            // Buffer fully before appending — archiver drops lazily-piped S3
+            // streams, yielding an empty zip.
+            const chunks: Buffer[] = [];
+            for await (const c of obj.Body as any) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+            archive.append(Buffer.concat(chunks), { name: o.name });
+          } catch (err) {
+            console.error(`Failed to add ${o.name} to archive:`, err);
+          }
+        }
+      }
+      // Legacy Galaxy outputs (galaxyDatasetId / localPath), only when the
+      // canonical resolver had nothing.
+      for (const output of legacy) {
         try {
           const localPath = String((output as any)?.metadata?.localPath || "");
           const fileStream = output.galaxyDatasetId
             ? await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId)
-            : localPath
-            ? createReadStream(localPath)
-            : null;
-          if (!fileStream) {
-            continue;
-          }
-          const filename = `${output.name}.${output.extension}`;
-          archive.append(fileStream, { name: filename });
+            : localPath ? createReadStream(localPath) : null;
+          if (!fileStream) continue;
+          archive.append(fileStream, { name: `${output.name}.${output.extension}` });
         } catch (err) {
           console.error(`Failed to add ${output.name} to archive:`, err);
-          // Continue with other files
         }
       }
 
@@ -9834,12 +10726,16 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Display output file (for images, HTML, etc.)
-  app.get("/api/outputs/:id/display", async (req, res) => {
+  // Auth (L1c): this endpoint previously had NO authorization — any caller could
+  // enumerate ids and stream another user's artifacts (IDOR). Gate it with the
+  // same run-level policy as the other single-file surfaces.
+  app.get("/api/outputs/:id/display", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
 
       // Content type map (used in both stream and S3-proxy paths below)
       const contentTypeMap: Record<string, string> = {
@@ -9898,12 +10794,13 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Preview output (first N lines for tables/text files)
-  app.get("/api/outputs/:id/preview", async (req, res) => {
+  app.get("/api/outputs/:id/preview", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
 
       if (output.fileType !== 'table' && output.fileType !== 'text') {
         return res.status(400).json({ error: "Preview not available for this file type" });
@@ -9972,12 +10869,13 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Parse bioinformatics file (VCF, FASTA, FASTQ, BED, GFF, GTF)
-  app.get("/api/outputs/:id/parse", async (req, res) => {
+  app.get("/api/outputs/:id/parse", authenticateToken, async (req, res) => {
     try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
+      const access = await decideOutputAccess(req.params.id, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!access.allowed) {
+        return res.status(access.status).json({ error: access.error });
       }
+      const output = access.output;
 
       const format = (req.query.format as string) || output.extension.toLowerCase();
       const limit = parseInt(req.query.limit as string) || 1000;
@@ -10202,6 +11100,20 @@ ${paramLines || '(none recorded)'}`;
         return res.status(400).json({ error: "workflowDefinition is required" });
       }
 
+      // Honest blocked state: never launch compute on a workflow whose
+      // generation failed. A generatedWorkflow carrying an error / success:false
+      // is not runnable — report the failure instead of dispatching a Batch job
+      // that would fail at launch.
+      const genFailure = detectGenerationFailure(request.workflowDefinition);
+      if (genFailure.failed) {
+        return res.status(400).json({
+          error: "workflow_generation_failed",
+          message: "This workflow was not generated successfully, so it cannot be run. No compute was launched.",
+          detail: genFailure.detail,
+          guidance: "Refine the request and regenerate the workflow; retry once a runnable workflow is produced.",
+        });
+      }
+
       // Server-side de-dup guard:
       // if this request is an explicit manual retry, block it while AutoFix is active
       // for the referenced failed run/invocation.
@@ -10338,18 +11250,51 @@ ${paramLines || '(none recorded)'}`;
       }
 
       // Check if workflow has input steps that require data
-      const steps = request.workflowDefinition.steps || {};
-      const inputSteps = Object.values(steps).filter((step: any) =>
-        step.type === 'data_input' || step.type === 'data_collection_input'
-      );
-
-      // Validate inputs are provided if workflow has input steps
       const inputs = Array.isArray(request.inputs) ? request.inputs : [];
-      if (inputSteps.length > 0 && inputs.length === 0) {
+      // Resolve this before the input gate. The launcher defaults unmarked
+      // workflows to Nextflow; using only explicit Nextflow metadata here used
+      // to accept data that the direct Nextflow path silently discarded.
+      const executionEngine = getWorkflowExecutionEngine(request.workflowDefinition);
+      const inputGate = validateWorkflowInputs(request.workflowDefinition, inputs, executionEngine);
+      if (inputGate.inputsInvalid) {
+        return res.status(400).json({
+          error: "invalid_workflow_inputs",
+          message: "Each workflow input must include a non-empty dataset id, source, and matching workflow step id. No compute was launched.",
+          inputStepsCount: inputGate.inputStepsCount,
+          invalidInputCount: inputGate.invalidInputCount,
+          guidance: "Re-select the dataset for each input step and retry.",
+        });
+      }
+      if (inputGate.inputsRequired) {
         return res.status(400).json({
           error: "inputs_required",
-          message: `Workflow has ${inputSteps.length} input step(s) but no inputs were provided`,
-          inputStepsCount: inputSteps.length
+          message: `Workflow needs datasets bound to ${inputGate.missingInputStepIds.length} data-input step(s) before it can run. No compute was launched.`,
+          inputStepsCount: inputGate.inputStepsCount,
+          missingInputStepIds: inputGate.missingInputStepIds,
+          guidance: "Attach a dataset to every listed input step and retry.",
+        });
+      }
+      if (inputGate.inputsUnsupportedForNextflow) {
+        return res.status(400).json({
+          error: "nextflow_inputs_not_supported",
+          message: "This Nextflow workflow declares data-input steps, but direct execution cannot yet bind supplied datasets to those steps. No compute was launched.",
+          inputStepsCount: inputGate.inputStepsCount,
+        });
+      }
+
+      // Honest blocked state: never launch with an input the client already
+      // knows is unresolved (chat could not bind it to a real, authorized
+      // dataset). We never substitute another/latest dataset for it.
+      const unresolvedInputIds = findUnresolvedInputs(
+        inputs,
+        request.datasetReferenceUnresolvedIds ?? request.executionConfig?.datasetReferenceUnresolvedIds,
+      );
+      if (unresolvedInputIds.length) {
+        return res.status(400).json({
+          error: "inputs_unresolved",
+          message: `${unresolvedInputIds.length} selected input(s) could not be resolved to a real dataset and were not substituted. No compute was launched.`,
+          unresolvedInputIds,
+          guidance: "Re-select the file(s) from your project and retry; do not run with an unresolved reference.",
         });
       }
 
@@ -10389,7 +11334,9 @@ ${paramLines || '(none recorded)'}`;
         const missingParams = reqParams.filter(
           (p: any) => p && p.name && isEmptyVal(p.value) && isEmptyVal(p.default),
         );
-        if (missingParams.length > 0 && request.executionConfig?.allowLowConfidence !== true) {
+        // A low-confidence override may acknowledge scientific uncertainty; it
+        // must never turn missing deterministic inputs into a Batch launch.
+        if (missingParams.length > 0) {
           return res.status(400).json({
             error: "missing_required_params",
             message: `Workflow "${request.workflowDefinition?.name || 'this workflow'}" needs ${missingParams.length} required parameter(s) before it can run. No compute was launched.`,
@@ -10405,10 +11352,213 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // ── Guard: differential-expression workflow with no count input ──────────
+      // A DE pipeline (differentialabundance / DESeq2 / edgeR / limma) reads a
+      // count matrix + samplesheet — it CANNOT read a GEO accession directly. The
+      // nfcore stub historically marked these inputs optional (required:[]), so an
+      // empty run could launch and die with an opaque work-directory error (the
+      // GSE12345 case). Block it here with an actionable message, and if a bare
+      // accession was named, redirect to the GEO ingest that actually fetches it.
+      // Also emits the previously-missing "named-but-unbound accession" log.
+      // See docs/20261102_ACCESSION_LAUNCH_INFO_FLOW_ISSUE_AND_FIX.md.
+      {
+        const isEmptyVal = (v: any) =>
+          v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+        const wfName = String(request.workflowDefinition?.name || '').toLowerCase();
+        const isDEWorkflow = /differential.?abundance|deseq2|\bedger\b|\blimma\b|differential.?expression/.test(wfName);
+        if (isDEWorkflow) {
+          const providedParams = request.params && typeof request.params === 'object' ? request.params : {};
+          const declaredParams = [
+            ...(Array.isArray(request.workflowDefinition?.required_params) ? request.workflowDefinition.required_params : []),
+            ...(Array.isArray(request.workflowDefinition?.optional_params) ? request.workflowDefinition.optional_params : []),
+          ];
+          const countKeys = ['matrix', 'counts', 'count_matrix', 'countmatrix', 'samplesheet', 'input', 'abundance', 'quants'];
+          const hasCountInput = countKeys.some(k =>
+            !isEmptyVal(providedParams[k]) ||
+            declaredParams.some((p: any) => p?.name === k && (!isEmptyVal(p.value) || !isEmptyVal(p.default))),
+          );
+          if (!hasCountInput) {
+            const ACCESSION_RE = /\b(GSE\d{3,}|GSM\d{3,}|SRR\d{5,}|SRP\d{5,}|SRX\d{5,}|PRJNA\d{4,}|PRJEB\d{4,}|E-\w+-\d+|PXD\d{5,})\b/i;
+            const inlineParams = request.workflowDefinition?.inline_parameters;
+            const haystack = [
+              ...Object.values(providedParams).map((v: any) => String(v ?? '')),
+              ...(request.inputs && typeof request.inputs === 'object' ? Object.values(request.inputs).map((v: any) => String(v ?? '')) : []),
+              String(request.workflowDefinition?.name ?? ''),
+              String(request.workflowDefinition?.description ?? ''),
+              ...(inlineParams && typeof inlineParams === 'object' ? Object.values(inlineParams).map((v: any) => String(v ?? '')) : []),
+            ].join('  ');
+            const accMatch = haystack.match(ACCESSION_RE);
+            if (accMatch) {
+              const acc = accMatch[0];
+              const isGeo = /^(GSE|GSM|GDS)\d+$/i.test(acc);
+              // GEO accession → AUTO-CHAIN: fetch it with geo_data_connector (which
+              // emits a count_matrix + sample_metadata) and wire those onto this DE
+              // workflow's matrix/samplesheet, then run DE. Uses the existing chain
+              // engine (/api/workflows/chain) — connections are 1-based (workflow_chain.py:363).
+              // See docs/20261102_ACCESSION_LAUNCH_INFO_FLOW_ISSUE_AND_FIX.md #2.
+              if (isGeo) {
+                const dePath = request.workflowDefinition?.nextflow_path || request.workflowDefinition?.nextflowPath;
+                const deName = request.workflowDefinition?.name || 'differentialabundance';
+                if (dePath) {
+                  const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+
+                  // ── DATA-TYPE × INTENT aware routing ────────────────────────────────
+                  // A bare GEO accession is not a count matrix, and the right ingest +
+                  // DE method depend on the series' MODALITY. Delegate the data-first
+                  // detection to the backend (one source of truth with the chat path:
+                  // /api/ai_assistant/geo_platform → _detect_geo_platform). Then:
+                  //   microarray  → geo_data_connector → differentialabundance(affy, limma)
+                  //   bulk_rnaseq → geo_data_connector → differentialabundance(rnaseq, deseq2)
+                  //   scrna       → geo_scrna_pseudobulk → differentialabundance(rnaseq, deseq2)
+                  //   unknown     → bulk default (deseq2) + warning
+                  // This replaces the former hard-coded geo_data_connector→DESeq2 chain,
+                  // which silently coerced microarray log-intensities to integer → all-zero
+                  // counts → DESeq2 abort (GSE22055, 2026-11-02).
+                  // See docs/20261102_UNIFIED_PUBLIC_ID_ROUTING_DESIGN.md step 1.
+                  let platform: string = 'unknown';
+                  try {
+                    const pResp = await fetch(`${galaxyUrl}/api/ai_assistant/geo_platform?accession=${encodeURIComponent(acc)}`, {
+                      signal: AbortSignal.timeout(8000),
+                    });
+                    if (pResp.ok) {
+                      const pData: any = await pResp.json().catch(() => ({}));
+                      if (pData?.platform) platform = String(pData.platform);
+                    }
+                  } catch (e: any) {
+                    console.warn(`[execute-gate] geo_platform lookup for ${acc} failed (${e?.message || e}) — defaulting to bulk/deseq2.`);
+                  }
+
+                  // Build the plan from the modality.
+                  const GEO_CONNECTOR = 'nextflow_nfcore/subworkflows/genomics/geo_data_connector/main.nf';
+                  const GEO_SCRNA_PSEUDOBULK = 'nfcore/geo_scrna_pseudobulk/main.nf';
+                  let ingestName: string;
+                  let ingestStep: { nextflow_path: string; workflow_name: string; params: Record<string, any> };
+                  let connections: Array<{ from_step: number; from_output: string; to_step: number; to_input: string }>;
+                  const methodParams: Record<string, any> = {};
+                  let planNote: string;
+
+                  if (platform === 'scrna') {
+                    ingestName = 'geo_scrna_pseudobulk';
+                    ingestStep = { nextflow_path: GEO_SCRNA_PSEUDOBULK, workflow_name: ingestName, params: { geo_accession: acc } };
+                    // geo_scrna_pseudobulk emits: matrix | metadata | contrasts (see its main.nf).
+                    connections = [
+                      { from_step: 1, from_output: 'matrix', to_step: 2, to_input: 'matrix' },
+                      { from_step: 1, from_output: 'metadata', to_step: 2, to_input: 'samplesheet' },
+                      { from_step: 1, from_output: 'contrasts', to_step: 2, to_input: 'contrasts' },
+                    ];
+                    methodParams.study_type = 'rnaseq';
+                    methodParams.normalisation_method = 'deseq2';
+                    planNote = `${acc} is single-cell RNA-seq — pseudobulk-aggregating per sample, then DESeq2 differential expression.`;
+                  } else {
+                    // microarray | bulk_rnaseq | unknown → geo_data_connector (emits count_matrix | sample_metadata)
+                    ingestName = 'geo_data_connector';
+                    ingestStep = { nextflow_path: GEO_CONNECTOR, workflow_name: ingestName, params: { accession: acc } };
+                    connections = [
+                      { from_step: 1, from_output: 'count_matrix', to_step: 2, to_input: 'matrix' },
+                      { from_step: 1, from_output: 'sample_metadata', to_step: 2, to_input: 'samplesheet' },
+                    ];
+                    if (platform === 'microarray') {
+                      // Microarray is log-intensities (Gaussian), NOT counts — DESeq2's integer
+                      // coercion zeros it out. differentialabundance runs limma for affy arrays.
+                      methodParams.study_type = 'affy';
+                      methodParams.normalisation_method = 'limma';
+                      planNote = `${acc} is a microarray series (log-intensities) — running limma differential expression (affy mode), not DESeq2.`;
+                    } else {
+                      methodParams.study_type = 'rnaseq';
+                      methodParams.normalisation_method = 'deseq2';
+                      planNote = platform === 'bulk_rnaseq'
+                        ? `${acc} is bulk RNA-seq — running DESeq2 differential expression on its count matrix.`
+                        : `${acc} modality could not be confirmed from GEO metadata — defaulting to bulk RNA-seq (DESeq2). Review the series matrix if results look off.`;
+                    }
+                  }
+
+                  // Carry the user's DE params; drop the empty count inputs (connections fill
+                  // matrix/samplesheet). User-supplied study_type / normalisation_method WIN
+                  // over the modality defaults (explicit intent beats inference).
+                  const deParams: Record<string, any> = { ...methodParams };
+                  for (const [k, v] of Object.entries(providedParams)) {
+                    if (!countKeys.includes(k) && k !== 'outdir' && !isEmptyVal(v)) deParams[k] = v;
+                  }
+
+                  // User-specified contrast: explicit params win; otherwise parse a free-text
+                  // "<target> vs/versus <reference>" from the request params/description so the
+                  // caller can say e.g. "tumor vs normal" and the stub resolves it to the right
+                  // metadata column (see differentialabundance params.contrast_*). Only the group
+                  // VALUES are passed; the stub matches them to the column.
+                  if (isEmptyVal(deParams.contrast_target)) {
+                    const contrastText = String(
+                      providedParams.contrast ?? providedParams.comparison ?? request.workflowDefinition?.description ?? ''
+                    );
+                    // Single-word tokens around vs/versus (the stub substring-matches them to the
+                    // metadata column, so "cancer"/"normal" resolves "lung cancer" vs "paired normal
+                    // adjacent"). Single words also avoid swallowing the accession into the phrase.
+                    const m = contrastText.match(/([A-Za-z][\w.+/-]*)\s+(?:vs\.?|versus)\s+([A-Za-z][\w.+/-]*)/i);
+                    if (m) {
+                      deParams.contrast_target = m[1].trim();
+                      deParams.contrast_reference = m[2].trim();
+                      console.warn(`[execute-gate] parsed contrast "${m[1].trim()}" vs "${m[2].trim()}" for ${acc}.`);
+                    }
+                  }
+
+                  const chainBody = {
+                    chain_name: `${acc} → ${deName}`,
+                    chat_session_id: request.chatSessionId || request.chat_session_id,
+                    start_from_step: 0,
+                    max_parallel: 2,
+                    steps: [ingestStep, { nextflow_path: dePath, workflow_name: deName, params: deParams }],
+                    connections,
+                  };
+                  try {
+                    const chainResp = await fetch(`${galaxyUrl}/api/workflows/chain`, {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(chainBody), signal: AbortSignal.timeout(30000),
+                    });
+                    const chainData: any = await chainResp.json().catch(() => ({}));
+                    if (chainResp.ok && chainData?.chain_run_id) {
+                      console.warn(`[execute-gate] DE workflow "${wfName}" on GEO ${acc} (platform=${platform}) → auto-chained via ${ingestName} (method=${deParams.normalisation_method}, chain_run_id=${chainData.chain_run_id}).`);
+                      return res.status(200).json({
+                        chained: true,
+                        chain_run_id: chainData.chain_run_id,
+                        runId: chainData.chain_run_id,
+                        chain_name: chainBody.chain_name,
+                        accession: acc,
+                        platform,
+                        method: deParams.normalisation_method,
+                        steps: [ingestName, deName],
+                        message: `${planNote} Track it in the Run Manager.`,
+                      });
+                    }
+                    console.warn(`[execute-gate] auto-chain for ${acc} did not start (HTTP ${chainResp.status}): ${JSON.stringify(chainData).slice(0, 200)} — falling back to redirect.`);
+                  } catch (e: any) {
+                    console.warn(`[execute-gate] auto-chain for ${acc} errored: ${e?.message || e} — falling back to redirect.`);
+                  }
+                }
+              }
+              // Non-GEO accession (SRA/ENA/… → FASTQ, not a count matrix), or the
+              // auto-chain could not start: fail loud with an actionable redirect.
+              console.warn(`[execute-gate] DE workflow "${wfName}" has no count matrix but accession ${acc} is present — blocking (named-but-unbound accession); redirecting to GEO ingest.`);
+              return res.status(400).json({
+                error: 'accession_needs_fetch',
+                message: `"${request.workflowDefinition?.name || 'This differential-expression workflow'}" reads a count matrix and samplesheet — it cannot read the accession ${acc} directly. No compute was launched.`,
+                guidance: `Fetch ${acc} first with the GEO ingest (geo_data_connector) to produce a count matrix + sample metadata, then run this workflow on those outputs.`,
+                accession: acc,
+              });
+            }
+            console.warn(`[execute-gate] DE workflow "${wfName}" launched with no count matrix / samplesheet — blocking empty launch.`);
+            return res.status(400).json({
+              error: 'missing_required_params',
+              message: `"${request.workflowDefinition?.name || 'This differential-expression workflow'}" needs a count matrix and a samplesheet before it can run. No compute was launched.`,
+              missing: [{ name: 'matrix', label: 'Count matrix', description: 'A genes × samples count matrix (or a samplesheet of per-sample inputs).', type: 'file' }],
+              guidance: 'Provide a count matrix + samplesheet (fill them in the params panel or attach a dataset), then retry.',
+            });
+          }
+        }
+      }
+
       // Scientific + technical confidence gate.
       // Technical confidence: required inputs are present and generation didn't report tool-install blockers.
       // Scientific confidence: generation stage must not require user feedback/domain correction.
-      const technicalReady = inputSteps.length === 0 || inputs.length > 0;
+      const technicalReady = !inputGate.inputsRequired;
       const toolInstallationReady = generationAssessment?.toolInstallationSuccess !== false;
       const scientificBlocked =
         generationAssessment?.needsUserFeedback === true ||
@@ -10495,8 +11645,6 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      // Determine execution engine using standardized helper
-      const executionEngine = getWorkflowExecutionEngine(request.workflowDefinition);
       const workflowTags = request.workflowDefinition?.tags || [];
       const {
         __generationAssessment: _dropGenerationAssessment,
@@ -10821,7 +11969,14 @@ ${paramLines || '(none recorded)'}`;
           // Local paths (e.g. /frontend/data/uploads/...) are inaccessible from
           // Batch containers — this uploads them and replaces params with s3:// URIs.
           // Galaxy UUIDs are also staged: the session registry maps uuid → local path.
-          const rawParams = { ...(request.workflowDefinition.parameters || {}) };
+          // `request.params` is the documented API override map.  It was used
+          // by the required-param gate above but previously disappeared before
+          // the Nextflow launch, causing a green validation response followed
+          // by a run without the user's supplied inputs.
+          const rawParams = buildNextflowLaunchParameters(
+            request.workflowDefinition,
+            request.params,
+          );
           const paramProfile =
             rawParams.profile ??
             request.executionConfig?.nextflow_profile ??
@@ -11074,7 +12229,7 @@ ${paramLines || '(none recorded)'}`;
       // Build inputs object for Galaxy (mapping step inputs to dataset IDs)
       const galaxyInputs: Record<string, any> = {};
       for (const input of sampledInputs) {
-        const stepId = input.step_id ?? 0;
+        const stepId = input.step_id ?? input.stepId;
         galaxyInputs[stepId.toString()] = {
           src: input.src || 'hda',
           id: input.id
@@ -11333,7 +12488,8 @@ ${paramLines || '(none recorded)'}`;
                   status: mappedStatus,
                   errorMessage: nfState === 'succeeded'
                     ? undefined
-                    : (nextflowStatus?.log_tail?.slice?.(-1)?.[0]
+                    : (nextflowStatus?.error_summary
+                        || nextflowStatus?.log_tail?.slice?.(-1)?.[0]
                         || run.execution?.errorMessage || 'Nextflow run failed'),
                   completedAt: new Date(),
                   nextflowStatus,
@@ -11358,16 +12514,61 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // ── Fix #6: backfill run.metrics for terminal runs whose metrics are zero ──
+      // storage.ts inits metrics to an all-zero block; nothing else writes real
+      // values, so every completed run's outputs/runtime read zero (billing/usage
+      // attribution reads zero). Derive outputs + runtime from the stored completion
+      // data here. Guarded to write at most once — fileCount/totalSeconds become
+      // non-zero after the first write. resources.* stay 0 (no trace Node-side).
+      if (
+        ['completed', 'failed', 'cancelled'].includes(String(run.execution?.status)) &&
+        (run.metrics?.outputs?.fileCount || 0) === 0 &&
+        (run.metrics?.runtime?.totalSeconds || 0) === 0
+      ) {
+        run = await populateCompletionMetrics(run, run.execution?.nextflowStatus);
+      }
+
+      // ── Fix #8: backfill run.steps for terminal runs whose steps are stale ──
+      // storage.ts seeds every step as status:'pending', outputs:[]; the Nextflow
+      // terminal path never rewrote them, so a completed run's step-detail panel
+      // showed "pending"/empty. Finalize status + outputs here too, so EVERY
+      // reader of the run record (get_run, MCP, reproducibility) — not just
+      // /status pollers — sees real per-step state. Idempotent: finalizeRunSteps
+      // returns null once steps are final, so this writes at most once. Guarded
+      // to a terminal run that still has a non-terminal step OR a step missing
+      // outputs while output files exist, to avoid recomputing on every read.
+      if (['completed', 'failed', 'cancelled'].includes(String(run.execution?.status))) {
+        const nsSteps = (run.execution?.nextflowStatus as any) || {};
+        const hasOutputFiles =
+          (Array.isArray(nsSteps.s3_output_files) && nsSteps.s3_output_files.length > 0) ||
+          (Array.isArray(nsSteps.output_files) && nsSteps.output_files.length > 0);
+        const stepsNeedFinalize = Array.isArray(run.steps) && run.steps.some((s: any) => {
+          const st = String(s?.status ?? '').toLowerCase();
+          const nonTerminal = !['completed', 'failed', 'skipped'].includes(st);
+          const missingOutputs = !Array.isArray(s?.outputs) || s.outputs.length === 0;
+          return nonTerminal || (hasOutputFiles && missingOutputs);
+        });
+        if (stepsNeedFinalize) {
+          run = await finalizeCompletionSteps(run, run.execution?.nextflowStatus);
+        }
+      }
+
       // ── Inline convenience fields for MCP / headless consumers ────────────
       // MCP tools/get_run clients should not need a second round-trip to
       // /output_files or /status to get findings and files. Surface them here.
       const ns = (run.execution?.nextflowStatus as any) || {};
+
+      // Fix #5b: inline_findings mirrors the run's findings_data.json sidecar — the
+      // same key_results the UI Findings tab shows. Best-effort (never throws; []
+      // fallback). See resolveInlineFindings for the ns → cache → sidecar cascade.
+      const inlineFindings = await resolveInlineFindings(run, ns, (id) => _findingsCache.get(id));
+
       const response: any = {
         ...run,
         // Canonical file list: prefer S3-backed files, fall back to local.
         output_files: ns.s3_output_files || ns.output_files || [],
-        // AI findings / key results synthesized by the findings-analysis job.
-        inline_findings: ns.findings || ns.ai_findings || ns.key_results || [],
+        // AI findings / key results — see Fix #5b note above (mirrors findings_data.json).
+        inline_findings: inlineFindings,
       };
 
       res.json(response);
@@ -11435,9 +12636,11 @@ ${paramLines || '(none recorded)'}`;
               progress.completedSteps ?? chainStatus.steps_completed ?? run.progress.completedSteps;
             const totalSteps =
               progress.totalSteps ?? chainStatus.steps_total ?? run.progress.totalSteps;
-            const isTerminal = ['succeeded', 'failed', 'cancelled'].includes(chainState);
-            const isPaused = chainState === 'awaiting_approval';
-            const mappedStatus = toValidRunStatus(chainState);
+            const outcome = classifyChainRunStatus(chainState);
+            const isTerminal = outcome.terminal;
+            const isPaused = outcome.status === 'paused';
+            const mappedStatus = outcome.status;
+            const statusChanged = run.execution.status !== mappedStatus;
             const progressPatch = {
               totalSteps,
               completedSteps,
@@ -11446,13 +12649,14 @@ ${paramLines || '(none recorded)'}`;
                 : run.progress.percentComplete,
             };
 
-            if (isTerminal && run.execution.status !== mappedStatus) {
+            if (isTerminal) {
               run =
                 (await storage.updateExecutionRun(run.id, {
                   execution: {
                     ...run.execution,
                     status: mappedStatus,
-                    completedAt: new Date(),
+                    completedAt: run.execution.completedAt || new Date(),
+                    errorMessage: outcome.errorMessage,
                     nextflowStatus: chainStatus,
                   },
                   progress: { ...run.progress, ...progressPatch },
@@ -11460,7 +12664,7 @@ ${paramLines || '(none recorded)'}`;
 
               const chainName =
                 run.workflowDefinition?.chain_name || run.workflowDefinition?.name;
-              if (chainState === 'succeeded' && chainName) {
+              if (statusChanged && mappedStatus === 'completed' && chainName) {
                 fetch(`${galaxyUrl}/api/workflow-chains/record-run`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -11473,15 +12677,20 @@ ${paramLines || '(none recorded)'}`;
                   execution: {
                     ...run.execution,
                     status: 'paused',
+                    errorMessage: undefined,
+                    completedAt: undefined,
                     nextflowStatus: chainStatus,
                   },
                   progress: { ...run.progress, ...progressPatch },
                 })) || run;
-            } else if (run.execution.status === 'running' || run.execution.status === 'paused') {
+            } else {
               run =
                 (await storage.updateExecutionRun(run.id, {
                   execution: {
                     ...run.execution,
+                    status: mappedStatus,
+                    errorMessage: undefined,
+                    completedAt: undefined,
                     nextflowStatus: chainStatus,
                   },
                   progress: { ...run.progress, ...progressPatch },
@@ -11521,16 +12730,36 @@ ${paramLines || '(none recorded)'}`;
           // workflow-trace and S3 outputs) and rescue the run state.
           const allowRescue =
             isAlreadyTerminal && run.execution.status === 'failed' && nfState === 'succeeded';
-          if (((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && !isAlreadyTerminal) || allowRescue) {
+          // Stuck-'running' fix (read-time reconciliation): Nextflow 'interrupted'
+          // means the subprocess was signal-killed. A DELIBERATE pause (QC gate /
+          // user cancel) kills it the same way, but then the BioMate status is
+          // 'paused'/'cancelled' and must be preserved (resumable) — so only treat
+          // 'interrupted' as terminal while the run is still 'running'/'configuring'.
+          // For a LOCAL (non-batch) run the subprocess IS the execution, so an
+          // interrupt there is a genuine orphan (the launching gunicorn worker died
+          // mid-run) that nothing finalized → the run would otherwise stick on
+          // 'running' forever, because this endpoint previously promoted only
+          // succeeded/failed/error, never 'interrupted'. Batch runs are intentionally
+          // left to the completion poller's describe_jobs check, since the local
+          // driver can be interrupted while the AWS Batch job keeps running.
+          const orphanInterrupt = isOrphanInterrupt(nfState, run.execution.status, nextflowStatus?.is_batch);
+          if (((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && !isAlreadyTerminal) || allowRescue || orphanInterrupt) {
             if (allowRescue) {
               console.warn(
                 `[ExecutionRun] failed→succeeded rescue: ${run.id} — Galaxy reports nextflow succeeded; flipping BioMate status (was failed, likely log-stream-orphan)`
               );
             }
-            const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
-            const terminalMessage = nfState === 'failed'
-              ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
-              : undefined;
+            if (orphanInterrupt) {
+              console.warn(
+                `[ExecutionRun] orphan-interrupt → failed: ${run.id} — local Nextflow run was signal-killed (backend restart) with BioMate still 'running'; finalizing so the UI stops showing 'running'`
+              );
+            }
+            const mappedStatus: ExecutionRunStatus = orphanInterrupt ? 'failed' : toValidRunStatus(nfState);
+            const terminalMessage = orphanInterrupt
+              ? 'The run was interrupted by a backend restart before it finished — please re-run.'
+              : (nfState === 'failed'
+                ? (nextflowStatus?.error_summary || nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
+                : undefined);
 
             run = await storage.updateExecutionRun(run.id, {
               execution: {
@@ -11542,6 +12771,20 @@ ${paramLines || '(none recorded)'}`;
               },
             }) || run;
 
+            // Fix #6: populate run.metrics (outputs + runtime) at the terminal
+            // transition — the run just completed and nextflowStatus carries the
+            // output files + duration. Without this metrics stays all-zero. Best-
+            // effort; resources.* left at 0 (no per-task trace Node-side).
+            run = await populateCompletionMetrics(run, nextflowStatus);
+
+            // Fix #8: finalize run.steps at the terminal transition so the
+            // step-detail panel stops showing a finished run's steps as
+            // "pending" with no outputs. Nothing else rewrites run.steps on the
+            // Nextflow path (the Galaxy workflow_completed handler does, but it
+            // never fires for Nextflow direct runs). Best-effort; per-step
+            // timing/tool_version left omitted (no per-task trace Node-side).
+            run = await finalizeCompletionSteps(run, nextflowStatus);
+
             // D2: Emit workflow_completed so the notification service fires for Nextflow runs.
             // Galaxy poller doesn't poll Nextflow direct runs; we emit manually on terminal state.
             const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
@@ -11551,6 +12794,50 @@ ${paramLines || '(none recorded)'}`;
                 state: nfState === 'succeeded' ? 'ok' : 'failed',
               });
             }
+
+            // Auto-save outputs into the project's Files on terminal success
+            // (idempotent; no-op for runs with no project). `run` now holds the
+            // terminal nextflowStatus with s3_output_files.
+            if (mappedStatus === 'completed') { void autoSaveCompletedRunOutputs(run); }
+          } else if ((nfState === 'paused' || nfState === 'cancelled') && run.execution.status !== nfState) {
+            // DELIBERATE-HALT propagation (QC gate halt / user pause / cancel).
+            // 'paused'/'cancelled' are not Nextflow-native states — Galaxy sets
+            // them ONLY via the soft/hard cancel path (nextflow_executor
+            // _terminate_run_process), so when Galaxy reports one it is the
+            // authoritative, resumable truth. The reconciliation previously had
+            // NO branch for these, so a QC-gated Batch run kept its prior
+            // frontend status: it stuck on 'running', or — when an earlier
+            // interrupt/finalizer had written 'failed' — showed "Failed"/"Restart"
+            // and a "workflow did not complete successfully" findings message
+            // while the reproducibility record said 'paused' and Resume was dead.
+            // Adopt Galaxy's state and clear any stale failure message.
+            const haltStatus: ExecutionRunStatus = nfState === 'paused' ? 'paused' : 'cancelled';
+            console.warn(
+              `[ExecutionRun] deliberate-halt propagation: ${run.id} — Galaxy reports '${nfState}' (QC gate / pause / cancel); adopting over prior '${run.execution.status}'`
+            );
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                status: haltStatus,
+                errorMessage: haltStatus === 'paused' ? undefined : run.execution.errorMessage,
+                nextflowStatus: nextflowStatus,
+              },
+            }) || run;
+          } else if (
+            // A run finalized as failed by another path (the Galaxy completion poller /
+            // orphan finalizer) carries no message and a stale 'running' snapshot; the
+            // branches above skip already-terminal runs, so the cause never reached the
+            // record (nf-core/diseasemodulediscovery, 2026-11-06). Backfill it once.
+            run.execution.status === 'failed' && !run.execution.errorMessage &&
+            String(nfState) === 'failed' && nextflowStatus?.error_summary
+          ) {
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                errorMessage: nextflowStatus.error_summary,
+                nextflowStatus: nextflowStatus,
+              },
+            }) || run;
           } else if (run.execution.status === 'running') {
             // Keep latest Nextflow status snapshot for UI visibility.
             run = await storage.updateExecutionRun(run.id, {
@@ -11585,6 +12872,15 @@ ${paramLines || '(none recorded)'}`;
                   nextflowStatus: nextflowStatus,
                 },
               }) || run;
+              // Outputs just became available post-terminal — save them now
+              // (the earlier terminal hook may have skipped on empty outputs).
+              if (String(run.execution.status) === 'completed') { void autoSaveCompletedRunOutputs(run); }
+              // Fix #6: outputs grew after the terminal flip — recompute metrics
+              // so outputs.fileCount/totalSizeBytes reflect the late-arriving files.
+              run = await populateCompletionMetrics(run, nextflowStatus);
+              // Fix #8: late-arriving outputs now attributable to their producing
+              // step — attach them to steps that still have none.
+              run = await finalizeCompletionSteps(run, nextflowStatus);
             }
           }
         } catch (statusError: any) {
@@ -11644,6 +12940,7 @@ ${paramLines || '(none recorded)'}`;
         downloadableCount: number;
         totalOutputs: number;
         meetsContract: boolean;
+        completionContract: ReturnType<typeof assessOutputCompletion>;
       } | undefined = undefined;
       if (String(run.execution?.status || "").toLowerCase() === "completed") {
         const invocation = run.execution?.galaxyInvocationId
@@ -11755,6 +13052,11 @@ ${paramLines || '(none recorded)'}`;
           downloadableCount,
           totalOutputs: outputs.length,
           meetsContract,
+          // Do not infer a scientific result from a process exit or an S3
+          // outdir/log hint.  Only persisted invocation outputs satisfy the
+          // default completion contract.  stdout-only workflows must opt in
+          // through workflowDefinition.metadata.output_contract.
+          completionContract: assessOutputCompletion(run.workflowDefinition, outputs.length),
         };
       }
 
@@ -11792,7 +13094,7 @@ ${paramLines || '(none recorded)'}`;
           ? redactInternalText(run.execution.errorMessage)
           : run.execution.errorMessage,
         autofix,
-        nextflowStatus: sanitizeNextflowStatusForClient(nextflowStatus),
+        nextflowStatus: sanitizeNextflowStatusForClient(isChainRun ? chainStatus : nextflowStatus),
         artifactReadiness,
       });
     } catch (error: any) {
@@ -11958,15 +13260,46 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // ── Gated on-demand tool discovery ───────────────────────────────────────
+  // Lets an authenticated user (or the chat `request_new_tool` tool) trigger the
+  // existing GitHub tool-ingest pipeline for a SINGLE named capability/repo,
+  // instead of waiting for the nightly cron. Hard-gated by the
+  // BIOMATE_TOOL_DISCOVERY_ENABLED env flag (default OFF) AND explicit
+  // confirm=true. The gate lives in server/tool-discovery.ts so this endpoint
+  // and the chat tool share one enforcement point. See
+  // docs/06-auto-update + auto_update/scripts/request_single_tool.py.
+  app.post('/api/tools/request-discovery', authenticateToken, express.json(), async (req, res) => {
+    try {
+      const { requestToolDiscovery } = await import('./tool-discovery');
+      const userId = (req as any).user?.id ?? (req as any).userId ?? null;
+      const { capability, repo, confirm } = req.body || {};
+      const result = await requestToolDiscovery({
+        capability: typeof capability === 'string' ? capability : undefined,
+        repo: typeof repo === 'string' ? repo : undefined,
+        confirm: confirm === true,
+        userId: userId ?? undefined,
+      });
+      // Map gate states to HTTP codes; the body always carries the detail.
+      const code =
+        result.status === 'disabled' ? 403 :
+        result.status === 'invalid_request' ? 400 :
+        result.status === 'confirmation_required' ? 409 :
+        result.status === 'error' ? 502 : 200;
+      res.status(code).json(result);
+    } catch (err: any) {
+      res.status(500).json({ status: 'error', message: String(err?.message ?? err) });
+    }
+  });
+
   // ── D4: Workflow error explanation — Node.js LLM layer ───────────────────
   // ANTHROPIC_API_KEY is guaranteed present here (same process as all other Anthropic calls).
   // The Galaxy backend's explain_error endpoint is NOT called; LLM call happens here.
   // Falls back to extended 8-type regex when key is absent or LLM fails.
 
-  const ERROR_ANALYSIS_SYSTEM_PROMPT = `You are a bioinformatics workflow debugging assistant.
+  const ERROR_ANALYSIS_SYSTEM_PROMPT = `You are a bioinformatics workflow debugging assistant for BioMate, a managed web platform.
 A Nextflow workflow has failed. Analyze the error log and respond ONLY with valid JSON:
 {
-  "error_type": "<one of: missing_parameter, missing_file, docker_pull, resource_limit, data_format, permission_denied, nextflow_syntax, tool_not_found, unknown>",
+  "error_type": "<one of: missing_parameter, missing_file, docker_pull, resource_limit, data_format, permission_denied, nextflow_syntax, tool_not_found, platform_config, unknown>",
   "human_summary": "<1-2 sentences: what went wrong in plain language a scientist can understand>",
   "suggested_fix": "<1-2 sentences: the specific action to fix this>",
   "chat_prompt": "<the exact message a user should paste in the chat to get help fixing this>"
@@ -11974,8 +13307,12 @@ A Nextflow workflow has failed. Analyze the error log and respond ONLY with vali
 Rules:
 - human_summary must avoid technical jargon. Write for a biologist, not a developer.
 - suggested_fix must be concrete and actionable (not "review the logs").
+- CRITICAL — the user operates BioMate entirely through a web UI; they NEVER run Nextflow or any command line. NEVER suggest command-line flags (e.g. -w, -resume, -c, -profile), editing config/YAML files, shell commands, or installing software. Those are not things the user can do.
+- BioMate manages all infrastructure: the work/scratch directory, storage buckets, container registry, scheduler and compute. If the failure is an infrastructure or platform-configuration problem — e.g. the work directory / storage bucket could not be resolved, a container registry was unreachable, the scheduler rejected the job — classify it as "platform_config", say plainly that it is a platform-side issue (not something the user did wrong), and set suggested_fix to retry the run, and if it recurs, report it to BioMate support. Do NOT ask the user to supply a path, bucket, or CLI option.
+- Only suggest actions a BioMate user can take in the product: correct or provide an input dataset, fix a parameter value, provide a missing required input, or retry the run.
 - chat_prompt must be a complete, paste-ready sentence starting with context.
 - If the error is in a specific step, name the step in human_summary.
+- Proofread: no doubled words (e.g. "the the"), no placeholder text.
 - Respond with ONLY the JSON object, no markdown, no explanation.`;
 
   function regexFallbackError(log: string): Record<string, unknown> {
@@ -11996,6 +13333,8 @@ Rules:
       return { error_type: 'nextflow_syntax', human_summary: 'There is a syntax error in the workflow script.', suggested_fix: 'Review the workflow script for syntax errors and ensure all parameters are valid.', chat_prompt: 'My workflow failed with a Nextflow syntax error. Can you help me fix the script?', llm_used: false };
     if (/command not found|executable not found|no such.*executable/.test(l))
       return { error_type: 'tool_not_found', human_summary: 'A required tool or command was not found in the container.', suggested_fix: 'Ensure the correct container image is specified and all tools are installed.', chat_prompt: 'My workflow failed because a command was not found. What container or tool is missing?', llm_used: false };
+    if (/work directory|work dir|workdir|scratch dir|storage bucket|could not be recognized as a valid file system|not a valid.*(path|bucket)|failed to launch/.test(l))
+      return { error_type: 'platform_config', human_summary: 'The run could not launch because of a platform configuration issue on BioMate’s side (the managed work directory / storage could not be resolved) — this is not something you did wrong.', suggested_fix: 'Retry the run. If it keeps failing to launch, report it to BioMate support — the work directory and storage are managed by the platform, not set by you.', chat_prompt: 'My workflow failed to launch with a work-directory / storage error. Is this a platform issue, and can you retry it?', llm_used: false };
     return { error_type: 'unknown', human_summary: 'An unexpected error occurred during workflow execution.', suggested_fix: 'Review the error log below for details.', chat_prompt: 'My workflow failed. Can you help me understand this error log?', llm_used: false };
   }
 
@@ -12042,7 +13381,7 @@ Rules:
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
-    if (!apiKey) {
+    if (!apiKey && !localOnly()) {
       return res.json(regexFallbackError(log));
     }
 
@@ -12071,7 +13410,7 @@ Rules:
     if (!text) return res.json({ title: 'New Chat' });
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    if (!apiKey && !localOnly()) {
       // Fallback: take first 6 words
       const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
       return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
@@ -12106,11 +13445,15 @@ Rules:
         connections: req.body?.connections || [],
         start_from_step: req.body?.start_from_step ?? 0,
         end_at_step: req.body?.end_at_step ?? req.body?.endAtStep ?? undefined,
+        max_parallel: req.body?.max_parallel ?? 4,
+        coverage_axes: req.body?.coverage_axes,
         steps: rawSteps.map((s: any) => ({
           nextflow_path: s.nextflow_path || s.workflowPath || s.workflow_path || s.nextflowPath,
           workflow_name: s.workflow_name || s.name,
           role: s.role,
           step_key: s.step_key || s.stepKey,
+          depends_on: s.depends_on,
+          dimensions: s.dimensions,
           params: s.params || s.parameters || {},
         })),
       };
@@ -12282,10 +13625,12 @@ Rules:
   // nextflowRunId), lists S3 once with the right region+creds, returns the
   // normalized shape with presigned downloadUrl on every item.
   // See docs/20260518_OUTPUTS_SERVICE_CONSOLIDATION_SPEC.md
-  app.get("/api/runs/:anyId/outputs", async (req, res) => {
+  app.get("/api/runs/:anyId/outputs", authenticateToken, async (req: any, res) => {
     try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return;
       const { runsOutputsService } = await import("./services/runs-outputs-service");
-      const items = await runsOutputsService.list(req.params.anyId);
+      const items = await runsOutputsService.list(run.id);
       res.json({ outputs: items, count: items.length });
     } catch (e: any) {
       console.error("[runs-outputs] error:", e);
@@ -12294,10 +13639,12 @@ Rules:
   });
 
   // Resolution helper — exposes the canonical meta for debugging / future UI.
-  app.get("/api/runs/:anyId/meta", async (req, res) => {
+  app.get("/api/runs/:anyId/meta", authenticateToken, async (req: any, res) => {
     try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return;
       const { runsOutputsService } = await import("./services/runs-outputs-service");
-      const meta = await runsOutputsService.resolve(req.params.anyId);
+      const meta = await runsOutputsService.resolve(run.id);
       if (!meta) return res.status(404).json({ error: "Run not found" });
       res.json(meta);
     } catch (e: any) {
@@ -12306,40 +13653,150 @@ Rules:
     }
   });
 
+  // Phase 2 — unified reproducibility record: one structured provenance object
+  // (workflow identity + resolved parameters + bound inputs + outputs) assembled
+  // from the run and the canonical output resolver. Owner/member scoped via
+  // resolveAuthorizedRun. Distinct from /reproducibility (the file export bundle).
+  app.get("/api/runs/:anyId/reproducibility-record", authenticateToken, async (req: any, res) => {
+    try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return;
+      let outputs: any[] = [];
+      try {
+        const { runsOutputsService } = await import("./services/runs-outputs-service");
+        outputs = (await runsOutputsService.list(run.id)) || [];
+      } catch (e: any) {
+        console.warn("[reproducibility-record] canonical resolver failed:", e?.message ?? e);
+      }
+      // Fallback: the canonical resolver derives the S3 outdir from the nextflow
+      // run id and misses runs whose outputs are staged under a different prefix
+      // (observed: completed runs with 0 canonical outputs but real files in the
+      // invocation-output store). The invocation store holds the real per-output
+      // s3Uri, so use it when the canonical list is empty — the record must
+      // reflect the outputs that actually exist.
+      if (!outputs.length) {
+        try {
+          const gid = (run as any).execution?.galaxyInvocationId;
+          if (gid) {
+            outputs = (await storage.getInvocationOutputs(gid)) || [];
+            if (!outputs.length) {
+              // Outputs are stored against the WorkflowInvocation's internal id,
+              // not the galaxy invocation id — resolve it first, mirroring
+              // GET /api/invocations/:id/outputs.
+              const inv = await storage.getInvocationByGalaxyId(gid);
+              if (inv) outputs = (await storage.getInvocationOutputs(inv.id)) || [];
+            }
+          }
+        } catch (e: any) {
+          console.warn("[reproducibility-record] invocation-output fallback failed:", e?.message ?? e);
+        }
+      }
+      const record = assembleReproducibilityRecord(run, outputs);
+      // Opt-in per-output SHA-256 (?checksums=1) — the verifiable half of the
+      // record. Bounded (size + count caps) and off by default so the common
+      // read stays fast. Fetches bytes from a presigned downloadUrl (canonical
+      // resolver) or, for the invocation-output fallback, directly from S3.
+      if (req.query.checksums && record.outputs.length) {
+        const rawById = new Map<string, any>();
+        for (const o of outputs) if (o?.id) rawById.set(String(o.id), o);
+        record.outputs = await enrichOutputsWithChecksums(record.outputs, async (ro) => {
+          const raw = ro.id ? rawById.get(ro.id) : undefined;
+          if (!raw) return null;
+          // Prefer the presigned URL, but FALL THROUGH to a direct S3 GetObject on
+          // any failure — a failed/expired presign must not silently yield a null
+          // checksum when the bytes are reachable via s3Uri (the download path).
+          if (raw.downloadUrl) {
+            try {
+              const resp = await fetch(raw.downloadUrl);
+              if (resp.ok) return Buffer.from(await resp.arrayBuffer());
+            } catch { /* fall through to s3Uri */ }
+          }
+          const s3Uri: unknown = raw.s3Uri || raw.metadata?.s3Uri;
+          if (typeof s3Uri === "string") {
+            const m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+            if (!m) return null;
+            const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+            const s3 = new S3Client({
+              region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || "us-east-1",
+              followRegionRedirects: true,
+            });
+            const obj: any = await s3.send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
+            const chunks: Buffer[] = [];
+            for await (const c of obj.Body as any) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+            return Buffer.concat(chunks);
+          }
+          return null;
+        });
+      }
+      res.json(record);
+    } catch (e: any) {
+      console.error("[reproducibility-record] error:", e?.message ?? e);
+      res.status(500).json({ error: e?.message || String(e) });
+    }
+  });
+
+  // ─── Task #22 (L5): the run report as a persisted, versioned object ─────────
+  // A run report is a versioned object, not a transient view whose edits are a
+  // local .md download. Versions live in execution.reportVersions (DB-backed,
+  // survives restart — same executionJson persistence as runs-outputs), fronted
+  // by a single-writer store (report-version-store.ts) over the pure model
+  // (report-version.ts). v0 is the immutable run original, seeded on first save
+  // from the report markdown the client currently shows; later versions are
+  // append-only and keep the runId back-link.
+  app.get("/api/runs/:anyId/report/versions", authenticateToken, async (req: any, res) => {
+    try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return; // response already sent
+      const versions = await reportVersionStore.list(run.id);
+      return res.json({ runId: run.id, versions: versions ?? [] });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/runs/:anyId/report/versions", authenticateToken, express.json({ limit: "4mb" }), async (req: any, res) => {
+    try {
+      const run = await resolveAuthorizedRun(req, res, req.params.anyId);
+      if (!run) return; // response already sent
+      const content = typeof req.body?.content === "string" ? req.body.content : "";
+      if (!content.trim()) {
+        return res.status(400).json({ error: "content is required (the edited report body)" });
+      }
+      const note = typeof req.body?.note === "string" ? req.body.note : undefined;
+      const currentMarkdown = typeof req.body?.currentMarkdown === "string" ? req.body.currentMarkdown : "";
+      const version = await reportVersionStore.append(run.id, content, { note, currentMarkdown });
+      if (!version) return res.status(404).json({ error: "Run not found" });
+      return res.status(201).json({ runId: run.id, version });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Output files for a run
-  app.get("/api/workflows/runs/:id/output_files", async (req, res) => {
+  // @deprecated (L1d) — SUPERSEDED by the canonical `GET /api/runs/:anyId/outputs`.
+  //   This endpoint carries its own prefix-derivation + in-memory nextflowStatus
+  //   cascade (the exact fragmentation the canonical resolver consolidates). It
+  //   still has live callers (findings reader, the `/outputs` bare-array alias
+  //   below, benchmark orchestrator), so it is NOT removed this round — documented
+  //   only. Prefer runsOutputsService.list(runId) for any new consumer.
+  app.get("/api/workflows/runs/:id/output_files", authenticateToken, async (req: any, res) => {
     try {
       // Primary lookup by run ID; fallback by galaxy invocation ID (chain runs store their
       // invocation ID as the returned run ID but MemStorage keys by execution run UUID).
       let run = await storage.getExecutionRun(req.params.id);
       if (!run) run = await storage.getExecutionRunByGalaxyId(req.params.id);
       if (!run) {
-        // Try raw chain_run_id (may be passed directly)
-        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-        try {
-          const chainResp = await fetch(
-            `${galaxyUrl}/api/workflows/chain/${encodeURIComponent(req.params.id)}/outputs`,
-            { signal: AbortSignal.timeout(12000) },
-          );
-          if (chainResp.ok) {
-            const chainData = await chainResp.json() as any;
-            return res.status(200).json({
-              output_files: chainData.output_files || [],
-              outputs: chainData.output_files || [],
-              outdir: null,
-              source: 'chain_aggregate',
-              chain_run_id: chainData.chain_run_id,
-              steps: chainData.steps,
-            });
-          }
-        } catch { /* fall through */ }
-        return res.status(200).json({
-          output_files: [],
-          outputs: [],
-          outdir: null,
-          source: 'chain_unregistered',
-        });
+        // A raw backend chain ID has no BioMate owner/project record.  Do not
+        // proxy it, because that would turn a guessable ID into output access.
+        return res.status(404).json({ error: "Run not found" });
       }
+
+      const decision = await decideRunAccess(
+        run,
+        req.user?.id ? String(req.user.id) : null,
+        (storage as any).getUserProjects?.bind(storage),
+      );
+      if (!decision.allowed) return res.status(decision.status).json({ error: decision.error });
 
       // Chain ExecutionRun — aggregate outputs from all steps
       if (
@@ -12589,15 +14046,26 @@ Rules:
                   if (!ext || !dataExts.has(ext)) continue;
                   listed.push({
                     name, filename: name, extension: ext,
-                    size: obj.Size || 0,
-                    s3_uri: `s3://${bucket}/${obj.Key}`,
-                    s3_key: obj.Key,
-                    download_endpoint: `/api/runs/${runId}/output/${encodeURIComponent(name)}`,
-                  });
+                  size: obj.Size || 0,
+                  s3_uri: `s3://${bucket}/${obj.Key}`,
+                  s3_key: obj.Key,
+                });
                 }
                 continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
               } while (continuationToken);
               if (listed.length > 0) {
+                // These are recovery artifacts: they are in the Nextflow work
+                // directory, not the run's registered publishDir list.  Do
+                // not advertise the normal `/api/runs/:id/output/:filename`
+                // endpoint for them: that endpoint deliberately authorizes
+                // against the registry and would return a misleading 404.
+                // A caller can still see that recovery found a file, but the
+                // UI must present it as unavailable until it is published.
+                for (const file of listed) {
+                  file.download_unavailable = true;
+                  file.download_unavailable_reason =
+                    'Recovered work-directory artifact is not yet published to the run output registry.';
+                }
                 outputFiles = listed;
                 console.log(`[output_files] workDir fallback: found ${listed.length} files under ${storedWorkDir}`);
               }
@@ -12617,6 +14085,7 @@ Rules:
       // the S3-listing fallback path above already sets download_endpoint + downloadUrl.
       // This ensures MCP clients and API consumers always get an authenticated HTTP URL.
       for (const f of outputFiles) {
+        if (f.download_unavailable) continue;
         if (!f.download_url && !f.download_endpoint && !f.downloadUrl) {
           const fname = encodeURIComponent(f.name || f.filename || '');
           if (fname) {
@@ -12677,7 +14146,9 @@ Rules:
   // Alias: same data as /output_files but returns the bare array (matches what
   // tool-callers and the CryoEM E2E tests expect — they iterate the response
   // as `outputs.map(o => o.filename)`).
-  app.get("/api/workflows/runs/:id/outputs", async (req, res) => {
+  // @deprecated (L1d) — bare-array alias of `/output_files`, itself superseded by
+  //   the canonical `GET /api/runs/:anyId/outputs`. Documented only this round.
+  app.get("/api/workflows/runs/:id/outputs", authenticateToken, async (req, res) => {
     try {
       const r = await fetch(
         `http://localhost:${process.env.PORT || 5000}/api/workflows/runs/${req.params.id}/output_files`,
@@ -12731,10 +14202,14 @@ Rules:
         const status = (run as any)?.execution?.status || null;
         return status ? { status: String(status) } : null;
       },
-      getOutputFiles: async (runId: string) => {
+      getOutputFiles: async (runId, req) => {
         const r = await fetch(
           `${_selfBase()}/api/workflows/runs/${runId}/output_files`,
-          { headers: { 'X-Forwarded-Proto': 'https' } as any },
+          { headers: {
+            Authorization: req.headers.authorization || '',
+            cookie: req.headers.cookie || '',
+            'X-Forwarded-Proto': 'https',
+          } },
         );
         const d: any = await r.json().catch(() => ({}));
         return ((d.output_files as any[]) || []).map((f: any) => ({ name: f.name || f.filename, s3_uri: f.s3_uri }));
@@ -12824,10 +14299,62 @@ Rules:
       const s3Files: any[] = Array.isArray(nfStatus?.s3_output_files) ? nfStatus.s3_output_files : [];
       const localFiles: any[] = Array.isArray(nfStatus?.output_files) ? nfStatus.output_files : [];
       const allFiles = [...s3Files, ...localFiles];
-      const match = allFiles.find((f: any) =>
+      let match = allFiles.find((f: any) =>
         // Match by filename or name; accept s3_uri, path, or local_path (on-prem local executor).
         (f?.filename === filename || f?.name === filename) && (f?.s3_uri || f?.path || f?.local_path)
       );
+
+      // `/output_files` also discovers outputs on local development runs by
+      // walking their outdir.  Those files are not necessarily copied into
+      // nextflowStatus, so the old lookup above returned 404 for a link we had
+      // just emitted.  Resolve only an exact basename inside the known output
+      // roots; reject ambiguous matches rather than serving an arbitrary file.
+      if (!match && !filename.includes('/') && !filename.includes('\\')) {
+        const candidateRoots = [
+          nfStatus?.outdir,
+          (run as any).execution?.nextflowOutputDir,
+          `/tmp/nextflow_runs/${(run as any).execution?.nextflowRunId || run.id}/output`,
+        ].filter((root, index, roots) =>
+          typeof root === 'string' &&
+          !root.startsWith('s3://') &&
+          roots.indexOf(root) === index,
+        ) as string[];
+        const fsLocal = await import('node:fs');
+        const pathLocal = await import('node:path');
+        const matches: Array<{ path: string; size: number }> = [];
+        const visit = (root: string) => {
+          let rootReal: string;
+          try { rootReal = fsLocal.realpathSync(root); } catch { return; }
+          const walk = (dir: string) => {
+            let entries: import('node:fs').Dirent[];
+            try { entries = fsLocal.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+            for (const entry of entries) {
+              const absolute = pathLocal.join(dir, entry.name);
+              if (entry.isDirectory()) {
+                walk(absolute);
+              } else if (entry.isFile() && entry.name === filename) {
+                try {
+                  const resolved = fsLocal.realpathSync(absolute);
+                  const relative = pathLocal.relative(rootReal, resolved);
+                  if (relative && !relative.startsWith('..') && !pathLocal.isAbsolute(relative)) {
+                    matches.push({ path: resolved, size: fsLocal.statSync(resolved).size });
+                  }
+                } catch { /* file disappeared during scan */ }
+              }
+            }
+          };
+          walk(rootReal);
+        };
+        candidateRoots.forEach(visit);
+        if (matches.length === 1) {
+          match = { path: matches[0].path, size: matches[0].size };
+        } else if (matches.length > 1) {
+          await writeAuditRow(409, null, runProjectId);
+          return res.status(409).json({
+            error: `Output filename ${filename} is ambiguous; select a published output instead.`,
+          });
+        }
+      }
       if (!match) {
         await writeAuditRow(404, null, runProjectId);
         return res.status(404).json({ error: `File ${filename} not found in run ${runId}` });
@@ -13088,7 +14615,7 @@ Rules:
   });
 
   // Rerun a Nextflow workflow from a specific step with parameter overrides
-  app.post("/api/workflows/runs/:id/rerun-from-step", async (req, res) => {
+  app.post("/api/workflows/runs/:id/rerun-from-step", optionalAuth, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) return res.status(404).json({ error: 'Run not found' });
@@ -13100,48 +14627,90 @@ Rules:
 
       if (!step_name) return res.status(400).json({ error: 'step_name required' });
 
-      const nfStatus = run.execution?.nextflowStatus as any;
-      const prevWorkDir = nfStatus?.work_dir as string | undefined;
+      // --- "Rerun from step X" is realized via Nextflow `-resume` + declared
+      // param overrides, NOT an arbitrary mid-DAG restart.
+      //
+      // The Nextflow executor (backend nextflow_executor.py) exposes exactly one
+      // supported re-run mechanism: POST /api/nextflow/resume/{run_id}, which
+      // re-launches with `-resume` reusing the prior run's work-dir cache.
+      // Nextflow's `-resume` semantics naturally scope the re-run to the affected
+      // step: any task whose inputs/params changed — and every task DOWNSTREAM of
+      // it — re-executes, while unchanged upstream tasks stay cached and skipped.
+      // Passing this step's overridden params through therefore re-runs *from*
+      // that step forward, which is what the user asked for.
+      //
+      // The previous implementation POSTed to /api/nextflow/execute with
+      // `resume_args` / `extra_flags` / `prev_run_id` / `rerun_from_step` fields
+      // that are NOT on the NextflowExecuteRequest pydantic model, so pydantic
+      // silently dropped all of them: no `-resume`, no work-dir reuse, no step
+      // scoping — a full fresh run that ignored the step. Dead wire. This now
+      // routes to the real, honored resume endpoint (mirrors the working
+      // /api/workflows/runs/:runId/rerun proxy above).
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
 
-      // Get the original workflow definition from run
+      // Resolve the Nextflow-assigned run_id from the frontend execution record.
+      // The backend _runs dict is keyed by the Nextflow run_id, not our UUID.
+      const nextflowRunId =
+        run.execution?.nextflowRunId ||
+        run.execution?.galaxyInvocationId ||
+        req.params.id;
+
+      // nextflow_path lets the backend reconstruct the work dir when the run is
+      // not in the receiving gunicorn worker's _runs dict (multi-worker).
       const workflowDef = (run.execution as any)?.workflowDefinition as any;
-      const nextflowPath = workflowDef?.nextflow_path || workflowDef?.workflow_path || '';
+      const nextflowPath =
+        workflowDef?.nextflow_path || workflowDef?.nextflowPath || workflowDef?.workflow_path || '';
 
-      // Build override flags: --key value for each param_override
-      const overrideFlags = Object.entries(param_overrides)
-        .map(([k, v]) => `--${k} ${String(v)}`)
-        .join(' ');
+      // user_id is needed to reconstruct the S3 work dir for AWS Batch resumes.
+      const userId = req.user?.id ? String(req.user.id) : undefined;
 
-      // Build resume args
-      const resumeArgs = prevWorkDir ? `-resume -w ${prevWorkDir}` : '-resume';
-
-      // Construct a new run request to the Galaxy backend
-      const rerunBody = {
-        nextflow_path: nextflowPath,
-        parameters: { ...(workflowDef?.parameters || {}), ...param_overrides },
-        resume_args: resumeArgs,
-        extra_flags: overrideFlags,
-        prev_run_id: req.params.id,
-        rerun_from_step: step_name,
-      };
-
-      const response = await fetch(`${galaxyUrl}/api/nextflow/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rerunBody),
-      });
+      const response = await fetch(
+        `${galaxyUrl}/api/nextflow/resume/${encodeURIComponent(nextflowRunId)}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': process.env.GALAXY_API_KEY || '',
+          },
+          body: JSON.stringify({
+            nextflow_path: nextflowPath,
+            parameters: param_overrides,
+            ...(userId ? { user_id: userId } : {}),
+          }),
+          signal: AbortSignal.timeout(30_000),
+        }
+      );
 
       if (!response.ok) {
-        const errText = await response.text();
+        const errText = await response.text().catch(() => response.statusText);
         return res.status(response.status).json({ error: errText });
       }
 
       const data = await response.json() as any;
-      const newRunId = data.run_id || data.id;
+      const newNextflowRunId = data.run_id || data.id;
 
+      // Update the execution record so the status endpoint polls the resumed run.
+      if (newNextflowRunId) {
+        await storage.updateExecutionRun(req.params.id, {
+          execution: {
+            ...run.execution,
+            nextflowRunId: newNextflowRunId,
+            galaxyInvocationId: newNextflowRunId,
+            status: 'running',
+            startedAt: new Date(),
+            completedAt: undefined,
+            errorMessage: undefined,
+            nextflowStatus: undefined,
+          },
+        }).catch((e: any) => console.warn('[rerun-from-step] Failed to update run record:', e?.message));
+      }
+
+      // The modal reads `new_run_id`; return our storage UUID (not the raw
+      // Nextflow UUID) so the status endpoint can resolve the record and proxy
+      // to the new Nextflow run.
       res.json({
-        new_run_id: newRunId,
+        new_run_id: req.params.id,
+        nextflow_run_id: newNextflowRunId,
         message: `Rerunning from step ${step_name} with ${Object.keys(param_overrides).length} overridden parameter(s)`,
         prev_run_id: req.params.id,
       });
@@ -13196,6 +14765,102 @@ Rules:
     }
   });
 
+  // Shared: resolve a run's output files and register them into a project as
+  // source='run_output' datasets. Idempotent (registerRunOutputsInProject uses
+  // ON CONFLICT DO NOTHING), so it is safe to call repeatedly / from multiple
+  // completion paths. Returns the counts, or {skipped} when no outputs resolve.
+  // Declared as a hoisted function so completion handlers earlier in this file
+  // can call it.
+  async function saveRunOutputsToProject(
+    run: any,
+    projectId: string,
+    uid: string,
+  ): Promise<{ registered: number; total: number } | { skipped: true; reason: string }> {
+    const ns: any = run.execution?.nextflowStatus;
+    let rawFiles: any[] = Array.isArray(ns?.s3_output_files) ? ns.s3_output_files : [];
+    // If empty, do a live fetch from the Galaxy backend.
+    if (rawFiles.length === 0) {
+      try {
+        const galUrl = process.env.GALAXY_URL || "http://localhost:8081";
+        const nfRunId = run.execution?.nextflowRunId || ns?.run_id;
+        if (nfRunId) {
+          const r = await fetch(`${galUrl}/api/nextflow/status?run_id=${nfRunId}`, {
+            headers: { "X-API-Key": process.env.GALAXY_API_KEY || "" },
+          });
+          if (r.ok) {
+            const live = await r.json();
+            rawFiles = Array.isArray(live?.s3_output_files) ? live.s3_output_files : [];
+          }
+        }
+      } catch { /* live fetch optional */ }
+    }
+    if (rawFiles.length === 0) return { skipped: true, reason: "no_outputs" };
+
+    const { registerRunOutputsInProject } = await import("./project-routes");
+
+    // Build input context: user intent (the message that triggered the run) + input file names.
+    let userIntent: string | undefined;
+    if ((run as any).chatSessionId) {
+      try {
+        const sessRow = await pool.query(
+          `SELECT messages FROM chat_sessions WHERE session_id = $1 LIMIT 1`,
+          [(run as any).chatSessionId]
+        );
+        const msgs: Array<{ role: string; content: string }> = sessRow.rows[0]?.messages ?? [];
+        const userMsgs = msgs.filter(m => m.role === 'user');
+        userIntent = userMsgs[userMsgs.length - 1]?.content?.slice(0, 300) || undefined;
+      } catch { /* non-fatal */ }
+    }
+    const inputFiles: string[] = ((run as any).inputDatasets ?? []).map((d: any) => d.name || d.filename || String(d)).filter(Boolean);
+    // A public accession the user named in the triggering message IS the origin
+    // of this data (it auto-fetched from GEO/SRA/ArrayExpress/PRIDE). Capture the
+    // id so the dataset object can show it plainly — same accession classes the
+    // backend recognises (_extract_sra_accession). An id is enough; no link.
+    const accession = userIntent
+      ? (userIntent.match(/\b([SED]RR\d{6,9}|GSE\d{4,9}|GSM\d{4,9}|E-MTAB-\d{4,9}|PXD\d{4,9})\b/i)?.[0]?.toUpperCase())
+      : undefined;
+    const inputContext = {
+      intent: userIntent,
+      inputFiles: inputFiles.length ? inputFiles : undefined,
+      accession: accession || undefined,
+    };
+
+    const files = rawFiles.map((f: any) => {
+      const uri: string = f.s3_uri || f.path || "";
+      const s3Key = uri.startsWith("s3://") ? uri.replace(/^s3:\/\/[^/]+\//, "") : uri;
+      const stepName: string | undefined = f.step_name || f.process_name || undefined;
+      return {
+        name: f.filename || f.name || s3Key.split("/").pop() || "file",
+        s3Key,
+        size: f.size ?? 0,
+        contentType: f.content_type || "application/octet-stream",
+        stepName,
+      };
+    }).filter((f: any) => f.s3Key);
+
+    const workflowName: string = (run as any).workflowName || "Workflow";
+    const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, inputContext, files });
+    return { registered: count, total: files.length };
+  }
+
+  // Auto-save a completed project-scoped run's outputs into its project Files.
+  // Fire-and-forget + idempotent, so firing it from several completion paths
+  // (or more than once) never duplicates files. No-op for runs with no project.
+  async function autoSaveCompletedRunOutputs(run: any): Promise<void> {
+    try {
+      const projectId = (run as any).projectId || (run as any).execution?.projectId;
+      if (!projectId) return;
+      const uid = (run as any).userId ?? (run as any).execution?.userId;
+      if (!uid) return;
+      const result = await saveRunOutputsToProject(run, String(projectId), String(uid));
+      if ('registered' in result && result.registered > 0) {
+        console.log(`[autoSave] registered ${result.registered}/${result.total} outputs for run ${run.id} → project ${projectId}`);
+      }
+    } catch (e: any) {
+      console.warn(`[autoSave] failed for run ${run?.id}:`, e?.message ?? e);
+    }
+  }
+
   // Save run outputs to a project's file directory.
   // Body: { projectId: string }
   // Reads output files from nextflowStatus.s3_output_files (or triggers a
@@ -13211,77 +14876,17 @@ Rules:
 
       const uid = (req as any).user?.id ? String((req as any).user.id) : run.userId ?? "system";
 
-      // Collect output files from stored nextflowStatus first.
-      const ns: any = run.execution?.nextflowStatus;
-      let rawFiles: any[] = Array.isArray(ns?.s3_output_files) ? ns.s3_output_files : [];
-
-      // If empty, do a live fetch from the Galaxy backend.
-      if (rawFiles.length === 0) {
-        try {
-          const galUrl = process.env.GALAXY_URL || "http://localhost:8081";
-          const nfRunId = run.execution?.nextflowRunId || ns?.run_id;
-          if (nfRunId) {
-            const r = await fetch(`${galUrl}/api/nextflow/status?run_id=${nfRunId}`, {
-              headers: { "X-API-Key": process.env.GALAXY_API_KEY || "" },
-            });
-            if (r.ok) {
-              const live = await r.json();
-              rawFiles = Array.isArray(live?.s3_output_files) ? live.s3_output_files : [];
-            }
-          }
-        } catch { /* live fetch optional */ }
-      }
-
-      if (rawFiles.length === 0) {
+      const result = await saveRunOutputsToProject(run, projectId, uid);
+      if ('skipped' in result) {
         return res.status(422).json({ error: "No output files found for this run yet. Try again after the run completes." });
       }
-
-      const { registerRunOutputsInProject } = await import("./project-routes");
-
-      // Build input context: user intent (the message that triggered the run) + input file names.
-      // Parameters are already in the workflow report — we don't repeat them here.
-      let userIntent: string | undefined;
-      if ((run as any).chatSessionId) {
-        try {
-          const sessRow = await pool.query(
-            `SELECT messages FROM chat_sessions WHERE session_id = $1 LIMIT 1`,
-            [(run as any).chatSessionId]
-          );
-          const msgs: Array<{ role: string; content: string }> = sessRow.rows[0]?.messages ?? [];
-          // Find the last user message before the run started — that's the intent.
-          const userMsgs = msgs.filter(m => m.role === 'user');
-          userIntent = userMsgs[userMsgs.length - 1]?.content?.slice(0, 300) || undefined;
-        } catch { /* non-fatal */ }
-      }
-      const inputFiles: string[] = ((run as any).inputDatasets ?? []).map((d: any) => d.name || d.filename || String(d)).filter(Boolean);
-      const inputContext = {
-        intent: userIntent,
-        inputFiles: inputFiles.length ? inputFiles : undefined,
-      };
-
-      const files = rawFiles.map((f: any) => {
-        const uri: string = f.s3_uri || f.path || "";
-        const s3Key = uri.startsWith("s3://") ? uri.replace(/^s3:\/\/[^/]+\//, "") : uri;
-        // step_name comes from the executor if present (task-level tagging), or inferred from path
-        const stepName: string | undefined = f.step_name || f.process_name || undefined;
-        return {
-          name: f.filename || f.name || s3Key.split("/").pop() || "file",
-          s3Key,
-          size: f.size ?? 0,
-          contentType: f.content_type || "application/octet-stream",
-          stepName,
-        };
-      }).filter((f: any) => f.s3Key);
-
-      const workflowName: string = (run as any).workflowName || "Workflow";
-      const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, inputContext, files });
 
       // Also persist projectId on the run so the UI can navigate to it.
       if (!(run as any).projectId) {
         await pool.query(`UPDATE execution_runs SET project_id = $1 WHERE id = $2`, [projectId, run.id]);
       }
 
-      res.json({ ok: true, registered: count, total: files.length });
+      res.json({ ok: true, registered: result.registered, total: result.total });
     } catch (e: any) {
       console.error("[save-to-project]", e?.message ?? e);
       res.status(500).json({ error: e?.message ?? "Failed" });
@@ -13302,6 +14907,27 @@ Rules:
         return res.status(400).json({ error: "Can only pause running workflows" });
       }
 
+      // REAL pause: terminate the local Nextflow subprocess so it stops
+      // submitting new tasks. The work-dir + cache survive, so /resume can
+      // pick up via -resume. Only a confirmed backend pause updates local state.
+      const nextflowRunId =
+        run.execution.nextflowRunId || run.execution.galaxyInvocationId || req.params.id;
+      try {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const pauseResponse = await fetch(`${galaxyUrl}/api/nextflow/pause/${encodeURIComponent(nextflowRunId)}`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(15_000),
+        });
+        const confirmation = await pauseResponse.json() as any;
+        if (!pauseResponse.ok || confirmation.ok !== true || confirmation.status !== 'paused') {
+          return res.status(409).json({ error: 'The backend did not confirm a pause.',
+            executionStatus: confirmation.status });
+        }
+      } catch (gxyErr) {
+        console.warn('[ExecutionRun] Pause not confirmed:', gxyErr);
+        return res.status(502).json({ error: 'Pause could not be confirmed. Refresh the run status.' });
+      }
+
       // Record interaction
       await storage.addExecutionRunInteraction(req.params.id, {
         id: uuidv4(),
@@ -13311,22 +14937,6 @@ Rules:
         reason,
         userId: req.user?.id,
       });
-
-      // REAL pause: terminate the local Nextflow subprocess so it stops
-      // submitting new tasks. The work-dir + cache survive, so /resume can
-      // pick up via -resume. Best-effort — failures are logged but don't
-      // block the frontend status update.
-      const nextflowRunId =
-        run.execution.nextflowRunId || run.execution.galaxyInvocationId || req.params.id;
-      try {
-        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-        await fetch(`${galaxyUrl}/api/nextflow/pause/${encodeURIComponent(nextflowRunId)}`, {
-          method: 'POST',
-          signal: AbortSignal.timeout(15_000),
-        });
-      } catch (gxyErr) {
-        console.warn('[ExecutionRun] Galaxy pause-call failed (continuing):', gxyErr);
-      }
 
       // Update frontend-side status
       const updated = await storage.updateExecutionRun(req.params.id, {
@@ -13534,6 +15144,16 @@ Rules:
         return res.status(404).json({ error: "Execution run not found" });
       }
 
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      // Findings synthesis runs on whichever provider is configured (Gemini, Anthropic, or an
+      // OpenAI-compatible on-prem endpoint); refuse only when none is.
+      const _anyLlmConfigured = !!(apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY ||
+        process.env.LLM_API_KEY || process.env.LLM_API_URL || process.env.DEEPSEEK_API_KEY ||
+        process.env.ZHIPU_API_KEY || process.env.OPENAI_API_KEY);
+      if (!_anyLlmConfigured && !localOnly()) {
+        return res.status(503).json({ error: "AI analysis unavailable — no LLM provider configured" });
+      }
+
       // ── Gather output file content ────────────────────────────────────────
       // Use the local invocations outputs endpoint (same data the UI uses).
       const runIdForOutputs = req.params.id;
@@ -13644,6 +15264,7 @@ Rules:
         system: ANALYSIS_SYSTEM_PROMPT,
         maxTokens: 4096,
         jsonMode: true,  // findings endpoint expects JSON output
+        task: 'findings',  // route to on-prem SFT-gold adapter when enabled (flag default OFF); backend falls back to the chain otherwise
       });
       const rawText = completion.text || '';
       // Strip markdown fences if present
@@ -13774,9 +15395,13 @@ Rules:
       'CYP3A4 substrate':      {             label: 'CYP3A4 substrate probability' },
       'Ames mutagenicity':     { high: 0.5, label: 'Ames mutagenicity risk' },
     };
-    const key_results: Array<{metric: string; value: string; interpretation: string; source_file: string}> = [];
+    const key_results: Array<{metric: string; value: string; interpretation: string; source_file: string; entity?: string}> = [];
     for (const [ci, compound] of compounds.entries()) {
-      const tag = compounds.length === 1 ? '' : `(Compound ${ci + 1}) `;
+      // Carry the REAL compound identity (parsed from the "Drug:/Compound:" line,
+      // e.g. "aspirin") both as a structured `entity` field and in the prose — never
+      // the anonymous "Compound N" (only a fallback when the output has no name).
+      const entity = (compound.id || '').trim() || `Compound ${ci + 1}`;
+      const tag = compounds.length === 1 ? '' : `(${entity}) `;
       for (const [metric, info] of Object.entries(THRESHOLDS)) {
         const val = compound.metrics[metric];
         if (!val) continue;
@@ -13787,7 +15412,7 @@ Rules:
           else if (info.low !== undefined && num < info.low) interpretation = `${tag}Low ${info.label} (${val}) — potential liability`;
           else if (info.high !== undefined || info.low !== undefined) interpretation = `${tag}Acceptable ${info.label} (${val})`;
         }
-        key_results.push({ metric, value: val, interpretation, source_file: f.name });
+        key_results.push({ metric, value: val, interpretation, source_file: f.name, entity: compounds.length === 1 ? undefined : entity });
       }
     }
     const liabilities = key_results.filter(kr => /liability|Elevated|Low/.test(kr.interpretation)).map(kr => kr.metric);
@@ -13822,19 +15447,29 @@ Rules:
     if (!f) return null;
     const lines = f.content.split('\n').filter(l => l.trim());
     if (lines.length < 2) return null;
-    const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-    const geneIdx = header.findIndex(h => /^(gene|gene_id|geneid|gene\.name|name|symbol)$/i.test(h));
+    // autodelim (audit S3#2): BioMate's own de_results.tsv is TAB; nf-core *_DESeq2_results.csv is
+    // comma. The comma-only split returned null on a parseable TSV → EMPTY findings on a successful
+    // DE run. Detect the delimiter from the header.
+    const delim = lines[0].includes('\t') ? '\t' : ',';
+    const header = lines[0].split(delim).map(h => h.replace(/"/g, '').trim());
+    let geneIdx = header.findIndex(h => /^(gene|gene_id|geneid|gene\.name|name|symbol)$/i.test(h));
     const lfcIdx = header.findIndex(h => /log2fold/i.test(h) && !/se$/i.test(h));
     const padjIdx = header.findIndex(h => /^(padj|p\.adj|fdr|bh|q\.value)$/i.test(h));
     if (lfcIdx === -1 || padjIdx === -1) return null;
+    // (audit S3#3) nf-core write.csv(row.names=TRUE) puts gene IDs in the UNLABELED first column
+    // (header ""). Fall back to column 0 ONLY in that true row-name case — committee Opus-3: a blind
+    // `geneIdx=0` mislabels genes with a numeric value when col 0 is numeric or IS the LFC/padj
+    // column. When no gene column matches and col 0 isn't the row-name column, keep geneIdx=-1 and
+    // emit honest synthetic gene_N rather than a number.
+    if (geneIdx === -1 && header[0] === '' && lfcIdx !== 0 && padjIdx !== 0) geneIdx = 0;
     type Gene = {gene: string; lfc: number; padj: number};
     const genes: Gene[] = [];
     for (const line of lines.slice(1)) {
-      const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
+      const cols = line.split(delim).map(c => c.replace(/"/g, '').trim());
       const lfc = parseFloat(cols[lfcIdx]);
       const padj = parseFloat(cols[padjIdx]);
       if (isNaN(lfc) || isNaN(padj)) continue;
-      genes.push({ gene: geneIdx >= 0 ? cols[geneIdx] : `gene_${genes.length + 1}`, lfc, padj });
+      genes.push({ gene: (geneIdx >= 0 && cols[geneIdx]) ? cols[geneIdx] : `gene_${genes.length + 1}`, lfc, padj });
     }
     const sig = genes.filter(g => g.padj < 0.05);
     const topUp = [...sig].sort((a, b) => b.lfc - a.lfc).slice(0, 8);
@@ -13915,21 +15550,34 @@ Rules:
     const funcIdx = header.findIndex(h => /func|consequence|exonicfunc/i.test(h));
     if (geneIdx === -1 && impactIdx === -1) return null;
     type Variant = {gene: string; impact: string; func: string};
-    const variants: Variant[] = lines.slice(1, 201).map(line => {
+    // (audit S3#5) Parse ALL rows and count by impact over the full set. The old
+    // `slice(1,201)` with no impact-sort hid HIGH-impact (candidate causal) variants beyond
+    // row 200 and undercounted — in a position-sorted table the diagnostic variant can be lost.
+    const variants: Variant[] = lines.slice(1).map(line => {
       const cols = line.split(sep);
       return { gene: geneIdx >= 0 ? cols[geneIdx] : '', impact: impactIdx >= 0 ? cols[impactIdx] : '', func: funcIdx >= 0 ? cols[funcIdx] : '' };
     });
-    const high = variants.filter(v => /high/i.test(v.impact));
-    const mod = variants.filter(v => /moderate|mod/i.test(v.impact));
+    // (audit S3#4) MODIFIER must NOT be counted as MODERATE — `/mod/` is a substring of
+    // "MODIFIER" (usually the majority of variants). Match each category exactly.
+    const high = variants.filter(v => /^high$/i.test(v.impact.trim()));
+    const mod = variants.filter(v => /^moderate$/i.test(v.impact.trim()));
+    const low = variants.filter(v => /^low$/i.test(v.impact.trim()));
+    const modifier = variants.filter(v => /^modifier$/i.test(v.impact.trim()));
     const contextLines = [
       `### Rare Disease Variant Analysis`,
-      `HIGH impact variants: ${high.length}`,
-      `MODERATE impact variants: ${mod.length}`,
-      ...(high.length > 0 ? [``, `HIGH impact:`, ...high.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
-      ...(mod.length > 0 ? [``, `MODERATE impact (top 5):`, ...mod.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
+      // committee Opus-1: counts are over the SAMPLED output (parser now reads up to ~1MB — most
+      // annotated tables fit, but a very large table is still sampled), so label them "sampled" and
+      // do NOT whitelist the total as an authoritative "variants analyzed" count for the LLM narrative.
+      `Variants in sampled output: ${variants.length}`,
+      `HIGH impact (sampled): ${high.length}`,
+      `MODERATE impact (sampled): ${mod.length}`,
+      `LOW impact (sampled): ${low.length}`,
+      `MODIFIER (sampled): ${modifier.length}`,
+      ...(high.length > 0 ? [``, `HIGH impact (sampled):`, ...high.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
+      ...(mod.length > 0 ? [``, `MODERATE impact (sampled, top 5):`, ...mod.slice(0, 5).map(v => `  ${v.gene}: ${v.func || 'unknown'}`)] : []),
       ``, `Source file: ${f.name}`,
     ];
-    const numbers = new Set<string>([String(high.length), String(mod.length)]);
+    const numbers = new Set<string>([String(high.length), String(mod.length), String(low.length), String(modifier.length)]);
     return { context: contextLines.join('\n'), numbers };
   }
 
@@ -13970,14 +15618,12 @@ Rules:
   //   Thin proxy to Galaxy backend /api/nextflow/analyze-outputs.
   // ──────────────────────────────────────────────────────────────────────────────
 
-  app.get("/api/workflows/runs/:id/findings", optionalAuth, async (req, res) => {
+  app.get("/api/workflows/runs/:id/findings", authenticateToken, async (req: any, res) => {
     const runId = req.params.id;
     try {
       // 1. Look up the run to get output dir
-      const run = await storage.getExecutionRun(runId);
-      if (!run) {
-        return res.status(404).json({ error: "Run not found" });
-      }
+      const run = await resolveAuthorizedRun(req, res, runId);
+      if (!run) return;
 
       // Failed runs have no meaningful outputs — return static error immediately
       // so the UI shows a clear message instead of an infinite "Analysis in progress…" spinner.
@@ -13994,6 +15640,45 @@ Rules:
         });
       }
 
+      // A persisted sidecar / cached object is only trustworthy as findings when
+      // it actually carries the findings schema. Some runs have a findings_data.json
+      // whose content is the RAW OUTPUT SAMPLES (an object keyed by filename, each
+      // value `{filename, content}`) rather than a findings object — observed live
+      // on the CAR-T run dc9f3235. Spreading that and stamping `status:'ready'` made
+      // the endpoint report ready over non-findings JSON, so the UI found no
+      // summary/key_results and rendered an empty card. Trust a payload only when it
+      // has a findings-shaped field; otherwise ignore it and regenerate.
+      // IMPORTANT: this accepts a WELL-FORMED-BUT-EMPTY result (summary is a string,
+      // even ""; key_results is an array, even []) so a legitimately low-signal run
+      // is NOT rejected — that would loop (reject → regenerate → same empty → reject).
+      // It rejects only objects with no findings field at all (the samples map).
+      const isFindingsShaped = (o: any): boolean => {
+        if (!o || typeof o !== 'object' || Array.isArray(o)) return false;
+        if (typeof o.summary === 'string') return true;
+        if (Array.isArray(o.key_results)) return true;
+        if (o.findings_document && typeof o.findings_document === 'object') return true;
+        if (typeof o.reportMd === 'string') return true;
+        return false;
+      };
+
+      // Read-only observability hook (?regen=1): force recomputation from the EXISTING outputs
+      // (no new workflow run) by bypassing the three cached-"ready" gates and dropping the in-memory
+      // cache. Used to capture the document-as-truth SHADOW line on an already-finished run without
+      // waiting for a fresh run (findings are otherwise cached in the S3 sidecar + _findingsCache and
+      // never re-emit the shadow). For a deterministic-parser run (ADMET/DESeq2) it recomputes the
+      // SAME content from the same files; for an LLM-path run it re-calls the (non-deterministic) LLM,
+      // so regen is NON-DESTRUCTIVE by design: a degraded fallback must NOT overwrite a persisted good
+      // sidecar (see the `!forceRegen` guards on the _unavail/_minimal persists in runAsync). Does NOT
+      // bypass the failed-run early return above.
+      const forceRegen = req.query.regen === '1' || req.query.regen === 'true';
+      if (forceRegen) {
+        // Coalesce rapid regens with an in-flight generation: if one is already running, return
+        // pending instead of deleting the sentinel and firing a second concurrent analysis.
+        const _inflight = _findingsCache.get(runId);
+        if (_inflight?._generating) return res.json({ status: 'pending', message: 'Analysis in progress…' });
+        _findingsCache.delete(runId);
+      }
+
       // Determine local output dir (local runs only; S3 runs not supported for disk check)
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
       const localOutputDir = `/tmp/nextflow_runs/${nextflowRunId}/output`;
@@ -14007,7 +15692,7 @@ Rules:
         reportExists = true;
       } catch { /* file not found — will trigger analysis */ }
 
-      if (reportExists) {
+      if (reportExists && !forceRegen) {
         // Load structured sidecar (findings_data.json) if available, fall back to raw markdown
         try {
           const { readFile } = await import('fs/promises');
@@ -14019,7 +15704,7 @@ Rules:
             structured = JSON.parse(raw);
           } catch { /* sidecar not yet written — use markdown fallback */ }
 
-          if (structured) {
+          if (structured && isFindingsShaped(structured)) {
             return res.json({
               ...structured,
               status: 'ready',
@@ -14027,17 +15712,24 @@ Rules:
               reportUrl,
             });
           }
-
-          // No sidecar — return raw markdown so FindingsCard can parse what it can
-          const md = await readFile(reportPath, 'utf8');
-          return res.json({ status: 'ready', runId, reportMd: md, reportUrl });
+          if (structured) {
+            // Sidecar exists but is NOT a findings object (e.g. raw output samples).
+            // Ignore it and fall through to regeneration rather than serving an empty
+            // "ready" card. The run's .md is written by the same path, so don't fall
+            // back to it here either.
+            console.warn(`[Findings] local sidecar ${jsonPath} is not findings-shaped (keys: ${Object.keys(structured).slice(0, 6).join(',')}) — regenerating`);
+          } else {
+            // No sidecar — return raw markdown so FindingsCard can parse what it can
+            const md = await readFile(reportPath, 'utf8');
+            return res.json({ status: 'ready', runId, reportMd: md, reportUrl });
+          }
         } catch (readErr) {
           console.warn("[Findings] Could not read existing report:", readErr);
         }
       }
 
       // 2b. For AWS Batch runs: check S3 for findings_data.json sidecar
-      if (!reportExists) {
+      if (!reportExists && !forceRegen) {
         try {
           const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
           const nfRunId: string = (run as any).execution?.nextflowRunId || runId;
@@ -14054,21 +15746,62 @@ Rules:
             const dataResp = await fetch(url, { signal: AbortSignal.timeout(5_000) });
             if (dataResp.ok) {
               const structured = await dataResp.json();
-              const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
-              return res.json({ ...structured, status: 'ready', runId, reportUrl });
+              if (isFindingsShaped(structured)) {
+                const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
+                return res.json({ ...structured, status: 'ready', runId, reportUrl });
+              }
+              // Non-findings S3 sidecar (e.g. raw output samples) — ignore and
+              // regenerate rather than serving an empty "ready" card.
+              console.warn(`[Findings] S3 sidecar ${s3Uri} is not findings-shaped (keys: ${Object.keys(structured || {}).slice(0, 6).join(',')}) — regenerating`);
             }
           }
         } catch { /* S3 not available — fall through to trigger analysis */ }
       }
 
       // 3. Check in-memory cache (populated by background Claude analysis for AWS runs)
-      const cached = _findingsCache.get(runId);
+      const cached = forceRegen ? undefined : _findingsCache.get(runId);
       if (cached) {
         if (cached._generating) {
           return res.json({ status: 'pending', message: 'Analysis in progress…' });
         }
-        const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
-        return res.json({ ...cached, status: 'ready', reportUrl, runId });
+        // A completed workflow is not the same thing as a readable result.  Do
+        // not label the fallback narrative as `ready`: doing so made the UI and
+        // exported reports look scientifically complete even when every output
+        // download had failed (for example, an invalid S3 credential).
+        if (cached._notReadable) {
+          // Do not make an unreadable state permanent. A storage credential
+          // repair or delayed publication can make the same run readable
+          // later. After a short visible failure period, let the next request
+          // restart the bounded output-read check instead of serving stale
+          // "unavailable" forever.
+          const retryAfterMs = 30_000;
+          const unavailableAt = Number(cached._unreadableAt || 0);
+          const unreadableElapsedMs = unavailableAt ? Date.now() - unavailableAt : 0;
+          if (unavailableAt && unreadableElapsedMs >= retryAfterMs) {
+            _findingsCache.delete(runId);
+          } else {
+            return res.json({
+              status: 'unavailable',
+              runId,
+              message: cached.message || 'Workflow output files could not be read, so findings are unavailable.',
+              caveats: cached.caveats || ['Findings are withheld until at least one workflow output can be read.'],
+              retry_after_seconds: Math.max(1, Math.ceil((retryAfterMs - unreadableElapsedMs) / 1000)),
+            });
+          }
+        }
+        // `cached` may have been invalidated above; fall through to create a
+        // fresh analysis rather than emitting a ready response from it.
+        const stillCached = _findingsCache.get(runId);
+        if (stillCached && isFindingsShaped(stillCached)) {
+          const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
+          return res.json({ ...stillCached, status: 'ready', reportUrl, runId });
+        }
+        if (stillCached) {
+          // Cached object isn't findings-shaped (stale/garbage) — drop it and
+          // regenerate below rather than returning an empty "ready" card.
+          console.warn(`[Findings] dropping non-findings cache for ${runId} (keys: ${Object.keys(stillCached).slice(0, 6).join(',')})`);
+          _findingsCache.delete(runId);
+        }
       }
 
       // 4. Mark as generating so concurrent polls don't double-fire
@@ -14081,6 +15814,30 @@ Rules:
       const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY ||
         process.env.ANTHROPIC_API_KEY || process.env.LLM_API_KEY ||
         process.env.DEEPSEEK_API_KEY || process.env.ZHIPU_API_KEY || process.env.OPENAI_API_KEY;
+
+      // Durably persist a real findings result to the run's S3 output dir so a
+      // reopened/historical run serves it from the S3 sidecar (read path above,
+      // step 2) instead of re-running the LLM each time. Best-effort: a failure
+      // only means the next open re-generates, never a crash. Only called with
+      // genuine findings (not the "_generating"/"_notReadable" transients).
+      const persistFindingsSidecar = async (result: any) => {
+        try {
+          const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+          const nfRunId: string = (run as any).execution?.nextflowRunId || runId;
+          const storedOutdir: string = (run as any).execution?.nextflowOutputDir || '';
+          const sidecarBase = storedOutdir || `s3://${s3Bucket}/nextflow/outputs/${nfRunId}`;
+          const s3Uri = `${sidecarBase.replace(/\/?$/, '')}/output/findings_data.json`;
+          const mm = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+          if (!mm) return;
+          const [, bucket, key] = mm;
+          const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+          const s3 = await _s3ClientForBucket(bucket);
+          await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: JSON.stringify(result), ContentType: 'application/json' }));
+          console.log(`[Findings] persisted sidecar s3://${bucket}/${key}`);
+        } catch (e: any) {
+          console.warn(`[Findings] sidecar persist failed for ${runId}: ${e?.message}`);
+        }
+      };
 
       const runAsync = async () => {
         try {
@@ -14110,11 +15867,29 @@ Rules:
                 region: 'us-east-1', followRegionRedirects: true,
                 ...(_nfKey2 && _nfSec2 ? { credentials: { accessKeyId: _nfKey2, secretAccessKey: _nfSec2 } } : {}),
               });
-              const readableOutputs = outputs.slice(0, 30).filter(out => {
-                const filePath: string = out.s3_uri || out.file_path || out.path || '';
-                const fileName: string = out.filename || out.name || out.file_name || filePath.split('/').pop() || 'output';
+              // #5a bug C — sampling coverage: the result-bearing file must be among
+              // the few we actually read. Rank candidates so report/summary/result/
+              // structured files come first and Nextflow bookkeeping sinks, THEN cap —
+              // instead of a raw slice that could sample logs and miss the results.
+              // Cap 8 (was 6) so the proven ADMET/DE deterministic-parser path — which
+              // reads the same outputSamples — can never lose its target file.
+              const _nameOf = (out: any): string => {
+                const fp: string = out.s3_uri || out.file_path || out.path || '';
+                return out.filename || out.name || out.file_name || fp.split('/').pop() || 'output';
+              };
+              const _resultScore = (name: string): number => {
+                const n = name.toLowerCase();
+                let s = 0;
+                if (/(report|summary|result|finding|final|metric|stat|score|predict|analysis|toxic|qc)/.test(n)) s += 3;
+                if (/\.(json|tsv|csv)$/.test(n)) s += 2;          // structured > free text
+                if (/\.(txt|md)$/.test(n)) s += 1;
+                if (/(\.nextflow\.log|_trace|_timeline|_report|\bdag\b|execution_)/.test(n)) s -= 5; // bookkeeping
+                return s;
+              };
+              const readableOutputs = outputs.slice(0, 40).filter(out => {
+                const fileName = _nameOf(out);
                 return fileName && TEXT_EXTS.test(fileName);
-              }).slice(0, 6);
+              }).sort((a, b) => _resultScore(_nameOf(b)) - _resultScore(_nameOf(a))).slice(0, 8);
               const readResults = await Promise.all(readableOutputs.map(async (out) => {
                 const filePath: string = out.s3_uri || out.file_path || out.path || '';
                 const fileName: string = out.filename || out.name || out.file_name || filePath.split('/').pop() || 'output';
@@ -14124,13 +15899,17 @@ Rules:
                     const _m = filePath.match(/^s3:\/\/([^/]+)\/(.+)$/);
                     if (_m) {
                       const _obj = await _s3c.send(new _GOC({ Bucket: _m[1], Key: _m[2] }));
-                      const chunks: Buffer[] = [];
-                      for await (const chunk of _obj.Body as any) chunks.push(Buffer.from(chunk));
-                      content = Buffer.concat(chunks).slice(0, 8000).toString('utf8');
+                      // sampling-decouple: read up to ~1MB so the deterministic parser + descriptor
+                      // see the FULL structured output (e.g. toxicity_report.json's
+                      // per_compound_admet_ai block, whole variant tables for counts). The LLM
+                      // context is truncated to 8KB separately. Stop at the cap to bound memory.
+                      const chunks: Buffer[] = []; let _sz = 0;
+                      for await (const chunk of _obj.Body as any) { const _b = Buffer.from(chunk); chunks.push(_b); _sz += _b.length; if (_sz >= 1_000_000) break; }
+                      content = Buffer.concat(chunks).slice(0, 1_000_000).toString('utf8');
                     }
                   } else if (filePath) {
                     const raw = await fsImport.readFile(filePath, 'utf8');
-                    content = raw.slice(0, 8000);
+                    content = raw.slice(0, 1_000_000); // sampling-decouple: full-ish parse-source; LLM context truncated below
                   }
                   return content.trim() ? { name: fileName, content } : null;
                 } catch { return null; }
@@ -14139,57 +15918,48 @@ Rules:
             }
           } catch { /* outputs fetch failed — proceed without file content */ }
 
-          // Fallback: directly list S3 output directory using AWS SDK
+          // Canonical-resolver fallback (L1b): /output_files sources from the
+          // in-memory nextflow status, which a restart wipes. runsOutputsService.list()
+          // is the SINGLE reliable resolver — it internally tries prefix → work-dir →
+          // persisted nextflowStatus.s3_output_files → live Galaxy recovery, then
+          // persists a manifest — so it subsumes the old getInvocationOutputs and
+          // raw-S3-prefix fallbacks that used to live here (both deleted). Read text
+          // samples straight from its outputs' s3Uri.
           if (outputSamples.length === 0) {
             try {
-              const { S3Client: _S3F, GetObjectCommand: _GF, ListObjectsV2Command: _LF } = await import('@aws-sdk/client-s3');
-              const _nfKeyF = process.env.AWS_NF_ACCESS_KEY_ID;
-              const _nfSecF = process.env.AWS_NF_SECRET_ACCESS_KEY;
-              const _s3fEp = process.env.S3_ENDPOINT_URL;
-              const _s3f = new _S3F(_s3fEp ? {
-                endpoint: _s3fEp, region: 'us-east-1', forcePathStyle: true,
-                credentials: { accessKeyId: _nfKeyF || process.env.AWS_ACCESS_KEY_ID || '', secretAccessKey: _nfSecF || process.env.AWS_SECRET_ACCESS_KEY || '' },
+              const { runsOutputsService } = await import('./services/runs-outputs-service');
+              const canonical = await runsOutputsService.list(runId);
+              const { S3Client: _S3I, GetObjectCommand: _GI } = await import('@aws-sdk/client-s3');
+              const _nfKeyI = process.env.AWS_NF_ACCESS_KEY_ID;
+              const _nfSecI = process.env.AWS_NF_SECRET_ACCESS_KEY;
+              const _s3iEp = process.env.S3_ENDPOINT_URL;
+              const _s3i = new _S3I(_s3iEp ? {
+                endpoint: _s3iEp, region: 'us-east-1', forcePathStyle: true,
+                credentials: { accessKeyId: _nfKeyI || process.env.AWS_ACCESS_KEY_ID || '', secretAccessKey: _nfSecI || process.env.AWS_SECRET_ACCESS_KEY || '' },
               } : {
                 region: 'us-east-1', followRegionRedirects: true,
-                ...(_nfKeyF && _nfSecF ? { credentials: { accessKeyId: _nfKeyF, secretAccessKey: _nfSecF } } : {}),
+                ...(_nfKeyI && _nfSecI ? { credentials: { accessKeyId: _nfKeyI, secretAccessKey: _nfSecI } } : {}),
               });
-              const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
-              const storedOutdir: string = (run as any).execution?.nextflowOutputDir ||
-                (run as any).nextflowOutputDir || '';
-              const s3Prefix = storedOutdir
-                ? storedOutdir.replace(`s3://${s3Bucket}/`, '').replace(/\/?$/, '/')
-                : `nextflow/outputs/${runId}/`;
-              const TEXT_EXTS = /\.(txt|log|json|csv|tsv|md)$/i;
-              const listed = await _s3f.send(new _LF({ Bucket: s3Bucket, Prefix: s3Prefix, MaxKeys: 200 }));
-              const textKeys = (listed.Contents || [])
-                .filter(o => o.Key && TEXT_EXTS.test(o.Key) && (o.Size || 0) < 64000)
-                .slice(0, 10);
-              for (const obj of textKeys) {
-                const fileName = obj.Key!.split('/').pop() || obj.Key!;
+              const TEXT_EXTS_I = /\.(txt|log|csv|tsv|json|vcf|md|bed|gff|gtf)$/i;
+              for (const o of canonical) {
+                if (outputSamples.length >= 6) break;
+                const s3Uri: string = (o as any).s3Uri || '';
+                const fileName: string = (o as any).name || s3Uri.split('/').pop() || 'output';
+                if (!s3Uri.startsWith('s3://') || !TEXT_EXTS_I.test(fileName)) continue;
+                const _m = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+                if (!_m) continue;
                 try {
-                  const _r = await _s3f.send(new _GF({ Bucket: s3Bucket, Key: obj.Key! }));
-                  const chunks: Buffer[] = [];
-                  for await (const ch of _r.Body as any) chunks.push(Buffer.from(ch));
-                  const content = Buffer.concat(chunks).slice(0, 8000).toString('utf8');
+                  const _obj = await _s3i.send(new _GI({ Bucket: _m[1], Key: _m[2] }));
+                  const chunks: Buffer[] = []; let _szI = 0;
+                  for await (const ch of _obj.Body as any) { const _bI = Buffer.from(ch); chunks.push(_bI); _szI += _bI.length; if (_szI >= 1_000_000) break; } // sampling-decouple: full-ish parse-source
+                  const content = Buffer.concat(chunks).slice(0, 1_000_000).toString('utf8');
                   if (content.trim()) outputSamples.push({ name: fileName, content });
                 } catch { /* skip unreadable */ }
-                if (outputSamples.length >= 6) break;
               }
-              console.log(`[Findings] S3 SDK list found ${outputSamples.length} files from ${s3Prefix}`);
-            } catch (s3Err: any) {
-              console.warn('[Findings] S3 SDK list failed:', s3Err.message);
+              console.log(`[Findings] canonical resolver provided ${outputSamples.length} readable outputs for ${runId}`);
+            } catch (invErr: any) {
+              console.warn('[Findings] canonical resolver read failed:', invErr?.message);
             }
-          }
-
-          if (!apiKey) {
-            // No AI key — return a minimal summary so the card appears
-            _findingsCache.set(runId, {
-              summary: `${workflowName} completed successfully.`,
-              key_results: [],
-              next_steps: ['Review the output files for detailed results.'],
-              caveats: [],
-            });
-            return;
           }
 
           // Guardrail: if no output files were found, skip LLM entirely.
@@ -14219,35 +15989,99 @@ Rules:
             console.warn(`[Findings] no readable outputs after ${RETRY_WINDOW_MS/1000}s for ${runId} — caching generic summary`);
             _findingsFirstAttempt.delete(runId);
             _findingsCache.set(runId, {
-              summary: `${workflowName} completed. Output files are not yet readable — check the Outputs tab for results.`,
-              key_results: [],
-              next_steps: ['Open the Outputs tab to view and download result files.'],
-              caveats: ['Findings analysis requires readable output files. Re-check when outputs are available.'],
+              _notReadable: true,
+              _unreadableAt: Date.now(),
+              message: `${workflowName} completed, but its output files could not be read. Findings are withheld until output access is repaired.`,
+              caveats: ['Findings analysis requires at least one readable output file; no scientific summary has been generated.'],
             });
             return;
           }
           // Readable outputs found — clear the retry clock for this run.
           _findingsFirstAttempt.delete(runId);
 
+          if (!apiKey && !localOnly()) {
+            // We have verified that real output content is available.  It is
+            // safe to say so, but do not fabricate a scientific summary when
+            // the analysis model is unavailable.
+            _findingsCache.set(runId, {
+              summary: `${workflowName} completed and output files are available for review.`,
+              key_results: [],
+              next_steps: ['Review the output files for detailed results.'],
+              caveats: ['Automated findings synthesis is unavailable because the analysis service is not configured.'],
+            });
+            return;
+          }
+
           // Pre-process known workflow output formats into clean structured context.
           // This gives the LLM focused, low-noise input and makes guardrail matching reliable.
           // ADMET returns deterministic findings directly — no LLM call needed.
           const preprocessed = preProcessForFindings(workflowName, outputSamples);
+
+          // Entity-aware findings document (findings framework, migration — ADDITIVE).
+          // The generic extractor builds a per-entity + shared-provenance FindingsDocument
+          // from the SAME output samples, attached as `findings_document` alongside the
+          // existing flat findings. The current UI ignores it; the new per-entity renderer
+          // consumes it. No change to the flat output below.
+          // See docs/20261025_FINDINGS_PROVENANCE_FRAMEWORK.md.
+          let _findingsDoc: ReturnType<typeof buildFindingsDocument> | null = null;
+          try {
+            const _m = matchDescriptor(workflowName, outputSamples);
+            if (_m) _findingsDoc = buildFindingsDocument(_m.descriptor, _m.file);
+          } catch (e) {
+            console.warn(`[Findings] entity-aware extractor skipped for "${workflowName}": ${(e as Error).message}`);
+          }
+
           if (preprocessed?.findings) {
             console.log(`[Findings] deterministic parse succeeded for "${workflowName}" — skipping LLM`);
-            _findingsCache.set(runId, preprocessed.findings);
+            const _reconciledDoc = _findingsDoc ? reconcileFindingsDocument(preprocessed.findings, _findingsDoc, undefined, /* flatIsDeterministic */ true) : null;
+            // SHADOW — document-as-truth migration, step 2 (logs only, NO behavior change; see
+            // docs/20261105_FINDINGS_QC_SIMPLIFICATION_DESIGN.md). Compare the document→flat
+            // projection (documentToLegacy) against today's parser flat so the later cutover to
+            // the document as the single verdict source (deleting the reconciler) is decidable
+            // from real-run divergence instead of guessed. The returned flat is unchanged.
+            if (_findingsDoc) {
+              try {
+                const _proj = documentToLegacy(_findingsDoc);
+                const _flatKeys = new Set<string>((preprocessed.findings.key_results || []).map((k: any) => String(k.metric)));
+                const _projKeys = new Set<string>(_proj.key_results.map(k => String(k.metric)));
+                const _parserOnly = [..._flatKeys].filter(k => !_projKeys.has(k));
+                const _docOnly = [..._projKeys].filter(k => !_flatKeys.has(k));
+                // The cutover gate is parser-only === [] (the projection must lose NO metric the
+                // parser surfaces — especially a safety liability). doc-only entries are the richer
+                // document adding metrics the flat never had (RDKit per_compound heuristics, batch
+                // panel aggregates) — an enrichment, not a regression. So: parser-only non-empty =>
+                // BLOCKED (a real gap, e.g. the pre-fix ADMET doc-only=[logP]); parser-only empty with
+                // doc extras => cutover-safe (document is a superset); exact match => cutover-ready.
+                if (_parserOnly.length) {
+                  console.warn(`[Findings][shadow] documentToLegacy vs parser flat for "${workflowName}": parser-only=[${_parserOnly.join(', ')}] doc-only=[${_docOnly.join(', ')}] — cutover BLOCKED (projection drops parser metrics)`);
+                } else if (_docOnly.length) {
+                  console.log(`[Findings][shadow] documentToLegacy covers all ${_flatKeys.size} parser metrics for "${workflowName}" and adds [${_docOnly.join(', ')}] — cutover-safe (document is a superset)`);
+                } else {
+                  console.log(`[Findings][shadow] documentToLegacy matches parser-flat key set for "${workflowName}" (${_projKeys.size} metrics) — cutover-ready`);
+                }
+              } catch (e) { console.warn(`[Findings][shadow] projection compare failed: ${(e as Error).message}`); }
+            }
+            const _det = _reconciledDoc ? { ...preprocessed.findings, findings_document: _reconciledDoc } : preprocessed.findings;
+            _findingsCache.set(runId, _det);
+            void persistFindingsSidecar(_det);
             return;
           }
 
+          // sampling-decouple: the parser/descriptor read the full ~1MB sample above; the LLM
+          // context (and its grounding number set) is TRUNCATED to 8KB per file so the token budget
+          // and the "LLM may only cite numbers it was shown" guarantee are preserved.
+          const _LLM_CAP = 8000;
           const fileContext = preprocessed
             ? preprocessed.context
-            : outputSamples.map(f => `### File: ${f.name}\n\`\`\`\n${f.content}\n\`\`\``).join('\n\n');
+            : outputSamples.map(f => `### File: ${f.name}\n\`\`\`\n${f.content.slice(0, _LLM_CAP)}\n\`\`\``).join('\n\n');
 
-          // Numeric tokens for guardrail: prefer pre-extracted (authoritative) over raw file scan
+          // Numeric tokens for guardrail: prefer pre-extracted (authoritative) over raw file scan.
+          // Scan only the 8KB the LLM actually sees, so the guardrail never admits a number that is
+          // in the full file but outside the LLM's context.
           const outputNumbers: Set<string> = preprocessed?.numbers ?? (() => {
             const s = new Set<string>();
             for (const f of outputSamples) {
-              for (const m of f.content.matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)) s.add(m[1]);
+              for (const m of f.content.slice(0, _LLM_CAP).matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)) s.add(m[1]);
             }
             return s;
           })();
@@ -14268,7 +16102,7 @@ STRICT GROUNDING RULES — violations will be rejected:
 4. If a metric cannot be read from the files, omit it from key_results.
 5. Each key_result MUST include "source_file" naming the EXACT file (copy the name from a "### File:" header above) the value was read from. This is grounded provenance, not a literature citation.
 
-Respond ONLY with valid JSON (no markdown wrapper):
+Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, and NEVER echo, restate, or re-serialize the input files. You are writing an analysis, not reformatting the inputs. Respond ONLY with the JSON object (no markdown wrapper):
 {
   "summary": "<2-3 sentence executive summary citing only observed results>",
   "key_results": [{"metric": "<name>", "value": "<exact value from file>", "interpretation": "<meaning>", "source_file": "<exact filename from a File: header>"}],
@@ -14280,26 +16114,57 @@ Respond ONLY with valid JSON (no markdown wrapper):
           // (Gemini, Anthropic, Qianwen/openai_compatible, DeepSeek, etc.)
           // Fallback to callGeminiFlash only when GEMINI_API_KEY is available
           // and no other provider is configured (legacy path).
-          let rawText: string;
+          let rawText = '';
           const hasGemini = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
           const hasOtherLLM = !!(process.env.ANTHROPIC_API_KEY || process.env.LLM_API_KEY ||
             process.env.DEEPSEEK_API_KEY || process.env.ZHIPU_API_KEY || process.env.OPENAI_API_KEY);
           if (hasGemini && !hasOtherLLM) {
+          try {
             rawText = await callGeminiFlash({
               messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
               system: SYSTEM,
               maxTokens: 32768,
               jsonMode: true,
+              // Bound the findings synthesis so a stalled LLM call can never leave the
+              // findings cache stuck on `_generating` ("Analysis in progress…") forever.
+              signal: AbortSignal.timeout(90_000),
             });
+          } catch (geminiErr: any) {
+            // Gemini stalled / timed out / errored. Leave rawText empty so the JSON
+            // parse below fails and the existing Claude (Haiku) fallback fires — i.e.
+            // BioMate AUTO-RECOVERS by switching models instead of hanging forever.
+            console.warn('[Findings] Gemini findings call failed/timed out:', geminiErr?.message, '— falling back to Claude');
+          }
           } else {
-            const { llmGenerate } = await import('./llm-client');
-            const completion = await llmGenerate({
-              prompt: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}`,
-              system: SYSTEM,
-              maxTokens: 32768,
-              jsonMode: true,
-            });
-            rawText = completion.text || '';
+            // Bound the generic-provider findings call the SAME way the Gemini
+            // branch above is bounded (AbortSignal.timeout(90s)). llm-client has
+            // no native timeout/abort, so race the call against a 90s deadline.
+            // On timeout/error we leave rawText empty → the JSON parse below
+            // fails → the Claude (Haiku) short-context fallback fires → worst
+            // case a non-empty "synthesis unavailable" summary. Previously this
+            // await could hang FOREVER on a stalled provider, leaving the
+            // findings cache stuck on `_generating` ("Analysis in progress…")
+            // with no recovery — the #5a "stays pending" symptom on dev
+            // (GLM/OpenRouter path). (True cancellation needs an AbortSignal in
+            // llm-client; the orphaned promise here is harmless for this
+            // fire-and-forget synthesis. Tracked in docs/20261105_FINDINGS_*.)
+            try {
+              const { llmGenerate } = await import('./llm-client');
+              const completion = await Promise.race([
+                llmGenerate({
+                  prompt: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}`,
+                  system: SYSTEM,
+                  maxTokens: 32768,
+                  jsonMode: true,
+                }),
+                new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error('findings llmGenerate timed out after 90s')), 90_000),
+                ),
+              ]);
+              rawText = completion.text || '';
+            } catch (llmErr: any) {
+              console.warn('[Findings] generic LLM findings call failed/timed out:', llmErr?.message, '— falling back to Claude');
+            }
           }
           console.log(
             `[Findings] llm returned: length=${rawText.length} ` +
@@ -14332,9 +16197,26 @@ Respond ONLY with valid JSON (no markdown wrapper):
               break;
             }
 
+            // Response-contract gate (#5a — the REAL long-tail blocker): the model
+            // must return a findings OBJECT ({summary, key_results, …}). On dev the
+            // generic provider often ignores the prompt and returns a JSON ARRAY that
+            // simply echoes the input files ([{filename, content}, …]) — valid JSON, so
+            // JSON.parse succeeds, but it has no summary/key_results. Previously that
+            // array was cached and persisted as "findings", then (post fix A) rejected
+            // as non-findings on read → regenerate → echo again → infinite "pending".
+            // Reject anything that isn't findings-shaped so control falls to the Claude
+            // fallback below (which adheres better); if that also fails, the outer catch
+            // persists a clean "synthesis unavailable" note so the run always converges.
+            if (!isFindingsShaped(parsed)) {
+              throw new Error(
+                `findings LLM returned non-findings JSON (${Array.isArray(parsed) ? 'array — likely echoed inputs' : typeof parsed}) — retrying with Claude`,
+              );
+            }
+
             // Guardrail: cross-check each key_result value against numbers in output files.
             // Drop any key_result whose value contains a number not found in the actual output.
             if (Array.isArray(parsed.key_results) && outputNumbers.size > 0) {
+              const _beforeCount = parsed.key_results.length;
               parsed.key_results = (parsed.key_results as Array<{metric: string; value: string; interpretation: string}>).filter(kr => {
                 const valueStr = String(kr.value || '');
                 const numbersInValue = [...valueStr.matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)].map(m => m[1]);
@@ -14342,6 +16224,18 @@ Respond ONLY with valid JSON (no markdown wrapper):
                 if (numbersInValue.length === 0) return true; // no numbers — textual label, keep it
                 return numbersInValue.some(n => outputNumbers.has(n));
               });
+              // Transparency (#5a bug C): if the grounding guardrail removed results,
+              // say so in a caveat rather than silently showing fewer/no results — a run
+              // whose result numbers the sampler didn't capture otherwise looks like it
+              // produced nothing. We NEVER re-admit the dropped (unverified) numbers; the
+              // caveat only explains the gap and points at the raw Outputs tab.
+              const _dropped = _beforeCount - parsed.key_results.length;
+              if (_dropped > 0) {
+                const _caveat = parsed.key_results.length === 0
+                  ? `All ${_beforeCount} candidate result value(s) were withheld because they could not be verified against the sampled output files — open the Outputs tab for the raw results.`
+                  : `${_dropped} candidate result value(s) were withheld because they could not be verified against the sampled output files.`;
+                parsed.caveats = [...(Array.isArray(parsed.caveats) ? parsed.caveats : []), _caveat];
+              }
             }
             // Provenance guardrail: source_file must name a file we actually sampled.
             // Keep grounded provenance, drop any hallucinated filename (so a finding is
@@ -14433,7 +16327,11 @@ Respond ONLY with valid JSON (no markdown wrapper):
               if (figs.length > 0) parsed.figures = figs;
             }
 
+            // Attach the entity-aware findings document (additive) when the extractor matched,
+            // reconciled against the flat verdict so one payload never contradicts itself.
+            if (_findingsDoc) parsed.findings_document = reconcileFindingsDocument(parsed, _findingsDoc);
             _findingsCache.set(runId, parsed);
+            void persistFindingsSidecar(parsed);
           } catch (parseErr: any) {
             console.warn('[Findings] Gemini JSON parse failed:', parseErr?.message, '— retrying with Claude');
             // Gemini truncated or returned malformed JSON — retry with Claude using a
@@ -14442,8 +16340,20 @@ Respond ONLY with valid JSON (no markdown wrapper):
               const shortContext = outputSamples.slice(0, 3)
                 .map(f => `### File: ${f.name}\n\`\`\`\n${f.content.slice(0, 3000)}\n\`\`\``)
                 .join('\n\n');
+              // The Claude fallback MUST authenticate with an Anthropic key. The
+              // outer `apiKey` is a cascade (GEMINI || GOOGLE || ANTHROPIC || …) used
+              // only to gate "is any LLM configured"; on dev GEMINI_API_KEY wins, so
+              // passing it to the Anthropic SDK gave `401 invalid x-api-key` and the
+              // fallback never ran — leaving every echoing/long-tail run on the
+              // "synthesis unavailable" note (observed live on CAR-T). Use the
+              // Anthropic key specifically; when there isn't one (and we're not on the
+              // local shim), skip straight to the clean note instead of a doomed 401.
+              const _anthropicKey = process.env.ANTHROPIC_API_KEY || '';
+              if (!localOnly() && !_anthropicKey) {
+                throw new Error('findings Claude fallback has no ANTHROPIC_API_KEY — using unavailable note');
+              }
               const Anthropic = (await import('@anthropic-ai/sdk')).default;
-              const _anthropic = new Anthropic({ apiKey });
+              const _anthropic = (localOnly() ? localMessagesClient() as unknown as import('@anthropic-ai/sdk').default : new Anthropic({ apiKey: _anthropicKey }));
               const _msg = await _anthropic.messages.create({
                 model: 'claude-haiku-4-5-20251001',
                 max_tokens: 2048,
@@ -14453,27 +16363,50 @@ Respond ONLY with valid JSON (no markdown wrapper):
               const _rawClaude = (_msg.content[0] as any)?.text ?? '';
               const _clean = _rawClaude.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
               const _parsed = JSON.parse(_clean);
+              // Same response-contract gate as the primary path: reject a non-findings
+              // object (array/echo) so we fall to the clean "unavailable" note below
+              // rather than caching garbage.
+              if (!isFindingsShaped(_parsed)) {
+                throw new Error(`Claude findings fallback returned non-findings JSON (${Array.isArray(_parsed) ? 'array' : typeof _parsed})`);
+              }
               console.log('[Findings] Claude fallback succeeded');
+              if (_findingsDoc) _parsed.findings_document = reconcileFindingsDocument(_parsed, _findingsDoc);
               _findingsCache.set(runId, _parsed);
+              void persistFindingsSidecar(_parsed);
             } catch (claudeErr: any) {
               console.warn('[Findings] Claude fallback also failed:', claudeErr?.message);
-              _findingsCache.set(runId, {
+              const _unavail = {
                 summary: `${workflowName} completed. AI synthesis was unavailable for this run — see the Outputs tab for raw results.`,
                 key_results: [],
                 next_steps: ['Open the Outputs tab to view the result files directly.'],
                 caveats: ['AI summary generation did not produce a valid structured response. The underlying run succeeded.'],
-              });
+              };
+              _findingsCache.set(runId, _unavail);
+              // Persist so the NEXT read (any worker) serves this findings-shaped note
+              // from the S3 sidecar and converges — instead of re-reading the stale
+              // garbage sidecar, re-rejecting it, and regenerating forever (the
+              // perpetual-"pending" loop observed live on CAR-T).
+              // But a diagnostic ?regen=1 must never DOWNGRADE a previously-good persisted sidecar
+              // to this empty note (the LLM is non-deterministic, so a one-off failure on regen would
+              // otherwise destroy real findings). Skip the persist on forceRegen.
+              if (!forceRegen) void persistFindingsSidecar(_unavail);
             }
           }
         } catch (err: any) {
           console.warn('[Findings] Background Claude analysis failed:', err.message);
-          // On failure, set a minimal summary so the card still appears
-          _findingsCache.set(runId, {
+          // On failure, set a minimal (findings-shaped) summary so the card still
+          // appears, AND persist it so cross-worker reads converge instead of
+          // re-rejecting a stale garbage sidecar and regenerating forever.
+          const _minimal = {
             summary: `${workflowName} completed. Review output files for detailed results.`,
             key_results: [],
             next_steps: [],
             caveats: [],
-          });
+          };
+          _findingsCache.set(runId, _minimal);
+          // As with _unavail: a diagnostic ?regen=1 must not DOWNGRADE a persisted good sidecar to
+          // this empty note on a one-off LLM/output-read failure. Persist only on normal generation.
+          if (!forceRegen) void persistFindingsSidecar(_minimal);
         }
       };
 
@@ -14487,11 +16420,11 @@ Respond ONLY with valid JSON (no markdown wrapper):
   });
 
   // Serve the raw findings_report.md for download
-  app.get("/api/workflows/runs/:id/findings/report", optionalAuth, async (req, res) => {
+  app.get("/api/workflows/runs/:id/findings/report", authenticateToken, async (req: any, res) => {
     const runId = req.params.id;
     try {
-      const run = await storage.getExecutionRun(runId);
-      if (!run) return res.status(404).json({ error: "Run not found" });
+      const run = await resolveAuthorizedRun(req, res, runId);
+      if (!run) return;
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
       const reportPath = `/tmp/nextflow_runs/${nextflowRunId}/output/findings_report.md`;
       const { readFile } = await import('fs/promises');
@@ -14505,6 +16438,14 @@ Respond ONLY with valid JSON (no markdown wrapper):
       // AWS Batch runs don't write findings_report.md locally. Render markdown from
       // cached structured findings (populated by background Claude analysis).
       const cached = _findingsCache.get(runId);
+      if (cached?._notReadable) {
+        // Never export a fallback sentence as if it were a findings report.
+        // The caller can retry after output-storage access is repaired.
+        return res.status(409).json({
+          error: 'Findings unavailable because workflow output files could not be read',
+          message: cached.message,
+        });
+      }
       if (cached && !cached._generating) {
         const workflowName: string = (run as any).workflowName || (run as any).name || "Workflow";
         const lines: string[] = [
@@ -14545,6 +16486,55 @@ Respond ONLY with valid JSON (no markdown wrapper):
       return res.status(404).json({ error: "Findings report not yet available" });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Convert a report Markdown document to PPTX (or PDF) via Pandoc — on-prem, no
+  // external service (data never leaves the estate). The after-run Results view
+  // builds the rich report markdown client-side (buildFullReportMarkdown) and
+  // POSTs it here to get a shareable deck. Pandoc is a local binary bundled in
+  // the image (same one used for the DOCX Methods export). PDF needs a pandoc
+  // pdf-engine (weasyprint) and is deferred to increment 2.
+  app.post("/api/reports/convert", authenticateToken, express.json({ limit: '8mb' }), async (req: any, res) => {
+    const { markdown, format = 'pptx', filename } = (req.body || {}) as { markdown?: string; format?: string; filename?: string };
+    const fmt = String(format).toLowerCase();
+    if (typeof markdown !== 'string' || !markdown.trim()) {
+      return res.status(400).json({ error: 'markdown (non-empty string) required' });
+    }
+    if (fmt !== 'pptx' && fmt !== 'pdf') {
+      return res.status(400).json({ error: `Unsupported format: ${fmt} (pptx|pdf)` });
+    }
+    const { writeFileSync, readFileSync, mkdtempSync, rmSync, existsSync } = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bmreport-'));
+    const mdPath = path.join(dir, 'report.md');
+    const outPath = path.join(dir, `report.${fmt}`);
+    const safeName = String(filename || 'biomate-report').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) || 'biomate-report';
+    try {
+      writeFileSync(mdPath, markdown, 'utf8');
+      if (fmt === 'pptx') {
+        // Optional branded template; pandoc's default pptx template is used otherwise.
+        const refDoc = path.join(process.cwd(), 'dist', 'assets', 'biomate-reference.pptx');
+        const ref = existsSync(refDoc) ? ` --reference-doc=${JSON.stringify(refDoc)}` : '';
+        _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --slide-level=2${ref}`, { timeout: 60_000 });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      } else {
+        _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --pdf-engine=weasyprint`, { timeout: 90_000 });
+        res.setHeader('Content-Type', 'application/pdf');
+      }
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}.${fmt}"`);
+      return res.send(readFileSync(outPath));
+    } catch (e: any) {
+      const msg = String(e?.message || e);
+      const pdfEngineMissing = fmt === 'pdf' && /weasyprint|pdf-engine|not found|ENOENT|command not found/i.test(msg);
+      return res.status(pdfEngineMissing ? 501 : 500).json({
+        error: `${fmt.toUpperCase()} export failed`,
+        detail: msg.slice(0, 300),
+        ...(pdfEngineMissing ? { note: 'PDF export needs a pandoc pdf-engine (weasyprint) in the image — deferred to increment 2.' } : {}),
+      });
+    } finally {
+      try { rmSync(dir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
     }
   });
 
@@ -14847,13 +16837,20 @@ Respond ONLY with valid JSON (no markdown wrapper):
   // --- Workflow Reports ---
 
   // Get workflow report (auto-generated analysis summary)
-  app.get("/api/invocations/:id/report", async (req, res) => {
+  app.get("/api/invocations/:id/report", authenticateToken, async (req, res) => {
     try {
       const { format } = req.query;
-      const invocation = await storage.getInvocation(req.params.id);
+      const invocation =
+        (await storage.getInvocation(req.params.id)) ||
+        (await storage.getInvocationByGalaxyId(req.params.id));
 
       if (!invocation) {
         return res.status(404).json({ error: "Invocation not found" });
+      }
+
+      const invAccess = await decideInvocationAccess(invocation, req.user?.id ? String(req.user.id) : null, outputAccessDeps);
+      if (!invAccess.allowed) {
+        return res.status(invAccess.status).json({ error: invAccess.error });
       }
 
       if (!invocation.galaxyWorkflowId || !invocation.galaxyInvocationId) {
@@ -15004,25 +17001,14 @@ Respond ONLY with valid JSON (no markdown wrapper):
   // --- Deferred Datasets (Lazy URL Fetching) ---
 
   // Create deferred dataset from URL (no immediate download)
-  app.post("/api/datasets/deferred", async (req, res) => {
+  app.post("/api/datasets/deferred", authenticateToken, checkBillingQuota('Deferred URL import'), async (req, res) => {
     try {
       const { url, name, file_type } = req.body;
 
-      if (!url) {
-        return res.status(400).json({ error: "URL is required" });
-      }
-
-      // Validate URL format
-      try {
-        const parsedUrl = new URL(url);
-        if (!['http:', 'https:', 'ftp:', 's3:'].includes(parsedUrl.protocol)) {
-          return res.status(400).json({
-            error: "Unsupported protocol. Use HTTP, HTTPS, FTP, or S3 URLs."
-          });
-        }
-      } catch {
-        return res.status(400).json({ error: "Invalid URL format" });
-      }
+      const validated = validateRemoteFileUrl(url);
+      if (!validated.ok) return res.status(400).json({ error: validated.error });
+      const remoteUrl = validated.url.toString();
+      const remoteName = name || validated.filename;
 
       // Get or create Galaxy history
       let historyId = req.session?.galaxyHistoryId as string | undefined;
@@ -15036,15 +17022,15 @@ Respond ONLY with valid JSON (no markdown wrapper):
 
       const dataset = await userProxy(req).createDeferredDataset(
         historyId,
-        url,
-        name,
+        remoteUrl,
+        remoteName,
         file_type
       );
 
       res.json({
         ...dataset,
         galaxy_history_id: historyId,
-        source_url: url,
+        source_url: remoteUrl,
         message: `Deferred dataset created. Data will be fetched when workflow executes.`
       });
     } catch (error: any) {
@@ -15156,6 +17142,27 @@ Respond ONLY with valid JSON (no markdown wrapper):
         error: 'InteractiveLaunchError',
         message: error.message || 'Failed to launch interactive tool',
       });
+    }
+  });
+
+  // Report which interactive tools are actually launchable in this environment,
+  // so the UI can hide "Open in RStudio/Jupyter/CellxGene" buttons that would
+  // otherwise 400 (the tool isn't installed in the Galaxy toolbox). Keyed by the
+  // short viewer names the client uses. Fails closed (all false) on any error —
+  // an honest "not available" beats a dead button.
+  app.get("/api/interactive/available", optionalAuth, async (_req, res) => {
+    const map: Record<string, string> = {
+      jupyter: "interactive_tool_jupyter_notebook",
+      rstudio: "interactive_tool_rstudio",
+      cellxgene: "interactive_tool_cellxgene",
+    };
+    try {
+      const byGalaxyId = await galaxyAPIProxy.getInteractiveToolAvailability(Object.values(map));
+      const tools: Record<string, boolean> = {};
+      for (const [short, gid] of Object.entries(map)) tools[short] = !!byGalaxyId[gid];
+      res.json({ available: Object.values(tools).some(Boolean), tools });
+    } catch {
+      res.json({ available: false, tools: { jupyter: false, rstudio: false, cellxgene: false } });
     }
   });
 
@@ -16253,7 +18260,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
   // POST /api/open-claw/stream — SSE: Claude API with BioMate tools, agentic loop
   // Body: { messages: Message[], system?: string }
   app.post("/api/open-claw/stream", optionalAuth, async (req, res) => {
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY && !localOnly()) {
       return res.status(503).json({ error: "ANTHROPIC_API_KEY not configured" });
     }
 
@@ -16276,8 +18283,27 @@ Respond ONLY with valid JSON (no markdown wrapper):
 
     try {
       const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const client = (localOnly() ? localMessagesClient() as unknown as import('@anthropic-ai/sdk').default : new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }));
       const userId = req.user ? String((req.user as any).id) : null;
+
+      // The user's goal text (first user message). Passed into the tool executor
+      // so run_workflow can deterministically re-prefill a workflow's required
+      // params from the goal when the inner LLM omits them — which it reliably
+      // does on the 2nd+ workflow of a parallel multi-workflow request (the hERG
+      // QSAR run arrived with empty toolParameters:{} because the model filled
+      // the ADMET call's params and dropped the hERG call's).
+      const goalText: string = (() => {
+        const firstUser = (messages as any[]).find((m) => m?.role === "user");
+        if (!firstUser) return "";
+        if (typeof firstUser.content === "string") return firstUser.content;
+        if (Array.isArray(firstUser.content)) {
+          return firstUser.content
+            .filter((b: any) => b?.type === "text")
+            .map((b: any) => b.text)
+            .join("\n");
+        }
+        return "";
+      })();
 
       const systemPrompt = system || `You are Claude, an AI assistant with access to BioMate's scientific workflow tools.
 BioMate is a bioinformatics platform that runs genomics, proteomics, drug discovery, and cryo-EM workflows on AWS Batch.
@@ -16353,7 +18379,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         // Execute tool calls
         for (const block of assistantContent) {
           if (block.type !== "tool_use") continue;
-          const toolResult = await executeOpenClaudeTool(block.name, block.input, userId, req);
+          const toolResult = await executeOpenClaudeTool(block.name, block.input, userId, req, goalText);
           safeSend("tool_result", { tool_use_id: block.id, name: block.name, result: toolResult });
           toolResults.push({ type: "tool_result", tool_use_id: block.id, content: JSON.stringify(toolResult) });
           // Capture run_id from run_workflow so the MCP server can fetch outputs post-loop
@@ -17243,6 +19269,15 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
 
   // Error rate tracking middleware (must be last, after all routes)
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // A client error that carries its own 4xx status (e.g. UnsupportedUploadTypeError -> 415)
+    // is the caller's problem, not a server fault: return that status and message, and don't
+    // record it as a 5xx incident. Everything else is still a 500.
+    const clientStatus = Number((err as any)?.status ?? (err as any)?.statusCode);
+    if (clientStatus >= 400 && clientStatus < 500) {
+      console.warn(`[ExpressError] ${req.method} ${req.path}: ${clientStatus} ${err.message?.slice(0, 200)}`);
+      if (!res.headersSent) res.status(clientStatus).json({ error: err.message });
+      return;
+    }
     // Log the full error for debugging
     console.error(`[ExpressError] ${req.method} ${req.path}:`, err.message);
     console.error(err.stack);
@@ -17412,34 +19447,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
             body: JSON.stringify({ message: goal, context: {} }),
           });
 
-          let responseText = "";
-          let workflowCard: unknown = null;
-          let sessionRunId: string | null = null;
-
-          if (streamRes.body) {
-            const dec = new TextDecoder();
-            let buf = "";
-            for await (const chunk of streamRes.body as any) {
-              buf += dec.decode(chunk as Uint8Array, { stream: true });
-              const lines = buf.split("\n");
-              buf = lines.pop() ?? "";
-              for (const line of lines) {
-                if (!line.startsWith("data: ")) continue;
-                try {
-                  const d = JSON.parse(line.slice(6));
-                  if (typeof d.text === "string") responseText += d.text;
-                  if (d.workflow_ga) workflowCard = d.workflow_ga;
-                  if (d.run_id) sessionRunId = d.run_id;
-                } catch { /* skip malformed SSE data lines */ }
-              }
-            }
-          }
-
-          result = {
-            response: responseText || "Session complete.",
-            workflow_suggested: workflowCard ?? null,
-            ...(sessionRunId ? { run_id: sessionRunId } : {}),
-          };
+          result = await readConnectorSession(streamRes);
           break;
         }
 
@@ -17474,14 +19482,17 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
             if (body.params && typeof body.params === "object") {
               wfDef.parameters = { ...(wfDef.parameters ?? {}), ...body.params };
             }
-            result = await selfPost("/api/workflows/execute", { workflowDefinition: wfDef });
+            result = await selfPost("/api/workflows/execute", {
+              workflowDefinition: wfDef,
+              ...(body.params && typeof body.params === "object" ? { params: body.params } : {}),
+            });
           }
           break;
         }
 
         case "watch_run":
         case "get_run":
-          result = await selfGet(`/api/runs/${body.run_id}/meta`);
+          result = await createConnectorRunTools(selfBase, fwdHdr).getRun(String(body.run_id), body.include_findings !== false);
           break;
 
         case "cancel_run":
@@ -17504,7 +19515,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
           break;
 
         case "export_report":
-          result = await selfGet(`/api/workflows/runs/${body.run_id}/findings/report`);
+          result = await createConnectorRunTools(selfBase, fwdHdr).exportReport(String(body.run_id), body);
           break;
 
         case "analyze_results":
@@ -17630,6 +19641,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   app.all("/oauth/register", mcpProxy);
   app.all("/oauth/authorize", mcpProxy);
   app.all("/oauth/token", mcpProxy);
+  app.post("/oauth/tools/:name", mcpProxy);
   app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
   // ── Interactive Tools reverse proxy — MULTI-SESSION (per-token) ─────────────
@@ -18207,4 +20219,3 @@ function _buildExperimentNarrative(
 
   return lines.join('\n');
 }
-

@@ -1,0 +1,50 @@
+{
+  "1yf4": {
+    "mean_LE_perm": -0.62,
+    "CI_perm": [
+      -0.736,
+      -0.501
+    ],
+    "mean_LE_default": -0.577,
+    "CI_default": [
+      -0.632,
+      -0.521
+    ],
+    "LE_diff_perm_minus_default": -0.042,
+    "LE_diff_95CI": [
+      -0.176,
+      0.088
+    ]
+  },
+  "1u8p": {
+    "mean_LE_perm": -0.489,
+    "CI_perm": [
+      -0.537,
+      -0.441
+    ],
+    "mean_LE_default": -0.373,
+    "CI_default": [
+      -0.443,
+      -0.311
+    ],
+    "LE_diff_perm_minus_default": -0.117,
+    "LE_diff_95CI": [
+      -0.194,
+      -0.033
+    ]
+  },
+  "iptm_vs_physics": {
+    "n": 27,
+    "spearman_iptm_rawdG": -0.404,
+    "CI": [
+      -0.707,
+      -0.04
+    ],
+    "spearman_iptm_LE": -0.455,
+    "CI_LE": [
+      -0.736,
+      -0.072
+    ]
+  },
+  "note": "Bootstrap 95% CIs (10k resamples). Small n -> wide CIs; report these instead of bare point estimates. If a LE-diff CI spans 0, the perm-vs-default LE difference is not significant at this n."
+}

@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 化学新颖性与自由实施（FTO）— 在下 CRO 订单之前筛查候选物</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">化合物新颖性评分器 — 以 Tanimoto 新颖性 + 专利存在性筛查作为 CRO 前的关卡</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="35.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>化学新颖性与自由实施（FTO）</b></div>
+    <div class="kicker">献给要决定哪些候选物值得下 CRO 订单的团队</div>
+    <h2>这个分子真的是新的吗——它又是否避开了已被占据的空间？</h2>
+    <p class="caption">你手上有一份候选化合物的入围名单，而预算只够下寥寥几单 CRO。决定哪些能往下走的，是两个问题：<b>每个分子相对于已知化学而言有多新颖，以及它是否落在已被占据、很可能已被专利覆盖的空间之内？</b>化合物新颖性评分器把这两个问题一并回答——对一个已知化合物库做最近邻相似性检索，再加上一道可选启用的专利存在性筛查——并被放在 CRO 前的咽喉要道上作为关卡。这一讲里，我们把这套思路从头搭起，再展示这条工作流究竟做了什么。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一份候选 SMILES 的入围名单</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>最近邻 Tanimoto 检索</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>新颖 vs 已占据的判定</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>可选的专利存在性标记</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>剔除已占据的，其余下单</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker">它解决的问题</div>
+    <h2>一张 CRO 订单很昂贵——你不会想把它花在一个已经属于别人的分子上。</h2>
+    <p class="caption">当一个候选物走到合同研究机构（CRO）去做合成或检测时，它已经背上了真金白银的成本。最糟的结局，是花钱去做一个最终被发现几乎等同于某个已知、很可能已被专利覆盖的结构的化合物——这类化学既不够新颖到可以主张权利，也不够清白到值得推进。这道核查必须发生在下单<b>之前</b>，而不是之后。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">抉择</div><h4>哪些候选物能往下走？</h4><p>纸面上一份入围名单；只有少数几个能下单。每一单都在一家 CRO 处承诺了真实的合成与检测开销。</p></div>
+          <div class="tile"><div class="n">风险</div><h4>已知、已被占据的化学</h4><p>某个候选物可能是某个已发表或已被专利覆盖之物的近似类似物——新颖性低，而且很可能落在他人的权利要求之内。</p></div>
+          <div class="tile"><div class="n">成本</div><h4>在咽喉要道上白白浪费</h4><p>订购一个已被占据的化合物会烧掉预算和时间，而且很可能等到钱已花出去之后，才浮现出一个自由实施（FTO）的问题。</p></div>
+          <div class="tile"><div class="n">需求</div><h4>下单之前的一道关卡</h4><p>一道快速的结构筛查，把已被占据的候选物标记出来，从而让送往 CRO 的请求只承载那些值得推进的。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>需求：在承诺一张 CRO 订单之前，就候选物的新颖性与已占据空间做筛查</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">你需要先懂的几个概念</div>
+    <h2>四个概念，整套方法就顺理成章。</h2>
+    <p class="caption">你不需要懂化学信息学的内部机理——只要这四个概念，按顺序。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 指纹</div><h4>把分子表示成位向量</h4><p>Morgan / ECFP4 把每个化合物的局部子结构编码为一串定长的二进制指纹——一个紧凑、可比的化学特征签名。</p></div>
+            <div class="tile"><div class="n">2 · TANIMOTO</div><h4>两者之间的相似度</h4><p>Tanimoto 系数衡量两串指纹之间的重叠程度，从 0（毫无共通）到 1（完全相同）。它正是"这些分子有多相像"的那把尺子。</p></div>
+            <div class="tile"><div class="n">3 · 新颖性</div><h4>远离一切已知</h4><p>在一个已知化合物库里检索最近邻。最大相似度很低，意味着没有任何相近之物存在——这个化合物是新颖的。</p></div>
+            <div class="tile"><div class="n">4 · 已占据空间</div><h4>新颖 &ne; 清白</h4><p>对着专利来源做一道存在性筛查，问出第二个问题：这类化学是否已被披露？结构上的新颖性与法律上的清白是两回事。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">整套方法就是：为查询分子生成指纹，用 Tanimoto 找出它<b>最近的已知邻居</b>，对照一个阈值判定它是新颖还是已被占据，并——若有此要求——核查它是否已存在于专利空间之中。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲余下部分会用到的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 目标 &rarr; 工作流</div>
+    <h2>在 CRO 流程中说出目标；BioMate 打开化合物新颖性评分器。</h2>
+    <p class="caption">用大白话提出在下单之前就候选物的新颖性与自由实施做筛查，BioMate 就打开真实的<b>化合物新颖性评分器</b>——查询化合物已映射、指纹库已选定、参数已就绪待确认。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate 中的化合物新颖性评分器</span>
+        <div class="frame"><img src="assets/live/novelty-live-panel.png" alt="BioMate 的化合物新颖性评分器工作流面板（化学新颖性与自由实施筛查）"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话即可路由。</b>"在把这些候选物送往 CRO 之前，就它们的新颖性与自由实施做筛查，并剔除任何落在已知专利空间内的分子"就落到<b>化合物新颖性评分器</b>——领域 <code>drug_discovery</code>。</span></li>
+          <li><span class="b"></span><span><b>你要带来的输入。</b>两个必填参数：<code>query_smiles</code>，即待评分的候选物，以及 <code>fpsim2_db</code>，一个已挂载的已知化合物指纹库。</span></li>
+          <li><span class="b"></span><span><b>关卡的控制项。</b><code>novelty_tanimoto_cutoff</code> 默认为 <code>0.85</code>；<code>check_patents</code> 是一道可选启用的存在性筛查，默认关闭。</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run。</b>单击即可运行筛查，就排在 CRO 请求被组装之前的那一环。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的新颖性筛查，已接入为 CRO 前的关卡</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker"><span class="st">输入</span> · 你要带来什么</div>
+    <h2>待评分的候选物，以及用来比对它们的那个已知化学库。</h2>
+    <p class="caption">这道筛查是比较性的，所以输入就是查询化合物加一个参照库——再加上两个旋钮，用来设定新颖性判定有多严格、以及是否核查专利。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">QUERY_SMILES</div><h4>候选物</h4><p>你的入围名单，每个写成一条 SMILES 字符串（<code>query_smiles</code>，必填）。这些就是关卡要为之下判定的分子。</p></div>
+          <div class="tile"><div class="n">FPSIM2_DB</div><h4>已知库</h4><p>一个已挂载的 FPSim2 <code>.h5</code> 指纹库，收录已知化合物——例如 ChEMBL 或 BindingDB（<code>fpsim2_db</code>，必填）。新颖性是相对于这里面的内容而言的。</p></div>
+          <div class="tile"><div class="n">阈值</div><h4>"新颖"有多严格</h4><p><code>novelty_tanimoto_cutoff</code> 默认为 <code>0.85</code>：当一个化合物对库的最大 Tanimoto 相似度落在阈值<i>以下</i>时，它被判为 NOVEL（新颖）。</p></div>
+          <div class="tile"><div class="n">CHECK_PATENTS</div><h4>可选启用的存在性筛查</h4><p><code>check_patents</code> 默认为 <code>false</code>。将其打开，即可在相似性检索之外再加一道对 SureChEMBL / PubChem 的存在性查找。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">必填：<code>query_smiles</code>、<code>fpsim2_db</code>。可选：<code>novelty_tanimoto_cutoff</code>（默认 <code>0.85</code>）、<code>check_patents</code>（默认 <code>false</code>）。</p>
+        <div><span class="verdict ok"><span class="mk"></span>候选物加一个已知库进去——一个新颖 vs 已占据的判定出来</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE METHOD -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker"><span class="st">方法</span> · 它究竟在计算什么</div>
+    <h2>生成指纹、做最近邻检索，再做一道可选的专利存在性查找。</h2>
+    <p class="caption">这些步骤具体而顺序相接。相似性检索是核心；专利筛查是可选启用的；而引擎被设计为"失败即放行"——某个来源无法访问时，绝不会悄无声息地拦下一个候选物。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · 指纹</div><h4>Morgan / ECFP4</h4><p>每条 <code>query_smiles</code> 都被编码为一串 Morgan / ECFP4 指纹——与 <code>fpsim2_db</code> 里那个库所基于的表示完全相同，于是两者可以直接比较。</p></div>
+          <div class="tile"><div class="n">2 · 最近邻</div><h4>对库的最大 Tanimoto</h4><p>FPSim2 计算查询物对库中每个化合物的 Tanimoto 相似度，并返回其中的最大值——那个唯一的、最接近的已知邻居及其分数。</p></div>
+          <div class="tile"><div class="n">3 · 专利筛查</div><h4>可选启用的存在性查找</h4><p>当 <code>check_patents</code> 打开时，一道对 SureChEMBL / PubChem 的存在性核查会问出这类化学是否已被披露。多肽则改用 Needleman&ndash;Wunsch 序列一致性。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">设计上失败即放行：如果某个数据源无法访问，引擎不会悄无声息地拦下一个候选物——它会把这处缺口如实报出，而不是返回一个虚假的"清白"。</p>
+        <div><span class="verdict ok"><span class="mk"></span>对一个已知库做真实的指纹相似性——外加一道可选启用的专利存在性筛查</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">输出</span> · 一个连带最近邻的判定</div>
+    <h2>最大相似度、最接近的那个已知化合物，以及一个新颖 vs 已占据的判断。</h2>
+    <p class="caption">对每个候选物，筛查都报出最大 Tanimoto 相似度以及它背后那个最接近的已知邻居，再给出对照阈值的判定。低于 <code>0.85</code> 的化合物被判为新颖；等于或高于则为已被占据。启用专利核查时，存在性标记会一并随行。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.4fr 1fr">
+          <div class="tile"><div class="n">新颖性结果</div><h4>分数 + 最近邻</h4><p>对库的最大 Tanimoto 相似度，以及产生该相似度的那个唯一的最接近已知化合物，连同对照 <code>novelty_tanimoto_cutoff</code> 读出的新颖 vs 已占据判定。正是这个邻居，让判定变得可供查证。</p></div>
+          <div class="tile"><div class="n">专利标记</div><h4>若已启用</h4><p>当 <code>check_patents</code> 打开时，每个候选物都带上一个来自 SureChEMBL / PubChem 查找的专利存在性标记——一个信号，表明这类化学已在某处被披露。</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b gr"></span><span><b>邻居与判定同行。</b>你看到的不只是"已被占据"，还有它与哪个已知化合物相近，于是这个判断可以被查证，而非只能姑且采信。</span></li>
+          <li><span class="b am"></span><span><b>接入 CRO 前的关卡。</b>被评为已占据的候选物，会在下单之前从 CRO 请求中剔除；只有新颖、清白的那些才往下走。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>一个你可以查证的判定——分数、邻居与专利标记一并呈现</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">用好这个结果</span> · CRO 前的关卡</div>
+    <h2>剔除已被占据的候选物；只把新颖、清白的那些送往 CRO。</h2>
+    <p class="caption">这道筛查靠在咽喉要道上重塑 CRO 请求赚回它的价值：被评为已占据的候选物会在下单之前被移除，于是预算流向既新颖又清白的化学。它是一个结构性信号，所以一个被标记的化合物是一个该去细看的提示，而非一次自动的否决。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">关卡</div><h4>下单之前先筛</h4><p>每个候选物都要先过一遍新颖性评分器，CRO 请求才被组装。已被占据的化合物会被自动从订单中剔除。</p></div>
+          <div class="tile"><div class="n">优先排序</div><h4>把钱花在清白之处</h4><p>新颖、未被标记的候选物往下走。CRO 预算被投向那些既是新的、又不明显落在已占据空间之内的化学。</p></div>
+          <div class="tile"><div class="n">升级处理</div><h4>被标记的 &rarr; 交人工复核</h4><p>一个低新颖性或被专利标记的候选物会交给一位专利律师去做真正的自由实施判断，而不是径直扔进废纸篓。关卡负责收窄；由人来决断。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">这道关卡是对 CRO 请求的一道过滤，而非一个法律判定：它廉价地移除明显已被占据的候选物，并把处于边界的那些路由去交专家复核。</p>
+        <div><span class="verdict ok"><span class="mk"></span>一张更精简、更干净的 CRO 订单——已占据的化学在花钱之前就被移除</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker">你确切得到什么</div>
+    <h2>一道结构筛查，而非一份法律意见——对它究竟是什么要讲得精确。</h2>
+    <p class="caption">这道筛查又快又有用，而确切知道它没能告诉你什么，正是让它对一个你要去捍卫的决策依然可信的原因。做出自由实施判断的是一位专利律师，而不是一个 Tanimoto 分数。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">结构性，而非法律性</div><h4>相似度是一个信号</h4><p>Tanimoto 新颖性是一个结构性度量；专利那一步是一道对 SureChEMBL / PubChem 的存在性筛查，明确地<b>不是</b>一个自由实施的法律判定。做出 FTO 判断的是一位专利律师。</p></div>
+          <div class="tile"><div class="n">指纹的盲区</div><h4>骨架跃迁会溜过去</h4><p>指纹相似度可能漏掉骨架跃迁与生物电子等排体——那些功能相关、但结构上相距甚远的化合物，可能读作新颖，而其实并非真正意义上的新。</p></div>
+          <div class="tile"><div class="n">覆盖面 &amp; 失败即放行</div><h4>缺席并非证明</h4><p>结果取决于库的覆盖面，而失败即放行意味着一个候选物绝不会被悄无声息地拦下——所以没有命中并不等于新颖性的证明，只表明在所核查的来源里未找到相近之物。</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>具体而诚实——一道有明示局限的结构性预筛，而非一份 FTO 意见</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="38.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">筛查新颖性。剔除已占据的。下单时心中有底。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">要点就一句话：<b>在你花掉一张 CRO 订单之前，化合物新颖性评分器告诉你哪些候选物才真正是新的、并避开了已被占据的空间。</b>BioMate 把你的目标路由到 <code>drug_discovery</code> 筛查，为每个候选物生成指纹，用 Tanimoto 对着 <code>fpsim2_db</code> 找出它最近的已知邻居，再对照 <code>0.85</code> 的阈值交回一个新颖 vs 已占据的判定——外加一道可选启用的专利存在性核查——于是已被占据的候选物在花钱之前就从请求里被剔除。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>带来你的候选 SMILES 和一个已挂载的已知化合物库</li>
+            <li><span class="k">2</span>BioMate 在 CRO 前的关卡处路由到化合物新颖性评分器</li>
+            <li><span class="k">3</span>它交回最大 Tanimoto、最近邻，以及一个新颖 vs 已占据的判定</li>
+            <li><span class="k">4</span>剔除已占据的，把被标记的升级交律师，其余下单</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>它回答什么</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">新颖还是已被占据</span></td></tr>
+            <tr><td>方法</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">ECFP4 + Tanimoto，FPSim2</span></td></tr>
+            <tr><td>输出</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">分数 + 邻居 + 标记</span></td></tr>
+            <tr><td>它所处之位</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">CRO 前的关卡</span></td></tr>
+            <tr><td>诚实的边界</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">结构性 · 非 FTO</span></td></tr>
+          </table>
+          <p class="footnote">从一份入围名单，到一张干净的 CRO 订单——已占据的化学被廉价地移除，处于边界的案例被路由去交专利律师，而每一个判定都连带着它背后那个最接近的已知邻居一并交付。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

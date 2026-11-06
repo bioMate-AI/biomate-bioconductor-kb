@@ -1,0 +1,147 @@
+[
+ [
+  10608,
+  "Detect And Annotate Somatic Mutations",
+  "B rewrite"
+ ],
+ [
+  10697,
+  "Isolate Purify Immune Cells",
+  "C refuses"
+ ],
+ [
+  10708,
+  "Advanced Web Search Claude",
+  "C stub"
+ ],
+ [
+  10716,
+  "Enumerate Bacterial Cfu By Serial Dilution",
+  "C refuses"
+ ],
+ [
+  10753,
+  "Search Gene",
+  "B rewrite"
+ ],
+ [
+  11308,
+  "easyRNASeq",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  11646,
+  "InterCellar",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  11647,
+  "IntEREst",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  11728,
+  "mait",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  11998,
+  "PAA",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  12104,
+  "ptairms",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  12212,
+  "RiboProfiling",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  12329,
+  "scPipe",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  12366,
+  "seqsqc",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  12378,
+  "shortread",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  12445,
+  "spiky",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  12535,
+  "tidysbml",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  12647,
+  "AlphaFold DB Search",
+  "uncertain"
+ ],
+ [
+  12831,
+  "CYP450 DDI Panel + Hepatic Clearance",
+  "B rewrite"
+ ],
+ [
+  13029,
+  "rsubread_read_quality_assessment",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  13070,
+  "acgh_association_testing",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  13114,
+  "diffbind_occupancy_and_consensus",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  13846,
+  "odseq_unaligned_sequence_outliers",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  13896,
+  "phyloprofile_group_comparison",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  14193,
+  "basicstarrseq_peak_calling_from_granges",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  14331,
+  "musicatk_predict_known_signatures",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  14344,
+  "odseq_unaligned_sequence_outlier_detection",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  14352,
+  "phyloprofile_domain_architecture_plot",
+  "D bioconductor package text \u2014 excluded"
+ ],
+ [
+  14393,
+  "rsubread_single_cell_rna_seq_quantification",
+  "D bioconductor package text \u2014 excluded"
+ ]
+]

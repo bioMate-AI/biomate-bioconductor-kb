@@ -1,0 +1,8 @@
+version: 1
+sequences:
+  - protein:
+      id: A
+      sequence: MGPNQ...<avb6_receptor_seq>
+  - ligand:
+      id: L1
+      smiles: CN1CC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](C2CCCCC2)C(=O)N[C@H](C(N)=O)CCC(=O)N[C@@H](CCCNC(=N)N)C1=O

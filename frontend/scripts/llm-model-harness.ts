@@ -26,9 +26,9 @@ dotenv.config({ path: path.join(__dirname, '../.env.local') });
 
 const CONFIGS = {
   current: {
-    extract: 'gemini-3.5-flash',
-    intent: 'gemini-3.5-flash',
-    response: 'gemini-3.5-flash',
+    extract: 'gemini-3.8-flash',
+    intent: 'gemini-3.8-flash',
+    response: 'gemini-3.8-flash',
   },
   proposed: {
     extract: 'gemini-2.5-flash-lite',
@@ -40,7 +40,7 @@ const CONFIGS = {
 // ── Pricing ($/1M tokens, July 2026) ─────────────────────────────────────────
 
 const PRICING: Record<string, { input: number; output: number }> = {
-  'gemini-3.5-flash':      { input: 1.50, output: 9.00 },
+  'gemini-3.8-flash':      { input: 1.50, output: 9.00 },
   'gemini-2.5-flash':      { input: 0.30, output: 2.50 },
   'gemini-2.5-flash-lite': { input: 0.10, output: 0.40 },
   'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },

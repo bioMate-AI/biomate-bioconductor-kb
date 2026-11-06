@@ -1,26 +1,27 @@
 // chat-with-artifacts: main chat UI component
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import { t } from "@/lib/i18n"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { useWorkflowTour } from "./workflow-tour"
 import { ChatInterface } from "./chat-interface"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
+import { PanelErrorBoundary } from "./panel-error-boundary"
 import { useAfterRunFlavor } from "@/hooks/use-ui-flavor"
 import { AfterRunReport } from "@/v2/AfterRunReport"
 import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
 import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
 import { useActiveProject } from "@/contexts/active-project-context"
 import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
-import { extractWorkflowEdits } from "@/lib/workflow-edits-extract"
-import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
+import { extractWorkflowEdits, knownParamNames } from "@/lib/workflow-edits-extract"
+import { hasInlineInputData, normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 import { buildRunCompletionSummary } from "@/lib/chat-completion-summary"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
-import { submitWorkflowFromArtifact, buildChainSubmitSteps, buildChainConnections, resumeWorkflowChain } from "@/lib/chain-execution"
-import { fetchChainStatus, syncPipelineStepsFromChain } from "@/lib/chain-pipeline-sync"
+import { shouldAppendRerunCard } from "@/lib/rerun-card"
+import { submitWorkflowFromArtifact, pipelineApprovalOptions, buildChainSubmitSteps, buildChainConnections, resumeWorkflowChain } from "@/lib/chain-execution"
+import { fetchChainStatus, syncPipelineStepsFromChain, syncWorkflowFromChain, isChainTerminal } from "@/lib/chain-pipeline-sync"
 import { emitUxEvent } from "@/lib/ux-telemetry"
 import { useNetworkStatus } from "@/lib/network-status"
-import { getExecutionAsyncGuidance } from "@/lib/async-guidance"
+import { WorkflowExecutionErrorNotice } from "./workflow-execution-error-notice"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
@@ -31,6 +32,7 @@ import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { SessionEndPulse } from "./feedback/session-end-pulse"
 import { analytics } from "@/lib/analytics"
+import { t } from "@/lib/i18n"
 import {
   getOutputReadinessHint,
   getRunPrimaryCta,
@@ -93,6 +95,17 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
 }
 
 /**
+ * The persisted active-project id — the synced source of truth (the context
+ * writes it on every setActiveProjectId and clears it on null). Read it at
+ * LAUNCH time so a stale callback closure (a memoized child holding an older
+ * handler whose `activeProjectId` was null) can't launch a project run as
+ * proj=none. A genuinely standalone chat resolves to undefined (key absent).
+ */
+function persistedActiveProjectId(): string | undefined {
+  try { return localStorage.getItem('biomate-active-project-id') || undefined } catch { return undefined }
+}
+
+/**
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
@@ -152,6 +165,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
   const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
+  // Chat deep-link target after-run tab (set when a chat answer-block link opens the panel).
+  const [panelAfterRunTab, setPanelAfterRunTab] = useState<'summary' | 'outputs' | 'report' | undefined>(undefined)
 
   // Persist panel open state so refresh restores the panel.
   useEffect(() => {
@@ -318,7 +333,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         const data = await r.json()
         const edits = (data?.edits || []) as WorkflowEdit[]
         if (edits.length === 0) return
-        const auto = edits.filter((e) => e.op === 'set_param')
+        // Schema gate (mirrors the rule extractor): only auto-apply a set_param
+        // the workflow actually declares, so an LLM mis-parse of chemistry/prose
+        // (e.g. a SMILES fragment → phantom "CN1C" param) is never injected.
+        const _known = knownParamNames(panelWorkflow)
+        const auto = edits
+          .filter((e) => e.op === 'set_param')
+          .filter((e) => _known.size === 0 || _known.has((e as { paramName?: string }).paramName || ''))
         const structural = edits.filter((e) => e.op !== 'set_param')
         if (auto.length > 0) {
           const snapshot = panelWorkflow
@@ -517,7 +538,20 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   }, [])
 
   // Resizable panel width (px)
-  const [panelWidth, setPanelWidth] = useState(840)
+  const [panelWidth, setPanelWidth] = useState(480)
+  const [chatHidden, setChatHidden] = useState(false)
+  const splitLayoutRef = useRef<HTMLDivElement>(null)
+  const [splitWidth, setSplitWidth] = useState(1200)
+  useEffect(() => {
+    const node = splitLayoutRef.current
+    if (!node) return
+    const observer = new ResizeObserver(([entry]) => setSplitWidth(entry.contentRect.width))
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+  const panelIsOverlay = isMobile || splitWidth < 880
+  const maxPanelWidth = Math.max(320, Math.min(860, splitWidth - 380))
+  const visiblePanelWidth = Math.min(panelWidth, maxPanelWidth)
   const panelResizingRef = useRef(false)
   const panelResizeStartX = useRef(0)
   const panelResizeStartW = useRef(0)
@@ -599,7 +633,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     cancelRun,
     loadRun,
   } = useUnifiedExecution()
-  const { activeProjectId } = useActiveProject()
+  const { activeProjectId, activeProject } = useActiveProject()
   const { isOnline } = useNetworkStatus()
 
   // Update progress based on execution run
@@ -692,7 +726,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (requestSeq !== runListRequestSeqRef.current) {
         return
       }
-      setRunListError(error?.message || "Failed to fetch runs")
+      setRunListError(error?.message || t('runs_ui.failed_to_fetch'))
     } finally {
       if (requestSeq !== runListRequestSeqRef.current) {
         return
@@ -728,18 +762,18 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (prevBucket && prevBucket !== bucket) {
         if (bucket === "completed") {
           toast({
-            title: "Workflow complete",
-            description: run.workflowName || "Your workflow finished successfully.",
+            title: t('runs_ui.workflow_complete'),
+            description: run.workflowName || t('runs_ui.finished_successfully'),
             action: (
               <ToastAction
-                altText="View results"
+                altText={t('runs_ui.view_results')}
                 onClick={() => {
                   const invId = run.execution?.galaxyInvocationId || run.id
                   const el = document.querySelector(`[data-invocation-id="${invId}"]`)
                   el?.scrollIntoView({ behavior: "smooth", block: "center" })
                 }}
               >
-                View results
+                {t('runs_ui.view_results')}
               </ToastAction>
             ),
             duration: 8000,
@@ -747,11 +781,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         } else if (bucket === "failed") {
           toast({
             variant: "destructive",
-            title: "Workflow failed",
-            description: run.workflowName || "A workflow encountered an error.",
+            title: t('runs_ui.workflow_failed_title'),
+            description: run.workflowName || t('runs_ui.encountered_error'),
             action: (
               <ToastAction
-                altText="View & fix"
+                altText={t('runs_ui.view_and_fix')}
                 onClick={() => {
                   const invId = run.execution?.galaxyInvocationId || run.id
                   const el = document.querySelector(`[data-invocation-id="${invId}"]`)
@@ -760,7 +794,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   setShowRunManager(true)
                 }}
               >
-                View & fix
+                {t('runs_ui.view_and_fix')}
               </ToastAction>
             ),
             duration: 0,
@@ -789,8 +823,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         invocationId: currentRun?.execution?.galaxyInvocationId,
         actualTimeSec: currentRun?.execution?.nextflowStatus?.duration_s ?? undefined,
       })
-      // Delay survey 8s so users can see the completion state / download panel first
-      setTimeout(() => setShowPostRunSurvey(true), 8000)
+      // Auto-open commented out 2026-10-28 (user request): the survey popped over the
+      // after-run Summary and hid the results (incl. a $29/mo willingness-to-pay prompt).
+      // The context is still prepared above so the survey can be re-enabled as an
+      // unobtrusive toast / explicit "Rate this run" affordance that does NOT cover results.
+      // setTimeout(() => setShowPostRunSurvey(true), 8000)
     }
   }, [currentRun?.id, currentRun?.execution?.status, currentRun?.execution?.galaxyInvocationId])
 
@@ -808,6 +845,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // settles to the real summary + key results as they finish (report-in-process).
   // The message id keeps it idempotent across reload / re-poll (upsert, no dupes).
   useEffect(() => {
+    // Inline 'findings' chat message DISABLED 2026-10-28 (user request): it duplicated
+    // the findings already shown inline by the workflow viewer's FindingsCard (pre-panel)
+    // and by the structured chat-answer-block (post-panel) — two verdicts for one run. We
+    // keep a single findings rendering (the structured card/answer-block, preview in chat).
+    // Flag-gated (not deleted) so it can be restored by flipping INLINE_FINDINGS_MSG.
+    const INLINE_FINDINGS_MSG: boolean = false
+    if (!INLINE_FINDINGS_MSG) return
     const runId = currentRun?.id
     const status = currentRun?.execution?.status
     if (!runId || status !== 'completed') return
@@ -851,6 +895,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         metadata: {
           // NOT 'workflow_progress' → chat-progress-fold keeps it visible.
           type: 'findings',
+          runId,
+          galaxyInvocationId: invocationId,
           kind: 'findings.summary',
         } as any,
       }
@@ -895,7 +941,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       emitUxEvent('workflow.error_shown', {
         sessionId: currentChatSession?.id,
         runId: currentRun?.id,
-        errorMessage: executionError,
+        errorMessage: executionError.message,
       })
       const runKey = currentRun?.id || "unknown"
       const now = Date.now()
@@ -916,7 +962,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           count,
         })
       }
-      console.error('[ChatWithArtifacts] Workflow execution error:', executionError)
+      console.error('[ChatWithArtifacts] Workflow execution error:', executionError.message)
       setIsWorkflowRunning(false)
     }
   }, [executionError, currentChatSession?.id, currentRun?.id])
@@ -1049,18 +1095,18 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     if (!currentChatSession?.id) return
     const session = chatHistoryService.getSession(currentChatSession.id)
     if (!session) return
-    const last = [...session.messages].reverse().find(
-      (m) => m.metadata?.type === 'workflow_progress' && (m as any).invocationId === event.invocationId,
-    )
-    if (last && last.metadata?.kind === event.kind && (last.metadata as any)?.ts === event.ts) return
+    const eventId = `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`
+    if (session.messages.some(message => message.id === eventId)) return
     const progressMsg: Message = {
-      id: `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`,
+      id: eventId,
       role: 'assistant',
       content: event.friendly_message,
       timestamp: new Date(),
       invocationId: event.invocationId,
       metadata: {
         type: 'workflow_progress',
+        ...(event.invocationId && [currentRun?.id, currentRun?.execution?.galaxyInvocationId].includes(event.invocationId)
+          ? { runId: currentRun?.id } : {}),
         kind: event.kind,
         ts: event.ts,
         technical: event.technical,
@@ -1070,9 +1116,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       messages: [...session.messages, progressMsg],
     })
     if (updatedSession) onChatUpdated(updatedSession)
-  }, [currentChatSession?.id, onChatUpdated])
+  }, [currentChatSession?.id, onChatUpdated, currentRun?.id, currentRun?.execution?.galaxyInvocationId])
 
-  const handleRunWorkflow = async (workflow: any, steps: any[]) => {
+  const handleRunWorkflow = async (workflow: any, steps: any[], sourceMessageId?: string) => {
     emitUxEvent('workflow.run_clicked', {
       sessionId: currentChatSession?.id,
       workflowId: workflow?.id ?? workflow?.name,
@@ -1085,6 +1131,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       console.error('[ChatWithArtifacts] No workflow to run');
       return;
     }
+
+    // Re-run of a FINISHED run (footer "Run again" / "Restart"): snapshot the
+    // run currently shown in the panel NOW — executeWorkflow() below repoints
+    // `currentRun` to the fresh run, so we can't read the old status afterwards.
+    // We only treat it as a re-run (and append a new card instead of overwriting
+    // the owner card) when the owner card actually points at THIS terminal run,
+    // checked in the message block below. That guard avoids mis-firing when a
+    // different workflow's first run is launched while a finished run is on-screen.
+    const _prevPanelRunId: string | null = currentRun?.id || null;
+    const _prevPanelStatus: string | null = currentRun?.execution?.status || null;
 
     // Clear any previous error
     setWorkflowError(null);
@@ -1181,13 +1237,17 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         workflowDefinition,
         workflowName: workflow.name || 'bioMate Workflow',
         chatSessionId: currentChatSession?.id || undefined,
-        projectId: activeProjectId || undefined,
+        projectId: activeProjectId || persistedActiveProjectId(),
         executionConfig: {
           mode: 'sandbox',
           dataScope: { fraction: 1.0, samplingStrategy: 'sequential', sampledIds: [] },
           allowLowConfidence: allowLowConfidenceOverride,
           retryOfRunId: retryContext?.runId,
           retryOfInvocationId: retryContext?.galaxyInvocationId,
+          // Forward this turn's unresolved references so the server's
+          // inputs_unresolved gate blocks a run against a reference that never
+          // resolved (never substituting another/latest dataset).
+          datasetReferenceUnresolvedIds: (workflow as any).__datasetReferenceUnresolvedIds,
         },
         inputs,
         generationAssessment: workflow.__generationAssessment
@@ -1223,34 +1283,69 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           // session-restore loadRun() can find it via DB UUID lookup.
           const invocationForMessage = run.id;
 
-          // Prefer exact workflow-name match, but always fall back to latest workflow message.
-          let targetIndex = updatedMessages.findIndex(
-            (msg) =>
-              msg.metadata?.type === 'workflow' &&
-              msg.metadata?.workflow?.name &&
-              workflow.name &&
-              msg.metadata.workflow.name === workflow.name
-          );
-          if (targetIndex < 0) {
-            for (let i = updatedMessages.length - 1; i >= 0; i--) {
-              if (updatedMessages[i].metadata?.type === 'workflow') {
-                targetIndex = i;
-                break;
-              }
-            }
-          }
+          // The triggering chat/panel owns this run. Names are not unique across runs.
+          const ownerMessageId = sourceMessageId ?? panelWorkflowMessageId;
+          const targetIndex = updatedMessages.findIndex(msg => msg.id === ownerMessageId);
 
-          if (targetIndex >= 0) {
+          const owner = targetIndex >= 0 ? updatedMessages[targetIndex] : null;
+          // True re-run: the owner card currently points at the terminal run we
+          // were viewing, and the new run is a different run (see rerun-card.ts).
+          const _rerunOfTerminalRun = shouldAppendRerunCard({
+            sourceMessageId,
+            panelWorkflowMessageId,
+            prevPanelRunId: _prevPanelRunId,
+            prevPanelStatus: _prevPanelStatus,
+            ownerRunId: owner?.metadata?.runId || owner?.invocationId || null,
+            newRunId: run.id,
+          });
+
+          let newCardMessageId: string | null = null;
+          if (owner && _rerunOfTerminalRun) {
+            // Re-run of a finished run: APPEND a new card for the fresh run and
+            // leave the owner message pointing at the previous (finished) run, so
+            // that run keeps its own chat placeholder and stays openable. The new
+            // card carries the same workflow definition but the fresh runId.
+            newCardMessageId = `rerun-${run.id}`;
+            console.log('[ChatWithArtifacts] Re-run: appending new card', newCardMessageId, '(previous run card preserved)');
+            updatedMessages.push({
+              ...owner,
+              id: newCardMessageId,
+              timestamp: new Date(),
+              // card only — don't repeat the original AI prose for the re-run
+              content: '',
+              invocationId: invocationForMessage,
+              metadata: {
+                ...owner.metadata,
+                runId: run.id,
+                galaxyInvocationId: run.execution?.galaxyInvocationId,
+                // start the new card's status from live tracking, not the old run's
+                workflowViewerStatus: 'running',
+                isRerun: true,
+                rerunOf: _prevPanelRunId,
+              },
+            });
+          } else if (targetIndex >= 0) {
             console.log('[ChatWithArtifacts] Updating message with invocation ID:', invocationForMessage);
             updatedMessages[targetIndex] = {
               ...updatedMessages[targetIndex],
               invocationId: invocationForMessage,
+              metadata: {
+                ...updatedMessages[targetIndex].metadata,
+                runId: run.id,
+                galaxyInvocationId: run.execution?.galaxyInvocationId,
+              },
             };
           }
 
           const updatedSession = { ...freshSession, messages: updatedMessages };
           chatHistoryService.updateSession(freshSession.id, updatedSession);
           onChatUpdated(updatedSession);
+
+          // Bind the right panel to the new card so it follows the fresh run;
+          // the preserved owner card now represents the previous finished run.
+          if (newCardMessageId) {
+            setPanelWorkflowMessageId(newCardMessageId);
+          }
         }
       }
 
@@ -1279,6 +1374,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const result = await submitWorkflowFromArtifact(
         workflow,
         currentChatSession?.id,
+        { projectId: activeProjectId || persistedActiveProjectId() },
       );
 
       if (result.runId) {
@@ -1338,6 +1434,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           workflow: {
             ...wf,
             chain_run_id: chainRunId,
+            chain_status: String(chainPayload?.status || 'running'),
             [stepsKey]: syncedSteps,
           },
           // Only set invocationId to the DB execution run UUID; chain_run_id is a
@@ -1364,7 +1461,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const result = await submitWorkflowFromArtifact(
         workflow,
         currentChatSession?.id,
-        { endAtStep: 0 },
+        { ...pipelineApprovalOptions(workflow), projectId: activeProjectId || persistedActiveProjectId() },
       );
 
       if (result.runId) {
@@ -1457,7 +1554,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const chainRunId = wf?.chain_run_id as string | undefined;
       if (!chainRunId) continue;
       const wtype = wf?.workflow_type;
-      if (wtype === 'pipeline' || wtype === 'chain') {
+      if ((wtype === 'pipeline' || wtype === 'chain') && !isChainTerminal(wf?.chain_status)) {
         activeIds.add(chainRunId);
       }
     }
@@ -1466,8 +1563,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     let cancelled = false;
 
     const syncChainPayload = (chainRunId: string, payload: Record<string, unknown>) => {
-      const chainSteps = (payload.steps as Record<string, unknown>[]) || [];
-      const chainStatus = String(payload.status || 'running').toLowerCase();
       const freshSession = chatHistoryService.getSession(currentChatSession.id);
       if (!freshSession) return;
 
@@ -1476,21 +1571,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         const wf = msg.metadata?.workflow as Record<string, unknown> | undefined;
         if (!wf || wf.chain_run_id !== chainRunId) return msg;
 
-        const stepsKey = wf.workflow_type === 'pipeline' ? 'pipeline_steps' : 'chain_steps';
-        const existingSteps = (wf[stepsKey] as Record<string, unknown>[]) || [];
-        const syncedSteps = syncPipelineStepsFromChain(existingSteps, chainSteps);
-        const stepsChanged = JSON.stringify(syncedSteps) !== JSON.stringify(existingSteps);
-        if (stepsChanged) changed = true;
+        const syncedWorkflow = syncWorkflowFromChain(wf, payload);
+        if (syncedWorkflow !== wf) changed = true;
 
         return {
           ...msg,
           metadata: {
             ...msg.metadata,
-            workflow: {
-              ...wf,
-              [stepsKey]: syncedSteps,
-              chain_status: chainStatus,
-            },
+            workflow: syncedWorkflow,
           },
         };
       });
@@ -1505,9 +1593,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         if (cancelled) return;
         try {
           const payload = await fetchChainStatus(chainRunId);
+          if (cancelled) return;
           syncChainPayload(chainRunId, payload);
           const status = String(payload.status || 'running').toLowerCase();
-          if (['succeeded', 'failed', 'cancelled'].includes(status)) {
+          if (isChainTerminal(status)) {
             activeIds.delete(chainRunId);
           }
         } catch {
@@ -1684,12 +1773,34 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   }
 
   // ── Right panel handlers ────────────────────────────────────────────────────
-  const handleOpenWorkflowInPanel = useCallback((messageId: string, workflow: any) => {
+  const handleOpenWorkflowInPanel = useCallback((messageId: string, workflow: any, tab?: 'summary' | 'outputs' | 'report') => {
     setPanelWorkflowMessageId(messageId)
     setPanelWorkflow(workflow)
+    setPanelAfterRunTab(tab)
     setPanelOpen(true)
     onWorkflowPanelOpenChange?.(true)
-  }, [onWorkflowPanelOpenChange])
+    // A session can hold several cards for the same workflow (one per re-run).
+    // The right panel renders a single `currentRun`, matched to the panel by
+    // workflow name — so opening a *different* run's card must switch currentRun
+    // to that card's run, or it would show the latest run under an older card.
+    // Read the freshest session (not a stale closure) for the opened card's runId.
+    try {
+      const sid = currentChatSession?.id
+      if (sid) {
+        const fresh = chatHistoryService.getSession(sid)
+        const msg = fresh?.messages?.find((m: any) => m.id === messageId)
+        const msgRunId = msg?.metadata?.runId || msg?.invocationId
+        if (msgRunId && msgRunId !== currentRun?.id) {
+          // loadRun is safe for terminal runs (only starts SSE/polling if running).
+          void loadRun(msgRunId, { silent: true }).catch((err: any) =>
+            console.warn('[ChatWithArtifacts] open-card loadRun failed:', err?.message)
+          )
+        }
+      }
+    } catch (err: any) {
+      console.warn('[ChatWithArtifacts] open-card run switch skipped:', err?.message)
+    }
+  }, [onWorkflowPanelOpenChange, currentChatSession?.id, currentRun?.id, loadRun])
 
   const handleClosePanelWorkflow = useCallback(() => {
     setPanelOpen(false)
@@ -1708,7 +1819,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     const onMove = (ev: MouseEvent) => {
       if (!panelResizingRef.current) return
       const delta = panelResizeStartX.current - ev.clientX // dragging left = wider panel
-      const next = Math.min(900, Math.max(320, panelResizeStartW.current + delta))
+      const next = Math.min(maxPanelWidth, Math.max(320, panelResizeStartW.current + delta))
       setPanelWidth(next)
     }
     const onUp = () => {
@@ -1718,7 +1829,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [panelWidth])
+  }, [panelWidth, maxPanelWidth])
 
   // Auto-open right panel whenever a new workflow message arrives.
   // We track msgId + the inline-params signature so the effect re-fires when
@@ -1744,6 +1855,25 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     const msgs = currentChatSession?.messages ?? []
     const wf = msgs.find(m => m.id === lastWorkflowMsgId)
     if (!wf?.metadata?.workflow) return
+    // A question the assistant is asking the user — a disambiguation ("which
+    // workflow did you mean?") or a confirmation/low-confidence prompt
+    // (needsUserFeedback: "review and confirm before execution") — is NOT a
+    // runnable workflow yet. The assistant is waiting on the user's answer, so
+    // the right panel must NOT present a workflow and the question must stay in
+    // the chat (not leak into the panel's progress/status). Suppress the auto-open
+    // (and close an open panel) until the user answers; a later message without
+    // the question flag opens the panel normally. (User reports 2026-11-01/02.)
+    const wfType = (wf.metadata.workflow as any)?.workflow_type
+    const awaitingUser = wfType === 'disambiguation' || !!(wf.metadata as any)?.needsUserFeedback
+    if (awaitingUser) {
+      const sig = `${lastWorkflowMsgId}|awaiting-user`
+      if (sig !== autoOpenedWorkflowSignatureRef.current) {
+        autoOpenedWorkflowSignatureRef.current = sig
+        setPanelOpen(false)
+        onWorkflowPanelOpenChange?.(false)
+      }
+      return
+    }
     // Build a signature: msgId + sorted inlineParameter keys. The signature
     // grows monotonically as the chat-stream emits more metadata for the
     // same message, so we re-run the panel-open/merge logic until all keys
@@ -1779,7 +1909,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     onWorkflowPanelOpenChange?.(true)
   }, [lastWorkflowMsgId, currentChatSession?.messages, onWorkflowPanelOpenChange])
 
-  const executionGuidance = getExecutionAsyncGuidance(executionError, { isOnline })
   const autofixState = currentRun?.execution?.nextflowStatus?.autofix?.state as string | undefined
   const isAutofixActive =
     currentRun?.execution?.nextflowStatus?.autofix?.active === true ||
@@ -1867,14 +1996,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         padding: '0 18px',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
+          <span style={{ fontSize: 10.5, color: 'var(--bm-text-dim)' }}>{activeProject?.name || 'Unfiled'} / {currentChatSession ? 'chat' : 'new chat'}</span>
           <span style={{
             fontWeight: 600, fontSize: 14,
             color: 'var(--bm-text, hsl(var(--foreground)))',
             fontFamily: 'var(--bm-font-ui)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
-            {currentChatSession?.title || t('New thread')}
+            {currentChatSession?.title || t('New chat')}
           </span>
           {isConnected && (
             <span style={{ fontSize: 11, color: 'var(--bm-ok, oklch(0.62 0.13 150))', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1883,7 +2013,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {panelOpen && !panelIsOverlay && <Button variant="ghost" size="sm" data-testid="button-toggle-chat-pane" onClick={() => setChatHidden(v => !v)} style={{ fontSize: 12, height: 28 }}>{chatHidden ? 'Show chat' : 'Hide chat'}</Button>}
           <Button
             variant="ghost"
             size="sm"
@@ -1892,7 +2023,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             style={{ fontSize: 12, height: 28, gap: 5 }}
           >
             <Layers className="h-3 w-3" style={{ flexShrink: 0 }} />
-            {t('Run Manager')}
+            {t('runs_ui.run_manager')}
             {runningCount > 0 ? (
               <span style={{
                 background: 'var(--bm-blue, oklch(0.55 0.18 240))',
@@ -1911,7 +2042,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             data-testid="button-refresh-run-manager"
             onClick={fetchRunList}
             disabled={isRunListLoading}
-            title="Refresh run list"
+            title={t('runs_ui.refresh_run_list')}
             className="h-7 w-7"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRunListLoading ? "animate-spin" : ""}`} />
@@ -1928,7 +2059,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           />
           {runListError && (
             <p className="text-xs text-red-600 dark:text-red-400 mb-2">
-              Failed to refresh runs: {runListError}
+              {t('runs_ui.failed_to_refresh', { error: runListError })}
             </p>
           )}
           <div className="mb-3 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
@@ -1941,7 +2072,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   runManagerScope === "current_chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
-                Current chat
+                {t('runs_ui.current_chat')}
               </button>
               <button
                 type="button"
@@ -1951,7 +2082,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   runManagerScope === "all_chats" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
-                All chats
+                {t('runs_ui.all_chats')}
               </button>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[720px]">
@@ -1959,7 +2090,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 value={runSearchQuery}
                 onChange={(event) => setRunSearchQuery(event.target.value)}
                 data-testid="run-manager-search-input"
-                placeholder="Search workflow or run id"
+                placeholder={t('runs_ui.search_placeholder')}
                 className="h-8 rounded-md border bg-background px-2 text-xs"
               />
               <select
@@ -1968,12 +2099,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 data-testid="run-manager-filter-status"
                 className="h-8 rounded-md border bg-background px-2 text-xs"
               >
-                <option value="all">All statuses</option>
-                <option value="needs_attention">Needs Attention</option>
-                <option value="running">Running</option>
-                <option value="queued">Queued</option>
-                <option value="failed">Failed</option>
-                <option value="completed">Completed</option>
+                <option value="all">{t('runs_ui.status_all')}</option>
+                <option value="needs_attention">{t('runs_ui.status_needs_attention')}</option>
+                <option value="running">{t('workflow.status.running')}</option>
+                <option value="queued">{t('workflow.status.queued')}</option>
+                <option value="failed">{t('workflow.status.failed')}</option>
+                <option value="completed">{t('workflow.status.completed')}</option>
               </select>
               <select
                 value={runSort}
@@ -1981,9 +2112,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 data-testid="run-manager-sort-select"
                 className="h-8 rounded-md border bg-background px-2 text-xs"
               >
-                <option value="updated_desc">Updated (newest first)</option>
-                <option value="running_first">Running first</option>
-                <option value="failed_first">Failed first</option>
+                <option value="updated_desc">{t('runs_ui.sort_updated_desc')}</option>
+                <option value="running_first">{t('runs_ui.sort_running_first')}</option>
+                <option value="failed_first">{t('runs_ui.sort_failed_first')}</option>
               </select>
             </div>
           </div>
@@ -2065,10 +2196,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         >
           <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
             <AlertTriangle className="h-4 w-4" />
-            <span className="font-medium">You appear to be offline.</span>
+            <span className="font-medium">{t('runs_ui.offline')}</span>
           </div>
           <p className="mt-1 text-xs text-amber-700 dark:text-amber-300" data-testid="offline-retry-guidance">
-            Reconnect to continue chat and workflow operations. Your current session remains available locally.
+            {t('runs_ui.offline_guidance')}
           </p>
         </div>
       )}
@@ -2076,14 +2207,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       {/* Execution error display */}
       {executionError && (
         <div className="border-b bg-red-50 dark:bg-red-950/20 px-4 py-2">
+          <WorkflowExecutionErrorNotice error={executionError} />
           <div className="space-y-2 text-sm text-red-700 dark:text-red-300">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="font-semibold">Workflow execution failed.</span>
-            </div>
-            <p className="text-xs opacity-80 break-all">{executionError}</p>
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs" style={{ visibility: 'hidden' }}>{executionGuidance.escalation}</p>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -2092,7 +2218,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   onClick={handleRetryExecution}
                   disabled={isWorkflowRunning || isAutofixActive}
                 >
-                  {isAutofixActive ? "Auto-fix in progress" : "Try again"}
+                  {isAutofixActive ? t('runs_ui.autofix_in_progress') : t('runs_ui.try_again')}
                 </Button>
                 <ReportConfusionButton
                   runId={currentRun?.id}
@@ -2101,7 +2227,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   workflowId={currentRun?.execution?.galaxyWorkflowId}
                   context={{
                     executionStatus: currentRun?.execution?.status,
-                    errorMessage: executionError,
+                    errorMessage: executionError.message,
                     workflowName: currentRun?.workflowName,
                   }}
                   variant="outline"
@@ -2145,9 +2271,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       {tourNode}
 
       {/* Split layout: Chat (left, flexible) + Workflow Panel (right, fixed 420px) */}
-      <div className={`flex-1 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
+      <div ref={splitLayoutRef} data-testid="chat-workflow-split" className={`flex-1 min-h-0 min-w-0 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
         {/* Center: Chat — hidden on mobile when workflow panel is open */}
-        <div className={`overflow-hidden min-w-0 ${isMobile && panelOpen ? 'hidden' : 'flex-1'}`}>
+        <div className={`overflow-hidden min-w-0 ${(panelIsOverlay || chatHidden) && panelOpen ? 'hidden' : 'flex-1'}`}>
           {pendingStructuralEdits.length > 0 && (
             <div
               data-testid="workflow-edits-pending"
@@ -2164,7 +2290,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   style={{
                     fontSize: 11, padding: '2px 6px 2px 8px', borderRadius: 999,
                     background: 'oklch(0.94 0.06 70)', color: 'oklch(0.40 0.12 60)',
-                    fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+                    fontFamily: 'var(--bm-font-mono, ui-monospace, monospace)',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}
                 >
@@ -2172,14 +2298,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   <span>{p.summary}</span>
                   <button
                     type="button"
-                    aria-label="apply"
+                    aria-label={t('runs_ui.apply')}
                     data-testid={`button-apply-${p.id}`}
                     onClick={() => confirmStructuralEdit(p.id)}
                     style={{ marginLeft: 4, padding: '0 4px', border: 'none', background: 'oklch(0.60 0.15 145)', color: 'white', borderRadius: 4, cursor: 'pointer', fontSize: 10 }}
-                  >Apply</button>
+                  >{t('runs_ui.apply')}</button>
                   <button
                     type="button"
-                    aria-label="dismiss"
+                    aria-label={t('runs_ui.dismiss')}
                     data-testid={`button-dismiss-${p.id}`}
                     onClick={() => dismissStructuralEdit(p.id)}
                     style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6 }}
@@ -2205,7 +2331,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   style={{
                     fontSize: 11, padding: '2px 8px', borderRadius: 999,
                     background: 'oklch(0.95 0.03 145)', color: 'oklch(0.40 0.10 145)',
-                    fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+                    fontFamily: 'var(--bm-font-mono, ui-monospace, monospace)',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}
                 >
@@ -2214,15 +2340,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   {chip.snapshot && (
                     <button
                       type="button"
-                      aria-label="undo"
+                      aria-label={t('runs_ui.undo')}
                       data-testid={`button-undo-${chip.id}`}
                       onClick={() => undoAppliedEdit(chip.id)}
                       style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 9, opacity: 0.75 }}
-                    >Undo</button>
+                    >{t('runs_ui.undo')}</button>
                   )}
                   <button
                     type="button"
-                    aria-label="dismiss"
+                    aria-label={t('runs_ui.dismiss')}
                     onClick={() => setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== chip.id))}
                     style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6, lineHeight: 1 }}
                   >×</button>
@@ -2303,20 +2429,25 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         {panelOpen && (
           <div
             className="flex-shrink-0 border-l bg-background flex flex-col overflow-hidden relative"
-            style={isMobile
-              ? { width: '100vw', minWidth: 0, maxWidth: '100vw' }
-              : { width: panelWidth, minWidth: 320, maxWidth: 900 }}
+            style={(panelIsOverlay || chatHidden)
+              ? { width: '100%', minWidth: 0, maxWidth: '100%' }
+              : { width: visiblePanelWidth, minWidth: 320, maxWidth: maxPanelWidth }}
             data-testid="workflow-right-panel"
           >
             {/* Drag handle — desktop only */}
-            {!isMobile && (
+            {!panelIsOverlay && !chatHidden && (
               <div
-                className="absolute top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-10 select-none"
-                style={{ left: -3 }}
+                // z-40 so the handle stays grabbable even when the full step view
+                // (an absolute z-30 panel inside the viewer) is open — at z-10 it
+                // was covered, making the split look un-resizable (UI refinement item 12).
+                className="absolute top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-40 select-none"
+                style={{ left: -4 }}
                 onMouseDown={handlePanelResizeStart}
-                title="Drag to resize panel"
+                title={t('runs_ui.drag_resize')}
+                data-testid="panel-resize-handle"
               />
             )}
+            {!panelWorkflow && <div className="flex justify-end px-3 py-2 border-b"><button onClick={handleClosePanelWorkflow} aria-label={t('runs_ui.close_panel')} data-testid="workflow-panel-close"><X className="h-4 w-4" /></button></div>}
             {/* Generating banner — shows while AI is streaming a response */}
             {panelGenerating && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/60 border-b text-xs text-muted-foreground flex-shrink-0">
@@ -2324,43 +2455,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 Generating…
               </div>
             )}
-            {/* Slim chrome bar */}
-            <div className="flex items-center gap-2 px-3 py-1 border-b flex-shrink-0" style={{ minHeight: 36 }}>
-              {/* Mobile: back-to-chat button on the left */}
-              {isMobile && (
-                <button
-                  onClick={handleClosePanelWorkflow}
-                  className="flex items-center gap-1 rounded-sm px-2 py-1 hover:bg-muted text-sm font-medium"
-                  aria-label="Back to chat"
-                  data-testid="workflow-panel-back"
-                >
-                  ← Chat
-                </button>
-              )}
-              <div className="ml-auto flex items-center gap-2">
-                {/* Tutorial button — commented out; replace with contextual help later
-                {!isMobile && (
-                  <button
-                    className="tut-btn"
-                    onClick={startTour}
-                    title="Start the workflow panel tutorial"
-                    data-testid="button-start-tour"
-                  >
-                    <span style={{ fontSize: 9 }}>▶</span> Tutorial
-                  </button>
-                )}
-                */}
-                <button
-                  onClick={handleClosePanelWorkflow}
-                  className="rounded-sm p-1 hover:bg-muted"
-                  aria-label="Close workflow panel"
-                  data-testid="workflow-panel-close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
             {/* v2 after-run 7-tab report — gated by ?afterrun=v2 flag, shown
                 above the v1 viewer when the run is completed. Phase 4 preview. */}
             {afterRunFlavor === 'v2'
@@ -2395,10 +2489,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     const ods = exec?.outputDatasets || []
                     if (ods.length > 0) {
                       return ods.map((d: any) => ({
+                        // id is used for selection + launch dataset_ids; fall back
+                        // to a stable path/name so rows are individually selectable.
+                        id: d.galaxyDatasetId || d.id || d.path || d.name || '',
                         step: d.step || d.galaxyDatasetId || '',
                         name: d.name || '',
                         path: d.path || '',
                         ext: (d.extension || d.name?.split('.').pop() || '').toLowerCase(),
+                        size: d.file_size ?? d.size ?? undefined,
                       }))
                     }
                     const s3 = exec?.nextflowStatus?.s3_output_files || []
@@ -2410,15 +2508,23 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       // looks like a process name (CRYOSPARC_REFINE/ etc.).
                       const parts = path.split('/')
                       const step = parts.length >= 2 ? parts[parts.length - 2] : ''
-                      return { step, name, path, ext }
+                      // Nextflow S3 listings are often bare path strings with no
+                      // size; leave size undefined so the launcher hides it rather
+                      // than showing a misleading "0 B".
+                      const size = typeof f === 'object' ? (f.size ?? f.file_size ?? undefined) : undefined
+                      return { id: path || name, step, name, path, ext, size }
                     })
                   })()}
                 />
               </div>
             )}
 
-            {/* Panel body — viewer manages its own scroll via panel-body flex */}
+            {/* Panel body — viewer manages its own scroll via panel-body flex.
+                Wrapped in a panel-scoped error boundary so a render crash in the
+                workflow viewer subtree shows a localized fallback instead of
+                blanking the whole app (main.tsx's boundary is app-wide). */}
             <div className="flex-1 overflow-hidden flex flex-col">
+              <PanelErrorBoundary label="workflow panel">
               {panelWorkflow ? (
                 (() => {
                   // If the panel was updated to a *different* workflow than the one
@@ -2448,11 +2554,17 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
                   const prereqChecklist = normalizePrereqChecklist(
                     panelWorkflow?.prerequisitesValidation,
-                    {}
+                    { hasInlineData: hasInlineInputData(panelWorkflow) }
                   )
                   return (
                     <NextflowWorkflowViewer
                       workflowDefinition={panelWorkflow}
+                      targetAfterRunTab={panelAfterRunTab}
+                      onClose={handleClosePanelWorkflow}
+                      onToggleExpand={() => setChatHidden(v => !v)}
+                      expanded={chatHidden}
+                      projectId={activeProjectId || undefined}
+                      projectName={activeProject?.name}
                       invocationId={runMatchesPanel ? (currentRun?.execution?.galaxyInvocationId || currentRun?.id) : undefined}
                       workflowId={panelWorkflow?.id}
                       lastSubmittedParams={runMatchesPanel ? extractSubmittedParams(currentRun) : undefined}
@@ -2460,6 +2572,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       autofix={runMatchesPanel ? currentRun?.execution?.nextflowStatus?.autofix : undefined}
                       nextflowStatus={runMatchesPanel ? currentRun?.execution?.nextflowStatus : undefined}
                       status={runMatchesPanel && currentRun ? viewerStatus : (panelWorkflow?.workflowViewerStatus || viewerStatus)}
+                      wasCancelled={runMatchesPanel && currentRun ? execStatusStr === 'cancelled' : false}
                       errorMessage={runMatchesPanel ? currentRun?.execution?.errorMessage : undefined}
                       progress={workflowProgress}
                       onExecute={(params) => {
@@ -2571,6 +2684,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   </p>
                 </div>
               )}
+              </PanelErrorBoundary>
             </div>
           </div>
         )}

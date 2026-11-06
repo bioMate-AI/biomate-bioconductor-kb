@@ -1,0 +1,8 @@
+{
+  "stored_tensor_elements": 27781427952,
+  "tensor_count": 1199,
+  "shard_count": 18,
+  "maximum": 32000000000,
+  "passes_conservative_32b_cap": true,
+  "scope": "complete unquantized stored tensor count including optional components; no runtime quality claim"
+}

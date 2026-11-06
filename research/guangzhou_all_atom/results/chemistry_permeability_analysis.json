@@ -1,0 +1,55 @@
+{
+  "n_cycpeptmpdb": 8466,
+  "pearson_r_vs_logPapp": {
+    "mw": 0.042,
+    "n_nmethyl": 0.165,
+    "hbd": -0.101,
+    "tpsa": -0.012,
+    "rings": -0.056
+  },
+  "note_corr": "higher logPapp = more permeable; negative r means the feature HURTS permeability",
+  "logPapp_by_N_methyl_count": {
+    "0": {
+      "n": 1055,
+      "mean_logPapp": -6.301
+    },
+    "1-2": {
+      "n": 3559,
+      "mean_logPapp": -6.052
+    },
+    "3-5": {
+      "n": 2532,
+      "mean_logPapp": -5.782
+    },
+    "6+": {
+      "n": 1320,
+      "mean_logPapp": -5.76
+    }
+  },
+  "chemistry_permeable_subset(logPapp>-6)": {
+    "mw": 949.29,
+    "n_nmethyl": 2.91,
+    "hbd": 3.66,
+    "tpsa": 208.96,
+    "rings": 3.94
+  },
+  "chemistry_all_cycpeptmpdb": {
+    "mw": 956.5,
+    "n_nmethyl": 2.77,
+    "hbd": 3.9,
+    "tpsa": 214.18,
+    "rings": 3.94
+  },
+  "chemistry_generated_designs": {
+    "mw": 1994.23,
+    "n_nmethyl": 0.0,
+    "hbd": 31.16,
+    "tpsa": 823.53,
+    "rings": 2.35
+  },
+  "interpretation": "If N-methylation correlates + and HBD/TPSA correlate -, non-natural chemistry (N-Me, low HBD) is the permeability lever \u2014 which the natural-AA generator cannot access, motivating Phase-1b. Compare generated-design chemistry to the permeable subset to see the gap.",
+  "limits": [
+    "correlational (measured permeability, real peptides); not causal per-design",
+    "N-methyl SMARTS is approximate; generated designs scored as linear peptides"
+  ]
+}

@@ -39,6 +39,15 @@ def test_every_tool_has_name_description_inputschema():
         assert "properties" in t.input_schema
 
 
+def test_connector_manifest_does_not_promise_unimplemented_cost_or_runtime_estimates():
+    """Cost/duration estimation is not part of the connector contract yet."""
+    for tool_name in ("search_workflow", "get_workflow_spec"):
+        description = tm.get_tool(tool_name).description.lower()
+        assert "estimated" not in description
+        assert "cost" not in description
+        assert "runtime" not in description
+
+
 def test_tool_names_unique():
     names = [t.name for t in tm.TOOL_SCHEMAS]
     assert len(names) == len(set(names))

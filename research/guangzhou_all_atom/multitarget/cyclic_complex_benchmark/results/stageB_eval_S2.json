@@ -1,0 +1,285 @@
+{
+ "variant": "S2",
+ "C": 1.0,
+ "n_train_complexes": 155,
+ "n_train_clusters": 91,
+ "selector_coef_top": {
+  "pep_plddt": 0.281,
+  "complex_iplddt": -0.202,
+  "if_plddt": 0.113
+ },
+ "selector_trivial": false,
+ "all_thr0.23": {
+  "n_complexes": 104,
+  "n_clusters": 52,
+  "success": {
+   "default": 0.577,
+   "iptm": 0.587,
+   "ptm": 0.567,
+   "if_plddt": 0.606,
+   "ring_strain": 0.606,
+   "clash_count": 0.577,
+   "S": 0.596,
+   "oracle": 0.769,
+   "random": 0.596
+  },
+  "strongest_baseline": "if_plddt",
+  "S_minus_strongest": {
+   "value": -0.01,
+   "ci95": [
+    -0.046,
+    0.021
+   ]
+  },
+  "S_minus_default": {
+   "value": 0.019
+  },
+  "oracle_minus_default": {
+   "value": 0.192,
+   "ci95": [
+    0.088,
+    0.285
+   ]
+  },
+  "verdict_S_best": false
+ },
+ "novel_receptor_thr0.23": {
+  "n_complexes": 68,
+  "n_clusters": 40,
+  "success": {
+   "default": 0.529,
+   "iptm": 0.529,
+   "ptm": 0.5,
+   "if_plddt": 0.529,
+   "ring_strain": 0.515,
+   "clash_count": 0.529,
+   "S": 0.515,
+   "oracle": 0.676,
+   "random": 0.511
+  },
+  "strongest_baseline": "default",
+  "S_minus_strongest": {
+   "value": -0.015,
+   "ci95": [
+    -0.087,
+    0.044
+   ]
+  },
+  "S_minus_default": {
+   "value": -0.015
+  },
+  "oracle_minus_default": {
+   "value": 0.147,
+   "ci95": [
+    0.051,
+    0.26
+   ]
+  },
+  "verdict_S_best": false
+ },
+ "strict_thr0.23": {
+  "n_complexes": 19,
+  "n_clusters": 17,
+  "success": {
+   "default": 0.737,
+   "iptm": 0.684,
+   "ptm": 0.684,
+   "if_plddt": 0.789,
+   "ring_strain": 0.789,
+   "clash_count": 0.737,
+   "S": 0.684,
+   "oracle": 0.895,
+   "random": 0.716
+  },
+  "strongest_baseline": "if_plddt",
+  "S_minus_strongest": {
+   "value": -0.105,
+   "ci95": [
+    -0.25,
+    0.0
+   ]
+  },
+  "S_minus_default": {
+   "value": -0.053
+  },
+  "oracle_minus_default": {
+   "value": 0.158,
+   "ci95": [
+    0.0,
+    0.316
+   ]
+  },
+  "verdict_S_best": false
+ },
+ "noncanonical_thr0.23": {
+  "n_complexes": 85,
+  "n_clusters": 40,
+  "success": {
+   "default": 0.541,
+   "iptm": 0.565,
+   "ptm": 0.541,
+   "if_plddt": 0.565,
+   "ring_strain": 0.565,
+   "clash_count": 0.541,
+   "S": 0.576,
+   "oracle": 0.741,
+   "random": 0.569
+  },
+  "strongest_baseline": "iptm",
+  "S_minus_strongest": {
+   "value": 0.012,
+   "ci95": [
+    -0.045,
+    0.062
+   ]
+  },
+  "S_minus_default": {
+   "value": 0.035
+  },
+  "oracle_minus_default": {
+   "value": 0.2,
+   "ci95": [
+    0.082,
+    0.303
+   ]
+  },
+  "verdict_S_best": false
+ },
+ "all_thr0.49": {
+  "n_complexes": 104,
+  "n_clusters": 52,
+  "success": {
+   "default": 0.442,
+   "iptm": 0.452,
+   "ptm": 0.462,
+   "if_plddt": 0.433,
+   "ring_strain": 0.433,
+   "clash_count": 0.442,
+   "S": 0.433,
+   "oracle": 0.577,
+   "random": 0.453
+  },
+  "strongest_baseline": "ptm",
+  "S_minus_strongest": {
+   "value": -0.029,
+   "ci95": [
+    -0.078,
+    0.026
+   ]
+  },
+  "S_minus_default": {
+   "value": -0.01
+  },
+  "oracle_minus_default": {
+   "value": 0.135,
+   "ci95": [
+    0.05,
+    0.227
+   ]
+  },
+  "verdict_S_best": false
+ },
+ "novel_receptor_thr0.49": {
+  "n_complexes": 68,
+  "n_clusters": 40,
+  "success": {
+   "default": 0.382,
+   "iptm": 0.368,
+   "ptm": 0.382,
+   "if_plddt": 0.353,
+   "ring_strain": 0.368,
+   "clash_count": 0.368,
+   "S": 0.353,
+   "oracle": 0.471,
+   "random": 0.374
+  },
+  "strongest_baseline": "default",
+  "S_minus_strongest": {
+   "value": -0.029,
+   "ci95": [
+    -0.074,
+    0.0
+   ]
+  },
+  "S_minus_default": {
+   "value": -0.029
+  },
+  "oracle_minus_default": {
+   "value": 0.088,
+   "ci95": [
+    0.029,
+    0.159
+   ]
+  },
+  "verdict_S_best": false
+ },
+ "strict_thr0.49": {
+  "n_complexes": 19,
+  "n_clusters": 17,
+  "success": {
+   "default": 0.579,
+   "iptm": 0.526,
+   "ptm": 0.526,
+   "if_plddt": 0.579,
+   "ring_strain": 0.526,
+   "clash_count": 0.526,
+   "S": 0.579,
+   "oracle": 0.579,
+   "random": 0.528
+  },
+  "strongest_baseline": "default",
+  "S_minus_strongest": {
+   "value": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  "S_minus_default": {
+   "value": 0.0
+  },
+  "oracle_minus_default": {
+   "value": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  "verdict_S_best": false
+ },
+ "noncanonical_thr0.49": {
+  "n_complexes": 85,
+  "n_clusters": 40,
+  "success": {
+   "default": 0.412,
+   "iptm": 0.435,
+   "ptm": 0.447,
+   "if_plddt": 0.4,
+   "ring_strain": 0.412,
+   "clash_count": 0.424,
+   "S": 0.4,
+   "oracle": 0.576,
+   "random": 0.436
+  },
+  "strongest_baseline": "ptm",
+  "S_minus_strongest": {
+   "value": -0.047,
+   "ci95": [
+    -0.1,
+    0.014
+   ]
+  },
+  "S_minus_default": {
+   "value": -0.012
+  },
+  "oracle_minus_default": {
+   "value": 0.165,
+   "ci95": [
+    0.065,
+    0.262
+   ]
+  },
+  "verdict_S_best": false
+ },
+ "CLAIM_S_best_all_and_novel_at_0.23": false
+}

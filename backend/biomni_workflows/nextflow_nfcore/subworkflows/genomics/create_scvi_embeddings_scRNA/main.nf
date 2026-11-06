@@ -167,7 +167,7 @@ with open("create_scvi_embeddings_scRNA_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("create_scvi_embeddings_scRNA_output.txt", "w") as f:
-    f.write("Biomni: Create Scvi Embeddings Scrna" + NL)
+    f.write("BioMate: Create Scvi Embeddings Scrna" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

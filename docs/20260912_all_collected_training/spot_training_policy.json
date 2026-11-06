@@ -1,0 +1,17 @@
+{
+  "scope": "immune all-collected GPU training",
+  "capacity_type": "spot",
+  "on_demand_fallback": false,
+  "region": "us-west-2",
+  "existing_source_screening_worker": "leave running",
+  "checkpoint_requirements": {
+    "durable_store": "S3",
+    "restore_model_optimizer_rng_and_source_cursors": true,
+    "verify_manifest_and_payload_identity": true,
+    "atomic_local_checkpoint_and_consistent_remote_publication": true,
+    "periodic_upload_required": true,
+    "interruption_notice_upload_best_effort": true
+  },
+  "launch_gate": "Source preparation, full-data coverage ledger and remote interruption/resume validation must pass before GPU launch.",
+  "status": "User-approved capacity policy; remote Spot checkpoint publication and replacement orchestration still require implementation and validation."
+}

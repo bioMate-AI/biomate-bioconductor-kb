@@ -46,7 +46,7 @@ Each prompt finds the right workflow from 2,455 indexed pipelines, fills require
                 Batch  workflows
 ```
 
-- **One source of truth for tools** — [`backend/lib/mcp/tools_manifest.py`](../backend/lib/mcp/tools_manifest.py) defines 14 tools across 3 tiers. Every surface generates its schema from this file; a CI drift test fails the build if they diverge.
+- **One source of truth for tools** — [`backend/lib/mcp/tools_manifest.py`](../backend/lib/mcp/tools_manifest.py) defines 19 tools across 3 tiers. Every surface generates its schema from this file; a CI drift test fails the build if they diverge.
 - **One OAuth 2.1 + PKCE service** — [`backend/lib/galaxy/connectors/oauth/`](../backend/lib/galaxy/connectors/oauth/). Scopes are per-surface; revoke individual surfaces at https://biomate.ai/account/connectors.
 - **One streaming event format** — every progress event carries `kind`, `summary_md`, `view_url`, optional `thumbnail_png_b64`, plus a structured `delta`. Hosts that support `notifications/progress` (Claude Code, Cursor) render the event timeline; hosts that don't (Codex, Slack, WeChat) poll a paired tool and get the same payloads.
 
@@ -61,16 +61,16 @@ Each prompt finds the right workflow from 2,455 indexed pipelines, fills require
 | Reports | None | Methods + QC + findings as IND/CRO-ready PDF |
 | Storage | Ephemeral | S3 with signed-URL uploads + permanent run archives |
 
-## Tools (the 14-tool surface)
+## Tools (the 19-tool surface)
 
 ### Tier 1 — Agentic (the wow tool)
 - **`biomate_session`** — natural-language goal → orchestrated run with streaming events
 
 ### Tier 2 — Workflow primitives
-`search_workflow` · `get_workflow_spec` · `run_workflow` · `cancel_run` · `list_runs` · `get_run`
+`search_workflow` · `get_workflow_spec` · `run_workflow` · `cancel_run` · `list_runs` · `get_run` · `watch_run`
 
 ### Tier 3 — Outputs, analysis, reporting
-`preview_file` · `export_report` · `analyze_results` · `explain_error` · `recall_memory` · `upload_file` · `query_database`
+`preview_file` · `export_report` · `analyze_results` · `explain_error` · `query_database` · `resolve_accession` · `browse_data` · `fetch_public_data` · `search_literature` · `recall_memory` · `upload_file`
 
 See each surface's README for examples.
 

@@ -1,0 +1,8 @@
+{
+  "run_id": "pepglad-spot-20260912T221107Z",
+  "s3_prefix": "s3://knowledge-datasets-1759951976/cyclic_peptide/runs/pepglad-spot-20260912T221107Z",
+  "code_sha256": "873197581aef1f307d2ab7fd22faa365fc2617f01be0941bb371b2a67b866c5e",
+  "purchase_type": "spot",
+  "replaces_instance": "i-00ee634b80c07800c",
+  "deadline_utc": "2026-09-13T01:45:52Z"
+}

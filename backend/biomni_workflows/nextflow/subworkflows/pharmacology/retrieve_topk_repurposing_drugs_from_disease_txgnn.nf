@@ -52,7 +52,7 @@ with open("retrieve_topk_repurposing_drugs_from_disease_txgnn_results.json", "w"
 # Create human-readable output
 NL = chr(10)
 with open("retrieve_topk_repurposing_drugs_from_disease_txgnn_output.txt", "w") as f:
-    f.write("Biomni: Retrieve Topk Repurposing Drugs From Disease Txgnn Results" + NL)
+    f.write("BioMate: Retrieve Topk Repurposing Drugs From Disease Txgnn Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

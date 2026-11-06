@@ -142,8 +142,12 @@ process SURVIVAL_ANALYSIS {
     script:
     """
     python3 << 'PYEOF'
-import json, csv, math, random
+import json, csv, math
 
+# integrity: real Kaplan-Meier / Schoenfeld trial-design math kept; the demo
+# path that added random.gauss noise to fabricate observed KM scatter was
+# removed -> the survival curve is now the analytic S(t) from the design
+# assumptions, no fabricated observed data.
 with open('${validated_params}') as f:
     vp = json.load(f)
 
@@ -158,8 +162,6 @@ n_arms      = vp['n_arms']
 rmst_tau    = vp['rmst_tau']
 shape       = vp['weibull_shape']
 dist        = vp['distribution']
-
-random.seed(42)
 
 def lambda_from_median(median_mo, k=1.0):
     return (math.log(2) / median_mo) ** (1/k) if k != 1 else math.log(2) / median_mo
@@ -182,8 +184,7 @@ def km_curve(lam, k=1.0, dist_type='exponential'):
             s = s_weibull(t, lam, k)
         else:
             s = math.exp(-lam * t)
-        s_noisy = max(0, min(1, s + random.gauss(0, 0.008)))
-        curve.append(round(s_noisy, 4))
+        curve.append(round(max(0, min(1, s)), 4))
     return curve
 
 ctl_km = km_curve(lam_ctl, shape, dist)
@@ -277,8 +278,12 @@ process EVALUATE_BOUNDARIES {
     script:
     """
     python3 << 'PYEOF'
-import json, csv, math, random
+import json, csv, math
 
+# integrity: real O'Brien-Fleming alpha-spending / power-table math kept; the
+# demo path that fabricated a random "observed HR" (random.uniform) and its
+# derived observed Z at interim 1 was removed -> design-stage boundaries only,
+# no fabricated observed trial results.
 with open('${validated_params}') as f:
     vp = json.load(f)
 with open('${sample_size}') as f:
@@ -292,8 +297,6 @@ n_arms      = ss['n_arms']
 z_alpha2    = ss['z_alpha2']
 z_beta      = ss['z_beta']
 p_event_avg = ss['p_event_avg']
-
-random.seed(42)
 
 def obf_boundary(info_fraction, alpha_total=0.05):
     return z_alpha2 / math.sqrt(info_fraction)
@@ -321,14 +324,14 @@ interim_analyses.append({
     'cumulative_alpha_spent': alpha,
 })
 
-hr_obs = round(vp['hazard_ratio'] * random.uniform(0.9, 1.1), 3)
-z_obs  = round((-math.log(hr_obs)) / (1 / math.sqrt(interim_analyses[0]['events_required'])), 2) \
-         if interim_analyses else None
-
+# Design-stage output only: no real interim cohort is available, so we do NOT
+# fabricate an "observed HR"/"observed Z". These are populated only when real
+# interim event data is supplied.
 obf_out = {
     'interim_analyses': interim_analyses,
-    'hr_observed_at_interim_1': hr_obs,
-    'z_observed_at_interim_1': z_obs,
+    'hr_observed_at_interim_1': None,
+    'z_observed_at_interim_1': None,
+    'observed_data_note': 'design-stage boundaries only; observed HR/Z require real interim event data',
     'method': "O'Brien-Fleming alpha-spending (Lan & DeMets 1983)",
 }
 

@@ -1,0 +1,9 @@
+[Unit]
+Description=BioMate Spot notice checkpoint signal
+After=network-online.target
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/biomate-trial/scripts/spot_notice.py
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target

@@ -56,7 +56,7 @@ with open("perform_facs_cell_sorting_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("perform_facs_cell_sorting_output.txt", "w") as f:
-    f.write("Biomni: Perform Facs Cell Sorting Results" + NL)
+    f.write("BioMate: Perform Facs Cell Sorting Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

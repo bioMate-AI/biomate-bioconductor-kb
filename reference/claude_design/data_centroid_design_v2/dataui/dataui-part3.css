@@ -1,0 +1,226 @@
+/* Part 3 — step deep-view, evidence viewers, skip controls, cold-start dashboard.
+   Same tokens and atoms as dataui.css; nothing here restyles a shipped surface. */
+.mainpane{position:relative}
+
+/* ── evidence badge ── */
+.evb{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 8px;font:600 10px/1.5 var(--font-ui);letter-spacing:.02em;white-space:nowrap}
+
+/* ── deep view shell ── */
+.deep{position:absolute;top:0;bottom:0;right:0;z-index:40;display:flex;flex-direction:column;background:var(--bg-elev);border-left:1px solid var(--border-strong);box-shadow:-18px 0 40px -24px rgb(0 0 0 / .35);animation:deepin .16s ease-out}
+.deep.drawer{width:min(660px,74%)}
+.deep.full{position:fixed;inset:0;width:auto;border-left:none;z-index:120;box-shadow:none;animation:deepup .16s ease-out}
+.deep.full .deephd,.deep.full .deepfoot{padding-left:clamp(16px,4vw,44px);padding-right:clamp(16px,4vw,44px)}
+.deep.full .deepbody{padding:18px clamp(16px,4vw,44px);gap:12px}
+.deep.full .deepbody>*{width:100%;max-width:1180px;margin:0 auto}
+.deep.full .viewstage{min-height:320px;display:flex;flex-direction:column;justify-content:center}
+.deep.full .console,.deep.full .rawpre{max-height:none}
+@keyframes deepup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes deepin{from{opacity:.4;transform:translateX(14px)}to{opacity:1;transform:none}}
+.deephd{flex:none;display:flex;flex-direction:column;gap:9px;padding:13px 16px;border-bottom:1px solid var(--border);background:var(--surface)}
+.provrow{display:flex;align-items:center;gap:7px;flex-wrap:wrap;row-gap:6px}
+.pvarrow{color:var(--text-dim);font-size:11px}
+.deepbody{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:14px 16px}
+.deepfoot{flex:none;display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface)}
+.deepfoot .btn[disabled]{opacity:.4}
+
+.outtabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;row-gap:6px}
+.outtab{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;background:var(--bg-elev);padding:3px 10px 3px 4px;font-size:11.5px;color:var(--text-muted)}
+.outtab .mono{font-size:11px}
+.outtab:hover{border-color:var(--border-strong)}
+.outtab.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.segd{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;background:var(--surface)}
+.segb{border:0;background:none;padding:3px 10px;font:500 11px/1.6 var(--font-ui);color:var(--text-dim)}
+.segb.on{background:var(--bg-elev);color:var(--text);font-weight:600;box-shadow:var(--shadow-sm)}
+.zoomb{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--bg-elev);padding:2px 7px;font:500 10.5px/1.7 var(--font-ui);color:var(--text-muted)}
+.zoomb:hover{border-color:var(--border-strong);color:var(--text)}
+.zoomb.on{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+
+/* ── evidence viewers ── */
+.viewer{display:flex;flex-direction:column;gap:9px}
+.viewbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;row-gap:5px}
+.viewstage{border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);padding:12px}
+.colstats{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--border);padding-top:9px}
+.reclist{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+.rec{display:grid;grid-template-columns:70px repeat(5,minmax(0,1fr));gap:9px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);background:var(--bg-elev)}
+.rec:last-child{border-bottom:none}
+.recid{font-size:11.5px;font-weight:600}
+.hint.warnt{color:var(--warn)}
+.console,.rawpre{margin:0;font:400 11px/1.65 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 12px;max-height:280px;overflow:auto}
+.rawbox{display:flex;flex-direction:column;gap:7px}
+.rawhd{display:flex;align-items:center;gap:8px;font-size:11.5px}
+
+/* ── per-step resolved parameters ── */
+.sprow{display:grid;grid-template-columns:190px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border)}
+.sprow:last-child{border-bottom:none}
+.sprow .hint.dim{grid-column:2/span 2;font-size:11px;margin-top:-3px}
+.srcb{font:600 9px/1 var(--font-ui);text-transform:uppercase;letter-spacing:.05em;padding:3px 6px;border-radius:var(--r-xs);white-space:nowrap;color:var(--text-dim);background:var(--surface-3)}
+.srcb.override{color:var(--accent-ink);background:var(--accent-soft)}
+.srcb.inherited{color:var(--ok);background:var(--ok-soft)}
+.srcb.detected,.srcb.inferred{color:var(--text-muted);background:var(--surface-3)}
+.sprow.override .pv2{font-weight:600}
+.rerun .dafterin{border:none;background:none;font:500 11.5px/1.5 var(--font-mono);color:var(--ok);width:190px;outline:none;border-bottom:1px dashed currentColor}
+
+/* ── Requirement C: skip / jump / state ── */
+.stepbtn{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:var(--r-sm);padding:5px 8px 5px 21px;font-size:12px;color:var(--text-muted)}
+.stepbtn:hover{background:var(--surface-2);border-color:var(--border)}
+.stepbtn.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+.stepbtn.skipped{color:var(--text-dim)}
+.stepbtn.skipped .sname3{text-decoration:line-through;text-decoration-color:var(--border-strong)}
+.stepbtn .openx{opacity:0;font:600 9.5px/1 var(--font-ui);text-transform:uppercase;letter-spacing:.06em;color:var(--accent-ink)}
+.stepbtn:hover .openx{opacity:1}
+.skipb{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;background:var(--bg-elev);padding:2px 8px;font:500 10.5px/1.7 var(--font-ui);color:var(--text-dim)}
+.skipb:hover{border-color:var(--border-strong);color:var(--text)}
+.skipb.off{border-color:var(--warn);background:var(--warn-soft);color:var(--warn)}
+.phase.skipped{opacity:.62;border-style:dashed}
+.phase.skipped .phletter{background:var(--surface-3);color:var(--text-dim)}
+.gatedrow{display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:var(--r-sm);background:var(--surface-2);border:1px dashed var(--border-strong)}
+
+/* ── Requirement D: number → source ── */
+.claim{border:0;background:linear-gradient(transparent 62%,var(--accent-soft) 0);padding:0 1px;font:inherit;color:var(--accent-ink);font-weight:600;cursor:pointer;border-bottom:1px dotted var(--accent)}
+.claim:hover{background:var(--accent-soft)}
+.claimpop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--accent);border-radius:var(--r-sm);background:var(--accent-soft)}
+.claimpop .row{gap:8px;flex-wrap:wrap;row-gap:5px}
+
+/* ── Requirement B: cold-start dashboard ── */
+.colddash{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:20px;padding:56px 24px 32px;width:100%;max-width:840px;margin:0 auto}
+.intentbar{display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--border-strong);border-radius:var(--r-md);background:var(--bg-elev);padding:11px 12px;box-shadow:var(--shadow-sm);color:var(--accent)}
+.intentbar.small{padding:7px 10px}
+.intentin{flex:1;min-width:0;border:none;background:none;outline:none;font-size:13.5px;color:var(--text)}
+.intentin::placeholder{color:var(--text-dim)}
+.routebox{display:flex;flex-direction:column;gap:8px;width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface)}
+.modgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%}
+.barlab{display:flex;align-items:baseline;gap:8px;font:600 10px/1 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted)}
+.barlab .dim{font:400 10.5px/1 var(--font-ui);letter-spacing:0;text-transform:none;color:var(--text-dim)}
+.trackbar{display:flex;gap:4px;border-bottom:1px solid var(--border);padding-bottom:0;flex-wrap:wrap}
+.trackb{display:inline-flex;align-items:baseline;gap:6px;border:0;border-bottom:2px solid transparent;background:none;padding:5px 8px;font:500 12px/1.5 var(--font-ui);color:var(--text-dim)}
+.trackb:hover{color:var(--text)}
+.trackb.on{color:var(--text);font-weight:600;border-bottom-color:var(--accent)}
+.trackb .tl{font:400 10px/1 var(--font-mono);color:var(--text-dim)}
+.modcard{border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.modcard.open{border-color:var(--border-strong);background:var(--bg-elev);grid-column:1/-1;box-shadow:var(--shadow-sm)}
+.modhd{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;width:100%;text-align:left;background:none;border:0;padding:13px 14px}
+.modi{display:grid;place-items:center;width:30px;height:30px;border-radius:var(--r-sm);background:var(--accent-soft);color:var(--accent-ink)}
+.modk{font-weight:600;font-size:13.5px}
+.modlane{font:600 9.5px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)}
+.modt{font-size:12px;color:var(--text-muted)}
+.modbody{display:flex;flex-direction:column;gap:9px;padding:0 14px 13px;border-top:1px solid var(--border);padding-top:10px}
+.exrow,.shaperow{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg-elev);padding:8px 11px;font-size:12.5px;color:var(--text-muted)}
+.exrow:hover,.shaperow:hover{border-color:var(--accent);color:var(--text);background:var(--accent-soft)}
+.thinlaunch{display:flex;flex-direction:column;gap:9px;align-items:center;width:100%;max-width:660px;margin:0 auto;padding:22px 20px}
+.modpill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;background:var(--bg-elev);padding:4px 11px;font-size:11.5px;color:var(--text-muted)}
+.modpill:hover{border-color:var(--accent);color:var(--accent-ink)}
+
+@media (max-width:1100px){.modgrid{grid-template-columns:repeat(2,1fr)}.deep.drawer{width:100%}.sprow{grid-template-columns:minmax(0,1fr) auto}.sprow .pv2{grid-column:1}.rec{grid-template-columns:64px repeat(3,minmax(0,1fr))}}
+/* When the workflow panel is the right-hand column it keeps the panel chrome. */
+.stage.withpanel>.mainpane.wfp{border-left:1px solid var(--border);background:var(--surface)}
+.stage.withpanel>.mainpane.wfp .panel-head,.stage.withpanel>.mainpane.wfp .panel-foot{background:var(--bg-elev)}
+.stage.withpanel>.mainpane.wfp .panel-body{background:var(--bg-elev)}
+.wfp .panel-head .name{font-size:14.5px;font-weight:600;letter-spacing:-0.012em;line-height:1.3}
+.wfp .panel-head .kicker{font:600 9.5px/1 var(--font-mono);letter-spacing:.11em;text-transform:uppercase;color:var(--text-dim)}
+.wfp .panel-head .sub{font-size:11.5px;color:var(--text-dim);margin-top:3px}
+.wfp .panel-head .top-row{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.wfp .iconbtn{display:grid;place-items:center;width:26px;height:26px;border:0;background:none;border-radius:var(--r-xs);color:var(--text-muted)}
+.wfp .iconbtn:hover{background:var(--surface-2);color:var(--text)}
+/* per-step parameter editing */
+.inline-params{margin:8px 0 4px}
+.inline-params .inline-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:8px;align-items:center;margin-bottom:6px;font-size:12px}
+.inline-params .inline-row .k{display:flex;align-items:center;gap:6px;color:var(--text-muted);min-width:0}
+.inline-params .ipv{display:flex;align-items:center;gap:7px;min-width:0}
+.inline-params .ipv input{flex:1;min-width:0;border:1px solid var(--border);border-radius:3px;padding:3px 6px;font-family:var(--font-mono);font-size:11.5px;background:var(--bg-elev);color:var(--text)}
+.inline-params .ipv input:focus{outline:none;border-color:var(--accent)}
+.inline-params .ipwhy{grid-column:1/span 2;font-size:11px;color:var(--text-dim);margin:-2px 0 4px}
+.inline-params.wide .inline-row{grid-template-columns:200px minmax(0,1fr)}
+.inline-params .srcb{font:600 8.5px/1 var(--font-ui);text-transform:uppercase;letter-spacing:.05em;padding:2px 5px;border-radius:var(--r-xs);background:var(--surface-3);color:var(--text-dim)}
+.inline-params .srcb.override{color:var(--accent-ink);background:var(--accent-soft)}
+.inline-params .srcb.inherited{color:var(--ok);background:var(--ok-soft)}
+@media (max-width:760px){.modgrid{grid-template-columns:1fr}}
+/* Resolved parameter rows must show the resolved value. The lifted .param-row
+   grid was authored for a wider panel; at chat-panel width the fixed label
+   column and the nowrap provenance badge starved the value. */
+.wfp .param-row{grid-template-columns:minmax(88px,34%) minmax(0,1fr) auto!important;column-gap:9px;row-gap:2px}
+.wfp .param-row .k{width:auto!important;min-width:0}
+.wfp .param-row .v{min-width:0;overflow:hidden}
+.wfp .param-row .vval{min-width:0;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:1200px){
+  .wfp .param-row{grid-template-columns:minmax(0,1fr) auto!important}
+  .wfp .param-row .v{grid-column:1;grid-row:2;white-space:normal!important;width:auto!important;flex-wrap:wrap}
+  .wfp .param-row .vval{white-space:normal!important;overflow:visible;font-weight:600;text-overflow:clip}
+  .wfp .param-row .prov{grid-column:2;grid-row:2;justify-self:end;align-self:center}
+  .wfp .param-row .edit{grid-column:2;grid-row:1;justify-self:end}
+}
+.footblock{display:flex;align-items:center;gap:9px;flex-wrap:wrap;row-gap:6px;padding:8px 10px;margin-bottom:8px;border:1px solid var(--warn);border-radius:var(--r-sm);background:var(--warn-soft);color:var(--warn)}
+.footblock .hint{flex:1;min-width:140px;color:var(--text)}
+/* The chat column must be allowed to shrink: a 380px minimum plus the fixed
+   panel width overflowed the stage and clipped the panel's footer. */
+.stage.withpanel{grid-template-columns:minmax(0,1fr) var(--panel-w)}
+/* The composer toolbar must reflow: nowrap pushed the send group outside the
+   chat pane's clipping box once the column could shrink. */
+.composer2 .crow{flex-wrap:wrap;row-gap:6px}
+.composer2 .crow .sendgrp{margin-left:auto}
+/* Composer popover — capped, not stretched: max-width resolves against
+   .composer2, so it can never exceed the pane, and rows stay tight enough
+   for the badge to read as an annotation of its own row. Anchored above the
+   composer so it does not cover what you typed. */
+.composer2{position:relative}
+.expwrap{position:static}
+.expop{position:absolute;bottom:calc(100% + 6px);left:0;right:auto;z-index:20;
+  width:auto;max-width:min(320px,100%);display:flex;flex-direction:column;gap:6px;
+  border:1px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface);padding:11px 12px;box-shadow:var(--shadow-lg)}
+.expoplist{display:flex;flex-direction:column;gap:6px;max-height:248px;overflow-y:auto;margin:0 -4px;padding:0 4px}
+.expbadge{font-size:9.5px;flex:none}
+/* Count badges follow the existing .kid/.schip badge vocabulary. .tab2 is not
+   a flex container, so margin-left is explicit rather than auto. */
+.tab2 .kb{margin-left:5px;font:600 9.5px/1 var(--font-mono);padding:2px 5px;border-radius:999px;background:var(--surface-3);color:var(--text-muted);vertical-align:1px}
+.tab2.on .kb{background:var(--accent-soft);color:var(--accent)}
+/* connectors */
+.connrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.connrow:last-child{border-bottom:none}
+.res{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font:600 9.5px/1.6 var(--font-ui);letter-spacing:.03em;text-transform:uppercase;background:var(--surface-3);color:var(--text-muted)}
+.res.onprem,.res.mount,.res.local{background:var(--ok-soft);color:var(--ok)}
+.res.prompt{background:var(--accent-soft);color:var(--accent)}
+.addrow{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;row-gap:8px;padding:11px 0;border-bottom:1px solid var(--border)}
+.addrow:last-child{border-bottom:none}
+.addrow>.col{flex:1;min-width:200px}
+@media (max-width:900px){.connrow{grid-template-columns:minmax(0,1fr) auto;row-gap:4px}.connrow>:nth-child(3){grid-column:2;grid-row:1}.connrow>:nth-child(2){grid-column:1/span 2;grid-row:2;justify-self:start}}
+/* anchor text — what a surface holds, said on the surface */
+.anchor{display:block;max-width:74ch;font:400 12.5px/1.55 var(--font-ui);color:var(--text-muted);padding:2px 0 4px;text-wrap:pretty}
+/* project suggestion — filing follows intent */
+.suggestrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;row-gap:7px;margin:0 auto;width:100%;max-width:760px;padding:9px 12px;border:1px solid var(--accent);border-radius:var(--r-md);background:var(--accent-soft);color:var(--text)}
+.suggestrow .hint{min-width:180px}
+@media (max-width:900px){.suggestrow .btn{flex:1}}
+/* wet-lab round */
+.wlbar{display:flex;align-items:center;gap:0;flex-wrap:wrap;row-gap:6px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);padding:8px 10px}
+.wlstep{display:inline-flex;align-items:center;gap:6px;font:500 11px/1.6 var(--font-ui);color:var(--text-dim);padding-right:14px;margin-right:14px;border-right:1px solid var(--border)}
+.wlstep:last-child{border-right:none;margin-right:0;padding-right:0}
+.wldot{width:7px;height:7px;border-radius:50%;background:var(--border-strong)}
+.wlstep.done{color:var(--text-muted)}.wlstep.done .wldot{background:var(--ok)}
+.wlstep.now{color:var(--warn);font-weight:600}.wlstep.now .wldot{background:var(--warn);box-shadow:0 0 0 3px var(--warn-soft)}
+.wlstep.part{color:var(--text-muted)}.wlstep.part .wldot{background:linear-gradient(90deg,var(--ok) 50%,var(--border-strong) 50%)}
+.wlrow{display:grid;grid-template-columns:88px minmax(0,1fr) auto minmax(0,1.4fr);gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.wlrow:last-of-type{border-bottom:none}
+.mono.dim{color:var(--text-dim)}
+@media (max-width:1100px){.wlrow{grid-template-columns:88px minmax(0,1fr) auto;row-gap:2px}.wlrow>:nth-child(4){grid-column:2/span 2;grid-row:2;font-size:11px}}
+/* model object + training config + optimise loop */
+.modelsub{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;row-gap:4px;padding:0 0 4px}
+.confb{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font:600 10px/1.6 var(--font-ui);background:var(--surface-3);color:var(--text-muted)}
+.confb.high{background:var(--ok-soft);color:var(--ok)}
+.confb.medium{background:var(--warn-soft);color:var(--warn)}
+.confb .dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.evrow{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.3fr) auto;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border)}
+.evrow:last-child{border-bottom:none}
+.evval{font-size:12.5px;font-weight:600;color:var(--text)}
+.linrow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border)}
+.linrow:last-child{border-bottom:none}
+.linrow .hint.dim:last-child{grid-column:2;margin-top:-4px;font-size:11px}
+.vrow{display:grid;grid-template-columns:48px 62px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.vrow:last-child{border-bottom:none}
+.vrow.cur{background:var(--ok-soft);margin:0 -8px;padding:8px;border-radius:var(--r-xs);border-bottom:none}
+.loopmeta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.lm{display:flex;flex-direction:column;gap:3px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface)}
+@media (max-width:1100px){.loopmeta{grid-template-columns:1fr}
+.evrow{grid-template-columns:minmax(0,1fr) auto;row-gap:2px}.evrow>:nth-child(3){grid-column:1;font-size:11px}.evrow>:nth-child(4){grid-column:2;grid-row:2;justify-self:end}
+.vrow{grid-template-columns:48px minmax(0,1fr) auto;row-gap:2px}.vrow>:nth-child(3){grid-column:2;grid-row:2}.vrow>:nth-child(5){grid-column:3;grid-row:2;justify-self:end}}
+/* step selected in the phase list */
+.step.issel{background:var(--accent-soft)}
+.step .actions .btn.sm{white-space:nowrap}
+.step:hover .step-head .actions{opacity:1}

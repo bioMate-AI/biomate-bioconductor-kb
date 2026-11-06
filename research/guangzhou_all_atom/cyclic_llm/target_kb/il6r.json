@@ -1,0 +1,25 @@
+{
+  "name": "IL-6 receptor",
+  "indication": "rheumatoid arthritis",
+  "modality": "site-II/III PPI blocker",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "motif": null,
+    "metal_cofactor": null,
+    "site": "gp130 site-II/III"
+  },
+  "counter_targets": [],
+  "receptor_structure": "1P9M \u2014 needs prep",
+  "target": "il6r",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet (rule induction honestly abstains until actives are added)"
+  },
+  "cofactors": [],
+  "receptor_pdb": "1p9m"
+}

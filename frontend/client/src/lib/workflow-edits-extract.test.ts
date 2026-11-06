@@ -76,4 +76,32 @@ describe('extractWorkflowEdits', () => {
     const e = extractWorkflowEdits(`set genome to "GRCm39"`, chain());
     expect((e[0] as any).value).toBe('GRCm39');
   });
+
+  it('does NOT invent a param from a SMILES "=" in a user message (CN1C bug)', () => {
+    // A SMILES list contains "=" that the "<key>=<value>" pattern would otherwise
+    // read as param "CN1C" = "NC2=…". The schema gate must reject it because the
+    // ADMET workflow declares smiles_list / ADMET_model_type, not CN1C.
+    const admet: WorkflowArtifact = {
+      inline_parameters: { smiles_list: '[]' },
+      required_params: [{ name: 'smiles_list' }, { name: 'ADMET_model_type' }] as any,
+      optional_params: [{ name: 'admet_shard_size' }] as any,
+    };
+    const msg =
+      'Screen these SMILES for ADMET liabilities and rank them by developability: ' +
+      'CC(=O)Oc1ccccc1C(=O)O, CN1C=NC2=C1C(=O)N(C(=O)N2C)C, CC(C)Cc1ccc(cc1)C(C)C(=O)O';
+    expect(extractWorkflowEdits(msg, admet)).toEqual([]);
+  });
+
+  it('still accepts a real declared param on a single-workflow artifact', () => {
+    const admet: WorkflowArtifact = {
+      optional_params: [{ name: 'admet_shard_size' }] as any,
+    };
+    expect(extractWorkflowEdits('set admet_shard_size to 50', admet)).toHaveLength(1);
+  });
+
+  it('falls through to legacy behaviour when no param metadata is present', () => {
+    // No declared params anywhere → do not block (lazy-loaded workflow).
+    const bare: WorkflowArtifact = {};
+    expect(extractWorkflowEdits('exhaustiveness = 16', bare)).toHaveLength(1);
+  });
 });

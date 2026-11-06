@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · IND 非临床综述 — 从运行数据装配 CTD §2.6.1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">IND 非临床综述（ICH CTD §2.6.1）— 从 ADMET、PBPK 与先导选择的运行结果装配一份有据可依的法规草稿</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="40.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>IND 非临床综述 · CTD §2.6.1</b></div>
+    <div class="kicker">献给要装配一份 IND 申报资料的法规事务科学家</div>
+    <h2>从跑完的运行结果到一份通用技术文档 §2.6.1——装配出来，而不是重新敲出来。</h2>
+    <p class="caption">这一轮工作你已经跑完：ADMET 筛选、一次 PBPK 模拟、一个先导选择的决策。现在，这些非临床证据必须变成一份法规文档——即 ICH 通用技术文档（CTD）第 2.6 模块，其核心是 <b>§2.6.1 非临床综述</b>。BioMate 的 <b>IND Report</b> 把这份文档逐节装配出来，让每一段叙述都扎根于该轮工作的真实运行输出，并对结果运行一遍法规审核。本讲中，我们把这套思路从头搭起，再展示该功能产出实际的 CTD §2.6.1 文本——而且我们会把它的性质讲清楚：这是一份供人工审阅的草稿，并非批准。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>ADMET + PBPK + 先导选择的运行结果</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>IND Report 装配</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>有据可依的 CTD &sect;2.6.1，逐节成文</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>法规审核门控</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>已签名、带版本的 DOCX 草稿</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">它解决的问题</div>
+    <h2>撰写非临床综述既慢、又要面向多地区，还极易出现前后不一致。</h2>
+    <p class="caption">科学已经做完；瓶颈卡在文档上。一份非临床综述必须忠实地概括每一项研究，遵循一套严格的结构，同时面向多个监管机构——而文字里的每一个数字都得和它所出自的研究对得上。靠手工来做，就是数周一丝不苟的誊录，而其中任何一个过时的数值都可能让整份申报翻船。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">任务</div><h4>证据 &rarr; 文档</h4><p>药理学、PK 与毒理学的发现，必须被重述为一份结构化的书面概要，并严格按照审评人预期的 CTD 顺序排列。</p></div>
+          <div class="tile"><div class="n">进度</div><h4>数周的誊录</h4><p>逐节从研究报告手工撰写既慢，而且每一次修订、底层数据一变，就得从头再来一遍。</p></div>
+          <div class="tile"><div class="n">多地区</div><h4>一套资料，四家机构</h4><p>FDA、EMA、NMPA 与 PMDA 各有自己的受理标准与期望——同一批证据，要以四种方式来呈现。</p></div>
+          <div class="tile"><div class="n">风险</div><h4>数字与来源脱节</h4><p>当文字与运行结果各自分开誊写，某个数值就可能变得陈旧。一份数字已对不上数据的综述，等于埋下了一个迟早被查出的问题。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>所需：把跑完的运行结果变成一份忠实、面向多地区的非临床综述——又快，又紧扣其来源</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker">你需要先懂的几个概念</div>
+    <h2>四个概念，这份文档的其余部分便顺理成章。</h2>
+    <p class="caption">你不需要通读整部法规条文——只要这四个概念，按顺序。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · CTD 第 2.6 模块</div><h4>非临床书面概要</h4><p>ICH M4 通用技术文档把一份申报组织成若干模块。<b>第 2.6 模块</b>容纳非临床的书面与表格概要——也就是对各项研究的结构化重述。</p></div>
+            <div class="tile"><div class="n">2 · &sect;2.6.1</div><h4>非临床综述</h4><p>核心一节：§2.6.1 药理学。其下设分节依次为 §2.6.1.1 简要概述、§2.6.1.2 主要药效学、§2.6.1.3 安全药理学，以及 §2.6.1.4 至 §2.6.1.6。</p></div>
+            <div class="tile"><div class="n">3 · 四个地区</div><h4>各地区专属标准</h4><p>FDA、EMA、NMPA、PMDA。每家都带有自己的受理阈值——例如 EMA 对 PBPK 的二倍以内（within-2-fold）期望——外加面向 NMPA 与 PMDA 的种族桥接说明。</p></div>
+            <div class="tile"><div class="n">4 · 有据可依</div><h4>整合各运行输出</h4><p>这段叙述不是凭空写出的。它整合了该轮工作的 ADMET、PBPK 与先导选择的运行输出——每一句陈述都能回溯到一个真实结果。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">整套方法就是：取该轮工作跑完的运行结果，装配出 CTD §2.6.1 的结构，并把每个分节写成一段<b>扎根于真实运行数据</b>的叙述——按目标地区来呈现。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲余下部分会用到的结构与溯源</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT (LIVE SHOT 1) -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 从运行结果到 §2.6</div>
+    <h2>打开 IND Report，选中装配好的那轮工作，生成 CTD §2.6。</h2>
+    <p class="caption">该功能位于 <code>/ind-report</code>。你选中一个由 ADMET、PBPK 与先导选择运行结果构建的工作档，BioMate 便装配出第 2.6 模块的结构——一键即得一份有据可依的草稿。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate IND Report — CTD §2.6 装配</span>
+        <div class="frame"><img src="assets/live/ind-overview-live.png" alt="BioMate IND Report page assembling the CTD Module 2.6 nonclinical overview from a drug-discovery campaign"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>一个入口。</b>在 <code>/ind-report</code> 打开 <b>IND Report</b>，选中一个由 ADMET、PBPK 与先导选择运行结果装配而成的工作档。</span></li>
+          <li><span class="b"></span><span><b>背后的调用。</b>生成动作会触发 <code>POST /api/drug-discovery/{campaign_id}/ind-assembly</code>，返回章节清单——<code>2.4</code>、<code>2.6.1.1</code>&hellip;<code>2.6.1.6</code>、<code>2.6.2</code>、<code>2.6.3.1</code>。</span></li>
+          <li><span class="b"></span><span><b>地区感知。</b>你设定目标地区——FDA、EMA、NMPA 或 PMDA——使受理标准与桥接说明与这份申报资料相匹配。</span></li>
+          <li><span class="b gr"></span><span><b>以有据可依为设计原则。</b>每一节都是对照该轮工作的真实运行输出写成的，而非从零编撰。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的 IND Report，从你的运行结果装配 §2.6</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">输入</span> · 什么在喂给它</div>
+    <h2>该轮工作的运行结果，加上为其定框的申报信息。</h2>
+    <p class="caption">装配是有据可依的，所以输入既是真实的运行输出，也包含监管机构所期望的申报资料元数据。BioMate 把它们汇集为一个装配请求——即 <code>INDAssemblyRequest</code>——并据此撰写叙述。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">运行证据</div><h4>ADMET · PBPK · 先导选择</h4><p><code>pk_summary</code> 读自一次 predict-ADMET / PBPK 运行，先导选择的决策则提供主要药效学的叙述脉络。这正是文字所对照的那份依据。</p></div>
+          <div class="tile"><div class="n">申报信息</div><h4>分子、申办方、适应症</h4><p><code>molecule_name</code>、<code>sponsor</code>、<code>indication</code> 与 <code>target_name</code> 标识该项目；<code>region</code> 选定机构呈现方式。</p></div>
+          <div class="tile"><div class="n">合规背景</div><h4>GLP 与桥接</h4><p><code>glp_facility</code>、<code>glp_recognition</code>、面向 NMPA / PMDA 的 <code>ethnic_bridging_note</code>，以及任何 <code>wetlab_data</code>，共同补全这个请求。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">一个请求对象（<code>INDAssemblyRequest</code>）：由运行结果派生的 <code>pk_summary</code> + <code>molecule_name</code>、<code>sponsor</code>、<code>indication</code>、<code>target_name</code>、<code>region</code>、<code>glp_facility</code>、<code>glp_recognition</code>、<code>ethnic_bridging_note</code>、<code>wetlab_data</code>。</p>
+        <div><span class="verdict ok"><span class="mk"></span>真实运行输出加申报资料信息进去——一份有据可依、按地区定框的草稿出来</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE METHOD -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker"><span class="st">方法</span> · 每一节是怎么写出来的</div>
+    <h2>一段逐节成文的叙述，扎根于运行数据，而且每一节都可单独重新生成。</h2>
+    <p class="caption">这份文档不是一整块生成的。BioMate 沿着 CTD §2.6 的结构逐一走过，把每个分节写成各自独立的一段叙述——数字取自该轮工作的运行结果——因此某一节可以单独重新生成，而不扰动其余各节。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · 走过结构</div><h4>逐节推进</h4><p>装配会产出有序的 §2.6 清单——§2.4、§2.6.1.1 至 §2.6.1.6、§2.6.2、§2.6.3.1——并把每一节当作一个待撰写的单元。</p></div>
+          <div class="tile"><div class="n">2 · 以数据为据</div><h4>由运行输出成文</h4><p>每个分节的叙述，都是对照整合后的 ADMET、PBPK 与先导选择输出写成的——药效学、安全药理学与 PK 的各项陈述都追溯到真实结果。</p></div>
+          <div class="tile"><div class="n">3 · 逐节重新生成</div><h4>改一节，留住其余</h4><p>每一节都可独立重新生成，于是你能精修 §2.6.1.3 而不触碰 §2.6.1.2——而且输出以 Markdown 形式产出，可直接用于导出。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">输出格式：每节生成 Markdown，可经 <code>GET &hellip;/ind-assembly/download?format=docx</code> 导出为 <b>DOCX</b>（文件名 <code>{campaign_id}_CTD_2.6.1.docx</code>，由 pandoc 渲染）。文档带版本管理：v1 签名 &rarr; v2。</p>
+        <div><span class="verdict ok"><span class="mk"></span>有据可依、逐节成文的叙述——按 CTD 顺序装配，而非随意撰写</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT (LIVE SHOT 2) -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker"><span class="st">输出</span> · 真实的 CTD §2.6.1 文本</div>
+    <h2>生成的 §2.6.1 文本，逐节成文——外加一份已签名、带哈希的 DOCX。</h2>
+    <p class="caption">结果是每个分节可读的 CTD §2.6.1 文字，可导出为一份带版本的 Word 文档。每个版本都携带一个电子签名和一个 SHA-256 哈希，以便核验文档的完整性。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · 生成的 CTD §2.6.1，逐节成文</span>
+        <div class="frame"><img src="assets/live/ind-sections-live.png" alt="BioMate IND Report showing generated CTD section 2.6.1 nonclinical overview text, subsection by subsection"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>可读的法规文字。</b>每个分节——§2.6.1.1 简要概述、§2.6.1.2 主要药效学、§2.6.1.3 安全药理学——都以成稿的 CTD 文本呈现。</span></li>
+          <li><span class="b"></span><span><b>导出为 DOCX。</b><code>GET &hellip;/ind-assembly/download?format=docx</code> 经 pandoc 渲染出 Word 文件 <code>{campaign_id}_CTD_2.6.1.docx</code>。</span></li>
+          <li><span class="b gr"></span><span><b>带版本、已签名。</b>v1 文档经电子签名，文件携带一个用于完整性核验的 SHA-256 文档哈希。</span></li>
+          <li><span class="b am"></span><span><b>冻结防护。</b>一旦签名，重新生成将返回 HTTP 409；一次 <code>supersede</code> 调用会另立一个新版本（v2），而不是覆盖已签名的那一版。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>可导出、可签名、可留版本的生成 §2.6.1 文本</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — THE REGULATORY AUDIT GATE -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">审核门控</span> · 一次机器一致性检查</div>
+    <h2>内置审核器为发现项分级——一个 CRITICAL 级发现会拦住下游动作。</h2>
+    <p class="caption">在草稿往下走之前，一个法规审核器会把它通查一遍，按严重程度为发现项分级。一个 CRITICAL 级或资格认定未通过的发现项会中止下游动作——CRO 导出、IND 装配——直到它被解决为止，这样一个已知缺陷就无法悄无声息地蒙混过关。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.3fr 1fr">
+          <div class="tile"><div class="n">严重程度阶梯</div><h4>CRITICAL · MAJOR · MINOR · INFO</h4><p>发现项按四个级别分级。CRITICAL 与 MAJOR 要求处置；MINOR 与 INFO 为提示性。一个 CRITICAL 级或资格认定未通过的发现项<b>会拦住 CRO 导出与 IND 装配，直至解决</b>。</p></div>
+          <div class="tile"><div class="n">示例</div><h4>PBPK 未达二倍以内</h4><p>若某个 PBPK 模型未满足 EMA 对 Cmax 的二倍以内（within-2-fold）标准，审核器会插入一段 §2.6.2 模型局限性说明并中止——该局限被写进文档，而非被掩盖。</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b"></span><span><b>各地区专属阈值。</b>EMA 的二倍以内期望依据 CHMP/EWP/37498/2011；NMPA 与 PMDA 另加种族桥接说明。门控会对照你所选的地区来核查。</span></li>
+          <li><span class="b gr"></span><span><b>是门控，不是改写。</b>当某项标准未被满足时，文档会陈述该局限，门控随即中止——它绝不会悄悄放过一次未通过的检查。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>按严重程度分级的发现项，对 CRITICAL 级设硬性停止——局限被陈述，而非被埋没</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker">你确切得到什么</div>
+    <h2>一份供人工法规审阅的草稿——不是批准，也绝不未经核查便提交。</h2>
+    <p class="caption">这个功能很强大，而把它的范围讲得精确，正是它可被信任的原因。它产出的每一节都是草稿，而审核是一次一致性检查——不是法规层面的放行。BioMate 把这一点讲得明明白白，我们也一样。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">是草稿，不是申报</div><h4>必须人工审阅</h4><p>每一节生成内容都是由 BioMate 生成的<b>草稿，未经人工法规事务审阅和一个 21 CFR Part 11 电子签名，不得提交</b>。工具负责装配；由一位合格人员来决断。</p></div>
+          <div class="tile"><div class="n">是检查,不是保证</div><h4>仅为机器一致性</h4><p>这项自动审核是一次机器一致性检查——它<b>不是法规批准,也不是保证</b>。通过门控仅意味着文档内部自洽，而不代表某家机构会受理它。</p></div>
+          <div class="tile"><div class="n">公开陈述,不加掩盖</div><h4>局限摆在明处</h4><p>当某项标准未被满足——某个 PBPK 模型超出二倍以内、某项资格认定缺失——文档会<b>陈述该局限</b>而非将其掩盖，并且下游动作会中止,直到它得到处理。</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>对范围诚实——一个居于人工签名之后的装配辅助,而非一份自我认证的申报</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="36.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">从你的运行结果装配出 §2.6.1 草稿。审核它。然后由一个人签名。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">要点就一句话：<b>BioMate 在几分钟内把一轮跑完的工作变成一份有据可依、按地区定框的 CTD §2.6.1 草稿，再对照受理标准核查它。</b>从 <code>/ind-report</code> 出发,它逐节装配第 2.6 模块——扎根于你的 ADMET、PBPK 与先导选择运行结果——导出一份带版本、已签名、带 SHA-256 哈希的 DOCX,并运行一次按严重程度分级、遇 CRITICAL 级即中止的审核。这份草稿始终有待于人工法规审阅和一个 21 CFR Part 11 签名。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>打开 IND Report,选中一个由 ADMET / PBPK / 先导选择运行结果构建的工作档</li>
+            <li><span class="k">2</span>BioMate 装配 CTD §2.6,让每一节都扎根于运行输出</li>
+            <li><span class="k">3</span>导出一份带版本、已签名、带哈希的 DOCX;审核器为每个发现项分级</li>
+            <li><span class="k">4</span>在任何内容被提交之前,由一位法规事务科学家审阅并签名</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>它产出什么</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">有据可依的 CTD §2.6.1 草稿</span></td></tr>
+            <tr><td>标准</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">ICH M4 CTD 第 2.6 模块</span></td></tr>
+            <tr><td>地区</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">FDA · EMA · NMPA · PMDA</span></td></tr>
+            <tr><td>输出</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">已签名、带哈希的 DOCX</span></td></tr>
+            <tr><td>诚实的边界</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">草稿 · 审阅 · 21 CFR Part 11</span></td></tr>
+          </table>
+          <p class="footnote">从跑完的运行结果到一份忠实、面向多地区的非临床综述——每一节都追溯到其来源,每一个数字都连同其局限一并陈述,并在归档之前经过一个人的签名。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

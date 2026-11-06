@@ -50,7 +50,7 @@ with open("analyze_cytokine_production_in_cd4_tcells_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_cytokine_production_in_cd4_tcells_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cytokine Production In Cd4 Tcells Results" + NL)
+    f.write("BioMate: Analyze Cytokine Production In Cd4 Tcells Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

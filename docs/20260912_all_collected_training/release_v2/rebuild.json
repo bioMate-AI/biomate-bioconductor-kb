@@ -1,0 +1,5 @@
+{
+  "archive_sha256": "a6107a31689467dd45627140a5cb53f3f63db55947e26dffe4e088112ff24f46",
+  "reason": "Temporary archive cleared; rebuilt deterministically from saved source hashes and original frozen manifests",
+  "approved_destination": "s3://knowledge-datasets-1759951976/immune_llm_baseline/releases/20260912_all_collected_4131dd7d/header_release.tar.gz"
+}

@@ -58,7 +58,7 @@ with open("annotate_bacterial_genome_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("annotate_bacterial_genome_output.txt", "w") as f:
-    f.write("Biomni: Annotate Bacterial Genome Results" + NL)
+    f.write("BioMate: Annotate Bacterial Genome Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

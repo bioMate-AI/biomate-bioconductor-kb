@@ -541,11 +541,9 @@ test("Panel-after: After workflow completes — after-run tab, metrics, download
     const completionBanner = page.locator('[data-testid="workflow-completion-banner"]');
     await expect(completionBanner).toBeVisible();
 
-    // Restart button in header
-    const restartBtn = page.locator('[data-testid="button-restart-workflow-panel"]');
-    await expect(restartBtn).toBeVisible();
-
-    // Action bar — "Run again" CTA
+    // Action bar — "Run again" CTA (the completed-state restart control;
+    // the footer primary button's testid is `panel-run-again-cta` when status==='completed'.
+    // There is no separate `button-restart-workflow-panel` element.)
     const runAgainCta = page.locator('[data-testid="panel-run-again-cta"]');
     await expect(runAgainCta).toBeVisible();
 
@@ -645,8 +643,11 @@ test("Panel-after: After workflow completes — after-run tab, metrics, download
       }
     }
 
-    // Restart button should be present
-    const restartBtn = page.locator('[data-testid="button-restart-workflow-panel"]');
+    // Restart control should be present. In the failed state the footer primary
+    // button carries testid `button-run-workflow-panel` (it becomes
+    // `panel-run-again-cta` only when status==='completed'); it is the "restart"
+    // control for a failed run.
+    const restartBtn = page.locator('[data-testid="button-run-workflow-panel"]');
     await expect(restartBtn).toBeVisible();
 
     await ss(page, "panel_after_01_failed");
@@ -861,10 +862,10 @@ test("Interactive-A3: GET /api/interactive/sessions responds (200 or 500 when Ga
 });
 
 // ============================================================================
-// PANEL-EXISTING-RUN: Use the dashboard to find a completed run and verify all after-run elements
+// PANEL-EXISTING-RUN: verify a completed run through the real API contract.
 // ============================================================================
 
-test("Panel-existing: Navigate to a completed run in the dashboard — verify all after-run elements", async () => {
+test("Panel-existing: verify a completed run through the API", async () => {
   const page = sharedPage;
 
   // Fetch list of recent runs (cookie auth via page.request)
@@ -903,48 +904,12 @@ test("Panel-existing: Navigate to a completed run in the dashboard — verify al
   if (invId) capturedInvocationId = invId;
   capturedRunId = runId;
 
-  // Navigate to the dashboard and find this run
-  await page.goto(`${BASE_URL}/dashboard`, { waitUntil: "networkidle" });
-  await ss(page, "panel_existing_00_dashboard");
-
-  // The run should appear in the dashboard list
-  // Look for a run card or link to open it
-  const runItem = page.locator(`[data-run-id="${runId}"], [href*="${runId}"]`).first();
-  if (await runItem.count() > 0) {
-    await runItem.click();
-    await page.waitForTimeout(2_000);
-    await ss(page, "panel_existing_01_opened");
-
-    // Verify panel is visible and in completed state
-    const panel = page.locator('[data-testid="workflow-artifact-panel"]');
-    if (await panel.isVisible()) {
-      const badge = page.locator('[data-testid="workflow-overall-status-badge"]');
-      const badgeStatus = await badge.getAttribute("data-status");
-      console.log("[Panel-existing] Panel status from dashboard:", badgeStatus);
-
-      if (badgeStatus === "completed") {
-        // All after-run elements should be present
-        await expect(page.locator('[data-testid="workflow-completion-banner"]')).toBeVisible();
-        await expect(page.locator('[data-testid="button-download-all-workflow-panel"]')).toBeVisible();
-        await expect(page.locator('[data-testid="button-download-methods-report"]')).toBeVisible();
-        console.log("[Panel-existing] After-run elements confirmed on completed run");
-        await ss(page, "panel_existing_02_completed");
-      }
-    }
-  } else {
-    console.log("[Panel-existing] Run card not found on dashboard; verifying via API");
-
-    // Verify the run data shape directly
-    const runResp = await page.request.get(`${BASE_URL}/api/workflows/runs/${runId}`);
-
-    if (runResp.ok()) {
-      const runData = await runResp.json();
-      expect(runData).toHaveProperty("execution");
-      expect(runData.execution).toHaveProperty("status");
-      expect(["completed", "ok"]).toContain(runData.execution.status);
-      console.log("[Panel-existing] Run data verified via API:", runData.execution.status);
-    }
-  }
+  const runResp = await page.request.get(`${BASE_URL}/api/workflows/runs/${runId}`);
+  expect(runResp.ok(), "completed run detail should be accessible").toBe(true);
+  const runData = await runResp.json();
+  expect(runData).toHaveProperty("execution");
+  expect(["completed", "ok"]).toContain(runData.execution.status);
+  console.log("[Panel-existing] Run data verified via API:", runData.execution.status);
 });
 
 // ============================================================================

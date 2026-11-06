@@ -1,0 +1,37 @@
+{
+  "question": "true PAIRED (transcriptome feature, vaccine outcome) N \u2014 the trainable set",
+  "vaccine_response_subjects_total": 6819,
+  "linked_to_any_public_repo": 2188,
+  "by_repository": {
+    "GEO": 2178,
+    "SRA": 69
+  },
+  "transcriptome_capable_GEO_SRA_ENA": {
+    "any_timepoint": 2188,
+    "BASELINE_pre_vaccination": 2125
+  },
+  "biosample_types_top": {
+    "PBMC": 5330,
+    "Whole blood": 4168,
+    "Plasma": 1307,
+    "B cell": 862,
+    "Other": 752,
+    "Feces": 288,
+    "T cell": 8
+  },
+  "studies_contributing_paired_baseline": 40,
+  "top_studies_by_paired_baseline_subjects": {
+    "SDY1538": 686,
+    "SDY1276": 217,
+    "SDY212": 91,
+    "SDY2584": 90,
+    "SDY2770": 80,
+    "SDY183": 76,
+    "SDY1119": 72,
+    "SDY315": 71,
+    "SDY80": 61,
+    "SDY1393": 61
+  },
+  "interpretation": "labels: 6819 subjects; usable model-input pairs (GEO/SRA transcriptome, any time): 2188; with baseline (predictive) transcriptome: 2125. The last number is the real trainable N for 'predict vaccine response from baseline immune state' \u2014 everything else is label-only.",
+  "note_dbGaP": "dbGaP links are controlled-access genomics, not transcriptomes \u2014 excluded from usable input."
+}

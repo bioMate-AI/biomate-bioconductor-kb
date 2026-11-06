@@ -44,7 +44,7 @@ process BIOC_SC3_STANDARD_SC3_CLUSTERING {
     """
     #!/usr/bin/env Rscript
     # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("SC3", "SummarizedExperiment")
+    .bm_deps <- c("SC3", "SummarizedExperiment", "SingleCellExperiment")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
@@ -64,6 +64,7 @@ process BIOC_SC3_STANDARD_SC3_CLUSTERING {
     # Load required libraries
     library(SC3)
     library(SummarizedExperiment)
+    library(SingleCellExperiment)  # provides the SingleCellExperiment() constructor used below
     
     # Read user input files
     yan <- read.csv("expression_matrix.csv", row.names = 1, check.names = FALSE)

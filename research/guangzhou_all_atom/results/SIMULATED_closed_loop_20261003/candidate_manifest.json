@@ -1,0 +1,36 @@
+{
+  "campaign_id": "SIMULATED-cyclic-integration",
+  "data_origin": "simulated",
+  "candidates": [
+    {
+      "id": "SIM-0",
+      "sequence": "ACDEFG",
+      "target": "SIM-TARGET-A"
+    },
+    {
+      "id": "SIM-1",
+      "sequence": "HIKLMN",
+      "target": "SIM-TARGET-A"
+    },
+    {
+      "id": "SIM-2",
+      "sequence": "PQRSTV",
+      "target": "SIM-TARGET-A"
+    },
+    {
+      "id": "SIM-3",
+      "sequence": "WYACDE",
+      "target": "SIM-TARGET-B"
+    },
+    {
+      "id": "SIM-4",
+      "sequence": "FGHIKL",
+      "target": "SIM-TARGET-B"
+    },
+    {
+      "id": "SIM-5",
+      "sequence": "MNPQRS",
+      "target": "SIM-TARGET-B"
+    }
+  ]
+}

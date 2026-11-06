@@ -319,7 +319,7 @@ with open("analyze_bifurcation_diagram_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_bifurcation_diagram_output.txt", "w") as f:
-    f.write("Biomni: Analyze Bifurcation Diagram" + NL)
+    f.write("BioMate: Analyze Bifurcation Diagram" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

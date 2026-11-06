@@ -137,7 +137,7 @@ with open("find_restriction_enzymes_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("find_restriction_enzymes_output.txt", "w") as f:
-    f.write("Biomni: Find Restriction Enzymes" + NL)
+    f.write("BioMate: Find Restriction Enzymes" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

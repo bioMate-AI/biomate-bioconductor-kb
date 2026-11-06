@@ -1,0 +1,27 @@
+{
+ "gen": "L-P0",
+ "ext_grid": [
+  {
+   "cfg": {
+    "prefix": 0.85,
+    "temp": 1.0
+   },
+   "Y_mean": 271.111,
+   "Y": [
+    270.0,
+    290.0,
+    253.333
+   ]
+  }
+ ],
+ "best": {
+  "prefix": 0.7,
+  "temp": 1.0
+ },
+ "best_Y_mean": 311.111,
+ "orig_best": {
+  "prefix": 0.7,
+  "temp": 1.0
+ },
+ "n_dev": 300
+}

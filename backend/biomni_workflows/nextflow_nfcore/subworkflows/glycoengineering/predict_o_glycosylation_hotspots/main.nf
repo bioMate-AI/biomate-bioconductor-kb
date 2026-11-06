@@ -176,7 +176,7 @@ with open("predict_o_glycosylation_hotspots_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("predict_o_glycosylation_hotspots_output.txt", "w") as f:
-    f.write("Biomni: Predict O Glycosylation Hotspots" + NL)
+    f.write("BioMate: Predict O Glycosylation Hotspots" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

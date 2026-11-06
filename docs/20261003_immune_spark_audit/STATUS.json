@@ -1,0 +1,45 @@
+{
+  "updated_utc": "2026-10-03T16:34:02.448237+00:00",
+  "worktree": "/Users/kky/biomate-audit-fix",
+  "branch": "audit-fix-immune-llm",
+  "inherited_commit": "3cb4beb4795559f1c0351836b4eba6f5046e19b9",
+  "host": "spark-d816",
+  "remote_root": "/home/yzhang/immune_fm_spark",
+  "cuda_runtime": "nvcr.io/nvidia/pytorch:25.04-py3; PyTorch 2.7.0a0; GB10 real backward passed",
+  "aws": "user-authorized private run profile installed; account verified; no credentials in artifacts",
+  "completed": [
+    "Cox Breslow ties and input validation",
+    "device-safe genetics prior",
+    "GPU perturbation sampling generator alignment",
+    "biomarker objective weight zero",
+    "recognition decoys exclude all known positives and duplicates",
+    "peptide-feature-disjoint train/val/test sampling for sequence tasks",
+    "survival mask row alignment",
+    "cohort-stratified Cox loss and explicit cohort-risk-set optimizer updates",
+    "new cache namespace",
+    "real 30-step GSE78220 response/survival GPU debug and exact checkpoint roundtrip",
+    "Riaz 98 samples -> 56 patients; 49 Pre retained for prospective clinical objectives"
+  ],
+  "active_job": {
+    "container": "immune-debug-20261003",
+    "scope": "bounded multi-omics diagnostic, cap_per_study=20 epochs=1; not full training",
+    "state": "staging sources including 54.3 GiB archive",
+    "logs": "/home/yzhang/immune_fm_spark/debug_20261003/logs/run_on_spark.log",
+    "memory_limit": "100 GiB"
+  },
+  "remaining_full_run_gates": [
+    "finish real-data multi-omics diagnostic and all configured modality/head checks",
+    "freeze independent clinical cohort/patient splits; existing bulk cohorts are all appended to training so current all-cohort downstream report is not independent validation",
+    "audit patient/timepoint identity in remaining clinical cohorts",
+    "extend epoch validation to clinical/sequence heads; existing epoch model selection uses annotation only",
+    "measure actual memory before full-size cap; old launcher claim cap8000 fits128GB is unsupported and conflicts with older RAM tiers",
+    "trainer rolling checkpoints do not yet demonstrate exact optimizer/RNG resume for this implementation"
+  ],
+  "full_training_started": false,
+  "source_sha256": {
+    "immune_hybrid_llm.py": "3b9068bfc14caa13770a87434b93cf24295005a3974a8a12ec4fdbd8b42fe4f9",
+    "modality_adapters.py": "01a84153ae0367f45c5b3ed2c258027bada932809da0ff2d1341c0622d74ec33",
+    "mosaic_modality_loader.py": "2b07639de18893fc7f6193c190fb2c6ff6e390fa4bcb53faf00025756bf607fc",
+    "test_spark_audit.py": "be42e5b2e275f5d5027bc5a71cf15ac13029318b14e156581ec0439ad0aa1559"
+  }
+}

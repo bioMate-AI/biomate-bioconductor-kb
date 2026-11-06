@@ -1,0 +1,9 @@
+
+{ "head": { "link": [], "vars": ["p", "o"] },
+  "results": { "distinct": false, "ordered": true, "bindings": [
+    { "p": { "type": "uri", "value": "http://purl.org/genex#hasSex" }	, "o": { "type": "literal", "value": "any" }},
+    { "p": { "type": "uri", "value": "http://purl.obolibrary.org/obo/RO_0002162" }	, "o": { "type": "uri", "value": "http://purl.uniprot.org/taxonomy/9606" }},
+    { "p": { "type": "uri", "value": "http://purl.org/genex#hasAnatomicalEntity" }	, "o": { "type": "uri", "value": "http://purl.obolibrary.org/obo/GO_0005575" }},
+    { "p": { "type": "uri", "value": "http://purl.org/genex#hasAnatomicalEntity" }	, "o": { "type": "uri", "value": "http://purl.obolibrary.org/obo/UBERON_0000160" }},
+    { "p": { "type": "uri", "value": "http://purl.org/genex#hasStrain" }	, "o": { "type": "uri", "value": "http://bgee.org/#STRAIN_3d4eba69908860b0d838be983fd7f9c8" }},
+    { "p": { "type": "uri", "value": "http://purl.org/genex#hasDevelopmentalStage" }	, "o": { "type": "uri", "value": "http://purl.obolibrary.org/obo/HsapDv_0000095" }} ] } }

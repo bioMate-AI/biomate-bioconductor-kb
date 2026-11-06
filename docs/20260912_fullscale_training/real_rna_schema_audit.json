@@ -1,0 +1,29 @@
+{
+  "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/immune_expanded/io/d7476ae2-e320-4703-8304-da5c42627e71.h5ad",
+  "sha256": "84c8457b7ca478f6ed0c1a4e57eb7875b4e82c588b4da7d7077b7db3e19b4ff1",
+  "shape": [
+    565,
+    12621
+  ],
+  "primary_data_counts": {
+    "false": 565
+  },
+  "title": "HTAPP-330-SMP-1082 scRNA-seq",
+  "citation": "Publication: https://doi.org/10.1038/s41591-024-03215-z Dataset Version: https://datasets.cellxgene.cziscience.com/3a9e07a3-57c2-449e-a2c6-aac02120c1fa.h5ad curated and distributed by CZ CELLxGENE Discover in Collection: https://cellxgene.cziscience.com/collections/a96133de-e951-4e2d-ace6-59db8b3bfb1d",
+  "counts_var": "['AL669831.5' 'NOC2L' 'PERM1' ... 'AL592183.1' 'AC007325.4' 'AC240274.1']",
+  "matrices": {
+    "X": {
+      "finite": true,
+      "nonnegative": true,
+      "integer": false,
+      "nonzero_values": 422029
+    },
+    "raw.X": {
+      "finite": true,
+      "nonnegative": true,
+      "integer": true,
+      "nonzero_values": 422029
+    }
+  },
+  "eligibility": "Non-primary source; biological duplicate reconciliation required. Integer values alone do not establish source count semantics."
+}

@@ -1,0 +1,91 @@
+{
+  "workstream": "W3",
+  "objective": "SAFETY (adverse-event outcome vs transcriptome input)",
+  "role": "VALIDATION",
+  "training_eligible": false,
+  "date": "2026-09-13",
+  "method": "AE-collecting-study subjects (from immport_safety_arm_rates.csv, 107 studies) -> adverse_event.parquet subject-level AE outcome -> biosample(subject) -> expsample_2_biosample -> expsample_public_repository; kept GEO/SRA/ENA (transcriptome-capable), EXCLUDED dbGaP/MetaboLights/FlowRepository/ImmPort. Baseline = STUDY_TIME_COLLECTED<=0.",
+  "ae_collecting_studies": 107,
+  "label_N_subjects_with_AE_outcome": 7001,
+  "label_N_subjects_with_severe_AE": 1542,
+  "transcriptome_paired_N_any_timepoint": 448,
+  "baseline_paired_N_t_le_0": 248,
+  "paired_severe_subjects_any_tp": 114,
+  "paired_severe_subjects_baseline": 94,
+  "paired_link_rows": 1288,
+  "repo_composition_link_rows": {
+    "GEO": 1114,
+    "SRA": 174
+  },
+  "repo_composition_subjects": {
+    "GEO": 448,
+    "SRA": 17
+  },
+  "studies_with_paired_subjects": 10,
+  "per_study_breakdown": {
+    "SDY1903": {
+      "n_ae_subjects": 211,
+      "n_severe_subjects": 16,
+      "n_paired_subjects": 195,
+      "n_baseline_paired_subjects": 0
+    },
+    "SDY1490": {
+      "n_ae_subjects": 90,
+      "n_severe_subjects": 23,
+      "n_paired_subjects": 77,
+      "n_baseline_paired_subjects": 77
+    },
+    "SDY1039": {
+      "n_ae_subjects": 73,
+      "n_severe_subjects": 67,
+      "n_paired_subjects": 62,
+      "n_baseline_paired_subjects": 62
+    },
+    "SDY823": {
+      "n_ae_subjects": 52,
+      "n_severe_subjects": 14,
+      "n_paired_subjects": 49,
+      "n_baseline_paired_subjects": 49
+    },
+    "SDY1027": {
+      "n_ae_subjects": 6,
+      "n_severe_subjects": 0,
+      "n_paired_subjects": 29,
+      "n_baseline_paired_subjects": 29
+    },
+    "SDY1387": {
+      "n_ae_subjects": 0,
+      "n_severe_subjects": 0,
+      "n_paired_subjects": 17,
+      "n_baseline_paired_subjects": 17
+    },
+    "SDY144": {
+      "n_ae_subjects": 8,
+      "n_severe_subjects": 0,
+      "n_paired_subjects": 8,
+      "n_baseline_paired_subjects": 7
+    },
+    "SDY522": {
+      "n_ae_subjects": 7,
+      "n_severe_subjects": 0,
+      "n_paired_subjects": 6,
+      "n_baseline_paired_subjects": 6
+    },
+    "SDY1402": {
+      "n_ae_subjects": 6,
+      "n_severe_subjects": 6,
+      "n_paired_subjects": 5,
+      "n_baseline_paired_subjects": 1
+    },
+    "SDY616": {
+      "n_ae_subjects": 0,
+      "n_severe_subjects": 0,
+      "n_paired_subjects": 1,
+      "n_baseline_paired_subjects": 1
+    }
+  },
+  "outputs": {
+    "summary_json": "docs/20260912_objective_data_collection/W3_safety_paired_summary.json",
+    "accessions_csv": "docs/20260912_objective_data_collection/raw/W3_safety_paired_accessions.csv"
+  }
+}

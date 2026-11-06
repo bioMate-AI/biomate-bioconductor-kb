@@ -1,0 +1,91 @@
+# =====================================================================================================
+# m2c_ldm_finetune.yaml — M2 stage-2c: TARGET-CONDITIONED fine-tune of the PepGLAD latent-diffusion
+# generator on REAL bound cyclic-peptide COMPLEXES (D2), warm-started from the epoch-221 diffusion, over
+# the FROZEN v1 AE. Consumed by m2c_train_ldm.py (NOT stock train.py, because of warm_start_ldm_ckpt
+# (diffusion-only) + the v1-AE-as-frozen-autoencoder).
+#
+# Provenance: the `model` block is COPIED from configs/pepbench/ldm/train_codesign.yaml (the config that
+# trained epoch-221) so the epoch-221 diffusion state_dict loads 1:1. The dataset uses the STOCK
+# CoDesignDataset on the D2 complex mmap (receptor present -> stock path, use_covariance_matrix: TRUE like
+# the stock config). Only the schedule (small-data fine-tune) and the two warm-start fields differ. Paths
+# (WARM_CKPT / v1 AE / D2 mmap + split indexes) are filled by run_m2c_ldm_finetune.sh via overwrite_values.
+# =====================================================================================================
+
+# Warm-start (2a prior): epoch-221 LDM. m2_train_ldm.warm_start_diffusion() loads ONLY its diffusion.* /
+# hidden2latent.* / abs_position_encoding.* into the model, DROPPING autoencoder.* (the v1 AE is preserved).
+warm_start_ldm_ckpt: ./data/epoch221.ckpt
+
+dataset:
+  train:
+    class: CoDesignDataset                     # STOCK (receptor present). NOT PeptideOnlyCoDesignDataset.
+    mmap_dir: ./data/bound_cyclic_pepglad/processed      # the D2 complex mmap (m2c_process_complexes.py output)
+    specify_index: ./data/bound_cyclic_pepglad/processed/train_index.txt   # cyclic-aware split (shares data.bin)
+    backbone_only: false
+    use_covariance_matrix: true                # RECEPTOR PRESENT -> covariance is computable + matches the
+                                               # epoch-221 training normalization (stock train_codesign.yaml).
+    # cluster: (omitted) — CoDesignDataset sets resampler=None when cluster is absent; safe (no D2 cluster
+    #          file, and the leakage-aware split already de-duplicates redundant PDB depositions per-cluster).
+  valid:
+    class: CoDesignDataset
+    mmap_dir: ./data/bound_cyclic_pepglad/processed
+    specify_index: ./data/bound_cyclic_pepglad/processed/valid_index.txt
+    backbone_only: false
+    use_covariance_matrix: true
+
+dataloader:
+  shuffle: true
+  num_workers: 4
+  wrapper:
+    class: DynamicBatchWrapper
+    complexity: n**2
+    ubound_per_batch: 30000   # D2 records are POCKET(<=10A CB)+peptide, smaller than stock full complexes but
+                              # larger than a bare CREMP macrocycle. Half the stock 60000 for T4/L4 headroom
+                              # since LDM validation runs a full reverse-diffusion SAMPLE each val epoch (peak
+                              # memory). Pair with PYTORCH_CUDA_ALLOC_CONF=expandable_segments (m2c_train_ldm.py).
+
+trainer:
+  class: LDMTrainer
+  criterion: Loss             # select on validation LOSS (denoising MSE) — the stable early-stop signal on a
+                              # TINY (n~235) set. RMSD/AAR are still LOGGED (receptor+reference pose present)
+                              # but val-loss is the overfitting / catastrophic-forgetting guard.
+  config:
+    max_epoch: 40             # SMALL-DATA fine-tune: adapt the epoch-221 linear-complex prior to cyclic
+                              # complexes. 235 complexes is tiny -> few epochs; patience stops earlier if val
+                              # loss plateaus (guards overfitting).
+    save_topk: 5
+    val_freq: 2               # validate often (small set -> cheap) so early-stop reacts quickly; each val runs
+                              # a full sample.
+    save_dir: ./ckpts/m2c_ldm_finetune
+    patience: 6               # early stop if val loss stalls (in val-epoch units => 6*val_freq=12 epochs)
+    metric_min_better: true
+    grad_clip: 1.0            # LDM training benefits from grad clipping (stock cyclic_finetune used 1.0)
+
+    optimizer:
+      class: AdamW
+      lr: 1.0e-5              # LOW lr — half the 2b mid-train lr, 10x below the 1e-4 from-scratch lr. Nudge
+                             # the binding prior toward cyclic complexes without wrecking the epoch-221 prior.
+
+    scheduler:
+      class: ReduceLROnPlateau
+      factor: 0.6
+      patience: 2
+      mode: min
+      frequency: val_epoch
+      min_lr: 1.0e-6
+
+model:
+  class: LDMPepDesign        # STOCK model (receptor-conditioned diffusion). NOT PeptideOnlyLDMPepDesign.
+  # ---- the FROZEN v1 autoencoder (M1 production AE). torch.load'ed + frozen inside __init__. ----
+  autoencoder_ckpt: ./data/v1_ae.ckpt   # epoch39_step3520.ckpt from the M1 v1 run (filled by the launcher)
+  autoencoder_no_randomness: true       # encode with the posterior MEAN (deterministic latent target)
+  # ---- diffusion architecture: MUST match epoch-221 (train_codesign.yaml) for a 1:1 warm-start load ----
+  hidden_size: 128
+  num_steps: 100
+  n_layers: 3
+  n_rbf: 32
+  cutoff: 3.0                # coordinates are in standardized (std-normalized) space
+  dist_rbf: 32
+  dist_rbf_cutoff: 7.0
+  diffusion_opt:
+    trans_seq_type: Diffusion
+    trans_pos_type: Diffusion

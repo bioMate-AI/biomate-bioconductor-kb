@@ -50,7 +50,7 @@ with open("predict_rna_secondary_structure_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("predict_rna_secondary_structure_output.txt", "w") as f:
-    f.write("Biomni: Predict Rna Secondary Structure Results" + NL)
+    f.write("BioMate: Predict Rna Secondary Structure Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

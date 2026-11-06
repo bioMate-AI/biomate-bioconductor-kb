@@ -13,8 +13,8 @@ import tempfile
 import shutil
 import requests
 
-API_KEY = "sk_f850eae3cd4b254613c81e3b9a7d448a6924f4789e1233a4"
-VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel
+API_KEY  = os.environ.get("ELEVENLABS_API_KEY") or open(os.path.expanduser("~/.config/biomate/elevenlabs.key")).read().strip()
+VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")  # Rachel
 OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 SLIDES_DIR = os.path.join(OUTPUT_DIR, "vo_slides")
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "biomate_intro_v3_vo.mp3")

@@ -6,8 +6,8 @@ Produces one combined MP3 with silence padding to match HTML scene timings.
 
 import os, subprocess, json, requests, tempfile, shutil
 
-API_KEY  = "sk_f850eae3cd4b254613c81e3b9a7d448a6924f4789e1233a4"
-VOICE_ID = "21m00Tcm4TlvDq8ikWAM"   # Rachel
+API_KEY  = os.environ.get("ELEVENLABS_API_KEY") or open(os.path.expanduser("~/.config/biomate/elevenlabs.key")).read().strip()
+VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")   # Rachel
 OUT_DIR  = os.path.dirname(os.path.abspath(__file__))
 
 # (text, scene_dur_ms, speed_override or None)

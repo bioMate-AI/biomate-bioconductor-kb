@@ -132,13 +132,29 @@ def test_multiple_fastqc_tools():
             print(f"  {primary_mark}{t['name']}")
             print(f"      → {t['function']}")
 
-    # Check if we have different operation types
+    # Function distinction is the whole point of this test: the schema is
+    # supposed to distinguish multiple FastQC wrappers by their operation_type
+    # (e.g. quality_control vs report/aggregate). Finding only ONE operation
+    # type across all FastQC-related tools means that distinction collapsed —
+    # that IS a degradation of the capability under test, not an "expected"
+    # outcome. Previously this branch did `return True  # might be expected`,
+    # which force-passed a real regression. Fail it honestly.
     if len(operation_types) > 1:
         print(f"\n✅ Found {len(operation_types)} different operation types - Function distinction working!")
         return True
-    else:
-        print(f"\n⚠️  Only found 1 operation type - May need more diverse tools")
-        return True  # Still pass, might be expected
+
+    print(
+        f"\n❌ Only found {len(operation_types)} operation type across {len(results)} "
+        f"FastQC tools — function distinction has degraded (expected ≥2 distinct "
+        f"operation_type values)."
+    )
+    assert len(operation_types) > 1, (
+        f"FastQC function distinction degraded: only {len(operation_types)} "
+        f"operation_type value(s) found across {len(results)} FastQC tools; "
+        f"expected the schema to distinguish at least 2 (e.g. quality_control "
+        f"vs report/aggregate)."
+    )
+    return True  # unreachable when the assert fires; kept for the main() runner
 
 
 def test_installed_tools_graceful():

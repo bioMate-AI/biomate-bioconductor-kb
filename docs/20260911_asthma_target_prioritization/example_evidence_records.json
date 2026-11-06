@@ -1,0 +1,104 @@
+[
+  {
+    "target_symbol": "TSLP",
+    "disease_id": "MONDO_0004979",
+    "phenotype_label": "Asthma",
+    "phenotype_scope": "direct",
+    "evidence_type": "common_variant_association",
+    "source": "GWAS Catalog",
+    "source_record_id": "226258978",
+    "source_url": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226258978",
+    "retrieved_date": "2026-09-11",
+    "study_accession": "GCST90480249",
+    "pmid": "39024449",
+    "independence_group": "MVP:GCST90480249",
+    "variant_rsid": "rs1837253",
+    "reported_allele": "T",
+    "genome_build": null,
+    "effect": {
+      "value": -0.1191,
+      "unit": "unverified catalog beta scale",
+      "verbatim": "0.1191 unit decrease",
+      "odds_ratio": null
+    },
+    "p_value": 1e-40,
+    "target_assignment": {
+      "method": "Catalog mapped-gene annotation",
+      "candidates": [
+        "BCLAF1P1",
+        "TSLP"
+      ],
+      "causal_assignment_verified": false
+    },
+    "training_use": "Candidate evidence record only; not added to current model",
+    "approval_evidence_included": false
+  },
+  {
+    "target_symbol": "IL33",
+    "disease_id": "MONDO_0004979",
+    "phenotype_label": "Asthma",
+    "phenotype_scope": "direct",
+    "evidence_type": "common_variant_association",
+    "source": "GWAS Catalog",
+    "source_record_id": "226259178",
+    "source_url": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226259178",
+    "retrieved_date": "2026-09-11",
+    "study_accession": "GCST90480249",
+    "pmid": "39024449",
+    "independence_group": "MVP:GCST90480249",
+    "variant_rsid": "rs1888909",
+    "reported_allele": "T",
+    "genome_build": null,
+    "effect": {
+      "value": 0.08906,
+      "unit": "unverified catalog beta scale",
+      "verbatim": "0.08906 unit increase",
+      "odds_ratio": null
+    },
+    "p_value": 5e-31,
+    "target_assignment": {
+      "method": "Catalog mapped-gene annotation",
+      "candidates": [
+        "GTF3AP1",
+        "IL33"
+      ],
+      "causal_assignment_verified": false
+    },
+    "training_use": "Candidate evidence record only; not added to current model",
+    "approval_evidence_included": false
+  },
+  {
+    "target_symbol": "IL1RL1",
+    "disease_id": "MONDO_0004979",
+    "phenotype_label": "Asthma",
+    "phenotype_scope": "direct",
+    "evidence_type": "common_variant_association",
+    "source": "GWAS Catalog",
+    "source_record_id": "226258966",
+    "source_url": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226258966",
+    "retrieved_date": "2026-09-11",
+    "study_accession": "GCST90480249",
+    "pmid": "39024449",
+    "independence_group": "MVP:GCST90480249",
+    "variant_rsid": "rs13001714",
+    "reported_allele": "A",
+    "genome_build": null,
+    "effect": {
+      "value": -0.09795,
+      "unit": "unverified catalog beta scale",
+      "verbatim": "0.09795 unit decrease",
+      "odds_ratio": null
+    },
+    "p_value": 1e-43,
+    "target_assignment": {
+      "method": "Catalog mapped-gene annotation",
+      "candidates": [
+        "IL18R1",
+        "IL1RL1"
+      ],
+      "causal_assignment_verified": false
+    },
+    "training_use": "Candidate evidence record only; not added to current model",
+    "approval_evidence_included": false
+  }
+]

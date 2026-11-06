@@ -56,7 +56,7 @@ with open("docking_autodock_vina_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("docking_autodock_vina_output.txt", "w") as f:
-    f.write("Biomni: Docking Autodock Vina Results" + NL)
+    f.write("BioMate: Docking Autodock Vina Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -1,0 +1,7 @@
+{
+  "status": "passed",
+  "independent_raw_correlations": 1536,
+  "filtered_row_metric_comparisons": 4776,
+  "independent_coverage_checks": "all thresholds and target/donor/condition counts",
+  "summary_metrics_checked": 40
+}

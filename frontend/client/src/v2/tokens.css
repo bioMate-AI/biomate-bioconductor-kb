@@ -41,9 +41,9 @@
   --shadow-lg: 0 4px 12px rgba(15,23,42,0.08), 0 16px 40px rgba(15,23,42,0.06);
 
   /* Type */
-  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-ui: 'IBM Plex Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-display: 'DM Serif Display', Georgia, serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
 
   /* Layout */
   --sidebar-w: 220px;

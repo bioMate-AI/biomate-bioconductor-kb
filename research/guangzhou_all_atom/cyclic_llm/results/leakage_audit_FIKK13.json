@@ -1,0 +1,26 @@
+{
+ "target": "FIKK13",
+ "n_unique": 12914,
+ "n_train": 10332,
+ "n_test": 2582,
+ "test_binders_with_train_binder_within_hamming1": 0.625,
+ "test_binders_with_train_binder_within_hamming2": 0.625,
+ "random_split_kmer_baseline": {
+  "auc": 0.924,
+  "lift_top5": 15.0,
+  "n_test": 2582,
+  "n_test_binders": 8
+ },
+ "binder_families": 20,
+ "binders": 38,
+ "top1_family_share_of_binders": 0.474,
+ "top10_family_share_of_binders": 0.737,
+ "singleton_binder_families": 18,
+ "n_families": 12811,
+ "family_disjoint_kmer_baseline": {
+  "auc": 0.415,
+  "lift_top5": 1.8,
+  "n_test": 2636,
+  "n_test_binders": 22
+ }
+}

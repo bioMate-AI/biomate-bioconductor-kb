@@ -1,0 +1,26 @@
+{
+  "action": "render",
+  "silentPreview": true,
+  "status": "IN_PRODUCTION_NOT_RELEASED",
+  "summary": {
+    "RENDERED_INTERNAL_REVIEW": 2
+  },
+  "editions": [
+    {
+      "episode": "admet-evidence",
+      "language": "en",
+      "status": "RENDERED_INTERNAL_REVIEW",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "admet-evidence",
+      "language": "zh",
+      "status": "RENDERED_INTERNAL_REVIEW",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+ "n_lines": 989058,
+ "frac_ge17_cols": 1.0,
+ "frac_pdb_id_valid": 1.0,
+ "frac_uniprot_pattern_valid(col17)": 0.8348671159830869,
+ "ligand_kind_counts": {
+  "small_molecule": 714573,
+  "dna": 50993,
+  "peptide": 41544,
+  "rna": 181948
+ },
+ "n_peptide_ligand_groups": 30644,
+ "affinity_nonblank_lines_by_ligand_kind": {
+  "small_molecule": {
+   "aff_moad": 25976,
+   "aff_bindingdb": 19329,
+   "aff_manual": 80
+  },
+  "peptide": {
+   "aff_manual": 1
+  }
+ }
+}

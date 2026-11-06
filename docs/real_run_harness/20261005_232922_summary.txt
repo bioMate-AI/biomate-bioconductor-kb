@@ -1,0 +1,20 @@
+[2mtarget : https://dev-public.biomate.ai
+domains: admet rnaseq wgs
+log dir: /Users/kky/biomate-review/docs/real_run_harness[0m
+
+[33m── admet → e2e/drug-discovery-full-e2e.e2e.ts ──[0m
+  → FAIL(rc=1)  run_id=—
+
+[33m── rnaseq → e2e/complete-workflow.e2e.ts ──[0m
+  → FAIL(rc=1)  run_id=—
+
+[33m── wgs → e2e/germline-complete-e2e.e2e.ts ──[0m
+  → FAIL(rc=1)  run_id=—
+
+
+[33m════ SUMMARY ════[0m
+  [31madmet    FAIL(rc=1)  [0m run_id=—
+  [31mrnaseq   FAIL(rc=1)  [0m run_id=—
+  [31mwgs      FAIL(rc=1)  [0m run_id=—
+
+[31m3 domain(s) failed[0m

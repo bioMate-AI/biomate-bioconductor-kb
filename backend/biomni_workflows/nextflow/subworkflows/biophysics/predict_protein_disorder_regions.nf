@@ -52,7 +52,7 @@ with open("predict_protein_disorder_regions_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("predict_protein_disorder_regions_output.txt", "w") as f:
-    f.write("Biomni: Predict Protein Disorder Regions Results" + NL)
+    f.write("BioMate: Predict Protein Disorder Regions Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -312,7 +312,7 @@ with open("generate_gene_embeddings_with_ESM_models_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("generate_gene_embeddings_with_ESM_models_output.txt", "w") as f:
-    f.write("Biomni: Generate Gene Embeddings With Esm Models" + NL)
+    f.write("BioMate: Generate Gene Embeddings With Esm Models" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

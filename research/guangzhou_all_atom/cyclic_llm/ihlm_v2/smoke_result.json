@@ -1,0 +1,54 @@
+{
+ "NOTICE": "PLUMBING SMOKE ONLY \u2014 NO CLAIM. 2 seeds, tiny pool, no intervals; not an evaluation.",
+ "n_pool": 200,
+ "n_init": 30,
+ "rounds": 3,
+ "batch": 15,
+ "seeds": 2,
+ "per_seed": [
+  {
+   "seed": 0,
+   "thr": 1.121,
+   "random": {
+    "hits": 4,
+    "graded": 9,
+    "annotated": 9,
+    "mem_rows": 75,
+    "offsets_sources": 10
+   },
+   "ihlm": {
+    "hits": 12,
+    "graded": 14,
+    "annotated": 14,
+    "mem_rows": 75,
+    "offsets_sources": 7
+   }
+  },
+  {
+   "seed": 1,
+   "thr": 1.158,
+   "random": {
+    "hits": 2,
+    "graded": 10,
+    "annotated": 10,
+    "mem_rows": 75,
+    "offsets_sources": 9
+   },
+   "ihlm": {
+    "hits": 6,
+    "graded": 8,
+    "annotated": 8,
+    "mem_rows": 75,
+    "offsets_sources": 9
+   }
+  }
+ ],
+ "mean_hits": {
+  "random": 3.0,
+  "ihlm": 9.0
+ },
+ "checkpoint_unmodified": true,
+ "seconds": 365.8,
+ "v4_coverage_in_random_300": 0.15333333333333332,
+ "v4_coverage_note": "recomputed after audit: the original field used the first 300 insertion-ordered rows, all from 2013_CHUGAI (0 of 600 mapped); coverage by source in a random 300: {\"2020_Townsend\": [37, 112], \"2021_Kelly\": [0, 79], \"2013_CHUGAI\": [0, 40], \"2016_Furukawa\": [0, 22], \"2024_Faris\": [0, 10], \"2022_Bhardwaj\": [6, 6]}"
+}

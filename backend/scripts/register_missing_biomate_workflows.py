@@ -519,6 +519,60 @@ WORKFLOWS = [
         "step_count":  4,
         "tools_used":  "AI-MARRVEL (LiuzLab)",
     },
+    {
+        "name":        "proteomics_dda_search",
+        "filename":    "nfcore/proteomics_dda_search/main.nf",
+        "description": (
+            "License-clean DDA (data-dependent acquisition) proteomics database search. "
+            "Builds a target+decoy protein database once, then runs a per-run Comet search "
+            "(fans out across CPU nodes) and annotates target/decoy peptides with OpenMS "
+            "PeptideIndexer. Engine stack is commercially hostable: Comet (Apache) via OpenMS "
+            "CometAdapter + OpenMS (BSD). "
+            "Input: samplesheet.csv (sample,mzml) + protein FASTA. "
+            "Output: per-run indexed idXML (target/decoy annotated); 1% FDR computed downstream."
+        ),
+        "annotation":  (
+            "mzML runs + FASTA -> per-run Comet search (OpenMS) -> indexed idXML (license-clean DDA)"
+        ),
+        "tags":        (
+            "proteomics,dda,comet,openms,peptide-spectrum-match,database-search,"
+            "peptide-identification,label-free,license-clean,cohort,fan-out"
+        ),
+        "domain":      "proteomics",
+        "category":    "Proteomics Search",
+        "docker_image":"biocontainers/openms-thirdparty:3.4.1--h9ee0642_1",
+        "input_types": ["mzml", "fasta"],
+        "output_types":["idxml"],
+        "step_count":  3,
+        "tools_used":  "Comet, OpenMS (CometAdapter, DecoyDatabase, PeptideIndexer)",
+    },
+    {
+        "name":        "nf_encyclopedia",
+        "filename":    "nfcore/nf_encyclopedia/main.nf",
+        "description": (
+            "License-clean DIA (data-independent acquisition) proteomics search with EncyclopeDIA "
+            "(Apache-2.0) via the nf-encyclopedia pipeline (Apache-2.0) — commercially hostable, "
+            "unlike DIA-NN/Spectronaut. Library-free: builds a chromatogram library from designated "
+            "runs, then quantifies each DIA run against it (per-run fan-out) and optionally aggregates. "
+            "Input: samplesheet.csv (file,chrlib,group) of DIA mzML + protein FASTA (+ optional default "
+            "library dlib). Output: EncyclopeDIA quant reports, chromatogram library, optional MSstats. "
+            "BioMate default is mzML input (skips the vendor-DLL msconvert step)."
+        ),
+        "annotation":  (
+            "DIA mzML runs + FASTA -> chromatogram library -> per-run EncyclopeDIA quant (license-clean DIA)"
+        ),
+        "tags":        (
+            "proteomics,dia,encyclopedia,data-independent-acquisition,chromatogram-library,"
+            "library-free,quantification,license-clean,cohort,fan-out,msstats"
+        ),
+        "domain":      "proteomics",
+        "category":    "Proteomics Search",
+        "docker_image":"ghcr.io/talusbio/nf-encyclopedia:latest",
+        "input_types": ["mzml", "fasta"],
+        "output_types":["txt", "elib", "csv"],
+        "step_count":  4,
+        "tools_used":  "EncyclopeDIA, nf-encyclopedia (Talus Bio)",
+    },
 ]
 
 
@@ -555,9 +609,25 @@ def register(db_path: Path) -> None:
             skipped += 1
             continue
 
-        nf_path = NF_BASE / entry["name"] / "main.nf"
-        if not nf_path.exists():
-            print(f"  WARN  {entry['name']} — main.nf not found at {nf_path}, skipping")
+        # Resolve the workflow's main.nf. Historically all entries lived under
+        # NF_BASE (nf-core-workflows/modules/biomate-ai-tools/<name>/main.nf), but
+        # newer entries (e.g. the proteomics DDA/EncyclopeDIA workflows) live under
+        # nf-core-modules/ and carry a logical `filename` like
+        # "nfcore/<name>/main.nf". Try, in order: the entry's own filename relative
+        # to REPO_ROOT, the same with the leading "nfcore/" mapped to nf-core-modules/,
+        # then the legacy NF_BASE location. (The executor resolves these logical
+        # paths the same way — see nextflow_executor._resolve_nextflow_path.)
+        _fn = entry.get("filename", "")
+        _stripped = _fn[len("nfcore/"):] if _fn.startswith("nfcore/") else _fn
+        nf_candidates = [
+            REPO_ROOT / _fn,
+            REPO_ROOT / "nf-core-modules" / _stripped,
+            NF_BASE / entry["name"] / "main.nf",
+        ]
+        nf_path = next((p for p in nf_candidates if p.exists()), None)
+        if nf_path is None:
+            print(f"  WARN  {entry['name']} — main.nf not found (tried "
+                  f"{', '.join(str(p) for p in nf_candidates)}), skipping")
             skipped += 1
             continue
 

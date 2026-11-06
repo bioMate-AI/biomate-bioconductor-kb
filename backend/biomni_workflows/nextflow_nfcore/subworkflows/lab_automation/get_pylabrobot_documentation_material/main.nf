@@ -296,7 +296,7 @@ with open("get_pylabrobot_documentation_material_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("get_pylabrobot_documentation_material_output.txt", "w") as f:
-    f.write("Biomni: Get Pylabrobot Documentation Material" + NL)
+    f.write("BioMate: Get Pylabrobot Documentation Material" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

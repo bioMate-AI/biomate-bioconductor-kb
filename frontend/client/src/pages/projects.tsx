@@ -16,7 +16,6 @@ import {
   CheckCircle,
   Circle
 } from "lucide-react"
-import { projectService } from "@/lib/projects"
 import { CreateProjectDialog } from "@/components/create-project-dialog"
 import { getTemplateByTag } from "@/lib/project-templates"
 import type { Project } from "@shared/schema"
@@ -33,40 +32,47 @@ export default function ProjectsPage({ onProjectSelect }: ProjectsPageProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [allProjects, setAllProjects] = useState<Project[]>([])
   const [loadingProjects, setLoadingProjects] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
-  // Load from backend API; fall back to localStorage demo data
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch('/api/memory/projects', { credentials: 'include' })
-        if (res.ok) {
-          const data = await res.json()
-          const projects: Project[] = (Array.isArray(data) ? data : []).map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            description: p.description || '',
-            instructions: p.researchGoal || p.instructions || '',
-            status: (p.status || 'active') as Project['status'],
-            category: p.primaryDomain || p.category || null,
-            tags: p.tags || [],
-            progress: p.progress || 0,
-            createdAt: new Date(p.createdAt),
-            updatedAt: new Date(p.updatedAt || p.createdAt),
-            lastActivity: new Date(p.updatedAt || p.createdAt),
-            chatSessions: [],
-            documents: [],
-          }))
-          setAllProjects(projects.length > 0 ? projects : projectService.getAllProjects())
-        } else {
-          setAllProjects(projectService.getAllProjects())
-        }
-      } catch {
-        setAllProjects(projectService.getAllProjects())
-      } finally {
-        setLoadingProjects(false)
+  // Load the user's real projects from the backend API.
+  // On a successful empty response we show the honest empty state; on an API
+  // error we show an error/retry state. We never substitute fabricated demo
+  // data for either case — that would present fake projects as the user's own.
+  const loadProjects = async () => {
+    setLoadingProjects(true)
+    setLoadError(false)
+    try {
+      const res = await fetch('/api/memory/projects', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        const projects: Project[] = (Array.isArray(data) ? data : []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || '',
+          instructions: p.researchGoal || p.instructions || '',
+          status: (p.status || 'active') as Project['status'],
+          category: p.primaryDomain || p.category || null,
+          tags: p.tags || [],
+          progress: p.progress || 0,
+          createdAt: new Date(p.createdAt),
+          updatedAt: new Date(p.updatedAt || p.createdAt),
+          lastActivity: new Date(p.updatedAt || p.createdAt),
+          chatSessions: [],
+          documents: [],
+        }))
+        setAllProjects(projects)
+      } else {
+        setLoadError(true)
       }
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoadingProjects(false)
     }
-    load()
+  }
+
+  useEffect(() => {
+    loadProjects()
   }, [])
 
   // Filter and sort projects
@@ -120,7 +126,8 @@ export default function ProjectsPage({ onProjectSelect }: ProjectsPageProps) {
         setAllProjects(projects)
       }
     } catch {
-      setAllProjects(projectService.getAllProjects())
+      // Re-fetch failed; leave the current list in place rather than
+      // substituting fabricated demo data. The new project still opens below.
     }
     onProjectSelect?.(projectId)
   }
@@ -130,12 +137,13 @@ export default function ProjectsPage({ onProjectSelect }: ProjectsPageProps) {
     const diffMs = now.getTime() - new Date(date).getTime()
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
     
+    const ago = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'} ago`
     if (diffDays === 0) return 'Today'
     if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`
-    return `${Math.floor(diffDays / 365)} years ago`
+    if (diffDays < 7) return ago(diffDays, 'day')
+    if (diffDays < 30) return ago(Math.floor(diffDays / 7), 'week')
+    if (diffDays < 365) return ago(Math.floor(diffDays / 30), 'month')
+    return ago(Math.floor(diffDays / 365), 'year')
   }
 
   const getStatusIcon = (status: Project['status']) => {
@@ -219,6 +227,17 @@ export default function ProjectsPage({ onProjectSelect }: ProjectsPageProps) {
           <div className="text-center py-12">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Loading projects…</p>
+          </div>
+        ) : loadError ? (
+          <div className="text-center py-12" data-testid="projects-load-error">
+            <FolderOpen className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Couldn't load your projects</h3>
+            <p className="text-muted-foreground mb-4">
+              Something went wrong reaching the server. Please try again.
+            </p>
+            <Button variant="outline" onClick={() => loadProjects()} data-testid="button-retry-projects">
+              Retry
+            </Button>
           </div>
         ) : filteredProjects.length === 0 ? (
           <div className="text-center py-12">

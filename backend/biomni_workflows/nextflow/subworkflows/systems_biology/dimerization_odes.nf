@@ -50,7 +50,7 @@ with open("dimerization_odes_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("dimerization_odes_output.txt", "w") as f:
-    f.write("Biomni: Dimerization Odes Results" + NL)
+    f.write("BioMate: Dimerization Odes Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

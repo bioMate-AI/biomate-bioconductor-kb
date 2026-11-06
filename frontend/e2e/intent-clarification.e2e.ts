@@ -251,22 +251,28 @@ test.describe("IntentClarificationCard end-to-end", () => {
     const designQuery = "Design a PD-1 x VEGF bispecific in CrossMab format for NSCLC";
     await sendChatViaUI(page, designQuery);
 
-    // Card MUST appear (forced misclassification path)
-    const card = page.locator('[data-testid="intent-clarification-card"]');
+    // Card MUST appear (forced misclassification path). Intent clarification
+    // now renders through the typed ClarifyCard (spec 06 §6.4) as a single
+    // workflow-target question whose options bind an intent type.
+    const card = page.locator('[data-testid="clarify-card"]');
     await card.waitFor({ state: "visible", timeout: 60_000 });
     await page.screenshot({
       path: `${testInfo.outputDir}/02-card-rendered.png`,
       fullPage: true,
     });
 
-    // Primary chip should be present
-    const primaryChip = page.locator('[data-testid="intent-clarify-workflow_generation"]');
-    await expect(primaryChip).toBeVisible();
-    await expect(primaryChip).toContainText(/design workflow/i);
+    // The primary candidate (workflow_generation → "design workflow") is a
+    // numbered option whose bound value is `__intent__ = workflow_generation`.
+    const primaryOpt = page
+      .locator('[data-testid^="clarify-opt-__intent__-"]')
+      .filter({ hasText: "__intent__ = workflow_generation" });
+    await expect(primaryOpt).toBeVisible();
+    await expect(primaryOpt).toContainText(/design workflow/i);
 
-    // Click primary → re-submit with intentOverride; second route intercept
-    // fulfills with synthetic bispecific_format_triage response
-    await primaryChip.click();
+    // Pick primary, then Confirm → re-submit with intentOverride; the second
+    // route intercept fulfills with a synthetic bispecific_format_triage response.
+    await primaryOpt.click();
+    await page.locator('[data-testid="clarify-next"]').click();
     await page.screenshot({
       path: `${testInfo.outputDir}/03-after-pick.png`,
       fullPage: true,
@@ -330,14 +336,15 @@ test.describe("IntentClarificationCard end-to-end", () => {
       "Compare GLP-1 modalities for MASH peptide vs mRNA vs gene therapy",
     );
 
-    const card = page.locator('[data-testid="intent-clarification-card"]');
+    const card = page.locator('[data-testid="clarify-card"]');
     await card.waitFor({ state: "visible", timeout: 120_000 });
     await page.screenshot({
       path: `${testInfo.outputDir}/01-card-before-skip.png`,
       fullPage: true,
     });
 
-    const skip = page.locator('[data-testid="intent-clarify-skip"]');
+    // Skip-all (the header ✕) hides the routine without re-submitting.
+    const skip = page.locator('[data-testid="clarify-skip-all"]');
     await expect(skip).toBeVisible();
     await skip.click();
 

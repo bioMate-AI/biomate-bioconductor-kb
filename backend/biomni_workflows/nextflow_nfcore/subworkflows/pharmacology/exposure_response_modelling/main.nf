@@ -70,25 +70,18 @@ def ac(v, default=None):
     except: return default
 
 def parse_er_data(raw):
-    '''Parse E-R dataset from JSON or generate synthetic Phase I data.'''
+    '''Parse a real E-R dataset from JSON.
+
+    integrity: real scipy Emax/EC50 curve_fit path kept; the demo fallback that
+    fabricated synthetic dose-exposure-effect data (random.gauss) was removed
+    -> honest-fail when no real E-R data is provided.
+    '''
     if raw and raw not in ('null','None',''):
         try:
             return json.loads(raw)
         except: pass
-    # Synthetic demo: dose escalation E-R (sigmoidal)
-    doses    = [10, 20, 40, 80, 160, 320, 640]
-    exposures= [18, 39, 82, 175, 330, 580, 890]
-    import random; random.seed(99)
-    data = []
-    for d, e in zip(doses, exposures):
-        # True Emax=70, EC50=200, Hill=1.2
-        true_eff = 70 * (e**1.2) / (200**1.2 + e**1.2)
-        for _ in range(3):  # 3 replicates per dose
-            noise = random.gauss(0, 5)
-            data.append({'compound_id': 'CompoundA', 'dose_mg': d,
-                         'exposure_metric': e + random.gauss(0,10),
-                         'effect': max(0, true_eff + noise)})
-    return data
+    sys.stderr.write("ERROR: exposure_response_modelling requires real cohort data (er_data_json with observed exposure/effect points for scipy Emax/EC50 fitting); refusing to emit fabricated E-R data.\\n")
+    sys.exit(1)
 
 # -- Emax model (Hill equation) ------------------------------------------------
 def emax_model(E, emax, ec50, hill):

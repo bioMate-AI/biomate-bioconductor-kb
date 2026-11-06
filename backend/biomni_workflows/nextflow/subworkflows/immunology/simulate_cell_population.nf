@@ -56,7 +56,7 @@ with open("simulate_cell_population_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("simulate_cell_population_output.txt", "w") as f:
-    f.write("Biomni: Simulate Cell Population Results" + NL)
+    f.write("BioMate: Simulate Cell Population Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

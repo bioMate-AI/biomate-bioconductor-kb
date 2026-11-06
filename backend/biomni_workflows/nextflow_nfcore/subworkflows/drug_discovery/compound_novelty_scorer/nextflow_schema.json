@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/compound_novelty_scorer_schema.json",
+  "title": "Compound Novelty Scorer",
+  "description": "Score GENERATED molecules for patent/FTO novelty by FPSim2 Tanimoto/Morgan nearest-neighbour search against a prebuilt ChEMBL known-actives fingerprint index. Flags each molecule novel when its max Tanimoto to any known compound is below the cutoff. Optional off-by-default coarse patent-presence lookup.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "query_smiles",
+        "fpsim2_db"
+      ],
+      "properties": {
+        "query_smiles": {
+          "description": "Generated molecules to score. Either a comma-separated inline SMILES string or a path to a SMILES file (one SMILES per line).",
+          "type": "string"
+        },
+        "fpsim2_db": {
+          "description": "Path to a prebuilt FPSim2 .h5 fingerprint index of known actives (e.g. ChEMBL). MOUNTED read-only (never Nextflow-staged) — identical to fpsim2_chemical_similarity. Build/host once with that subworkflow's tools/prepare_fpsim2_db.sh.",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the novelty scoring.",
+      "properties": {
+        "novelty_tanimoto_cutoff": {
+          "description": "A molecule is flagged novel when its max Tanimoto to the known-actives library is strictly below this cutoff. 0.85 is the usual 'materially distinct scaffold' threshold.",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.85
+        },
+        "check_patents": {
+          "description": "OFF by default. When true, additionally query SureChEMBL/PubChem for a coarse patent-presence signal per molecule. Requires network access; the core novelty path needs no network beyond the mounted FPSim2 DB.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "fpsim2_container": {
+          "type": "string",
+          "description": "FPSim2 biocontainer image. On Batch, mirror to ECR as needed.",
+          "default": "quay.io/biocontainers/fpsim2:0.5.0--py310h4b81fae_0",
+          "hidden": true
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

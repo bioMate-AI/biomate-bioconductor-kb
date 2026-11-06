@@ -1,0 +1,56 @@
+{
+  "suite": "orchestration_benchmark",
+  "version": "1.0",
+  "created": "2026-10-22",
+  "summary": "A standalone benchmark for multi-task DECOMPOSITION, workflow-pattern ORCHESTRATION, and lane ARBITRATION — the capabilities RealBio's routing/param tasks do not cover. Kept separate from RealBio (not folded into its MANIFEST) so RealBio's published-baseline weighting is untouched. Composes existing component datasets with their existing scorers; no data is duplicated.",
+  "discipline": {
+    "leakage_firewall": "decomposition is scored ONLY on decomposition_real (out-of-generator). decomposition_v2 is same-generator and was RETRACTED (reported 0.73 vs real ~0.016) — it is EXCLUDED from this suite and must never be scored here.",
+    "harness_split": "report BARE (model-only) vs +HARNESS (retrieval/catalog-assisted) for every component, as RealBio does, so the harness dividend is visible.",
+    "execution_grounding": "composer_orchestration credit requires the resolved DAG to be structurally executable (type-handoffs satisfied), not merely proposed."
+  },
+  "benchmarks": [
+    {
+      "name": "decomposition_real",
+      "task": "Given a multi-step research request, decompose it into the correct set of sub-tasks (nodes) and their dependencies (edges). OUT-OF-GENERATOR held-out — the honest transfer test.",
+      "dataset": "evaluation/datasets/decomposition_real/decomposition_real.jsonl",
+      "n": 68,
+      "scorer": "evaluation/local_trial/decomp_reward.py (node-F1 + edge-F1 + catalog structural validity)",
+      "metric": "node_edge_f1"
+    },
+    {
+      "name": "composer_orchestration",
+      "task": "Resolve a multi-stage pipeline into an executable DAG: pick the workflow per stage AND wire outputs→inputs via semantic type-handoff (topological waves). Credit requires the handoffs to type-satisfy (executable), not just be proposed.",
+      "dataset": "evaluation/datasets/composer_eval/curated_pipelines.jsonl + pipelines.jsonl",
+      "n": 9,
+      "scorer": "evaluation/scorers/chain_scorer.py score_chain (coverage + LCS order + gate adherence) + decomposed_dag type_satisfies resolution",
+      "metric": "chain_resolution",
+      "note": "semantic type-handoff fix this session lifted DAG fire 4.4%→38.2%; cross-ecosystem reps (counts_matrix vs ExpressionSet) remain a representation gap."
+    },
+    {
+      "name": "reverse_decomp",
+      "task": "Inverse orchestration: given an executed plan / sub-task set, recover the originating research intent (capability grounding).",
+      "dataset": "evaluation/datasets/reverse_decomp/reverse_decomp_test_real.jsonl",
+      "n": 300,
+      "scorer": "evaluation/datasets/reverse_decomp/need_grader.py",
+      "metric": "need_match"
+    },
+    {
+      "name": "lane_arbitration",
+      "task": "Given a request that plausibly fits multiple execution lanes (Nextflow/Galaxy/Bioconductor/run_code), arbitrate to the correct lane (dense-cosine resonance, not keyword).",
+      "dataset": "evaluation/datasets/lane_arbitration/instant_cases.yaml",
+      "n": 40,
+      "scorer": "lane arbiter exact-lane match",
+      "metric": "accuracy"
+    }
+  ],
+  "comparators": {
+    "note": "Score the SAME items for every system, like RealBio. Rows to populate:",
+    "systems": [
+      "BioMate (on-prem 9B: base / sft_gold)",
+      "BioMate + harness",
+      "frontier LLMs bare + harness (Opus-5.5, DeepSeek V4-pro, GLM-5.3, Qwen small)",
+      "Biomni (A1 scaffold) — already a RealBio comparator; its planner decomposes, so it is a natural decomposition/orchestration baseline",
+      "TxAgent+ToolUniverse — open therapeutics planner (drug-dev-relevant multi-tool orchestration)"
+    ]
+  }
+}

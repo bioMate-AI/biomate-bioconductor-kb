@@ -1,0 +1,47 @@
+/* shared deck pieces (hero band, boxes, comparison table, closing chips). Extracted from the d1 v4 deck. */
+.fit svg{width:100%;height:auto}
+.hero-band{position:absolute;left:110px;top:470px;width:1700px;display:grid;grid-template-columns:1fr 70px 1.25fr 70px 1fr;align-items:stretch}
+.hero-band .box{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh);padding:24px 28px;display:flex;flex-direction:column;gap:14px;min-height:270px}
+.hero-band .box .k{font:600 14px/1 var(--ff-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.hero-band .arr{display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--hot)}
+.smiles{font:500 26px/1.45 var(--ff-mono);color:var(--ink);word-break:break-all;min-height:76px}
+.smiles::after{content:"";display:inline-block;width:3px;height:28px;background:var(--hot);vertical-align:-4px;margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.big{font:700 120px/1 var(--ff-mono);letter-spacing:-.05em;color:var(--ink)}
+.big small{font:600 24px/1 var(--ff-ui);letter-spacing:0;color:var(--mut);margin-left:10px}
+.simbar{height:12px;border-radius:99px;background:var(--bm-surface-3);overflow:hidden}
+.simbar i{display:block;height:100%;width:0;background:var(--hot);border-radius:99px;transition:width 1.2s cubic-bezier(.2,1,.3,1)}
+.nb{display:grid;grid-template-columns:1fr 120px;gap:8px 18px;align-items:center}
+.nb .smi{font:500 22px/1.3 var(--ff-mono);color:var(--ink)}
+.nb .pv{font:600 34px/1 var(--ff-mono);color:var(--ink);text-align:right}
+.cmp th,.cmp td{padding:16px 18px;font-size:22px}
+.cmp thead th{font:600 19px/1.3 var(--ff-ui);color:var(--ink)}
+.cmp thead th em{display:block;font:500 15px/1.3 var(--ff-mono);font-style:normal;color:var(--mut);letter-spacing:.06em;text-transform:uppercase}
+.cmp tbody th{color:var(--mut);font-size:20px}
+.cmp .rf{background:color-mix(in oklch,var(--hot-soft) 0%,transparent);transition:background .5s}
+.cmp.hlon .rf{background:var(--hot-soft)}
+.cmp.hlon thead .rf{color:var(--hot)}
+.foot{display:flex;align-items:center;gap:14px;padding:16px 24px;border-top:1px solid var(--line)}
+.foot .note{font-size:16px;color:var(--mut);margin-right:auto}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:10px 18px;font-size:17px;align-items:center}
+.kv dt{font-family:var(--ff-mono);font-size:15px;color:var(--mut)}
+.kv dd{margin:0;font-family:var(--ff-mono);color:var(--ink);font-size:15px;justify-self:start}
+.qm{position:absolute;display:flex;align-items:center;gap:10px;font:600 15px/1 var(--ff-mono);white-space:nowrap}
+.qm i{width:24px;height:24px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 0 3px currentColor,0 4px 10px rgba(0,0,0,.2);background:currentColor}
+.qm.q1{color:var(--ok)}.qm.q2{color:var(--warn)}
+.qm.q2 i{border-radius:6px}
+.tabs{display:flex;gap:26px;padding:0 24px;border-bottom:1px solid var(--line);font-size:17px;color:var(--mut)}
+.tabs span{padding:14px 0}.tabs .on1{color:var(--ink);font-weight:600;box-shadow:inset 0 -3px var(--ink)}
+.ans{font-size:24px;line-height:1.4;color:var(--ink);font-weight:600;margin:0}
+.doc{padding:30px 44px;display:flex;flex-direction:column;gap:18px}
+.doc h3{margin:0;font-size:32px;letter-spacing:-.02em;color:var(--ink)}
+.doc h4{margin:0 0 6px;font:600 13px/1 var(--ff-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+.doc p{margin:0;font-size:18px;line-height:1.55;color:var(--ink2)}
+.doc .res{display:grid;grid-template-columns:280px 1fr;gap:28px;align-items:start}
+.doc .fig{border:1px solid var(--line);border-radius:12px;padding:10px}
+.doc .fig .cap{font-size:13px;color:var(--mut);margin-top:4px}
+.ends{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.ends span{font:600 21px/1 var(--ff-ui);color:#fff;background:var(--hot);padding:14px 18px;border-radius:12px;align-self:flex-start;box-shadow:0 10px 24px color-mix(in oklch,var(--hot) 35%,transparent)}
+.edit-caret{display:inline-block;width:2px;height:22px;background:var(--hot);vertical-align:-4px;animation:blink 1s steps(1) infinite}
+
+.hero-band{top:500px!important}.hero-band .box{min-height:330px}

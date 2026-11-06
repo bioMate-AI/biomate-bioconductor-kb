@@ -297,7 +297,7 @@ with open("simulate_protein_signaling_network_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("simulate_protein_signaling_network_output.txt", "w") as f:
-    f.write("Biomni: Simulate Protein Signaling Network" + NL)
+    f.write("BioMate: Simulate Protein Signaling Network" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

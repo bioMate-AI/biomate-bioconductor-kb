@@ -1,0 +1,7 @@
+GPT: est_worst=$0.431 (in~32289 tok) balance=$3.961 running=$0.000
+  done finish=stop out=4919 cost=$0.2987 counted=$0.2987 total=$0.299 bal=$3.961
+GEMINI: est_worst=$0.173 (in~32289 tok) balance=$3.961 running=$0.299
+  done finish=stop out=3756 cost=$0.1128 counted=$0.1128 total=$0.412 bal=$3.961
+SONNET: est_worst=$0.348 (in~32289 tok) balance=$3.961 running=$0.412
+  EMPTY content finish=length; recorded, no retry
+TOTAL_COUNTED 0.7721 BALANCE_END 3.549

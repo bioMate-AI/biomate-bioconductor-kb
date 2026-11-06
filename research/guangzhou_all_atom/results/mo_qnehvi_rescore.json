@@ -1,0 +1,479 @@
+{
+  "objectives": [
+    "binding=A1 pAffinity (real data)",
+    "permeability=CycPeptMPDB logPapp",
+    "synthesizability=-SA_score"
+  ],
+  "selectivity": "omitted \u2014 not derivable from single-target pool data (documented gap)",
+  "composite_baseline": "existing hand-tuned composite ordering that selected each panel",
+  "perm_model_rows": 8466,
+  "pools": {
+    "PD-L1": {
+      "pool_size": 176,
+      "k": 10,
+      "n_valid_binding": 176,
+      "cyclization_modes": {
+        "cyclic": 176
+      },
+      "hypervolume": {
+        "composite_topk": 0.20915,
+        "qnehvi_topk": 0.2877,
+        "greedy_hv_topk": 0.45005,
+        "full_pool": 0.4555,
+        "qnehvi_gain_vs_composite_pct": 37.6,
+        "greedy_gain_vs_composite_pct": 115.2
+      },
+      "topk_overlap_with_composite": {
+        "qnehvi": 2,
+        "greedy_hv": 2,
+        "of_k": 10
+      },
+      "composite_topk": [
+        {
+          "rank": 1,
+          "seq": "SSPFPVFKEFSP",
+          "pAff": 6.732,
+          "logPapp": -6.388,
+          "SA": 7.0,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 2,
+          "seq": "GGYTSSATGVTF",
+          "pAff": 6.028,
+          "logPapp": -7.794,
+          "SA": 6.69,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 3,
+          "seq": "VKHLPELAHLSPS",
+          "pAff": 7.06,
+          "logPapp": -7.397,
+          "SA": 7.65,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 4,
+          "seq": "GAYTSKSTGVTF",
+          "pAff": 6.534,
+          "logPapp": -7.586,
+          "SA": 6.91,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 5,
+          "seq": "TSNGTVIAGVM",
+          "pAff": 6.101,
+          "logPapp": -8.521,
+          "SA": 6.67,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 6,
+          "seq": "SVAPAVLAPYTSL",
+          "pAff": 6.419,
+          "logPapp": -7.343,
+          "SA": 7.12,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 7,
+          "seq": "SFIPEALKPYLKAKM",
+          "pAff": 6.92,
+          "logPapp": -7.015,
+          "SA": 6.75,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 8,
+          "seq": "GGSGEGKKLAEELGLK",
+          "pAff": 6.333,
+          "logPapp": -8.096,
+          "SA": 7.57,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 9,
+          "seq": "SNGIEIAGFVT",
+          "pAff": 6.352,
+          "logPapp": -7.849,
+          "SA": 6.69,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 10,
+          "seq": "SALFPELKSASPLV",
+          "pAff": 6.756,
+          "logPapp": -7.789,
+          "SA": 7.5,
+          "mode": "cyclic"
+        }
+      ],
+      "qnehvi_topk": [
+        {
+          "rank": 1,
+          "seq": "SGITIAGVTNPA",
+          "pAff": 6.062,
+          "logPapp": -8.197,
+          "SA": 6.88,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 2,
+          "seq": "MVVDPELAKKFGIKG",
+          "pAff": 6.332,
+          "logPapp": -7.407,
+          "SA": 5.05,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 3,
+          "seq": "KATGIVIGGFTM",
+          "pAff": 6.066,
+          "logPapp": -7.767,
+          "SA": 6.96,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 4,
+          "seq": "SVTVNGITIG",
+          "pAff": 6.127,
+          "logPapp": -8.991,
+          "SA": 6.4,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 5,
+          "seq": "GGSGEGKKLAEELGLK",
+          "pAff": 6.333,
+          "logPapp": -8.096,
+          "SA": 7.57,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 6,
+          "seq": "EELGRRLGVPSSSF",
+          "pAff": 6.408,
+          "logPapp": -8.351,
+          "SA": 7.72,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 7,
+          "seq": "SFIPEALKPYLKAKM",
+          "pAff": 6.92,
+          "logPapp": -7.015,
+          "SA": 6.75,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 8,
+          "seq": "VKLPAELADLFPTPKM",
+          "pAff": 6.333,
+          "logPapp": -7.226,
+          "SA": 7.09,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 9,
+          "seq": "MIAPEELKKYTKL",
+          "pAff": 6.542,
+          "logPapp": -6.959,
+          "SA": 7.85,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 10,
+          "seq": "YPWIKEKFGVDVPG",
+          "pAff": 6.631,
+          "logPapp": -8.667,
+          "SA": 7.99,
+          "mode": "cyclic"
+        }
+      ],
+      "greedy_hv_topk": [
+        {
+          "rank": 1,
+          "seq": "AAVADLLARFGLPALS",
+          "pAff": 6.423,
+          "logPapp": -7.844,
+          "SA": 4.03,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 2,
+          "seq": "SFIPEALKPYLKAKM",
+          "pAff": 6.92,
+          "logPapp": -7.015,
+          "SA": 6.75,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 3,
+          "seq": "SKHPVLKKYSKS",
+          "pAff": 7.367,
+          "logPapp": -6.862,
+          "SA": 7.42,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 4,
+          "seq": "SSPFPVFKEFSP",
+          "pAff": 6.732,
+          "logPapp": -6.388,
+          "SA": 7.0,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 5,
+          "seq": "MVVDPELAKKFGIKG",
+          "pAff": 6.332,
+          "logPapp": -7.407,
+          "SA": 5.05,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 6,
+          "seq": "KARPGAGAPLLERLGM",
+          "pAff": 6.747,
+          "logPapp": -8.598,
+          "SA": 5.53,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 7,
+          "seq": "MSDKIPLFKDLL",
+          "pAff": 6.522,
+          "logPapp": -6.038,
+          "SA": 7.38,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 8,
+          "seq": "AAVVGDVVFP",
+          "pAff": 6.552,
+          "logPapp": -7.433,
+          "SA": 6.13,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 9,
+          "seq": "GGVVAGDVVI",
+          "pAff": 6.116,
+          "logPapp": -7.167,
+          "SA": 6.03,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 10,
+          "seq": "LPTTFPNKIPG",
+          "pAff": 6.481,
+          "logPapp": -6.63,
+          "SA": 6.84,
+          "mode": "cyclic"
+        }
+      ],
+      "objective_ranges": {
+        "pAff": [
+          5.53,
+          7.37
+        ],
+        "logPapp": [
+          -9.59,
+          -6.04
+        ],
+        "SA": [
+          4.03,
+          8.0
+        ]
+      }
+    },
+    "avb6": {
+      "pool_size": 12,
+      "k": 6,
+      "n_valid_binding": 12,
+      "cyclization_modes": {
+        "cyclic": 12
+      },
+      "hypervolume": {
+        "composite_topk": 0.47433,
+        "qnehvi_topk": 0.47227,
+        "greedy_hv_topk": 0.48101,
+        "full_pool": 0.48101,
+        "qnehvi_gain_vs_composite_pct": -0.4,
+        "greedy_gain_vs_composite_pct": 1.4
+      },
+      "topk_overlap_with_composite": {
+        "qnehvi": 5,
+        "greedy_hv": 5,
+        "of_k": 6
+      },
+      "composite_topk": [
+        {
+          "rank": 1,
+          "seq": "GRGRNKYYP",
+          "pAff": 6.591,
+          "logPapp": -7.875,
+          "SA": 6.35,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 2,
+          "seq": "NKYRSRRGK",
+          "pAff": 6.746,
+          "logPapp": -8.626,
+          "SA": 6.58,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 3,
+          "seq": "GSLASLGIGRR",
+          "pAff": 6.505,
+          "logPapp": -8.068,
+          "SA": 6.63,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 4,
+          "seq": "ARRGNLAPLG",
+          "pAff": 6.568,
+          "logPapp": -7.496,
+          "SA": 6.38,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 5,
+          "seq": "KGLRGRSG",
+          "pAff": 6.128,
+          "logPapp": -9.181,
+          "SA": 5.74,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 6,
+          "seq": "GLFGGRGRR",
+          "pAff": 6.722,
+          "logPapp": -8.071,
+          "SA": 6.01,
+          "mode": "cyclic"
+        }
+      ],
+      "qnehvi_topk": [
+        {
+          "rank": 1,
+          "seq": "GSLASLGIGRR",
+          "pAff": 6.505,
+          "logPapp": -8.068,
+          "SA": 6.63,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 2,
+          "seq": "GTGTGSLGRLR",
+          "pAff": 6.242,
+          "logPapp": -8.866,
+          "SA": 6.56,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 3,
+          "seq": "KGLRGRSG",
+          "pAff": 6.128,
+          "logPapp": -9.181,
+          "SA": 5.74,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 4,
+          "seq": "ARRGNLAPLG",
+          "pAff": 6.568,
+          "logPapp": -7.496,
+          "SA": 6.38,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 5,
+          "seq": "GRGRNKYYP",
+          "pAff": 6.591,
+          "logPapp": -7.875,
+          "SA": 6.35,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 6,
+          "seq": "GLFGGRGRR",
+          "pAff": 6.722,
+          "logPapp": -8.071,
+          "SA": 6.01,
+          "mode": "cyclic"
+        }
+      ],
+      "greedy_hv_topk": [
+        {
+          "rank": 1,
+          "seq": "GLFGGRGRR",
+          "pAff": 6.722,
+          "logPapp": -8.071,
+          "SA": 6.01,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 2,
+          "seq": "ARRGNLAPLG",
+          "pAff": 6.568,
+          "logPapp": -7.496,
+          "SA": 6.38,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 3,
+          "seq": "APRGALASLG",
+          "pAff": 6.675,
+          "logPapp": -8.01,
+          "SA": 6.11,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 4,
+          "seq": "NKYRSRRGK",
+          "pAff": 6.746,
+          "logPapp": -8.626,
+          "SA": 6.58,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 5,
+          "seq": "GRGRNKYYP",
+          "pAff": 6.591,
+          "logPapp": -7.875,
+          "SA": 6.35,
+          "mode": "cyclic"
+        },
+        {
+          "rank": 6,
+          "seq": "KGLRGRSG",
+          "pAff": 6.128,
+          "logPapp": -9.181,
+          "SA": 5.74,
+          "mode": "cyclic"
+        }
+      ],
+      "objective_ranges": {
+        "pAff": [
+          6.13,
+          6.88
+        ],
+        "logPapp": [
+          -9.52,
+          -7.5
+        ],
+        "SA": [
+          5.74,
+          6.72
+        ]
+      },
+      "note": "only the 12-member panel exists (no larger avb6 pool); reranking scope limited"
+    }
+  }
+}

@@ -361,7 +361,7 @@ with open("create_segmentation_visualization_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("create_segmentation_visualization_output.txt", "w") as f:
-    f.write("Biomni: Create Segmentation Visualization" + NL)
+    f.write("BioMate: Create Segmentation Visualization" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,196 @@
+{
+ "gen": "C-RANDINIT-PCLM2",
+ "cfg": {
+  "mask": 0.3,
+  "rounds": 3,
+  "temp": 1.0
+ },
+ "runs": [
+  {
+   "n": 1000,
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "ring_TV": null,
+   "nme_TV": null,
+   "mean_nme": null,
+   "n_constraint_satisfying": 0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "internal_diversity": null,
+   "seconds": null
+  },
+  {
+   "n": 1000,
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "ring_TV": null,
+   "nme_TV": null,
+   "mean_nme": null,
+   "n_constraint_satisfying": 0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "internal_diversity": null,
+   "seconds": null
+  },
+  {
+   "n": 1000,
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "ring_TV": null,
+   "nme_TV": null,
+   "mean_nme": null,
+   "n_constraint_satisfying": 0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "internal_diversity": null,
+   "seconds": null
+  },
+  {
+   "n": 1000,
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "ring_TV": null,
+   "nme_TV": null,
+   "mean_nme": null,
+   "n_constraint_satisfying": 0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "internal_diversity": null,
+   "seconds": null
+  },
+  {
+   "n": 1000,
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "ring_TV": null,
+   "nme_TV": null,
+   "mean_nme": null,
+   "n_constraint_satisfying": 0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "internal_diversity": null,
+   "seconds": null
+  }
+ ],
+ "summary": {
+  "validity": {
+   "mean": 0.0,
+   "t_interval": [
+    0.0,
+    0.0
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "per_seed": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "uniqueness_of_valid": {
+   "mean": 0.0,
+   "t_interval": [
+    0.0,
+    0.0
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "per_seed": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "novelty_of_unique": {
+   "mean": 0.0,
+   "t_interval": [
+    0.0,
+    0.0
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "per_seed": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "macro_fraction": {
+   "mean": 0.0,
+   "t_interval": [
+    0.0,
+    0.0
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "per_seed": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "Y": {
+   "mean": 0.0,
+   "t_interval": [
+    0.0,
+    0.0
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "per_seed": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "Y_cluster": {
+   "mean": 0.0,
+   "t_interval": [
+    0.0,
+    0.0
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "per_seed": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  }
+ },
+ "assembled_from_raw": true
+}

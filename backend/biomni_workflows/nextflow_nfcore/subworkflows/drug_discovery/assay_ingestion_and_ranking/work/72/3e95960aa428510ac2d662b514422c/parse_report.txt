@@ -1,3 +1,0 @@
-Compounds parsed: 2
-Assay types: ['']
-Total rows: 2

@@ -1,0 +1,71 @@
+{
+  "data_origin": "simulated",
+  "scope": "platform service + DPO mechanics, simulated latent model",
+  "limitations": [
+    "No live HTTP/UI test",
+    "No real UniMoMo featurization in this CPU run",
+    "Training-pair evaluation only; no biological or generalization claim"
+  ],
+  "campaign_id": "SIMULATED-cyclic-integration",
+  "ingestion": {
+    "ingested": 6,
+    "errors": [],
+    "updated_ranks": [
+      {
+        "compound_id": "SIM-0",
+        "combined_score": 1.0,
+        "rank": 1
+      },
+      {
+        "compound_id": "SIM-3",
+        "combined_score": 1.0,
+        "rank": 2
+      },
+      {
+        "compound_id": "SIM-1",
+        "combined_score": 0.9921190542865144,
+        "rank": 3
+      },
+      {
+        "compound_id": "SIM-4",
+        "combined_score": 0.9921190542865144,
+        "rank": 4
+      },
+      {
+        "compound_id": "SIM-2",
+        "combined_score": 0.0,
+        "rank": 5
+      },
+      {
+        "compound_id": "SIM-5",
+        "combined_score": 0.0,
+        "rank": 6
+      }
+    ],
+    "newly_failed": [],
+    "newly_passed": []
+  },
+  "before": {
+    "mean_reward_margin": 0.0,
+    "mean_dpo_loss": 0.6931471824645996,
+    "evaluation_draws": 48
+  },
+  "after": {
+    "mean_reward_margin": 0.07213253279527028,
+    "mean_dpo_loss": 0.6592107539375623,
+    "evaluation_draws": 48
+  },
+  "checks": {
+    "six_assays_persisted": true,
+    "six_within_target_pairs": true,
+    "simulated_provenance_preserved": true,
+    "all_candidate_ids_resolve": true,
+    "all_reference_state_unchanged": true,
+    "policy_changed": true,
+    "checkpoint_roundtrip_exact": true,
+    "matched_noise_loss_decreased": true,
+    "matched_noise_margin_increased": true,
+    "steps_completed": true
+  },
+  "passed": true
+}

@@ -141,8 +141,8 @@ export function ToolIntroductionDialog({
   open, 
   onOpenChange, 
   tool, 
-  onAddToWorkflow = () => console.log('Add to workflow'),
-  onStartChat = () => console.log('Start chat')
+  onAddToWorkflow = () => {},
+  onStartChat = () => {}
 }: ToolIntroductionDialogProps) {
   if (!tool) return null
 

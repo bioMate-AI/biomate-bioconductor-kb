@@ -336,7 +336,7 @@ with open("ADMET_pred_results.json", "w") as f:
 # ── Save human-readable output ───────────────────────────────────────────────
 NL = chr(10)
 with open("ADMET_pred_output.txt", "w") as f:
-    f.write("Biomni: ADMET Safety Screening" + NL)
+    f.write("BioMate: ADMET Safety Screening" + NL)
     f.write("=" * 60 + NL + NL)
     if success and isinstance(result, dict):
         tox = result.get("toxicity", {})

@@ -120,7 +120,7 @@ with open("higuchi_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("higuchi_output.txt", "w") as f:
-    f.write("Biomni: Higuchi" + NL)
+    f.write("BioMate: Higuchi" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

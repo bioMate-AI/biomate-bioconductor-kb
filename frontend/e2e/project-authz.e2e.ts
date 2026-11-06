@@ -99,6 +99,23 @@ test.describe.serial("project-authz", () => {
     await page.close();
   });
 
+  // This suite creates an isolated project and two test identities in dev.
+  // Keep the identities for audit traceability, but remove the project so a
+  // repeated authorization run does not accumulate fixture projects/files.
+  test.afterAll(async ({ browser }) => {
+    if (!projectId) return;
+    const page = await browser.newPage();
+    try {
+      await loginAsFixture(page);
+      const response = await page.request.delete(`${BASE_URL}/api/projects/${projectId}`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      expect([200, 204, 404]).toContain(response.status());
+    } finally {
+      await page.close();
+    }
+  });
+
   // ── AUTHZ1: Member can fetch the project ─────────────────────────────────
   test("AUTHZ1: member can GET project detail", async ({ page }) => {
     const res = await page.request.fetch(`${BASE_URL}/api/projects/${projectId}`, {

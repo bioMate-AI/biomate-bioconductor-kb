@@ -1,0 +1,52 @@
+{
+  "scope": "Marketing website in reference/claude_design/webpage_design_v2; no authenticated application actions or form submissions",
+  "staticHtmlPagesChecked": 97,
+  "browserMarketingPagesChecked": 93,
+  "browserObservedViewportWidth": 1280,
+  "publication": {
+    "method": "scripts/deploy_marketing.sh",
+    "completedAtUtc": "2026-10-10T02:57:20Z",
+    "liveAssetHashesMatched": 99,
+    "liveAssetHashesChecked": 99,
+    "liveMobilePreviouslyOverflowingPagesRechecked": 11,
+    "liveMobilePageWidthAndScrollWidth": 390,
+    "backup": "/var/backups/biomate-marketing/pre-sync-0UVNylP9.tar.gz",
+    "desktopProof": "/private/tmp/biomate-callout-fixed-desktop.jpg",
+    "mobileProof": "/private/tmp/biomate-callout-fixed-mobile.jpg"
+  },
+  "mobileVerification": "Completed: viewport override applied to the live tab, not the preview tab. All 93 marketing pages subsequently re-traversed locally at measured 390px width; no page-level horizontal overflow, broken images or identical foreground/background filled buttons remained.",
+  "fixes": [
+    "Retain white primary-button labels inside prose, article-body and editorial containers, including hover rules",
+    "Version shared stylesheet URLs on deploy-managed marketing pages to avoid stale CSS after release",
+    "Repair compare.html stylesheet reference from nonexistent style.css to styles.css",
+    "Restore 16 static heading fragment targets across endpoint, tocilizumab and TYK2 articles",
+    "Replace five links to removed or nonexistent sections with relevant live destinations",
+    "Repair mobile table overflow with keyboard-focusable scroll regions",
+    "Stack inline two-column workflow layouts on mobile and retain four pricing cards on desktop with single-column mobile layout",
+    "Constrain connector documentation and legacy article grid children and long content without clipping page content"
+  ],
+  "falsePositivesRejected": "Three white outline buttons on dark gradient CTA banners were initially flagged by a solid-background-only contrast calculation. Ancestor gradient inspection confirmed the scanner limitation; no button styles were changed for those cases.",
+  "verification": {
+    "localLinkAndAssetFailures": 0,
+    "duplicateIdFailures": 0,
+    "staticUnnamedControlFailures": 0,
+    "brokenImagesInSettledDesktopTraversal": 0,
+    "pageLevelHorizontalOverflowInSettledDesktopTraversal": 0,
+    "postFixDesktopPagesRechecked": 93,
+    "postFixMobilePagesRechecked": 93,
+    "postFixMobileViewportWidth": 390,
+    "postFixMobileHorizontalOverflowPages": 0,
+    "postFixFilledButtonsWithIdenticalForegroundAndBackground": 0,
+    "allTestsPassed": 46,
+    "marketingDeploymentGateTestsPassed": 38,
+    "staticShellCheck": "current",
+    "knownLiveDefectReproduced": "Virtual-cell callout button text and background both rgb(42,85,130)",
+    "localRepairVerified": "Virtual-cell callout button text rgb(255,255,255), background rgb(42,85,130)"
+  },
+  "limitations": [
+    "Not a claim that all scientific or marketing content has been verified",
+    "External destinations and authenticated application controls were not comprehensively audited",
+    "Two deployment-protected LLM-comparison articles and authentication snapshots were not rewritten",
+    "Desktop traversal is DOM/layout verification with targeted visual inspection, not a screenshot review of every section"
+  ]
+}

@@ -336,7 +336,7 @@ with open("perform_pcr_and_gel_electrophoresis_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("perform_pcr_and_gel_electrophoresis_output.txt", "w") as f:
-    f.write("Biomni: Perform Pcr And Gel Electrophoresis" + NL)
+    f.write("BioMate: Perform Pcr And Gel Electrophoresis" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

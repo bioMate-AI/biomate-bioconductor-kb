@@ -1,0 +1,234 @@
+{
+ "n": 38,
+ "source": "TDC NeurIPS 2021",
+ "datasets": [
+  {
+   "dataset": "lipophilicity_astrazeneca",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "solubility_aqsoldb",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "hydrationfreeenergy_freesolv",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "caco2_wang",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "pampa_ncats",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "approved_pampa_ncats",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "hia_hou",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "pgp_broccatelli",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "bioavailability_ma",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "vdss_lombardo",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "cyp2c19_veith",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "cyp2d6_veith",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "cyp3a4_veith",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "cyp1a2_veith",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "cyp2c9_veith",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "cyp2c9_substrate_carbonmangels",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "cyp2d6_substrate_carbonmangels",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "cyp3a4_substrate_carbonmangels",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "bbb_martins",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "b3db_classification",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "b3db_regression",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "ppbr_az",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "half_life_obach",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "clearance_hepatocyte_az",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "clearance_microsome_az",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "hlm",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "rlm",
+   "group": "ADME",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "tox21",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "toxcast",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "clintox",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "herg_karim",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "herg",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "herg_central",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "dili",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "skin_reaction",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "ames",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "carcinogens_lagunin",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  },
+  {
+   "dataset": "ld50_zhu",
+   "group": "Tox",
+   "source": "Therapeutics Data Commons (Huang et al., NeurIPS 2021 Datasets&Benchmarks)",
+   "verified": true
+  }
+ ]
+}

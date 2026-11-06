@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-10T00:39:26.236Z",
+  "scope": "Local repaired parser consuming a real deployed chat SSE response; not a deployed connector-route test",
+  "passed": true,
+  "responseCharacters": 1334,
+  "state": "chat_only",
+  "isMultiIntent": false,
+  "hasWorkflow": false,
+  "fields": [
+    "response",
+    "state",
+    "workflow_suggested",
+    "subIntentResults",
+    "isMultiIntent",
+    "suggestions",
+    "prerequisitesValidation",
+    "datasetReferenceUnresolvedIds",
+    "researchResponse",
+    "benchmarkEvidence",
+    "clarification"
+  ]
+}

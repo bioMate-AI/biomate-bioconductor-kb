@@ -1,0 +1,22 @@
+[
+  {
+    "path": "/data/immune_sources/GSE261278_D534.paired.h5ad",
+    "source_id": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/multiomic_v1/citeseq/GSE261278_D534.paired.h5ad",
+    "study_id": "GSE261278",
+    "donor_id": "D534",
+    "split": "train",
+    "count_provenance": "Previously audited curated native-count layers/counts and protein_expression; verify object hash against source manifest on remote worker",
+    "pairing_provenance": "RNA and protein share exact source obs rows; consume all stored source rows",
+    "modality": "protein"
+  },
+  {
+    "path": "/data/immune_sources/GSE269540.h5ad",
+    "source_id": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/multiomic_v1/multiome/GSE269540.h5ad",
+    "study_id": "GSE269540",
+    "donor_id": "GSM8321668_Donor3",
+    "split": "train",
+    "count_provenance": "Previously audited RNA counts and peak_counts ATAC; verify object hash against source manifest on remote worker",
+    "pairing_provenance": "RNA and ATAC share exact source obs rows; consume all stored source rows",
+    "modality": "ATAC"
+  }
+]

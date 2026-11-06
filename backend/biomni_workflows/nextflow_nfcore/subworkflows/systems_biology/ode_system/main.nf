@@ -128,7 +128,7 @@ with open("ode_system_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("ode_system_output.txt", "w") as f:
-    f.write("Biomni: Ode System" + NL)
+    f.write("BioMate: Ode System" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,16 +1,43 @@
 """
-BioNeMo / NVIDIA NIM API client for BioMate.
+BioNeMo / NVIDIA NIM client for BioMate.
 
-Provides typed wrappers for all confirmed-live biology models accessible
-via the NVIDIA Cloud Functions (NVCF) API. All schemas are empirically
-verified against live endpoints (2026-07-09).
+Provides typed wrappers for all confirmed-live biology models. The client
+runs in one of three modes, chosen by the ``BIONEMO_MODE`` env var:
 
-Environment variable:
-    NVIDIA_API_KEY  — nvapi-... key with NVCF access
+    self_host  — POST to self-hosted NIM containers on BioMate's own AWS
+                 (``BIONEMO_SELF_HOST_URL``). Data never leaves the tenant.
+                 This is the production posture (see
+                 docs/20260903_ARCH_DECISIONS_BIONEMO_AND_GALAXY_EXIT.md §1).
+    hosted_api — POST to NVIDIA's hosted NVCF API (needs ``NVIDIA_API_KEY``).
+                 The original behaviour; kept for parity / dev convenience.
+    stub       — never hit the network; return the documented result *shape*
+                 with an honest ``reason`` and no fabricated values. This is
+                 also the automatic fallback when the selected backend is
+                 unconfigured or unreachable.
+
+The default mode is auto-detected: ``self_host`` if ``BIONEMO_SELF_HOST_URL``
+is set, else ``hosted_api`` if ``NVIDIA_API_KEY`` is set, else ``stub``.
+
+All method signatures and return *shapes* are identical across modes, so
+consumers (``models_inference.py``, ``denovo_pipeline.py`` / ``generators.py``)
+need no changes. In stub / unreachable paths methods return the empty-but-
+correctly-typed shape (``""`` for PDB strings, ``[]`` for molecule lists,
+a shaped dict carrying ``_stub`` + ``reason`` for structured payloads) —
+never a fabricated structure, sequence, or molecule.
+
+Environment variables:
+    BIONEMO_MODE            self_host | hosted_api | stub  (optional; auto)
+    BIONEMO_SELF_HOST_URL   base URL of the self-hosted NIM gateway, e.g.
+                            http://bionemo-nim.internal:8000  (self_host mode)
+    NVIDIA_API_KEY          nvapi-... key with NVCF access   (hosted_api mode)
+    BIONEMO_SELF_HOST_PATH_<MODEL>
+                            optional per-model route override (uppercased
+                            model name), e.g. BIONEMO_SELF_HOST_PATH_BOLTZ2
 
 Usage:
     from galaxy.ai.bionemo_client import BioNeMoClient
     client = BioNeMoClient()
+    print(client.health())            # which backend / which models are up
     pdb = client.esmfold("MKTAYIAKQRQISFVK")
     result = client.rfdiffusion(contigs="50-100", input_pdb=pdb)
 """
@@ -24,11 +51,17 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
+# ── Mode constants ────────────────────────────────────────────────────────────
+MODE_SELF_HOST = "self_host"
+MODE_HOSTED_API = "hosted_api"
+MODE_STUB = "stub"
+_VALID_MODES = (MODE_SELF_HOST, MODE_HOSTED_API, MODE_STUB)
+
 # ── Endpoint constants ────────────────────────────────────────────────────────
 _NVCF_BASE   = "https://api.nvcf.nvidia.com/v2/nvcf/pexec/functions"
 _HEALTH_BASE = "https://health.api.nvidia.com/v1/biology/nvidia"
 
-# NVCF function IDs — verified live 2026-07-09
+# NVCF function IDs — verified live 2026-07-09 (used only in hosted_api mode)
 _FUNCTIONS = {
     # Structure prediction
     "esmfold":            ("a68c59e0-47a6-4a50-bf64-6d88766d56bf", "9150f163-6736-438f-89e8-1564390343e4"),
@@ -43,7 +76,7 @@ _FUNCTIONS = {
     # Protein language models
     "esm2_650m":          ("9e8155ab-97fc-487d-b325-02186064a14c", "5b28b508-a85c-44e0-b2ee-614b76acb4b1"),
     # Genomics foundation models (Arc Institute Evo2)
-    "evo2_7b":            ("aae4817f-f496-4931-bf85-a55a951e9533", "9cf625df-f11c-4311-934b-01e941072041"),
+    "evo2_7b":            ("32343a76-6399-4b7f-964a-79e16d62ec32", "717d486e-6463-4264-b0e3-8ee1775895eb"),
     "evo2_7b_forward":    ("2a5ab2b3-a331-4544-847c-91f102feba64", "f58dea2e-92ef-4729-9d9f-1bbfcecb8ad0"),
     "evo2_40b":           ("de70b31d-cc9c-4b32-917f-e0d4cb49ce20", "87a3b98b-12c1-4597-a686-5831acce3713"),
     "evo2_40b_forward":   ("475da3a9-515e-417e-8c4d-f847c271d2be", "bb89e7fe-a8c0-4cf4-b6b8-e35518ef5c5f"),
@@ -59,32 +92,206 @@ _FUNCTIONS = {
     "vista3d":            ("72311276-923f-4478-a506-d5b80914728a", "bc599fe9-4814-43a2-a5ae-bf98cc9d5755"),
 }
 
+# ── Self-host NIM path map ────────────────────────────────────────────────────
+# Per-model HTTP path appended to BIONEMO_SELF_HOST_URL when a NIM is
+# self-hosted. NIM containers expose a REST route per model; the exact route
+# CAN VARY BY NIM IMAGE. The compose/k8s gateway is expected to publish the
+# models on these paths (or set BIONEMO_SELF_HOST_PATH_<MODEL> to override).
+# These routes follow NVIDIA's published NIM URL conventions but MUST be
+# confirmed against the running NIM's OpenAPI (`/docs`) at provision time —
+# they are NOT asserted as verified here.
+_SELF_HOST_PATHS = {
+    "esmfold":            "/v1/biology/nvidia/esmfold",
+    "alphafold2":         "/protein-structure/alphafold2/predict-structure-from-sequence",
+    "alphafold2_multimer":"/protein-structure/alphafold2/multimer/predict-structure-from-sequences",
+    "boltz2":             "/biology/mit/boltz2/predict",
+    "openfold2":          "/protein-structure/openfold2/predict-structure-from-msa-and-template",
+    "openfold3":          "/protein-structure/openfold3/predict",
+    "rfdiffusion":        "/biology/ipd/rfdiffusion/generate",
+    "proteinmpnn":        "/biology/ipd/proteinmpnn/predict",
+    "esm2_650m":          "/biology/nvidia/esm2-650m/infer",
+    "evo2_7b":            "/biology/arc/evo2-7b/generate",
+    "evo2_7b_forward":    "/biology/arc/evo2-7b/forward",
+    "evo2_40b":           "/biology/arc/evo2-40b/generate",
+    "evo2_40b_forward":   "/biology/arc/evo2-40b/forward",
+    "diffdock":           "/biology/mit/diffdock/generate",
+    "genmol":             "/biology/nvidia/genmol/generate",
+    "molmim":             "/biology/nvidia/molmim/generate",
+    "moflow":             "/biology/nvidia/moflow/generate",
+    "msa_search":         "/biology/colabfold/msa-search/predict",
+    "vista3d":            "/vista3d/inference",
+}
+
+
+def _resolve_mode(mode: Optional[str], self_host_url: str, api_key: str) -> str:
+    """Resolve the effective client mode from explicit arg / env / auto-detect."""
+    raw = (mode or os.environ.get("BIONEMO_MODE", "")).strip().lower()
+    if raw in _VALID_MODES:
+        return raw
+    if raw:
+        log.warning("BIONEMO_MODE=%r is not one of %s — auto-detecting instead",
+                    raw, _VALID_MODES)
+    # Auto-detect: self-host wins if a base URL is configured, else hosted API
+    # if a key is present, else stub.
+    if self_host_url:
+        return MODE_SELF_HOST
+    if api_key:
+        return MODE_HOSTED_API
+    return MODE_STUB
+
 
 class BioNeMoClient:
-    """Thin client for NVIDIA BioNeMo NIM biology models."""
+    """Thin client for NVIDIA BioNeMo NIM biology models (self-host / hosted / stub)."""
 
     def __init__(self, api_key: Optional[str] = None, timeout: int = 300,
-                 poll_interval: int = 5):
+                 poll_interval: int = 5, mode: Optional[str] = None,
+                 self_host_url: Optional[str] = None):
         self.api_key = api_key or os.environ.get("NVIDIA_API_KEY", "")
-        if not self.api_key:
-            raise ValueError("NVIDIA_API_KEY not set")
+        self.self_host_url = (
+            self_host_url
+            if self_host_url is not None
+            else os.environ.get("BIONEMO_SELF_HOST_URL", "")
+        ).rstrip("/")
+        self.mode = _resolve_mode(mode, self.self_host_url, self.api_key)
         self.timeout = timeout
         self.poll_interval = poll_interval
-        self._session = requests.Session()
-        self._session.headers.update({
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        })
 
-    # ── Low-level NVCF call with polling ─────────────────────────────────────
+        # NOTE: the constructor NEVER raises on a missing key/URL. In stub mode
+        # (and self_host mode, which needs no key) that would break the graceful
+        # fallback the consumers rely on. Reachability is surfaced via health().
+        self._session = requests.Session()
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        self._session.headers.update(headers)
+
+        if self.mode == MODE_HOSTED_API and not self.api_key:
+            log.warning("BioNeMoClient in hosted_api mode but NVIDIA_API_KEY is "
+                        "unset — calls will fall back to stub shapes")
+        if self.mode == MODE_SELF_HOST and not self.self_host_url:
+            log.warning("BioNeMoClient in self_host mode but BIONEMO_SELF_HOST_URL "
+                        "is unset — calls will fall back to stub shapes")
+
+    # ── Mode / reachability helpers ──────────────────────────────────────────
+
+    def _effective_mode(self) -> str:
+        """
+        The mode actually used for a call. If the selected backend is
+        unconfigured we degrade to stub so callers get honest empty shapes
+        rather than a network error.
+        """
+        if self.mode == MODE_HOSTED_API and not self.api_key:
+            return MODE_STUB
+        if self.mode == MODE_SELF_HOST and not self.self_host_url:
+            return MODE_STUB
+        return self.mode
+
+    def _self_host_path(self, model: str) -> str:
+        override = os.environ.get(f"BIONEMO_SELF_HOST_PATH_{model.upper()}")
+        if override:
+            return override
+        return _SELF_HOST_PATHS.get(model, f"/{model}")
+
+    @staticmethod
+    def _stub_reason(model: str, mode: str) -> str:
+        if mode == MODE_STUB:
+            return (f"BioNeMo unreachable for {model!r}: no backend configured "
+                    f"(set BIONEMO_MODE=self_host + BIONEMO_SELF_HOST_URL, or "
+                    f"BIONEMO_MODE=hosted_api + NVIDIA_API_KEY)")
+        return f"BioNeMo stub for {model!r} in mode {mode}"
+
+    # ── Dispatch: one entry point for all models ─────────────────────────────
+
+    def _call(self, model: str, payload: dict, poll_seconds: int = 60) -> dict:
+        """
+        Route a model call to the effective backend.
+
+        Returns the backend's raw JSON dict on success, or a stub dict of the
+        form ``{"_stub": True, "reason": "...", "model": model}`` when the
+        backend is not configured. Method wrappers below adapt this to each
+        model's documented return shape. Never fabricates model outputs.
+        """
+        eff = self._effective_mode()
+        if eff == MODE_STUB:
+            return {"_stub": True, "model": model,
+                    "reason": self._stub_reason(model, eff)}
+        if eff == MODE_SELF_HOST:
+            return self._self_host_call(model, payload)
+        # hosted_api
+        if model not in _FUNCTIONS:
+            raise RuntimeError(f"BioNeMo hosted_api: no NVCF function id for {model!r}")
+        return self._nvcf_call(model, payload, poll_seconds=poll_seconds)
+
+    # ── Self-host NIM call ───────────────────────────────────────────────────
+
+    def _self_host_call(self, model: str, payload: dict) -> dict:
+        """
+        POST to a self-hosted NIM container. NIM images may respond
+        synchronously (200) or, for long jobs, use a 202 + task-polling
+        protocol; we handle both without fabricating a result.
+        """
+        url = f"{self.self_host_url}{self._self_host_path(model)}"
+        try:
+            resp = self._session.post(url, json=payload, timeout=self.timeout)
+        except requests.RequestException as exc:
+            # Unreachable self-host → honest stub shape, NOT a fabricated result.
+            log.warning("BioNeMo self-host unreachable for %s at %s: %s",
+                        model, url, exc)
+            return {"_stub": True, "model": model,
+                    "reason": f"self-host unreachable at {url}: {exc}"}
+
+        if resp.status_code == 200:
+            return resp.json()
+
+        if resp.status_code == 202:
+            # NIM async task pattern: poll the status/task URL from the header.
+            task_url = (resp.headers.get("nvcf-reqid")
+                        or resp.headers.get("x-task-id")
+                        or resp.headers.get("location"))
+            if not task_url:
+                try:
+                    return resp.json()
+                except Exception:
+                    return {"_stub": True, "model": model,
+                            "reason": "self-host 202 with no task handle"}
+            return self._self_host_poll(model, task_url)
+
+        try:
+            err = resp.json()
+        except Exception:
+            err = resp.text[:300]
+        raise RuntimeError(f"BioNeMo self-host {model} error {resp.status_code}: {err}")
+
+    def _self_host_poll(self, model: str, task_url: str) -> dict:
+        # If the header is a full URL use it, else assume a task-id under the base.
+        if not task_url.startswith("http"):
+            task_url = f"{self.self_host_url}/v1/tasks/{task_url}"
+        deadline = time.time() + self.timeout
+        while time.time() < deadline:
+            r = self._session.get(task_url, timeout=30)
+            if r.status_code == 200:
+                return r.json()
+            if r.status_code == 202:
+                time.sleep(self.poll_interval)
+                continue
+            raise RuntimeError(f"self-host poll {model} error {r.status_code}: {r.text[:300]}")
+        raise TimeoutError(f"self-host {model} task did not complete within {self.timeout}s")
+
+    # ── Low-level NVCF call with polling (hosted_api mode) ────────────────────
 
     def _nvcf_call(self, model: str, payload: dict, poll_seconds: int = 60) -> dict:
         """
         POST to NVCF function; handle both sync (200) and async (202) responses.
         202 responses use NVCF-REQID + polling until 200/error.
         """
-        fn_id, ver_id = _FUNCTIONS[model]
-        url = f"{_NVCF_BASE}/{fn_id}/versions/{ver_id}"
+        # Invoke by function id only — NVCF then routes to the function's latest
+        # ACTIVE version. Pinning a specific version id (…/versions/{ver_id}) is
+        # brittle: NVIDIA rotates/deprecates versions, and a pinned-but-retired
+        # version 404s ("version … not found for account") even when the function
+        # is live. (The version ids in _FUNCTIONS are kept only as documentation
+        # of the last-known-good version.)
+        fn_id = _FUNCTIONS[model][0]
+        url = f"{_NVCF_BASE}/{fn_id}"
         headers = {"NVCF-POLL-SECONDS": str(poll_seconds)}
 
         resp = self._session.post(url, json=payload, headers=headers,
@@ -118,15 +325,29 @@ class BioNeMoClient:
             raise RuntimeError(f"NVCF poll error {r.status_code}: {r.text[:300]}")
         raise TimeoutError(f"NVCF request {req_id} did not complete within {self.timeout}s")
 
+    @staticmethod
+    def _is_stub(raw: dict) -> bool:
+        return isinstance(raw, dict) and raw.get("_stub") is True
+
     # ── Structure Prediction ──────────────────────────────────────────────────
 
     def esmfold(self, sequence: str) -> str:
         """
         Predict protein structure from sequence via ESMFold.
-        Returns PDB string.
-
-        Schema: POST https://health.api.nvidia.com/v1/biology/nvidia/esmfold
+        Returns PDB string ('' when the backend is unreachable — never a
+        fabricated structure).
         """
+        eff = self._effective_mode()
+        if eff == MODE_STUB:
+            log.info("esmfold: %s", self._stub_reason("esmfold", eff))
+            return ""
+        if eff == MODE_SELF_HOST:
+            raw = self._self_host_call("esmfold", {"sequence": sequence})
+            if self._is_stub(raw):
+                return ""
+            pdbs = raw.get("pdbs", [])
+            return pdbs[0] if pdbs else raw.get("pdb", "")
+        # hosted_api: dedicated health endpoint
         url = f"{_HEALTH_BASE}/esmfold"
         resp = self._session.post(url, json={"sequence": sequence}, timeout=self.timeout)
         if resp.status_code != 200:
@@ -140,6 +361,8 @@ class BioNeMoClient:
         """
         Structure prediction via Boltz-2 (AF3-class, fast).
         Returns dict with: structures (CIF), confidence_scores, ptm_scores, iptm_scores.
+        On an unreachable backend, returns a stub dict (``_stub``/``reason``)
+        with those keys empty — never a fabricated structure.
 
         molecule_type: 'protein' | 'dna' | 'rna'
         ligand_smiles: optional SMILES for protein-ligand complex prediction
@@ -147,15 +370,16 @@ class BioNeMoClient:
         polymers = [{"sequence": sequence, "molecule_type": molecule_type}]
         if ligand_smiles:
             polymers.append({"sequence": ligand_smiles, "molecule_type": "ligand"})
-        return self._nvcf_call("boltz2", {"polymers": polymers})
+        raw = self._call("boltz2", {"polymers": polymers})
+        return raw  # shape passthrough; consumers read structures/confidence keys
 
     def alphafold2(self, sequence: str) -> dict:
-        """AlphaFold2 structure prediction. Returns structure dict."""
-        return self._nvcf_call("alphafold2", {"sequence": sequence})
+        """AlphaFold2 structure prediction. Returns structure dict (stub when unreachable)."""
+        return self._call("alphafold2", {"sequence": sequence})
 
     def alphafold2_multimer(self, sequences: list) -> dict:
         """AlphaFold2-Multimer for protein complexes. sequences = list of chain seqs."""
-        return self._nvcf_call("alphafold2_multimer", {"sequences": sequences})
+        return self._call("alphafold2_multimer", {"sequences": sequences})
 
     # ── Backbone & Sequence Design ────────────────────────────────────────────
 
@@ -174,7 +398,8 @@ class BioNeMoClient:
         hotspot_res: comma-separated hotspot residues e.g. "A163,A167,A168"
         num_designs: number of backbone designs to generate
 
-        Returns dict with 'output_pdb' key (designed backbone PDB string).
+        Returns dict with 'output_pdb' key (designed backbone PDB string), or a
+        stub dict when the backend is unreachable.
         """
         payload: dict = {"contigs": contigs, "num_designs": num_designs}
         if input_pdb:
@@ -184,7 +409,7 @@ class BioNeMoClient:
         if partial_diffusion:
             payload["partial_diffusion"] = True
             payload["partial_T"] = partial_T
-        return self._nvcf_call("rfdiffusion", payload, poll_seconds=120)
+        return self._call("rfdiffusion", payload, poll_seconds=120)
 
     def proteinmpnn(self, input_pdb: str, num_seq_per_target: int = 8,
                     sampling_temp: list = None,
@@ -201,6 +426,7 @@ class BioNeMoClient:
             mfasta: multi-FASTA string of designed sequences + scores
             scores: list of per-sequence recovery scores
             probs: per-position amino acid probability matrices
+        (or a stub dict when the backend is unreachable).
         """
         if sampling_temp is None:
             sampling_temp = [0.1]
@@ -211,7 +437,7 @@ class BioNeMoClient:
         }
         if chains_to_design:
             payload["chains_to_design"] = chains_to_design
-        return self._nvcf_call("proteinmpnn", payload)
+        return self._call("proteinmpnn", payload)
 
     # ── Genomics Foundation Models (Evo2) ────────────────────────────────────
 
@@ -225,11 +451,12 @@ class BioNeMoClient:
         temperature: sampling temperature (1.0 = default, lower = more conservative)
         model: 'evo2_7b' (fast) or 'evo2_40b' (flagship, 40B params)
 
-        Returns dict with: sequence (generated DNA), elapsed_ms
+        Returns dict with: sequence (generated DNA), elapsed_ms — or a stub dict
+        with an empty 'sequence' when the backend is unreachable.
         """
         if model not in ("evo2_7b", "evo2_40b", "evo2_7b_forward", "evo2_40b_forward"):
             raise ValueError(f"Unknown Evo2 model: {model}")
-        return self._nvcf_call(model, {
+        return self._call(model, {
             "sequence": sequence,
             "num_tokens": num_tokens,
             "temperature": temperature,
@@ -241,9 +468,9 @@ class BioNeMoClient:
         """
         Protein sequence embeddings via ESM2-650M.
         sequences: list of protein sequences.
-        Returns dict with embeddings per sequence.
+        Returns dict with embeddings per sequence (stub when unreachable).
         """
-        return self._nvcf_call("esm2_650m", {"sequences": sequences})
+        return self._call("esm2_650m", {"sequences": sequences})
 
     def msa_search(self, sequence: str,
                    databases: Optional[list] = None) -> dict:
@@ -251,13 +478,13 @@ class BioNeMoClient:
         Multiple sequence alignment search via ColabFold MSA server.
 
         databases: list from ['Uniref30_2302', 'colabfold_envdb_202108', 'PDB70_220313']
-        Returns dict with A3M alignments per database.
+        Returns dict with A3M alignments per database (stub when unreachable).
 
         Used as input for AlphaFold2-Multimer and Boltz2.
         """
         if databases is None:
             databases = ["Uniref30_2302"]
-        return self._nvcf_call("msa_search", {
+        return self._call("msa_search", {
             "sequence": sequence,
             "databases": databases,
         })
@@ -273,9 +500,9 @@ class BioNeMoClient:
         protein_pdb: receptor PDB string
         num_poses: number of docked poses to return
 
-        Returns dict with docked poses + confidence scores.
+        Returns dict with docked poses + confidence scores (stub when unreachable).
         """
-        return self._nvcf_call("diffdock", {
+        return self._call("diffdock", {
             "ligand_file_string": ligand_smiles,
             "protein_file_string": protein_pdb,
             "num_poses": num_poses,
@@ -290,12 +517,15 @@ class BioNeMoClient:
 
         smiles: seed SMILES (use '' for unconditional generation)
         Returns list of dicts: [{"smiles": "...", "score": float}, ...]
+        (empty list when the backend is unreachable — never fabricated molecules).
         """
-        result = self._nvcf_call("genmol", {
+        result = self._call("genmol", {
             "smi": smiles,
             "num_molecules": num_molecules,
             "unique": unique,
         })
+        if self._is_stub(result):
+            return []
         return result.get("molecules", [])
 
     def molmim(self, smiles: str, num_molecules: int = 10) -> list:
@@ -304,11 +534,14 @@ class BioNeMoClient:
         Generates molecules similar to the input SMILES.
 
         Returns list of dicts: [{"sample": "SMILES", "score": float}, ...]
+        (empty list when the backend is unreachable).
         """
-        result = self._nvcf_call("molmim", {
+        result = self._call("molmim", {
             "smi": smiles,
             "num_molecules": num_molecules,
         })
+        if self._is_stub(result):
+            return []
         molecules_raw = result.get("molecules", "[]")
         if isinstance(molecules_raw, str):
             return json.loads(molecules_raw)
@@ -318,15 +551,95 @@ class BioNeMoClient:
         """
         Flow-based molecular generation via MoFlow.
         Similar to MolMIM but different latent space.
+        Returns empty list when the backend is unreachable.
         """
-        result = self._nvcf_call("moflow", {
+        result = self._call("moflow", {
             "smi": smiles,
             "num_molecules": num_molecules,
         })
+        if self._is_stub(result):
+            return []
         molecules_raw = result.get("molecules", "[]")
         if isinstance(molecules_raw, str):
             return json.loads(molecules_raw)
         return molecules_raw
+
+    # ── Health / status ───────────────────────────────────────────────────────
+
+    def health(self, models: Optional[list] = None,
+               probe: bool = True) -> dict:
+        """
+        Report the client's backend and, in self_host mode, which NIMs are up.
+
+        Returns a dict:
+            {
+              "mode": "self_host" | "hosted_api" | "stub",
+              "effective_mode": <mode actually used for calls>,
+              "self_host_url": "..." | None,
+              "api_key_present": bool,
+              "reachable": bool | None,      # overall backend reachability
+              "models": {                     # per-model status (self_host only)
+                  "boltz2": {"reachable": bool, "detail": "..."}, ...
+              },
+              "reason": "..."                 # when not reachable
+            }
+
+        probe=False skips network probes (config-only view). In stub mode no
+        network is touched regardless of ``probe``. Never fabricates
+        model availability.
+        """
+        eff = self._effective_mode()
+        status: dict = {
+            "mode": self.mode,
+            "effective_mode": eff,
+            "self_host_url": self.self_host_url or None,
+            "api_key_present": bool(self.api_key),
+            "reachable": None,
+            "models": {},
+        }
+
+        if eff == MODE_STUB:
+            status["reachable"] = False
+            status["reason"] = self._stub_reason("<any>", eff)
+            return status
+
+        if not probe:
+            return status
+
+        if eff == MODE_HOSTED_API:
+            # We don't burn an inference call to probe NVCF; presence of a key
+            # is the config gate. Report reachable=None (unknown without a call).
+            status["reachable"] = None
+            status["reason"] = "hosted_api: reachability unknown without an inference call"
+            return status
+
+        # self_host: probe the gateway (and each requested model's route with a
+        # cheap GET, which NIMs typically answer via /docs or a health route).
+        probe_models = models or ["boltz2", "genmol", "molmim", "evo2_7b", "diffdock"]
+        base_ok = None
+        try:
+            r = self._session.get(f"{self.self_host_url}/v1/health/ready", timeout=10)
+            base_ok = r.status_code < 500
+        except requests.RequestException as exc:
+            base_ok = False
+            status["reason"] = f"self-host gateway unreachable: {exc}"
+
+        status["reachable"] = base_ok
+        for m in probe_models:
+            path = self._self_host_path(m)
+            model_url = f"{self.self_host_url}{path}"
+            try:
+                # A GET on the inference route: 200/405/422 all mean the route
+                # exists (the NIM is up); connection errors mean it's down.
+                r = self._session.get(model_url, timeout=10)
+                up = r.status_code in (200, 400, 405, 415, 422)
+                status["models"][m] = {
+                    "reachable": up,
+                    "detail": f"HTTP {r.status_code} at {path}",
+                }
+            except requests.RequestException as exc:
+                status["models"][m] = {"reachable": False, "detail": str(exc)}
+        return status
 
     # ── Convenience: full cyclic peptide chain ────────────────────────────────
 
@@ -343,7 +656,8 @@ class BioNeMoClient:
         num_backbones: number of RFdiffusion backbone scaffolds
         num_sequences_per_backbone: ProteinMPNN sequences per backbone
 
-        Returns list of candidate dicts with sequence + design metadata.
+        Returns list of candidate dicts with sequence + design metadata (empty
+        list when the backend is unreachable).
         """
         ring_min, ring_max = ring_size_range.split(",")
         results = []
@@ -402,7 +716,7 @@ class BioNeMoClient:
 # ── Module-level convenience functions ────────────────────────────────────────
 
 def get_client() -> BioNeMoClient:
-    """Get a BioNeMoClient using env NVIDIA_API_KEY."""
+    """Get a BioNeMoClient using env BIONEMO_MODE / BIONEMO_SELF_HOST_URL / NVIDIA_API_KEY."""
     return BioNeMoClient()
 
 

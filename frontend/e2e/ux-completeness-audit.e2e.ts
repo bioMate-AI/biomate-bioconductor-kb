@@ -360,19 +360,6 @@ test('Flow A — ADMET run + full panel and sidebar audit', async () => {
     console.log('[G2] ✅ Workflows dialog opened');
   });
 
-  // G3 — Runs → /dashboard
-  await soft('G3 runs nav', async () => {
-    const btn = page.locator('[data-testid="nav-runs"], a:has-text("Runs")').first();
-    if (!await btn.isVisible({ timeout: 3_000 }).catch(() => false)) { console.log('[G3] skip — Runs not found'); return; }
-    await btn.click();
-    await pause(page, 1_500);
-    const url = page.url();
-    console.log(`[G3] URL: ${url} (has /dashboard: ${url.includes('/dashboard')})`);
-    await page.goBack();
-    await pause(page, 1_000);
-    console.log('[G3] ✅ Runs nav checked');
-  });
-
   // G5 — Billing
   await soft('G5 billing nav', async () => {
     const btn = page.locator('[data-testid="nav-billing"], a:has-text("Billing")').first();

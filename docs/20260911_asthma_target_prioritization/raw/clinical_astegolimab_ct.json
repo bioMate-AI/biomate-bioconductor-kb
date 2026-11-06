@@ -1,0 +1,5019 @@
+{
+  "studies": [
+    {
+      "protocolSection": {
+        "identificationModule": {
+          "nctId": "NCT02918019",
+          "orgStudyIdInfo": {
+            "id": "GB39242"
+          },
+          "secondaryIdInfos": [
+            {
+              "id": "2016-001549-13",
+              "type": "EUDRACT_NUMBER"
+            },
+            {
+              "id": "2016",
+              "type": "NIH",
+              "link": "https://reporter.nih.gov/quickSearch/2016"
+            }
+          ],
+          "organization": {
+            "fullName": "Hoffmann-La Roche",
+            "class": "INDUSTRY"
+          },
+          "briefTitle": "A Study to Assess the Efficacy and Safety of MSTT1041A in Participants With Uncontrolled Severe Asthma",
+          "officialTitle": "A Phase IIb, Randomized, Double-Blind, Placebo-Controlled, Multicenter, Dose-Ranging Study to Assess the Efficacy and Safety of MSTT1041A in Patients With Uncontrolled Severe Asthma"
+        },
+        "statusModule": {
+          "statusVerifiedDate": "2022-11",
+          "overallStatus": "COMPLETED",
+          "expandedAccessInfo": {
+            "hasExpandedAccess": false
+          },
+          "startDateStruct": {
+            "date": "2016-09-20",
+            "type": "ACTUAL"
+          },
+          "primaryCompletionDateStruct": {
+            "date": "2019-04-05",
+            "type": "ACTUAL"
+          },
+          "completionDateStruct": {
+            "date": "2019-07-26",
+            "type": "ACTUAL"
+          },
+          "studyFirstSubmitDate": "2016-09-27",
+          "studyFirstSubmitQcDate": "2016-09-27",
+          "studyFirstPostDateStruct": {
+            "date": "2016-09-28",
+            "type": "ESTIMATED"
+          },
+          "resultsFirstSubmitDate": "2022-03-31",
+          "resultsFirstSubmitQcDate": "2022-11-21",
+          "resultsFirstPostDateStruct": {
+            "date": "2022-12-28",
+            "type": "ACTUAL"
+          },
+          "dispFirstSubmitDate": "2020-04-02",
+          "dispFirstSubmitQcDate": "2020-04-02",
+          "dispFirstPostDateStruct": {
+            "date": "2020-04-08",
+            "type": "ACTUAL"
+          },
+          "lastUpdateSubmitDate": "2022-11-21",
+          "lastUpdatePostDateStruct": {
+            "date": "2022-12-28",
+            "type": "ACTUAL"
+          }
+        },
+        "sponsorCollaboratorsModule": {
+          "responsibleParty": {
+            "type": "SPONSOR"
+          },
+          "leadSponsor": {
+            "name": "Hoffmann-La Roche",
+            "class": "INDUSTRY"
+          }
+        },
+        "oversightModule": {
+          "oversightHasDmc": true
+        },
+        "descriptionModule": {
+          "briefSummary": "This is a Phase IIb, randomized, placebo-controlled, double-blind, multicenter, multi-arm study which will evaluate efficacy, safety, and pharmacokinetic of MSTT1041A compared with placebo as add-on therapy in participants with severe, uncontrolled asthma who are receiving medium- or high-dose inhaled corticosteroid (ICS) therapy and at least one of the following additional controller medications: long-acting beta-agonists (LABA), leukotriene modifier (LTM), long-acting muscarinic antagonist (LAMA), or long-acting theophylline preparation. The total duration of this study for each participant is approximately 70 weeks including screening, run-in, treatment, and follow-up."
+        },
+        "conditionsModule": {
+          "conditions": [
+            "Asthma"
+          ]
+        },
+        "designModule": {
+          "studyType": "INTERVENTIONAL",
+          "phases": [
+            "PHASE2"
+          ],
+          "designInfo": {
+            "allocation": "RANDOMIZED",
+            "interventionModel": "PARALLEL",
+            "primaryPurpose": "TREATMENT",
+            "maskingInfo": {
+              "masking": "DOUBLE",
+              "whoMasked": [
+                "PARTICIPANT",
+                "INVESTIGATOR"
+              ]
+            }
+          },
+          "enrollmentInfo": {
+            "count": 517,
+            "type": "ACTUAL"
+          }
+        },
+        "armsInterventionsModule": {
+          "armGroups": [
+            {
+              "label": "MSTT1041A 210 mg",
+              "type": "EXPERIMENTAL",
+              "description": "Participants will receive MSTT1041A 210 milligrams (mg), subcutaneously every 4 weeks from randomization through Week 50.",
+              "interventionNames": [
+                "Drug: MSTT1041A"
+              ]
+            },
+            {
+              "label": "MSTT1041A 490 mg",
+              "type": "EXPERIMENTAL",
+              "description": "Participants will receive MSTT1041A 490 mg, subcutaneously every 4 weeks from randomization through Week 50.",
+              "interventionNames": [
+                "Drug: MSTT1041A"
+              ]
+            },
+            {
+              "label": "MSTT1041A 70 mg",
+              "type": "EXPERIMENTAL",
+              "description": "Participants will receive MSTT1041A 70 mg, subcutaneously every 4 weeks from randomization through Week 50.",
+              "interventionNames": [
+                "Drug: MSTT1041A"
+              ]
+            },
+            {
+              "label": "Placebo",
+              "type": "PLACEBO_COMPARATOR",
+              "description": "Participants will receive placebo matched with MSTT1041A, subcutaneously every 4 weeks from randomization through Week 50.",
+              "interventionNames": [
+                "Drug: Placebo"
+              ]
+            }
+          ],
+          "interventions": [
+            {
+              "type": "DRUG",
+              "name": "MSTT1041A",
+              "description": "MSTT1041A will be administered as subcutaneous injections.",
+              "armGroupLabels": [
+                "MSTT1041A 210 mg",
+                "MSTT1041A 490 mg",
+                "MSTT1041A 70 mg"
+              ],
+              "otherNames": [
+                "RO7187807"
+              ]
+            },
+            {
+              "type": "DRUG",
+              "name": "Placebo",
+              "description": "Placebo matched with MSTT1041A.",
+              "armGroupLabels": [
+                "Placebo"
+              ]
+            }
+          ]
+        },
+        "outcomesModule": {
+          "primaryOutcomes": [
+            {
+              "measure": "Reduction in Rate of Asthma Exacerbations",
+              "description": "Asthma exacerbation was defined as new or increased asthma symptoms (wheezing, coughing, dyspnea, chest tightness, and/or nighttime awakenings due to these symptoms) that result in one or both of the following: Hospitalization or emergency department visit with administration of systemic corticosteroid treatment; Treatment with systemic corticosteroids for at least 3 days, or a long-acting depot corticosteroid preparation with a therapeutic effectiveness of at least 3 days.\n\nAdjusted rates for the overall mITT population (all participants that received at least one dose of study drug) were estimated using Poisson regression and adjusted for blood eosinophil level at the first visit, the number of asthma exacerbations requiring systemic corticosteroids in the 12 months prior to study entry, the total daily ICS dose at the first visit, and geographic region, with patient time at risk used as an offset term.",
+              "timeFrame": "Baseline to Week 54"
+            }
+          ],
+          "secondaryOutcomes": [
+            {
+              "measure": "Absolute Change in Pre-Bronchodilator Forced Expiratory Volume in 1 Second (FEV1)",
+              "description": "FEV1 measures how much air a person can exhale during the first second of a forced breath.\n\nAdjusted means are reported.",
+              "timeFrame": "Baseline to Week 54"
+            },
+            {
+              "measure": "Time to First Asthma Exacerbation",
+              "description": "Asthma exacerbation was defined as new or increased asthma symptoms (wheezing, coughing, dyspnea, chest tightness, and/or nighttime awakenings due to these symptoms) that result in one or both of the following: Hospitalization or emergency department visit with administration of systemic corticosteroid treatment; Treatment with systemic corticosteroids for at least 3 days, or a long-acting depot corticosteroid preparation with a therapeutic effectiveness of at least 3 days.",
+              "timeFrame": "52 Weeks"
+            },
+            {
+              "measure": "Achievement in Improvement in Standardized Asthma Quality-of-Life Questionnaire (AQLQ(S)) Score",
+              "description": "The AQLQ measures the functional problems (physical, emotional, social, and occupational) most troublesome to adults (17-70 years) with asthma. There are 32 questions in 4 domains - symptoms, activity limitation, emotional function, and environmental stimuli - scored on a 7 point scale, with 7= no impairment and 1= severely impaired. For this study, improvement achievement was defined as an increase of at least 0.5 points from baseline to week 54.\n\nAdjusted rates are reported.",
+              "timeFrame": "Week 54"
+            },
+            {
+              "measure": "Absolute Change in Patient-Reported Use of Short-Acting Rescue Therapy",
+              "description": "Adjusted mean values are all equal to zero.",
+              "timeFrame": "Baseline to Week 54"
+            },
+            {
+              "measure": "Proportion of Weeks Without Patient-Reported Asthma-Related Nighttime Awakenings",
+              "description": "The adjusted mean proportion of weeks without a nighttime awakening from baseline through week 54 are reported. The proportion of weeks is expressed as a percentage.",
+              "timeFrame": "Baseline through Week 54"
+            },
+            {
+              "measure": "Absolute Change in Patient-Reported Daytime Asthma Symptom Severity as Measured by the Asthma Daily Symptom Diary (ADSD)",
+              "description": "The ADSD is a 6-item daily measure of asthma symptom severity that assesses three core categories of asthma symptoms: breathing symptoms, chest symptoms, and cough. Symptoms are rated at their worst using an 11-point numeric rating scale ranging from 0 (no symptoms) to 10 (the worst symptoms imaginable).\n\nAdjusted means are reported.",
+              "timeFrame": "Baseline to Week 54"
+            },
+            {
+              "measure": "Percentage of Participants With Adverse Events",
+              "description": "An adverse event is any untoward medical occurrence in a participant administered a pharmaceutical product and which does not necessarily have to have a causal relationship with the treatment. An adverse event can therefore be any unfavorable and unintended sign (including an abnormal laboratory finding, for example), symptom, or disease temporally associated with the use of a pharmaceutical product, whether or not considered related to the pharmaceutical product. Preexisting conditions which worsen during a study are also considered as adverse events.",
+              "timeFrame": "Baseline to Week 54"
+            },
+            {
+              "measure": "Percentage of Participants With Anti-Drug Antibodies (ADAs)",
+              "description": "The prevalence of ADAs at baseline was defined as the proportion of the evaluable participant population in a study that is ADA positive at baseline.",
+              "timeFrame": "Baseline"
+            },
+            {
+              "measure": "Serum Concentration of Astegolimab (MSTT1041A)",
+              "timeFrame": "Weeks 26 and 54"
+            },
+            {
+              "measure": "Percentage of Participants With Treatment-Emergent ADAs",
+              "description": "The incidence of ADAs at post-baseline timepoints was defined as the proportion of the study population found to have developed treatment-emergent ADAs.",
+              "timeFrame": "From baseline to the first appearance of ADAs at any point post-baseline (up to Week 54)"
+            }
+          ]
+        },
+        "eligibilityModule": {
+          "eligibilityCriteria": "Inclusion Criteria:\n\n* Body mass index (BMI) of 18 to 38 kilogram/square meter (kg/m\\^2) and weight \\>= 40 kg at screening\n* Documented physician-diagnosed asthma\n* On high dose inhaled corticosteroid (ICS) therapy plus at least one additional allowed controller medication\n* Forced expiratory volume in 1 second (FEV1) of 40% to 80% of predicted\n* Evidence of uncontrolled asthma\n* Use of contraceptive measures\n\nExclusion Criteria:\n\n* Diagnosis of mimics of asthma\n* Diagnosis of occupational asthma, aspirin-sensitive asthma, asthma chronic obstructive pulmonary disease overlap syndrome, or bronchiolitis, as determined by the investigator\n* Pregnant or lactating, or intending to become pregnant during the study or within 20 weeks after the last dose of MSTT1041A\n* Recent history of smoking\n* History or evidence of substance abuse that would pose a risk to participants safety, interfere with the conduct of the study, have an impact on the study results\n* Asthma exacerbation within 4 weeks prior to screening\n* Intubation for respiratory failure due to asthma within 12 months prior to screening\n* Comorbid conditions that may interfere with evaluation of investigational medicinal product\n* Known sensitivity to any of the active substances or their excipients to be administered during dosing\n* Positive pregnancy test",
+          "healthyVolunteers": false,
+          "sex": "ALL",
+          "minimumAge": "18 Years",
+          "maximumAge": "75 Years",
+          "stdAges": [
+            "ADULT",
+            "OLDER_ADULT"
+          ]
+        },
+        "contactsLocationsModule": {
+          "overallOfficials": [
+            {
+              "name": "Clinical Trials",
+              "affiliation": "Hoffmann-La Roche",
+              "role": "STUDY_DIRECTOR"
+            }
+          ],
+          "locations": [
+            {
+              "facility": "Alabama Allergy & Asthma",
+              "city": "Birmingham",
+              "state": "Alabama",
+              "zip": "35209",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.52066,
+                "lon": -86.80249
+              }
+            },
+            {
+              "facility": "Del Sol Research Management",
+              "city": "Tucson",
+              "state": "Arizona",
+              "zip": "85710",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 32.22174,
+                "lon": -110.92648
+              }
+            },
+            {
+              "facility": "Kern Allergy Med Clinic, Inc.",
+              "city": "Bakersfield",
+              "state": "California",
+              "zip": "93301",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 35.37329,
+                "lon": -119.01871
+              }
+            },
+            {
+              "facility": "Allergy & Asthma Care Center of Southern California",
+              "city": "Long Beach",
+              "state": "California",
+              "zip": "90808",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.76696,
+                "lon": -118.18923
+              }
+            },
+            {
+              "facility": "CA Allergy & Asthma Med Grp; Medical Group, Inc.",
+              "city": "Los Angeles",
+              "state": "California",
+              "zip": "90025",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 34.05223,
+                "lon": -118.24368
+              }
+            },
+            {
+              "facility": "Jonathan Corren MD, Inc.",
+              "city": "Los Angeles",
+              "state": "California",
+              "zip": "90025",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 34.05223,
+                "lon": -118.24368
+              }
+            },
+            {
+              "facility": "Office of Robert N Wolfe MD",
+              "city": "Los Angeles",
+              "state": "California",
+              "zip": "90048",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 34.05223,
+                "lon": -118.24368
+              }
+            },
+            {
+              "facility": "Advances in Medicine",
+              "city": "Rancho Mirage",
+              "state": "California",
+              "zip": "92270",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.73974,
+                "lon": -116.41279
+              }
+            },
+            {
+              "facility": "Allergy & Asthma Consultants",
+              "city": "Redwood City",
+              "state": "California",
+              "zip": "94063",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 37.48522,
+                "lon": -122.23635
+              }
+            },
+            {
+              "facility": "Bensch Research Associates",
+              "city": "Stockton",
+              "state": "California",
+              "zip": "95207",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 37.9577,
+                "lon": -121.29078
+              }
+            },
+            {
+              "facility": "Allergy and Asthma Clinical Research, Inc.",
+              "city": "Walnut Creek",
+              "state": "California",
+              "zip": "94598",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 37.90631,
+                "lon": -122.06496
+              }
+            },
+            {
+              "facility": "IMMUNOe Research Centers",
+              "city": "Centennial",
+              "state": "Colorado",
+              "zip": "80112",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 39.57916,
+                "lon": -104.87692
+              }
+            },
+            {
+              "facility": "Asthma & Allergy; Associates, P.C.",
+              "city": "Colorado Springs",
+              "state": "Colorado",
+              "zip": "80907",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 38.83388,
+                "lon": -104.82136
+              }
+            },
+            {
+              "facility": "Western States Clinical Research, Inc",
+              "city": "Wheat Ridge",
+              "state": "Colorado",
+              "zip": "80033",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 39.7661,
+                "lon": -105.07721
+              }
+            },
+            {
+              "facility": "Yale University School Of Medicine",
+              "city": "New Haven",
+              "state": "Connecticut",
+              "zip": "06519",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 41.30815,
+                "lon": -72.92816
+              }
+            },
+            {
+              "facility": "Emerald Coast Research Associates",
+              "city": "Panama City",
+              "state": "Florida",
+              "zip": "32405",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 30.15946,
+                "lon": -85.65983
+              }
+            },
+            {
+              "facility": "Florida Premier Research Institute",
+              "city": "Winter Park",
+              "state": "Florida",
+              "zip": "32789",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 28.6,
+                "lon": -81.33924
+              }
+            },
+            {
+              "facility": "Atlanta Allergy & Asth Clin PC",
+              "city": "Stockbridge",
+              "state": "Georgia",
+              "zip": "30281",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.54428,
+                "lon": -84.23381
+              }
+            },
+            {
+              "facility": "Asthma & Allergy of Idaho",
+              "city": "Twin Falls",
+              "state": "Idaho",
+              "zip": "83301",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 42.56297,
+                "lon": -114.46087
+              }
+            },
+            {
+              "facility": "Asthma, Allergy & Sinus Center",
+              "city": "Baltimore",
+              "state": "Maryland",
+              "zip": "21236",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 39.29038,
+                "lon": -76.61219
+              }
+            },
+            {
+              "facility": "Chesapeake Clinical Research Inc - CRN",
+              "city": "Baltimore",
+              "state": "Maryland",
+              "zip": "21236",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 39.29038,
+                "lon": -76.61219
+              }
+            },
+            {
+              "facility": "Genesis Clinical Research & Consulting, LLC",
+              "city": "Fall River",
+              "state": "Massachusetts",
+              "zip": "02720",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 41.70149,
+                "lon": -71.15505
+              }
+            },
+            {
+              "facility": "Infinity Medical Research Inc",
+              "city": "North Dartmouth",
+              "state": "Massachusetts",
+              "zip": "02747",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 41.63899,
+                "lon": -70.97032
+              }
+            },
+            {
+              "facility": "Midwest Clinical Research LLC",
+              "city": "St Louis",
+              "state": "Missouri",
+              "zip": "63141",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 38.62727,
+                "lon": -90.19789
+              }
+            },
+            {
+              "facility": "The Allergy and Asthma Center",
+              "city": "Bellevue",
+              "state": "Nebraska",
+              "zip": "68123",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 41.13667,
+                "lon": -95.89084
+              }
+            },
+            {
+              "facility": "Montefiore Medical Center",
+              "city": "The Bronx",
+              "state": "New York",
+              "zip": "10461",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 40.84985,
+                "lon": -73.86641
+              }
+            },
+            {
+              "facility": "American Health Research Inc.",
+              "city": "Charlotte",
+              "state": "North Carolina",
+              "zip": "28277",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 35.22709,
+                "lon": -80.84313
+              }
+            },
+            {
+              "facility": "Allergy & Respiratory Center",
+              "city": "Canton",
+              "state": "Ohio",
+              "zip": "44718",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 40.79895,
+                "lon": -81.37845
+              }
+            },
+            {
+              "facility": "Integrity People Services Research Company",
+              "city": "Oklahoma City",
+              "state": "Oklahoma",
+              "zip": "73103",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 35.46756,
+                "lon": -97.51643
+              }
+            },
+            {
+              "facility": "Vital Prospects Clin Res Pc",
+              "city": "Tulsa",
+              "state": "Oklahoma",
+              "zip": "74136",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 36.15398,
+                "lon": -95.99277
+              }
+            },
+            {
+              "facility": "Temple University Hospital",
+              "city": "Philadelphia",
+              "state": "Pennsylvania",
+              "zip": "19140",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 39.95238,
+                "lon": -75.16362
+              }
+            },
+            {
+              "facility": "Asthma & Allergy Physicians of Rhode Island Clinical Research Institute (AAPRI CRI)",
+              "city": "Warwick",
+              "state": "Rhode Island",
+              "zip": "02865",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 41.7001,
+                "lon": -71.41617
+              }
+            },
+            {
+              "facility": "Spartanburg Medical Research",
+              "city": "Spartanburg",
+              "state": "South Carolina",
+              "zip": "29303",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 34.94957,
+                "lon": -81.93205
+              }
+            },
+            {
+              "facility": "Clinical Research Solutions PC",
+              "city": "Knoxville",
+              "state": "Tennessee",
+              "zip": "37920",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 35.96064,
+                "lon": -83.92074
+              }
+            },
+            {
+              "facility": "Meharry Medical College; Clinical Trials Office",
+              "city": "Nashville",
+              "state": "Tennessee",
+              "zip": "37208",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 36.16589,
+                "lon": -86.78444
+              }
+            },
+            {
+              "facility": "TTS Research",
+              "city": "Boerne",
+              "state": "Texas",
+              "zip": "78006",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 29.79466,
+                "lon": -98.73197
+              }
+            },
+            {
+              "facility": "Elliot J. Ginchansky, MD, PA",
+              "city": "Dallas",
+              "state": "Texas",
+              "zip": "75230",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 32.78306,
+                "lon": -96.80667
+              }
+            },
+            {
+              "facility": "Pioneer Research Solutions",
+              "city": "Houston",
+              "state": "Texas",
+              "zip": "077099",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 29.76328,
+                "lon": -95.36327
+              }
+            },
+            {
+              "facility": "Metroplex Pulmonology & Sleep Center",
+              "city": "McKinney",
+              "state": "Texas",
+              "zip": "75069",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.19762,
+                "lon": -96.61527
+              }
+            },
+            {
+              "facility": "Allergy & Asthma Research Center",
+              "city": "San Antonio",
+              "state": "Texas",
+              "zip": "78229",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 29.42412,
+                "lon": -98.49363
+              }
+            },
+            {
+              "facility": "Allergy Associates of Utah",
+              "city": "Murray",
+              "state": "Utah",
+              "zip": "84107",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 40.66689,
+                "lon": -111.88799
+              }
+            },
+            {
+              "facility": "Commonwealth Clinical Research Specialists",
+              "city": "Richmond",
+              "state": "Virginia",
+              "zip": "23226",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 37.55376,
+                "lon": -77.46026
+              }
+            },
+            {
+              "facility": "Washington Univ School of Med",
+              "city": "Seattle",
+              "state": "Washington",
+              "zip": "98195",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 47.60621,
+                "lon": -122.33207
+              }
+            },
+            {
+              "facility": "Fundacion Cidea",
+              "city": "Buenos Aires",
+              "zip": "C1121ABE",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -34.61315,
+                "lon": -58.37723
+              }
+            },
+            {
+              "facility": "INAER",
+              "city": "Buenos Aires",
+              "zip": "C1425BEN",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -34.61315,
+                "lon": -58.37723
+              }
+            },
+            {
+              "facility": "Fundacion Scherbovsky",
+              "city": "Mendoza",
+              "zip": "M5500AYB",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -32.88946,
+                "lon": -68.84582
+              }
+            },
+            {
+              "facility": "INSARES",
+              "city": "Mendoza, Mendoza City",
+              "zip": "M5500CCG",
+              "country": "Argentina"
+            },
+            {
+              "facility": "Centro Respiratorio Quilmes",
+              "city": "Quilmes",
+              "zip": "B1878FNR",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -34.72065,
+                "lon": -58.25454
+              }
+            },
+            {
+              "facility": "Instituto Especialidades de la Salud Rosario",
+              "city": "Rosario",
+              "zip": "S2000DBS",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -32.94682,
+                "lon": -60.63932
+              }
+            },
+            {
+              "facility": "Instituto de Diagn\u00f3stico ABC; Servicio de Investigaci\u00f3n de Patolog\u00edas Al\u00e9rgicas",
+              "city": "Rosario",
+              "zip": "S2000JKE",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -32.94682,
+                "lon": -60.63932
+              }
+            },
+            {
+              "facility": "Centro Modelo de Cardiologia",
+              "city": "San Miguel de Tucum\u00e1n",
+              "zip": "4000",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -26.81601,
+                "lon": -65.21051
+              }
+            },
+            {
+              "facility": "Investigaciones en Patologias Respiratorias",
+              "city": "San Miguel de Tucum\u00e1n",
+              "zip": "T4000IAR",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -26.81601,
+                "lon": -65.21051
+              }
+            },
+            {
+              "facility": "CEMER Centro Medico de Enfermedades Respiratorias",
+              "city": "Vicente L\u00f3pez",
+              "zip": "B1602DQD",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -34.52947,
+                "lon": -58.4737
+              }
+            },
+            {
+              "facility": "Cliniques Universitaires St-Luc",
+              "city": "Brussels",
+              "zip": "1200",
+              "country": "Belgium",
+              "geoPoint": {
+                "lat": 50.85045,
+                "lon": 4.34878
+              }
+            },
+            {
+              "facility": "Private Practice Dr Jean Benoit Martinot",
+              "city": "Erpent",
+              "zip": "5101",
+              "country": "Belgium",
+              "geoPoint": {
+                "lat": 50.45116,
+                "lon": 4.90557
+              }
+            },
+            {
+              "facility": "Military Medical Academy HBAT",
+              "city": "Pleven",
+              "zip": "5800",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 43.41791,
+                "lon": 24.61666
+              }
+            },
+            {
+              "facility": "SHATPPD Dr. Dimitar Gramatikov, Ruse Ltd.",
+              "city": "Rousse",
+              "zip": "7002",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 43.84872,
+                "lon": 25.9534
+              }
+            },
+            {
+              "facility": "Medical Centre Mladost Med 1 EOOD",
+              "city": "Sofia",
+              "zip": "1000",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 42.69751,
+                "lon": 23.32415
+              }
+            },
+            {
+              "facility": "First MHAT; Clinic of Neurology",
+              "city": "Sofia",
+              "zip": "1142",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 42.69751,
+                "lon": 23.32415
+              }
+            },
+            {
+              "facility": "Fifth MHAT - Sofia EAD",
+              "city": "Sofia",
+              "zip": "1233",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 42.69751,
+                "lon": 23.32415
+              }
+            },
+            {
+              "facility": "National Multiprofile Hospital Tsar Boris III",
+              "city": "Sofia",
+              "zip": "1233",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 42.69751,
+                "lon": 23.32415
+              }
+            },
+            {
+              "facility": "Specialised Hospital for Active Treatment of Pulmonary Deseases \"Sv. Sofia\", Third Clinic for Non-Sp",
+              "city": "Sofia",
+              "zip": "1431",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 42.69751,
+                "lon": 23.32415
+              }
+            },
+            {
+              "facility": "Uni. Multiprofile Hosp. for Active Treatment-Aleksandrovska",
+              "city": "Sofia",
+              "zip": "1431",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 42.69751,
+                "lon": 23.32415
+              }
+            },
+            {
+              "facility": "Medical Center N.I. Pirogov EOOD",
+              "city": "Sofia",
+              "zip": "1606",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 42.69751,
+                "lon": 23.32415
+              }
+            },
+            {
+              "facility": "Alitera - Med - Medical Center EOOD",
+              "city": "Sofia",
+              "zip": "1618",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 42.69751,
+                "lon": 23.32415
+              }
+            },
+            {
+              "facility": "Medical Center \"Nov Rehabilitatsionen Tsentar\", EOOD",
+              "city": "Stara Zagora",
+              "zip": "6000",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 42.43205,
+                "lon": 25.64262
+              }
+            },
+            {
+              "facility": "Medical Center Tara OOD",
+              "city": "Veliko Tarnovo",
+              "zip": "5000",
+              "country": "Bulgaria",
+              "geoPoint": {
+                "lat": 43.08124,
+                "lon": 25.62904
+              }
+            },
+            {
+              "facility": "Aggarwal and Associates",
+              "city": "Brampton",
+              "state": "Ontario",
+              "zip": "L6T 0G1",
+              "country": "Canada",
+              "geoPoint": {
+                "lat": 43.68341,
+                "lon": -79.76633
+              }
+            },
+            {
+              "facility": "Cheema Research",
+              "city": "Mississauga",
+              "state": "Ontario",
+              "zip": "L5A 3V4",
+              "country": "Canada",
+              "geoPoint": {
+                "lat": 43.5789,
+                "lon": -79.6583
+              }
+            },
+            {
+              "facility": "Inspiration Research",
+              "city": "Toronto",
+              "state": "Ontario",
+              "zip": "M5T 3A9",
+              "country": "Canada",
+              "geoPoint": {
+                "lat": 43.70643,
+                "lon": -79.39864
+              }
+            },
+            {
+              "facility": "Anil Dhar Professional Medicine Corporation",
+              "city": "Windsor",
+              "state": "Ontario",
+              "zip": "N8X 5A6",
+              "country": "Canada",
+              "geoPoint": {
+                "lat": 42.30008,
+                "lon": -83.01654
+              }
+            },
+            {
+              "facility": "C.I.C. Mauricie",
+              "city": "Trois-Rivi\u00e8res",
+              "state": "Quebec",
+              "zip": "G8T 7A1",
+              "country": "Canada",
+              "geoPoint": {
+                "lat": 46.34515,
+                "lon": -72.5477
+              }
+            },
+            {
+              "facility": "MediTrial s.r.o.",
+              "city": "Jind\u0159ich\u016fv Hradec",
+              "zip": "377 01",
+              "country": "Czechia",
+              "geoPoint": {
+                "lat": 49.14404,
+                "lon": 15.00301
+              }
+            },
+            {
+              "facility": "EUC Klinika Ostrava a.s.",
+              "city": "Ostrava-Poruba",
+              "zip": "708 00",
+              "country": "Czechia"
+            },
+            {
+              "facility": "Ordinace pro tuberkulozu a respiracni nemoci",
+              "city": "Strakonice",
+              "zip": "38601",
+              "country": "Czechia",
+              "geoPoint": {
+                "lat": 49.26141,
+                "lon": 13.90237
+              }
+            },
+            {
+              "facility": "KASMED s.r.o.",
+              "city": "T\u00e1bor",
+              "zip": "390 01",
+              "country": "Czechia",
+              "geoPoint": {
+                "lat": 49.41441,
+                "lon": 14.6578
+              }
+            },
+            {
+              "facility": "Alergologie Teplice, s.r.o.",
+              "city": "Teplice",
+              "zip": "415 01",
+              "country": "Czechia",
+              "geoPoint": {
+                "lat": 50.6404,
+                "lon": 13.82451
+              }
+            },
+            {
+              "facility": "Pneumologisches Forschungsinstitut Hohegeest",
+              "city": "Geesthacht",
+              "zip": "21502",
+              "country": "Germany",
+              "geoPoint": {
+                "lat": 53.4366,
+                "lon": 10.37339
+              }
+            },
+            {
+              "facility": "POIS Leipzig Gbr",
+              "city": "Leipzig",
+              "zip": "04357",
+              "country": "Germany",
+              "geoPoint": {
+                "lat": 51.33962,
+                "lon": 12.37129
+              }
+            },
+            {
+              "facility": "Universit\u00e4tsmedizin der Johannes Gutenberg-Universit\u00e4t Mainz, Medizinische Klinik, Pneumologie",
+              "city": "Mainz",
+              "zip": "55131",
+              "country": "Germany",
+              "geoPoint": {
+                "lat": 49.98185,
+                "lon": 8.28008
+              }
+            },
+            {
+              "facility": "Universitatsklinikum Munster",
+              "city": "M\u00fcnster",
+              "zip": "48149",
+              "country": "Germany",
+              "geoPoint": {
+                "lat": 51.96236,
+                "lon": 7.62571
+              }
+            },
+            {
+              "facility": "Greenlane Clinical Centre",
+              "city": "Auckland",
+              "zip": "1051",
+              "country": "New Zealand",
+              "geoPoint": {
+                "lat": -36.84853,
+                "lon": 174.76349
+              }
+            },
+            {
+              "facility": "Medical Research Institute of New Zealand",
+              "city": "Wellington",
+              "zip": "6021",
+              "country": "New Zealand",
+              "geoPoint": {
+                "lat": -41.28664,
+                "lon": 174.77557
+              }
+            },
+            {
+              "facility": "Clinica Internacional",
+              "city": "Lima",
+              "zip": "Lima 1",
+              "country": "Peru",
+              "geoPoint": {
+                "lat": -12.04318,
+                "lon": -77.02824
+              }
+            },
+            {
+              "facility": "Abk Reuma Srl- Medicentro",
+              "city": "Lima",
+              "zip": "Lima 21",
+              "country": "Peru",
+              "geoPoint": {
+                "lat": -12.04318,
+                "lon": -77.02824
+              }
+            },
+            {
+              "facility": "Clinica Ricardo Palma; THORAX",
+              "city": "Lima",
+              "zip": "Lima 27",
+              "country": "Peru",
+              "geoPoint": {
+                "lat": -12.04318,
+                "lon": -77.02824
+              }
+            },
+            {
+              "facility": "Instituto Peruano de Investigacion en Ciencias Medicas",
+              "city": "Lima",
+              "zip": "Lima 32",
+              "country": "Peru",
+              "geoPoint": {
+                "lat": -12.04318,
+                "lon": -77.02824
+              }
+            },
+            {
+              "facility": "Clinica San Borja",
+              "city": "Lima",
+              "zip": "Lima 41",
+              "country": "Peru",
+              "geoPoint": {
+                "lat": -12.04318,
+                "lon": -77.02824
+              }
+            },
+            {
+              "facility": "Hospital Santa Rosa Piura",
+              "city": "Piura",
+              "zip": "20001",
+              "country": "Peru",
+              "geoPoint": {
+                "lat": -5.18192,
+                "lon": -80.65715
+              }
+            },
+            {
+              "facility": "Centrum Medycyny Oddechowej Robert M. Mr\u00f3z",
+              "city": "Bialystok",
+              "zip": "15-003",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 53.13333,
+                "lon": 23.16433
+              }
+            },
+            {
+              "facility": "Centrum Medyczne ALL-MED",
+              "city": "Krakow",
+              "zip": "30-033",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 50.06143,
+                "lon": 19.93658
+              }
+            },
+            {
+              "facility": "Malopolskie Centrum Alergologii",
+              "city": "Krakow",
+              "zip": "31-624",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 50.06143,
+                "lon": 19.93658
+              }
+            },
+            {
+              "facility": "Niepubliczny Zaklad Opieki Zdrowotnej Centrum Medyczne ProMiMed sp z o.o. sp.k.",
+              "city": "Krakow",
+              "zip": "31-637",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 50.06143,
+                "lon": 19.93658
+              }
+            },
+            {
+              "facility": "SPZOZ Uniwersytecki Szpital Kliniczny nr 1 im. Norberta Barlickiego Uniwersytetu Medycznego w Lodzi",
+              "city": "Lodz",
+              "zip": "90-153",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 51.77058,
+                "lon": 19.47395
+              }
+            },
+            {
+              "facility": "Specjalistyczna Poradnia Pulmonologiczna",
+              "city": "Ostr\u00f3w Wielkopolski",
+              "zip": "63-400",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 51.65501,
+                "lon": 17.80686
+              }
+            },
+            {
+              "facility": "Przedsiebiorstwo Podmiotu Leczniczego Poradnie Specjalistyczne MAGMED",
+              "city": "Radom",
+              "zip": "26-600",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 51.40253,
+                "lon": 21.14714
+              }
+            },
+            {
+              "facility": "ALERGO-MED Specjalistyczna Przychodnia Lekarska Sp. z o. o",
+              "city": "Tarn\u00f3w",
+              "zip": "33-100",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 50.01381,
+                "lon": 20.98698
+              }
+            },
+            {
+              "facility": "Ewa Pisarczyk-Bogacka Specjalistyczna Praktyka Lekarska",
+              "city": "Wroclaw",
+              "zip": "53-301",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 51.10286,
+                "lon": 17.03006
+              }
+            },
+            {
+              "facility": "NZOZ Lekarze Specjali\u015bci J. Ma\u0142olepszy i Partnerzy",
+              "city": "Wroclaw",
+              "zip": "54-239",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 51.10286,
+                "lon": 17.03006
+              }
+            },
+            {
+              "facility": "Theramed SRL",
+              "city": "Brasov",
+              "zip": "16",
+              "country": "Romania",
+              "geoPoint": {
+                "lat": 45.64861,
+                "lon": 25.60613
+              }
+            },
+            {
+              "facility": "Spitalul Clinic de Pneumoftiziologie Leon Daniello Cluj-Napoca, Sectia Clinica Pneumologie I",
+              "city": "Cluj-Napoca",
+              "zip": "400371",
+              "country": "Romania",
+              "geoPoint": {
+                "lat": 46.76667,
+                "lon": 23.6
+              }
+            },
+            {
+              "facility": "Spitalul Clinic de Boli Infectioase si Pneumoftiziologie Victor Babes Craiova",
+              "city": "Craiova",
+              "zip": "200515",
+              "country": "Romania",
+              "geoPoint": {
+                "lat": 44.31667,
+                "lon": 23.8
+              }
+            },
+            {
+              "facility": "Fundatia CardioPrevent",
+              "city": "Timi\u0219oara",
+              "zip": "300134",
+              "country": "Romania",
+              "geoPoint": {
+                "lat": 45.75372,
+                "lon": 21.22571
+              }
+            },
+            {
+              "facility": "Dr. Victor Babes Pneumology and Infectious Diseases Clinical Hospital",
+              "city": "Timi\u0219oara",
+              "zip": "300310",
+              "country": "Romania",
+              "geoPoint": {
+                "lat": 45.75372,
+                "lon": 21.22571
+              }
+            },
+            {
+              "facility": "Clinical Emergency Hospital n.a.N.V. Soloviev",
+              "city": "Yaroslavl",
+              "state": "Moscow Oblast",
+              "zip": "150003",
+              "country": "Russia"
+            },
+            {
+              "facility": "LLC - ABC Medicina",
+              "city": "Moscow",
+              "state": "Sankt-Peterburg",
+              "zip": "117574",
+              "country": "Russia"
+            },
+            {
+              "facility": "City Hospital #5",
+              "city": "Barnaul",
+              "zip": "656045",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 53.36199,
+                "lon": 83.72786
+              }
+            },
+            {
+              "facility": "Municipal Healthcare Institution City Clinical Hospital #3 named after M.A. Podgorbunskogo",
+              "city": "Kemerovo",
+              "zip": "650099",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 55.35417,
+                "lon": 86.10435
+              }
+            },
+            {
+              "facility": "I.M. Sechenov Moscow State Medical University the Ministry of Health and Social Development of RF",
+              "city": "Moscow",
+              "zip": "115446",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 55.75204,
+                "lon": 37.61781
+              }
+            },
+            {
+              "facility": "Novosibirsk Municipal Clinical Hospital For Emergency Medicine #2",
+              "city": "Novosibirsk",
+              "zip": "630008",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 55.02259,
+                "lon": 82.93175
+              }
+            },
+            {
+              "facility": "City Clinical Hospital #2",
+              "city": "Novosibirsk",
+              "zip": "630051",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 55.02259,
+                "lon": 82.93175
+              }
+            },
+            {
+              "facility": "Ryazan State Medical University Named after I.P.Pavlov",
+              "city": "Ryazan",
+              "zip": "390026",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 54.62696,
+                "lon": 39.70415
+              }
+            },
+            {
+              "facility": "Clinic Reavita LLC",
+              "city": "Saint Petersburg",
+              "zip": "194295",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 59.93863,
+                "lon": 30.31413
+              }
+            },
+            {
+              "facility": "SHI Ctr Occupational Pathology",
+              "city": "Saint Petersburg",
+              "zip": "195271",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 59.93863,
+                "lon": 30.31413
+              }
+            },
+            {
+              "facility": "St. Petersburg State Medical University n.a. I.P. Pavlov",
+              "city": "Saint Petersburg",
+              "zip": "197089",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 59.93863,
+                "lon": 30.31413
+              }
+            },
+            {
+              "facility": "City Hospital #40 of Resort Administrative District",
+              "city": "Saint Petersburg",
+              "zip": "197706",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 59.93863,
+                "lon": 30.31413
+              }
+            },
+            {
+              "facility": "Siberian State Medical University",
+              "city": "Tomsk",
+              "zip": "634050",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 56.50049,
+                "lon": 84.98216
+              }
+            },
+            {
+              "facility": "Tiervalei Trial Centre",
+              "city": "Cape Town",
+              "zip": "7530",
+              "country": "South Africa",
+              "geoPoint": {
+                "lat": -33.92584,
+                "lon": 18.42322
+              }
+            },
+            {
+              "facility": "University of Cape Town Lung Institute; Lung Clinical Research",
+              "city": "Cape Town",
+              "zip": "7700",
+              "country": "South Africa",
+              "geoPoint": {
+                "lat": -33.92584,
+                "lon": 18.42322
+              }
+            },
+            {
+              "facility": "St Augustines Hospital; Infectoilogy",
+              "city": "Durban",
+              "zip": "4001",
+              "country": "South Africa",
+              "geoPoint": {
+                "lat": -29.8579,
+                "lon": 31.0292
+              }
+            },
+            {
+              "facility": "Vawda Z.Fa Practice",
+              "city": "Durban",
+              "zip": "4091",
+              "country": "South Africa",
+              "geoPoint": {
+                "lat": -29.8579,
+                "lon": 31.0292
+              }
+            },
+            {
+              "facility": "Aliwal Shoal Medical Center",
+              "city": "eMkhomazi",
+              "zip": "4170",
+              "country": "South Africa",
+              "geoPoint": {
+                "lat": -30.20672,
+                "lon": 30.79641
+              }
+            },
+            {
+              "facility": "Seoul National University Hospital",
+              "city": "Seoul",
+              "zip": "03080",
+              "country": "South Korea",
+              "geoPoint": {
+                "lat": 37.566,
+                "lon": 126.9784
+              }
+            },
+            {
+              "facility": "Severance Hospital, Yonsei University Health System",
+              "city": "Seoul",
+              "zip": "03722",
+              "country": "South Korea",
+              "geoPoint": {
+                "lat": 37.566,
+                "lon": 126.9784
+              }
+            },
+            {
+              "facility": "Asan Medical Center",
+              "city": "Seoul",
+              "zip": "05505",
+              "country": "South Korea",
+              "geoPoint": {
+                "lat": 37.566,
+                "lon": 126.9784
+              }
+            },
+            {
+              "facility": "Regional Municipal Institution Chernivtsi Regional Clinical Hospital",
+              "city": "Chernivtsi",
+              "state": "Chernihiv Governorate",
+              "zip": "58005",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 48.29045,
+                "lon": 25.93241
+              }
+            },
+            {
+              "facility": "Municipal institution; City hospital #1; Department of Therapy",
+              "city": "Zaporizhzhya",
+              "state": "Kherson Governorate",
+              "zip": "69104",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 47.85167,
+                "lon": 35.11714
+              }
+            },
+            {
+              "facility": "Kyiv City Tuberculosis Hospital #1; Department of Differential Diagnosis of Lung Diseases",
+              "city": "Kyiv",
+              "state": "KIEV Governorate",
+              "zip": "02091",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 50.45466,
+                "lon": 30.5238
+              }
+            },
+            {
+              "facility": "Public Institution City Clinical Hospital # 6 of Dnipropetrovsk Regional Board",
+              "city": "Dnipro",
+              "zip": "49000",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 48.46664,
+                "lon": 35.04066
+              }
+            },
+            {
+              "facility": "Ukrainian State Institute of Medical and Social Problems of Disability",
+              "city": "Dnipropetrovsk",
+              "zip": "49027",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 48.46664,
+                "lon": 35.04066
+              }
+            },
+            {
+              "facility": "Regional Phthisiology and Pulmonology Center",
+              "city": "Ivano-Frankivsk",
+              "zip": "76018",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 48.92312,
+                "lon": 24.71248
+              }
+            },
+            {
+              "facility": "SI Institute of Therapy n.a. L.T. Mala of National Academy of Medical Sciences of Ukraine",
+              "city": "Kharkiv",
+              "zip": "61039",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 49.98177,
+                "lon": 36.25475
+              }
+            },
+            {
+              "facility": "SI National Institute of Phthisiology and Pulmonology n.a. F.G.Yanovskyi under NAMS of Ukraine",
+              "city": "Kyiv",
+              "zip": "03680",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 50.45466,
+                "lon": 30.5238
+              }
+            },
+            {
+              "facility": "Municipal Institution of Kyiv Regional Council Kyiv Regional Clinical Hospital",
+              "city": "Kyiv",
+              "zip": "04107",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 50.45466,
+                "lon": 30.5238
+              }
+            },
+            {
+              "facility": "Kyiv City Clinical Hospital #8",
+              "city": "Kyiv",
+              "zip": "04201",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 50.45466,
+                "lon": 30.5238
+              }
+            },
+            {
+              "facility": "City Hospital #1",
+              "city": "Mykolaiv",
+              "zip": "54003",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 50.34135,
+                "lon": 24.97731
+              }
+            },
+            {
+              "facility": "Municipal Institution Odesa Regional Clinical Hospital",
+              "city": "Odesa",
+              "zip": "65025",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 46.48572,
+                "lon": 30.74383
+              }
+            },
+            {
+              "facility": "Small Business Private Enterprise Medical Centre Pulse",
+              "city": "Vinnytsia",
+              "zip": "21001",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 49.2322,
+                "lon": 28.46871
+              }
+            }
+          ]
+        },
+        "referencesModule": {
+          "references": [
+            {
+              "pmid": "36253275",
+              "type": "DERIVED",
+              "citation": "Yin Z, Zhou Y, Turnquist HR, Liu Q. Neuro-epithelial-ILC2 crosstalk in barrier tissues. Trends Immunol. 2022 Nov;43(11):901-916. doi: 10.1016/j.it.2022.09.006. Epub 2022 Oct 14."
+            },
+            {
+              "pmid": "33872652",
+              "type": "DERIVED",
+              "citation": "Kelsen SG, Agache IO, Soong W, Israel E, Chupp GL, Cheung DS, Theess W, Yang X, Staton TL, Choy DF, Fong A, Dash A, Dolton M, Pappu R, Brightling CE. Astegolimab (anti-ST2) efficacy and safety in adults with severe asthma: A randomized clinical trial. J Allergy Clin Immunol. 2021 Sep;148(3):790-798. doi: 10.1016/j.jaci.2021.03.044. Epub 2021 Apr 16."
+            }
+          ]
+        }
+      },
+      "resultsSection": {
+        "participantFlowModule": {
+          "preAssignmentDetails": "Fifteen participants were randomized in error and only 502 of 517 participants received at least one dose of study drug. The 15 participants were not included in further analysis.",
+          "recruitmentDetails": "Adult participants with severe, uncontrolled asthma receiving medium- or high-dose inhaled corticosteroid (ICS) therapy and at least one additional controller medication.",
+          "groups": [
+            {
+              "id": "FG000",
+              "title": "Placebo",
+              "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+            },
+            {
+              "id": "FG001",
+              "title": "Astegolimab (MSTT1041A) 70mg",
+              "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+            },
+            {
+              "id": "FG002",
+              "title": "Astegolimab (MSTT1041A) 210mg",
+              "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+            },
+            {
+              "id": "FG003",
+              "title": "Astegolimab (MSTT1041A) 490mg",
+              "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+            }
+          ],
+          "periods": [
+            {
+              "title": "Overall Study",
+              "milestones": [
+                {
+                  "type": "STARTED",
+                  "achievements": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "127"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "127"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "126"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "122"
+                    }
+                  ]
+                },
+                {
+                  "type": "COMPLETED",
+                  "achievements": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "121"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "117"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "117"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "113"
+                    }
+                  ]
+                },
+                {
+                  "type": "NOT COMPLETED",
+                  "achievements": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "6"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "10"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "9"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "9"
+                    }
+                  ]
+                }
+              ],
+              "dropWithdraws": [
+                {
+                  "type": "Death",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "0"
+                    }
+                  ]
+                },
+                {
+                  "type": "Lost to Follow-up",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "1"
+                    }
+                  ]
+                },
+                {
+                  "type": "Principal investigator request",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "1"
+                    }
+                  ]
+                },
+                {
+                  "type": "Physician Decision",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "3"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "2"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "0"
+                    }
+                  ]
+                },
+                {
+                  "type": "Protocol deviation",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "2"
+                    }
+                  ]
+                },
+                {
+                  "type": "Withdrawal by Subject",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "3"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "4"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "6"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "4"
+                    }
+                  ]
+                },
+                {
+                  "type": "Adverse Event",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "baselineCharacteristicsModule": {
+          "groups": [
+            {
+              "id": "BG000",
+              "title": "Placebo",
+              "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+            },
+            {
+              "id": "BG001",
+              "title": "Astegolimab (MSTT1041A) 70mg",
+              "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+            },
+            {
+              "id": "BG002",
+              "title": "Astegolimab (MSTT1041A) 210mg",
+              "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+            },
+            {
+              "id": "BG003",
+              "title": "Astegolimab (MSTT1041A) 490mg",
+              "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+            },
+            {
+              "id": "BG004",
+              "title": "Total",
+              "description": "Total of all reporting groups"
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "BG000",
+                  "value": "127"
+                },
+                {
+                  "groupId": "BG001",
+                  "value": "127"
+                },
+                {
+                  "groupId": "BG002",
+                  "value": "126"
+                },
+                {
+                  "groupId": "BG003",
+                  "value": "122"
+                },
+                {
+                  "groupId": "BG004",
+                  "value": "502"
+                }
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "title": "Age, Continuous",
+              "paramType": "MEAN",
+              "dispersionType": "STANDARD_DEVIATION",
+              "unitOfMeasure": "years",
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "51.4",
+                          "spread": "12.2"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "52.4",
+                          "spread": "11.9"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "52.5",
+                          "spread": "12.0"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "51.4",
+                          "spread": "12.0"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "51.9",
+                          "spread": "12.0"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Sex: Female, Male",
+              "paramType": "COUNT_OF_PARTICIPANTS",
+              "unitOfMeasure": "Participants",
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "title": "Female",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "82"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "81"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "90"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "79"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "332"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Male",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "45"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "46"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "36"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "43"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "170"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Ethnicity (NIH/OMB)",
+              "paramType": "COUNT_OF_PARTICIPANTS",
+              "unitOfMeasure": "Participants",
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "title": "Hispanic or Latino",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "18"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "19"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "15"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "14"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "66"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Not Hispanic or Latino",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "109"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "108"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "110"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "108"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "435"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Unknown or Not Reported",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "1"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "1"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Race (NIH/OMB)",
+              "paramType": "COUNT_OF_PARTICIPANTS",
+              "unitOfMeasure": "Participants",
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "title": "American Indian or Alaska Native",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "5"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "5"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "8"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "4"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "22"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Asian",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "6"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "4"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "4"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "9"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "23"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Native Hawaiian or Other Pacific Islander",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "0"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Black or African American",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "8"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "9"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "6"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "6"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "29"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "White",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "107"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "105"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "108"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "102"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "422"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "More than one race",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "1"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "4"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "1"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "6"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Unknown or Not Reported",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "0"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "outcomeMeasuresModule": {
+          "outcomeMeasures": [
+            {
+              "type": "SECONDARY",
+              "title": "Absolute Change in Pre-Bronchodilator Forced Expiratory Volume in 1 Second (FEV1)",
+              "description": "FEV1 measures how much air a person can exhale during the first second of a forced breath.\n\nAdjusted means are reported.",
+              "reportingStatus": "POSTED",
+              "paramType": "MEAN",
+              "dispersionType": "95% Confidence Interval",
+              "unitOfMeasure": "Milliliters (mL)",
+              "timeFrame": "Baseline to Week 54",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "120"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "117"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "115"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "113"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "107",
+                          "spread": "47",
+                          "lowerLimit": "47",
+                          "upperLimit": "167"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "130",
+                          "spread": "70",
+                          "lowerLimit": "70",
+                          "upperLimit": "191"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "154",
+                          "spread": "93",
+                          "lowerLimit": "93",
+                          "upperLimit": "215"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "172",
+                          "spread": "110",
+                          "lowerLimit": "110",
+                          "upperLimit": "234"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Time to First Asthma Exacerbation",
+              "description": "Asthma exacerbation was defined as new or increased asthma symptoms (wheezing, coughing, dyspnea, chest tightness, and/or nighttime awakenings due to these symptoms) that result in one or both of the following: Hospitalization or emergency department visit with administration of systemic corticosteroid treatment; Treatment with systemic corticosteroids for at least 3 days, or a long-acting depot corticosteroid preparation with a therapeutic effectiveness of at least 3 days.",
+              "reportingStatus": "POSTED",
+              "paramType": "MEDIAN",
+              "dispersionType": "95% Confidence Interval",
+              "unitOfMeasure": "Weeks",
+              "timeFrame": "52 Weeks",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "127"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "127"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "122"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "NA",
+                          "lowerLimit": "46.6",
+                          "upperLimit": "NA",
+                          "comment": "Value not estimable due to insufficient no. of participants with event"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "NA",
+                          "lowerLimit": "NA",
+                          "upperLimit": "NA",
+                          "comment": "Value not estimable due to insufficient no. of participants with event"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "NA",
+                          "lowerLimit": "NA",
+                          "upperLimit": "NA",
+                          "comment": "Value not estimable due to insufficient no. of participants with event"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "NA",
+                          "lowerLimit": "NA",
+                          "upperLimit": "NA",
+                          "comment": "Value not estimable due to insufficient no. of participants with event"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Achievement in Improvement in Standardized Asthma Quality-of-Life Questionnaire (AQLQ(S)) Score",
+              "description": "The AQLQ measures the functional problems (physical, emotional, social, and occupational) most troublesome to adults (17-70 years) with asthma. There are 32 questions in 4 domains - symptoms, activity limitation, emotional function, and environmental stimuli - scored on a 7 point scale, with 7= no impairment and 1= severely impaired. For this study, improvement achievement was defined as an increase of at least 0.5 points from baseline to week 54.\n\nAdjusted rates are reported.",
+              "reportingStatus": "POSTED",
+              "paramType": "NUMBER",
+              "unitOfMeasure": "Percentage",
+              "timeFrame": "Week 54",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "116"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "116"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "115"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "112"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "title": "Week 54 - Responder",
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "55.3"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "64.8"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "61.3"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "68.9"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "title": "Week 54 - Non-responder",
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "44.7"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "35.2"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "38.7"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "31.1"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Absolute Change in Patient-Reported Use of Short-Acting Rescue Therapy",
+              "description": "Adjusted mean values are all equal to zero.",
+              "reportingStatus": "POSTED",
+              "paramType": "MEAN",
+              "dispersionType": "95% Confidence Interval",
+              "unitOfMeasure": "Usage",
+              "timeFrame": "Baseline to Week 54",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "107"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "106"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "102"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "99"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "0",
+                          "lowerLimit": "0",
+                          "upperLimit": "0"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "0",
+                          "lowerLimit": "0",
+                          "upperLimit": "0"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "0",
+                          "lowerLimit": "0",
+                          "upperLimit": "0"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "0",
+                          "lowerLimit": "0",
+                          "upperLimit": "0"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Proportion of Weeks Without Patient-Reported Asthma-Related Nighttime Awakenings",
+              "description": "The adjusted mean proportion of weeks without a nighttime awakening from baseline through week 54 are reported. The proportion of weeks is expressed as a percentage.",
+              "reportingStatus": "POSTED",
+              "paramType": "MEAN",
+              "dispersionType": "95% Confidence Interval",
+              "unitOfMeasure": "Percentage of weeks",
+              "timeFrame": "Baseline through Week 54",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "127"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "122"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "0.4",
+                          "lowerLimit": "-0.7",
+                          "upperLimit": "1.5"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "0.4",
+                          "lowerLimit": "-0.7",
+                          "upperLimit": "1.5"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "0.3",
+                          "lowerLimit": "-0.7",
+                          "upperLimit": "1.3"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "0.3",
+                          "lowerLimit": "-0.7",
+                          "upperLimit": "1.3"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Absolute Change in Patient-Reported Daytime Asthma Symptom Severity as Measured by the Asthma Daily Symptom Diary (ADSD)",
+              "description": "The ADSD is a 6-item daily measure of asthma symptom severity that assesses three core categories of asthma symptoms: breathing symptoms, chest symptoms, and cough. Symptoms are rated at their worst using an 11-point numeric rating scale ranging from 0 (no symptoms) to 10 (the worst symptoms imaginable).\n\nAdjusted means are reported.",
+              "reportingStatus": "POSTED",
+              "paramType": "MEAN",
+              "dispersionType": "95% Confidence Interval",
+              "unitOfMeasure": "Scores on a scale",
+              "timeFrame": "Baseline to Week 54",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "124"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "125"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "122"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "-1",
+                          "lowerLimit": "-2",
+                          "upperLimit": "-1"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "-2",
+                          "lowerLimit": "-2",
+                          "upperLimit": "-1"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "-1",
+                          "lowerLimit": "-2",
+                          "upperLimit": "-1"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "-1",
+                          "lowerLimit": "-2",
+                          "upperLimit": "-1"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Percentage of Participants With Adverse Events",
+              "description": "An adverse event is any untoward medical occurrence in a participant administered a pharmaceutical product and which does not necessarily have to have a causal relationship with the treatment. An adverse event can therefore be any unfavorable and unintended sign (including an abnormal laboratory finding, for example), symptom, or disease temporally associated with the use of a pharmaceutical product, whether or not considered related to the pharmaceutical product. Preexisting conditions which worsen during a study are also considered as adverse events.",
+              "reportingStatus": "POSTED",
+              "paramType": "NUMBER",
+              "unitOfMeasure": "Percentage",
+              "timeFrame": "Baseline to Week 54",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "127"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "127"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "122"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "77.2"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "70.9"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "72.2"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "72.1"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Percentage of Participants With Anti-Drug Antibodies (ADAs)",
+              "description": "The prevalence of ADAs at baseline was defined as the proportion of the evaluable participant population in a study that is ADA positive at baseline.",
+              "reportingStatus": "POSTED",
+              "paramType": "NUMBER",
+              "unitOfMeasure": "Percentage",
+              "timeFrame": "Baseline",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "124"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "121"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "5.6"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "0.8"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "1.6"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "1.7"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Serum Concentration of Astegolimab (MSTT1041A)",
+              "populationDescription": "The analysis population consisted of all PK-evaluable participants with at least one serum PK collected for the given treatment.",
+              "reportingStatus": "POSTED",
+              "paramType": "GEOMETRIC_MEAN",
+              "dispersionType": "Geometric Coefficient of Variation",
+              "unitOfMeasure": "ug/mL",
+              "timeFrame": "Weeks 26 and 54",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "125"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "117"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "title": "Week 26 pre-dose",
+                  "denoms": [
+                    {
+                      "units": "Participants",
+                      "counts": [
+                        {
+                          "groupId": "OG000",
+                          "value": "120"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "113"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "113"
+                        }
+                      ]
+                    }
+                  ],
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "4.75",
+                          "spread": "123.3"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "16.9",
+                          "spread": "167.3"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "40.5",
+                          "spread": "161.2"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "title": "Week 54",
+                  "denoms": [
+                    {
+                      "units": "Participants",
+                      "counts": [
+                        {
+                          "groupId": "OG000",
+                          "value": "116"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "117"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "111"
+                        }
+                      ]
+                    }
+                  ],
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "4.47",
+                          "spread": "144.1"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "17.4",
+                          "spread": "155.4"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "38.7",
+                          "spread": "226.4"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Percentage of Participants With Treatment-Emergent ADAs",
+              "description": "The incidence of ADAs at post-baseline timepoints was defined as the proportion of the study population found to have developed treatment-emergent ADAs.",
+              "reportingStatus": "POSTED",
+              "paramType": "NUMBER",
+              "unitOfMeasure": "Percentage",
+              "timeFrame": "From baseline to the first appearance of ADAs at any point post-baseline (up to Week 54)",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "125"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "123"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "120"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "7.1"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "9.6"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "8.9"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "3.3"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "PRIMARY",
+              "title": "Reduction in Rate of Asthma Exacerbations",
+              "description": "Asthma exacerbation was defined as new or increased asthma symptoms (wheezing, coughing, dyspnea, chest tightness, and/or nighttime awakenings due to these symptoms) that result in one or both of the following: Hospitalization or emergency department visit with administration of systemic corticosteroid treatment; Treatment with systemic corticosteroids for at least 3 days, or a long-acting depot corticosteroid preparation with a therapeutic effectiveness of at least 3 days.\n\nAdjusted rates for the overall mITT population (all participants that received at least one dose of study drug) were estimated using Poisson regression and adjusted for blood eosinophil level at the first visit, the number of asthma exacerbations requiring systemic corticosteroids in the 12 months prior to study entry, the total daily ICS dose at the first visit, and geographic region, with patient time at risk used as an offset term.",
+              "reportingStatus": "POSTED",
+              "paramType": "NUMBER",
+              "unitOfMeasure": "Number of asthma exacerbations per year",
+              "timeFrame": "Baseline to Week 54",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG001",
+                  "title": "Astegolimab (MSTT1041A) 70mg",
+                  "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG002",
+                  "title": "Astegolimab (MSTT1041A) 210mg",
+                  "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Astegolimab (MSTT1041A) 490mg",
+                  "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "120"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "127"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "126"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "122"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "0.74"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "0.47"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "0.58"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "0.42"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "analyses": [
+                {
+                  "groupIds": [
+                    "OG003"
+                  ],
+                  "nonInferiorityType": "OTHER",
+                  "pValue": "0.0049",
+                  "statisticalMethod": "Poisson regression",
+                  "paramType": "Rate Ratio",
+                  "paramValue": "0.57",
+                  "ciPctValue": "95",
+                  "ciNumSides": "TWO_SIDED",
+                  "ciLowerLimit": "0.39",
+                  "ciUpperLimit": "0.84"
+                },
+                {
+                  "groupIds": [
+                    "OG002"
+                  ],
+                  "nonInferiorityType": "OTHER",
+                  "pValue": "0.1838",
+                  "statisticalMethod": "Poisson regression",
+                  "paramType": "Rate Ratio",
+                  "paramValue": "0.78",
+                  "ciPctValue": "95",
+                  "ciNumSides": "TWO_SIDED",
+                  "ciLowerLimit": "0.54",
+                  "ciUpperLimit": "1.12"
+                },
+                {
+                  "groupIds": [
+                    "OG001"
+                  ],
+                  "nonInferiorityType": "OTHER",
+                  "pValue": "0.0144",
+                  "statisticalMethod": "Poisson regression",
+                  "paramType": "Rate Ratio",
+                  "paramValue": "0.63",
+                  "ciPctValue": "95",
+                  "ciNumSides": "TWO_SIDED",
+                  "ciLowerLimit": "0.44",
+                  "ciUpperLimit": "0.91"
+                }
+              ]
+            }
+          ]
+        },
+        "adverseEventsModule": {
+          "frequencyThreshold": "5",
+          "timeFrame": "Baseline to Week 54",
+          "eventGroups": [
+            {
+              "id": "EG000",
+              "title": "Placebo",
+              "description": "Participants received subcutaneous (SC) placebo matched to astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50.",
+              "deathsNumAffected": 0,
+              "deathsNumAtRisk": 127,
+              "seriousNumAffected": 8,
+              "seriousNumAtRisk": 127,
+              "otherNumAffected": 76,
+              "otherNumAtRisk": 127
+            },
+            {
+              "id": "EG001",
+              "title": "Astegolimab (MSTT1041A) 70mg",
+              "description": "Participants received 70mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50.",
+              "deathsNumAffected": 0,
+              "deathsNumAtRisk": 127,
+              "seriousNumAffected": 14,
+              "seriousNumAtRisk": 127,
+              "otherNumAffected": 65,
+              "otherNumAtRisk": 127
+            },
+            {
+              "id": "EG002",
+              "title": "Astegolimab (MSTT1041A) 210mg",
+              "description": "Participants received 210mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50.",
+              "deathsNumAffected": 1,
+              "deathsNumAtRisk": 126,
+              "seriousNumAffected": 9,
+              "seriousNumAtRisk": 126,
+              "otherNumAffected": 75,
+              "otherNumAtRisk": 126
+            },
+            {
+              "id": "EG003",
+              "title": "Astegolimab (MSTT1041A) 490mg",
+              "description": "Participants received 490mg of SC astegolimab (MSTT1041A) at randomization (Week 2), Week 6, and every 4 weeks (Q4W) thereafter through Week 50.",
+              "deathsNumAffected": 1,
+              "deathsNumAtRisk": 122,
+              "seriousNumAffected": 6,
+              "seriousNumAtRisk": 122,
+              "otherNumAffected": 68,
+              "otherNumAtRisk": 122
+            }
+          ],
+          "seriousEvents": [
+            {
+              "term": "Atrial fibrillation",
+              "organSystem": "Cardiac disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Atrial tachycardia",
+              "organSystem": "Cardiac disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Cataract",
+              "organSystem": "Eye disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Rectal haemorrhage",
+              "organSystem": "Gastrointestinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Chest pain",
+              "organSystem": "General disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Death",
+              "organSystem": "General disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Cholecystitis acute",
+              "organSystem": "Hepatobiliary disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Drug-induced liver injury",
+              "organSystem": "Hepatobiliary disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Hepatotoxicity",
+              "organSystem": "Hepatobiliary disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Anaphylactic reaction",
+              "organSystem": "Immune system disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Bacteraemia",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Cellulitis",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Chronic sinusitis",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Pneumonia",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Pyelonephritis",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Ankle fracture",
+              "organSystem": "Injury, poisoning and procedural complications",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Concussion",
+              "organSystem": "Injury, poisoning and procedural complications",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Pubis fracture",
+              "organSystem": "Injury, poisoning and procedural complications",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Road traffic accident",
+              "organSystem": "Injury, poisoning and procedural complications",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Alanine aminotransferase increased",
+              "organSystem": "Investigations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Aspartate aminotransferase increased",
+              "organSystem": "Investigations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Back pain",
+              "organSystem": "Musculoskeletal and connective tissue disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Osteoarthritis",
+              "organSystem": "Musculoskeletal and connective tissue disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Headache",
+              "organSystem": "Nervous system disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Migraine",
+              "organSystem": "Nervous system disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Syncope",
+              "organSystem": "Nervous system disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Vaginal prolapse",
+              "organSystem": "Reproductive system and breast disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Asthma",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 4,
+                  "numAffected": 4,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Chronic rhinosinusitis with nasal polyps",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Pulmonary embolism",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Vocal cord disorder",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Livedo reticularis",
+              "organSystem": "Skin and subcutaneous tissue disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Deep vein thrombosis",
+              "organSystem": "Vascular disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Hypertension",
+              "organSystem": "Vascular disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Hypertensive crisis",
+              "organSystem": "Vascular disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 122
+                }
+              ]
+            }
+          ],
+          "otherEvents": [
+            {
+              "term": "Injection site reaction",
+              "organSystem": "General disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 3,
+                  "numAffected": 1,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 38,
+                  "numAffected": 10,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 23,
+                  "numAffected": 8,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 107,
+                  "numAffected": 6,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Influenza",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 5,
+                  "numAffected": 5,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 7,
+                  "numAffected": 7,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Nasopharyngitis",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 18,
+                  "numAffected": 13,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 21,
+                  "numAffected": 12,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 30,
+                  "numAffected": 21,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 23,
+                  "numAffected": 16,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Rhinitis",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 8,
+                  "numAffected": 7,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 11,
+                  "numAffected": 7,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 3,
+                  "numAffected": 3,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 3,
+                  "numAffected": 2,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Sinusitis",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 3,
+                  "numAffected": 3,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 9,
+                  "numAffected": 7,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 3,
+                  "numAffected": 3,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 7,
+                  "numAffected": 5,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Upper respiratory tract infection",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 19,
+                  "numAffected": 12,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 10,
+                  "numAffected": 9,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 9,
+                  "numAffected": 8,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 6,
+                  "numAffected": 6,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Arthralgia",
+              "organSystem": "Musculoskeletal and connective tissue disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 3,
+                  "numAffected": 2,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 7,
+                  "numAffected": 7,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 5,
+                  "numAffected": 4,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 4,
+                  "numAffected": 4,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Back pain",
+              "organSystem": "Musculoskeletal and connective tissue disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 8,
+                  "numAffected": 7,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 5,
+                  "numAffected": 5,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 5,
+                  "numAffected": 5,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 4,
+                  "numAffected": 4,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Headache",
+              "organSystem": "Nervous system disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 6,
+                  "numAffected": 6,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 10,
+                  "numAffected": 8,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 7,
+                  "numAffected": 6,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 20,
+                  "numAffected": 14,
+                  "numAtRisk": 122
+                }
+              ]
+            },
+            {
+              "term": "Asthma",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "NON_SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 108,
+                  "numAffected": 58,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 68,
+                  "numAffected": 42,
+                  "numAtRisk": 127
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 83,
+                  "numAffected": 53,
+                  "numAtRisk": 126
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 61,
+                  "numAffected": 39,
+                  "numAtRisk": 122
+                }
+              ]
+            }
+          ]
+        },
+        "moreInfoModule": {
+          "certainAgreement": {
+            "piSponsorEmployee": false,
+            "restrictionType": "OTHER",
+            "restrictiveAgreement": true,
+            "otherDetails": "The Study being conducted under this Agreement is part of the Overall Study. Investigator is free to publish in reputable journals or to present at professional conferences the results of the Study, but only after the first publication or presentation that involves the Overall Study. The Sponsor may request that Confidential Information be deleted and/or the publication be postponed in order to protect the Sponsor's intellectual property rights."
+          },
+          "pointOfContact": {
+            "title": "Medical Comunications",
+            "organization": "Hoffmann-La Roche",
+            "email": "genentech@druginfo.com",
+            "phone": "1-800-821-8590"
+          }
+        }
+      },
+      "documentSection": {
+        "largeDocumentModule": {
+          "largeDocs": [
+            {
+              "typeAbbrev": "Prot",
+              "hasProtocol": true,
+              "hasSap": false,
+              "hasIcf": false,
+              "label": "Study Protocol",
+              "date": "2019-01-23",
+              "uploadDate": "2022-03-31T19:44",
+              "filename": "Prot_000.pdf",
+              "size": 27917534
+            },
+            {
+              "typeAbbrev": "SAP",
+              "hasProtocol": false,
+              "hasSap": true,
+              "hasIcf": false,
+              "label": "Statistical Analysis Plan",
+              "date": "2019-04-05",
+              "uploadDate": "2022-03-31T19:44",
+              "filename": "SAP_001.pdf",
+              "size": 502726
+            }
+          ]
+        }
+      },
+      "derivedSection": {
+        "miscInfoModule": {
+          "versionHolder": "2026-09-11"
+        },
+        "conditionBrowseModule": {
+          "meshes": [
+            {
+              "id": "D001249",
+              "term": "Asthma"
+            }
+          ],
+          "ancestors": [
+            {
+              "id": "D001982",
+              "term": "Bronchial Diseases"
+            },
+            {
+              "id": "D012140",
+              "term": "Respiratory Tract Diseases"
+            },
+            {
+              "id": "D008173",
+              "term": "Lung Diseases, Obstructive"
+            },
+            {
+              "id": "D008171",
+              "term": "Lung Diseases"
+            },
+            {
+              "id": "D012130",
+              "term": "Respiratory Hypersensitivity"
+            },
+            {
+              "id": "D006969",
+              "term": "Hypersensitivity, Immediate"
+            },
+            {
+              "id": "D006967",
+              "term": "Hypersensitivity"
+            },
+            {
+              "id": "D007154",
+              "term": "Immune System Diseases"
+            }
+          ]
+        },
+        "interventionBrowseModule": {
+          "meshes": [
+            {
+              "id": "C000711667",
+              "term": "astegolimab"
+            }
+          ]
+        }
+      },
+      "hasResults": true
+    }
+  ]
+}

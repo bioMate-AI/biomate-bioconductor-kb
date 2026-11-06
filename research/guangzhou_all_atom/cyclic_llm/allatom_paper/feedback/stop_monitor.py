@@ -1,0 +1,90 @@
+"""U2: Goodhart-gap early stopping (GapStopMonitor) - parameters FIXED in the pre-registered amendment
+(docs/20261031_ALLATOM_U2U3_NOTES.md section 3) before any simulation run.
+
+Per round the monitor receives the scores of the SAME batch under the TRAIN verifier (the optimisation objective) and the
+STOP verifier (independent of train; never optimised) and tracks, for the best-so-far set by TRAIN score (A2), T_t, S_t = mean
+TRAIN and STOP score of that set in z-units (round-0 batch SD of each verifier). Gap g_t = (T_t-T_0)-(S_t-S_0), smoothed over the last `smooth` rounds.
+Stop when, after `warmup` rounds, the STOP gain has not improved by more than `tol` for `patience` rounds AND the gap has risen
+by at least `tau` above its running minimum (train keeps climbing while the independent verifier does not). The restore round is
+the argmax of S_t. Held-out verifiers never enter."""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Dict, List, Sequence
+
+import numpy as np
+
+
+@dataclass
+class GapStopMonitor:
+    """Statistic = the best-so-far set: after each round the `k0` molecules with the highest TRAIN score over ALL rounds seen so far
+    (k0 = round(q * first-batch size)); T_t, S_t = their mean TRAIN / STOP score. (Amendment A2: the per-round top-q statistic of A1
+    was noise-triggered on plateaus in the unit tests.)"""
+    q: float = 0.10
+    patience: int = 4          # A2-final (selected on DEV seeds by the declared rule)
+    tau: float = 1.0           # A2-final
+    tol: float = 0.05
+    warmup: int = 2
+    smooth: int = 3            # A2-final
+    k0: int = 0
+    pool_t: List[float] = field(default_factory=list)
+    pool_s: List[float] = field(default_factory=list)
+    gaps: List[float] = field(default_factory=list)
+    T: List[float] = field(default_factory=list)
+    S: List[float] = field(default_factory=list)
+    sd_t: float = 1.0
+    sd_s: float = 1.0
+    best_s: float = -float("inf")
+    best_round: int = 0
+    stale: int = 0
+    gap_min: float = float("inf")
+    stopped_at: int = -1
+
+    def update(self, round_idx: int, train_scores: Sequence[float], stop_scores: Sequence[float]) -> Dict[str, object]:
+        tr, st = np.asarray(train_scores, float), np.asarray(stop_scores, float)
+        if round_idx == 0:
+            self.sd_t = float(np.std(tr)) or 1.0
+            self.sd_s = float(np.std(st)) or 1.0
+            self.k0 = max(1, int(round(self.q * len(tr))))
+        self.pool_t.extend(tr.tolist()), self.pool_s.extend(st.tolist())
+        pt = np.asarray(self.pool_t)
+        top = np.argsort(-pt)[: self.k0]
+        t, s = float(pt[top].mean()), float(np.asarray(self.pool_s)[top].mean())
+        self.T.append(t), self.S.append(s)
+        gt = (t - self.T[0]) / self.sd_t
+        gs = (s - self.S[0]) / self.sd_s
+        self.gaps.append(gt - gs)
+        gap = float(np.mean(self.gaps[-self.smooth:]))
+        if gs > self.best_s + self.tol:
+            self.best_s, self.best_round, self.stale = gs, round_idx, 0
+        else:
+            self.stale += 1
+        self.gap_min = min(self.gap_min, gap)
+        trend = gap - self.gap_min
+        if self.stopped_at < 0 and round_idx >= self.warmup and self.stale >= self.patience and trend >= self.tau:
+            self.stopped_at = round_idx
+        return dict(gap=gap, trend=trend, should_stop=self.stopped_at >= 0, restore_round=self.best_round, train_gain=gt, stop_gain=gs)
+
+
+class NeverStop:
+    """Control: never stops (restore = last round)."""
+
+    def __init__(self):
+        self.n = 0
+
+    def update(self, round_idx, train_scores, stop_scores):
+        self.n = round_idx
+        return dict(gap=0.0, trend=0.0, should_stop=False, restore_round=round_idx)
+
+
+class AlwaysStop:
+    """Control: stops at the first round after warmup (restore = that round)."""
+
+    def __init__(self, warmup: int = 2):
+        self.warmup = warmup
+        self.stopped_at = -1
+
+    def update(self, round_idx, train_scores, stop_scores):
+        if self.stopped_at < 0 and round_idx >= self.warmup:
+            self.stopped_at = round_idx
+        return dict(gap=0.0, trend=0.0, should_stop=self.stopped_at >= 0, restore_round=self.stopped_at if self.stopped_at >= 0 else round_idx)

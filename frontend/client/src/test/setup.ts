@@ -23,50 +23,65 @@ if (!process.env.DATABASE_URL) {
     "postgres://stub:stub@127.0.0.1:5432/vitest-stub";
 }
 
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  }),
-});
+// Browser API mocks — only where a DOM exists. Files that opt into the Node environment
+// (`// @vitest-environment node`, e.g. server tests that need Node's own fetch/FormData)
+// have no `window`; jsdom tests always do, so their setup is unchanged.
+if (typeof window !== 'undefined') {
+  // Mock window.matchMedia
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
 
-// Mock ResizeObserver
-class MockResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  // Mock ResizeObserver
+  class MockResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
+  Object.defineProperty(window, 'ResizeObserver', {
+    writable: true,
+    value: MockResizeObserver,
+  });
+
+  // Mock IntersectionObserver
+  class MockIntersectionObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
+  Object.defineProperty(window, 'IntersectionObserver', {
+    writable: true,
+    value: MockIntersectionObserver,
+  });
+
+  // Mock scrollTo
+  Object.defineProperty(window, 'scrollTo', {
+    writable: true,
+    value: () => {},
+  });
+
+  // 3Dmol is imported transitively by the full chat surface. Its worker setup
+  // creates a blob URL at module evaluation time, before individual component
+  // tests can install their own browser stubs.
+  if (typeof window.URL.createObjectURL !== 'function') {
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      writable: true,
+      value: () => 'blob:vitest-stub',
+    });
+  }
 }
-
-Object.defineProperty(window, 'ResizeObserver', {
-  writable: true,
-  value: MockResizeObserver,
-});
-
-// Mock IntersectionObserver
-class MockIntersectionObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
-Object.defineProperty(window, 'IntersectionObserver', {
-  writable: true,
-  value: MockIntersectionObserver,
-});
-
-// Mock scrollTo
-Object.defineProperty(window, 'scrollTo', {
-  writable: true,
-  value: () => {},
-});
 
 // Mock fetch if needed
 if (typeof global.fetch === 'undefined') {

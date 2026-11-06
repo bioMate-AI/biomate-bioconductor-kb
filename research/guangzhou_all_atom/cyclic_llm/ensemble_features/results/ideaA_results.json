@@ -1,0 +1,170 @@
+{
+ "n": 4918,
+ "sources": {
+  "2020_Townsend": 2761,
+  "2021_Kelly": 1396,
+  "2016_Furukawa": 662,
+  "2018_Naylor": 50,
+  "2015_Wang": 49
+ },
+ "labs": [
+  "2020_Townsend",
+  "2021_Kelly",
+  "2016_Furukawa",
+  "2018_Naylor",
+  "2015_Wang"
+ ],
+ "E_columns": [
+  "Water_avgGR",
+  "Hexane_avgGR",
+  "Water_avgRMSD_All",
+  "Water_avgRMSD_BackBone",
+  "Hexane_avgRMSD_All",
+  "Hexane_avgRMSD_BackBone",
+  "Water_Desolvation_Free_Energy",
+  "Water_3D_SASA",
+  "Water_3D_NPSA",
+  "Water_3D_PSA",
+  "Hexane_3D_SASA",
+  "Hexane_3D_NPSA",
+  "Hexane_3D_PSA",
+  "dPSA",
+  "dPSA_frac",
+  "dRg",
+  "dRMSD"
+ ],
+ "nan_E": 0,
+ "controls": {
+  "shuffled_mean_over_labs": {
+   "D": -0.0031141442616123144,
+   "E": 0.015094582641591563,
+   "D+E": 0.023418628071971752
+  },
+  "shuffled_pass": true,
+  "planted_mean_over_labs": {
+   "D": 0.1222037802687757,
+   "E": 0.8138600007896301,
+   "D+E": 0.8140668956179333
+  },
+  "planted_pass": true,
+  "decoy_mean_over_labs": {
+   "D": 0.4091019351614794,
+   "D+E": 0.4108089144383517
+  },
+  "decoy_pass": true,
+  "all_pass": true
+ },
+ "real": {
+  "per_lab": {
+   "D": {
+    "2020_Townsend": 0.3272676888678764,
+    "2021_Kelly": 0.28531442639017107,
+    "2016_Furukawa": 0.39833081895195016,
+    "2018_Naylor": 0.24276347000335802,
+    "2015_Wang": 0.7918332715940415
+   },
+   "F": {
+    "2020_Townsend": 0.3538310814703236,
+    "2021_Kelly": 0.46368455692974697,
+    "2016_Furukawa": -0.008600582470125765,
+    "2018_Naylor": 0.27199136777053007,
+    "2015_Wang": 0.45177770848256793
+   },
+   "E": {
+    "2020_Townsend": 0.05507282777222951,
+    "2021_Kelly": 0.14882113998401159,
+    "2016_Furukawa": 0.07797694384923477,
+    "2018_Naylor": 0.25009009362798346,
+    "2015_Wang": 0.7608720536668974
+   },
+   "D+E": {
+    "2020_Townsend": 0.3403921942811415,
+    "2021_Kelly": 0.3502007559688869,
+    "2016_Furukawa": 0.3259726209202539,
+    "2018_Naylor": 0.20613457390658416,
+    "2015_Wang": 0.7628157940392902
+   },
+   "F+E": {
+    "2020_Townsend": 0.35089687521913304,
+    "2021_Kelly": 0.32385288889021674,
+    "2016_Furukawa": 0.03569980489125385,
+    "2018_Naylor": 0.36081957227041567,
+    "2015_Wang": 0.5478790297025975
+   }
+  },
+  "paired_vs_best2d": {
+   "2020_Townsend": {
+    "base": "F",
+    "diff": -0.013438887189182125,
+    "ci95": [
+     -0.08889855530343634,
+     0.06200342790306608
+    ],
+    "n_flat_clusters": 253,
+    "n": 2761
+   },
+   "2021_Kelly": {
+    "base": "F",
+    "diff": -0.11348380096086008,
+    "ci95": [
+     -0.23990689204620033,
+     0.017735984333720416
+    ],
+    "n_flat_clusters": 62,
+    "n": 1396
+   },
+   "2016_Furukawa": {
+    "base": "D",
+    "diff": -0.07235819803169624,
+    "ci95": [
+     -0.12829988083372157,
+     -0.01829081910248737
+    ],
+    "n_flat_clusters": 411,
+    "n": 662
+   },
+   "2018_Naylor": {
+    "base": "F",
+    "diff": -0.06585679386394591,
+    "ci95": [
+     -0.2872854321233828,
+     0.14887732067576284
+    ],
+    "n_flat_clusters": 50,
+    "n": 50
+   },
+   "2015_Wang": {
+    "base": "D",
+    "diff": -0.02901747755475126,
+    "ci95": [
+     -0.13123000019105058,
+     0.06367896478733238
+    ],
+    "n_flat_clusters": 36,
+    "n": 49
+   }
+  }
+ },
+ "mean_over_labs": {
+  "D": 0.4091019351614794,
+  "F": 0.30653682643660857,
+  "E": 0.25856661178007134,
+  "D+E": 0.3971031878232313,
+  "F+E": 0.3238296341947234
+ },
+ "rule": {
+  "labs_with_diff_ge_0.03": 0,
+  "labs_with_ci_lower_gt_0": 0,
+  "labs_with_diff_le_0.03_or_below": 5,
+  "mean_paired_diff": -0.05883103152008713
+ },
+ "verdict": "NOT SUPPORTED",
+ "formal_gate": "UNDERPOWERED (fewer than 5 informative held-out labs for a cluster CI; per-lab only)",
+ "flat_grouped_5fold_pooled_spearman": {
+  "D": 0.6501652814037981,
+  "F": 0.7138321657105001,
+  "E": 0.4573531710035203,
+  "D+E": 0.6448027035574222,
+  "F+E": 0.6884388847968053
+ }
+}

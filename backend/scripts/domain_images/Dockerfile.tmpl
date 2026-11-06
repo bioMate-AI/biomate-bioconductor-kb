@@ -1,5 +1,21 @@
 FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-__DOMAIN__:3.20
+ENV MAKEFLAGS="-j16"
 COPY deps.txt /tmp/deps.txt
+# --- GLOBAL R_NO_REMAP counter (applies to EVERY R source compile in this image) ---
+# The base :3.20 image's R defines R_NO_REMAP globally, so <Rinternals.h>/<Rdefines.h>
+# expose only the Rf_-prefixed API. Several legacy Bioc/GitHub packages (xcms 4.4.0 and
+# — critically — OptiLCMS, which VENDORS its own copy of xcms's massifquant source) still
+# use the un-prefixed API (error/allocVector/mkChar/setAttrib) → source compile fails.
+# Rather than patch each package's vendored source, force-include a `#undef R_NO_REMAP`
+# header into EVERY translation unit via ~/.R/Makevars CPPFLAGS. GCC processes -include
+# after all -D/-U, so it beats the global -DR_NO_REMAP regardless of flag order (verified
+# locally with clang: -DR_NO_REMAP -include undef.h compiles clean, incl. -D last + subdir
+# sources). Undefining R_NO_REMAP only ADDS the un-prefixed aliases (Rf_ names remain), so
+# it is safe/backward-compatible for all packages. Absolute path so it resolves from any
+# package's src dir. Set for root (docker build/install runs as root, HOME=/root).
+RUN printf '#undef R_NO_REMAP\n' > /opt/undef_rno_remap.h \
+ && mkdir -p /root/.R \
+ && printf 'CPPFLAGS += -include /opt/undef_rno_remap.h\n' >> /root/.R/Makevars
 # Pin CRAN to the Bioc-3.20-era snapshot (Bioc 3.20 released ~2024-10-30) so CRAN dependency
 # versions match what the Bioc 3.20 packages were built against. The base :3.20 image shipped
 # with NEWER CRAN deps (rbiom 3.1.0 dropped unifrac; xfun 0.5x dropped attr; ...) which broke
@@ -9,11 +25,59 @@ RUN Rscript -e '\
   snap <- "https://packagemanager.posit.co/cran/2024-10-30"; \
   options(repos = c(CRAN = snap)); \
   pkgs <- readLines("/tmp/deps.txt"); \
+  pkgs <- trimws(pkgs); \
+  pkgs <- pkgs[nzchar(pkgs) & !startsWith(pkgs, "#")]; \
   if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager"); \
   install.packages(c("rbiom","xfun"), repos = snap, quiet = TRUE); \
+  if ("metaMS" %in% pkgs && utils::packageVersion("xfun") < "0.52") install.packages("xfun", repos="https://cloud.r-project.org"); \
+  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL); \
   miss <- pkgs[!pkgs %in% rownames(installed.packages())]; \
-  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=4); \
+  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=16, site_repository=bin); \
+  still0 <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  if (length(still0)) BiocManager::install(still0, update=FALSE, ask=FALSE, Ncpus=16); \
   still <- pkgs[!pkgs %in% rownames(installed.packages())]; \
   wont  <- pkgs[!vapply(pkgs, function(p) requireNamespace(p, quietly=TRUE), logical(1))]; \
   cat("STILL MISSING:", length(still), paste(head(still,40), collapse=","), "\n"); \
   cat("INSTALLED BUT WONT LOAD:", length(wont), paste(head(wont,40), collapse=","), "\n")'
+
+# --- xcms source patch for R_NO_REMAP ------------------------------------------
+# The base :3.20 image's R defines R_NO_REMAP globally, so <Rinternals.h>/<Rdefines.h>
+# only expose the Rf_-prefixed API. xcms 4.4.0 (Bioc 3.20) still uses the legacy
+# un-prefixed API (error/allocVector/mkChar/setAttrib) across several compilation units
+# (mzROI.c, massifquant/*, xcms_obiwarp.cpp, fastMatch.c) → source compile fails
+# ("'allocVector' was not declared") → cascades to metaMS/OptiLCMS/MetaboAnalystR.
+# Diagnosed by READING the xcms 4.4.0 source; fix VERIFIED locally with clang.
+#
+# Fix: force-include a `#undef R_NO_REMAP` header at the top of EVERY xcms translation
+# unit via PKG_CPPFLAGS=-include. This is robust where a per-file `#undef` is NOT:
+# several units (e.g. massifquant/xcms_massifquant.cpp) pull the R headers TRANSITIVELY
+# (via DataKeeper.h), so editing only files with a *direct* Rinternals/Rdefines include
+# misses them. GCC processes `-include` AFTER all -D/-U, so it beats the global
+# -DR_NO_REMAP regardless of flag ordering (verified: clang -DR_NO_REMAP -include undef.h
+# compiles clean; and with -D last too). Self-gates on "xcms not loadable" → no-op for
+# any image where xcms already compiled fine (harmless for non-metabolomics domains).
+# Runs AFTER the deps pass so xcms's own deps (mzR/Spectra/MSnbase/...) are present.
+RUN if ! Rscript -e 'quit(status = as.integer(!requireNamespace("xcms", quietly=TRUE)))' ; then \
+      set -e; cd /tmp; rm -rf xcms xcms_*.tar.gz; \
+      Rscript -e 'if(!requireNamespace("BiocManager",quietly=TRUE)) install.packages("BiocManager"); download.packages("xcms", ".", repos=BiocManager::repositories()["BioCsoft"], type="source")'; \
+      tar xzf xcms_*.tar.gz; \
+      printf '#undef R_NO_REMAP\n' > xcms/src/undef_rno_remap.h; \
+      printf 'PKG_CPPFLAGS += -include undef_rno_remap.h\n' | cat - xcms/src/Makevars > xcms/src/Makevars.new && mv xcms/src/Makevars.new xcms/src/Makevars; \
+      R CMD INSTALL xcms; \
+      Rscript -e 'library(xcms); cat("xcms patched+loaded:", as.character(packageVersion("xcms")), "\n")'; \
+    else echo "xcms already loads — no R_NO_REMAP patch needed"; fi
+
+# --- MetaboAnalystR (xia-lab/MetaboAnalystR) + OptiLCMS -------------------------
+# MetaboAnalystR and its raw-spectra companion OptiLCMS are GitHub-only (not on
+# Bioconductor/CRAN), so BiocManager can't fetch them above. We install them from
+# GitHub here so the `metaboanalystr` subworkflow's runtime auto-install guard is a
+# no-op in production. This RUN self-gates: it only installs when MetaboAnalystR's
+# heavy Bioc deps (impute/pcaMethods/...) are already present — i.e. ONLY in the
+# metabolomics image (those deps live in deps/metabolomics.txt) — and is a harmless
+# no-op for every other domain that shares this template. The install logic lives
+# in install_metaboanalystr.R (COPY + Rscript <file>) — NOT inline `Rscript -e`:
+# long/complex inline R corrupted in transit through RUN -> /bin/sh -> Rscript -e
+# (parse errors that split mid-string at different points on different builds).
+# A file is byte-exact and self-gates to a no-op on non-metabolomics domains.
+COPY install_metaboanalystr.R /tmp/install_metaboanalystr.R
+RUN Rscript /tmp/install_metaboanalystr.R

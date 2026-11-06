@@ -1,0 +1,207 @@
+#!/bin/bash
+# Bounded canonical all-heavy-atom PepGLAD baseline; not a novel trained model.
+set -Eeuo pipefail
+export AWS_DEFAULT_REGION=us-west-2
+export DEBIAN_FRONTEND=noninteractive
+export PYTHONUNBUFFERED=1
+export OMP_NUM_THREADS=4
+ROOT=/opt/guangzhou-peptide
+OUT_S3=${OUT_S3:?}
+mkdir -p "$ROOT/status" "$ROOT/PepGLAD/run_outputs"
+exec > >(tee -a "$ROOT/status/bootstrap.log") 2>&1
+stage() {
+  printf '{"stage":"%s","time":"%s"}\n' "$1" "$(date -u +%FT%TZ)" > "$ROOT/status/status.json"
+  aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true
+}
+sync_results() {
+  aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true
+  aws s3 sync "$ROOT/PepGLAD/run_outputs" "$OUT_S3/training/" --only-show-errors || true
+}
+finish() {
+  rc=$?
+  trap - EXIT
+  if [ "$rc" -ne 0 ]; then stage failed; fi
+  sync_results
+  shutdown -h now
+  exit "$rc"
+}
+trap finish EXIT
+# Instance shutdown behavior is terminate. Watchdog also runs if this shell hangs.
+if ! systemctl is-active --quiet peptide-deadline.timer; then
+  if [ -n "${DEADLINE_UTC:-}" ]; then
+    systemd-run --unit=peptide-deadline --on-calendar="$DEADLINE_UTC" /sbin/shutdown -h now
+  else
+    systemd-run --unit=peptide-deadline --on-active="${MAX_RUNTIME:-4h}" /sbin/shutdown -h now
+  fi
+fi
+(while sleep 120; do sync_results; done) &
+# Best-effort checkpoint backup during the Spot interruption notice window.
+(while sleep 5; do
+  token=$(curl -fsS --max-time 2 -X PUT -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' http://169.254.169.254/latest/api/token) || continue
+  if curl -fsS --max-time 2 -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/spot/instance-action > "$ROOT/status/spot-interruption.json"; then
+    stage spot_interruption
+    sync_results
+    break
+  fi
+done) >/dev/null 2>&1 &
+stage installing
+if [ "${RESUME_SETUP:-0}" != 1 ]; then
+for attempt in 1 2 3 4 5 6; do
+  if apt-get -o DPkg::Lock::Timeout=300 update -qq; then break; fi
+  if [ "$attempt" = 6 ]; then exit 1; fi
+  sleep 10
+done
+apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-venv git
+python3 -m venv "$ROOT/venv"
+source "$ROOT/venv/bin/activate"
+pip install --disable-pip-version-check 'pip==25.0.1'
+pip install 'torch==2.5.1' --index-url https://download.pytorch.org/whl/cu121
+pip install 'torch-scatter==2.1.2' --only-binary=:all: -f https://data.pyg.org/whl/torch-2.5.1+cu121.html
+pip install 'numpy==1.26.4' 'biopython==1.80' 'scipy==1.13.1' 'rdkit==2024.9.6' 'tensorboard==2.19.0' 'PyYAML==6.0.2' 'tqdm==4.67.1' 'sympy==1.13.1' 'requests==2.32.3' 'boto3>=1.36,<2'
+fi
+source "$ROOT/venv/bin/activate"
+pip freeze > "$ROOT/status/environment.txt"
+python -c 'import torch,torch_scatter; assert torch.cuda.is_available(); print(torch.__version__,torch.cuda.get_device_name(0))'
+stage collecting
+python "$ROOT/code/collect_pepbench.py" --bucket knowledge-datasets-1759951976 --out "$ROOT/raw" --metadata "$ROOT/code/pepbench_zenodo.json" --include train_valid.tar.gz LNR.tar.gz README.md
+cp "$ROOT/raw/acquisition_manifest.json" "$ROOT/status/"
+python "$ROOT/code/collect_pepbench.py" --bucket knowledge-datasets-1759951976 --out "$ROOT/raw/augmentation" --metadata "$ROOT/code/pepbench_zenodo.json" --include ProtFrag.tar.gz > "$ROOT/status/augmentation.log" 2>&1 &
+AUG_PID=$!
+sync_results
+stage preparing
+if [ ! -d "$ROOT/upstream/.git" ]; then
+  git clone https://github.com/THUNLP-MT/PepGLAD.git "$ROOT/upstream"
+fi
+cd "$ROOT/upstream"
+git checkout bad015ca50c312a89482adb5220c3d907f13df5c
+git rev-parse HEAD > "$ROOT/status/upstream_commit.txt"
+# Keep actual source in the known checkpoint sync path.
+cp -a . "$ROOT/PepGLAD/"
+cd "$ROOT/PepGLAD"
+mkdir -p datasets
+python - <<'PY'
+import tarfile
+from pathlib import Path
+archive=Path('/opt/guangzhou-peptide/raw/train_valid.tar.gz')
+out=Path('datasets').resolve()
+with tarfile.open(archive) as tf:
+    for member in tf.getmembers():
+        path=(out/member.name).resolve()
+        if not path.is_relative_to(out) or member.issym() or member.islnk() or not (member.isfile() or member.isdir()):
+            raise ValueError('Unsafe archive member: '+member.name)
+    tf.extractall(out)
+PY
+python -m scripts.data_process.process --index datasets/train_valid/all.txt --out_dir datasets/train_valid/processed
+python -m scripts.data_process.split --train_index datasets/train_valid/train.txt --valid_index datasets/train_valid/valid.txt --processed_dir datasets/train_valid/processed/
+python - <<'PY'
+import json
+from pathlib import Path
+p=Path('datasets/train_valid')
+sets={s:{line.split()[0] for line in (p/(s+'.txt')).read_text().splitlines() if line.strip()} for s in ['train','valid']}
+assert sets['train'] and sets['valid'] and not sets['train']&sets['valid']
+r={'train_complex_ids':len(sets['train']),'valid_complex_ids':len(sets['valid']),'id_overlap':0,
+   'split_policy':'published PepBench v2; further sequence/target leakage audit pending',
+   'held_out_LNR':'archived, never extracted or used for fitting/checkpoint selection',
+   'ProtFrag':'collected and reserved; not included in this initial run'}
+Path('run_outputs/split_audit.json').write_text(json.dumps(r,indent=2))
+PY
+# Fail visibly instead of upstream's zero-loss replacement on NaN/OOM.
+python "$ROOT/code/patch_training_integrity.py" --root "$ROOT/PepGLAD"
+# LDM_ONLY: AE already trained (via RESUME_TRAINING_S3) -> skip AE, train ONLY the latent diffusion
+# (e.g. a full-batch LDM retrain on a converged AE). Requires RESUME_TRAINING_S3 with a trained autoencoder.
+if [ "${LDM_ONLY:-0}" = 1 ]; then
+  [ -n "${RESUME_TRAINING_S3:-}" ] || { echo "LDM_ONLY requires RESUME_TRAINING_S3 (trained AE checkpoint)"; exit 1; }
+  stage ldm_only_fetch_ae
+  aws s3 sync "$RESUME_TRAINING_S3/training/autoencoder/" run_outputs/autoencoder/ --only-show-errors
+  AE_CKPT=$(python - <<'PY'
+import re
+from pathlib import Path
+tk = next(Path('run_outputs/autoencoder').glob('version_*/checkpoint/topk_map.txt'))
+best = Path(tk.read_text().splitlines()[0].split(': ', 1)[1]).name  # val-selected best, basename
+local = tk.parent / best
+def ep(p): return int(re.search(r'epoch(\d+)_step', p.name).group(1))
+print(local if local.is_file() else max(tk.parent.glob('epoch*_step*.ckpt'), key=ep))
+PY
+)
+  [ -f "$AE_CKPT" ] || { echo "FATAL: no AE checkpoint resolved for LDM_ONLY"; exit 1; }
+  echo "LDM-only: AE checkpoint = $AE_CKPT"
+  python "$ROOT/code/configure_pepglad.py" --root "$ROOT/PepGLAD" --stage ldm --checkpoint "$AE_CKPT"
+  # RESUME_LDM_S3: warm-restart the LDM from a prior (interrupted) run's latest checkpoint,
+  # so a spot interruption is recoverable instead of restarting LDM from scratch. Loads
+  # weights (optimizer resets) and continues toward ldm.yaml's target max_epoch.
+  if [ -n "${RESUME_LDM_S3:-}" ]; then
+    stage ldm_resume_fetch
+    aws s3 sync "$RESUME_LDM_S3/training/ldm/" "$ROOT/PepGLAD/previous_outputs/ldm/" --only-show-errors
+    python "$ROOT/code/configure_warm_start.py" --root "$ROOT/PepGLAD" --stage ldm
+    echo "LDM warm-restart from $RESUME_LDM_S3"
+  fi
+  stage training_latent_diffusion
+  python train.py --gpus 0 --seed 20260912 --config run_outputs/ldm.yaml
+  stage training_complete
+  sync_results
+# EVAL_ONLY: skip training, benchmark a provided LDM checkpoint (EVAL_CKPT_S3) on the valid split.
+elif [ "${EVAL_ONLY:-0}" = 1 ]; then
+  stage eval_only_fetch_checkpoint
+  mkdir -p run_outputs/ldm/version_0/checkpoint
+  aws s3 cp "${EVAL_CKPT_S3:?EVAL_CKPT_S3 required}" run_outputs/ldm/version_0/checkpoint/provided.ckpt --only-show-errors
+  printf 'best: %s\n' "$PWD/run_outputs/ldm/version_0/checkpoint/provided.ckpt" > run_outputs/ldm/version_0/checkpoint/topk_map.txt
+else
+python "$ROOT/code/configure_pepglad.py" --root "$ROOT/PepGLAD" --stage autoencoder
+if [ -n "${RESUME_TRAINING_S3:-}" ]; then
+  aws s3 sync "$RESUME_TRAINING_S3/training/" "$ROOT/PepGLAD/previous_outputs/" --only-show-errors
+  python "$ROOT/code/configure_warm_start.py" --root "$ROOT/PepGLAD" --stage autoencoder
+fi
+stage training_autoencoder
+python train.py --gpus 0 --seed 20260912 --config run_outputs/autoencoder.yaml
+sync_results
+CKPT=$(python - <<'PY'
+from pathlib import Path
+p=next(Path('run_outputs/autoencoder').glob('version_*/checkpoint/topk_map.txt'))
+print(p.read_text().splitlines()[0].split(': ',1)[1])
+PY
+)
+python "$ROOT/code/configure_pepglad.py" --root "$ROOT/PepGLAD" --stage ldm --checkpoint "$CKPT"
+stage training_latent_diffusion
+python train.py --gpus 0 --seed 20260912 --config run_outputs/ldm.yaml
+stage training_complete
+sync_results
+fi
+# Held-out validation generation benchmark on the best LDM checkpoint. Best-effort:
+# training outputs are already synced, so an evaluation failure must not fail the run.
+stage evaluating
+LDM_CKPT=$(python - <<'PY'
+from pathlib import Path
+p=next(Path('run_outputs/ldm').glob('version_*/checkpoint/topk_map.txt'))
+print(p.read_text().splitlines()[0].split(': ',1)[1])
+PY
+)
+EVAL_DIR=run_outputs/validation_benchmark
+set +e
+( set -Eeuo pipefail
+  mkdir -p "$EVAL_DIR"
+  cp "$LDM_CKPT" "$EVAL_DIR/calibrated.ckpt"
+  # Latent-guidance calibration is required (uncalibrated smoke serialized 0/3, calibrated 3/3).
+  python - "$EVAL_DIR" <<'PY'
+import sys, yaml
+from pathlib import Path
+c = yaml.safe_load(Path('configs/pepbench/ldm/setup_latent_guidance.yaml').read_text())
+c['dataloader'].update(num_workers=0, batch_size=4)
+Path(sys.argv[1], 'calibration.yaml').write_text(yaml.safe_dump(c))
+PY
+  python setup_latent_guidance.py --config "$EVAL_DIR/calibration.yaml" --ckpt "$EVAL_DIR/calibrated.ckpt" --gpu 0
+  # generate_validation.py lives outside the repo; export the repo on PYTHONPATH so its
+  # `from data...` imports resolve (it also self-inserts cwd as a fallback).
+  PYTHONPATH="$PWD" python "$ROOT/code/generate_validation.py" --checkpoint "$EVAL_DIR/calibrated.ckpt" \
+    --output "$EVAL_DIR" --attempts "${EVAL_ATTEMPTS:-4}"
+) > "$ROOT/status/evaluation.log" 2>&1
+EVAL_RC=$?
+set -Eeuo pipefail
+cp -f run_outputs/validation_benchmark/summary.json "$ROOT/status/validation_summary.json" 2>/dev/null || true
+sync_results
+if [ "$EVAL_RC" -eq 0 ]; then stage evaluation_complete; else stage evaluation_failed; fi
+sync_results
+stage waiting_for_augmentation_archive
+wait "$AUG_PID"
+cp "$ROOT/raw/augmentation/acquisition_manifest.json" "$ROOT/status/augmentation_manifest.json"
+stage initial_training_and_collection_complete
+sync_results

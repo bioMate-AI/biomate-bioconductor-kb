@@ -1,0 +1,202 @@
+[
+ {
+  "id": "prot_tab_1",
+  "group": "proteomics_processed",
+  "query": "I have a MaxQuant proteinGroups.txt from a label-free experiment, 4 treated vs 4 control. Which proteins change?"
+ },
+ {
+  "id": "prot_tab_2",
+  "group": "proteomics_processed",
+  "query": "Differential protein abundance from my DIA-NN pg_matrix.tsv, knockout vs wild type, three replicates each."
+ },
+ {
+  "id": "prot_tab_3",
+  "group": "proteomics_processed",
+  "query": "Here is a peptide-level intensity table from a TMT 10-plex run. Summarise to proteins and test condition A vs B."
+ },
+ {
+  "id": "prot_tab_4",
+  "group": "proteomics_processed",
+  "query": "I don't have the raw files any more, only the protein intensity matrix exported from Spectronaut. Find differentially abundant proteins."
+ },
+ {
+  "id": "prot_tab_5",
+  "group": "proteomics_processed",
+  "query": "Label-free protein quantification table with many missing values; I want a differential analysis that handles the missingness without imputation."
+ },
+ {
+  "id": "prot_raw_1",
+  "group": "proteomics_raw",
+  "query": "I have Thermo .raw files from a DDA label-free experiment and a human FASTA. Identify and quantify proteins, then compare groups."
+ },
+ {
+  "id": "prot_raw_2",
+  "group": "proteomics_raw",
+  "query": "Process my DIA mzML files with a spectral library and quantify proteins across 12 samples."
+ },
+ {
+  "id": "prot_raw_3",
+  "group": "proteomics_raw",
+  "query": "Search my mzML spectra against a database and quantify peptides for an immunopeptidomics (MHC class I) experiment."
+ },
+ {
+  "id": "meth_idat_1",
+  "group": "methylation_raw",
+  "query": "Process Illumina EPIC .idat files: normalisation, QC and differential methylation between tumour and normal."
+ },
+ {
+  "id": "meth_idat_2",
+  "group": "methylation_raw",
+  "query": "I have 450K array IDAT files and a sample sheet. Run QC and produce beta values."
+ },
+ {
+  "id": "meth_beta_1",
+  "group": "methylation_processed",
+  "query": "I have a beta-value matrix from EPIC arrays and a continuous phenotype (age). Find associated CpG regions."
+ },
+ {
+  "id": "meth_beta_2",
+  "group": "methylation_processed",
+  "query": "Using my methylation beta values (already normalised), find differentially methylated CpGs or regions between two groups."
+ },
+ {
+  "id": "meth_bs_1",
+  "group": "methylation_raw",
+  "query": "Whole-genome bisulfite sequencing FASTQ files from mouse liver: align and extract methylation calls."
+ },
+ {
+  "id": "rna_fastq_1",
+  "group": "rnaseq_raw",
+  "query": "Paired-end RNA-seq FASTQ files, human, 6 samples. Align, quantify and run differential expression treated vs control."
+ },
+ {
+  "id": "rna_fastq_2",
+  "group": "rnaseq_raw",
+  "query": "Quantify transcript abundance from my RNA-seq reads with Salmon, mouse GRCm39."
+ },
+ {
+  "id": "rna_counts_1",
+  "group": "rnaseq_processed",
+  "query": "I have a gene count matrix (featureCounts output) and a sample sheet. Differential expression KO vs WT."
+ },
+ {
+  "id": "rna_counts_2",
+  "group": "rnaseq_processed",
+  "query": "Run DESeq2 on my counts table with a batch covariate and two conditions."
+ },
+ {
+  "id": "rna_counts_3",
+  "group": "rnaseq_processed",
+  "query": "No FASTQ \u2014 only a raw counts matrix from GEO. Find differentially expressed genes between responders and non-responders."
+ },
+ {
+  "id": "sc_fastq_1",
+  "group": "singlecell_raw",
+  "query": "10x Genomics scRNA-seq FASTQ files from three donors: generate count matrices and QC."
+ },
+ {
+  "id": "sc_proc_1",
+  "group": "singlecell_processed",
+  "query": "I have Cell Ranger filtered_feature_bc_matrix folders. Cluster cells and annotate cell types."
+ },
+ {
+  "id": "sc_proc_2",
+  "group": "singlecell_processed",
+  "query": "Starting from an AnnData .h5ad file, run normalisation, clustering and marker detection."
+ },
+ {
+  "id": "sc_proc_3",
+  "group": "singlecell_processed",
+  "query": "My single-cell data is already QC'd and clustered (AnnData .h5ad). Infer cell-cell communication between the clusters."
+ },
+ {
+  "id": "var_fastq_1",
+  "group": "variants_raw",
+  "query": "Germline variant calling from human WGS FASTQ files, GATK best practices."
+ },
+ {
+  "id": "var_bam_1",
+  "group": "variants_raw",
+  "query": "Somatic variant calling on tumour/normal BAM files."
+ },
+ {
+  "id": "var_vcf_1",
+  "group": "variants_processed",
+  "query": "I already have a VCF of germline variants. Annotate the variants with VEP and predict their effects."
+ },
+ {
+  "id": "var_vcf_2",
+  "group": "variants_processed",
+  "query": "I have PLINK bed/bim/fam genotype files for 500 individuals. Estimate population structure (PCA / admixture-like ancestry)."
+ },
+ {
+  "id": "chip_fastq_1",
+  "group": "chromatin_raw",
+  "query": "ChIP-seq FASTQ files for H3K27ac with input controls: align and call peaks."
+ },
+ {
+  "id": "chip_peaks_1",
+  "group": "chromatin_processed",
+  "query": "I have aligned BAM files and narrowPeak files for two conditions. Find differentially bound regions."
+ },
+ {
+  "id": "atac_fastq_1",
+  "group": "chromatin_raw",
+  "query": "ATAC-seq paired-end FASTQ files: QC, alignment and peak calling."
+ },
+ {
+  "id": "meta_reads_1",
+  "group": "metagenomics_raw",
+  "query": "Shotgun metagenomics reads from stool: taxonomic profiling and metagenome-assembled genomes."
+ },
+ {
+  "id": "amp_1",
+  "group": "metagenomics_raw",
+  "query": "16S rRNA amplicon FASTQ files from soil samples: ASVs and taxonomy."
+ },
+ {
+  "id": "metab_raw_1",
+  "group": "metabolomics_raw",
+  "query": "Untargeted LC-MS metabolomics mzML files: peak picking, alignment and annotation."
+ },
+ {
+  "id": "metab_tab_1",
+  "group": "metabolomics_processed",
+  "query": "I have a metabolite intensity table (samples x features). Run statistics and pathway analysis between groups."
+ },
+ {
+  "id": "enrich_1",
+  "group": "enrichment",
+  "query": "Here is a list of 300 differentially expressed human genes. Run GO and KEGG over-representation analysis."
+ },
+ {
+  "id": "enrich_2",
+  "group": "enrichment",
+  "query": "I have a ranked list of all genes by log2 fold change. Run GSEA against Hallmark gene sets."
+ },
+ {
+  "id": "admet_1",
+  "group": "control",
+  "query": "Predict ADMET properties for these SMILES: CCO, c1ccccc1O, CC(=O)Oc1ccccc1C(=O)O"
+ },
+ {
+  "id": "dock_1",
+  "group": "control",
+  "query": "Dock these 20 ligands (SDF) into the ATP pocket of EGFR (PDB 1M17)."
+ },
+ {
+  "id": "crispr_1",
+  "group": "control",
+  "query": "Pooled CRISPR knockout screen FASTQ files: count sgRNAs and call gene-level hits."
+ },
+ {
+  "id": "both_1",
+  "group": "both_regimes",
+  "query": "I have both the raw .raw files and the MaxQuant proteinGroups.txt; I just want the differential protein analysis quickly."
+ },
+ {
+  "id": "both_2",
+  "group": "both_regimes",
+  "query": "I have FASTQ files but I only want to run DE on the count matrix I already generated from them."
+ }
+]

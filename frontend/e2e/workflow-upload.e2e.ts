@@ -30,24 +30,26 @@ const GA_STUB = JSON.stringify({
   uuid: "00000000-e2e0-0000-0000-000000000001",
 });
 
+// Open the workflow upload surface via the CURRENT entry point:
+// sidebar "Workflows" (button-workflows-nav) → WorkflowHistoryDialog → "Import Workflow" tab.
+// (The old dedicated `button-import-workflow` was removed; the dialog's tab now owns upload.)
+async function openUploadTab(page: import("@playwright/test").Page) {
+  await page.goto(`${BASE_URL}/`);
+  await page.getByTestId("button-workflows-nav").click();
+  await expect(page.getByTestId("workflow-history-dialog")).toBeVisible({ timeout: 15000 });
+  await page.getByTestId("tab-upload").click();
+  await expect(page.getByTestId("workflow-upload-modal")).toBeVisible({ timeout: 5000 });
+}
+
 test.describe("workflow-upload", () => {
-  test("sidebar Import Workflow button opens modal", async ({ page }) => {
+  test("sidebar Workflows → Import Workflow tab opens upload modal", async ({ page }) => {
     await loginAsFixture(page);
-    await page.goto(`${BASE_URL}/`);
-
-    const importBtn = page.getByTestId("button-import-workflow");
-    await expect(importBtn).toBeVisible({ timeout: 15000 });
-    await importBtn.click();
-
-    await expect(page.getByTestId("workflow-upload-modal")).toBeVisible({ timeout: 5000 });
+    await openUploadTab(page);
   });
 
   test("modal submit is disabled until a file is selected", async ({ page }) => {
     await loginAsFixture(page);
-    await page.goto(`${BASE_URL}/`);
-
-    await page.getByTestId("button-import-workflow").click();
-    await expect(page.getByTestId("workflow-upload-modal")).toBeVisible();
+    await openUploadTab(page);
 
     // No file selected yet — submit button should be disabled
     await expect(page.getByTestId("workflow-upload-submit")).toBeDisabled();
@@ -55,10 +57,7 @@ test.describe("workflow-upload", () => {
 
   test("upload .nf workflow succeeds and appears in personal list", async ({ page }) => {
     await loginAsFixture(page);
-    await page.goto(`${BASE_URL}/`);
-
-    await page.getByTestId("button-import-workflow").click();
-    await expect(page.getByTestId("workflow-upload-modal")).toBeVisible();
+    await openUploadTab(page);
 
     await page.getByTestId("workflow-name-input").fill("E2E NF Stub");
 
@@ -90,10 +89,7 @@ test.describe("workflow-upload", () => {
 
   test("upload .ga Galaxy workflow succeeds and appears in personal list", async ({ page }) => {
     await loginAsFixture(page);
-    await page.goto(`${BASE_URL}/`);
-
-    await page.getByTestId("button-import-workflow").click();
-    await expect(page.getByTestId("workflow-upload-modal")).toBeVisible();
+    await openUploadTab(page);
 
     await page.getByTestId("workflow-name-input").fill("E2E Galaxy Stub");
     await page.getByTestId("workflow-description-input").fill("Imported via E2E test");

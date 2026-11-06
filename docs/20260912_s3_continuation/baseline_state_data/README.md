@@ -1,0 +1,11 @@
+# Baseline control-state extraction
+
+This artifact contains a bounded pilot subset of non-targeting pseudobulk controls from GWCD4i.pseudobulk_merged.h5ad. Eligible profiles must have guide_type=non-targeting and keep_for_DE=true. All eligible profiles for the selected 32 guide IDs are retained. SHA256 ordering with the recorded salt and alternating assignment creates 16 feature-control guides and 16 label-reference guides, with no guide shared between pools. Selection does not use expression values or response labels.
+
+`controls.npz` preserves profile-level raw counts for the frozen 132 H1 readout genes, full-matrix library sums, cell counts, source rows and identifiers, donor, condition, and control pool. `baseline_aggregates.npz` sums counts, library counts, and cell counts separately for each donor/condition/pool. Normalization must use the full library sum; the selected-gene sum is not a total library size. Counts per cell and library-normalized expression answer different questions and should be explicitly labeled.
+
+`control_metadata.npz` contains metadata for all 10,303 eligible controls plus matrix row pointers and gene names. It does not contain expression counts for all controls. The selected guide subset comprises only 348 profiles. The source is a chunked CSR matrix, so extracting a row reads its sparse values and column indices before retaining the frozen genes. No full source download is needed. The reported logical bytes are not network transfer telemetry: HDF5 chunk boundaries and cache readahead can increase transferred bytes.
+
+Control pools are disjoint by guide ID, not biologically independent. Four donors remain four biological replicates. The 24 aggregate rows represent 4 donors × 3 conditions × 2 pools. Some selected guides lack eligible profiles in some combinations. This extraction alone supplies no perturbation-response labels, target-specific prediction validation, or causal evidence. Donor IDs must govern downstream split construction.
+
+`provenance.json` records source identity, selection, coverage, and SHA256 hashes of derived count artifacts. The source ETag identifies the object but is not claimed to be a complete-file SHA256. `verification.json` recomputes aggregates exactly and checks pool separation and valid counts. Extraction and verification source copies are included for reproducibility.

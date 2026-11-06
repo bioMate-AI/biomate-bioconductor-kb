@@ -1,0 +1,53 @@
+{
+  "admissible": true,
+  "reason": "controls recover RGD-Asp->MIDAS-Mn coordination (setup admissible)",
+  "controls": {
+    "CTRL-TRIVEHEXIN": {
+      "lig_chain": "P",
+      "n_mn": 3,
+      "n_rec_atoms": 8239,
+      "n_lig_atoms": 76,
+      "min_ligO_Mn": 0.81,
+      "coord_res": "ASP",
+      "coord_atom": "OD2",
+      "engages_metal": true,
+      "inner_sphere": true
+    },
+    "CTRL-AVEBEHEXIN": {
+      "lig_chain": "P",
+      "n_mn": 3,
+      "n_rec_atoms": 8239,
+      "n_lig_atoms": 74,
+      "min_ligO_Mn": 1.91,
+      "coord_res": "ASP",
+      "coord_atom": "OD1",
+      "engages_metal": true,
+      "inner_sphere": true
+    }
+  },
+  "candidates": {
+    "AVB6-SH-M7-01": {
+      "lig_chain": "P",
+      "n_mn": 3,
+      "n_rec_atoms": 8239,
+      "n_lig_atoms": 58,
+      "min_ligO_Mn": 1.96,
+      "coord_res": "ASP",
+      "coord_atom": "OD1",
+      "engages_metal": true,
+      "inner_sphere": true
+    },
+    "AVB6-SH-M11-01": {
+      "lig_chain": "P",
+      "n_mn": 3,
+      "n_rec_atoms": 8239,
+      "n_lig_atoms": 77,
+      "min_ligO_Mn": 2.34,
+      "coord_res": "ASP",
+      "coord_atom": "OD1",
+      "engages_metal": true,
+      "inner_sphere": true
+    }
+  },
+  "note": "Geometric site-fidelity gate only. Mn retained on receptor side for the energy step. Coordination distances are cofold-approximate; RELATIVE/qualitative, not affinity. Candidate dG ranking (OpenMM GBn2 + Li-Merz Mn\u00b2\u207a) is valid ONLY if admissible=true."
+}

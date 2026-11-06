@@ -16,7 +16,7 @@
  * 403) on cross-user access — matches project-routes.ts policy from
  * docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
  *
- * LLM: gemini-3.5-flash, maxTokens=4096, thinking disabled (~$0.05/call).
+ * LLM: gemini-3.8-flash, maxTokens=4096, thinking disabled (~$0.05/call).
  */
 
 import type { Express, Request, Response } from "express";

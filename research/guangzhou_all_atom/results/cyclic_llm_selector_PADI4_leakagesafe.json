@@ -1,0 +1,17 @@
+{
+  "n_test": 4000,
+  "test_binders": 67,
+  "motif_distinct_binders": 55,
+  "FULL": {
+    "LM_norm": 0.9511,
+    "2mer": 0.887,
+    "comp": 0.7814,
+    "LM_lift5": 13.43,
+    "LM_lift10": 8.51
+  },
+  "MOTIF_DISTINCT_sim<0.5": {
+    "LM_norm": 0.9405,
+    "2mer": 0.8638,
+    "comp": 0.7662
+  }
+}

@@ -182,7 +182,7 @@ with open("load_image_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("load_image_output.txt", "w") as f:
-    f.write("Biomni: Load Image" + NL)
+    f.write("BioMate: Load Image" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

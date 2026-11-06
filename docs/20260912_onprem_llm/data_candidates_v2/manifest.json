@@ -1,0 +1,101 @@
+{
+  "scope": "Local no-PII training-data candidates; BioMate core; IND excluded. Candidates only \u2014 none approved for training.",
+  "application_commit": "03e369101d2039e56d1f82c1b1bbecb532f4b951",
+  "sources": {
+    "nf_programs": {
+      "file": "nf_program_candidates.jsonl",
+      "count": 5049,
+      "sha256": "dea66eb1fcb7fffd5ab94093c9520208a307c279b89051c369d15fc8dca208b3"
+    },
+    "workflow_specs": {
+      "file": "workflow_spec_candidates.jsonl",
+      "count": 4200,
+      "lanes": {
+        "unverified": 1897,
+        "repair": 155,
+        "verified_generation": 1092,
+        "nextflow_debug": 1056
+      },
+      "sha256": "5c7a459d52be8f0dc5f97f68d99d4ce14470ce6001ec8b51f6c5b271e32e94ac"
+    },
+    "git_fix_pairs": {
+      "file": "git_fix_pair_candidates.jsonl",
+      "count": 500,
+      "sha256": "d546e884dcf23f883a3bbe566f68960c5068a0952ecf7b655c02ffcbb6b56fe5"
+    },
+    "docs": {
+      "file": "docs_candidates.jsonl",
+      "count": 1693,
+      "sha256": "73ff69fbe2fd5f9bea6d410476a100e0f38dd65340770d0484620404afe82d44"
+    },
+    "public_benchmarks": {
+      "file": "public_benchmark_candidates.jsonl",
+      "count": 660,
+      "per_benchmark": {
+        "cross_domain_routing": 200,
+        "param_prefill": 170,
+        "protocol_thresholds": 100,
+        "autofix_benchmark": 100,
+        "workflow_generation": 40,
+        "boin_benchmark": 20,
+        "pbpk_benchmark": 15,
+        "drug_discovery_e2e": 15
+      },
+      "sha256": "30427278fa643789e4b9c739285c9ce0b21d45f13185038f0f6eaa69f6f56ff3"
+    },
+    "db_knowledge": {
+      "tools_file": "tool_knowledge_candidates.jsonl",
+      "tools_count": 12312,
+      "tools_sha256": "c040ebe544254ec4fa7698f7cd786c8a3ed94b9b0fb58a86c9bfc290b2d788de",
+      "composition_file": "composition_rationale_candidates.jsonl",
+      "composition_count": 9817,
+      "composition_sha256": "24628320e0053283ff3c08800b239a2e35a49a7bbac1b9a3751e6c7b8e046e22"
+    },
+    "official_nextflow_docs": {
+      "file": "official_nextflow_doc_candidates.jsonl",
+      "count": 412,
+      "sha256": "fca8d5c6ae93241b17d8b5800f6f065b3f8fb5376586d25835c046e7cc4592d3"
+    },
+    "all_benchmark_datasets": {
+      "file": "all_benchmark_candidates.jsonl",
+      "count": 885,
+      "per_benchmark": {
+        "admet_benchmark": 20,
+        "autofix_benchmark": 100,
+        "boin_benchmark": 20,
+        "compbiobench": 27,
+        "cross_domain_routing": 200,
+        "lane_arbitration": 40,
+        "license_gating": 18,
+        "memory_benchmark": 20,
+        "model_selection": 30,
+        "param_prefill": 170,
+        "pbpk_benchmark": 15,
+        "prereq_recovery": 40,
+        "protocol_thresholds": 100,
+        "protocol_to_workflow": 35,
+        "target_structure_benchmark": 10,
+        "workflow_generation": 40
+      },
+      "sha256": "6c732bffb0d9d72c0b446ce665ef2b4c7dbb35e993fe00098a183928d9f5d0ac"
+    },
+    "biomate_run_outputs": {
+      "file": "biomate_run_output_candidates.jsonl",
+      "count": 1707,
+      "per_result_set": {
+        "regulatory_v6": 236,
+        "regulatory_llm_5model_v1.old-preamble": 295,
+        "multitask_crossjudge_v1": 346,
+        "regulatory_llm_5model_v1": 430,
+        "raw_inputs": 400
+      },
+      "sha256": "93925771077eba4d3a7eb07492e3ffc0acccfd9d345b1b33c0f72cc0c3680cdf"
+    }
+  },
+  "limitations": [
+    "Recorded workflow status is not verified execution.",
+    "Fix-commit selection is keyword-based; requires human triage of true issue->fix pairs.",
+    "nf programs are raw material; a spec->program pair is not a verified correct completion.",
+    "No private conversations or dev PII included."
+  ]
+}

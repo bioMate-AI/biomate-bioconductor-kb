@@ -164,7 +164,7 @@ with open("get_uce_embeddings_scRNA_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("get_uce_embeddings_scRNA_output.txt", "w") as f:
-    f.write("Biomni: Get Uce Embeddings Scrna" + NL)
+    f.write("BioMate: Get Uce Embeddings Scrna" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

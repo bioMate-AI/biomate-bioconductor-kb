@@ -1,0 +1,12 @@
+{
+  "run_id": "pepglad-initial-20260912T214443Z",
+  "s3_prefix": "s3://knowledge-datasets-1759951976/cyclic_peptide/runs/pepglad-initial-20260912T214443Z",
+  "code_sha256": "25568b03ac3edcc089401dc6cb4c2c3bd69fac4ff150b69ab6f0011ee21820fd",
+  "upstream_commit": "bad015ca50c312a89482adb5220c3d907f13df5c",
+  "instance_type": "g5.xlarge",
+  "max_runtime_hours": 4,
+  "autoencoder_epochs": 5,
+  "ldm_epochs": 5,
+  "scope": "canonical all-heavy-atom PepGLAD initial baseline, no ProtFrag augmentation",
+  "data": "PepBench v2 train/valid only; LNR held out"
+}

@@ -54,7 +54,7 @@ with open("golden_gate_assembly_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("golden_gate_assembly_output.txt", "w") as f:
-    f.write("Biomni: Golden Gate Assembly Results" + NL)
+    f.write("BioMate: Golden Gate Assembly Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

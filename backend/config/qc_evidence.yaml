@@ -1214,6 +1214,79 @@ transcriptomics:
       finding: >
         Emitted only when limma-voom is the selected step-2 tool.
 
+metabolomics:
+  # Untargeted LC-MS chain: xcms (peak detection/alignment) → CAMERA
+  # (annotation) → biosigner (feature selection). Gates run on the
+  # aligned feature x sample matrix. All three gates are ADVISORY
+  # (non-blocking): metabolomics QC issues are remediated by feature
+  # filtering / signal correction downstream, not by halting the run.
+  qc_pooled_cv_rsd:
+    - paper_ref: "Dunn WB et al. Nat Protoc 2011; 6(7):1060-1083"
+      paper_doi: "10.1038/nprot.2011.335"
+      provenance: GOLD-metric / SILVER-tier
+      paper_supports: >
+        Foundational untargeted UPLC-MS metabolomics protocol. Establishes
+        repeated injection of a pooled QC sample as the reference measure of
+        analytical reproducibility and recommends removing features whose
+        QC relative standard deviation (RSD / CV) exceeds ~20-30%. The
+        pooled-QC-CV metric is stated verbatim (GOLD); the 30% operating
+        point is the widely-used community cutoff (SILVER).
+      rule_text: >
+        BioMate flags median pooled-QC CV > 30% as an advisory gate on the
+        xcms/CAMERA feature matrix (computed across columns tagged QC/pool).
+      finding: >
+        Advisory only — high CV triggers a QC-RSD-filter / signal-correction
+        recommendation, not a workflow halt.
+    - paper_ref: "Broadhurst D et al. (mQACC). Metabolomics 2018; 14(6):72"
+      paper_doi: "10.1007/s11306-018-1367-3"
+      provenance: GOLD-metric / SILVER-tier
+      paper_supports: >
+        Metabolomics Quality Assurance & Quality Control Consortium (mQACC)
+        guidelines for QC samples in large-scale untargeted LC-MS. Codifies
+        pooled-QC injection, QC-RSD feature filtering, and missing-value
+        assessment as the core data-quality checks. Supports both the CV and
+        missing-value gates below.
+      rule_text: >
+        Median pooled-QC CV cutoff 30% (RSD); missing-value fraction cutoff
+        20% on the aligned feature x sample matrix.
+      finding: >
+        Advisory gates; feature-level RSD filtering and imputation applied
+        downstream.
+
+  feature_count_band:
+    - paper_ref: "Dunn WB et al. Nat Protoc 2011; 6(7):1060-1083"
+      paper_doi: "10.1038/nprot.2011.335"
+      provenance: BRONZE
+      paper_supports: >
+        The reference untargeted UPLC-MS protocol reports that a typical
+        assay yields thousands of aligned features; a run returning very few
+        features indicates a peak-picking parameter problem or a failed
+        injection rather than true low sample complexity. The paper does not
+        state a numeric floor — the ≥ 500-feature advisory band is a
+        BioMate-operational sanity check (BRONZE).
+      rule_text: >
+        Advisory gate when xcms detects < 500 aligned features; prompts a
+        review of ppm / peakwidth / snthresh and injection success.
+      finding: >
+        Advisory only — low feature count recommends re-tuning peak picking.
+
+  missing_value_fraction:
+    - paper_ref: "Broadhurst D et al. (mQACC). Metabolomics 2018; 14(6):72"
+      paper_doi: "10.1007/s11306-018-1367-3"
+      provenance: SILVER
+      paper_supports: >
+        mQACC guidance treats excessive missingness in the feature x sample
+        matrix as a data-quality concern that undermines imputation and
+        multivariate modelling. The 20% overall missing-fraction cutoff is a
+        common community operating point attributed to this guidance (SILVER);
+        the paper frames missingness as a continuous quality axis rather than
+        a single hard threshold.
+      rule_text: >
+        Advisory gate when the aligned feature x sample matrix has > 20%
+        missing/zero entries; prompts review of xcms alignment / fillPeaks.
+      finding: >
+        Advisory only — missing values are imputed downstream after review.
+
 single_cell:
   scater_qc_normalization:
     - paper_ref: "McCarthy DJ, Campbell KR, Lun ATL, Wills QF. Bioinformatics 2017; 33(8):1179-1186"

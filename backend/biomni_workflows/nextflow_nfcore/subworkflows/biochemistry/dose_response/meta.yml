@@ -1,22 +1,33 @@
 name: dose_response
-description: Calculate dose-response curve using Hill equation
+description: Fit raw dose/concentration-response data with the R drc package (4PL/5PL log-logistic), reporting IC50/EC50, Hill slope, fitted curve and goodness-of-fit
 keywords:
   - biochemistry
   - pharmacology
   - dose-response
-  - hill-equation
+  - ic50
+  - ec50
+  - drc
+  - four-parameter-logistic
 tools:
-  - python:
-      description: Python scientific computing
-      homepage: https://www.python.org/
-      documentation: https://docs.python.org/3/
-      licence: ["PSF-2.0"]
+  - drc:
+      description: Analysis of dose-response curves in R (drm with LL.4/LL.5 log-logistic models)
+      homepage: https://cran.r-project.org/package=drc
+      documentation: https://cran.r-project.org/web/packages/drc/drc.pdf
+      licence: ["GPL-2", "GPL-3"]
 input:
   - meta:
       type: map
       description: |
         Groovy Map containing sample information
         e.g. [ id:'test' ]
+  - data_file:
+      type: file
+      description: |
+        CSV/TSV with a concentration column and a response column (column names
+        auto-detected: concentration|conc|dose|x and response|resp|signal|value|y,
+        with positional fallback to the first two numeric columns). Pass [] to use
+        the scalar Hill-equation fallback.
+      pattern: "*.{csv,tsv,txt}"
 output:
   - meta:
       type: map
@@ -25,12 +36,20 @@ output:
         e.g. [ id:'test' ]
   - results:
       type: file
-      description: JSON file with computation results
+      description: JSON with fitted IC50/EC50, Hill slope, asymptotes, coefficients, std errors and goodness-of-fit
       pattern: "*_results.json"
   - output:
       type: file
-      description: Human-readable output summary
+      description: Human-readable fit summary
       pattern: "*_output.txt"
+  - curve:
+      type: file
+      description: Sampled fitted curve (log-spaced concentration grid)
+      pattern: "*_curve.csv"
+  - plot:
+      type: file
+      description: drc diagnostic fit plot
+      pattern: "*_fit.pdf"
   - versions:
       type: file
       description: File containing software versions

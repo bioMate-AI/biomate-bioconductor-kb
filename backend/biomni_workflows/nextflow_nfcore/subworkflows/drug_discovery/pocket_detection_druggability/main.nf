@@ -30,6 +30,7 @@ params.publish_dir_mode    = 'copy'
 
 // Input
 params.pdb_input           = null   // path to PDB file OR 4-letter PDB ID (e.g. '1IEP')
+params.site_ligand         = ''     // optional: residue name of a co-crystallised ligand (e.g. 'AQ4' in 1M17); its position is reported as reference_site
 params.mock_mode           = false  // CI smoke testing only — bypasses required-input guards. NEVER set true in production unless explicitly requested by the user.
 
 // QC gate thresholds (BRONZE tier — adjustable)
@@ -80,15 +81,96 @@ process FPOCKET_POCKET_DETECTION {
     script:
     """
         # ---------------------------------------------------------------------------
-        # Live: biotite-based geometric cavity detection (pure Python, no external binary)
-        # Identifies solvent-excluded cavities by alpha-sphere approximation using
-        # spatial clustering of surface-exposed hydrophobic atoms.
+        # fpocket (Le Guilloux et al. 2009; built into this image) on the protein only:
+        # ligands and waters are removed so an occupied site is detected as a cavity.
+        # If fpocket is absent or fails, the geometric heuristic below is used and the
+        # output says so (tool field + fallback_reason); it is never reported as fpocket.
         # ---------------------------------------------------------------------------
+        grep -E '^(ATOM|TER)' ${protein_pdb} > apo_for_fpocket.pdb || true
+        echo END >> apo_for_fpocket.pdb
+        if command -v fpocket >/dev/null 2>&1; then
+            fpocket -f apo_for_fpocket.pdb > fpocket_run.log 2>&1 || echo "fpocket exited non-zero" >> fpocket_run.log
+        else
+            echo "fpocket not installed in this image" > fpocket_run.log
+        fi
         python3 << 'PYEOF'
 import json, sys
 import numpy as np
 from datetime import datetime
 from Bio import PDB
+import os
+
+SITE_LIGAND = "${params.site_ligand ?: ''}".strip().upper()
+
+
+def parse_fpocket():
+    # Pockets from fpocket's own output: scores from <name>_info.txt, centre = mean of the pocket's alpha-sphere centres.
+    info = "apo_for_fpocket_out/apo_for_fpocket_info.txt"
+    if not os.path.exists(info):
+        reason = open("fpocket_run.log").read().strip()[:300] if os.path.exists("fpocket_run.log") else "no fpocket log"
+        return [], "fpocket produced no output: " + reason
+    blocks, cur = [], None
+    for line in open(info):
+        st = line.strip()
+        if st.startswith("Pocket") and st.endswith(":"):
+            cur = {"n": int(st.split()[1])}
+            blocks.append(cur)
+            continue
+        if cur is not None and ":" in st:
+            key, val = st.split(":", 1)
+            try:
+                cur[key.strip().lower()] = float(val.strip())
+            except ValueError:
+                pass
+    out = []
+    for blk in blocks:
+        xyz = []
+        vert = "apo_for_fpocket_out/pockets/pocket" + str(blk["n"]) + "_vert.pqr"
+        if os.path.exists(vert):
+            for ln in open(vert):
+                if ln.startswith("ATOM"):
+                    parts = ln.split()
+                    try:
+                        xyz.append((float(parts[-5]), float(parts[-4]), float(parts[-3])))
+                    except (ValueError, IndexError):
+                        pass
+        if not xyz:
+            continue
+        ctr = [sum(v[k] for v in xyz) / len(xyz) for k in range(3)]
+        out.append({
+            "pocket_id": 0,
+            "fpocket_rank": blk["n"],
+            "fpocket_score": round(blk.get("score", 0.0), 3),
+            "volume_A3": round(blk.get("volume", 0.0), 1),
+            "druggability_score": round(blk.get("druggability score", 0.0), 3),
+            "hydrophobicity": round(blk.get("hydrophobicity score", 0.0), 3),
+            "polarity": round(blk.get("polarity score", 0.0), 3),
+            "n_alpha_spheres": int(blk.get("number of alpha spheres", 0)),
+            "center_x": round(ctr[0], 3), "center_y": round(ctr[1], 3), "center_z": round(ctr[2], 3),
+        })
+    out.sort(key=lambda p: (-p["druggability_score"], -p["fpocket_score"]))
+    if not out:
+        return [], "fpocket ran but reported no pockets"
+    return out[:10], ""
+
+
+def reference_site(pdb_path, resname):
+    # Centroid and extent of a named co-crystallised ligand (HETATM records), or None.
+    pts = []
+    for ln in open(pdb_path):
+        if ln.startswith("HETATM") and ln[17:20].strip().upper() == resname:
+            try:
+                pts.append((float(ln[30:38]), float(ln[38:46]), float(ln[46:54])))
+            except ValueError:
+                pass
+    if not pts:
+        return None
+    ctr = [sum(v[k] for v in pts) / len(pts) for k in range(3)]
+    ext = [max(v[k] for v in pts) - min(v[k] for v in pts) for k in range(3)]
+    return {"ligand": resname, "n_atoms": len(pts),
+            "center_x": round(ctr[0], 3), "center_y": round(ctr[1], 3), "center_z": round(ctr[2], 3),
+            "extent_A": [round(e, 2) for e in ext]}
+
 
 meta_id    = "${meta.id}"
 pdb_file   = "${protein_pdb}"
@@ -185,6 +267,12 @@ for i, (ctr, nsurr, hfrac, pfrac) in enumerate(pocket_scores):
     if len(pockets) >= 10:
         break
 
+FP_POCKETS, FALLBACK_REASON = parse_fpocket()
+TOOL_NAME = "fpocket"
+if FP_POCKETS:
+    pockets = FP_POCKETS
+else:
+    TOOL_NAME = "geometric_heuristic"
 pockets.sort(key=lambda p: p["druggability_score"], reverse=True)
 for i, p in enumerate(pockets, 1):
     p["pocket_id"] = i
@@ -192,12 +280,20 @@ for i, p in enumerate(pockets, 1):
 # Pockets JSON
 payload = {
     "target":      meta_id,
-    "tool":        "biotite_geometric",
-    "version":     "2.6",
+    "tool":        TOOL_NAME,
+    "fallback_reason": FALLBACK_REASON or None,
     "num_pockets": len(pockets),
     "pockets":     pockets,
     "timestamp":   datetime.utcnow().isoformat() + "Z",
     }
+if SITE_LIGAND:
+    REF = reference_site(pdb_file, SITE_LIGAND)
+    if REF is None:
+        payload["reference_site_error"] = "no HETATM residue named " + SITE_LIGAND + " in the input structure"
+    else:
+        for p in pockets:
+            p["distance_to_reference_A"] = round(sum((p["center_" + a] - REF["center_" + a]) ** 2 for a in "xyz") ** 0.5, 2)
+        payload["reference_site"] = REF
 with open(f"{meta_id}_pockets.json", "w") as f:
     json.dump(payload, f, indent=2)
 
@@ -229,7 +325,8 @@ PYEOF
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        fpocket: "4.1"
+        fpocket: \$(command -v fpocket >/dev/null 2>&1 && echo installed || echo absent)
+        pocket_method: \$(python3 -c "import json,glob;print(json.load(open(glob.glob('*_pockets.json')[0]))['tool'])" 2>/dev/null || echo unknown)
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
     END_VERSIONS
     '''

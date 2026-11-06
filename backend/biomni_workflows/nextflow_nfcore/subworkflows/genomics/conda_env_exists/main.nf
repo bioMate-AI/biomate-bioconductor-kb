@@ -108,7 +108,7 @@ with open("conda_env_exists_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("conda_env_exists_output.txt", "w") as f:
-    f.write("Biomni: Conda Env Exists" + NL)
+    f.write("BioMate: Conda Env Exists" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

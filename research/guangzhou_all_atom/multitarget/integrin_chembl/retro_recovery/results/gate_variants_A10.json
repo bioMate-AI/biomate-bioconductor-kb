@@ -1,0 +1,232 @@
+{
+ "I": {
+  "registered": {
+   "C1_atomlm_typicality": [
+    0.5031,
+    0.4578,
+    0.5495,
+    25
+   ],
+   "C2_multiproxy_leave_fold_out": [
+    0.5591,
+    0.4994,
+    0.6189,
+    25
+   ],
+   "C3_morgan_fp_leave_fold_out": [
+    0.5837,
+    0.5328,
+    0.6362,
+    26
+   ]
+  },
+  "registered_failed": [
+   "C3_morgan_fp_leave_fold_out",
+   "secondary:o_frac",
+   "secondary:has_halogen"
+  ],
+  "V-T-items": {
+   "primary": {
+    "C1_atomlm_typicality": [
+     0.5031,
+     0.4578,
+     0.5495,
+     25
+    ],
+    "C2_multiproxy_leave_fold_out": [
+     0.5653,
+     0.5053,
+     0.6248,
+     25
+    ],
+    "C3_morgan_fp_leave_fold_out": [
+     0.5791,
+     0.5297,
+     0.6303,
+     26
+    ]
+   },
+   "VALID": false,
+   "failed": [
+    "C2_multiproxy_leave_fold_out",
+    "C3_morgan_fp_leave_fold_out",
+    "secondary:o_frac",
+    "secondary:has_halogen"
+   ],
+   "n_targets": 46,
+   "secondary_failed": [
+    "secondary:o_frac",
+    "secondary:has_halogen"
+   ]
+  },
+  "V-T-all": {
+   "primary": {
+    "C1_atomlm_typicality": [
+     0.5031,
+     0.4578,
+     0.5495,
+     25
+    ],
+    "C2_multiproxy_leave_fold_out": [
+     0.564,
+     0.5021,
+     0.6249,
+     25
+    ],
+    "C3_morgan_fp_leave_fold_out": [
+     0.5748,
+     0.5236,
+     0.6278,
+     26
+    ]
+   },
+   "VALID": false,
+   "failed": [
+    "C2_multiproxy_leave_fold_out",
+    "C3_morgan_fp_leave_fold_out",
+    "secondary:o_frac",
+    "secondary:has_halogen"
+   ],
+   "n_targets": 46,
+   "secondary_failed": [
+    "secondary:o_frac",
+    "secondary:has_halogen"
+   ]
+  },
+  "V-S": {
+   "primary": {
+    "C1_atomlm_typicality": [
+     0.5268,
+     0.4704,
+     0.5865,
+     15
+    ],
+    "C2_multiproxy_leave_fold_out": [
+     0.5385,
+     0.4574,
+     0.6126,
+     15
+    ],
+    "C3_morgan_fp_leave_fold_out": [
+     0.6208,
+     0.5552,
+     0.6845,
+     16
+    ]
+   },
+   "VALID": false,
+   "failed": [
+    "C3_morgan_fp_leave_fold_out",
+    "secondary:o_frac",
+    "secondary:n_arom"
+   ],
+   "n_targets": 29,
+   "secondary_failed": [
+    "secondary:o_frac",
+    "secondary:n_arom"
+   ]
+  }
+ },
+ "M2": {
+  "registered": {
+   "C1_atomlm_typicality": [
+    0.6649,
+    0.5513,
+    0.7723,
+    14
+   ],
+   "C2_multiproxy_leave_fold_out": [
+    0.6896,
+    0.5781,
+    0.7949,
+    14
+   ],
+   "C3_morgan_fp_leave_fold_out": [
+    0.676,
+    0.5411,
+    0.8029,
+    14
+   ]
+  },
+  "registered_failed": [
+   "C1_atomlm_typicality",
+   "C2_multiproxy_leave_fold_out",
+   "C3_morgan_fp_leave_fold_out",
+   "secondary:has_halogen",
+   "secondary:n_arom",
+   "secondary:fsp3"
+  ],
+  "V-T-items": {
+   "primary": {
+    "C1_atomlm_typicality": [
+     0.6649,
+     0.5513,
+     0.7723,
+     14
+    ],
+    "C2_multiproxy_leave_fold_out": [
+     0.6037,
+     0.4919,
+     0.7198,
+     14
+    ],
+    "C3_morgan_fp_leave_fold_out": [
+     0.5794,
+     0.4486,
+     0.7197,
+     14
+    ]
+   },
+   "VALID": false,
+   "failed": [
+    "C1_atomlm_typicality",
+    "secondary:has_halogen",
+    "secondary:n_arom",
+    "secondary:fsp3"
+   ],
+   "n_targets": 20,
+   "secondary_failed": [
+    "secondary:has_halogen",
+    "secondary:n_arom",
+    "secondary:fsp3"
+   ]
+  },
+  "V-T-all": {
+   "primary": {
+    "C1_atomlm_typicality": [
+     0.6649,
+     0.5513,
+     0.7723,
+     14
+    ],
+    "C2_multiproxy_leave_fold_out": [
+     0.743,
+     0.6392,
+     0.8351,
+     14
+    ],
+    "C3_morgan_fp_leave_fold_out": [
+     0.7388,
+     0.6232,
+     0.8454,
+     14
+    ]
+   },
+   "VALID": false,
+   "failed": [
+    "C1_atomlm_typicality",
+    "C2_multiproxy_leave_fold_out",
+    "C3_morgan_fp_leave_fold_out",
+    "secondary:has_halogen",
+    "secondary:n_arom",
+    "secondary:fsp3"
+   ],
+   "n_targets": 20,
+   "secondary_failed": [
+    "secondary:has_halogen",
+    "secondary:n_arom",
+    "secondary:fsp3"
+   ]
+  }
+ }
+}

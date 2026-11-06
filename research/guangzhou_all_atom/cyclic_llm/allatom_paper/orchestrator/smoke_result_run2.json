@@ -1,0 +1,118 @@
+{
+ "n_seeds": 10,
+ "budget": 300,
+ "L": 10,
+ "interval_note": "ci_boot_mean = percentile bootstrap of the mean over seeds; ci_t = t-interval; ci_wide = the wider of the two",
+ "planted": {
+  "loop_auc": {
+   "n": 10,
+   "mean": 0.9228762566137567,
+   "sd": 0.01756529286787142,
+   "ci_boot_mean": [
+    0.9134198726851851,
+    0.9338604126984129
+   ],
+   "ci_t": [
+    0.9103108030553276,
+    0.9354417101721858
+   ],
+   "interval_types": "ci_boot_mean=percentile bootstrap CI of the mean over seeds; ci_t=t-interval"
+  },
+  "random_auc": {
+   "n": 10,
+   "mean": 0.909923134920635,
+   "sd": 0.012764618746096305,
+   "ci_boot_mean": [
+    0.9025878416005292,
+    0.917452550925926
+   ],
+   "ci_t": [
+    0.9007918767485324,
+    0.9190543930927376
+   ],
+   "interval_types": "ci_boot_mean=percentile bootstrap CI of the mean over seeds; ci_t=t-interval"
+  },
+  "paired_loop_minus_random": {
+   "n": 10,
+   "mean": 0.012953121693121693,
+   "sd": 0.01570265367286208,
+   "ci_boot_mean": [
+    0.0031262404100529167,
+    0.021384035383597857
+   ],
+   "ci_t": [
+    0.0017201199461741833,
+    0.024186123440069204
+   ],
+   "interval_types": "ci_boot_mean=percentile bootstrap CI of the mean over seeds; ci_t=t-interval",
+   "ci_wide": [
+    0.0017201199461741833,
+    0.024186123440069204
+   ],
+   "sd_diff": 0.01570265367286208
+  },
+  "optimum_found_seeds": 7,
+  "optimum_found_seeds_random_search": 1,
+  "calls_to_topk_0.95": {
+   "loop": 177,
+   "random": 230
+  }
+ },
+ "shuffled": {
+  "loop_auc": {
+   "n": 10,
+   "mean": 0.9195825817510741,
+   "sd": 0.01132604768756011,
+   "ci_boot_mean": [
+    0.9129843258827494,
+    0.9261478852732492
+   ],
+   "ci_t": [
+    0.9114804153204249,
+    0.9276847481817233
+   ],
+   "interval_types": "ci_boot_mean=percentile bootstrap CI of the mean over seeds; ci_t=t-interval"
+  },
+  "random_auc": {
+   "n": 10,
+   "mean": 0.9210810510771333,
+   "sd": 0.023015539208594008,
+   "ci_boot_mean": [
+    0.9081099796189381,
+    0.9357503042261153
+   ],
+   "ci_t": [
+    0.904616726159627,
+    0.9375453759946397
+   ],
+   "interval_types": "ci_boot_mean=percentile bootstrap CI of the mean over seeds; ci_t=t-interval"
+  },
+  "paired_loop_minus_random": {
+   "n": 10,
+   "mean": -0.001498469326059204,
+   "sd": 0.02651370112583825,
+   "ci_boot_mean": [
+    -0.01737249777299591,
+    0.014063404670450174
+   ],
+   "ci_t": [
+    -0.020465228529269783,
+    0.017468289877151377
+   ],
+   "interval_types": "ci_boot_mean=percentile bootstrap CI of the mean over seeds; ci_t=t-interval",
+   "ci_wide": [
+    -0.020465228529269783,
+    0.017468289877151377
+   ],
+   "sd_diff": 0.02651370112583825
+  },
+  "optimum_found_seeds": null,
+  "optimum_found_seeds_random_search": null,
+  "calls_to_topk_0.95": null
+ },
+ "checks": {
+  "planted_optimum_found_at_least_as_often_as_random_search": true,
+  "learning_beats_random_on_planted": true,
+  "shuffled_does_not_beat_random": true
+ }
+}

@@ -28,6 +28,12 @@ class AIConfig:
         self.llm_model = self.config.get('llm_model', 'claude-sonnet-4-5')
         self.llm_api_key = self._resolve_api_key()
         self.llm_base_url = self.config.get('llm_base_url', None)
+        if os.environ.get('BIOMATE_LOCAL_ONLY') == '1':
+            self.llm_provider = 'local'
+            self.llm_model = os.environ.get('BIOMATE_LOCAL_LLM_MODEL', '')
+            self.llm_base_url = os.environ.get('BIOMATE_LOCAL_LLM_URL', '')
+            self.llm_api_key = os.environ.get('BIOMATE_LOCAL_LLM_KEY', '')
+
 
         # Hybrid Routing Configuration
         self.enable_hybrid_routing = self.config.get('enable_hybrid_routing', False)

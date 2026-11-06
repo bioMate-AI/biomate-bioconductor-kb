@@ -1,0 +1,15 @@
+{
+ "which": "M2",
+ "scores_file": "scores_A1_v4.csv",
+ "n_items": 111,
+ "n_targets": 6,
+ "typicality_auc": {
+  "point": 0.4969,
+  "lo": 0.45,
+  "hi": 0.5881,
+  "n_families": 3
+ },
+ "spearman_score_vs_typicality": -0.0418,
+ "flag": "ok",
+ "flag_reasons": []
+}

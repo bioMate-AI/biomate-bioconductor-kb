@@ -36,6 +36,9 @@ export interface CodeRunRequest {
   timeout_seconds?: number;
   /** Optional download function for Galaxy datasets. Signature matches galaxyAPIProxy. */
   downloadDataset?: (id: string) => Promise<AsyncIterable<Buffer>>;
+  /** Python only: code of this turn's earlier successful calls, re-run silently before `code` so its
+   *  variables, imports and loaded data exist (notebook-cell semantics; see pythonReplay). */
+  prior_code?: string[];
 }
 
 export interface OutputFile {
@@ -45,12 +48,56 @@ export interface OutputFile {
   preview: string; // first 10 lines if text-like
 }
 
+/** Where run_code stages input datasets inside the sandbox: SANDBOX_INPUT_DIR/<dataset id>/<filename>.
+ *  Exported so the chat prompt can tell the model the exact INPUT_FILES paths before its first call. */
+/** Imports for the conventional data-science aliases a script USES but never imports. Each call is a
+ *  fresh process, and the model often drops `import numpy as np` from a follow-up call (dev 2026-11-04:
+ *  `NameError: name 'np' is not defined` / `'plt'` cost a retry in 4 of 6 ad-hoc answers). Only aliases
+ *  the code references are imported (no start-up cost otherwise); a missing package is ignored. */
+const PY_ALIASES: Array<[string, string]> = [
+  ['np', 'import numpy as np'],
+  ['pd', 'import pandas as pd'],
+  ['plt', "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt"],
+  ['sns', 'import seaborn as sns'],
+];
+export function pythonAliasImports(code: string): string {
+  return PY_ALIASES
+    .filter(([alias]) => new RegExp(`\\b${alias}\\.`).test(code) && !new RegExp(`\\bas\\s+${alias}\\b`).test(code))
+    .map(([, stmt]) => `try:\n${stmt.split('\n').map(l => `    ${l}`).join('\n')}\nexcept ImportError:\n    pass`)
+    .join('\n');
+}
+
+/** Re-runs earlier successful cells of this turn with their output suppressed, so a follow-up call
+ *  can use what they defined. Code-interpreter tools are conventionally stateful and the model writes
+ *  for that: even with "each call is a fresh process" in the tool description, follow-up calls used
+ *  `df` / `np` from the previous call (NameError in 3 of 6 ad-hoc answers on dev, 2026-11-04).
+ *  A cell that fails on replay is skipped. */
+export function pythonReplay(prior: string[] = []): string {
+  if (!prior.length) return '';
+  return [
+    'import contextlib as _bm_ctx, io as _bm_io',
+    `for _bm_src in ${JSON.stringify(prior)}:`,
+    '    try:',
+    '        with _bm_ctx.redirect_stdout(_bm_io.StringIO()), _bm_ctx.redirect_stderr(_bm_io.StringIO()):',
+    "            exec(compile(_bm_src, '<earlier run_code call>', 'exec'), globals())",
+    '    except BaseException:',
+    '        pass',
+  ].join('\n');
+}
+
+export const SANDBOX_INPUT_DIR = '/work/input';
+export function stagedInputPath(datasetId: string, filename: string): string {
+  return `${SANDBOX_INPUT_DIR}/${datasetId}/${filename}`;
+}
+
 export interface CodeRunResult {
   stdout: string;
   stderr: string;
   exit_code: number;
   output_files: OutputFile[];
   duration_ms: number;
+  /** filename -> container path of each input that was actually staged (what INPUT_FILES holds). */
+  staged_inputs?: Record<string, string>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -207,7 +254,7 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
 
     // Inside the sandbox container the host baseDir is bind-mounted at /work.
     // All script env vars must reference container paths, not host paths.
-    const containerData = '/work/input';
+    const containerData = SANDBOX_INPUT_DIR;
     const containerOutput = '/work/output';
     let scriptName: string;
 
@@ -238,7 +285,9 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
         `os.chdir(${JSON.stringify(containerOutput)})`,
         pyInputFiles,
         `INPUT_PATHS = list(INPUT_FILES.values())`,
-      ].join('\n');
+        pythonAliasImports(req.code),
+        pythonReplay(req.prior_code),
+      ].filter(Boolean).join('\n');
       scriptName = 'script.py';
       scriptPath = path.join(baseDir, scriptName);
       await fs.writeFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
@@ -379,7 +428,14 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
           signal: controller.signal,
         });
         if (!resp.ok) {
-          return { stdout: '', stderr: `[sidecar error: HTTP ${resp.status}]`, exitCode: 1 };
+          // Include the response body — a bare "HTTP 500" hides the real cause
+          // (bad image, OOM, gVisor runtime missing, auth rejected).
+          const detail = await resp.text().catch(() => '');
+          return {
+            stdout: '',
+            stderr: `[sidecar error: HTTP ${resp.status} ${resp.statusText}]${detail ? ' ' + detail.slice(0, 4000) : ''}`,
+            exitCode: 1,
+          };
         }
         const body: any = await resp.json();
         return {
@@ -405,6 +461,7 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
       exit_code: result.exitCode,
       output_files,
       duration_ms,
+      staged_inputs: Object.fromEntries(stagedFiles.map(f => [f.filename, stagedInputPath(f.id, f.filename)])),
     };
   } finally {
     // Async cleanup — don't block the response

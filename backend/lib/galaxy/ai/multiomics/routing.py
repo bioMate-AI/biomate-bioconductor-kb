@@ -21,40 +21,53 @@ from .integration_planner import METHOD_WORKFLOW
 # Integration-intent verbs (the request must express *combining* modalities).
 _INTEGRATE = re.compile(
     r"\b(integrat\w+|combin\w+|joint\w*|jointly|fus\w+|co-?analy\w+|"
-    r"multi-?omics?|multiomics|together)\b",
+    r"multi-?omics?|multiomics|together)\b|整合|融合|联合分析|联合建模|多组学|跨组学",
     re.I,
 )
 
 # Modality keyword → (canonical data_type the selector understands, display label).
 # Order matters: more specific (single-cell) patterns first.
+# Each pattern carries both English and 中文 aliases (hospital users write Chinese).
+# Order matters: more specific (spatial / single-cell) patterns first.
 _MODALITY_KEYWORDS: List[tuple] = [
-    (re.compile(r"\bsc-?rna|single-?cell\s+(rna|expression|transcriptom\w+)\b", re.I), "scrna", "scRNA"),
-    (re.compile(r"\bsc-?atac|single-?cell\s+atac\b", re.I), "scatac", "scATAC"),
-    (re.compile(r"\brna(-?seq)?\b|\btranscriptom\w+|\bmrna\b|gene\s+expression|\bexpression\b", re.I), "rna", "RNA"),
-    (re.compile(r"\b(methylat\w+|450k|epic\b|bisulfite)\b", re.I), "methylation", "methylation"),
-    (re.compile(r"\bmi-?rna\b", re.I), "mirna", "miRNA"),
-    (re.compile(r"\b(proteom\w+|rppa|\bprotein\b)\b", re.I), "proteomics", "proteomics"),
-    (re.compile(r"\b(mutation\w*|somatic|\bsnv\b|variant\s+matrix)\b", re.I), "mutation", "mutation"),
-    (re.compile(r"\b(cnv|copy-?number)\b", re.I), "cnv", "CNV"),
-    (re.compile(r"\b(metabolom\w+|metabolite\w*)\b", re.I), "metabolomics", "metabolomics"),
-    (re.compile(r"\b(drug-?response|drug\s+sensitivity|\bic50\b)\b", re.I), "drug_response", "drug-response"),
+    (re.compile(r"spatial\s*(transcriptom\w+|omics|express\w*)|\bvisium\b|\bmerfish\b|\bslide-?seq\b|\bxenium\b|空间转录组|空间组学|空间组", re.I), "spatial", "spatial"),
+    (re.compile(r"\bsc-?atac|single-?cell\s+atac|单细胞\s*atac", re.I), "scatac", "scATAC"),
+    (re.compile(r"\bsc-?rna|single-?cell\s+(rna|expression|transcriptom\w+)|单细胞", re.I), "scrna", "scRNA"),
+    (re.compile(r"\brna(-?seq)?\b|\btranscriptom\w+|\bmrna\b|gene\s+expression|\bexpression\b|转录组|基因表达|表达矩阵|表达谱", re.I), "rna", "RNA"),
+    (re.compile(r"\b(methylat\w+|450k|epic\b|bisulfite)\b|甲基化", re.I), "methylation", "methylation"),
+    (re.compile(r"\bmi-?rna\b|微小rna|微rna", re.I), "mirna", "miRNA"),
+    (re.compile(r"\b(proteom\w+|rppa|\bprotein\b)\b|蛋白质组|蛋白组|蛋白质谱|蛋白表达", re.I), "proteomics", "proteomics"),
+    (re.compile(r"\b(mutation\w*|somatic|\bsnv\b|variant\s+matrix)\b|突变|体细胞变异", re.I), "mutation", "mutation"),
+    (re.compile(r"\b(cnv|copy-?number)\b|拷贝数", re.I), "cnv", "CNV"),
+    (re.compile(r"\b(metabolom\w+|metabolite\w*)\b|代谢组|代谢物|代谢谱", re.I), "metabolomics", "metabolomics"),
+    (re.compile(r"\b(drug-?response|drug\s+sensitivity|\bic50\b)\b|药物敏感|药敏", re.I), "drug_response", "drug-response"),
     (re.compile(r"\batac(-?seq)?\b", re.I), "scatac", "ATAC"),  # bulk ATAC → TF-IDF normalization path
 ]
 
-# Goal hints → selector `goal` argument.
+# Goal hints → selector `goal` argument (English + 中文).
 _GOAL_HINTS: List[tuple] = [
-    (re.compile(r"\b(cluster\w*|subtyp\w+|stratif\w+|patient\s+group\w*)\b", re.I), "clustering"),
-    (re.compile(r"\b(factor\w*|latent|shared\s+component\w*)\b", re.I), "factors"),
-    (re.compile(r"\b(feature\s+selection|select\w*\s+feature|driver\s+gene\w*|biomarker\w*)\b", re.I), "feature_selection"),
+    (re.compile(r"\b(cluster\w*|subtyp\w+|stratif\w+|patient\s+group\w*|prognos\w+)\b|分型|亚型|分层|患者分组|预后分组", re.I), "clustering"),
+    (re.compile(r"\b(factor\w*|latent|shared\s+component\w*)\b|潜在因子|共享成分|隐变量", re.I), "factors"),
+    (re.compile(r"\b(feature\s+selection|select\w*\s+feature|driver\s+gene\w*|biomarker\w*)\b|特征选择|驱动基因|生物标志", re.I), "feature_selection"),
 ]
 
 
 def _extract_modalities(text: str) -> List[Modality]:
-    """Pull the distinct omics modalities named in the request."""
+    """Pull the distinct omics modalities named in the request.
+
+    Patterns are tried most-specific first, and each match's span is blanked out
+    of the working text so a later generic pattern can't re-claim it — e.g.
+    "spatial transcriptomics" resolves to spatial only, not spatial + RNA.
+    """
     seen: Dict[str, Modality] = {}
+    work = text
     for pat, dtype, label in _MODALITY_KEYWORDS:
-        if dtype not in seen and pat.search(text):
+        if dtype in seen:
+            continue
+        m = pat.search(work)
+        if m:
             seen[dtype] = Modality(name=label, data_type=dtype)
+            work = work[:m.start()] + (" " * (m.end() - m.start())) + work[m.end():]
     return list(seen.values())
 
 

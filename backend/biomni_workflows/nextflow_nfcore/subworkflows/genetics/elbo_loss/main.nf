@@ -128,7 +128,7 @@ with open("elbo_loss_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("elbo_loss_output.txt", "w") as f:
-    f.write("Biomni: Elbo Loss" + NL)
+    f.write("BioMate: Elbo Loss" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -112,43 +112,11 @@ def detect_and_annotate_somatic_mutations(
     log = "# Somatic Mutation Analysis Log\\n"
     log += f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n\\n"
 
-    # Generate synthetic results if no input provided
+    # integrity: real gatk Mutect2 path kept; demo fallback was fabricating results -> honest-fail
     if tumor_bam is None or normal_bam is None or reference_genome is None:
-        import numpy as np
-        np.random.seed(42)
-
-        log += "## Demo Mode (Synthetic Data)\\n\\n"
-        log += "Running with synthetic data for demonstration purposes.\\n\\n"
-
-        # Simulated mutation counts
-        total_variants = np.random.randint(50, 200)
-        snvs = int(total_variants * 0.85)
-        indels = total_variants - snvs
-        pass_filter = int(total_variants * np.random.uniform(0.6, 0.8))
-
-        log += "## Variant Calling Results\\n\\n"
-        log += f"- Total raw variants: {total_variants}\\n"
-        log += f"- SNVs: {snvs}\\n"
-        log += f"- Indels: {indels}\\n"
-        log += f"- Passed filters: {pass_filter}\\n\\n"
-
-        log += "## Annotation Summary\\n\\n"
-        log += "| Impact | Count |\\n"
-        log += "|--------|-------|\\n"
-        log += f"| HIGH | {np.random.randint(2, 10)} |\\n"
-        log += f"| MODERATE | {np.random.randint(10, 30)} |\\n"
-        log += f"| LOW | {np.random.randint(20, 50)} |\\n"
-        log += f"| MODIFIER | {np.random.randint(30, 80)} |\\n\\n"
-
-        log += "## Example High-Impact Mutations\\n\\n"
-        genes = ["TP53", "KRAS", "PIK3CA", "BRCA1", "EGFR"]
-        for gene in np.random.choice(genes, size=min(3, len(genes)), replace=False):
-            log += f"- {gene}: p.{np.random.choice(['Arg', 'Gly', 'Val'])}{np.random.randint(100, 500)}{np.random.choice(['Ter', 'fs', 'His'])}\\n"
-
-        log += "\\n## Summary\\n\\n"
-        log += "Synthetic demo analysis complete. Provide tumor_bam, normal_bam, and reference_genome for actual analysis.\\n"
-
-        return log
+        import sys
+        sys.stderr.write("ERROR: detect_and_annotate_somatic_mutations requires real input/tool (gatk Mutect2 with tumor_bam, normal_bam, reference_genome); refusing to emit fabricated results.\\n")
+        sys.exit(1)
 
     import subprocess
 
@@ -368,7 +336,7 @@ with open("qc_metrics.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("detect_and_annotate_somatic_mutations_output.txt", "w") as f:
-    f.write("Biomni: Detect And Annotate Somatic Mutations" + NL)
+    f.write("BioMate: Detect And Annotate Somatic Mutations" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

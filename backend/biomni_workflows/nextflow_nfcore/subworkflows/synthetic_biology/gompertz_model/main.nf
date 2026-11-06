@@ -131,7 +131,7 @@ with open("gompertz_model_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("gompertz_model_output.txt", "w") as f:
-    f.write("Biomni: Gompertz Model" + NL)
+    f.write("BioMate: Gompertz Model" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

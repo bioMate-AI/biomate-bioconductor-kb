@@ -4,12 +4,34 @@ nextflow_process {
     script "../main.nf"
     process "DOSE_RESPONSE"
 
-    test("Should run dose_response successfully") {
+    test("Should fit raw dose-response data with drc") {
 
         when {
             process {
                 """
-                input[0] = [ [ id:'test' ] ]
+                input[0] = [ [ id:'test' ], file("\${projectDir}/tests/data/dose_response.csv", checkIfExists: true) ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+    test("Should fall back to scalar Hill evaluation when no data file is given") {
+
+        when {
+            params {
+                ic50 = 1.0
+                hill = 1.0
+                x    = 1.0
+            }
+            process {
+                """
+                input[0] = [ [ id:'scalar' ], [] ]
                 """
             }
         }

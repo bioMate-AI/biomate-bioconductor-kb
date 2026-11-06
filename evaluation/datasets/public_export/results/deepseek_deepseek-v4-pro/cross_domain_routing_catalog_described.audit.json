@@ -1,0 +1,8 @@
+{
+  "model": "deepseek/deepseek-v4-pro",
+  "n": 200,
+  "empty": 0,
+  "hallucination": 6,
+  "max_tokens": 2000,
+  "menu": "described"
+}

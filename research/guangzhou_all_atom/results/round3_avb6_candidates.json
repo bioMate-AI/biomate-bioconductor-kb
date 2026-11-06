@@ -1,0 +1,112 @@
+{
+  "document": "Round-3 avb6 candidates \u2014 acceptance_criteria v1.0/1.1 compliant (NMeK handle restored)",
+  "date": "2026-10-13",
+  "scaffold": "cyclo(P1-R-G-D-L-P6-P7-[dP]-[NMeK]); P1/P7 aromatic, P6 small, NMeK = single chelator handle",
+  "pending": "H6/H7 affinity+selectivity need docking vs avb6 + avb8/avb3/avb5/a5b1 with controls in-batch (control-validation gate first); H8 FTO -> patent counsel; construct = multivalent + DOTA/TRAP chelator per X2",
+  "candidates": [
+    {
+      "id": "AVB6-R3-01",
+      "helm": "cyclo(W-R-G-D-L-A-F-[dP]-[NMeK])",
+      "P1": "W",
+      "P6": "A",
+      "P7": "F",
+      "PASS_H1_H5": true,
+      "H4": true,
+      "H5_handle": true,
+      "H8_fto_genus_flag": true,
+      "H6_H7": "pending (needs \u03b1v\u03b26 + \u03b1v\u03b28/\u03b1v\u03b23/\u03b1v\u03b25/\u03b15\u03b21 docking vs controls in-batch)",
+      "novelty_vs_published": "variant"
+    },
+    {
+      "id": "AVB6-R3-02",
+      "helm": "cyclo(F-R-G-D-L-A-W-[dP]-[NMeK])",
+      "P1": "F",
+      "P6": "A",
+      "P7": "W",
+      "PASS_H1_H5": true,
+      "H4": true,
+      "H5_handle": true,
+      "H8_fto_genus_flag": true,
+      "H6_H7": "pending (needs \u03b1v\u03b26 + \u03b1v\u03b28/\u03b1v\u03b23/\u03b1v\u03b25/\u03b15\u03b21 docking vs controls in-batch)",
+      "novelty_vs_published": "variant"
+    },
+    {
+      "id": "AVB6-R3-03",
+      "helm": "cyclo(W-R-G-D-L-A-W-[dP]-[NMeK])",
+      "P1": "W",
+      "P6": "A",
+      "P7": "W",
+      "PASS_H1_H5": true,
+      "H4": true,
+      "H5_handle": true,
+      "H8_fto_genus_flag": true,
+      "H6_H7": "pending (needs \u03b1v\u03b26 + \u03b1v\u03b28/\u03b1v\u03b23/\u03b1v\u03b25/\u03b15\u03b21 docking vs controls in-batch)",
+      "novelty_vs_published": "variant"
+    },
+    {
+      "id": "AVB6-R3-04",
+      "helm": "cyclo(Y-R-G-D-L-A-W-[dP]-[NMeK])",
+      "P1": "Y",
+      "P6": "A",
+      "P7": "W",
+      "PASS_H1_H5": true,
+      "H4": true,
+      "H5_handle": true,
+      "H8_fto_genus_flag": true,
+      "H6_H7": "pending (needs \u03b1v\u03b26 + \u03b1v\u03b28/\u03b1v\u03b23/\u03b1v\u03b25/\u03b15\u03b21 docking vs controls in-batch)",
+      "novelty_vs_published": "variant"
+    },
+    {
+      "id": "AVB6-R3-05",
+      "helm": "cyclo(W-R-G-D-L-A-Y-[dP]-[NMeK])",
+      "P1": "W",
+      "P6": "A",
+      "P7": "Y",
+      "PASS_H1_H5": true,
+      "H4": true,
+      "H5_handle": true,
+      "H8_fto_genus_flag": true,
+      "H6_H7": "pending (needs \u03b1v\u03b26 + \u03b1v\u03b28/\u03b1v\u03b23/\u03b1v\u03b25/\u03b15\u03b21 docking vs controls in-batch)",
+      "novelty_vs_published": "variant"
+    },
+    {
+      "id": "AVB6-R3-06",
+      "helm": "cyclo(Y-R-G-D-L-S-F-[dP]-[NMeK])",
+      "P1": "Y",
+      "P6": "S",
+      "P7": "F",
+      "PASS_H1_H5": true,
+      "H4": true,
+      "H5_handle": true,
+      "H8_fto_genus_flag": true,
+      "H6_H7": "pending (needs \u03b1v\u03b26 + \u03b1v\u03b28/\u03b1v\u03b23/\u03b1v\u03b25/\u03b15\u03b21 docking vs controls in-batch)",
+      "novelty_vs_published": "variant"
+    },
+    {
+      "id": "AVB6-R3-07",
+      "helm": "cyclo(F-R-G-D-L-G-W-[dP]-[NMeK])",
+      "P1": "F",
+      "P6": "G",
+      "P7": "W",
+      "PASS_H1_H5": true,
+      "H4": true,
+      "H5_handle": true,
+      "H8_fto_genus_flag": true,
+      "H6_H7": "pending (needs \u03b1v\u03b26 + \u03b1v\u03b28/\u03b1v\u03b23/\u03b1v\u03b25/\u03b15\u03b21 docking vs controls in-batch)",
+      "novelty_vs_published": "variant"
+    },
+    {
+      "id": "AVB6-R3-08",
+      "helm": "cyclo(W-R-G-D-L-S-F-[dP]-[NMeK])",
+      "P1": "W",
+      "P6": "S",
+      "P7": "F",
+      "PASS_H1_H5": true,
+      "H4": true,
+      "H5_handle": true,
+      "H8_fto_genus_flag": true,
+      "H6_H7": "pending (needs \u03b1v\u03b26 + \u03b1v\u03b28/\u03b1v\u03b23/\u03b1v\u03b25/\u03b15\u03b21 docking vs controls in-batch)",
+      "novelty_vs_published": "variant"
+    }
+  ]
+}

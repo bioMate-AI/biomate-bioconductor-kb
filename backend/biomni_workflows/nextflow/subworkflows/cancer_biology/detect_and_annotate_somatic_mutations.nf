@@ -56,7 +56,7 @@ with open("detect_and_annotate_somatic_mutations_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("detect_and_annotate_somatic_mutations_output.txt", "w") as f:
-    f.write("Biomni: Detect And Annotate Somatic Mutations Results" + NL)
+    f.write("BioMate: Detect And Annotate Somatic Mutations Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

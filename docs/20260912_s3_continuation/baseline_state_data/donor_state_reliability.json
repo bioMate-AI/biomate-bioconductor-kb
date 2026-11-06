@@ -1,0 +1,26 @@
+{
+  "rows": [
+    {
+      "condition": "Rest",
+      "donor_centered_control_pool_pearson": 0.8781722603592582,
+      "donor_centered_feature_variance": 0.02013787136119151,
+      "donor_centered_reference_variance": 0.01786908104351157,
+      "pool_difference_mse": 0.006089401397902071
+    },
+    {
+      "condition": "Stim48hr",
+      "donor_centered_control_pool_pearson": 0.8769393068789308,
+      "donor_centered_feature_variance": 0.01447685267186728,
+      "donor_centered_reference_variance": 0.010437792876557526,
+      "pool_difference_mse": 0.0040333525384674005
+    },
+    {
+      "condition": "Stim8hr",
+      "donor_centered_control_pool_pearson": 0.8977013025920504,
+      "donor_centered_feature_variance": 0.0152502541906287,
+      "donor_centered_reference_variance": 0.012343571192416648,
+      "pool_difference_mse": 0.003804368619296894
+    }
+  ],
+  "scope": "Descriptive four-donor technical control-pool agreement after condition-mean removal; not independent biological replication or predictive validation"
+}

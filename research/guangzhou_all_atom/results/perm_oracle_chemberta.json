@@ -1,0 +1,35 @@
+{
+  "dataset": "CycPeptMPDB",
+  "n": 8466,
+  "n_scaffolds": 1441,
+  "split": "Bemis-Murcko scaffold (leakage-safe)",
+  "SOTA_CycPeptMP_scaffold_R2": 0.77,
+  "prior_best_ECFP_chameleon_R2": 0.301,
+  "arms": [
+    {
+      "model": "2D_descriptors (baseline)",
+      "n_feat": 213,
+      "scaffold_R2": 0.2335,
+      "Pearson": 0.4867,
+      "Spearman": 0.5794
+    },
+    {
+      "model": "ChemBERTa (learned, NEW)",
+      "n_feat": 384,
+      "scaffold_R2": 0.1193,
+      "Pearson": 0.3525,
+      "Spearman": 0.4539
+    },
+    {
+      "model": "ChemBERTa + 2D (fusion)",
+      "n_feat": 597,
+      "scaffold_R2": 0.173,
+      "Pearson": 0.4541,
+      "Spearman": 0.5057
+    }
+  ],
+  "best_arm": "2D_descriptors (baseline)",
+  "best_R2": 0.2335,
+  "clears_2D_ceiling": false,
+  "verdict": "learned rep does NOT clear the 2D ceiling \u2014 ceiling is deeper than representation"
+}

@@ -1,0 +1,8 @@
+{
+  "model": "qwen/qwen3.8-max-prime",
+  "n": 200,
+  "empty": 1,
+  "hallucination": 1,
+  "max_tokens": 2000,
+  "menu": "described"
+}

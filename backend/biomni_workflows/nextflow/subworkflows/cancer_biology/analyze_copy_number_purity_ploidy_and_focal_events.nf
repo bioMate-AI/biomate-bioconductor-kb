@@ -66,7 +66,7 @@ with open("analyze_copy_number_purity_ploidy_and_focal_events_results.json", "w"
 # Create human-readable output
 NL = chr(10)
 with open("analyze_copy_number_purity_ploidy_and_focal_events_output.txt", "w") as f:
-    f.write("Biomni: Analyze Copy Number Purity Ploidy And Focal Events Results" + NL)
+    f.write("BioMate: Analyze Copy Number Purity Ploidy And Focal Events Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

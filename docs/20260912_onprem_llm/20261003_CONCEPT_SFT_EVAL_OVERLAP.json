@@ -1,0 +1,56 @@
+{
+  "training_sha256": "30c34f38fd7687880158e605b2b72a4af11616169d11b0d69620652a5f84d4ef",
+  "checks": [
+    {
+      "file": "docs/20260912_onprem_llm/data_pool_v2/corpus_eval.jsonl",
+      "sha256": "e910e12b6433fb823f172bee289ff27a04c6b5a7f6488b5a817c1d08f4c6209c",
+      "rows": 570,
+      "checked_rows": 0,
+      "skipped_schema": 570,
+      "exact_message_overlap": 0,
+      "exact_user_message_overlap": 0,
+      "user_overlap_by_task": {}
+    },
+    {
+      "file": "docs/20260912_onprem_llm/data_pool_v2/corpus_eval_big.jsonl",
+      "sha256": "634397854b2580aa056a529cad80aa8cbc31a9b3817debfe91b84b4d316def5f",
+      "rows": 8111,
+      "checked_rows": 8111,
+      "skipped_schema": 0,
+      "exact_message_overlap": 0,
+      "exact_user_message_overlap": 0,
+      "user_overlap_by_task": {}
+    },
+    {
+      "file": "docs/20260912_onprem_llm/data_pool_v2/corpus_eval_big_clean.jsonl",
+      "sha256": "8d1c6a3e98de7c7c4605ba6c74567784b9f80531241818c6fdd1a853acef176f",
+      "rows": 6019,
+      "checked_rows": 6019,
+      "skipped_schema": 0,
+      "exact_message_overlap": 0,
+      "exact_user_message_overlap": 0,
+      "user_overlap_by_task": {}
+    },
+    {
+      "file": "docs/20260912_onprem_llm/data_pool_v2/corpus_eval_final.jsonl",
+      "sha256": "afa09d54009b8f52a6e1d05be61872e057f9976dbf82b8db479e62379740cf99",
+      "rows": 1645,
+      "checked_rows": 1645,
+      "skipped_schema": 0,
+      "exact_message_overlap": 0,
+      "exact_user_message_overlap": 0,
+      "user_overlap_by_task": {}
+    },
+    {
+      "file": "docs/20260912_onprem_llm/data_pool_v2/corpus_eval_v2.jsonl",
+      "sha256": "5505b06a0624c43123643aec8f63a82d20a8e31a254e06dec383fde99385d9e4",
+      "rows": 870,
+      "checked_rows": 0,
+      "skipped_schema": 870,
+      "exact_message_overlap": 0,
+      "exact_user_message_overlap": 0,
+      "user_overlap_by_task": {}
+    }
+  ],
+  "limitation": "Exact overlap only; no normalization, paraphrase or source-family audit. These files may be development sets; do not infer they are the designated release holdout."
+}

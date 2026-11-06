@@ -82,7 +82,7 @@ DEFAULT_ROUTING_TABLE: Dict[str, RoutingConfig] = {
     ),
     'gemini-pro': RoutingConfig(
         provider='gemini',
-        model='gemini-3.5-flash',
+        model='gemini-3.8-flash',
         priority=1,
         max_tokens=8192,
         supports_vision=True,

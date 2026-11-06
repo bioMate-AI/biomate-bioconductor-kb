@@ -1,0 +1,8 @@
+test 86 targets in 21 families; folds {2: 5, 3: 11, 4: 5, 1: 4, 5: 5, 0: 56}
+fold 0 56 targets done 459 s
+fold 1 4 targets done 491 s
+fold 2 5 targets done 529 s
+fold 3 11 targets done 609 s
+fold 4 5 targets done 647 s
+fold 5 5 targets done 682 s
+saved /w/layout/research/guangzhou_all_atom/cyclic_llm/ihlm_backbone/pilot4/results/eval_test.pkl 221540

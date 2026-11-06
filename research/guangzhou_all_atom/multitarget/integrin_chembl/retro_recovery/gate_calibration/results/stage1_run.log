@@ -1,0 +1,44 @@
+........                                                                 [100%]
+8 passed in 11.11s
+I_v1 status NOT_VALID_BIASED ref NOT_VALID_BIASED
+  C1_atomlm_typicality.point diff 0.00e+00
+  C1_atomlm_typicality.lo diff 0.00e+00
+  C1_atomlm_typicality.hi diff 0.00e+00
+  C1_atomlm_typicality.lo90 diff 0.00e+00
+  C1_atomlm_typicality.hi90 diff 0.00e+00
+  C2_multiproxy_leave_fold_out.point diff 0.00e+00
+  C2_multiproxy_leave_fold_out.lo diff 0.00e+00
+  C2_multiproxy_leave_fold_out.hi diff 0.00e+00
+  C2_multiproxy_leave_fold_out.lo90 diff 0.00e+00
+  C2_multiproxy_leave_fold_out.hi90 diff 0.00e+00
+  C3_morgan_fp_leave_fold_out.point diff 1.03e-04
+  C3_morgan_fp_leave_fold_out.lo diff 3.30e-04
+  C3_morgan_fp_leave_fold_out.hi diff 9.22e-07
+  C3_morgan_fp_leave_fold_out.lo90 diff 1.14e-04
+  C3_morgan_fp_leave_fold_out.hi90 diff 6.43e-05
+  C4_censored_label diff 0.00e+00
+  C5_assay_IC50_only diff 0.00e+00
+  C5_assay_has_Ki_or_Kd diff 0.00e+00
+  C5_assay_has_EC50 diff 0.00e+00
+  M2 C1_atomlm_typicality.point diff 0.00e+00 (old logic: points only)
+  M2 C2_multiproxy_leave_fold_out.point diff 0.00e+00 (old logic: points only)
+  M2 C3_morgan_fp_leave_fold_out.point diff 2.58e-04 (old logic: points only)
+REGRESSION PASS tol 1e-06 tol_C3 0.001
+I n_null 200 q 3.145 untested [] T quantiles {'0.5': 2.12, '0.9': 2.92, '0.95': 3.14, '0.99': 3.58}
+M n_null 580 q 3.052 untested [] T quantiles {'0.5': 1.98, '0.9': 2.83, '0.95': 3.05, '0.99': 4.04}
+kappa I: {'C1_atomlm_typicality': 1.07, 'C2_multiproxy_leave_fold_out': 1.02, 'C3_morgan_fp_leave_fold_out': 1.11, 'C4_censored_label': 1.14, 'C5_assay_IC50_only': 1.01, 'C5_assay_has_EC50': 1.05, 'C5_assay_has_Ki_or_Kd': 1.03, 'charge': 1.15, 'fsp3': 1.05, 'has_halogen': 1.13, 'has_s': 1.09, 'hba': 1.09, 'hbd': 1.12, 'heavy': 1.17, 'in_corpus': 1.04, 'in_cycpeptmpdb': 1.17, 'logp': 1.11, 'n_arom': 1.08, 'n_frac': 1.04, 'n_rings': 1.11, 'ncaa_frac': 1.11, 'o_frac': 1.12, 'ring': 1.08, 'rotb': 1.11, 'tpsa': 1.04}
+kappa M: {'C1_atomlm_typicality': 1.05, 'C2_multiproxy_leave_fold_out': 1.31, 'C3_morgan_fp_leave_fold_out': 1.35, 'charge': 1.13, 'fsp3': 1.09, 'has_halogen': 1.11, 'has_s': 1.13, 'hba': 1.08, 'hbd': 1.08, 'heavy': 1.08, 'in_corpus': 1.09, 'in_cycpeptmpdb': 1.45, 'logp': 1.09, 'n_arom': 1.1, 'n_frac': 1.13, 'n_rings': 1.16, 'ncaa_frac': 1.08, 'o_frac': 1.04, 'ring': 1.07, 'rotb': 1.07, 'tpsa': 1.1}
+S-tpsa 0.65 20 {'d': 0.3125, 'achieved': 0.649422089200117, 'feasible': True}
+S-tpsa 0.7 20 {'d': 0.4345703125, 'achieved': 0.699958223636748, 'feasible': True}
+S-typ 0.65 20 {'d': 0.3125, 'achieved': 0.6511233536811177, 'feasible': True}
+S-typ 0.7 20 {'d': 0.4345703125, 'achieved': 0.7006708182491211, 'feasible': True}
+S-diffuse 0.65 20 {'d': 0.244140625, 'achieved': 0.6500681373853444, 'feasible': True}
+S-diffuse 0.7 20 {'d': 0.3369140625, 'achieved': 0.7007356361527696, 'feasible': True}
+S-tpsa 0.65 47 {'d': 0.3173828125, 'achieved': 0.6495456008382052, 'feasible': True}
+S-tpsa 0.7 47 {'d': 0.439453125, 'achieved': 0.700126971534094, 'feasible': True}
+S-typ 0.65 47 {'d': 0.3173828125, 'achieved': 0.6506233253591477, 'feasible': True}
+S-typ 0.7 47 {'d': 0.439453125, 'achieved': 0.7010239913270219, 'feasible': True}
+S-diffuse 0.65 47 {'d': 0.244140625, 'achieved': 0.6493022176159126, 'feasible': True}
+S-diffuse 0.7 47 {'d': 0.3369140625, 'achieved': 0.6998824887921208, 'feasible': True}
+real records written {'I': 'NOT_VALID_BIASED', 'M2': 'NOT_VALID_BIASED'}
+rc=0

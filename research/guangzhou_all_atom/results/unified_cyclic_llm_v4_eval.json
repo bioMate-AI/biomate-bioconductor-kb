@@ -1,0 +1,47 @@
+{
+  "model": "unified_cyclic_llm_v4 (ncAA-native + multi-target + multi-property, ONE model)",
+  "vocab": 393,
+  "ncaa_monomers": 363,
+  "n_train": 1148290,
+  "A_ncaa_permeability": {
+    "cond_p_hi": {
+      "validity": 0.993,
+      "mean_ncAA_frac": 0.676,
+      "pred_perm": -5.654
+    },
+    "cond_p_lo": {
+      "validity": 1.0,
+      "mean_ncAA_frac": 0.657,
+      "pred_perm": -6.122
+    },
+    "perm_delta": 0.468
+  },
+  "B_multitarget_binding_AUC": {
+    "PADI4": {
+      "AUC": 0.942,
+      "binders": 394,
+      "n_test": 3000
+    },
+    "hPCSK9": {
+      "AUC": 0.804,
+      "binders": 749,
+      "n_test": 2827
+    },
+    "FIKK13": {
+      "AUC": 0.835,
+      "binders": 38,
+      "n_test": 2582
+    },
+    "Abeta42": {
+      "AUC": 0.982,
+      "binders": 1103,
+      "n_test": 3000
+    },
+    "hIAPP": {
+      "AUC": 0.7,
+      "binders": 828,
+      "n_test": 3000
+    }
+  },
+  "note": "ONE model does ncAA-native permeability-controlled generation (A) AND multi-target binding selection (B). Union training (CycPeptMPDB ncAA+perm | display target+binding). This is the synthesis of the two best-LLM levers."
+}

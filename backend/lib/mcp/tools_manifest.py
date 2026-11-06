@@ -115,9 +115,9 @@ TOOL_SCHEMAS: List[ToolSchema] = [
         name="search_workflow",
         tier="workflow",
         description=(
-            "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) "
+            "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) "
             "by natural language. Returns ranked workflow cards with id, name, domain, "
-            "one-line description, and estimated AWS Batch cost. Use this when the user "
+            "and a one-line description. Use this when the user "
             "wants to pick a workflow explicitly; otherwise prefer biomate_session."
         ),
         input_schema={
@@ -140,7 +140,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
         description=(
             "Return the full specification for a workflow: required + optional parameters "
             "(with types and allowed values), default QC profile and thresholds, expected "
-            "input files, estimated cost and runtime, and any license requirements. "
+            "input files, and any license requirements. "
             "Call this before run_workflow when the user wants explicit parameter control."
         ),
         input_schema={
@@ -346,8 +346,9 @@ TOOL_SCHEMAS: List[ToolSchema] = [
         tier="analysis",
         description=(
             "Query a biological/chemical database by accession or name. Supported: "
-            "uniprot, pdb, alphafold, ncbi_gene, dbsnp, clinvar, gnomad, kegg, reactome, "
-            "chebi, pubchem, hpo, omim, string."
+            "uniprot, pdb, pdbe, alphafold, interpro, string, ncbi_gene, ensembl, dbsnp, clinvar, gnomad, "
+            "kegg, reactome, go, hpo, chebi, chembl, pubchem, bindingdb, pharos, clinicaltrials "
+            "(registered trials: status, phase, sponsor, stop reason), biorxiv (bioRxiv/medRxiv preprints, not peer reviewed)."
         ),
         input_schema={
             "type": "object",
@@ -364,9 +365,21 @@ TOOL_SCHEMAS: List[ToolSchema] = [
                         "kegg", "reactome", "go",
                         "hpo",
                         "chebi", "chembl", "pubchem", "bindingdb", "pharos",
+                        "clinicaltrials", "biorxiv",
                     ],
                 },
-                "query": {"type": "string", "description": "Accession, gene symbol, or compound name."},
+                "query": {"type": "string", "description": "Accession, gene symbol, compound/disease name, SMILES (similarity on chembl/pubchem) or protein sequence (similarity on pdb)."},
+                "operation": {
+                    "type": "string",
+                    "enum": ["lookup", "text", "similarity"],
+                    "description": (
+                        "Search mode, chosen from the user's INTENT (never from the shape of the query). "
+                        "lookup (default): fetch by accession, symbol or name. text: keyword search. "
+                        "similarity: search the WHOLE database by structure or sequence - chembl and pubchem take a SMILES "
+                        "(Tanimoto), pdb takes a protein sequence (homolog search over every PDB entry). "
+                        "Only chembl, pubchem and pdb implement similarity."
+                    ),
+                },
             },
             "required": ["database", "query"],
         },
@@ -633,7 +646,7 @@ def to_openapi() -> Dict[str, Any]:
             "title": "BioMate Connector API",
             "description": (
                 "Run bioinformatics, drug-discovery, and clinical workflows on BioMate's "
-                "AWS Batch infrastructure. Search 2,455 indexed workflows, execute on real "
+                "AWS Batch infrastructure. Search 4,200+ indexed workflows, execute on real "
                 "compute, stream live progress, and retrieve structured findings + reports. "
                 "Schema is generated from backend/lib/mcp/tools_manifest.py."
             ),

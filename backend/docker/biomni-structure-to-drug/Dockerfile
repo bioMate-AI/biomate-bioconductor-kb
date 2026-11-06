@@ -7,7 +7,8 @@
 #
 # Inherits AWS CLI v2 + numpy/scipy/pandas/biopython/rdkit from base.
 #
-# Build (x86 for AWS Batch):
+# Build (x86 for AWS Batch): normally CI, .github/workflows/build-biomni-structure-to-drug-image.yml
+# (build -> smoke.py inside the image -> push only if it passes). Manual equivalent:
 #   docker buildx build --platform linux/amd64 \
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86 \
 #     --push -f backend/docker/biomni-structure-to-drug/Dockerfile .
@@ -26,6 +27,9 @@ ENV PYTHONUNBUFFERED=1
 # libxrender1/libxext6:  X11 stubs for RDKit 2D rendering
 # git/build-essential:   compile fpocket from source (not in apt)
 # fpocket:               Binding-site detection (Le Guilloux et al. 2009)
+#                        Pinned to release 4.2.3. GCC 14 (Debian trixie base) makes incompatible-pointer-types an
+#                        error; fpocket's src/fparams.c:296-297 (custom-pocket '-r' option, unused here) trips it, so
+#                        that one diagnostic is kept a warning as on older compilers. The makefile's own CWARN is kept.
 #                        Required by pocket_detection_druggability workflow
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
@@ -34,8 +38,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     git \
     build-essential \
-    && git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
-    && cd /tmp/fpocket && make \
+    && git clone --depth 1 --branch 4.2.3 https://github.com/Discngine/fpocket.git /tmp/fpocket \
+    && cd /tmp/fpocket && make CWARN="-W -Wextra -Wwrite-strings -Wstrict-prototypes -Wno-error=incompatible-pointer-types" \
     && cp bin/fpocket bin/dpocket bin/mdpocket /usr/local/bin/ \
     && rm -rf /tmp/fpocket \
     && apt-get purge -y --auto-remove git build-essential \
@@ -56,7 +60,7 @@ RUN pip install --no-cache-dir \
 # ── Smoke tests ────────────────────────────────────────────────────────────
 RUN python3 -c "from rdkit import Chem; print('rdkit OK')" && \
     python3 -c "from vina import Vina; print('vina OK')" && \
-    fpocket --help 2>&1 | head -1 && echo "fpocket OK" && \
+    command -v fpocket && echo "fpocket OK" && \
     aws --version && \
     echo "biomni-structure-to-drug checks passed."
 

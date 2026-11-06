@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 00 — Foundations &amp; the cold start</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Foundations &amp; the cold start</h1>
+<p class="docmeta"><span>BioMate · Function-module spec 00 of 09</span><span>Status: for review</span><span>Prototype: BioMate Data-Centric Prototype.html</span></p>
+
+<p class="lede">BioMate can do a great deal, and almost none of it is legible from a blank chat box. This spec set fixes that by naming <strong>four things a scientist can do</strong> — search for evidence, analyse data, work with models, and design candidates — and specifying every view and element through which they are offered, entered, watched and audited. This document covers what the four share: the lane model, the cold-start view, the composer, the evidence taxonomy, and the copy rules that keep the surface honest.</p>
+
+<h2><span class="num">0.1</span>Reading order</h2>
+<ul class="deck">
+  <li><b>Spec 00</b><span>Foundations: modules, lanes, cold start, evidence classes, verification, roles, copy rules. <em>This document.</em></span></li>
+  <li><b>Spec 01</b><span>Search &amp; evidence — literature, databases, patents, internal. The cited-answer surface.</span></li>
+  <li><b>Spec 02</b><span>Data analysis — ad-hoc compute and validated workflows, and how BioMate chooses between them.</span></li>
+  <li><b>Spec 03</b><span>Models — train, adapt, optimise, and run a pre-trained model. Model objects, gates, the wet-lab loop, domain viewers.</span></li>
+  <li><b>Spec 04</b><span>Files &amp; the dataset object — the project file system, and a file as an object with quality, versions and lineage.</span></li>
+  <li><b>Spec 05</b><span>Design &amp; generate — molecule generation, activity prediction, multi-objective optimisation, candidate ranking.</span></li>
+  <li><b>Spec 06</b><span>The composer — the input box: attachments, lane preview, typed clarification, experts, and what the assistant says after a run.</span></li>
+  <li><b>Spec 07</b><span>The workflow panel — settings, permissions, phases, quality gates, human approval, the agent trajectory, the after-run report.</span></li>
+  <li><b>Spec 08</b><span>The full step view — one step as an object: provenance, resolved parameters, typed outputs, raw bytes, re-run.</span></li>
+</ul>
+<p>Each document is written against the working prototype, so element names in <code>code type</code> are the real class or component names. <span class="tag ship">shipped</span> marks something already in the product, <span class="tag new">new</span> something this proposal adds, and <span class="tag open">open</span> a decision still to be made.</p>
+
+<h2><span class="num">0.2</span>Why four modules, and not two or nine</h2>
+<p>The old surface offered four peers — Ask, Compute, Skills &amp; experts, Workflows. Two problems. <em class="t">One</em>: Compute and Workflows are the same user intent ("do something with my data"); the difference between them is how much rigour the question deserves, which is a system judgement, not a menu choice. <em class="t">Two</em>: Skills &amp; experts is not a thing you do at all — it modifies how any of the others reason. Presenting it as a fourth card taught users to look for it in the wrong place.</p>
+<p>Collapsing Compute and Workflows leaves three distinct scientific jobs. A fourth was then <em>earned</em>, not invented: designing new molecules is neither analysing data you already have nor training a predictor, and for a lead-discovery programme it is the whole job. The test for a module is this — can a scientist say the sentence, and is the sentence a different job?</p>
+<table class="st">
+<thead><tr><th>Module</th><th>The user's sentence</th><th>What comes back</th><th>Lane</th></tr></thead>
+<tbody>
+<tr><td>Search &amp; evidence</td><td>"What is known about…"</td><td>A cited answer. Nothing runs on your data.</td><td>Instant</td></tr>
+<tr><td>Design &amp; generate</td><td>"Propose and rank new molecules."</td><td>Candidates with predictions, trade-offs and a shortlist.</td><td>Instant → Cloud</td></tr>
+<tr><td>Data analysis</td><td>"Do this to my data."</td><td>A number, a figure, or a gated run with a report.</td><td>Instant → Cloud</td></tr>
+<tr><td>Models</td><td>"Learn from my data."</td><td>A versioned model object with held-out evidence.</td><td>Cloud</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Naming rule</span><p>Modules are named for the user's goal, never for the implementation. "Deep learning" was rejected for module three: it names a technique, excludes the classical models scientists also want, and forces a user to know which family their problem belongs to before they can start. <strong>Models</strong> also matches the model objects already in the product.</p></div>
+
+<h2><span class="num">0.3</span>The two lanes</h2>
+<p>Every request resolves to one of two execution lanes. The lane is a promise about time and rigour, and it is always stated back to the user before work begins.</p>
+<table class="st">
+<thead><tr><th>Lane</th><th>Time</th><th>Where it runs</th><th>What it guarantees</th></tr></thead>
+<tbody>
+<tr><td>Instant</td><td>Seconds</td><td>In the conversation</td><td>Citations on every claim, or code shown for every number. Sandbox is network-isolated.</td></tr>
+<tr><td>Cloud</td><td>Minutes to hours</td><td>A run object in the project</td><td>Quality gates, a resolved-parameter record per step, an audit-ready report.</td></tr>
+</tbody>
+</table>
+<h4>Lane arbitration</h4>
+<p>BioMate picks the lane from the goal and the data, and says which it picked. Three rules govern the pick:</p>
+<ol>
+<li><strong>Rigour follows consequence.</strong> A look at a distribution is Instant. Anything a figure, a filing or a decision will rest on goes Cloud, because only Cloud produces the parameter record and the gates.</li>
+<li><strong>Scale forces the lane.</strong> Work that cannot finish in the conversation is Cloud regardless of intent.</li>
+<li><strong>The system chooses by default.</strong> The stated lane explains the trade-off. A user who needs to change it can use <em>Advanced → switch lane</em>, where the time and rigour consequence is shown.</li>
+</ol>
+<div class="note"><span class="lbl">Why say the lane out loud</span><p>The failure we are designing against is a scientist pasting a table, getting a plausible number in four seconds, and putting it in a manuscript. Naming the lane makes the trade visible at the moment of asking: <em>this was the fast answer; the gated one takes eleven minutes.</em></p></div>
+
+<h2><span class="num">0.4</span>The cold start <span class="tag new">new</span></h2>
+<p>A new chat opens on the cold-start view instead of an empty box. It is also what the old "What can I do here" nav entry used to be — that entry is gone; the two were duplicates.</p>
+
+<h3>0.4.1 Layout</h3>
+<figure>
+<div class="wire">┌────────────────────────────────────────────────────────────────────┐
+│                    What are you trying to do?                      │
+│                                                                    │
+│  DESCRIBE THE GOAL                                                 │
+│  ┌──────────────────────────────────────────────────────────┐      │
+│  │ e.g. screen these molecules for hERG, then rank...  >    │      │
+│  └──────────────────────────────────────────────────────────┘      │
+│  ┌──────────────────────────────────────────────────────────┐      │  <-- appears once the goal matches
+│  │ [Cloud · workflow]  [Drug discovery]        [ Start ]    │      │
+│  └──────────────────────────────────────────────────────────┘      │
+│                                                                    │
+│  ┌──────────────────┐ ┌──────────────────┐                          │
+│  │ Search &amp;         │ │ Data analysis    │                          │
+│  │ evidence         │ │ Instant -> Cloud │                          │
+│  └──────────────────┘ └──────────────────┘                          │
+│  ┌──────────────────┐ ┌──────────────────┐                          │
+│  │ Models           │ │ Design &amp;         │                          │
+│  │ Cloud · hours    │ │ generate         │                          │
+│  └──────────────────┘ └──────────────────┘                          │
+│                                                                    │
+│                                                    collapse        │
+└────────────────────────────────────────────────────────────────────┘</div>
+<figcaption>Cold-start view, nothing typed and nothing opened. Max width 840px, centred, 56px of top air. Four equal cards in a two-by-two grid; the route box appears only on a match.</figcaption>
+</figure>
+
+<h3>0.4.2 Elements</h3>
+<table class="el">
+<thead><tr><th>Element</th><th>What it is</th><th>States &amp; behaviour</th></tr></thead>
+<tbody>
+<tr><td>.colddash</td><td>The view container.</td><td>Centred column, max 840px, gap 20px. Scrolls as a whole; never an inner scroll region.</td></tr>
+<tr><td>h — heading</td><td>"What are you trying to do?" 18px, 600.</td><td>Static. Deliberately a question, not a greeting or a product name.</td></tr>
+<tr><td>.barlab</td><td>Mono caps label over the composer: DESCRIBE THE GOAL.</td><td>Static. Hidden in the thin launcher.</td></tr>
+<tr><td>.intentbar</td><td>The composer. Sparkles glyph, text input, send button.</td><td>Send disabled while empty. Enter submits. Placeholder is a full example goal, not a noun list.</td></tr>
+<tr><td>.routebox</td><td>The route result: lane chip, domain chip, Start. <span class="tag new">new</span></td><td>Appears only once the text matches a route (&gt;6 chars). Never shown for unmatched text — silence beats a "no results" state here.</td></tr>
+<tr><td>.modgrid</td><td>Two-by-two grid of four module cards.</td><td>Collapses to one column under 760px. An opened card spans the full row.</td></tr>
+<tr><td>.modcard / .modhd</td><td>A module. Icon tile, name, lane label, one-line description, chevron.</td><td>Click toggles open; only one open at a time. Open card gets a border-strong and a body.</td></tr>
+<tr><td>.trackbar / .trackb</td><td>Tabs for the module's tracks (e.g. Literature · Databases · Patents · Internal).</td><td>First track selected on open. Switching a track clears any selected domain.</td></tr>
+<tr><td>.schip</td><td>Domain chips — only inside Data analysis → Validated workflows.</td><td>Toggle. Selecting one replaces the example list with that domain's shapes.</td></tr>
+<tr><td>.exrow</td><td>An example goal, in quotes.</td><td>Click seeds the composer with that sentence. It is a starting point to edit, not a command that fires.</td></tr>
+<tr><td>.shaperow</td><td>A workflow shape: title, what it needs, how long it takes.</td><td>Click seeds the composer. See Spec 02 §2.4 for the shape vocabulary.</td></tr>
+<tr><td>collapse</td><td>Text link, bottom.</td><td>Switches to the thin launcher and remembers the choice for the session.</td></tr>
+</tbody>
+</table>
+
+<h3>0.4.3 The thin launcher</h3>
+<p>Returning users do not need the dashboard. <code>.thinlaunch</code> is the same view reduced to the composer plus four <code>.modpill</code> buttons and an <em>expand</em> link. Clicking a pill expands the dashboard with that module already open. The state persists for the session only — never across accounts, and never silently for a first-time user.</p>
+
+<h3>0.4.4 Project scope</h3>
+<p>A chat started inside a project shows one extra line: <em>In Fibrosis Target ID · its files and instructions are in context.</em> Nothing else changes — the modules are identical. What differs is what the composer can resolve without asking: files, project instructions, the figure spec, prior runs. See Spec 06 §6.4 and Spec 07 §7.4.</p>
+
+<h2><span class="num">0.5</span>The intent router <span class="tag new">new</span></h2>
+<p>The composer is not a search box, and this distinction carries the whole design. A search box implies an index of things we sell, and invites the question "so what else have you got?" — which we answer badly, because the honest answer is a list nobody should be reading. The router instead <strong>restates the goal in system terms</strong> and offers to start.</p>
+<table class="st">
+<thead><tr><th>Router returns</th><th>Never returns</th></tr></thead>
+<tbody>
+<tr><td>A lane — Instant · search, Cloud · workflow, Cloud · models.</td><td>A ranked list of workflow names.</td></tr>
+<tr><td>A domain — Drug discovery, Transcriptomics, Patents, Models &amp; training.</td><td>A count of how many things matched.</td></tr>
+<tr><td>A <em>Start</em> button that seeds a normalised version of the goal.</td><td>A "no results found" empty state.</td></tr>
+</tbody>
+</table>
+<h4>Behaviour</h4>
+<ul>
+<li>Matching is on intent words, not product names: <code>herg|admet|smiles|liabilit</code> → Cloud · workflow / Drug discovery; <code>train|fine-tune|reinforce</code> → Cloud · models; <code>patent|freedom to operate|claim</code> → Instant · search / Patents.</li>
+<li>No match, no box. The user keeps typing and sends; the conversation resolves the ambiguity in words, which it is better at than a router.</li>
+<li><em>Start</em> seeds the composer with a canonical phrasing of the goal — it never launches a run. Every run is confirmed on the run surface. <span class="tag ship">shipped</span></li>
+<li><strong>The router is covered by a self-test.</strong> Every example sentence printed on a module card must route to that module, and every route's own seed must match its own rule. The cards make a promise about what the router understands; the test is what stops the promise drifting. <span class="tag new">new</span></li>
+</ul>
+<div class="rule"><span class="lbl">Copy rule</span><p>No self-justification in the UI. Earlier drafts wrote "not a search box — it routes your intent, it does not return a list of our workflows" under the input. That is a designer arguing with the user inside the product. The label is <em>Describe the goal</em> and the behaviour explains itself.</p></div>
+
+<h2><span class="num">0.6</span>Skills &amp; experts — a modifier, not a module</h2>
+<p>Expert reasoning packs — pharmacology, regulatory, biostatistics, structural biology — change how an answer is reasoned, not what BioMate can do. They therefore live in the composer as toggles, not in the module grid. Rules:</p>
+<ul>
+<li>Active packs are visible wherever a request is made, and are recorded on the answer and in the run's audit trail.</li>
+<li>A pack never changes the lane, the parameters, or the data — only the reading and the framing. If a pack would change a parameter, that is a project instruction, and belongs in Spec 07 §7.4.</li>
+<li>Packs are toggled, never browsed as a directory. The set is small and editorial. <span class="tag open">open</span> whether users can author their own.</li>
+</ul>
+
+<h2><span class="num">0.7</span>Evidence classes <span class="tag new">new</span></h2>
+<p>Every artifact a run produces has an <em>evidence class</em> — the kind of evidence it is — and the class, not a guess at the moment of rendering, selects the viewer. This is what lets a step's output be looked at properly instead of downloaded blindly.</p>
+<div class="rule"><span class="lbl">Resolution rule <span class="tag new">new</span></span><p>The class is <strong>resolved from the output itself — extension first, content sniff for anything unknown or ambiguous — consistently, wherever it is rendered</strong>. It is deliberately not specified as a backend tag: output objects are not uniform across pipeline builders (some carry <code>name</code>, some <code>filename</code>, some no extension at all), so a spec that assumed a reliable upstream tag would be assuming a contract that does not hold. One resolver, used by every surface, so the same artifact never renders as two different classes.</p></div>
+<p>The UI contract is unchanged by that: <strong>every output has a class, and every class has a viewer.</strong> An output whose class cannot be resolved is shown as procedural with its raw bytes — never hidden, and never given a viewer that misrepresents it.</p>
+<table class="st">
+<thead><tr><th>Class</th><th>What it is</th><th>Viewer</th><th>Examples</th></tr></thead>
+<tbody>
+<tr><td>Perceptual</td><td>Something you look at.</td><td>Image stage with fit / 100% / 200% / full.</td><td>Micrograph, density map, PCA, volcano.</td></tr>
+<tr><td>Symbolic</td><td>Something you read.</td><td>Record browser, jump by identifier.</td><td>Sequence, annotation, normalised design table, report sections.</td></tr>
+<tr><td>Quantitative</td><td>Something you measure.</td><td>Table with sort/filter plus column stats.</td><td>Counts matrix, DE results, QC metrics.</td></tr>
+<tr><td>Procedural</td><td>Something that happened.</td><td>Console with follow-tail.</td><td>Nextflow log, R session, executor trace.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Integrity rule</span><p>A rendered view is derived from the artifact's own bytes. The table, the column stats and the raw view of one output are three renderings of one string, so they cannot disagree. Summaries are written from the artifact, and every number in a summary links to the output it is findable in (Spec 08 §8.6).</p></div>
+
+<h3>0.7.1 Domain viewers <span class="tag new">new</span></h3>
+<p>The four classes say which <em>kind</em> of viewer to open. Some outputs need a viewer specific to their science, and a generic viewer for them is a failure disguised as a rendering. These are instances of the classes, not exceptions to them.</p>
+<table class="st">
+<thead><tr><th>Output</th><th>Class</th><th>Viewer</th><th>Why generic is not enough</th></tr></thead>
+<tbody>
+<tr><td>Predicted structure</td><td>Perceptual + quantitative</td><td>3D view, <strong>plus a per-residue confidence chart linked to it</strong>, plus a pairwise-error heatmap.</td><td>A structure picture alone invites a claim its low-confidence loops cannot support.</td></tr>
+<tr><td>Per-base sequence scores</td><td>Quantitative</td><td>Score <strong>tracks</strong> over the locus, with flagged intervals as the actionable output.</td><td>A 3,500-row table of per-base scores is unreadable; the interval is the finding.</td></tr>
+<tr><td>Screening results</td><td>Symbolic + quantitative</td><td>Ranked hit table, and a <strong>2D depiction grid</strong> rendered from the structures.</td><td>A chemist reads structures, not identifier strings.</td></tr>
+</tbody>
+</table>
+<p>All three are specified in full where they are produced: structure and sequence viewers in Spec 03 §3.8, the hit grid in Spec 05 §5.5.</p>
+
+<h2><span class="num">0.8</span>Navigation copy <span class="tag new">new</span></h2>
+<div class="rule"><span class="lbl">Anchor-text rule</span><p>A nav item carries <strong>a label and nothing else</strong>. What a surface holds is said <em>on that surface</em>, in a line of anchor text under its title, where there is room to be accurate. Subtitles in a rail are the worst place to explain anything: 190px forces a truncation that is always either incomplete or wrong, and five of them turn a rail into a paragraph nobody reads.</p></div>
+<p>Workspace connections used to be a primary rail item. That made setup look like a scientific job. Connections now live under <strong>Settings &amp; workspace</strong>; the surface can explain data sources, models, skills and MCP servers without competing with the four research modules. Workflows still needs anchor text because it also imports validated pipelines.</p>
+<table class="st">
+<thead><tr><th>Surface</th><th>Rail</th><th>Anchor text on the surface</th></tr></thead>
+<tbody>
+<tr><td>Workflows</td><td>Workflows</td><td>Every run this account has started, and where new pipelines come in — one record per run, project chips as a filter, import available to every project.</td></tr>
+<tr><td>Workspace connections</td><td>Settings &amp; workspace</td><td>Everything the workspace is attached to but does not own: data sources, models, skills, MCP servers.</td></tr>
+<tr><td>Models</td><td>Models</td><td>Every model in the account and where each is used; training belongs to the project holding the data.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">0.9</span>Workspace connections: four sections, one settings surface <span class="tag new">new</span></h2>
+<p>Data sources, models, skills, experts and MCP servers are five different things. They belong in one settings surface because <strong>the question a user brings is always the same</strong> — what is this workspace attached to, and is it working? They are <em>four</em> sections rather than five because skills and experts are browsed together; see below.</p>
+<h3>0.9.1 We do not classify add-ons</h3>
+<p>This section went through two wrong answers before the right one, and both are worth recording because the pull toward each is strong.</p>
+<ol>
+<li><strong>A lying label.</strong> Six reasoning packs sat under a tab called <em>Skills</em>, which told a user the platform could <em>do</em> six things when it could do none of them.</li>
+<li><strong>An imposed taxonomy.</strong> The fix for that was to sort add-ons into two kinds — "does work" and "changes the reading" — and mark every row. But two buckets do not survive contact with real add-ons: a section-drafting skill is partly a reading, a reasoning pack can carry a procedure, and a user's own add-on frequently does both. Widening the taxonomy only defers the problem; there is no set of buckets that ends the argument. <strong>Classifying is not our job, and a category the user has to pick is a question we invented.</strong></li>
+</ol>
+<div class="rule"><span class="lbl">Declared facts, not categories</span><p>An add-on states <strong>what it needs, what it produces, and where it runs</strong>. Those are facts, they are verifiable, and every consequence follows from them without a taxonomy:</p>
+<ul>
+<li>Produces an artifact → it runs as a <strong>step</strong>, with inputs, outputs and provenance, so what it made traces back to the run whose numbers it used.</li>
+<li>Produces none → it is recorded on the answer as an active reading.</li>
+<li>Residency says where it executes, so whether your data passes through it is answered on the row (<span class="tag">prompt only</span> means it cannot).</li>
+<li><strong>Nothing here may change a parameter</strong> — that is a project instruction (Spec 06 §6.5). This is the one hard rule, and it applies to every add-on regardless of what it is.</li>
+</ul>
+<p>So the surface shows one list, sorted by nothing, each row reading "produces a .docx section · on-prem · built-in". The user names and describes their own add-on; we hold them to the declaration.</p></div>
+
+<h3>0.9.2 Scope: connected once, switched on per project</h3>
+<p>A skill or expert has <strong>three scopes</strong>, and they are the ordinary ones:</p>
+<table class="st">
+<thead><tr><th>Scope</th><th>Where</th><th>Means</th></tr></thead>
+<tbody>
+<tr><td>Account</td><td>Settings &amp; workspace</td><td><strong>Connected.</strong> Available to the whole workspace. Connecting it does not switch it on anywhere.</td></tr>
+<tr><td>Project</td><td>The project's Instructions page</td><td><strong>On here.</strong> A switch per item, so a project runs with the set that suits it — a chemistry project has different ones on than a clinical one.</td></tr>
+<tr><td>Request</td><td>The composer</td><td><strong>On for this question.</strong> The popover is headed <em>On in &lt;project&gt;</em>, lists the account library with the project’s choices checked and badged <span class="tag">project</span>, and a change is marked <em>changed</em> on the chip — so a deviation reads as a deviation and the project default is untouched.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">One list, one state</span><p>All three scopes read the <strong>same account library</strong> and the <strong>same per-project selection</strong>. The composer does not keep its own list of packs: a set of names hardcoded in the input box is how a project's stated configuration ends up contradicted by the surface that enforces it. The selector writes the state; the composer reads it.</p></div>
+<div class="rule"><span class="lbl">Show the whole library, not just what is on</span><p>The project selector lists <strong>every</strong> connected skill and expert, with the unselected ones off, and says "none on yet" when nothing is. Rendering only the project's existing choices hides the affordance precisely where it is needed — a project that has chosen nothing would have no way to choose anything (the discoverability rule, Spec 03 §3.4.1).</p></div>
+<div class="rule"><span class="lbl">Why the switch belongs on the Instructions page</span><p>Because it <em>is</em> an instruction — "in this project, read results for regulatory risk" — and it belongs with the other standing decisions rather than in a fourth place. An earlier draft tried to express this in prose instead, asking the user to write the sentence and BioMate to interpret it. That is worse in both directions: vaguer for the user and unverifiable for us. <strong>A choice from a known set is a switch, not a sentence.</strong></p></div>
+<div class="rule"><span class="lbl">The one rule that still holds</span><p>Switching an add-on on <strong>cannot change a parameter</strong>. Only a written instruction can do that, and the value then arrives on the run badged <em>from project instructions</em> (Spec 07 §7.4). So the page has two halves for a reason: <em>sentences</em> that change what runs, and <em>switches</em> that choose from what is connected.</p></div>
+
+<h3>0.9.3 Local is not a fifth kind <span class="tag new">new</span></h3>
+<p>Most of a pharma estate is local: data on a share or an HPC scratch path, a Postgres instance behind the firewall, self-hosted model weights. The wrong response is a "Local" category beside the other four — it would split every kind in two and answer a question nobody asks. A directory <em>is</em> a data source; your own weights <em>are</em> a model.</p>
+<div class="rule"><span class="lbl">Residency rule</span><p>Locality is a <strong>property</strong> of a connector, not a kind of connector, and it is shown on <strong>every row, with no exceptions</strong>: <span class="tag">cloud</span> data leaves the estate · <span class="tag">on-prem</span> stays inside your network · <span class="tag">mounted</span> read in place, never copied · <span class="tag">this machine</span> never leaves the host · <span class="tag">prompt only</span> instruction text that moves no data. Residency is the dimension worth surfacing because it is the one users are accountable for.</p></div>
+<div class="rule"><span class="lbl">No blank residency</span><p>A row with no marker is worse than a wrong one, and worst <em>within</em> a tab: if "write an IND section" is marked on-prem and "fit dose–response curves" is marked nothing, a user cannot tell whether fitting their curves sends data anywhere — the precise question the surface says it answers. Hence the fifth value: a reasoning pack moves no data, and says so, rather than saying nothing. <strong>A skill's residency is where it executes</strong>; a built-in skill runs on the same compute as a workflow step.</p></div>
+<p>Residency is also functional, not decorative: data marked restricted routes only to models that stay inside the network, and the run records which one answered.</p>
+<h4>Adding a connector</h4>
+<p><strong>Every kind can be added</strong>, not only the local ones — a data source (directory or database), a model, a skill, an expert, an MCP server. An add flow that covered three of five kinds implied the other two were fixed by us, which is false and is the kind of gap a user finds by looking for it.</p>
+<table class="st">
+<thead><tr><th>Kind</th><th>Mode</th></tr></thead>
+<tbody>
+<tr><td>Skill or expert</td><td>You describe it; we do not sort it. Declare what it needs and what it produces, and the consequences follow — an artifact means it runs as a step with provenance, none means it is recorded on the answer. Scope it to a project or the account.</td></tr>
+<tr><td>MCP server</td><td>URL, auth, and a <strong>capability review</strong>: its tools are listed before it is attached, and every capability it contributes is marked with the server it came from.</td></tr>
+</tbody>
+</table>
+<h4>Adding something local</h4>
+<table class="st">
+<thead><tr><th>Case</th><th>Mode</th><th>What the UI must get right</th></tr></thead>
+<tbody>
+<tr><td>A directory</td><td>Index in place, <em>or</em> copy in.</td><td>The default is <strong>index</strong>: a 4 TB run directory is read where it lies and becomes dataset objects that point at it. Copying is for small sets a user wants versioned inside the project. Each scan is a version, so changed files are tracked rather than silently replaced.</td></tr>
+<tr><td>A database</td><td>Connection plus a read scope.</td><td>A read-only role and the tables it may see. A pull becomes a dataset object whose origin records <strong>the query and the time it ran</strong> — so a result against a moving database can be reproduced, or at least shown to be unreproducible.</td></tr>
+<tr><td>A model</td><td>Endpoint plus residency.</td><td>Registered like any other model — it still needs held-out evidence on data in the product before it may gate anything (Spec 03 §3.2.4). The on-prem marking is what permits restricted data to reach it.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Preview-before-attach rule</span><p>Nothing is attached until the user has seen what was found. A directory scan reports the file types and counts it detected, and what each will become, <strong>before</strong> it creates a single dataset object. Attaching 40,000 files and then explaining them is not a connector; it is a mess with provenance.</p></div>
+
+<h2><span class="num">0.10</span>Density, type and data colour <span class="tag new">new</span></h2>
+<p>BioMate is an all-day desktop tool for professionals, and it was reading as a compact web app. Two changes, applied globally.</p>
+<h3>0.10.1 Type and spacing</h3>
+<table class="st">
+<thead><tr><th>Element</th><th>Was</th><th>Now</th></tr></thead>
+<tbody>
+<tr><td>Base</td><td>12.5px</td><td><strong>14px</strong></td></tr>
+<tr><td>Page title</td><td>19px</td><td>22px, tighter tracking</td></tr>
+<tr><td>Section label</td><td>12px</td><td>13.5px</td></tr>
+<tr><td>Body / hint</td><td>11.5px</td><td>12.5px at 1.55 line-height</td></tr>
+<tr><td>Card padding</td><td>12/14</td><td>16/18</td></tr>
+<tr><td>Page padding</td><td>16/18</td><td>20/22</td></tr>
+</tbody>
+</table>
+<h3>0.10.2 Colour does structural work in tables</h3>
+<p>A table of one flat tint makes the reader track rows by eye alone. Every row family — data sources, skills, ranked hits, evidence, versions, trajectory, wet-lab returns, the dataset preview — now carries:</p>
+<ul>
+<li>A <strong>tinted uppercase header band</strong>, so the header reads as a header without a rule.</li>
+<li><strong>Zebra banding</strong>, so a wide row is followable across.</li>
+<li>A <strong>hover state</strong>, and a left accent rail on the first row of a group.</li>
+<li><strong>Tabular numerals</strong>, so numeric columns align.</li>
+<li>Flagged cells in amber with an outline — the visible evidence behind an amber verdict (Spec 04 §4.5.2).</li>
+</ul>
+<div class="rule"><span class="lbl">Implementation note</span><p>Semantic row tints were first written as a <code>:has()</code> selector list across every row family; that stalled style invalidation badly enough to hang the page. Tints are applied by class from the component instead. Worth recording because the selector reads harmlessly.</p></div>
+
+<h2><span class="num">0.11</span>Every view resizes and hides <span class="tag new">new</span></h2>
+<p>Three panes — the sidebar, the project file list, the right panel — are drag-resizable from a 6px grip and collapsible from their own header. One component drags one CSS custom property; double-clicking a grip resets that pane.</p>
+<table class="st">
+<thead><tr><th>Rule</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><strong>The ceiling comes from the container</strong>, as <code>container − grip − keep</code>, where <em>keep</em> is the floor the sibling pane is owed.</td><td>Fixed max constants ignore the window. A wide drag collapsed the chat column to 0px, and the bad width persisted.</td></tr>
+<tr><td><strong>Preference and applied width are different things.</strong> Storage holds only what the user dragged to; what is applied is <code>min(preference, ceiling)</code>.</td><td>Persisting the clamped value destroys the preference: every transient narrowing ratchets the pane smaller and widening never restores it.</td></tr>
+<tr><td><strong>Collapse is session-only.</strong> Widths persist; hides do not.</td><td>An app that reopens with its sidebar gone looks broken. Re-hiding costs one click.</td></tr>
+<tr><td><strong>A hidden pane always leaves a labelled reveal control</strong>, and for the right panel it sits <em>in the topbar's flow</em>.</td><td>A collapsed view with no way back is indistinguishable from a broken one. Floated at the stage's top-right, the control covered a topbar button entirely.</td></tr>
+<tr><td><strong>Collapse by zeroing width, never <code>display:none</code>.</strong></td><td><code>display:none</code> removes a grid item from placement, shifting later items back a column — the stage landed in the 0px column and the whole app rendered empty.</td></tr>
+<tr><td><strong>A narrow viewport gets a narrower sidebar, never none.</strong></td><td>A media query that zeroed the sidebar under 900px hid navigation unconditionally, with no way to get it back. A window width is not a request to hide navigation.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">0.12</span>Status vocabulary</h2>
+<p>One vocabulary across cold start, run surface and model objects. Colour is never the only carrier — each state has a word.</p>
+<table class="st">
+<thead><tr><th>State</th><th>Word</th><th>Colour</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Pending</td><td>PENDING</td><td>Neutral</td><td>Configured, not started.</td></tr>
+<tr><td>Running</td><td>RUNNING + spinner</td><td>Accent</td><td>Executing now.</td></tr>
+<tr><td>Completed</td><td>DONE</td><td>Green</td><td>Finished, outputs written.</td></tr>
+<tr><td>Failed</td><td>FAILED</td><td>Red</td><td>Errored. Partial outputs kept and inspectable.</td></tr>
+<tr><td>Skipped</td><td>SKIPPED</td><td>Neutral, dashed</td><td>A choice, not a failure. Never red. Downstream reads cached output.</td></tr>
+<tr><td>Halted</td><td>Gate chip + panel</td><td>Amber</td><td>A quality gate stopped the run and is waiting on a decision.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">0.13</span>Verification is one pattern <span class="tag new">new</span></h2>
+<p>The product checks things in five different places. They are <strong>one concept with one reading</strong>: something is <em>measured</em>, against a <em>threshold</em>, producing a <em>verdict</em>. A scientist learns that shape once and can then read any check in the product. What differs is only who measures and what a failure stops.</p>
+<table class="st">
+<thead><tr><th>Check</th><th>Measured by</th><th>A failure stops</th><th>Specified in</th></tr></thead>
+<tbody>
+<tr><td>Workflow quality gate</td><td>A measurement on your data.</td><td>The run, at that phase.</td><td>Spec 07 §7.5</td></tr>
+<tr><td>Model evaluation gate</td><td>Held-out performance against a floor.</td><td>Registration — the model cannot be called.</td><td>Spec 03 §3.3</td></tr>
+<tr><td>Safety gate</td><td>A predicted liability.</td><td>A proposal, which stays visible with its reason.</td><td>Spec 05 §5.4</td></tr>
+<tr><td>Chemistry validity gate</td><td>Structural correctness and accessibility.</td><td>A generated structure, counted and characterised.</td><td>Spec 05 §5.2</td></tr>
+<tr><td>Human approval</td><td><strong>A person.</strong></td><td>The run, until answered.</td><td>Spec 07 §7.6</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Verification rule</span><p>A human approval is a gate whose measurement is a person — that is the <em>only</em> difference, and it is why it uses the same measured / threshold / verdict layout as a QC gate rather than a bespoke dialog. Trust is the brand, so the vocabulary of trust may not fragment into five dialects.</p></div>
+
+<h2><span class="num">0.14</span>Roles and permissions <span class="tag new">new</span></h2>
+<p>BioMate is multi-tenant, so an action a user cannot take must be legible rather than absent. Four roles, and one rule about how they show up.</p>
+<table class="st">
+<thead><tr><th>Role</th><th>Can</th></tr></thead>
+<tbody>
+<tr><td>Viewer</td><td>Read a project, its files, its runs and its reports. Run a workflow.</td></tr>
+<tr><td>Contributor</td><td>Add files, edit parameters, start runs.</td></tr>
+<tr><td>Reviewer</td><td>Override a quality gate; answer an approval delegated to a reviewer.</td></tr>
+<tr><td>Owner</td><td>Register a model, promote a file to the account, approve spend above the project threshold.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Disabled, never hidden</span><p>A control the current user may not use is shown <strong>disabled with the role it requires</strong>. Hiding it makes the product feel broken and makes a permission problem indistinguishable from a missing feature; naming the role makes it answerable — the user knows who to ask.</p></div>
+<p>The gate-override and registration permissions are the load-bearing ones: they are exactly the actions that let a person overrule the evidence rules, so they are the actions that carry a name in the audit trail.</p>
+
+<h2><span class="num">0.15</span>Copy rules for the whole surface</h2>
+<ol>
+<li><strong>No inventory.</strong> No counts of workflows, models or experts; no browsable catalog of names. Categories and example shapes only — and this applies to the integrated pre-trained models too, which are presented by what they achieve rather than as a package list.</li>
+<li><strong>No self-explanation.</strong> The UI does not argue for its own design decisions in body copy.</li>
+<li><strong>Name the lane, name the cost.</strong> Time and rigour are stated before work starts, not after.</li>
+<li><strong>Skipping is neutral.</strong> Language and colour for a skipped phase are the language of a choice.</li>
+<li><strong>Every number is traceable.</strong> If a number appears in a summary or a report, it is a link to its source output.</li>
+<li><strong>Say what ran, not what was requested.</strong> Parameters are shown as resolved, with their origin — default, inherited, detected, override — and a reason for anything that is not a default.</li>
+</ol>
+
+<h2><span class="num">0.16</span>Open questions</h2>
+<ul>
+<li><span class="tag ship">resolved</span> The fourth module question is closed: <strong>Design &amp; generate</strong> ships as a module — see Spec 05. Whether <em>protein</em> and peptide design share its four tracks is still open (Spec 05 §5.10).</li>
+<li><span class="tag open">open</span> Whether users can author expert packs, and whether an authored pack is shareable across an organisation.</li>
+<li><span class="tag open">open</span> Whether the thin-launcher preference should persist across sessions per user.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 00 · Foundations</span><span>Next: 01 — Search &amp; evidence</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

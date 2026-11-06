@@ -1,0 +1,40 @@
+{"id": "og_01", "prediction": "pathlinkr"}
+{"id": "og_02", "prediction": "clusterprofiler_gene_set_enrichment_analysis"}
+{"id": "og_03", "prediction": "reactomepa"}
+{"id": "og_04", "prediction": "Gene Set Enrichment Analysis"}
+{"id": "og_05", "prediction": "Gene Set Enrichment Analysis"}
+{"id": "og_06", "prediction": "fgsea_over_representation_analysis"}
+{"id": "og_07", "prediction": "clusterprofiler_gene_set_enrichment_analysis"}
+{"id": "og_08", "prediction": "nf-core/differentialabundance"}
+{"id": "og_09", "prediction": "reactomepa"}
+{"id": "og_10", "prediction": "clusterprofiler_gene_set_enrichment_analysis"}
+{"id": "as_01", "prediction": "genarise"}
+{"id": "as_02", "prediction": "nf-core/differentialabundance"}
+{"id": "as_03", "prediction": "edger"}
+{"id": "as_04", "prediction": "nf-core/differentialabundance"}
+{"id": "st_01", "prediction": "nf-core/differentialabundance"}
+{"id": "st_02", "prediction": "tximeta"}
+{"id": "st_03", "prediction": "nf-core/differentialabundance"}
+{"id": "pr_01", "prediction": "msstatsconvert"}
+{"id": "pr_02", "prediction": "msstatslip"}
+{"id": "pr_03", "prediction": "MSstatsPTM"}
+{"id": "pr_04", "prediction": "nf-core/proteomicslfq"}
+{"id": "h_edger_1", "prediction": "nf-core/differentialabundance"}
+{"id": "h_edger_2", "prediction": "nf-core/differentialabundance"}
+{"id": "h_edger_3", "prediction": "edger_fold_change_threshold_testing"}
+{"id": "h_deseq_1", "prediction": "absseq"}
+{"id": "h_deseq_2", "prediction": ""}
+{"id": "h_deseq_3", "prediction": "basics_two_group_differential_expression"}
+{"id": "h_fgsea_1", "prediction": "Gene Set Enrichment Analysis"}
+{"id": "h_fgsea_2", "prediction": "fgsea_over_representation_analysis"}
+{"id": "h_fgsea_3", "prediction": "fgsea_gene_set_coregulation_analysis"}
+{"id": "h_gsea_db_1", "prediction": "Gene Set Enrichment Analysis"}
+{"id": "h_gsea_db_2", "prediction": "Gene Set Enrichment Analysis"}
+{"id": "h_gsea_db_3", "prediction": "Gene Set Enrichment Analysis"}
+{"id": "h_msnb_1", "prediction": "nf-core/proteomicslfq"}
+{"id": "h_msnb_2", "prediction": "msnbase_chromatographic_srm_import"}
+{"id": "h_scran_1", "prediction": "ropls"}
+{"id": "h_scran_2", "prediction": "batchelor_batch_rescaling"}
+{"id": "sc_01", "prediction": "spatial_visium_banksy"}
+{"id": "sc_02", "prediction": "Annotate Celltype With Panhumanpy"}
+{"id": "sc_03", "prediction": "ucell_seurat_workflow"}

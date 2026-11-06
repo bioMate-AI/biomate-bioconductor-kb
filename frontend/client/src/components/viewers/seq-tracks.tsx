@@ -66,12 +66,25 @@ function linePath(values: number[]): string {
     .join(" ")
 }
 
-// Coordinate extent used to normalise mark/tick positions to the viewbox.
-function extentOf(track: SeqTrack): number {
-  if (track.kind === "marks") {
-    return Math.max(1, ...(track.intervals ?? []).map(([, b]) => b))
+// ONE shared coordinate domain for all positional (marks/ticks) tracks so they
+// align with each other and with the locus. Previously each track normalised
+// against its OWN max, so a variant tick and a highlighted mark at the same
+// genomic position rendered at different x. When the locus length (bp) is known
+// we use it (true base coordinates); otherwise we fall back to the largest
+// coordinate seen across marks/ticks. A 'line' track is a per-base signal that
+// by definition spans the whole locus, so it is index-normalised to full width
+// and does not participate in (or distort) this domain.
+function sharedDomainMax(tracks: SeqTrack[], bp?: number): number {
+  if (bp != null && bp > 0) return bp
+  let m = 0
+  for (const t of tracks) {
+    if (t.kind === "marks") {
+      for (const [, b] of t.intervals ?? []) m = Math.max(m, b)
+    } else if (t.kind === "ticks") {
+      for (const v of t.values ?? []) m = Math.max(m, v)
+    }
   }
-  return Math.max(1, ...(track.values ?? [0]))
+  return Math.max(1, m)
 }
 
 // ---------------------------------------------------------------------------
@@ -97,8 +110,7 @@ export function SeqTracks({ locus, tracks, flagged = [], bp, onOpenInterval, cla
       <CardContent className="space-y-3">
         {/* Tracks */}
         <div className="space-y-1" data-testid="seq-track-rows">
-          {tracks.map(track => {
-            const extent = extentOf(track)
+          {(() => { const domainMax = sharedDomainMax(tracks, bp); return tracks.map(track => {
             return (
               <div key={track.name} className="flex items-center gap-2" data-testid={`seq-track-${track.name}`}>
                 <span className="text-[10px] text-muted-foreground w-24 shrink-0 truncate" title={track.name}>
@@ -113,29 +125,30 @@ export function SeqTracks({ locus, tracks, flagged = [], bp, onOpenInterval, cla
                 >
                   {track.kind === "line" && track.values && (
                     <>
-                      <path d={`${linePath(track.values)} L${VW},${VH} L0,${VH} Z`} fill="rgba(59,130,246,0.12)" />
-                      <path d={linePath(track.values)} fill="none" stroke="#3b82f6" strokeWidth={0.7} vectorEffect="non-scaling-stroke" />
+                      {/* reference muted blue for the per-base signal */}
+                      <path d={`${linePath(track.values)} L${VW},${VH} L0,${VH} Z`} fill="rgba(75,143,214,0.12)" />
+                      <path d={linePath(track.values)} fill="none" stroke="#4b8fd6" strokeWidth={0.7} vectorEffect="non-scaling-stroke" />
                     </>
                   )}
                   {track.kind === "marks" && (track.intervals ?? []).map(([a, b], i) => (
                     <rect
                       key={i}
-                      x={(a * VW) / extent}
+                      x={(a * VW) / domainMax}
                       y={4}
-                      width={((b - a) * VW) / extent}
+                      width={((b - a) * VW) / domainMax}
                       height={12}
-                      fill="#f59e0b"
+                      fill="var(--warn)"
                       opacity={0.75}
                       rx={0.6}
                     />
                   ))}
                   {track.kind === "ticks" && (track.values ?? []).map((x, i) => (
-                    <rect key={i} x={(x * VW) / extent} y={3} width={0.5} height={14} fill="#64748b" />
+                    <rect key={i} x={(x * VW) / domainMax} y={3} width={0.5} height={14} fill="var(--text-dim)" />
                   ))}
                 </svg>
               </div>
             )
-          })}
+          }) })()}
         </div>
 
         {/* Flagged intervals — the actionable output */}

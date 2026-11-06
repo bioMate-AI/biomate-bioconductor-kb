@@ -419,60 +419,85 @@ class TestAPIEndpointsUnit:
 
 
 class TestEndToEndWorkflowGeneration:
-    """End-to-end tests for workflow generation with citations."""
+    """End-to-end tests for the citation-attachment code path.
+
+    NOTE (rewrite): the previous version of this class built a MagicMock whose
+    ``generate_workflow_unified`` returned a hardcoded dict, then asserted that
+    same hardcoded dict — a false-green that validated nothing (it would pass
+    even if the real citation logic were deleted). The full
+    ``AIAssistant.generate_workflow_unified`` entry point isn't importable in
+    the unit-test env (``galaxy.webapps.galaxy.api`` requires ``a2wsgi``/DB and
+    a live LLM), so instead of mocking the system under test we exercise the
+    REAL citation-attachment components that generation runs at the end:
+    ``MethodsSectionGenerator`` + ``ToolKnowledgeProvider`` (DB-backed, no LLM).
+    We feed the fixtured workflow that generation produces and assert the
+    citations/methods are REAL (correct DB-sourced DOI/authors), not a canned
+    payload.
+    """
 
     @pytest.fixture
-    def mock_ai_assistant(self):
-        """Create mock AI assistant."""
-        mock = MagicMock()
-        mock.generate_workflow_unified.return_value = {
-            'success': True,
-            'workflow_ga': {
-                'name': 'RNA-seq Analysis',
-                'steps': {
-                    '0': {'type': 'tool', 'tool_id': 'fastqc', 'name': 'FastQC'}
-                }
+    def generated_workflow(self):
+        """The workflow dict that generate_workflow_unified() emits — the input
+        to the citation-attachment path (steps carry real tool_ids)."""
+        return {
+            'name': 'RNA-seq Analysis',
+            'steps': {
+                '0': {'type': 'tool', 'tool_id': 'fastqc', 'name': 'FastQC', 'tool_state': '{}'},
+                '1': {'type': 'tool', 'tool_id': 'star', 'name': 'STAR', 'tool_state': '{}'},
             },
-            'source': 'from_scratch',
-            'confidence': 0.85,
-            'citations': [
-                {
-                    'tool_id': 'fastqc',
-                    'tool_name': 'FastQC',
-                    'citation': {
-                        'title': 'FastQC: a quality control tool',
-                        'authors': ['Simon Andrews'],
-                        'year': 2010
-                    }
-                }
-            ],
-            'methods_section': 'Quality control was performed using FastQC.',
-            'generated_parameters': []
         }
-        return mock
 
-    def test_workflow_generation_includes_citations(self, mock_ai_assistant):
-        """Test that workflow generation returns citations."""
-        result = mock_ai_assistant.generate_workflow_unified(
-            user_intent="Perform RNA-seq quality control",
-            uploaded_datasets=[]
+    def test_citation_attachment_produces_real_citations(self, generated_workflow):
+        """The real citation path resolves DB-backed citations for the workflow's
+        tools (not a hardcoded stub)."""
+        from galaxy.ai.methods_generator import MethodsSectionGenerator
+        from galaxy.ai.tool_knowledge_provider import ToolKnowledgeProvider
+
+        generator = MethodsSectionGenerator(ToolKnowledgeProvider())
+        summary = generator.get_citations_summary(generated_workflow)
+
+        assert summary['total_steps'] == 2
+        assert summary['steps_with_citations'] >= 1
+        cited_tools = {c['tool'] for c in summary['citations']}
+        assert 'star' in cited_tools, f"expected a STAR citation, got {cited_tools}"
+
+        # The STAR citation must be the REAL Dobin et al. 2013 record from the
+        # tool-knowledge DB — this is what proves we hit the real path and not a
+        # canned dict. (FastQC has no DOI in the DB, so we anchor on STAR.)
+        star = next(c['citation'] for c in summary['citations'] if c['tool'] == 'star')
+        assert star['year'] == 2013
+        assert star['doi'] == '10.1093/bioinformatics/bts635'
+        assert any('Dobin' in a for a in star['authors'])
+
+    def test_citation_attachment_produces_methods_section(self, generated_workflow):
+        """The real methods-section generator produces prose naming the tools
+        and a references block."""
+        from galaxy.ai.methods_generator import MethodsSectionGenerator
+        from galaxy.ai.tool_knowledge_provider import ToolKnowledgeProvider
+
+        generator = MethodsSectionGenerator(ToolKnowledgeProvider())
+        methods = generator.generate(
+            generated_workflow, citation_style="short", include_parameters=True
         )
 
-        assert result['success']
-        assert 'citations' in result
-        assert len(result['citations']) > 0
-        assert result['citations'][0]['tool_id'] == 'fastqc'
+        assert isinstance(methods, str) and methods.strip()
+        assert 'STAR' in methods
+        assert 'FastQC' in methods
+        # Real generator emits an in-text citation for the DB-known tool.
+        assert 'Dobin' in methods, f"expected inline STAR citation, methods:\n{methods}"
 
-    def test_workflow_generation_includes_methods(self, mock_ai_assistant):
-        """Test that workflow generation returns methods section."""
-        result = mock_ai_assistant.generate_workflow_unified(
-            user_intent="Perform RNA-seq quality control",
-            uploaded_datasets=[]
+    def test_bibtex_export_from_generated_workflow(self, generated_workflow):
+        """BibTeX export over the real path emits a real STAR bib entry."""
+        from galaxy.ai.methods_generator import MethodsSectionGenerator
+        from galaxy.ai.tool_knowledge_provider import ToolKnowledgeProvider
+
+        generator = MethodsSectionGenerator(ToolKnowledgeProvider())
+        bibtex = generator.generate_bibtex(generated_workflow)
+
+        assert isinstance(bibtex, str)
+        assert '10.1093/bioinformatics/bts635' in bibtex, (
+            "expected the real STAR DOI in the BibTeX export"
         )
-
-        assert result['success']
-        assert 'methods_section' in result
-        assert 'FastQC' in result['methods_section']
 
 
 if __name__ == "__main__":

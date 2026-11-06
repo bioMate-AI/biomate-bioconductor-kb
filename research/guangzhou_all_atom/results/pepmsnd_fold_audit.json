@@ -1,0 +1,14 @@
+{
+  "rows": 640,
+  "unique_ids": 635,
+  "duplicate_id_extra_rows": 5,
+  "ids_across_multiple_folds": 4,
+  "raw_smiles_across_multiple_folds": 29,
+  "duplicate_ids": {
+    "632": 3,
+    "630": 2,
+    "635": 2,
+    "633": 2
+  },
+  "note": "The supplied cluster column is treated as fold membership only; this does not establish chemical-family separation."
+}

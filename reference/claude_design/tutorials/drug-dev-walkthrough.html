@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T11 — Drug-development pipeline, end to end</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t11{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.rail .kind{font-family:var(--ff-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:3px 9px; border-radius:3px}
+.rail .kind.concept{background:var(--blue-bg); color:var(--blue)}
+.rail .kind.flow{background:var(--panel2); color:var(--mut)}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 70px 48px; opacity:0; transform:translateY(8px);
+  /* Deactivate instantly (no lingering fade-out) so two scenes' text never
+     overlap mid-dissolve; the incoming scene does a quick <0.3s fade-in. */
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px}
+.kicker .st{color:var(--mut)}
+.kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
+.kicker .badge.concept{background:var(--blue-bg); color:var(--blue)}
+.kicker .badge.flow{background:var(--panel2); color:var(--mut); border:1px solid var(--line2)}
+.scene h2{font-family:var(--ff-ui); font-size:36px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 13px; max-width:18ch}
+.scene.title h2{font-size:52px; max-width:20ch; margin-bottom:18px}
+.caption{font-size:18px; line-height:1.55; color:var(--ink2); max-width:64ch; margin:0 0 6px}
+.caption.sub{font-size:15.5px; color:var(--mut); max-width:68ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* edu framing strip: task -> hard -> classical -> BioMate -> read */
+.frame-strip{display:flex; gap:0; margin:4px 0 0; flex-wrap:wrap}
+.frame-strip .fs{display:flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.04em; color:var(--mut); padding:4px 0}
+.frame-strip .fs b{color:var(--blue); font-weight:500; text-transform:uppercase; letter-spacing:.08em}
+.frame-strip .sep{color:var(--line2); margin:0 12px}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+
+/* screenshot figures */
+.shots{display:flex; gap:26px; flex:1; min-height:0}
+.shot{flex:1; display:flex; flex-direction:column; min-height:0}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#0f141b; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex; align-items:center; justify-content:center}
+.shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot video{width:100%; height:100%; object-fit:contain; background:#0f141b; display:block}
+/* Flow still-image scene (dataset lineage) keeps a landscape frame; just shrink text. */
+.scene[data-kind="flow"]:has(img):not(.live) h2{font-size:27px; line-height:1.12; margin-bottom:8px; max-width:34ch}
+.scene[data-kind="flow"]:has(img):not(.live) .caption{font-size:14.5px; line-height:1.5; margin-bottom:2px; max-width:92ch}
+.scene[data-kind="flow"]:has(img):not(.live) .scene-body{margin-top:12px}
+.scene[data-kind="flow"]:has(img):not(.live) .shot figcaption{font-size:12px; margin-top:7px; max-width:92ch}
+
+/* Live-UI FOCAL scenes: each embeds a HIGH-DPI crop ZOOMED to the single element
+   that makes the scene's point — the pre-run param strip + Confirm & Run, the
+   running QC-gate list, the Completed findings, the outputs list, the
+   reproducibility record. Cropping to the focal element (instead of the whole
+   panel) + rendering at 3x makes the product UI text large and sharp in the slide.
+   Layout is a vertical stack so the crop gets (nearly) the full stage width; media
+   max-height is capped so the whole scene stays above the recorder's 992px fold. */
+.scene.live{padding:34px 70px 0}
+.scene.live h2{font-size:30px; line-height:1.14; margin:2px 0 8px; max-width:42ch}
+.scene.live .caption{font-size:15px; line-height:1.5; margin:0 0 12px; max-width:96ch}
+.scene.live .scene-body{flex:0 0 auto; min-height:0; margin-top:0; display:flex}
+.scene.live .shots{flex:0 1 auto; min-height:0; display:flex; justify-content:center; align-items:flex-start; gap:0}
+.scene.live .shot{flex:0 1 auto; display:flex; flex-direction:column; align-items:center; min-height:0; max-width:100%}
+.scene.live .shot .frame{flex:0 1 auto; width:auto; height:auto; max-width:100%; background:#fff; border:1px solid var(--line2); border-radius:12px; box-shadow:0 10px 34px rgba(16,24,40,.12)}
+.scene.live .shot img{display:block; width:auto; height:auto; max-width:min(92vw,1680px); max-height:51vh; object-fit:contain; border-radius:12px}
+.scene.live .shot figcaption{font-size:12.5px; line-height:1.45; margin-top:10px; max-width:90ch; text-align:center}
+.scene.live .tags{margin-top:12px}
+.livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
+.livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
+@keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
+.shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:48ch}
+.shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:flex-start; gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:12px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px}
+.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
+.tile.hot{border-color:var(--red); background:var(--red-bg)}
+.tile.hot .n{color:var(--red)}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:8px 15px; font-size:14px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+svg{display:block}
+.svgwrap{flex:1; display:flex; align-items:center; justify-content:center; min-height:0}
+.metricrow{display:flex; gap:34px; margin-top:4px}
+.metric{display:flex; flex-direction:column}
+.metric .v{font-family:var(--ff-mono); font-size:26px; color:var(--ink); font-weight:600}
+.metric .k{font-size:12px; color:var(--mut); margin-top:2px}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:12px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:44px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.deliver{list-style:none; padding:0; margin:0}
+.deliver li{display:flex; align-items:baseline; gap:11px; padding:10px 0; border-bottom:1px solid var(--line); font-size:14.5px; line-height:1.5; color:var(--ink2)}
+.deliver li:last-child{border-bottom:none}
+.deliver li .mk{flex:0 0 auto; width:7px; height:7px; border-radius:2px; background:var(--blue); transform:translateY(5px)}
+.deliver li b{color:var(--ink); font-weight:600}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t11">Tutorial 11 · Drug development, end to end</span>
+  <span class="kind concept" id="kind">Concept</span>
+  <span class="spacer"></span>
+  <span class="counter">Slide <b id="cur">0</b> / <span id="tot">16</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-kind="concept" data-seconds="38.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Drug Discovery, End to End</b></div>
+    <div class="kicker">From a target idea to a defensible candidate record</div>
+    <h2>Start a program from a filtered, ranked shortlist — then triage, loop, and keep a defensible record.</h2>
+    <p class="caption">Connected stages, each a hosted workflow you run without standing up or licensing in-house software: name a goal, design candidate molecules, predict their properties, rank the survivors, close the design–test loop behind a safety gate, project human exposure, and keep an audit-grade record — one pipeline, one provenance trail.</p>
+    <p class="caption sub">Demonstration compounds: three familiar drugs — <b>aspirin, caffeine, ibuprofen</b> — sent through the pipeline as an illustrative example. <b>In-silico triage — not a drug-discovery campaign result, not a clinical claim.</b> Each stage pairs an <b>idea slide</b> that teaches the concept with a <b>product slide</b> that shows it running on real output. Everything shown here runs, and every finding is read from that output — never invented.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>1 · Frame</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>2 · Design</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>3 · Properties</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>4 · Rank</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>5 · Loop</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>6 · PK/PBPK</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>7 · Record</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — CONCEPT: loop not a line -->
+  <section class="scene" data-kind="concept" data-seconds="31.3">
+    <div class="kicker"><span class="st">Idea</span> · Why drug development is a loop, not a line <span class="badge concept">Concept</span></div>
+    <h2>One pass never produces a finished drug — the method is a cycle that compounds.</h2>
+    <p class="caption">It is tempting to imagine a straight line: design once, test once, done. Real programs never work that way. Each round <b>learns</b> from the last and feeds the next — the Design–Build–Test–Learn loop. The payoff is that mistakes get cheaper and the shortlist gets better every turn.</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 440 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <!-- the LINE (crossed out) -->
+            <text x="20" y="40" fill="#9c1a2e" font-family="IBM Plex Mono" font-size="12" font-weight="500">The myth — a line</text>
+            <g stroke="#aeb6c2" stroke-width="2" fill="#aeb6c2" font-family="IBM Plex Sans" font-size="11.5">
+              <rect x="20" y="52" width="66" height="26" rx="5" fill="#f1f3f7" stroke="#d5dae2"/><text x="53" y="69" text-anchor="middle" fill="#5a6474">design</text>
+              <line x1="86" y1="65" x2="118" y2="65"/>
+              <rect x="118" y="52" width="60" height="26" rx="5" fill="#f1f3f7" stroke="#d5dae2"/><text x="148" y="69" text-anchor="middle" fill="#5a6474">test</text>
+              <line x1="178" y1="65" x2="210" y2="65"/>
+              <rect x="210" y="52" width="66" height="26" rx="5" fill="#f1f3f7" stroke="#d5dae2"/><text x="243" y="69" text-anchor="middle" fill="#5a6474">a drug?</text>
+            </g>
+            <line x1="285" y1="48" x2="345" y2="82" stroke="#9c1a2e" stroke-width="2.5"/>
+            <line x1="345" y1="48" x2="285" y2="82" stroke="#9c1a2e" stroke-width="2.5"/>
+            <!-- the LOOP -->
+            <text x="20" y="128" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="12" font-weight="500">The method — a loop (DBTL)</text>
+            <g transform="translate(60,135)">
+              <circle cx="150" cy="120" r="100" fill="none" stroke="#d5dae2" stroke-width="1.5" stroke-dasharray="4 6"/>
+              <g font-family="IBM Plex Sans" font-size="14" font-weight="600" fill="#101828">
+                <g><circle cx="150" cy="28" r="28" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><text x="150" y="33" text-anchor="middle">Design</text></g>
+                <g><circle cx="250" cy="120" r="28" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="1.5"/><text x="250" y="125" text-anchor="middle">Build</text></g>
+                <g><circle cx="150" cy="212" r="28" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/><text x="150" y="217" text-anchor="middle">Test</text></g>
+                <g><circle cx="50" cy="120" r="28" fill="#f1f3f7" stroke="#5a6474" stroke-width="1.5"/><text x="50" y="125" text-anchor="middle">Learn</text></g>
+              </g>
+              <g fill="#5a6474" font-size="19"><text x="214" y="62">↘</text><text x="214" y="192">↙</text><text x="72" y="192">↖</text><text x="72" y="62">↗</text></g>
+              <text x="150" y="116" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="#5a6474">each turn<tspan x="150" dy="14">= a round</tspan></text>
+            </g>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="frame-strip">
+            <span class="fs"><b>Task</b>&nbsp;go from an idea to a drug candidate</span><span class="sep">·</span>
+            <span class="fs"><b>Why hard</b>&nbsp;no single pass gets it right</span><span class="sep">·</span>
+            <span class="fs"><b>Classical</b>&nbsp;months per hand-run cycle</span><span class="sep">·</span>
+            <span class="fs"><b>BioMate</b>&nbsp;each stage is a reusable workflow you chain &amp; repeat</span>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <p style="font-size:14.5px; line-height:1.6; margin:0">Keep this loop in mind for the rest of the tutorial. The stages ahead are simply <b>one trip around it</b> — and the two features that make the loop trustworthy are the <b>QC gate</b> (Stage 5) and the <b>reproducibility record</b> (Stage 7).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — CONCEPT: Stage 1 framing -->
+  <section class="scene" data-kind="concept" data-seconds="32.8">
+    <div class="kicker"><span class="st">Stage 1 · Idea</span> · Framing the goal <span class="badge concept">Concept</span></div>
+    <h2>Write down the target, the objectives, and the constraints — before any molecule exists.</h2>
+    <p class="caption">Every later stage inherits these choices, so a vague goal produces a vague shortlist. You capture it simply by describing it in plain English to BioMate.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">TARGET (e.g.)</div><h4>JAK1</h4><p>A protein you want to act on — here, an inflammation-signalling example. A protein, not a molecule.</p></div>
+            <div class="tile"><div class="n">OBJECTIVES</div><h4>Bind · Absorb · Be safe</h4><p>Bind the target; be orally absorbed; stay safe on the heart (hERG).</p></div>
+            <div class="tile"><div class="n">CONSTRAINTS</div><h4>Novel · Makeable</h4><p>Keep it novel; keep it synthesizable.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:20px">The objectives you name here become the columns you compare on in Stage 4 — and the hERG safety limit becomes the QC gate in Stage 5. <b>This walkthrough demonstrates the mechanics on three familiar molecules — aspirin, caffeine, ibuprofen</b> — rather than a full target campaign.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — CONCEPT: Stage 2 design/generate -->
+  <section class="scene" data-kind="concept" data-seconds="30.0">
+    <div class="kicker"><span class="st">Stage 2 · Idea</span> · Designing candidates <span class="badge concept">Concept</span></div>
+    <h2>Which molecules should I even consider?</h2>
+    <p class="caption">Rather than draw molecules by hand out of ~10⁶⁰ possibilities, BioMate proposes novel candidates toward your objective — optionally anchored to a seed you supply — then filters out known liabilities and ranks what survives into a shortlist. It runs end to end today, and returns a ranked starting set in minutes.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">GENERATE</div><h4>Propose novel molecules</h4><p>Generate chemically sensible candidates toward your objective — optionally anchored to a seed you provide.</p></div>
+            <div class="tile"><div class="n">FILTER</div><h4>Screen liabilities</h4><p>Drop known problem substructures and candidates outside your property window.</p></div>
+            <div class="tile"><div class="n">RANK</div><h4>Ranked shortlist</h4><p>Return a ranked list — each with a why-this-one note and its nearest known molecule.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:20px">This is the <b>design</b> step — REINVENT4 proposes the candidates. The next stages — <b>ADMET, QSAR and docking</b> — score and filter them, and those predictions can be folded back into the generator's scoring to steer the next round. Design → score → loop: this shortlist is the beginning, not the end.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — CONCEPT: Stage 3 what is ADMET + hERG -->
+  <section class="scene" data-kind="concept" data-seconds="34.5">
+    <div class="kicker"><span class="st">Stage 3 · Idea</span> · What is ADMET — and why hERG is make-or-break <span class="badge concept">Concept</span></div>
+    <h2>ADMET asks: will the body even tolerate this molecule?</h2>
+    <p class="caption">Binding is not enough — a molecule must be absorbed, go where it should, not be destroyed too fast, leave cleanly, and not poison anything. ADMET is those five questions. One endpoint, <b>hERG</b>, outranks the rest: block that cardiac potassium channel and you risk a fatal arrhythmia — it has killed approved drugs.</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <div class="card">
+            <div class="row5">
+              <div class="tile"><div class="n">A</div><h4>Absorption</h4><p>Does it get in? (oral uptake)</p></div>
+              <div class="tile"><div class="n">D</div><h4>Distribution</h4><p>Where does it go?</p></div>
+              <div class="tile"><div class="n">M</div><h4>Metabolism</h4><p>How fast broken down?</p></div>
+              <div class="tile"><div class="n">E</div><h4>Excretion</h4><p>How does it leave?</p></div>
+              <div class="tile hot"><div class="n">T</div><h4>Toxicity</h4><p>Any harm? incl. hERG</p></div>
+            </div>
+            <p class="footnote" style="margin-top:16px">A molecule can bind its target beautifully and still fail here — which is why ADMET comes early and cheap.</p>
+          </div>
+        </div>
+        <div class="lead-col">
+          <div class="svgwrap">
+            <svg viewBox="0 0 320 250" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+              <text x="160" y="18" text-anchor="middle" fill="#9c1a2e" font-family="IBM Plex Mono" font-size="12" font-weight="500">hERG — the cardiac K⁺ channel</text>
+              <!-- membrane -->
+              <rect x="20" y="70" width="280" height="22" fill="#eef1f6"/>
+              <rect x="20" y="158" width="280" height="22" fill="#eef1f6"/>
+              <text x="26" y="64" fill="#5a6474" font-family="IBM Plex Mono" font-size="10">outside</text>
+              <text x="26" y="200" fill="#5a6474" font-family="IBM Plex Mono" font-size="10">inside (heart cell)</text>
+              <!-- channel walls -->
+              <path d="M120 70 L112 158 M200 70 L208 158" stroke="#1a4a9c" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <!-- K+ ions flowing (healthy) -->
+              <g fill="#1c6b3a" font-family="IBM Plex Mono" font-size="11" font-weight="600">
+                <text x="150" y="60" text-anchor="middle">K⁺</text>
+                <text x="168" y="48" text-anchor="middle">K⁺</text>
+              </g>
+              <line x1="160" y1="92" x2="160" y2="150" stroke="#1c6b3a" stroke-width="1.5" stroke-dasharray="3 4" opacity=".55"/>
+              <!-- the drug blocking -->
+              <circle cx="160" cy="120" r="20" fill="#fdeaec" stroke="#9c1a2e" stroke-width="2"/>
+              <text x="160" y="124" text-anchor="middle" fill="#9c1a2e" font-family="IBM Plex Sans" font-size="10.5" font-weight="600">drug</text>
+              <text x="160" y="232" text-anchor="middle" fill="#5a6474" font-family="IBM Plex Mono" font-size="10.5">block the gate → arrhythmia risk</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — FLOW: Stage 3 pre-run (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="30.0">
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — the pre-run check <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>Everything you can change is shown before a single cent of compute is spent.</h2>
+    <p class="caption">This is BioMate's ADMET prediction running live — a model trained on a large body of experimental measurements. Before it runs, the pre-run strip lays out your SMILES list — aspirin, caffeine, ibuprofen — and every model setting, editable.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/prerun.png" alt="Pre-run: editable Smiles List and Admet Model Type parameters above the Confirm & Run button"/></div>
+          <figcaption><span class="lbl">Pre-run · live</span>Your SMILES list and model settings are shown and editable before any compute is spent — your chance to check everything first. Required params missing? the panel blocks and offers "Fix now". No blanket accuracy number is attached; what you get is the real output of this run.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — FLOW: Stage 3 running + QC gates (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="24.2">
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — running, with QC gates in view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>It runs on hosted cloud compute, and the quality gates are visible the whole time.</h2>
+    <p class="caption">Live phase progress streams in as each step completes on hosted cloud compute. The gates that will be checked — including hERG — are shown alongside, so you can scan the hERG column first and set aside any candidate above your safety limit.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/running.png" alt="Running: the RUNNING phase card and the QC Gates list (CiPA / hERG thresholds)"/></div>
+          <figcaption><span class="lbl">Running · live</span>Each phase card flips pending → running → completed in real time; the QC gates to be evaluated are listed so nothing is hidden while compute is in flight.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — FLOW: Stage 3 completed (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="20.5">
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — completed state in the panel <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>When it finishes, the workflow panel tells the whole story.</h2>
+    <p class="caption">The completed run shows a "COMPLETED" badge and a "Run again" action, with after-run tabs — Summary, Outputs, and the reproducibility record. The chat summary stays in sync with the panel: the same workflow name and the same state, with nothing stale or half-rendered.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/completed.png" alt="Completed: the green Completed badge and the Findings Summary with hERG, DILI and oral-bioavailability values"/></div>
+          <figcaption><span class="lbl">Completed · live</span>The Summary tab carries real result values read straight from the run's outputs; if an output could not be read, the finding is withheld and said so — never fabricated.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — CONCEPT: Stage 4 multi-objective rank -->
+  <section class="scene" data-kind="concept" data-seconds="32.0">
+    <div class="kicker"><span class="st">Stage 4 · Idea</span> · Multi-objective optimization &amp; the Pareto front <span class="badge concept">Concept</span></div>
+    <h2>Which handful is the best all-round compromise?</h2>
+    <p class="caption">Each candidate now has several numbers that disagree — potent but insoluble, safe but hard to make. BioMate keeps every goal in its own column and units, <b>never blended into one score</b> that could hide an unsafe molecule, and shows the <b>Pareto front</b>: the trade-off boundary where you can't improve one goal without sacrificing another.</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 480 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <line x1="56" y1="20" x2="56" y2="280" stroke="#d5dae2" stroke-width="1.5"/>
+            <line x1="56" y1="280" x2="452" y2="280" stroke="#d5dae2" stroke-width="1.5"/>
+            <text x="18" y="150" fill="#5a6474" font-family="IBM Plex Mono" font-size="12" transform="rotate(-90 18 150)">heart-safety →</text>
+            <text x="200" y="308" fill="#5a6474" font-family="IBM Plex Mono" font-size="12">binding strength →</text>
+            <g fill="#aeb6c2">
+              <circle cx="110" cy="230" r="6"/><circle cx="150" cy="250" r="6"/><circle cx="130" cy="195" r="6"/>
+              <circle cx="200" cy="235" r="6"/><circle cx="175" cy="205" r="6"/><circle cx="240" cy="215" r="6"/>
+              <circle cx="215" cy="180" r="6"/><circle cx="300" cy="225" r="6"/><circle cx="280" cy="195" r="6"/>
+            </g>
+            <g fill="#1a4a9c">
+              <circle cx="100" cy="150" r="8"/><circle cx="160" cy="118" r="8"/><circle cx="235" cy="96" r="8"/>
+              <circle cx="320" cy="82" r="8"/><circle cx="400" cy="70" r="8"/>
+            </g>
+            <path d="M100 150 Q180 110 235 96 T400 70" fill="none" stroke="#1a4a9c" stroke-width="2" stroke-dasharray="5 5" opacity=".65"/>
+            <text x="286" y="52" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="12" font-weight="500">Pareto front — best compromises</text>
+            <text x="150" y="268" fill="#aeb6c2" font-family="IBM Plex Mono" font-size="11">dominated — someone beats them on all</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">How the ranking works</h4>
+            <p style="font-size:14px;line-height:1.55;margin:0">The unblended, read-it-yourself ranking inside Design &amp; Generate. Rejected molecules stay visible with their reason. <b>You</b> pick the trade-off; the product never silently collapses your goals into one number.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CONCEPT: Stage 5 QC gate never silently pass -->
+  <section class="scene" data-kind="concept" data-seconds="50.0">
+    <div class="kicker"><span class="st">Stage 5 · Idea</span> · The QC gate — why it must never silently pass <span class="badge concept">Concept</span></div>
+    <h2>A quality gate turns a threshold into a decision you can trust mid-run.</h2>
+    <p class="caption">Back on the loop: inside a single run, a QC gate compares a value to your limit and <b>halts or flags</b> — it never quietly lets a failed check through. A gate that silently passes is worse than no gate, because it looks like success. When a gate fails, the system <b>suggests</b> a parameter change to try next — logged as a clear before-and-after diff, an advisory suggestion you decide whether to act on, not an autonomous re-run.</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 360 260" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <rect x="124" y="18" width="112" height="44" rx="8" fill="#fff" stroke="#1a4a9c" stroke-width="1.5"/>
+            <text x="180" y="37" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#101828">worst-case hERG</text>
+            <text x="180" y="52" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#5a6474">vs your limit</text>
+            <path d="M180 60 L180 92" stroke="#5a6474" stroke-width="1.5"/>
+            <polygon points="150,92 210,92 180,118" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/>
+            <text x="180" y="110" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#8a5a12">GATE</text>
+            <!-- pass path (ghosted) -->
+            <path d="M180 118 L80 170" stroke="#d5dae2" stroke-width="1.5" stroke-dasharray="4 5"/>
+            <rect x="24" y="170" width="112" height="56" rx="8" fill="#f1f3f7" stroke="#d5dae2" stroke-width="1.2"/>
+            <text x="80" y="192" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#aeb6c2">silent pass</text>
+            <text x="80" y="210" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#aeb6c2">FORBIDDEN</text>
+            <line x1="46" y1="180" x2="114" y2="216" stroke="#9c1a2e" stroke-width="2"/>
+            <line x1="114" y1="180" x2="46" y2="216" stroke="#9c1a2e" stroke-width="2"/>
+            <!-- halt path -->
+            <path d="M180 118 L280 170" stroke="#9c1a2e" stroke-width="2"/>
+            <rect x="224" y="170" width="112" height="56" rx="8" fill="#fdeaec" stroke="#9c1a2e" stroke-width="1.4"/>
+            <text x="280" y="190" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" font-weight="600" fill="#9c1a2e">HALT · flag</text>
+            <text x="280" y="208" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9c1a2e">then suggest a</text>
+            <text x="280" y="219" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9c1a2e">fix (advisory)</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card" style="border-left:3px solid var(--amber)">
+            <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">In this run — model estimates, read with the gate</div>
+            <div class="metricrow">
+              <div class="metric"><span class="v" style="color:var(--green)">Low</span><span class="k">hERG blocker-risk · estimate, not a measured IC50</span></div>
+              <div class="metric"><span class="v" style="color:var(--red)">High</span><span class="k">DILI · above the 0.5 limit — the gate flags it</span></div>
+            </div>
+            <p style="font-size:12.5px;line-height:1.5;margin:13px 0 0;color:var(--ink2)">The native output is a <b>blocker-risk score</b>, an estimate — not a measured IC50. Any IC50 the model prints for a low-risk compound sits at the estimator's <b>ceiling</b> (about 10 mM) — a model output, not evidence of safety. In the same run the liver-injury (DILI) endpoint came back <b>high</b>, above the limit, so the safety gate flags it for follow-up. Read the gate — don't trust a single number.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 — CONCEPT: Stage 6 PK/PBPK -->
+  <section class="scene" data-kind="concept" data-seconds="34.0">
+    <div class="kicker"><span class="st">Stage 6 · Idea</span> · PK / PBPK modeling <span class="badge concept">Concept</span></div>
+    <h2>What dose would a human need?</h2>
+    <p class="caption">A molecule that binds well and looks safe still has to reach the right concentration at a sensible dose. <b>PK</b> is what the body does to the drug over time; <b>PBPK</b> is a mechanistic, organ-by-organ model that projects human exposure <b>scenarios</b> — often from animal data — and a projected <b>starting-dose scenario for evaluation</b>. Read the absolute numbers as a projection to reason with, not a guaranteed safe dose.</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 480 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <line x1="56" y1="20" x2="56" y2="258" stroke="#d5dae2" stroke-width="1.5"/>
+            <line x1="56" y1="258" x2="452" y2="258" stroke="#d5dae2" stroke-width="1.5"/>
+            <text x="20" y="150" fill="#5a6474" font-family="IBM Plex Mono" font-size="12" transform="rotate(-90 20 150)">plasma conc.</text>
+            <text x="360" y="284" fill="#5a6474" font-family="IBM Plex Mono" font-size="12">time (h) →</text>
+            <path d="M56 258 C110 60 150 48 190 88 C250 150 340 230 452 248" fill="none" stroke="#1a4a9c" stroke-width="2.5"/>
+            <circle cx="168" cy="63" r="5" fill="#1a4a9c"/>
+            <line x1="168" y1="63" x2="168" y2="258" stroke="#1a4a9c" stroke-width="1" stroke-dasharray="3 4" opacity=".5"/>
+            <text x="178" y="58" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="12" font-weight="500">Cmax</text>
+            <path d="M190 88 C250 150 340 230 452 248 L452 258 L190 258 Z" fill="#1a4a9c" opacity=".08"/>
+            <text x="300" y="190" fill="#5a6474" font-family="IBM Plex Mono" font-size="12">AUC (total exposure)</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">A three-step chain</h4>
+            <p style="font-size:13.5px;line-height:1.55;margin:0">Allometric scaling (animal → human) → PBPK organ-by-organ model (with renal/hepatic impairment sub-model) → virtual patient cohort (Monte-Carlo variability). You read Cmax, AUC, and a projected starting-dose scenario for evaluation.</p>
+          </div>
+          <p class="footnote" style="margin-top:14px">Projected exposure for evaluation — absolute accuracy is not independently validated. Bring your own in-vivo concentration data and the same chain fits it directly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 — CONCEPT: Stage 7 lineage / provenance -->
+  <section class="scene" data-kind="concept" data-seconds="26.4">
+    <div class="kicker"><span class="st">Stage 7 · Idea</span> · What lineage &amp; provenance mean — and why they matter <span class="badge concept">Concept</span></div>
+    <h2>A result is only as good as your ability to prove how you got it.</h2>
+    <p class="caption">Provenance is the chain from an output back to the exact inputs, parameters, and software that produced it. Without it, a number is an assertion; with it, a number is evidence — defensible for a manuscript, a patent, or an IND submission. <b>Lineage</b> is that chain made navigable in the UI.</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 440 240" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <g font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#101828">
+              <rect x="18" y="40" width="96" height="40" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="66" y="58" text-anchor="middle">input</text><text x="66" y="72" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5a6474">SMILES.csv</text>
+              <rect x="18" y="130" width="96" height="40" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="66" y="148" text-anchor="middle">params</text><text x="66" y="162" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5a6474">model, limits</text>
+              <rect x="172" y="85" width="96" height="40" rx="7" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.3"/><text x="220" y="103" text-anchor="middle">workflow</text><text x="220" y="117" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a4a9c">ADMET</text>
+              <rect x="326" y="85" width="96" height="40" rx="7" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="1.3"/><text x="374" y="103" text-anchor="middle">output</text><text x="374" y="117" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1c6b3a">admet.csv</text>
+            </g>
+            <g stroke="#5a6474" stroke-width="1.5" fill="none"><path d="M114 60 L172 98"/><path d="M114 150 L172 112"/><path d="M268 105 L326 105"/></g>
+            <g fill="#5a6474"><polygon points="170,98 160,94 162,104"/><polygon points="170,112 160,116 162,106"/><polygon points="324,105 314,101 314,109"/></g>
+            <text x="220" y="150" text-anchor="middle" fill="#5a6474" font-family="IBM Plex Mono" font-size="10">run id · versions · SHA-256</text>
+            <text x="374" y="150" text-anchor="middle" fill="#1c6b3a" font-family="IBM Plex Mono" font-size="10">← trace back, one click</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">The record is the product</h4>
+            <p style="font-size:14px;line-height:1.55;margin:0">Every run captures run id, parameters, software versions, SHA-256 checksums, and citations — one click to JSON. And if BioMate <b>cannot read</b> an output, it withholds the finding and says so rather than inventing a summary.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 — FLOW: Stage 7 outputs (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="17.5">
+    <div class="kicker"><span class="st">Stage 7 · Product</span> · Outputs — filed by the step that made them <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>Every file lands under the step that produced it.</h2>
+    <p class="caption">The Outputs tab groups results by step — the ADMET table, the quality metrics, the toxicity report — so you never hunt for a file or guess which stage it came from.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/outputs.png" alt="Outputs: the six output files filed under the step that produced them"/></div>
+          <figcaption><span class="lbl">Outputs · live</span>Each artifact is previewable in place — tables as HTML, images as thumbnails, text as code blocks.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 — FLOW: Stage 7 reproducibility (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="23.9">
+    <div class="kicker"><span class="st">Stage 7 · Product</span> · The reproducibility record <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>The full audit trail — downloadable as one JSON.</h2>
+    <p class="caption">This is the provenance concept made concrete: run id, parameters, software versions, outputs, and citations, all in one record you can attach to a submission. Where a field is empty in this run, the record shows it rather than hiding it.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/record.png" alt="Reproducibility record: workflow name, run id, timestamps and the outputs table with SHA-256 checksums"/></div>
+          <figcaption><span class="lbl">Reproducibility · live</span>One click exports the whole record to JSON — the same kind of evidence a reviewer, patent examiner, or regulator would ask for.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 — FLOW: Stage 7 lineage (screenshot) -->
+  <section class="scene" data-kind="flow" data-seconds="13.6">
+    <div class="kicker"><span class="st">Stage 7 · Product</span> · Dataset lineage <span class="badge flow">Real UI · still</span></div>
+    <h2>Each output traces back to what produced it.</h2>
+    <p class="caption">The lineage view walks the chain backward: this output came from this workflow, with these parameters, on these inputs. It is the navigable form of the provenance graph from the concept slide.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/t10-2-dataset-lineage.png" alt="Dataset lineage"/></div>
+          <figcaption><span class="lbl">Lineage · real-UI still</span>Follow any dataset to its producing run and its inputs — and forward to everything downstream that consumed it.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 — CLOSING -->
+  <section class="scene title" data-kind="concept" data-seconds="40.0">
+    <div class="kicker">The pipeline at a glance</div>
+    <h2 style="font-size:38px">Frame → design → predict → rank → loop → dose → record.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:16px">A complete in-silico triage loop: a seed becomes a ranked, safety-filtered shortlist; a safety gate fires on a real liability and proposes a fix; and every number traces back to the exact inputs and parameters that produced it. Each idea slide taught the concept, each product slide showed it running on real output. The defensible advantage is not any one model — it is <b>the closed loop plus an audit-grade provenance record</b>, run on hosted compute with no software to license.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Frame the goal — target, objectives, constraints</li>
+            <li><span class="k">2–3</span>Design candidates, predict their properties</li>
+            <li><span class="k">4–5</span>Rank the survivors, close the loop behind a QC gate</li>
+            <li><span class="k">6–7</span>Project the dose, keep the provenance record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 10px;color:var(--ink)">What the loop delivers</h4>
+            <ul class="deliver">
+              <li><span class="mk"></span><span>A <b>ranked, safety-filtered shortlist</b> from a single seed — in minutes.</span></li>
+              <li><span class="mk"></span><span>A <b>safety gate</b> that fires on a real liability and proposes a fix.</span></li>
+              <li><span class="mk"></span><span>A <b>projected human-exposure scenario</b> to reason with.</span></li>
+              <li><span class="mk"></span><span>An <b>audit-grade record</b> behind every number, one click to JSON.</span></li>
+            </ul>
+          </div>
+          <p class="footnote" style="margin-top:14px">In-silico triage, not a drug. The value is starting smart and failing cheap — not skipping the lab.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  var kindEl = document.getElementById('kind');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0){
+      scenes[idx].classList.remove('active');
+      var pv = scenes[idx].querySelector('video');
+      if (pv){ try { pv.pause(); } catch(e){} }
+    }
+    idx = i;
+    scenes[i].classList.add('active');
+    // Restart any embedded live-UI clip from the top when its scene activates.
+    var v = scenes[i].querySelector('video');
+    if (v){ try { v.currentTime = 0; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){} }
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+    var kind = scenes[i].getAttribute('data-kind') || 'concept';
+    if (kindEl){
+      kindEl.textContent = (kind === 'flow') ? 'Live UI' : 'Concept';
+      kindEl.className = 'kind ' + kind;
+    }
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

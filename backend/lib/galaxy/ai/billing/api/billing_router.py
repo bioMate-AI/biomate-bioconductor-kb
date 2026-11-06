@@ -381,16 +381,31 @@ def internal_job_completed(payload: JobCompletedPayload):
         is_spot=payload.is_spot,
     )
 
-    # Write to Redis
+    # Write to Redis (dead-letters durably on Redis failure).
     svc = get_cost_service()
-    svc.record_batch_job_cost(
-        user_id=payload.user_id,
-        job_id=payload.job_id,
-        vcpu_usd=cost.vcpu_cost,
-        gpu_usd=cost.gpu_cost,
-        mem_usd=cost.memory_cost,
-        duration_seconds=payload.duration_seconds,
-    )
+    try:
+        job_durability = svc.record_batch_job_cost(
+            user_id=payload.user_id,
+            job_id=payload.job_id,
+            vcpu_usd=cost.vcpu_cost,
+            gpu_usd=cost.gpu_cost,
+            mem_usd=cost.memory_cost,
+            duration_seconds=payload.duration_seconds,
+        ) or "redis"
+    except Exception as _redis_err:
+        log.error("[billing] record_batch_job_cost raised unexpectedly: %s", _redis_err)
+        job_durability = "lost"
+
+    if job_durability == "lost":
+        log.error(
+            "[billing] Batch job cost NOT durably recorded (Redis + dead-letter "
+            "both failed) user=%s job=%s cost=$%.6f",
+            payload.user_id, payload.job_id, cost.total_cost,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Batch job cost event could not be durably recorded",
+        )
 
     # Emit to Lago
     lago = get_lago_client()
@@ -423,7 +438,10 @@ def internal_job_completed(payload: JobCompletedPayload):
         payload.job_id, payload.user_id,
         cost.total_cost, cost.vcpu_cost, cost.gpu_cost, cost.memory_cost,
     )
-    return {"ok": True, "total_cost_usd": cost.total_cost}
+    resp = {"ok": True, "total_cost_usd": cost.total_cost, "durability": job_durability}
+    if job_durability == "deadletter":
+        resp["queued"] = True
+    return resp
 
 
 # ---------------------------------------------------------------------------
@@ -453,13 +471,30 @@ def internal_s3_put(payload: S3PutPayload):
         size_bytes=payload.size_bytes,
     )
     svc = get_cost_service()
-    svc.record_s3_put(
-        user_id=payload.user_id,
-        size_bytes=payload.size_bytes,
-        storage_usd=cost.storage_cost,
-        request_usd=cost.request_cost,
-        object_key=payload.key,
-    )
+    # record_s3_put dead-letters durably on Redis failure.
+    try:
+        s3_durability = svc.record_s3_put(
+            user_id=payload.user_id,
+            size_bytes=payload.size_bytes,
+            storage_usd=cost.storage_cost,
+            request_usd=cost.request_cost,
+            object_key=payload.key,
+        ) or "redis"
+    except Exception as _redis_err:
+        log.error("[billing] record_s3_put raised unexpectedly: %s", _redis_err)
+        s3_durability = "lost"
+
+    if s3_durability == "lost":
+        log.error(
+            "[billing] S3 put cost NOT durably recorded (Redis + dead-letter "
+            "both failed) user=%s key=%s cost=$%.6f",
+            payload.user_id, payload.key, cost.total_cost,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="S3 put cost event could not be durably recorded",
+        )
+
     get_lago_client().emit_s3_put(
         user_id=payload.user_id,
         size_bytes=payload.size_bytes,
@@ -475,7 +510,10 @@ def internal_s3_put(payload: S3PutPayload):
             key=payload.key,
             transaction_id=f"s3-{uuid.uuid4().hex[:12]}",
         )
-    return {"ok": True, "total_cost_usd": cost.total_cost}
+    resp = {"ok": True, "total_cost_usd": cost.total_cost, "durability": s3_durability}
+    if s3_durability == "deadletter":
+        resp["queued"] = True
+    return resp
 
 
 # ---------------------------------------------------------------------------
@@ -502,18 +540,31 @@ def internal_llm_cost(payload: LLMCostPayload):
         output_tokens=payload.output_tokens,
     )
     svc = get_cost_service()
+    # record_llm_cost returns a durability status: "redis" (written),
+    # "deadletter" (Redis failed → durably queued), or "lost" (both failed).
     try:
-        svc.record_llm_cost(
+        llm_durability = svc.record_llm_cost(
             user_id=payload.user_id,
             input_usd=cost.input_cost,
             output_usd=cost.output_cost,
             input_tokens=cost.input_tokens,
             output_tokens=cost.output_tokens,
-        )
+        ) or "redis"
     except Exception as _redis_err:
-        import logging as _log
-        _log.getLogger(__name__).warning(
-            "[billing] Redis unavailable — LLM cost not recorded locally: %s", _redis_err
+        # record_llm_cost dead-letters internally and should not raise; if it
+        # somehow does, treat it as a total loss rather than a silent 200.
+        log.error("[billing] record_llm_cost raised unexpectedly: %s", _redis_err)
+        llm_durability = "lost"
+
+    if llm_durability == "lost":
+        log.error(
+            "[billing] LLM cost NOT durably recorded (Redis + dead-letter both "
+            "failed) user=%s model=%s in=%d out=%d",
+            payload.user_id, payload.model, payload.input_tokens, payload.output_tokens,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="LLM cost event could not be durably recorded",
         )
 
     # Emit to Lago for usage-based billing (subscription routing uses the user's plan)
@@ -540,11 +591,14 @@ def internal_llm_cost(payload: LLMCostPayload):
         )
 
     log.info(
-        "llm_cost user=%s model=%s in=%d out=%d cost=$%.8f",
+        "llm_cost user=%s model=%s in=%d out=%d cost=$%.8f durability=%s",
         payload.user_id, payload.model,
-        payload.input_tokens, payload.output_tokens, cost.total_cost,
+        payload.input_tokens, payload.output_tokens, cost.total_cost, llm_durability,
     )
-    return {"ok": True, "total_cost_usd": cost.total_cost}
+    resp = {"ok": True, "total_cost_usd": cost.total_cost, "durability": llm_durability}
+    if llm_durability == "deadletter":
+        resp["queued"] = True
+    return resp
 
 
 # ---------------------------------------------------------------------------
@@ -681,6 +735,20 @@ class ProvisionGalaxyUserPayload(BaseModel):
     email: str
 
 
+def _existing_active_key_query(galaxy_user_id, master_key):
+    """SQL + params to find a user's newest ACTIVE api key, never Galaxy's master key.
+
+    `deleted` is bound as a Python bool (PostgreSQL boolean columns reject the integer 0), and the master-key
+    exclusion is added only when a master key is configured, so no untyped NULL parameter is sent (server-side
+    binding drivers cannot infer the type of `NULL IS NULL`). Works on SQLite and PostgreSQL."""
+    sql = 'SELECT "key" FROM api_keys WHERE user_id = :uid AND deleted = :deleted'
+    params = {"uid": galaxy_user_id, "deleted": False}
+    if master_key:
+        sql += ' AND "key" != :mk'
+        params["mk"] = master_key
+    return sql + ' ORDER BY id DESC LIMIT 1', params
+
+
 @router.post("/internal/users/provision", dependencies=[Depends(require_internal_key)])
 def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
     """
@@ -809,13 +877,42 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
                 galaxy_user_id, galaxy_username, galaxy_email,
             )
 
+        # Galaxy's shared master_api_key must NEVER be handed to a per-user proxy:
+        # a request bearing it authenticates as the synthetic BootstrapAdminUser
+        # (id 0), which has no persistent per-user Vault/preferences store — so
+        # private-DB / MCP / credentials silently never round-trip. If a user's
+        # api_keys row happens to contain the master key (legacy poison), skip it.
+        def _galaxy_master_api_key():
+            mk = os.environ.get("GALAXY_CONFIG_MASTER_API_KEY") or os.environ.get("MASTER_API_KEY")
+            if mk:
+                return mk.strip()
+            try:
+                _here = os.path.dirname(os.path.abspath(__file__))
+                _root = os.path.normpath(os.path.join(_here, "..", "..", "..", "..", ".."))
+                for _cfg in (
+                    os.path.join(_root, "config", "galaxy.yml"),
+                    os.path.join(_root, "config", "galaxy.yml.docker"),
+                ):
+                    if os.path.exists(_cfg):
+                        with open(_cfg) as _fh:
+                            for _line in _fh:
+                                _s = _line.strip()
+                                if _s.startswith("master_api_key:"):
+                                    return _s.split(":", 1)[1].strip().strip("\"'") or None
+            except Exception:
+                pass
+            return None
+
+        _master_key = _galaxy_master_api_key()
+
         # Generate API key (32-char hex token)
-        # First check if an active key already exists
+        # Reuse an existing active key (newest first) — but never the master key.
+        _existing_key_sql, _existing_key_params = _existing_active_key_query(galaxy_user_id, _master_key)
         existing_key = conn.execute(
             _sa.text(
-                'SELECT "key" FROM api_keys WHERE user_id = :uid AND deleted = :deleted LIMIT 1'
+                _existing_key_sql,
             ),
-            {"uid": galaxy_user_id, "deleted": False},
+            _existing_key_params,
         ).fetchone()
 
         if existing_key:

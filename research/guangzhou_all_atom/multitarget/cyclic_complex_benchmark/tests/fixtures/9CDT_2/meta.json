@@ -1,0 +1,52 @@
+{
+ "complex_id": "9CDT_2",
+ "pdb_id": "9CDT",
+ "chain_map": {
+  "A": "A",
+  "B": "Z"
+ },
+ "receptor_chains": [
+  "A"
+ ],
+ "peptide_chain": "Z",
+ "peptide_ccds": [
+  "PRO",
+  "PRO",
+  "GLU",
+  "ILE",
+  "ALA",
+  "TRP",
+  "LEU",
+  "ALA",
+  "ASP",
+  "ALA",
+  "VAL",
+  "GLY",
+  "LEU",
+  "LYS",
+  "ASP",
+  "ALA"
+ ],
+ "peptide_seq": "PPEIAWLADAVGLKDA",
+ "rec_seq": {
+  "A": "SDELYRQSLEIISRYLREQATGAKDTKPMGRSGATSRKALETLRRVGDGVQRNHETAFQGMLRKLDIKNEDDVKSLSRVMIHVFSDGVTNWGRIVTLISFGAFVAKHLKTINQESCIEPLAESITDVLVRTKRDWLVKQRGWDGFVEFFHVE"
+ },
+ "cyclic_flag": true,
+ "closures": [
+  {
+   "pos1": 1,
+   "ccd1": "PRO",
+   "atom1": "N",
+   "pos2": 16,
+   "ccd2": "ALA",
+   "atom2": "C"
+  }
+ ],
+ "cyclisation_type": "head_to_tail_amide",
+ "modifications": [],
+ "notes": [],
+ "set": "post",
+ "receptor_cluster40": "R234",
+ "runnable_strict": "1",
+ "runnable_ccd": "1"
+}

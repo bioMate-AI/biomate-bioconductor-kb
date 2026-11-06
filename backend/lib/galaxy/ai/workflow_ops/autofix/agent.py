@@ -153,7 +153,7 @@ class DeepAnalysisAgent:
         self._emit(
             phase="start",
             round_n=0,
-            friendly="Looking into why your workflow failed…",
+            friendly="Auto-diagnosing and fixing the error…",
             technical={"task_name": task_name, "exit_code": exit_code, "log_size": len(error_logs or "")},
         )
 

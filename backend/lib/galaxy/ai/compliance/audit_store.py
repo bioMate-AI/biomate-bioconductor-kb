@@ -24,7 +24,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 log = logging.getLogger(__name__)
 
@@ -122,7 +122,7 @@ def _derive_record_hash(
     return _sha256(canonical)
 
 
-def hash_payload(data: str | bytes) -> str:
+def hash_payload(data: Union[str, bytes]) -> str:
     """Convenience function for callers to hash a request body / data blob."""
     if isinstance(data, str):
         data = data.encode("utf-8")

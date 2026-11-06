@@ -1236,41 +1236,29 @@ test.describe("P1 — Progress fold", () => {
     await waitForAssistantResponse(page);
     await shot(page, "fold-01-final");
 
-    // Check if any progress fold appeared (wf speaker is most common)
-    const folds = page.locator('[data-testid^="progress-fold-"]');
-    const foldCount = await folds.count().catch(() => 0);
+    // Progress now streams into a compact, auto-scrolling box (no per-speaker
+    // pills, no fold caret). Verify the stream box renders and scrolls.
+    const streams = page.locator('[data-testid="progress-stream"]');
+    const streamCount = await streams.count().catch(() => 0);
 
-    if (foldCount > 0) {
-      console.log(`[progress-fold] ✅ ${foldCount} fold(s) rendered`);
-
-      const firstFold = folds.first();
-      const speaker = await firstFold.getAttribute("data-speaker").catch(() => "");
-      const count = await firstFold.getAttribute("data-count").catch(() => "0");
-      const isOpen = await firstFold.getAttribute("data-open").catch(() => "false");
-      console.log(`[progress-fold] speaker=${speaker}  count=${count}  open=${isOpen}`);
-
-      expect(Number(count), "Fold must have at least 2 hidden messages").toBeGreaterThanOrEqual(2);
-
-      // ✓ Click caret to expand
-      const caret = firstFold.locator(".chat-progress-fold__caret");
-      await caret.click();
-      await page.waitForTimeout(500);
-      const nowOpen = await firstFold.getAttribute("data-open").catch(() => "false");
-      expect(nowOpen, "Fold must be open after clicking caret").toBe("true");
-      await shot(page, "fold-02-expanded");
-
-      // ✓ Click again to collapse
-      await caret.click();
-      await page.waitForTimeout(500);
-      const nowClosed = await firstFold.getAttribute("data-open").catch(() => "true");
-      expect(nowClosed, "Fold must be closed after second click").toBe("false");
-      await shot(page, "fold-03-collapsed");
-
-      console.log("[progress-fold] ✅ expand/collapse works");
+    if (streamCount > 0) {
+      console.log(`[progress-stream] ✅ ${streamCount} stream box(es) rendered`);
+      const firstStream = streams.first();
+      const count = await firstStream.getAttribute("data-count").catch(() => "0");
+      console.log(`[progress-stream] lines=${count}`);
+      expect(Number(count), "Stream box must carry progress lines").toBeGreaterThanOrEqual(1);
+      // The box is fixed-height and scrollable (content may exceed the pane).
+      const metrics = await firstStream.evaluate((el) => ({
+        scrollH: (el as HTMLElement).scrollHeight,
+        clientH: (el as HTMLElement).clientHeight,
+      }));
+      console.log(`[progress-stream] scrollHeight=${metrics.scrollH} clientHeight=${metrics.clientH}`);
+      expect(metrics.clientH, "Stream box is a bounded pane").toBeLessThanOrEqual(160);
+      await shot(page, "fold-02-stream");
+      console.log("[progress-stream] ✅ compact scrollable progress box present");
     } else {
-      // Folds only appear when > 2 consecutive same-speaker pills — may not fire on every run
       const pillCount = await countProgressPills(page);
-      console.log(`[progress-fold] ⚠️ No folds appeared (${pillCount} pills total). This is OK if < 3 consecutive same-speaker pills.`);
+      console.log(`[progress-stream] ⚠️ No stream box appeared (${pillCount} pills total) — may not fire if no workflow progress streamed.`);
     }
   });
 });

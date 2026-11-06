@@ -1,0 +1,16 @@
+{
+  "conformal_fixed_local_nominal_0.90": {
+    "GSE12251": {
+      "empirical": 0.865,
+      "sd": 0.198
+    },
+    "GSE14580": {
+      "empirical": 0.893,
+      "sd": 0.17
+    },
+    "GSE16879_UC": {
+      "empirical": 0.89,
+      "sd": 0.172
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+ "L-CHEMFM": {
+  "prefix": 0.7,
+  "temp": 1.0
+ },
+ "_dev_grid": {
+  "L-CHEMFM": [
+   {
+    "cfg": {
+     "prefix": 0.3,
+     "temp": 1.0
+    },
+    "Y_mean": 100.0,
+    "Y": [
+     90.0,
+     113.333,
+     96.667
+    ]
+   },
+   {
+    "cfg": {
+     "prefix": 0.5,
+     "temp": 1.0
+    },
+    "Y_mean": 220.0,
+    "Y": [
+     243.333,
+     236.667,
+     180.0
+    ]
+   },
+   {
+    "cfg": {
+     "prefix": 0.7,
+     "temp": 1.0
+    },
+    "Y_mean": 265.556,
+    "Y": [
+     286.667,
+     256.667,
+     253.333
+    ]
+   }
+  ]
+ },
+ "_note": "Frozen 2026-10-29 06:5x CDT from DEV. L-CHEMFM best = prefix 0.7 (grid edge). The A1 extension cell (prefix 0.85) was NOT run (needs ~USD 0.25 of cloud compute; the USD 4 cap was already exceeded by idle instances, see report). Deviation from A1 recorded: L-CHEMFM is edge-bound and possibly under-tuned. No test-run sample drawn when committed."
+}

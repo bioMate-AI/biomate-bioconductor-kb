@@ -1,0 +1,47 @@
+{
+ "corpus_lines": 2878245,
+ "corpus_unparsable": 0,
+ "tanimoto_threshold": 0.9,
+ "folds": {
+  "0": {
+   "heldout_compounds": 11579,
+   "removed_same_flat_structure": 5866,
+   "removed_tanimoto_additional": 1257,
+   "removed_total": 7123,
+   "removed_frac": 0.002475
+  },
+  "1": {
+   "heldout_compounds": 7951,
+   "removed_same_flat_structure": 4182,
+   "removed_tanimoto_additional": 1433,
+   "removed_total": 5615,
+   "removed_frac": 0.001951
+  },
+  "2": {
+   "heldout_compounds": 10837,
+   "removed_same_flat_structure": 5554,
+   "removed_tanimoto_additional": 1570,
+   "removed_total": 7124,
+   "removed_frac": 0.002475
+  },
+  "3": {
+   "heldout_compounds": 11021,
+   "removed_same_flat_structure": 5674,
+   "removed_tanimoto_additional": 1435,
+   "removed_total": 7109,
+   "removed_frac": 0.00247
+  },
+  "4": {
+   "heldout_compounds": 11608,
+   "removed_same_flat_structure": 6239,
+   "removed_tanimoto_additional": 1313,
+   "removed_total": 7552,
+   "removed_frac": 0.002624
+  }
+ },
+ "union": {
+  "removed_total": 8983,
+  "removed_frac": 0.003121,
+  "corpus_after": 2869262
+ }
+}

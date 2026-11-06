@@ -1,0 +1,99 @@
+{
+  "n_targets_compared": 3,
+  "mean_d_iptm": -0.16,
+  "per_target": {
+    "1xq7": {
+      "base": {
+        "n": 4,
+        "iptm": 0.46967,
+        "ptm": 0.46967,
+        "filter_rmsd": 2.28773
+      },
+      "ft": {
+        "n": 4,
+        "iptm": 0.39025,
+        "ptm": 0.39025,
+        "filter_rmsd": 2.53207
+      }
+    },
+    "3g5v": {
+      "base": {
+        "n": 4,
+        "iptm": 0.79456,
+        "ptm": 0.79456,
+        "filter_rmsd": 1.46856
+      },
+      "ft": {
+        "n": 4,
+        "iptm": 0.70187,
+        "ptm": 0.70187,
+        "filter_rmsd": 5.33659
+      }
+    },
+    "4b8y": {
+      "base": {
+        "n": 4,
+        "iptm": 0.80054,
+        "ptm": 0.80054,
+        "filter_rmsd": 1.05583
+      },
+      "ft": {
+        "n": 4,
+        "iptm": 0.49208,
+        "ptm": 0.49208,
+        "filter_rmsd": 1.76758
+      }
+    }
+  },
+  "head_to_head_ft_minus_base": {
+    "1xq7": {
+      "base": {
+        "n": 4,
+        "iptm": 0.46967,
+        "ptm": 0.46967,
+        "filter_rmsd": 2.28773
+      },
+      "ft": {
+        "n": 4,
+        "iptm": 0.39025,
+        "ptm": 0.39025,
+        "filter_rmsd": 2.53207
+      },
+      "d_iptm": -0.079,
+      "d_filter_rmsd": 0.244
+    },
+    "3g5v": {
+      "base": {
+        "n": 4,
+        "iptm": 0.79456,
+        "ptm": 0.79456,
+        "filter_rmsd": 1.46856
+      },
+      "ft": {
+        "n": 4,
+        "iptm": 0.70187,
+        "ptm": 0.70187,
+        "filter_rmsd": 5.33659
+      },
+      "d_iptm": -0.093,
+      "d_filter_rmsd": 3.868
+    },
+    "4b8y": {
+      "base": {
+        "n": 4,
+        "iptm": 0.80054,
+        "ptm": 0.80054,
+        "filter_rmsd": 1.05583
+      },
+      "ft": {
+        "n": 4,
+        "iptm": 0.49208,
+        "ptm": 0.49208,
+        "filter_rmsd": 1.76758
+      },
+      "d_iptm": -0.308,
+      "d_filter_rmsd": 0.712
+    }
+  },
+  "note": "d_iptm>0 => ft higher interface confidence on HELD-OUT targets (never seen in FT); d_filter_rmsd<0 => ft more designable. Expected per survey: modest/NULL (structure-prior plateaus on novel targets)."
+}

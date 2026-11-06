@@ -1,0 +1,170 @@
+{
+  "GSE314342_IL10IL21_validation_Diff087_DonorA_bulkRNAseq.csv.gz": {
+    "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE314nnn/GSE314342/suppl/GSE314342_IL10IL21_validation_Diff087_DonorA_bulkRNAseq.csv.gz",
+    "columns": [
+      "gene_id",
+      "gene_name",
+      "gene_biotype",
+      "IL10IL21_validation_Diff087_DonorA_NTC1_cpm",
+      "IL10IL21_validation_Diff087_DonorA_NTC1_count",
+      "IL10IL21_validation_Diff087_DonorA_NFKB2-3_cpm",
+      "IL10IL21_validation_Diff087_DonorA_NFKB2-3_count",
+      "IL10IL21_validation_Diff087_DonorA_MED24-3_cpm",
+      "IL10IL21_validation_Diff087_DonorA_MED24-3_count",
+      "IL10IL21_validation_Diff087_DonorA_GATA3-3_cpm",
+      "IL10IL21_validation_Diff087_DonorA_GATA3-3_count",
+      "IL10IL21_validation_Diff087_DonorA_CYB5R4-3_cpm",
+      "IL10IL21_validation_Diff087_DonorA_CYB5R4-3_count",
+      "IL10IL21_validation_Diff087_DonorA_KDM1A-3_cpm",
+      "IL10IL21_validation_Diff087_DonorA_KDM1A-3_count",
+      "IL10IL21_validation_Diff087_DonorA_ELOB-3_cpm",
+      "IL10IL21_validation_Diff087_DonorA_ELOB-3_count",
+      "IL10IL21_validation_Diff087_DonorA_MEN1-3_cpm",
+      "IL10IL21_validation_Diff087_DonorA_MEN1-3_count",
+      "IL10IL21_validation_Diff087_DonorA_NTC2_cpm",
+      "IL10IL21_validation_Diff087_DonorA_NTC2_count"
+    ],
+    "inspection": "Header only; no numeric rows parsed"
+  },
+  "GSE314342_IL10IL21_validation_Diff087_DonorC_bulkRNAseq.csv.gz": {
+    "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE314nnn/GSE314342/suppl/GSE314342_IL10IL21_validation_Diff087_DonorC_bulkRNAseq.csv.gz",
+    "columns": [
+      "gene_id",
+      "gene_name",
+      "gene_biotype",
+      "IL10IL21_validation_Diff087_DonorC_NTC1_cpm",
+      "IL10IL21_validation_Diff087_DonorC_NTC1_count",
+      "IL10IL21_validation_Diff087_DonorC_NFKB2-3_cpm",
+      "IL10IL21_validation_Diff087_DonorC_NFKB2-3_count",
+      "IL10IL21_validation_Diff087_DonorC_MED24-3_cpm",
+      "IL10IL21_validation_Diff087_DonorC_MED24-3_count",
+      "IL10IL21_validation_Diff087_DonorC_GATA3-3_cpm",
+      "IL10IL21_validation_Diff087_DonorC_GATA3-3_count",
+      "IL10IL21_validation_Diff087_DonorC_CYB5R4-3_cpm",
+      "IL10IL21_validation_Diff087_DonorC_CYB5R4-3_count",
+      "IL10IL21_validation_Diff087_DonorC_KDM1A-3_cpm",
+      "IL10IL21_validation_Diff087_DonorC_KDM1A-3_count",
+      "IL10IL21_validation_Diff087_DonorC_ELOB-3_cpm",
+      "IL10IL21_validation_Diff087_DonorC_ELOB-3_count",
+      "IL10IL21_validation_Diff087_DonorC_MEN1-3_cpm",
+      "IL10IL21_validation_Diff087_DonorC_MEN1-3_count",
+      "IL10IL21_validation_Diff087_DonorC_ATP2A2-3_cpm",
+      "IL10IL21_validation_Diff087_DonorC_ATP2A2-3_count",
+      "IL10IL21_validation_Diff087_DonorC_NTC2_cpm",
+      "IL10IL21_validation_Diff087_DonorC_NTC2_count"
+    ],
+    "inspection": "Header only; no numeric rows parsed"
+  },
+  "GSE314342_IL10IL21_validation_Diff087_DonorF_bulkRNAseq.csv.gz": {
+    "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE314nnn/GSE314342/suppl/GSE314342_IL10IL21_validation_Diff087_DonorF_bulkRNAseq.csv.gz",
+    "columns": [
+      "gene_id",
+      "gene_name",
+      "gene_biotype",
+      "IL10IL21_validation_Diff087_DonorF_NFKB2-3_cpm",
+      "IL10IL21_validation_Diff087_DonorF_NFKB2-3_count",
+      "IL10IL21_validation_Diff087_DonorF_KDM1A-3_cpm",
+      "IL10IL21_validation_Diff087_DonorF_KDM1A-3_count",
+      "IL10IL21_validation_Diff087_DonorF_NTC2_cpm",
+      "IL10IL21_validation_Diff087_DonorF_NTC2_count"
+    ],
+    "inspection": "Header only; no numeric rows parsed"
+  },
+  "GSE314342_IL10IL21_validation_Diff087_DonorG_bulkRNAseq.csv.gz": {
+    "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE314nnn/GSE314342/suppl/GSE314342_IL10IL21_validation_Diff087_DonorG_bulkRNAseq.csv.gz",
+    "columns": [
+      "gene_id",
+      "gene_name",
+      "gene_biotype",
+      "IL10IL21_validation_Diff087_DonorG_NTC1_cpm",
+      "IL10IL21_validation_Diff087_DonorG_NTC1_count",
+      "IL10IL21_validation_Diff087_DonorG_NFKB2-3_cpm",
+      "IL10IL21_validation_Diff087_DonorG_NFKB2-3_count",
+      "IL10IL21_validation_Diff087_DonorG_MED24-3_cpm",
+      "IL10IL21_validation_Diff087_DonorG_MED24-3_count",
+      "IL10IL21_validation_Diff087_DonorG_GATA3-3_cpm",
+      "IL10IL21_validation_Diff087_DonorG_GATA3-3_count",
+      "IL10IL21_validation_Diff087_DonorG_CYB5R4-3_cpm",
+      "IL10IL21_validation_Diff087_DonorG_CYB5R4-3_count",
+      "IL10IL21_validation_Diff087_DonorG_KDM1A-3_cpm",
+      "IL10IL21_validation_Diff087_DonorG_KDM1A-3_count",
+      "IL10IL21_validation_Diff087_DonorG_ELOB-3_cpm",
+      "IL10IL21_validation_Diff087_DonorG_ELOB-3_count",
+      "IL10IL21_validation_Diff087_DonorG_MEN1-3_cpm",
+      "IL10IL21_validation_Diff087_DonorG_MEN1-3_count",
+      "IL10IL21_validation_Diff087_DonorG_ATP2A2-3_cpm",
+      "IL10IL21_validation_Diff087_DonorG_ATP2A2-3_count",
+      "IL10IL21_validation_Diff087_DonorG_NTC2_cpm",
+      "IL10IL21_validation_Diff087_DonorG_NTC2_count"
+    ],
+    "inspection": "Header only; no numeric rows parsed"
+  },
+  "GSE314342_IL10IL21_validation_Diff092_DonorB_bulkRNAseq.csv.gz": {
+    "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE314nnn/GSE314342/suppl/GSE314342_IL10IL21_validation_Diff092_DonorB_bulkRNAseq.csv.gz",
+    "columns": [
+      "gene_id",
+      "gene_name",
+      "gene_biotype",
+      "IL10IL21_validation_Diff092_DonorB_NTC1_cpm",
+      "IL10IL21_validation_Diff092_DonorB_NTC1_count",
+      "IL10IL21_validation_Diff092_DonorB_SGF29-4_cpm",
+      "IL10IL21_validation_Diff092_DonorB_SGF29-4_count",
+      "IL10IL21_validation_Diff092_DonorB_NTC2_cpm",
+      "IL10IL21_validation_Diff092_DonorB_NTC2_count"
+    ],
+    "inspection": "Header only; no numeric rows parsed"
+  },
+  "GSE314342_IL10IL21_validation_Diff092_DonorC2_bulkRNAseq.csv.gz": {
+    "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE314nnn/GSE314342/suppl/GSE314342_IL10IL21_validation_Diff092_DonorC2_bulkRNAseq.csv.gz",
+    "columns": [
+      "gene_id",
+      "gene_name",
+      "gene_biotype",
+      "IL10IL21_validation_Diff092_DonorC2_NTC1_cpm",
+      "IL10IL21_validation_Diff092_DonorC2_NTC1_count",
+      "IL10IL21_validation_Diff092_DonorC2_SGF29-4_cpm",
+      "IL10IL21_validation_Diff092_DonorC2_SGF29-4_count",
+      "IL10IL21_validation_Diff092_DonorC2_NTC2_cpm",
+      "IL10IL21_validation_Diff092_DonorC2_NTC2_count"
+    ],
+    "inspection": "Header only; no numeric rows parsed"
+  },
+  "GSE314342_IL10IL21_validation_Diff092_DonorD_bulkRNAseq.csv.gz": {
+    "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE314nnn/GSE314342/suppl/GSE314342_IL10IL21_validation_Diff092_DonorD_bulkRNAseq.csv.gz",
+    "columns": [
+      "gene_id",
+      "gene_name",
+      "gene_biotype",
+      "IL10IL21_validation_Diff092_DonorD_NTC1_cpm",
+      "IL10IL21_validation_Diff092_DonorD_NTC1_count",
+      "IL10IL21_validation_Diff092_DonorD_SGF29-4_cpm",
+      "IL10IL21_validation_Diff092_DonorD_SGF29-4_count",
+      "IL10IL21_validation_Diff092_DonorD_GATA3-3_cpm",
+      "IL10IL21_validation_Diff092_DonorD_GATA3-3_count",
+      "IL10IL21_validation_Diff092_DonorD_ATP2A2-3_cpm",
+      "IL10IL21_validation_Diff092_DonorD_ATP2A2-3_count",
+      "IL10IL21_validation_Diff092_DonorD_NTC2_cpm",
+      "IL10IL21_validation_Diff092_DonorD_NTC2_count"
+    ],
+    "inspection": "Header only; no numeric rows parsed"
+  },
+  "GSE314342_IL10IL21_validation_Diff092_DonorH_bulkRNAseq.csv.gz": {
+    "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE314nnn/GSE314342/suppl/GSE314342_IL10IL21_validation_Diff092_DonorH_bulkRNAseq.csv.gz",
+    "columns": [
+      "gene_id",
+      "gene_name",
+      "gene_biotype",
+      "IL10IL21_validation_Diff092_DonorH_NTC1_cpm",
+      "IL10IL21_validation_Diff092_DonorH_NTC1_count",
+      "IL10IL21_validation_Diff092_DonorH_SGF29-4_cpm",
+      "IL10IL21_validation_Diff092_DonorH_SGF29-4_count",
+      "IL10IL21_validation_Diff092_DonorH_GATA3-3_cpm",
+      "IL10IL21_validation_Diff092_DonorH_GATA3-3_count",
+      "IL10IL21_validation_Diff092_DonorH_ATP2A2-3_cpm",
+      "IL10IL21_validation_Diff092_DonorH_ATP2A2-3_count",
+      "IL10IL21_validation_Diff092_DonorH_NTC2_cpm",
+      "IL10IL21_validation_Diff092_DonorH_NTC2_count"
+    ],
+    "inspection": "Header only; no numeric rows parsed"
+  }
+}

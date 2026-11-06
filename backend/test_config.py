@@ -1,7 +1,22 @@
 #!/usr/bin/env python3
 """
 Simple test to verify Galaxy AI configuration
+
+MANUAL DIAGNOSTIC — print-based script, not a real pytest test. It loads the
+full GalaxyAppConfiguration from config/galaxy.yml (needs the Galaxy runtime)
+and only prints what it finds; `test_config()` returns True/False with NO
+assertions, so pytest would collect it and report GREEN regardless. The
+module-level skip below gates it honestly. Run directly
+(`python3 test_config.py`) inside a Galaxy container with a real galaxy.yml.
 """
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="manual diagnostic: prints config values, no assertions; "
+    "requires full Galaxy runtime + config/galaxy.yml"
+)
+
 
 def test_config():
     """Test if Galaxy configuration includes AI settings"""

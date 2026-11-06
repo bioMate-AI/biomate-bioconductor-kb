@@ -23,9 +23,16 @@ import {
   TrendingUp,
   Clock,
   Zap,
+  Save,
+  FlaskConical,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { api } from "@/lib/api";
+import { useActiveProjectIdSafe } from "@/contexts/active-project-context";
+import { CitationPanel } from "@/components/citation-panel";
+import type { EvidenceCitation } from "@/components/source-reader-pane";
 
 // Types for benchmark evidence data
 export interface BenchmarkToolResult {
@@ -397,22 +404,123 @@ export interface ResearchResponseData {
   follow_up_questions?: string[];
   methods_used?: string[];
   benchmark_evidence?: BenchmarkComparison;
+  /** What this answer is NOT evidence for (spec 01: boundary is always present). */
+  boundary?: string;
+  /**
+   * Retrieval transparency ("How this was searched"), keyed per source that was
+   * genuinely queried. Emitted by the backend ONLY when real per-source counts
+   * exist; absent → the rich panel renders no transparency section (honest-empty).
+   */
+  retrieval?: Array<{ name: string; found: number; kept: number }>;
+  /**
+   * Source disagreements ("Sources disagree"). Emitted by the backend ONLY when
+   * the synthesis step reported genuinely conflicting sources; absent → no
+   * conflict row renders. Never fabricated client-side.
+   */
+  conflicts?: Array<{ topic?: string; positions: Array<{ claim: string; source?: string }> }>;
 }
 
 interface ResearchResponseDisplayProps {
   response: ResearchResponseData;
   onFollowUpClick?: (question: string) => void;
   onToolClick?: (toolName: string, galaxyToolId?: string) => void;
+  /** "Check against our data" exit — turns the answer into a run on project data.
+   *  Only rendered when supplied, so we never show an exit that does nothing. */
+  onCheckAgainstData?: (answer: string) => void;
   className?: string;
+}
+
+/** Build the saved-answer document: the answer plus its cited sources, so the
+ *  saved object carries its own provenance (not a bare paragraph). */
+function buildAnswerMarkdown(response: ResearchResponseData): string {
+  const lines: string[] = [response.answer?.trim() || ""];
+  if (response.citations?.length) {
+    lines.push("", "## Sources");
+    response.citations.forEach((c, i) => {
+      const bits = [
+        `${i + 1}. ${c.title}`,
+        c.authors?.length ? c.authors.slice(0, 3).join(", ") + (c.authors.length > 3 ? " et al." : "") : "",
+        c.journal || "",
+        c.year ? `(${c.year})` : "",
+        c.doi ? `doi:${c.doi}` : "",
+      ].filter(Boolean);
+      lines.push(bits.join(" · "));
+    });
+  }
+  if (response.boundary) lines.push("", `_Boundary: ${response.boundary}_`);
+  return lines.join("\n").trim();
+}
+
+/**
+ * Map a research-agent literature citation to the EvidenceCitation shape the rich
+ * CitationPanel expects. Literature answers don't produce formatted_apa/bibtex, so
+ * those are left empty — the per-item BibTeX button is already disabled when
+ * formatted_bibtex is empty, and CitationPanel's top-level Export button is guarded
+ * to only appear when at least one citation carries a formatted_bibtex.
+ * tool_name := title (the panel's primary label); tool_id := a stable key
+ * (doi > pmid > index) so React keys and the reader pane stay stable.
+ */
+function toEvidenceCitations(citations: ResearchCitation[]): EvidenceCitation[] {
+  return (citations || []).map((c, i) => ({
+    tool_id: c.doi || c.pmid || `cite-${i}`,
+    tool_name: c.title || `Source ${i + 1}`,
+    title: c.title || `Source ${i + 1}`,
+    authors: c.authors || [],
+    year: c.year,
+    journal: c.journal,
+    doi: c.doi,
+    pmid: c.pmid,
+    abstract: c.abstract,
+    formatted_apa: "",
+    formatted_short: "",
+    formatted_bibtex: "",
+  }));
 }
 
 export function ResearchResponseDisplay({
   response,
   onFollowUpClick,
   onToolClick,
+  onCheckAgainstData,
   className,
 }: ResearchResponseDisplayProps) {
-  const [showCitations, setShowCitations] = useState(false);
+  // Evidence-forward: the sources/retrieval panel is the trustworthy surface for a
+  // research answer (the chat prose is re-synthesised and can drift), so surface it
+  // expanded by default on a research turn rather than hiding it behind a click.
+  const [showCitations, setShowCitations] = useState(true);
+  const activeProjectId = useActiveProjectIdSafe();
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // Save the answer (with its sources) as a persistent, reusable project object
+  // via the real project-knowledge endpoint — the same one the workflow methods
+  // panel uses. Makes an evidence answer non-ephemeral (L1), not lost with the chat.
+  const handleSaveToProject = async () => {
+    if (!activeProjectId || saveState === "saving") return;
+    const content = buildAnswerMarkdown(response);
+    if (!content) { setSaveState("error"); return; }
+    setSaveState("saving");
+    try {
+      await api.request(`/memory/projects/${activeProjectId}/knowledge`, {
+        method: "POST",
+        body: JSON.stringify({
+          knowledgeType: "notes_synthesis",
+          title: `Saved answer — ${new Date().toISOString().slice(0, 10)}`,
+          content,
+          source: "user_saved",
+        }),
+      });
+      setSaveState("saved");
+    } catch (e: any) {
+      console.error("[research] save to project failed:", e?.message ?? e);
+      setSaveState("error");
+    }
+  };
+
+  // Boundary is ALWAYS present (spec 01): a specific caveat when the agent
+  // supplies one, else an honest standing caveat — never silently omitted.
+  const boundaryText =
+    response.boundary?.trim() ||
+    "Synthesizes retrieved literature only — not validated against your project's data. Check against your own data before relying on it.";
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -424,67 +532,60 @@ export function ResearchResponseDisplay({
         />
       )}
 
-      {/* Citations section */}
+      {/* Citations — rich panel. Renders the source list PLUS retrieval
+          transparency ("How this was searched") and conflict rows ("Sources
+          disagree") when the backend supplied real data. Both sections are
+          honest-empty otherwise (CitationPanel filters on Number.isFinite /
+          non-empty positions), so an ordinary literature answer degrades to a
+          plain source list. answerText travels so the panel's Save-to-notes
+          payload carries the claim with its sources. */}
       {response.citations && response.citations.length > 0 && (
-        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                References ({response.citations.length})
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowCitations(!showCitations)}
-                className="h-6 px-2"
-              >
-                {showCitations ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
-            </CardTitle>
-          </CardHeader>
-
-          {showCitations && (
-            <CardContent className="space-y-2 pt-0">
-              {response.citations.map((citation, index) => (
-                <div
-                  key={index}
-                  className="p-2 bg-background rounded-lg border text-xs"
-                >
-                  <p className="font-medium">{citation.title}</p>
-                  {citation.authors && citation.authors.length > 0 && (
-                    <p className="text-muted-foreground">
-                      {citation.authors.slice(0, 3).join(", ")}
-                      {citation.authors.length > 3 && " et al."}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-1">
-                    {citation.journal && (
-                      <span className="italic">{citation.journal}</span>
-                    )}
-                    {citation.year && <span>({citation.year})</span>}
-                  </div>
-                  {citation.doi && (
-                    <a
-                      href={`https://doi.org/${citation.doi}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      DOI: {citation.doi}
-                    </a>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          )}
-        </Card>
+        <CitationPanel
+          kind="literature"
+          citations={toEvidenceCitations(response.citations)}
+          retrieval={response.retrieval}
+          conflicts={response.conflicts}
+          answerText={response.answer}
+          isCollapsed={!showCitations}
+        />
       )}
+
+      {/* Boundary — always present (spec 01): what this answer is NOT evidence for. */}
+      <div
+        data-testid="research-answer-boundary"
+        className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 p-2 text-xs text-amber-800 dark:text-amber-300"
+      >
+        <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+        <span><span className="font-medium">Boundary:</span> {boundaryText}</span>
+      </div>
+
+      {/* Exits — make the answer a reusable object, and turn it into a run. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-xs"
+          data-testid="research-answer-save"
+          disabled={!activeProjectId || saveState === "saving" || saveState === "saved"}
+          title={!activeProjectId ? "Open a project to save this answer" : "Save this answer and its sources to the project"}
+          onClick={handleSaveToProject}
+        >
+          <Save className="h-3.5 w-3.5 mr-1" />
+          {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved to project ✓" : saveState === "error" ? "Save failed — retry" : "Save to project"}
+        </Button>
+        {onCheckAgainstData && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs"
+            data-testid="research-answer-check-data"
+            onClick={() => onCheckAgainstData(response.answer)}
+          >
+            <FlaskConical className="h-3.5 w-3.5 mr-1" />
+            Check against our data
+          </Button>
+        )}
+      </div>
 
       {/* Follow-up questions */}
       {response.follow_up_questions && response.follow_up_questions.length > 0 && (

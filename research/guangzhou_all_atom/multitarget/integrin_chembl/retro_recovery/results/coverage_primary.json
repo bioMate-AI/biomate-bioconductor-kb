@@ -1,0 +1,116 @@
+{
+ "I_original": {
+  "0": {
+   "families": 1,
+   "targets": 14,
+   "positives": 3327,
+   "items": 3912
+  },
+  "1": {
+   "families": 1,
+   "targets": 2,
+   "positives": 2489,
+   "items": 2667
+  },
+  "2": {
+   "families": 7,
+   "targets": 9,
+   "positives": 369,
+   "items": 665
+  },
+  "3": {
+   "families": 7,
+   "targets": 9,
+   "positives": 463,
+   "items": 790
+  },
+  "4": {
+   "families": 10,
+   "targets": 12,
+   "positives": 952,
+   "items": 1398
+  }
+ },
+ "I_CD": {
+  "0": {
+   "families": 1,
+   "targets": 11,
+   "positives": 2496,
+   "items": 2929
+  },
+  "1": {
+   "families": 1,
+   "targets": 2,
+   "positives": 2478,
+   "items": 2655
+  },
+  "2": {
+   "families": 3,
+   "targets": 4,
+   "positives": 171,
+   "items": 307
+  },
+  "3": {
+   "families": 4,
+   "targets": 4,
+   "positives": 293,
+   "items": 414
+  },
+  "4": {
+   "families": 7,
+   "targets": 8,
+   "positives": 555,
+   "items": 846
+  }
+ },
+ "M2_original": {
+  "2": {
+   "families": 7,
+   "targets": 8,
+   "positives": 79,
+   "items": 1504
+  },
+  "3": {
+   "families": 3,
+   "targets": 5,
+   "positives": 31,
+   "items": 570
+  },
+  "4": {
+   "families": 4,
+   "targets": 7,
+   "positives": 78,
+   "items": 1412
+  }
+ },
+ "rows_removed": 1367,
+ "rows_removed_frac": 0.1449,
+ "targets_dropped_after_removal": [
+  "P00734",
+  "P00742",
+  "P00747",
+  "P03951",
+  "P03952",
+  "P05106",
+  "P05106,P08514",
+  "P08183",
+  "P08514",
+  "P28062",
+  "P30518",
+  "P30559",
+  "P33535",
+  "P37288",
+  "P56817",
+  "Q9UBN7",
+  "Q9Y5Y6"
+ ],
+ "targets_original": 46,
+ "targets_CD": 29,
+ "families_CD": 16,
+ "positives_original": 7600,
+ "positives_CD": 5993,
+ "hashes": {
+  "items_I_CD.csv.gz": "e245cd5680244cd6077650cf935bdbf49d1650663bd05608769b3954b58f4917",
+  "16_build_CD.py": "5e7e7b58d3867357c54edc9b30825c60ba739d5e82304684c792bebc762b946b"
+ }
+}

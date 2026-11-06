@@ -76,7 +76,7 @@ process CITE_SEQ_PREPROCESSING {
     export PARAM_PROTOCOL='${params.protocol}'
 
     python3 << 'PYEOF'
-import json, os, csv, math, random
+import json, os, csv, math, sys
 
 def pf(v, d=None):
     if v in (None,'','null','None'): return d
@@ -97,34 +97,32 @@ do_dsb       = pb(os.environ.get('PARAM_DSB'), True)
 do_wnn       = pb(os.environ.get('PARAM_WNN'), True)
 protocol     = os.environ.get('PARAM_PROTOCOL', 'cite_seq')
 
-random.seed(42)
-
-# ─── Simulate CITE-seq QC metrics ─────────────────────────────────────────
-# In production: STARsolo/Cell Ranger → h5 output; CITE-seq-Count → umi_count matrix
-# Here we model realistic QC distributions for analysis/reporting purposes
+# integrity: was an RNG stub fabricating results; honest-fail until wired to CITE-seq-Count + Seurat WNN.
+sys.stderr.write("ERROR: cite_seq_preprocessing is a stub with no real implementation — it requires CITE-seq-Count (ADT UMI counting) and Seurat WNN (RNA+ADT multimodal integration/clustering) plus real CITE-seq RNA/ADT FASTQ input data. Refusing to emit fabricated results.\\n")
+sys.exit(1)
 
 # RNA library quality
-median_rna_umis    = random.gauss(8500, 2000)
-median_genes       = random.gauss(2200, 400)
-pct_cells_passing  = random.uniform(82, 96)
-median_mito_pct    = random.gauss(4.5, 1.5)
+median_rna_umis    = 0
+median_genes       = 0
+pct_cells_passing  = 0
+median_mito_pct    = 0
 
 # ADT library quality
-n_antibodies       = 25  # typical TotalSeq panel
-median_adt_umis    = random.gauss(1200, 300)
-pct_adt_captured   = random.uniform(88, 97)
-signal_bg_ratio    = random.gauss(8.5, 2.0)  # DSB signal-to-background
+n_antibodies       = 0
+median_adt_umis    = 0
+pct_adt_captured   = 0
+signal_bg_ratio    = 0
 
 # Cell filtering results
-n_raw_barcodes     = int(n_cells * random.uniform(8, 15))   # 10× more empty droplets
-n_cells_rna_pass   = int(n_cells * (pct_cells_passing / 100))
-n_cells_joint_pass = int(n_cells_rna_pass * random.uniform(0.88, 0.96))
+n_raw_barcodes     = 0
+n_cells_rna_pass   = 0
+n_cells_joint_pass = 0
 
 # WNN clusters (if integration enabled)
 n_wnn_clusters = 0
 wnn_clusters = []
 if do_wnn:
-    n_wnn_clusters = random.randint(12, 22)
+    n_wnn_clusters = 0
     # Major immune cell types found in PBMC CITE-seq
     cell_types = [
         ('CD4+ T cells', 0.28, ['CD3','CD4','CCR7']),
@@ -156,7 +154,7 @@ if do_dsb:
         'method': 'DSB (denoised and scaled by background)',
         'n_antibodies_normalised': n_antibodies,
         'median_signal_bg_ratio': round(signal_bg_ratio, 2),
-        'pct_high_signal_cells': round(random.uniform(60, 90), 1),
+        'pct_high_signal_cells': 0,
         'reference': 'Mulè et al. 2022 Nature Communications (DSB)',
     }
 
@@ -214,10 +212,10 @@ with open('cell_annotations.csv', 'w', newline='') as f:
     for i in range(min(n_cells_joint_pass, 100)):  # first 100 for preview
         ct_idx = i % len(wnn_clusters) if wnn_clusters else 0
         ct = wnn_clusters[ct_idx]['cell_type'] if wnn_clusters else 'unknown'
-        rna_u = round(random.gauss(median_rna_umis, 2000))
-        adt_u = round(random.gauss(median_adt_umis, 300))
-        mito  = round(random.gauss(median_mito_pct, 2), 1)
-        wnn_rna = round(random.gauss(0.6, 0.15), 3)
+        rna_u = 0
+        adt_u = 0
+        mito  = 0
+        wnn_rna = 0
         w.writerow([f'ACGT{i:06d}-1', ct_idx, ct_idx, ct,
                     max(min_rna, rna_u), max(min_adt, adt_u),
                     max(0.5, min(max_mito-1, mito)), wnn_rna, round(1-wnn_rna, 3)])

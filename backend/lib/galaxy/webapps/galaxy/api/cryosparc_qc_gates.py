@@ -38,12 +38,13 @@ class QCResult:
     level: str          # "GOLD" | "SILVER" | "BRONZE"
     action: str         # "pass" | "advisory" | "halt"
     metric: str         # human-readable metric name
-    value: float        # observed value
-    threshold: float    # relevant threshold
+    value: Optional[float]  # None when the check was not performed
+    threshold: Optional[float]  # None when the check was not performed
     message: str        # short human-readable verdict
     suggestion: str     # actionable recommendation (empty when not needed)
     evidence: str       # citation string
     profile: str        # QC profile used
+    status: Optional[str] = None  # explicit not_evaluated for unperformed checks
 
 
 # ---------------------------------------------------------------------------

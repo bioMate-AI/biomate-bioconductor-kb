@@ -124,7 +124,7 @@ with open("korsmeyer_peppas_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("korsmeyer_peppas_output.txt", "w") as f:
-    f.write("Biomni: Korsmeyer Peppas" + NL)
+    f.write("BioMate: Korsmeyer Peppas" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,153 @@
+# Lane-arbitration eval — INSTANT-labeled cases.
+#
+# The Cloud-labeled half of this benchmark is the 200 runnable tasks in
+# ../cross_domain_routing/queries.yaml (every one has a correct_workflow, so it
+# should route to the Cloud lane). This file is the INSTANT half: genuine
+# knowledge questions, ad-hoc file calculations, and — most importantly —
+# ADVERSARIAL pairs whose Cloud twin lives in the routing set. These guard the
+# real regression risk of the catalog-resonance change: over-promising Cloud on
+# a question that merely *mentions* a runnable topic ("what is hERG?" resonates
+# with hERG workflows but wants an answer, not a run).
+#
+# label: instant  (expected lane)
+# category: evidence | definition | mechanism | comparison | recommendation |
+#           internal | patent | adhoc_compute | adversarial_question
+
+- id: q_def_001
+  query: "What is hERG and why does it matter for drug safety?"
+  category: adversarial_question
+  confusable_with: "screen these SMILES for hERG liabilities and rank them"
+- id: q_def_002
+  query: "Explain what DESeq2 does and when to use it."
+  category: adversarial_question
+  confusable_with: "run DESeq2 differential expression on my counts matrix"
+- id: q_def_003
+  query: "What does ADMET stand for?"
+  category: definition
+- id: q_def_004
+  query: "What is the difference between STAR and HISAT2 for alignment?"
+  category: comparison
+- id: q_def_005
+  query: "How does AlphaFold predict protein structure at a high level?"
+  category: adversarial_question
+  confusable_with: "predict the fold of this sequence and show where the model is unsure"
+- id: q_def_006
+  query: "What is single-cell RNA-seq and what questions can it answer?"
+  category: adversarial_question
+  confusable_with: "cluster my single-cell data and annotate the cell types"
+- id: q_def_007
+  query: "What is a variant call format file?"
+  category: definition
+- id: q_def_008
+  query: "What does logP tell you about a compound?"
+  category: definition
+
+- id: q_ev_001
+  query: "What is the current evidence for IL-23 inhibition in psoriasis?"
+  category: evidence
+- id: q_ev_002
+  query: "Summarize recent literature on CAR-T neurotoxicity."
+  category: evidence
+- id: q_ev_003
+  query: "What are the known off-target liabilities of JAK inhibitors?"
+  category: evidence
+- id: q_ev_004
+  query: "Cite the trials that established the endpoints for NASH."
+  category: evidence
+- id: q_ev_005
+  query: "What is known about the SAR around the quinazoline scaffold for EGFR?"
+  category: evidence
+- id: q_ev_006
+  query: "Which assays are typically used to measure cardiotoxicity?"
+  category: evidence
+
+- id: q_mech_001
+  query: "Why do some kinase inhibitors cause hepatotoxicity?"
+  category: mechanism
+- id: q_mech_002
+  query: "What is the mechanism of action of GLP-1 receptor agonists?"
+  category: mechanism
+- id: q_mech_003
+  query: "Why is batch effect a problem in RNA-seq and how is it usually handled?"
+  category: mechanism
+
+- id: q_rec_001
+  query: "Which aligner should I use for long-read RNA sequencing?"
+  category: recommendation
+- id: q_rec_002
+  query: "What is the best variant caller for somatic mutations?"
+  category: recommendation
+- id: q_rec_003
+  query: "Recommend a tool for single-cell doublet detection."
+  category: recommendation
+
+- id: q_cmp_001
+  query: "Compare edgeR versus limma-voom for differential expression."
+  category: comparison
+- id: q_cmp_002
+  query: "How does DeepVariant compare to GATK HaplotypeCaller in accuracy?"
+  category: comparison
+- id: q_cmp_003
+  query: "What are the pros and cons of docking versus free-energy perturbation?"
+  category: comparison
+
+- id: q_int_001
+  query: "Have we run an ADMET screen on this series before?"
+  category: internal
+- id: q_int_002
+  query: "What did we conclude in our last RNA-seq analysis of these samples?"
+  category: internal
+- id: q_int_003
+  query: "Do we have any in-house structures for this target?"
+  category: internal
+
+- id: q_pat_001
+  query: "Is there freedom to operate on the composition-of-matter claims for this scaffold?"
+  category: patent
+- id: q_pat_002
+  query: "What patents cover macrocyclic BTK degraders?"
+  category: patent
+
+- id: q_adhoc_001
+  query: "Plot the dose-response curve from this readout table."
+  category: adhoc_compute
+- id: q_adhoc_002
+  query: "Summarize this CSV — give me the mean and median of each column."
+  category: adhoc_compute
+- id: q_adhoc_003
+  query: "Show me the first 20 rows of this file."
+  category: adhoc_compute
+- id: q_adhoc_004
+  query: "Compute the correlation between these two columns."
+  category: adhoc_compute
+- id: q_adhoc_005
+  query: "Convert this TSV to CSV and show the column names."
+  category: adhoc_compute
+- id: q_adhoc_006
+  query: "Reshape this table from wide to long."
+  category: adhoc_compute
+
+- id: q_adv_001
+  query: "What is virtual screening and how large can a library be?"
+  category: adversarial_question
+  confusable_with: "screen this virtual library and give me the predicted hits"
+- id: q_adv_002
+  query: "What does it mean to fine-tune a model?"
+  category: adversarial_question
+  confusable_with: "fine-tune the property model on our latest assay data"
+- id: q_adv_003
+  query: "Explain multi-objective optimization in lead discovery."
+  category: adversarial_question
+  confusable_with: "optimise these candidates for potency without losing solubility"
+- id: q_adv_004
+  query: "What is de novo molecular design?"
+  category: adversarial_question
+  confusable_with: "generate de novo molecules against this target"
+- id: q_adv_005
+  query: "How do you interpret a pLDDT score?"
+  category: adversarial_question
+  confusable_with: "predict the structure of this complex and flag low-pLDDT regions"
+- id: q_adv_006
+  query: "What is proteomics mass spectrometry used for?"
+  category: adversarial_question
+  confusable_with: "quantify protein abundance from these mass-spec runs"

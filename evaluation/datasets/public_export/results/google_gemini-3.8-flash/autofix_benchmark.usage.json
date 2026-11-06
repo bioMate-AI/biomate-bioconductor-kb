@@ -1,0 +1,16 @@
+{
+  "task": "autofix_benchmark",
+  "mode": null,
+  "model": "google/gemini-3.8-flash",
+  "n": 100,
+  "n_with_usage": 100,
+  "input_tokens_total": 21401,
+  "output_tokens_total": 22964,
+  "input_tokens_mean": 214.01,
+  "output_tokens_mean": 229.64,
+  "latency_ms_p50": 2818,
+  "latency_ms_p95": 6362,
+  "latency_ms_mean": 3477.39,
+  "n_with_latency": 100,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

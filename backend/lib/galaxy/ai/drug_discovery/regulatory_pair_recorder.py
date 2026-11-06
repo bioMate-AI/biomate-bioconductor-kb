@@ -39,7 +39,8 @@ import json, os, re, threading, time, uuid
 from pathlib import Path
 from typing import Any, Optional
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+from ._data_root import data_root  # deploy-layout-independent writable data root
+REPO_ROOT = data_root().parent
 DPO_DIR = REPO_ROOT / "data" / "regulatory_training" / "dpo"
 PAIRS_PATH = DPO_DIR / "customer_pairs.jsonl"
 

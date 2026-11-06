@@ -1,0 +1,20 @@
+{
+  "target": "hIAPP",
+  "traj_train": false,
+  "cyclization": "see_csv",
+  "n_test": 4000,
+  "test_binders": 173,
+  "motif_distinct_binders": 128,
+  "FULL": {
+    "LM": 0.6895,
+    "2mer": 0.6977,
+    "comp": 0.6906,
+    "LM_lift5": 7.28,
+    "LM_lift10": 4.05
+  },
+  "MOTIF_DISTINCT": {
+    "LM": 0.5845,
+    "2mer": 0.6052,
+    "comp": 0.6015
+  }
+}

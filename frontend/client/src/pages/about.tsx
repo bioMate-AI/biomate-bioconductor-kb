@@ -162,9 +162,11 @@ export default function AboutPage() {
             <Button size="lg" onClick={() => setLocation('/register')}>
               Start Free Trial
             </Button>
-            <Button size="lg" variant="outline" onClick={() => setLocation('/pricing')}>
+            {/* "See Pricing" CTA commented out — pricing page content is disabled
+                pending a verified pricing model (no fabricated billing figures). */}
+            {/* <Button size="lg" variant="outline" onClick={() => setLocation('/pricing')}>
               See Pricing
-            </Button>
+            </Button> */}
           </div>
         </div>
       </section>

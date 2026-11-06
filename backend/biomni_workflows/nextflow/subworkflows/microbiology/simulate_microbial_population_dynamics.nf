@@ -60,7 +60,7 @@ with open("simulate_microbial_population_dynamics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("simulate_microbial_population_dynamics_output.txt", "w") as f:
-    f.write("Biomni: Simulate Microbial Population Dynamics Results" + NL)
+    f.write("BioMate: Simulate Microbial Population Dynamics Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

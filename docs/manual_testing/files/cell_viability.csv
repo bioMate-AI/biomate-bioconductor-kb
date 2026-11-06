@@ -1,0 +1,13 @@
+sample,group,viability_percent
+C1,control,91.2
+C2,control,93.5
+C3,control,91.3
+C4,control,91.1
+C5,control,89.2
+C6,control,91.4
+T1,treated,76.6
+T2,treated,73.1
+T3,treated,76.2
+T4,treated,72.2
+T5,treated,73.0
+T6,treated,71.9

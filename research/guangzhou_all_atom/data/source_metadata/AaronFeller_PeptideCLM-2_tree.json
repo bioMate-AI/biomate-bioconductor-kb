@@ -1,0 +1,279 @@
+{
+  "sha": "6b9708d4cb05717307d310daaf1c0f88c71ff084",
+  "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/trees/6b9708d4cb05717307d310daaf1c0f88c71ff084",
+  "tree": [
+    {
+      "path": "LICENSE",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9cdc53e1ac66bc94eafee6767bd45c4eaeec24b2",
+      "size": 1068,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/9cdc53e1ac66bc94eafee6767bd45c4eaeec24b2"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1f3ebb30dcde35b70efb0f0d359f8e95ade48490",
+      "size": 5328,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/1f3ebb30dcde35b70efb0f0d359f8e95ade48490"
+    },
+    {
+      "path": "data/CellPPD_test.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "ffb4f16220ecaebbf8e59bfebd0eb0ba97d97179",
+      "size": 100215,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/ffb4f16220ecaebbf8e59bfebd0eb0ba97d97179"
+    },
+    {
+      "path": "data/CellPPD_train.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "205362a93c332c33df699196bc63719a2b34af15",
+      "size": 399892,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/205362a93c332c33df699196bc63719a2b34af15"
+    },
+    {
+      "path": "data/CycPeptMPDB.txt",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "79ad815a52b9e7db10f74246e0d3a1e1df8e9cab",
+      "size": 150,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/79ad815a52b9e7db10f74246e0d3a1e1df8e9cab"
+    },
+    {
+      "path": "data/PAMPA_clusters.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "24853af3e6292fe7edcd3208308484951847ca43",
+      "size": 1074288,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/24853af3e6292fe7edcd3208308484951847ca43"
+    },
+    {
+      "path": "data/PepMSND_clustered_data.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "debd4b67c1f8c67bc899ee04cca092fa614928a7",
+      "size": 1076406,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/debd4b67c1f8c67bc899ee04cca092fa614928a7"
+    },
+    {
+      "path": "data/PepMSND_data",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b6bef08c243ed36d5f8b899f39ac39d33501ab66",
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/trees/b6bef08c243ed36d5f8b899f39ac39d33501ab66"
+    },
+    {
+      "path": "data/PepMSND_data/PepMSND_clustered_data.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "debd4b67c1f8c67bc899ee04cca092fa614928a7",
+      "size": 1076406,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/debd4b67c1f8c67bc899ee04cca092fa614928a7"
+    },
+    {
+      "path": "data/PepMSND_data/X_test1.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f8ea6e757e0570aec9dafff743a30b0ccedbc1ae",
+      "size": 107357,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/f8ea6e757e0570aec9dafff743a30b0ccedbc1ae"
+    },
+    {
+      "path": "data/PepMSND_data/X_test10.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b14e9ba6893242a4fca0e2760ec892a67ae6f0db",
+      "size": 103861,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/b14e9ba6893242a4fca0e2760ec892a67ae6f0db"
+    },
+    {
+      "path": "data/PepMSND_data/X_test2.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0b800b31b1e84597b7ce190303ac92975b420133",
+      "size": 106832,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/0b800b31b1e84597b7ce190303ac92975b420133"
+    },
+    {
+      "path": "data/PepMSND_data/X_test3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3eb4e396a4596919709dc9ef89bc27ddfd2f3704",
+      "size": 105103,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/3eb4e396a4596919709dc9ef89bc27ddfd2f3704"
+    },
+    {
+      "path": "data/PepMSND_data/X_test4.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9de1eef3677528541e5b1f93608d48344b133188",
+      "size": 109486,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/9de1eef3677528541e5b1f93608d48344b133188"
+    },
+    {
+      "path": "data/PepMSND_data/X_test5.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "555686c28ae4d62911f642a4a583786c81be4942",
+      "size": 105258,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/555686c28ae4d62911f642a4a583786c81be4942"
+    },
+    {
+      "path": "data/PepMSND_data/X_test6.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d6807c7064be04555ac7d116122ce0602a0f5ffb",
+      "size": 106672,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/d6807c7064be04555ac7d116122ce0602a0f5ffb"
+    },
+    {
+      "path": "data/PepMSND_data/X_test7.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "27ff6141fd1baaaec240f3d8002b4ca2bf951ed8",
+      "size": 106535,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/27ff6141fd1baaaec240f3d8002b4ca2bf951ed8"
+    },
+    {
+      "path": "data/PepMSND_data/X_test8.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "07e13f5dee639093b7af20ca5c63e89b29b1dca1",
+      "size": 109567,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/07e13f5dee639093b7af20ca5c63e89b29b1dca1"
+    },
+    {
+      "path": "data/PepMSND_data/X_test9.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3a8c01254adc1a583c7222eb518dded6da6c525b",
+      "size": 103577,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/3a8c01254adc1a583c7222eb518dded6da6c525b"
+    },
+    {
+      "path": "data/PepMSND_data/X_train1.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f74bf773838ddbe54fa9a4db2c618f67a95c1c90",
+      "size": 936329,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/f74bf773838ddbe54fa9a4db2c618f67a95c1c90"
+    },
+    {
+      "path": "data/PepMSND_data/X_train10.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b93c0a0431cefa94909f905bcab54df767486ff2",
+      "size": 939810,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/b93c0a0431cefa94909f905bcab54df767486ff2"
+    },
+    {
+      "path": "data/PepMSND_data/X_train2.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "850270d9bb19f7cd3cda10e50e9f658449adb4d9",
+      "size": 937033,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/850270d9bb19f7cd3cda10e50e9f658449adb4d9"
+    },
+    {
+      "path": "data/PepMSND_data/X_train3.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4a6d5f7d515bf91ec08f1cfae8006a3003f7a436",
+      "size": 938597,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/4a6d5f7d515bf91ec08f1cfae8006a3003f7a436"
+    },
+    {
+      "path": "data/PepMSND_data/X_train4.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8814550baf631dd2d37c534861dd7b1d56b287cf",
+      "size": 934204,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/8814550baf631dd2d37c534861dd7b1d56b287cf"
+    },
+    {
+      "path": "data/PepMSND_data/X_train5.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c548e9eb07023fa63758df900668b4260906519c",
+      "size": 938443,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/c548e9eb07023fa63758df900668b4260906519c"
+    },
+    {
+      "path": "data/PepMSND_data/X_train6.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d8f5d42091292506bc2427f19953f70f4365940a",
+      "size": 936999,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/d8f5d42091292506bc2427f19953f70f4365940a"
+    },
+    {
+      "path": "data/PepMSND_data/X_train7.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "384d865ff2a5e151bb65a608bc4b0a63affc12aa",
+      "size": 937136,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/384d865ff2a5e151bb65a608bc4b0a63affc12aa"
+    },
+    {
+      "path": "data/PepMSND_data/X_train8.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "254118e894e2acc28869a64df114bebcc363545e",
+      "size": 934104,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/254118e894e2acc28869a64df114bebcc363545e"
+    },
+    {
+      "path": "data/PepMSND_data/X_train9.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d9f450a99b24243ab2af3bdb90025bed7c54ba1f",
+      "size": 940094,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/d9f450a99b24243ab2af3bdb90025bed7c54ba1f"
+    },
+    {
+      "path": "data/PepMSND_data/convert_to_one_file.ipynb",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bfa1b29db1ee647c93e25a95723bdb0adb1e64b3",
+      "size": 2160,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/bfa1b29db1ee647c93e25a95723bdb0adb1e64b3"
+    },
+    {
+      "path": "data/THPep_main90_smiles_classes.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5502383079a13edbc949f21bea0df925c307e720",
+      "size": 215252,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/5502383079a13edbc949f21bea0df925c307e720"
+    },
+    {
+      "path": "data/amp_test.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "0ee5d41cc70fb8f17939a0ff6484f0e846acef0f",
+      "size": 2966567,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/0ee5d41cc70fb8f17939a0ff6484f0e846acef0f"
+    },
+    {
+      "path": "data/amp_train.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b14cf4199b939140b3a83e0b282fedba059c78c3",
+      "size": 10759879,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/b14cf4199b939140b3a83e0b282fedba059c78c3"
+    },
+    {
+      "path": "data/amp_val.csv",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "921220fff79ec24226aea6fee2cc9e14355c38a3",
+      "size": 2771521,
+      "url": "https://api.github.com/repos/AaronFeller/PeptideCLM-2/git/blobs/921220fff79ec24226aea6fee2cc9e14355c38a3"
+    }
+  ],
+  "truncated": false,
+  "source_commit": "6b9708d4cb05717307d310daaf1c0f88c71ff084"
+}

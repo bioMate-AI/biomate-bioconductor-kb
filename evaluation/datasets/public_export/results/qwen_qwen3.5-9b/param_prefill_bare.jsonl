@@ -1,0 +1,170 @@
+{"id": "pf_001", "prediction": {"organism": "Homo sapiens", "tissue": "lung", "disease": "adenocarcinoma", "seq_type": "RNA-seq", "analysis_type": "differential_expression"}, "prompt_tokens": 88, "completion_tokens": 46, "latency_ms": 4640}
+{"id": "pf_002", "prediction": {"organism": "Mus musculus", "tissue": "brain cortex", "sample_type": "bulk", "genome_assembly": "GRCm39"}, "prompt_tokens": 92, "completion_tokens": 37, "latency_ms": 679}
+{"id": "pf_003", "prediction": {}, "prompt_tokens": 83, "completion_tokens": 2, "latency_ms": 703}
+{"id": "pf_004", "prediction": {"organism": "Danio rerio", "developmental_stage": ["zygotogenesis", "gastrulation", "neurula"], "biological_process": "embryo development", "data_type": "RNA-seq", "time_points": ["24 hpf", "48 hpf", "72 hpf"]}, "prompt_tokens": 99, "completion_tokens": 83, "latency_ms": 2363}
+{"id": "pf_005", "prediction": {"organism": "Drosophila melanogaster"}, "prompt_tokens": 87, "completion_tokens": 13, "latency_ms": 2072}
+{"id": "pf_006", "prediction": {"organism": "C. elegans", "analysis_type": "RNA-seq", "study_focus": "aging", "experimental_design": "across lifespan"}, "prompt_tokens": 87, "completion_tokens": 35, "latency_ms": 1606}
+{"id": "pf_007", "prediction": {"organism": "Saccharomyces cerevisiae", "treatment": "heat stress"}, "prompt_tokens": 87, "completion_tokens": 33, "latency_ms": 1495}
+{"id": "pf_008", "prediction": {"organism": "Arabidopsis thaliana", "phenotype": "circadian rhythm", "experiment_type": "RNA-seq"}, "prompt_tokens": 86, "completion_tokens": 40, "latency_ms": 1123}
+{"id": "pf_009", "prediction": {"organism": "Homo sapiens", "tissue_type": "colon cancer tumor", "variant_type": "somatic mutation", "technology": "wgs"}, "prompt_tokens": 84, "completion_tokens": 47, "latency_ms": 3476}
+{"id": "pf_010", "prediction": {"experiment_type": "Patient-derived xenograft", "sequencing_target": "human reads", "sample_source": "PDX tumor"}, "prompt_tokens": 88, "completion_tokens": 39, "latency_ms": 952}
+{"id": "pf_011", "prediction": {"platform": "RNA-seq", "study_type": "Tumor organoid", "tissue_origin": "colorectal cancer"}, "prompt_tokens": 87, "completion_tokens": 38, "latency_ms": 1773}
+{"id": "pf_012", "prediction": {"organism": "Mus musculus", "disease_model": "KRAS-mutant pancreatic cancer", "assay_type": "RNA-seq"}, "prompt_tokens": 88, "completion_tokens": 35, "latency_ms": 1369}
+{"id": "pf_013", "prediction": {"organism": "Mus musculus", "cell_type": "primary hepatocyte", "assay_type": "transcriptomics", "research_focus": "lipid metabolism"}, "prompt_tokens": 83, "completion_tokens": 48, "latency_ms": 2164}
+{"id": "pf_014", "prediction": {"organism": "Danio rerio", "assay_type": "ChIP-seq", "target_domain": "H3K4me3", "developmental_stage": "24hpf"}, "prompt_tokens": 97, "completion_tokens": 56, "latency_ms": 4113}
+{"id": "pf_015", "prediction": {"organism": "Homo sapiens", "cell_type": "neuron", "origin": "human iPSC-derived", "differentiation_duration": "28-day"}, "prompt_tokens": 86, "completion_tokens": 49, "latency_ms": 850}
+{"id": "pf_016", "prediction": {"organism_species": "Xenopus laevis", "sample_type": "oocyte", "data_type": "transcriptome", "sequencing_method": "RNA-seq"}, "prompt_tokens": 87, "completion_tokens": 52, "latency_ms": 1245}
+{"id": "pf_017", "prediction": {}, "prompt_tokens": 88, "completion_tokens": 2, "latency_ms": 670}
+{"id": "pf_018", "prediction": {}, "prompt_tokens": 89, "completion_tokens": 2, "latency_ms": 576}
+{"id": "pf_019", "prediction": {"tissue": "blood", "cancer_type": "breast", "heritability": "hereditary", "assay": "germline", "gene": "BRCA1", "study_focus": "WGS", "organism": "Homo sapiens", "reference_genome": "GRCh38"}, "prompt_tokens": 90, "completion_tokens": 71, "latency_ms": 1018}
+{"id": "pf_020", "prediction": {}, "prompt_tokens": 93, "completion_tokens": 1, "latency_ms": 1091}
+{"id": "pf_021", "prediction": {}, "prompt_tokens": 88, "completion_tokens": 6, "latency_ms": 1047}
+{"id": "pf_022", "prediction": {"library_type": "total_rna"}, "prompt_tokens": 88, "completion_tokens": 15, "latency_ms": 576}
+{"id": "pf_023", "prediction": {}, "prompt_tokens": 87, "completion_tokens": 1, "latency_ms": 1276}
+{"id": "pf_024", "prediction": {"kit": "NEBNext Ultra II Directional RNA Library Prep Kit"}, "prompt_tokens": 86, "completion_tokens": 21, "latency_ms": 1599}
+{"id": "pf_025", "prediction": {"library_prep": "TruSeq", "sequencing_platform": "Illumina", "strandedness": "non-stranded", "mRNA_selection_method": "polyA_capture"}, "prompt_tokens": 89, "completion_tokens": 51, "latency_ms": 2554}
+{"id": "pf_026", "prediction": {"method": "SMART-seq2"}, "prompt_tokens": 88, "completion_tokens": 10, "latency_ms": 448}
+{"id": "pf_027", "prediction": {"sequencing_type": "ScriptSeq v2", "strandedness": "stranded", "organism_domain": "bacteria"}, "prompt_tokens": 84, "completion_tokens": 38, "latency_ms": 1359}
+{"id": "pf_028", "prediction": {"sequencing_system": "Ovation SoLo RNA-seq System", "library_type": "stranded directional"}, "prompt_tokens": 86, "completion_tokens": 31, "latency_ms": 1165}
+{"id": "pf_029", "prediction": {"library_prep_type": "standard", "capture_type": "polyA", "strand_specificity": "no"}, "prompt_tokens": 85, "completion_tokens": 33, "latency_ms": 2034}
+{"id": "pf_030", "prediction": {"library_type": "total RNA-Seq", "protocol": "SMARTer Stranded", "kit_version": "v3", "input_amount": "pico"}, "prompt_tokens": 89, "completion_tokens": 35, "latency_ms": 1379}
+{"id": "pf_031", "prediction": {}, "prompt_tokens": 87, "completion_tokens": 1, "latency_ms": 1189}
+{"id": "pf_032", "prediction": {}, "prompt_tokens": 87, "completion_tokens": 1, "latency_ms": 1205}
+{"id": "pf_033", "prediction": {}, "prompt_tokens": 84, "completion_tokens": 2, "latency_ms": 10601}
+{"id": "pf_034", "prediction": {"library_preparation_method": "random_hexamer", "strand_information": "non_directional", "input_type": "total_rna"}, "prompt_tokens": 87, "completion_tokens": 38, "latency_ms": 1962}
+{"id": "pf_035", "prediction": {"library_preparation_protocol": "Ribo-depleted directional dUTP", "sequence_directionality": "Directional", "rna_integrity_method": "Ribodepletion", "rna_source": "Total RNA", "rna_fragmentation_strategy": "Chemical fragmentation after ligation"}, "prompt_tokens": 88, "completion_tokens": 72, "latency_ms": 2903}
+{"id": "pf_036", "prediction": {"method": "tumor_only"}, "prompt_tokens": 86, "completion_tokens": 8, "latency_ms": 1191}
+{"id": "pf_037", "prediction": {"analysis_type": "Germline SNP calling", "sample_type": "blood DNA", "tool": "GATK"}, "prompt_tokens": 87, "completion_tokens": 37, "latency_ms": 1705}
+{"id": "pf_038", "prediction": {"num_samples": 20, "input_format": "gVCF"}, "prompt_tokens": 90, "completion_tokens": 25, "latency_ms": 823}
+{"id": "pf_039", "prediction": {"analysis_type": "WES", "variant_calling_method": "whole_exome_sequencing", "target_file_type": "BED"}, "prompt_tokens": 86, "completion_tokens": 40, "latency_ms": 1419}
+{"id": "pf_040", "prediction": {"analysis_type": "single-cell RNA-seq doublet detection", "stage": "pre-clustering"}, "prompt_tokens": 86, "completion_tokens": 29, "latency_ms": 1563}
+{"id": "pf_041", "prediction": {"library_layout": "Paired-end", "read_length": 150, "sequencing_mode": "ChIP-seq"}, "prompt_tokens": 93, "completion_tokens": 38, "latency_ms": 1645}
+{"id": "pf_042", "prediction": {"organism": "Homo sapiens", "cell_type": "T cells", "histone_mark": "H3K27me3", "experiment_type": "ChIP-seq"}, "prompt_tokens": 93, "completion_tokens": 43, "latency_ms": 991}
+{"id": "pf_043", "prediction": {"peak_type": "narrow", "feature_type": "transcription_factor", "binding_factor": "NFKB", "experiment_type": "ChIP-seq"}, "prompt_tokens": 87, "completion_tokens": 36, "latency_ms": 2192}
+{"id": "pf_044", "prediction": {"assay_type": "non-directional bisulfite sequencing", "application": "single-cell methylation", "sample_type": "PBAT"}, "prompt_tokens": 88, "completion_tokens": 31, "latency_ms": 1476}
+{"id": "pf_045", "prediction": {"quantification_software": "Salmon", "alignment_software": "STAR"}, "prompt_tokens": 86, "completion_tokens": 26, "latency_ms": 633}
+{"id": "pf_046", "prediction": {"region": "16S V3-V4"}, "prompt_tokens": 90, "completion_tokens": 12, "latency_ms": 2331}
+{"id": "pf_047", "prediction": {"library_type": "Shotgun metagenomics", "target": "Whole-genome sequencing", "enrichment_method": "none"}, "prompt_tokens": 88, "completion_tokens": 38, "latency_ms": 2399}
+{"id": "pf_048", "prediction": {"method": "DDA", "software": "MaxQuant", "labeling": "SILAC"}, "prompt_tokens": 87, "completion_tokens": 23, "latency_ms": 1388}
+{"id": "pf_049", "prediction": {"umi_length": 12}, "prompt_tokens": 93, "completion_tokens": 9, "latency_ms": 662}
+{"id": "pf_050", "prediction": {}, "prompt_tokens": 85, "completion_tokens": 1, "latency_ms": 991}
+{"id": "pf_051", "prediction": {"sequotyping_depth": "0.5x", "library_type": "shallow_WGS", "sample_type": "cell_free_DNA", "application": "liquid_biopsy"}, "prompt_tokens": 89, "completion_tokens": 50, "latency_ms": 1746}
+{"id": "pf_052", "prediction": {"depth": 1000}, "prompt_tokens": 91, "completion_tokens": 14, "latency_ms": 519}
+{"id": "pf_053", "prediction": {"platform": "10x Genomics Chromium v3"}, "prompt_tokens": 96, "completion_tokens": 19, "latency_ms": 1998}
+{"id": "pf_054", "prediction": {"sample_type": "single-cell droplet sequencing", "n_cells": 50000}, "prompt_tokens": 90, "completion_tokens": 29, "latency_ms": 677}
+{"id": "pf_055", "prediction": {"max_spots_per_sample": 500000}, "prompt_tokens": 90, "completion_tokens": 20, "latency_ms": 824}
+{"id": "pf_056", "prediction": {"num_reads_per_sample": 100000}, "prompt_tokens": 90, "completion_tokens": 15, "latency_ms": 803}
+{"id": "pf_057", "prediction": {"minimum_reads_per_umi_group": 10}, "prompt_tokens": 89, "completion_tokens": 17, "latency_ms": 663}
+{"id": "pf_058", "prediction": {"fdr_cutoff": 0.05}, "prompt_tokens": 86, "completion_tokens": 11, "latency_ms": 1258}
+{"id": "pf_059", "prediction": {"dimensionality_reduction_parameters": {"method": "PCA", "gene_selection": {"type": "highly_variable_genes", "count": 3000}}, "cellular_resolution": "single-cell"}, "prompt_tokens": 91, "completion_tokens": 44, "latency_ms": 925}
+{"id": "pf_060", "prediction": {"min_tail_length": 10}, "prompt_tokens": 90, "completion_tokens": 14, "latency_ms": 737}
+{"id": "pf_061", "prediction": {}, "prompt_tokens": 86, "completion_tokens": 2, "latency_ms": 491}
+{"id": "pf_062", "prediction": {"cpus_per_process": 4}, "prompt_tokens": 84, "completion_tokens": 9, "latency_ms": 723}
+{"id": "pf_063", "prediction": {"adapter_trimming": "strict", "quality_cutoff": 20}, "prompt_tokens": 86, "completion_tokens": 22, "latency_ms": 1556}
+{"id": "pf_064", "prediction": {"minimum_read_length": 50}, "prompt_tokens": 88, "completion_tokens": 10, "latency_ms": 818}
+{"id": "pf_065", "prediction": {"normalization_method": "GC content bias normalization", "analysis_type": "ChIP-seq enrichment analysis"}, "prompt_tokens": 85, "completion_tokens": 30, "latency_ms": 1364}
+{"id": "pf_066", "prediction": {"chemistry": "v3.1"}, "prompt_tokens": 91, "completion_tokens": 9, "latency_ms": 1105}
+{"id": "pf_067", "prediction": {"chemistry": "10x Genomics v2", "library_type": "3-prime gene expression"}, "prompt_tokens": 90, "completion_tokens": 30, "latency_ms": 1681}
+{"id": "pf_068", "prediction": {"technology": "Drop-seq", "device_type": "home-built microfluidics device"}, "prompt_tokens": 87, "completion_tokens": 28, "latency_ms": 1198}
+{"id": "pf_069", "prediction": {"library_prep_method": "Nextera XT"}, "prompt_tokens": 86, "completion_tokens": 16, "latency_ms": 653}
+{"id": "pf_070", "prediction": {}, "prompt_tokens": 101, "completion_tokens": 57, "latency_ms": 1054}
+{"id": "pf_071", "prediction": {"region": "V1-V3", "primer_forward": "27F", "primer_reverse": "534R"}, "prompt_tokens": 99, "completion_tokens": 38, "latency_ms": 809}
+{"id": "pf_072", "prediction": {"organism": "Homo sapiens", "analysis_type": "RNA-seq", "spike_in_controls": "ERCC"}, "prompt_tokens": 88, "completion_tokens": 38, "latency_ms": 1675}
+{"id": "pf_073", "prediction": {"reference_genome": "hg38"}, "prompt_tokens": 87, "completion_tokens": 10, "latency_ms": 922}
+{"id": "pf_074", "prediction": {}, "prompt_tokens": 84, "completion_tokens": 2, "latency_ms": 765}
+{"id": "pf_075", "prediction": {"population_frequency_data_version": "gnomad.v3.1", "allele_frequency_model": "counting"}, "prompt_tokens": 88, "completion_tokens": 23, "latency_ms": 1173}
+{"id": "pf_076", "prediction": {"database": "COSMIC"}, "prompt_tokens": 84, "completion_tokens": 12, "latency_ms": 864}
+{"id": "pf_077", "prediction": {}, "prompt_tokens": 90, "completion_tokens": 1, "latency_ms": 4673}
+{"id": "pf_078", "prediction": {"database": "dbSNP", "build": "155"}, "prompt_tokens": 89, "completion_tokens": 16, "latency_ms": 1202}
+{"id": "pf_079", "prediction": {"annotation_source": "RefSeq"}, "prompt_tokens": 86, "completion_tokens": 14, "latency_ms": 650}
+{"id": "pf_080", "prediction": {"assembly": "GENCODE_v44", "annotation_source": "GENCODE", "quantification_task": true}, "prompt_tokens": 86, "completion_tokens": 33, "latency_ms": 1186}
+{"id": "pf_081", "prediction": {}, "prompt_tokens": 91, "completion_tokens": 1, "latency_ms": 993}
+{"id": "pf_082", "prediction": {"organism": "Homo sapiens", "tissue": "Peripheral blood mononuclear cell", "technology": "10x Genomics 3' v3", "expected\u7ec6\u80de\u6570": 8000}, "prompt_tokens": 102, "completion_tokens": 58, "latency_ms": 1897}
+{"id": "pf_083", "prediction": {"organism": "Homo sapiens", "library_type": "TruSeq Stranded mRNA", "sample_type": "tumor versus normal", "tissue": "breast cancer"}, "prompt_tokens": 90, "completion_tokens": 53, "latency_ms": 962}
+{"id": "pf_084", "prediction": {"read_length_bp": 150}, "prompt_tokens": 97, "completion_tokens": 14, "latency_ms": 1250}
+{"id": "pf_085", "prediction": {"assay_type": "ChIP-seq", "modification": "H3K4me3", "peak_calling_method": "narrow peak", "cell_line": "human ESC", "control_type": "paired input", "read_length": "150bp", "read_layout": "PE"}, "prompt_tokens": 98, "completion_tokens": 84, "latency_ms": 1636}
+{"id": "pf_086", "prediction": {"analysis_type": "WES", "genome_context": "human", "variant_calling": "germline", "pipeline": "GATK best practices"}, "prompt_tokens": 90, "completion_tokens": 36, "latency_ms": 819}
+{"id": "pf_087", "prediction": {"analysis_type": "DIA-NN", "data_acquisition_mode": "data-independent acquisition", "sample_type": "human plasma", "proteomics_platform": "Thermo Orbitrap Exploris"}, "prompt_tokens": 91, "completion_tokens": 39, "latency_ms": 2345}
+{"id": "pf_088", "prediction": {"platform": "QIIME2", "assay": "16S", "region": "V3-V4", "organism": "mouse", "tissue": "gut", "read_length": "250bp", "read_configuration": "paired_end"}, "prompt_tokens": 102, "completion_tokens": 60, "latency_ms": 6274}
+{"id": "pf_089", "prediction": {"platform": "WGS", "sample_type": "somatic", "reference_genome_assembly": "human", "variant_caller": "GATK Mutect2", "variant_caller_dual": "Strelka2"}, "prompt_tokens": 95, "completion_tokens": 64, "latency_ms": 1068}
+{"id": "pf_090", "prediction": {}, "prompt_tokens": 97, "completion_tokens": 1, "latency_ms": 976}
+{"id": "pf_091", "prediction": {}, "prompt_tokens": 79, "completion_tokens": 2, "latency_ms": 920}
+{"id": "pf_092", "prediction": {}, "prompt_tokens": 79, "completion_tokens": 2, "latency_ms": 764}
+{"id": "pf_093", "prediction": {}, "prompt_tokens": 81, "completion_tokens": 1, "latency_ms": 972}
+{"id": "pf_094", "prediction": {}, "prompt_tokens": 80, "completion_tokens": 1, "latency_ms": 1046}
+{"id": "pf_095", "prediction": {}, "prompt_tokens": 78, "completion_tokens": 1, "latency_ms": 947}
+{"id": "pf_096", "prediction": {}, "prompt_tokens": 79, "completion_tokens": 2, "latency_ms": 691}
+{"id": "pf_097", "prediction": {}, "prompt_tokens": 77, "completion_tokens": 1, "latency_ms": 994}
+{"id": "pf_098", "prediction": {}, "prompt_tokens": 78, "completion_tokens": 1, "latency_ms": 982}
+{"id": "pf_099", "prediction": {}, "prompt_tokens": 77, "completion_tokens": 1, "latency_ms": 952}
+{"id": "pf_100", "prediction": {}, "prompt_tokens": 79, "completion_tokens": 1, "latency_ms": 973}
+{"id": "pf_101", "prediction": {"method": "CryoSPARC SPA", "particle_diameter_angstrom": 130}, "prompt_tokens": 88, "completion_tokens": 29, "latency_ms": 939}
+{"id": "pf_102", "prediction": {"cryo_em_mode": "SPA", "pixel_size": 0.83}, "prompt_tokens": 90, "completion_tokens": 26, "latency_ms": 1565}
+{"id": "pf_103", "prediction": {"voltage": 300, "microscope": "Titan Krios", "voltage_unit": "kV"}, "prompt_tokens": 91, "completion_tokens": 27, "latency_ms": 1885}
+{"id": "pf_104", "prediction": {"complex": "GPCR", "symmetry": "C1", "asymmetric_unit": true}, "prompt_tokens": 84, "completion_tokens": 31, "latency_ms": 1663}
+{"id": "pf_105", "prediction": {"read_length": "100", "read_type": "single-end", "library_type": "bulk RNA-seq", "reference_genome": null}, "prompt_tokens": 87, "completion_tokens": 34, "latency_ms": 1993}
+{"id": "pf_106", "prediction": {"labeling_type": "TMT-16plex", "proteomics_type": "quantitative"}, "prompt_tokens": 89, "completion_tokens": 30, "latency_ms": 1510}
+{"id": "pf_107", "prediction": {"coverage": 30, "coverage_unit": "x", "sample_type": "paired_tumor_normal"}, "prompt_tokens": 85, "completion_tokens": 33, "latency_ms": 1545}
+{"id": "pf_108", "prediction": {"duration": "100 ns", "timestep": "2 fs"}, "prompt_tokens": 89, "completion_tokens": 18, "latency_ms": 882}
+{"id": "pf_109", "prediction": {"analysis_type": "ChIP-seq", "peak_type": "narrow_peaks", "biological_process": "TF_binding", "statistical_threshold": "q-value=0.01"}, "prompt_tokens": 92, "completion_tokens": 43, "latency_ms": 1948}
+{"id": "pf_110", "prediction": {"output_path": "s3://my-bucket/rnaseq-results/", "library_type": "stranded"}, "prompt_tokens": 90, "completion_tokens": 25, "latency_ms": 1384}
+{"id": "pf_111", "prediction": {"defocus_range_min": 1.0, "defocus_range_max": 3.0, "unit": "micrometers", "application": "CTF estimation"}, "prompt_tokens": 93, "completion_tokens": 49, "latency_ms": 2263}
+{"id": "pf_112", "prediction": {"tool": "GATK4 Mutect2", "mode": "tumor-only"}, "prompt_tokens": 90, "completion_tokens": 28, "latency_ms": 1222}
+{"id": "pf_113", "prediction": {"read_type": "paired-end", "filter_strategy": "mitochondrial", "fragment_size": 200}, "prompt_tokens": 94, "completion_tokens": 34, "latency_ms": 1894}
+{"id": "pf_114", "prediction": {"temperature": 1.0, "count": 5000}, "prompt_tokens": 95, "completion_tokens": 23, "latency_ms": 1412}
+{"id": "pf_115", "prediction": {"context": "non-CpG", "minimum_coverage": 10}, "prompt_tokens": 93, "completion_tokens": 23, "latency_ms": 1129}
+{"id": "pf_116", "prediction": {"Cmax_free": 80, "hERG_IC50": 150}, "prompt_tokens": 104, "completion_tokens": 18, "latency_ms": 1759}
+{"id": "pf_117", "prediction": {"hERG_concentration": "300nM", "Nav1.5_concentration": "2uM", "Cav1.2_concentration": "500nM", "patient_cmax": "100ng/mL", "molecular_weight": "400"}, "prompt_tokens": 123, "completion_tokens": 77, "latency_ms": 3124}
+{"id": "pf_118", "prediction": {"heart_rate": 60, "pacing_type": "pacing", "hERG_IC50": 50, "hERG_IC50_unit": "nM", "fraction_unchanged": 0.3, "total_Cmax": 200, "total_Cmax_unit": "nM"}, "prompt_tokens": 110, "completion_tokens": 72, "latency_ms": 1299}
+{"id": "pf_119", "prediction": {"simulation_type": "MAPK/ERK pathway inhibition", "compound": "trametinib", "target": "MEK", "ic50": 3, "ic50_unit": "nM", "cmax": 50, "cmax_unit": "nM"}, "prompt_tokens": 105, "completion_tokens": 80, "latency_ms": 3397}
+{"id": "pf_120", "prediction": {"inhibitor_name": "ipatasertib", "inhibitor_target": "AKT", "inhibitor_ic50": 0.2, "inhibitor_ic50_unit": "\u00b5M", "simulation_duration": 24, "stimulus_name": "EGF", "stimulus_concentration": 10, "stimulus_concentration_unit": "nM", "pathway_name": "PI3K"}, "prompt_tokens": 110, "completion_tokens": 117, "latency_ms": 4078}
+{"id": "pf_121", "prediction": {"drug": "venetoclax", "target": "BCL2", "ic50": "1nM", "cmax": "3nM", "cell_line": "K562"}, "prompt_tokens": 109, "completion_tokens": 46, "latency_ms": 3226}
+{"id": "pf_122", "prediction": {"model": "hepatocytes", "parameter": "Cmax", "value": "10uM"}, "prompt_tokens": 109, "completion_tokens": 77, "latency_ms": 3509}
+{"id": "pf_123", "prediction": {"target": "cardiac mito toxicity", "compound": "doxorubicin", "inhibition_target": "complex III", "complex_iii_ic50": 8000, "inhibition_target_2": "beta oxidation", "beta_oxidation_ic50": 15000}, "prompt_tokens": 105, "completion_tokens": 82, "latency_ms": 13856}
+{"id": "pf_124", "prediction": {"organism": "Homo sapiens", "assembly": "GRCh38.p14", "cell_line": "MCF-7", "gene_mimic_upregulation": ["MYC", "CDK4", "CCND1"], "gene_downregulation": ["TP53", "CDKN1A"]}, "prompt_tokens": 104, "completion_tokens": 103, "latency_ms": 4025}
+{"id": "pf_125", "prediction": {"treatment": "find compounds opposing BCL2 MYC upregulation and BAX CASP3 downregulation", "cell_line": "K562"}, "prompt_tokens": 102, "completion_tokens": 43, "latency_ms": 1803}
+{"id": "pf_126", "prediction": {"condition": "MYC knockout", "cell_line": "K562", "metric": "top 50 DEGs"}, "prompt_tokens": 95, "completion_tokens": 39, "latency_ms": 853}
+{"id": "pf_127", "prediction": {"target_genes": ["KRAS", "BRAO"], "cell_line": "RPE1", "technique": "CRISPRi", "experiment_type": "double_knockdown", "output_metric": "gene_expression"}, "prompt_tokens": 96, "completion_tokens": 62, "latency_ms": 2598}
+{"id": "pf_128", "prediction": {"drug_combination": "trametinib + palbociclib", "mechanism_1": "MEK inhibitor", "mechanism_2": "CDK4/6 inhibitor", "cell_line": "MCF7", "trametinib_concentration": "50 nM", "trametinib_concentration_2": "100 nM"}, "prompt_tokens": 119, "completion_tokens": 98, "latency_ms": 11706}
+{"id": "pf_129", "prediction": {"model": "ZIP synergy model", "compound_1": "venetoclax", "compound_1_type": "BCL2 inhibitor", "compound_1_parameter": "Cmax", "compound_1_value": "3nM", "compound_2": "navitoclax", "compound_2_type": "BCL-XL inhibitor", "compound_2_parameter": "Cmax", "compound_2_value": "10nM"}, "prompt_tokens": 113, "completion_tokens": 119, "latency_ms": 8651}
+{"id": "pf_130", "prediction": {"tissue_type": "TGI", "indication": "NSCLC", "baseline_tumor_volume": 150.0, "drug_name": "erlotinib", "experimental_parameter_1": {"name": "Cmax", "value": 3.0}, "experimental_parameter_2": {"name": "EC50", "value": 0.5}, "treatment_duration": 12}, "prompt_tokens": 117, "completion_tokens": 93, "latency_ms": 3068}
+{"id": "pf_131", "prediction": {"model": "Simeoni TGI", "tumor_penetration_fraction": 0.3, "target_auc_unit_times_concentration": 120, "dosing_frequency": "every 3 days"}, "prompt_tokens": 104, "completion_tokens": 57, "latency_ms": 2376}
+{"id": "pf_132", "prediction": {"num_patients": 1000, "clearance_units": "L/h", "clearance_value": 15, "volume_of_distribution": 80, "volume_of_distribution_units": "L", "bioavailability_percent": 60, "ec50_value": 2, "ec50_units": "mg/L", "dose_value": 200, "dose_units": "mg"}, "prompt_tokens": 118, "completion_tokens": 114, "latency_ms": 3098}
+{"id": "pf_133", "prediction": {"iiv_clearance": 0.4, "target_pta": 0.9, "target_ec50": 1.0, "dose_range_min": 50, "dose_range_max": 400}, "prompt_tokens": 112, "completion_tokens": 64, "latency_ms": 3401}
+{"id": "pf_134", "prediction": {"disease_state": "renal impairment", "patient_population": "elderly", "mean_age": 70, "renal_clearance_fraction": 0.3}, "prompt_tokens": 98, "completion_tokens": 46, "latency_ms": 7447}
+{"id": "pf_135", "prediction": {"high_expression_genes": ["MKI67", "MYC", "CDK4"], "low_expression_genes": ["CDKN1A"]}, "prompt_tokens": 103, "completion_tokens": 55, "latency_ms": 2105}
+{"id": "pf_136", "prediction": {"organism": "Homo sapiens", "sample_size": 5000, "normalization_method": "DSB"}, "prompt_tokens": 99, "completion_tokens": 38, "latency_ms": 1707}
+{"id": "pf_137", "prediction": {"platform": "CITE-seq", "organism": "Mus musculus", "tissue": "tissue", "antibody_version": "TotalSeq-B", "nCells": 10000}, "prompt_tokens": 100, "completion_tokens": 60, "latency_ms": 2936}
+{"id": "pf_138", "prediction": {"organism": "human", "sample_type": "PBMC", "minimum_atac_fragments_per_cell": 200, "tss_enrichment": 5.0}, "prompt_tokens": 108, "completion_tokens": 52, "latency_ms": 7020}
+{"id": "pf_139", "prediction": {}, "prompt_tokens": 92, "completion_tokens": 1, "latency_ms": 979}
+{"id": "pf_140", "prediction": {"n_cells": 8000}, "prompt_tokens": 102, "completion_tokens": 15, "latency_ms": 851}
+{"id": "pf_141", "prediction": {"algorithmm": "DoubletFinder", "num_cells": 3000, "n_pcs": 30, "num_neighbors": 25}, "prompt_tokens": 104, "completion_tokens": 47, "latency_ms": 2511}
+{"id": "pf_142", "prediction": {"organism": "Homo sapiens", "platform": "BD Rhapsody", "modality": "WTA, AbSeq", "sample_size": 15000, "protein_count": 45}, "prompt_tokens": 102, "completion_tokens": 61, "latency_ms": 2515}
+{"id": "pf_143", "prediction": {"species": "mouse", "total_cells": 5000, "minimum_UMIs_per_cell": 300}, "prompt_tokens": 101, "completion_tokens": 29, "latency_ms": 1678}
+{"id": "pf_144", "prediction": {"platform": "Biosciences Evercode WT mega kit", "sample_type": "frozen tissue", "input_source": "1 million human cells"}, "prompt_tokens": 93, "completion_tokens": 42, "latency_ms": 1414}
+{"id": "pf_145", "prediction": {"assay": "Parse Evercode WT mini", "organism": "Mus musculus", "sample_type": "embryo", "num_cells": 20000, "quality_filter_min_umis": 200, "quality_filter_min_genes": 100}, "prompt_tokens": 109, "completion_tokens": 76, "latency_ms": 2274}
+{"id": "pf_146", "prediction": {"panel": "500", "tissue": "cortex", "expected_cells": 8000, "segmentation_algorithm": "Baysor", "platform": "Vizgen MERSCOPE"}, "prompt_tokens": 106, "completion_tokens": 47, "latency_ms": 2027}
+{"id": "pf_147", "prediction": {"modality": "seqFISH+", "dataset": "spatialDE", "analysis_method": "domain_detection_cell_type_deconvolution"}, "prompt_tokens": 100, "completion_tokens": 39, "latency_ms": 1799}
+{"id": "pf_148", "prediction": {"sample_type": "tumor biopsy", "technology": "10x Xenium", "domains": ["tumor core", "invasive margin", "immune infiltrate"]}, "prompt_tokens": 97, "completion_tokens": 56, "latency_ms": 2069}
+{"id": "pf_149", "prediction": {"cell_count": 8000, "single_cell_type": "Multimodal CITE-seq"}, "prompt_tokens": 100, "completion_tokens": 31, "latency_ms": 1394}
+{"id": "pf_150", "prediction": {"doublet_calling_method": "consensus"}, "prompt_tokens": 95, "completion_tokens": 16, "latency_ms": 1185}
+{"id": "pf_151", "prediction": {"tool": "chromVAR", "dataset_type": "joint RNA+ATAC"}, "prompt_tokens": 94, "completion_tokens": 15, "latency_ms": 1529}
+{"id": "pf_152", "prediction": {}, "prompt_tokens": 97, "completion_tokens": 1, "latency_ms": 725}
+{"id": "pf_153", "prediction": {"organism": "Homo sapiens", "library_preparation_protocol": "split-pool barcoding", "kit_variant": "WT", "umi_count_threshold": 500}, "prompt_tokens": 103, "completion_tokens": 50, "latency_ms": 1410}
+{"id": "pf_154", "prediction": {}, "prompt_tokens": 97, "completion_tokens": 1, "latency_ms": 778}
+{"id": "pf_155", "prediction": {"doublet_threshold": 0.15, "cells_loaded": 12000}, "prompt_tokens": 102, "completion_tokens": 28, "latency_ms": 1818}
+{"id": "pf_156", "prediction": {"target": "CD3\u00d7CD19", "indication": "B-cell ALL", "design_candidates_count": 20, "include_cd3_arm": true}, "prompt_tokens": 100, "completion_tokens": 47, "latency_ms": 1457}
+{"id": "pf_157", "prediction": {"number_of_designs": 15, "linker_type": "rigid"}, "prompt_tokens": 97, "completion_tokens": 26, "latency_ms": 1063}
+{"id": "pf_158", "prediction": {}, "prompt_tokens": 98, "completion_tokens": 11, "latency_ms": 1290}
+{"id": "pf_159", "prediction": {"fusion_design": "VHH nanobody", "target_profile": "bispecific", "indication": "hematology"}, "prompt_tokens": 92, "completion_tokens": 35, "latency_ms": 1859}
+{"id": "pf_160", "prediction": {"linker_charge": "positive", "linker_type": "charged", "arm": "CD3", "design_count": 25}, "prompt_tokens": 96, "completion_tokens": 41, "latency_ms": 1624}
+{"id": "pf_161", "prediction": {}, "prompt_tokens": 94, "completion_tokens": 88, "latency_ms": 5329}
+{"id": "pf_162", "prediction": {"guide_sequence": "5'-GCAUCUGAGUUUGGCACUUAG-3'", "target_gene": "TTR", "modification_chemistry": "ESC full"}, "prompt_tokens": 105, "completion_tokens": 48, "latency_ms": 1500}
+{"id": "pf_163", "prediction": {"target": "alpha-synuclein", "delivery_method": "CNS", "siRNA_design": "dicer-substrate", "seed_mismatches": 0}, "prompt_tokens": 98, "completion_tokens": 48, "latency_ms": 3008}
+{"id": "pf_164", "prediction": {"modification_type": "2'-O-methyl", "modification_positions": "seed", "objective": "reduce_siRNA_off_targeting"}, "prompt_tokens": 92, "completion_tokens": 38, "latency_ms": 1690}
+{"id": "pf_165", "prediction": {"gene_list": "top 50 off-target genes", "strain": "mouse", "cell_type": "hepatocyte", "analysis_feature": "passenger strand"}, "prompt_tokens": 92, "completion_tokens": 48, "latency_ms": 2917}
+{"id": "pf_166", "prediction": {"linker": "G4S3"}, "prompt_tokens": 96, "completion_tokens": 15, "latency_ms": 1309}
+{"id": "pf_167", "prediction": {"study_type": "Phase 1 clinical", "therapeutic_mechanism": "siRNA", "indication": "HBV", "administration_route": "eye injection", "backbone_type": "phosphorothioate"}, "prompt_tokens": 93, "completion_tokens": 63, "latency_ms": 2594}
+{"id": "pf_168", "prediction": {"immunogenicity_screening": false, "format": "CrossMab", "design_count": 30, "application": "autoimmune"}, "prompt_tokens": 94, "completion_tokens": 43, "latency_ms": 2181}
+{"id": "pf_169", "prediction": {"target_gene": "VEGFA", "target_tissue": "muscle", "modifications": "2'-OMe,2'-F"}, "prompt_tokens": 98, "completion_tokens": 41, "latency_ms": 2738}
+{"id": "pf_170", "prediction": {"error_mode": "allow_1_seed_mismatch", "additional_evaluation": "NHP_cross_reactivity_check", "target_organism": "Homo_sapiens", "sample_type": "Human_blood"}, "prompt_tokens": 92, "completion_tokens": 57, "latency_ms": 2464}

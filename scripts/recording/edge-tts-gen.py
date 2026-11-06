@@ -11,7 +11,7 @@ import re, wave, struct, pathlib, argparse, json, subprocess, tempfile, os, asyn
 SAMPLE_RATE = 24000
 SILENCE_MS  = int(os.environ.get('SILENCE_MS', '300'))
 VOICE       = os.environ.get('TTS_VOICE', 'en-US-AriaNeural')
-RATE        = os.environ.get('TTS_RATE', '+25%')  # speed up so narration fits tour beats
+RATE        = os.environ.get('TTS_RATE', '+0%')  # speed up so narration fits tour beats
 
 
 def parse_narration(path):
@@ -72,6 +72,8 @@ def main():
 
     out = pathlib.Path(args.out); out.mkdir(parents=True, exist_ok=True)
     steps = parse_narration(args.narration)
+    if not steps:
+        raise SystemExit('No narration steps parsed; refusing to produce audio')
     print(f'edge-tts {VOICE}: {len(steps)} steps')
 
     silence = silence_pcm(SILENCE_MS)
@@ -84,10 +86,7 @@ def main():
             pcm = wav_to_pcm(wp)
             print(f'  [{s["num"]:02d}] {dur/1000:.1f}s  {s["title"][:50]}')
         except Exception as e:
-            print(f'  [{s["num"]:02d}] ERROR {e} — silence placeholder')
-            dur = 2000
-            pcm = silence_pcm(dur)
-            pcm_to_wav(pcm, wp)
+            raise RuntimeError(f'TTS failed at step {s["num"]}; render aborted') from e
         timing.append({'step': s['num'], 'title': s['title'], 'duration_ms': dur})
         parts.append(pcm); parts.append(silence)
 

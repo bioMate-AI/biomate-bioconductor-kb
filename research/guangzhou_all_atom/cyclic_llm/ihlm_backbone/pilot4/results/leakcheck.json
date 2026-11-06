@@ -1,0 +1,68 @@
+{
+ "runtime_mlp_prior": {
+  "label": "train_mlp_prior (exact-only and Tobit)",
+  "n_input_rows_checked": 9799,
+  "n_rows_not_in_fingerprint_matrix": 0,
+  "input_widths": [
+   2048
+  ],
+  "PASS": true
+ },
+ "runtime_meta": {
+  "label": "train_meta (exact-only and Tobit)",
+  "n_input_rows_checked": 40320,
+  "n_rows_not_in_fingerprint_matrix": 0,
+  "input_widths": [
+   2048
+  ],
+  "PASS": true
+ },
+ "static": {
+  "calls": [
+   {
+    "fn": "train_mlp_prior",
+    "call": "m",
+    "arg": "Xt[idx[ii]]",
+    "ok": true
+   },
+   {
+    "fn": "train_meta",
+    "call": "m.embed",
+    "arg": "Xt[Si_t.reshape(-1)]",
+    "ok": true
+   },
+   {
+    "fn": "train_meta",
+    "call": "m.embed",
+    "arg": "Xt[Qi_t.reshape(-1)]",
+    "ok": true
+   }
+  ],
+  "n_calls": 3,
+  "PASS": true
+ },
+ "negative_control_runtime": {
+  "label": "LEAKY copy (type added to input)",
+  "n_input_rows_checked": 9799,
+  "n_rows_not_in_fingerprint_matrix": 1143,
+  "input_widths": [
+   2048
+  ],
+  "PASS": false
+ },
+ "negative_control_static": {
+  "calls": [
+   {
+    "fn": "train_mlp_prior_LEAKY",
+    "call": "m",
+    "arg": "Xt[idx[ii]] + 0.5 * tt[ii].float()[:, None]",
+    "ok": false
+   }
+  ],
+  "n_calls": 1,
+  "PASS": false
+ },
+ "negative_control_detected_by_runtime": true,
+ "negative_control_detected_by_static": true,
+ "L1_i_PASS": true
+}

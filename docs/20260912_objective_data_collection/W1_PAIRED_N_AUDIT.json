@@ -1,0 +1,194 @@
+{
+  "workstream": "W1",
+  "title": "Paired-N audit across ALL objectives — true trainable/validatable N (matched feature+label pairs)",
+  "date": "2026-09-13",
+  "role": "FEASIBILITY",
+  "training_eligible": false,
+  "principle": "paired-N = count of matched (model-input-feature, objective-label) pairs. Label count alone is NOT the metric. Where a modality is held only as RAW (no processed features) or only as a manifest (no landed data), the CURRENTLY-COMPUTABLE paired-N is lower than the EXISTS-PUBLICLY paired-N; both are reported.",
+  "sources": {
+    "S3_bucket": "s3://knowledge-datasets-1759951976",
+    "registries": [
+      "/Users/kky/biomate-immune-llm/docs/program_control/PAIRED_SAMPLE_INVENTORY.md",
+      "/Users/kky/biomate-immune-llm/docs/program_control/PER_MODALITY_CORPORA.md",
+      "/Users/kky/biomate-immune-llm/docs/program_control/CAUSAL_PERTURBATION_IMMUNE_MANIFEST.md",
+      "/Users/kky/biomate-immune-llm/docs/program_control/DATASET_MASTER_REGISTRY.md"
+    ],
+    "immport_tables": "s3://.../immunology_sc_corpus_broad/immport/tables_parquet/",
+    "vaccine_precomputed": "vaccine_paired_features_summary.json"
+  },
+  "objectives": [
+    {
+      "id": "H1",
+      "name": "transcriptional perturbation response",
+      "role": "FM-TRAIN",
+      "feature": "baseline / control cell state (pre-perturbation transcriptome, or NTC/vehicle control cells)",
+      "label": "post-perturbation expression (perturb-seq / CRISPR / drug / cytokine)",
+      "join_logic": "pairing is INTRINSIC to each perturb-seq dataset: within one experiment, control (NTC/vehicle) cells provide the baseline feature and perturbed cells provide the label; the (perturbation-id, cell-context) is the pairing key. No cross-dataset join needed. paired-N counted as (perturbation x cell-context) conditions with a matched control, and separately as perturbed cells.",
+      "paired_N_currently_computable": {
+        "held_on_S3": true,
+        "datasets": {
+          "Tahoe-100M": "95.6M perturbation-labeled cells, 50 cancer lines x ~1,100 compounds (~60k drug x line conditions), vehicle controls in-dataset. HELD in full (429 GB).",
+          "Replogle-Nadig (DE)": "4 lines x ~2,000 gene KDs, DE vs NTC precomputed. HELD (36 GB).",
+          "CZI genome-scale T-cell Perturb-seq (GWCD4i)": "primary human CD4+ T, 18,129 genes perturbed, ~22M cells, rest/8h/48h, NTC controls; pseudobulk_merged + DE_stats HELD (~107 GB of h5ad/h5mu).",
+          "perturbation/immune + scperturb": "GSE119450/GSE146194/GSE190604 (immune) + scPerturb collection held/partly held."
+        },
+        "estimate": ">100M perturbed cells; ~70k+ (perturbation x cell-context) matched-control conditions across held corpora",
+        "confidence": "high"
+      },
+      "gap": "Not a data gap for H1. This is the ONE objective with an abundant, same-experiment paired training corpus already on S3. Caveat: cell contexts are dominated by cancer lines (Tahoe) + primary CD4 T (CZI); immune cell-type coverage beyond T cells is thinner. Perturbation-response pairing does not require the H2-H4 cross-modal join.",
+      "training_eligible": false
+    },
+    {
+      "id": "H2",
+      "name": "translation efficiency",
+      "role": "FM-TRAIN",
+      "feature": "transcriptome (mRNA abundance), same sample",
+      "label": "ribo-seq (RPF / translation), same sample",
+      "join_logic": "pair = (RNA-seq, Ribo-seq) from the SAME biological sample -> translation efficiency TE = RPF/mRNA. Join key = sample identity within a study that ran both assays.",
+      "paired_N_currently_computable": {
+        "held_on_S3": false,
+        "value": 0,
+        "note": "ZERO Ribo-seq held on S3 (confirmed). No matched RNA+Ribo sample landed."
+      },
+      "paired_N_exists_publicly": {
+        "estimate": "~1,054 human matched RNA+Ribo-seq samples (RiboBase TE-ready subset); RPFdb v3.0 independently reports 2,343 matched RNA-seq alongside 5,018 Ribo-seq. Best human TE-ready estimate ~1,000-2,300 same-sample pairs.",
+        "immune-context subset": "essentially 0 on any HLA-typed immune line under a matched perturbation; IFN-gamma Ribo-seq exists ONLY on primary human macrophages (Su 2015) with no matched immunopeptidome. In the perturbation-matched multimodal inventory, 4-layer (T+R+P+L) sets = 1 identified (PXD013649, melanoma/lung +IFN-gamma with exome+RNA+Ribo) but NOT held.",
+        "confidence": "medium (public scale from RiboBase/RPFdb; immune-subset from literature sweep)"
+      },
+      "gap": "BIGGEST H2-H4 GAP. The matched-sample TE layer is (a) 0 held, (b) exists publicly at ~1-2k generic human pairs but is near-absent on immune/HLA-typed contexts, (c) as a perturbation-matched cross-modal layer aligned with H1/H3/H4 it is effectively 1 identified set (PXD013649). To count exactly: fetch RiboBase/RPFdb matched pairs and intersect sample metadata with RNA availability; but immune-relevant matched TE requires generation.",
+      "training_eligible": false
+    },
+    {
+      "id": "H3",
+      "name": "protein abundance",
+      "role": "FM-TRAIN",
+      "feature": "transcriptome (mRNA), same sample / same cell line",
+      "label": "proteome (shotgun / DIA / TMT MS abundance), same sample / same cell line",
+      "join_logic": "pair = (transcriptome, proteome) for the SAME cell line or SAME tumor sample. Same-flask pairs are strongest; cell-line-level pairs (CCLE RNA joined to ProCan/CCLE proteome by DepMap/Cellosaurus ID) are cross-study but valid for cell-line abundance modeling.",
+      "paired_N_currently_computable": {
+        "held_on_S3": "partial",
+        "value_same_flask_held": "~2 (PXD023038 MDA-MB-231 IFN-neg/pos DIA proteome held as RAW ONLY, no processed protein matrix; must be searched. CCLE basal transcriptome held (DepMap TPM), proteome NOT held).",
+        "note": "Proteome held only as RAW .raw files (PXD023038, ~32 GB); no processed protein-abundance matrix landed -> currently-computable same-flask paired-N is ~0 until the RAW is searched. Transcriptome side (CCLE/DepMap TPM) IS held."
+      },
+      "paired_N_exists_publicly": {
+        "estimate": "~950-1,000 distinct human cancer cell lines with BOTH deep MS proteome (ProCan 949 lines / CCLE-Nusinow 375 lines) AND CCLE transcriptome -> ~950-1,000 cell-line-level (RNA,protein) pairs joinable via DepMap ID. Plus >1,000 CPTAC tumors with matched RNA+protein (same-sample).",
+        "confidence": "high (ProCan/CCLE/CPTAC scales are published)"
+      },
+      "gap": "Proteome corpus is NOT held (only 1 IFN-gamma set's RAW). Cell-line RNA-proteome pairing is cross-study (different flasks) except CPTAC (same-sample tumors). To count exactly-held: search PXD023038 RAW to a protein matrix (only 1 line) OR fetch ProCan PXD030304 + CCLE-Nusinow and join to DepMap TPM (~950 lines, cross-study). Immune-line same-flask RNA+proteome under perturbation is thin (folds into the H4 triads below).",
+      "training_eligible": false
+    },
+    {
+      "id": "H4",
+      "name": "antigen presentation (immunopeptidome)",
+      "role": "FM-TRAIN",
+      "feature": "proteome/perturbation-transcriptome (machinery-state: PSMB8/9/10, TAP1/2, TAPBP, ERAP1/2, B2M, CIITA, HLA-A/B/C...) + HLA genotype, same cell context",
+      "label": "immunopeptidome (eluted-ligand peptide-HLA MS), same cell context",
+      "join_logic": "pair = (cell-context x perturbation x HLA-genotype) triple for which BOTH a machinery-state feature (from held T and/or P) AND an eluted-ligand MS readout co-exist. HLA genotype supplied by TCLP (1,082 lines, 4-digit) via DepMap/Cellosaurus ID. Strongest = same-flask co-deposited multimodal; relaxed = cross-study CCLE join.",
+      "paired_N_currently_computable": {
+        "held_on_S3": "partial",
+        "value_held": "1 immunopeptidome set landed with matched feature: PXD056426 (HAP1 11-gene APM-KO, 12 conditions, each KO vs WT with matched bulk proteome) -> H4 kill-test PASS (B2M-KO -> 2% surface). PXD054491 (ERAP1-KO) also held. HLA Ligand Atlas held (223,246 peptides, benign reference, unperturbed).",
+        "note": "The tracks/immunopeptidome manifest is 2-4 KB manifest-ONLY (dead IEDB/HLA-Atlas URLs) -> no bulk landed L data beyond PXD056426/PXD054491 + HLA Ligand Atlas. Proteome/transcriptome feature side for those held L sets IS present (HAP1 matched proteome in-deposit; CCLE RNA for lines).",
+        "confidence": "high (S3-verified: PXD056426, PXD054491, HLA_Ligand_Atlas held; proteome_raw only PXD023038; immunopeptidome tracks = manifest only)"
+      },
+      "paired_N_exists_publicly": {
+        "perturbation_matched_same_flask": {
+          ">=2 modalities": "4 co-deposited sets (GRANTA-519/PXD020750 T+P+L; MDA-MB-231/PXD023038+44 P+L; melanoma panel/PXD017407+GSE144373 T+P+L; UWB.1.289/PXD006939 L-only)",
+          ">=3 modalities (T+P+L, H2->H4 trainers)": "3 (GRANTA-519, melanoma panel, MDA-MB-231-via-CCLE-RNA); 1 (GRANTA-519/PXD020750) is a clean single-deposit T+P+L+HLA prize",
+          "4-layer (T+R+P+L)": "1 identified (PXD013649), 0 held",
+          "causal machinery-KO -> presentation (matched WT)": "~29 verified perturbation-paired immunopeptidome studies identified (HAP1 APM-panel PXD056426 held; ERAP1/2, B2M, TAPBP/TAPBPR, CIITA KO cluster; DNMTi/HDACi/MEKi/AZA drug arms; ONX-0914 immunoproteasome-inhibitor MSV000091285) -- identified/verified, mostly NOT held"
+        },
+        "baseline_relaxed_cross_study": "hundreds of (cell-context x HLA) >=2-modality pairs via CCLE RNA (~1,000 lines) + Nusinow proteome (375 lines) joined to SysteMHC v2.0 (89 studies / 2,447 samples / 303 allotypes) / caAtlas (311) / B721.221 mono-allelic (95 alleles). Cross-study, not same-flask.",
+        "confidence": "high (literature+PRIDE-verified in PAIRED_SAMPLE_INVENTORY / CAUSAL manifest)"
+      },
+      "gap": "Held paired H4 training data = 1-2 causal-KO sets (PXD056426, PXD054491) + benign reference. The perturbation-matched paired immunopeptidome layer that EXISTS publicly (~3 T+P+L triads + ~29 causal-KO sets) is enough to build the pipeline and run the IFN-gamma kill-test, NOT enough to be a generalizing training corpus -> Tier-2 CRO generation required. Immunopeptidome (L) is the least-held modality (manifest-only). To count exactly-held: fetch PXD020750/023044/017407 + the causal-KO cluster; then paired-N = triads landed.",
+      "training_eligible": false
+    },
+    {
+      "id": "VACCINE",
+      "name": "vaccine immune response (baseline transcriptome -> seroconversion)",
+      "role": "VALIDATE",
+      "feature": "baseline (pre-vaccination) transcriptome (GEO/SRA/ENA-linked)",
+      "label": "seroconversion / response (HAI / titer fold-change) from ImmPort",
+      "join_logic": "subject -> biosample -> expsample -> expsample_public_repository (GEO/SRA) for a BASELINE transcriptome AND subject has a measured pre/post titer response label. Pair = subject with both.",
+      "paired_N": 2125,
+      "paired_N_detail": {
+        "label_subjects_total": 6819,
+        "linked_to_any_public_repo": 2188,
+        "transcriptome_any_timepoint": 2188,
+        "baseline_pre_vaccination_paired": 2125,
+        "studies_contributing": 40,
+        "by_repo": {"GEO": 2178, "SRA": 69}
+      },
+      "source": "vaccine_paired_features_summary.json (precomputed W1 input)",
+      "confidence": "high",
+      "gap": "Label count (6,819) vastly exceeds paired-N (2,125): only 31% of vaccine-response subjects have a linked baseline transcriptome. dbGaP links excluded (controlled genotype, not transcriptome). This 2,125 is the real validatable N for 'predict response from baseline immune state'.",
+      "training_eligible": false
+    },
+    {
+      "id": "SAFETY",
+      "name": "safety / adverse-event prediction (molecular feature -> clinical AE)",
+      "role": "VALIDATE",
+      "feature": "molecular feature (transcriptome) linked to the AE-bearing subject/arm",
+      "label": "adverse-event outcome: arm-level AE rate with denominator (ImmPort adverse_event x arm roster)",
+      "join_logic": "LABEL side: subject rostered to an arm in an AE-collecting study (297 arms, 107 studies, 16,516 subjects). FEATURE side: same subject -> biosample -> expsample -> expsample_public_repository transcriptome link. Pair = subject with BOTH an AE label AND a transcriptome feature. (Arm-level alternative: arm has both an AE rate and >=1 transcriptome-linked subject.)",
+      "label_only_N": {
+        "n_arms": 297,
+        "n_studies": 107,
+        "n_subjects_denominator": 16516,
+        "total_ae_rows": 92733,
+        "note": "This is LABEL-ONLY. It is NOT the trainable/validatable paired-N."
+      },
+      "paired_N": 1047,
+      "paired_N_detail": {
+        "paired_N_any_public_repo": 1240,
+        "paired_N_transcriptome_plausible": 1047,
+        "note": "1,240 AE-labeled subjects also carry a public-repo (GEO/SRA) expsample link; 1,047 after excluding 193 subjects whose linked biosample material is DNA (genotype/exome, not expression). All 1,240 are GEO/SRA/ENA (none dbGaP-only). Accession prefixes: GSM 2,501 + SRX 207 (sample-level, not series-level).",
+        "component_counts": {
+          "subjects_with_safety_label": 16516,
+          "subjects_with_any_public_repo_expsample": 8375,
+          "subjects_GEO_SRA_ENA_linked": 7258,
+          "intersection": 1240
+        },
+        "studies_contributing": 10,
+        "studies_transcriptome_plausible": 9,
+        "top_studies": {"SDY1880": 270, "SDY1903": 270, "SDY1402": 250, "SDY1027_DNA_excluded": 194, "SDY1490": 133, "SDY1039": 62, "SDY1387": 19, "SDY522": 19, "SDY144": 17, "SDY616": 7}
+      },
+      "source": "ImmPort tables_parquet join: (adverse_event x arm_2_subject roster) INTERSECT (subject->biosample->expsample_2_biosample->expsample_public_repository), computed W1",
+      "confidence": "high on the join; MEDIUM on the exact transcriptome count (per-GSM assay type RNA-seq vs methylation/miRNA/scRNA not verified against GEO -> 1,047 is an upper bound on true RNA-expression pairs)",
+      "gap": "Safety paired-N is ~1,047-1,240 subjects across 9-10 studies -- an ORDER OF MAGNITUDE below the 16,516 label-only denominator (label count is 13-16x the paired-N). Concentrated in a few studies (SDY1880/1903/1402/1490). To count exactly: verify each of the 2,708 GSM/SRX accessions is an expression assay (vs methylation/genotype). Still a real, if modest, safety-validation set.",
+      "training_eligible": false
+    },
+    {
+      "id": "THERAPY_DURATION",
+      "name": "therapy duration / sustained response (molecular feature -> time-to-event)",
+      "role": "VALIDATE",
+      "feature": "molecular feature (baseline transcriptome / covariates) of the withdrawal-cohort patient",
+      "label": "time-to-event: biopsy-proven rejection after immunosuppression withdrawal (iWITH / SDY1490)",
+      "join_logic": "patient with a withdrawal time-to-event label AND a matched molecular feature. Current held label cohort (iWITH) = clinical/covariate only.",
+      "label_only_N": {
+        "iwith_SDY1490": {
+          "n_enrolled_with_followup": 88,
+          "n_rejection_events": 40,
+          "event_rate": 0.455,
+          "median_time_to_rejection_days": 230,
+          "covariates_only": ["prior_rejection_history", "age", "SEX"]
+        },
+        "aggregate_trial_withdrawal_arms": "RA 194 + asthma 104 + lupus 43 usable aggregate trials (arm-level withdrawal/durability evidence, ClinicalTrials.gov) -- NOT patient time-to-event, NOT molecular-linked"
+      },
+      "paired_N_molecular": 0,
+      "paired_N_detail": "iWITH (n=88 patients, 40 events) has clinical covariates only -- NO transcriptome/molecular feature landed for these patients. The aggregate RA/asthma/lupus trial arms are label-only aggregates with no per-patient molecular feature. => molecular-feature -> duration-outcome paired-N = 0.",
+      "confidence": "high",
+      "gap": "BIGGEST DURATION GAP: paired molecular-feature -> duration-outcome N = 0. iWITH gives a real 88-patient/40-event clinical time-to-event cohort but with only age/sex/history covariates, no expression. To get a nonzero molecular paired-N, must locate a withdrawal/tolerance cohort with baseline transcriptomes (e.g. iWITH biosamples linked to GEO, or a different tolerance study) -- not present in current holdings.",
+      "training_eligible": false
+    }
+  ],
+  "summary_table": {
+    "H1_transcriptional_perturbation": {"paired_N_held": ">100M cells / ~70k conditions", "status": "ABUNDANT (held)"},
+    "H2_translation_efficiency": {"paired_N_held": 0, "paired_N_public": "~1,000-2,300 generic human; ~1 immune-perturbation-matched", "status": "NEAR-ZERO / biggest cross-modal gap"},
+    "H3_protein_abundance": {"paired_N_held": "~0 same-flask (proteome RAW-only)", "paired_N_public": "~950-1,000 cell-line + >1,000 CPTAC tumor pairs", "status": "EXISTS but not held/processed"},
+    "H4_presentation": {"paired_N_held": "1-2 causal-KO sets + benign ref", "paired_N_public": "~3 T+P+L triads + ~29 causal-KO sets; hundreds cross-study baseline", "status": "THIN (bootstrap-only) -> Tier-2 needed"},
+    "vaccine_response": {"paired_N": 2125, "status": "VALIDATION-ready (real)"},
+    "safety": {"paired_N": "1,047-1,240", "label_only_N": 16516, "status": "MODEST (real) -- ~1k paired vs 16.5k label-only; 13-16x overstatement"},
+    "therapy_duration": {"paired_N_molecular": 0, "clinical_cohort_N": 88, "status": "ZERO molecular pairs"}
+  }
+}

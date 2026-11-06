@@ -73,6 +73,13 @@ This is the step that catches PEP 604 / missing-import bugs **before** they take
 - But gunicorn's worker class can eagerly evaluate them via FastAPI route registration paths
 - A direct `python3.9 -c "import …"` reproduces the same eager-eval behaviour
 
+### 3b. Workflow chain lint (any change to chains, workflows, or `galaxy_ai_tools.db`)
+```bash
+python3 scripts/lint_workflow_chains.py   # exit 0 = required chains clean; exit 1 = fix before sync
+```
+**Checks:** for each required-clean chain, every step resolves to an executable workflow and every connection's `to_input` is a parameter the downstream workflow declares (`params.X` in `main.nf` or `nextflow_schema.json`). Undeterminable connections are listed as WARN only. Other chains get a one-line count (`--all` for details).
+**Why:** the executor injects the upstream artifact as `params[to_input]`; an undeclared name launches a doomed Batch job at step 2 or 3. See `docs/20261101_WORKFLOW_CHAIN_AUDIT.md`. Offline unit test: `python3 -m unittest scripts.test_lint_workflow_chains`.
+
 ### 4. Domain-specific integration test
 If your change touches a documented surface, run its integration test:
 
@@ -82,6 +89,19 @@ If your change touches a documented surface, run its integration test:
 | `backend/biomni_workflows/nextflow_nfcore/subworkflows/` (workflow .nf files) | `python3 scripts/test_phase_groups.py` (TODO: move from `/tmp/`) |
 | New backend FastAPI route | `curl -sf http://localhost:8081/<your-route>` (after starting local Galaxy backend) |
 | Workflow execution flow | Existing Playwright e2e in `frontend/e2e/` |
+
+### 4b. Workflow integrity guard — fabrication class gate (HARD)
+Run whenever you add/modify a workflow `.nf`, or change any `executable` flag, or sync the DB:
+```bash
+python3 scripts/audit_fabrication.py   # exit 0 = clean; exit 1 = an executable workflow fabricates
+```
+Enforces the invariant **no `executable=1` workflow fabricates its outputs** (RNG → written output,
+no input read — code lines only). This is the class guard for the MERFISH / "Analyze-Quantify"
+fabrication stubs (`docs/20261002_FABRICATION_AUDIT.md`). A FAIL is a triage gate, not auto-block:
+rewire the workflow to a real tool, OR set `executable=0`, OR — if the RNG is legitimately the
+workflow's purpose (array/IO package, simulation, honestly-labeled synthetic demo) — add its id to
+`ALLOWLIST` in the script **with a reason**. Needs the full enriched `galaxy_ai_tools.db` (not the
+local stub), so run it in CI or after an S3 DB pull. Do NOT sync a DB that trips this gate.
 
 ### 5. Sync to dev — only after 1–4 pass
 ```bash

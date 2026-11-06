@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T0 — 入门：你的第一个问题</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t11{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:46px 70px 54px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:38px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 14px; max-width:18ch}
+.scene.title h2{font-size:54px; max-width:20ch; margin-bottom:20px}
+.caption{font-size:19px; line-height:1.55; color:var(--ink2); max-width:64ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:68ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:26px; min-height:0}
+
+/* verdict badges */
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+.tag.ship{background:var(--green-bg); color:var(--green)}
+.tag.open{background:var(--amber-bg); color:var(--amber)}
+.tag.gap{background:var(--red-bg); color:var(--red)}
+
+/* screenshot figures */
+.shots{display:flex; gap:26px; flex:1; min-height:0}
+.shot{flex:1; display:flex; flex-direction:column; min-height:0}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:52ch}
+.shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:22px 26px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row2{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:16px 18px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:17px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13.5px; line-height:1.5; color:var(--ink2); margin:0}
+.tile.lane-i{border-left:3px solid var(--green)}
+.tile.lane-c{border-left:3px solid var(--blue)}
+.flowline{display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+svg{display:block}
+.svgwrap{flex:1; display:flex; align-items:center; justify-content:center; min-height:0}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.15fr .85fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:22px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t11">教程 0 · 入门 — 你的第一个问题</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">9</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="20.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>快速上手</b></div>
+    <div class="kicker">唯一的入口 · 唯一的流程</div>
+    <h2>用日常的话说出你的目标，剩下的交给 BioMate。</h2>
+    <p class="caption">无需安装软件，也无需写代码。输入一个目标，看清它属于哪类工作，审阅消息，自己发送，然后读取结果。在你确认之前，什么都不会运行。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>输入目标</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>看它会被如何处理</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>审阅</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>发送</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>读取结果</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — WHAT BIOMATE IS -->
+  <section class="scene" data-seconds="26.4">
+    <div class="kicker"><span class="st">核心理念</span> · BioMate 是什么</div>
+    <h2>一个用日常语言对话的云端工作台。</h2>
+    <p class="caption">你不必自己安装软件、拼接工具，只要描述你想做什么。BioMate 要么<b>从科学文献和数据库中给出答案</b>，要么<b>在云端运行一条经过测试的分析</b>——并把结果连同"它是如何得到结果的"记录一并交回。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">你</div><h4>描述一个目标</h4><p>用日常的话——无需编程或生物信息学背景。</p></div>
+            <div class="tile"><div class="n">BIOMATE</div><h4>作答或运行</h4><p>查阅文献给出带引用的答案，或在云端运行一条经过验证的工作流。</p></div>
+            <div class="tile"><div class="n">始终</div><h4>先让你看清</h4><p>它会先展示它打算如何处理你的请求，并在任何云端运行前征得你的确认。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">查找证据 · 分析你自己的数据 · 设计分子 · 从实验结果中学习——四类工作，同一个入口。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>在你看过并确认之前，什么都不会运行，也不会计费</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE COLD START (screenshot) -->
+  <section class="scene" data-seconds="18.4">
+    <div class="kicker"><span class="st">入口</span> · 冷启动</div>
+    <h2>每一个新对话都从冷启动开始。</h2>
+    <p class="caption">一个<b>意图输入框</b>供你输入目标，中间是四张<b>模块卡片</b>，底部是<b>编排区</b>——也就是消息框。可以把它想成前台接待：你说出需求，它为你指明方向。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/s1-1-sidebar.png" alt="BioMate 冷启动——侧边栏、意图输入框、模块卡片、编排区"/></div>
+          <figcaption><span class="lbl">实际产品</span>左侧是侧边栏（随时点击"New Chat"回到这里），顶部是意图输入框，中间是四张模块卡片，底部是编排区。</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — THE FOUR MODULES -->
+  <section class="scene" data-seconds="26.4">
+    <div class="kicker"><span class="st">四个模块</span> · 四类工作</div>
+    <h2>四类工作——而你从不需要自己挑选。</h2>
+    <p class="caption">这些卡片只是帮你辨认目标属于哪一类工作。在意图输入框里输入目标，BioMate 就会把它交给合适的那一类。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">检索与证据</div><h4>"目前已知什么？"</h4><p>从文献和数据库中得出一份简短、带引用的答案。本教程所用的示例。</p></div>
+            <div class="tile"><div class="n">数据分析</div><h4>"在我的数据上运行"</h4><p>RNA-seq、变异检测等，使用经过验证的流程。（教程 3）</p></div>
+            <div class="tile"><div class="n">设计与生成</div><h4>"提出候选分子"</h4><p>为药物项目提出新的候选分子。（教程 1）</p></div>
+            <div class="tile"><div class="n">模型</div><h4>"学习与改进"</h4><p>从你的实验结果中学习，改进下一轮。（教程 2）</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">你<b>不必</b>先选模块——意图输入框会把你用日常话写下的目标交给合适的那类工作。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — TWO KINDS OF REQUEST -->
+  <section class="scene" data-seconds="29.9">
+    <div class="kicker"><span class="st">两类请求</span> · 一份带来源的答案，或一次完整分析</div>
+    <h2>一份带来源的答案，或一次需要你确认的分析。</h2>
+    <p class="caption">BioMate 会以两种方式之一处理每个请求，并在你发送前就告诉你用的是哪一种——云端运行在你确认之前绝不会启动。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile lane-i"><div class="n">一份带来源的答案</div><h4>几秒钟内给出带引用的答案</h4><p>查阅文献和数据库，直接在对话中回复，不涉及大规模计算。"关于 X，目前已知什么"就在这里作答。</p></div>
+            <div class="tile lane-c"><div class="n">一次完整的分析运行</div><h4>一条经过验证的工作流</h4><p>在云端运行，使用付费算力。在你自己的数据上运行分析走的就是这条路径。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">云端运行在你确认之前绝不会启动付费计算。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>处理方式在你发送前就已显示，且任何云端运行都需你明确确认才会开始。</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — NOTHING RUNS UNTIL YOU SEND (screenshot) -->
+  <section class="scene" data-seconds="17.6">
+    <div class="kicker"><span class="st">安全规则</span> · 发送前什么都不会运行</div>
+    <h2>主动权在你：不按发送，什么都不会送出。</h2>
+    <p class="caption">卡片或意图输入框会<b>预填</b>对话底部的编排区。你读一遍被填入的内容，按需调整，附上数据，再亲自按下<b>发送</b>。<b>到这一步，才会真正开始。</b></p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t0-composer.png" alt="对话底部的编排区，带有附加文件和指向数据的控件" style="object-fit:contain;object-position:center"/></div>
+          <figcaption><span class="lbl">编排区</span>除了输入文字，你还可以附上自己的文件（回形针图标），并指向 BioMate 已持有的数据（数据库图标）。</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — ASKING YOUR FIRST QUESTION (screenshot) -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">一步步来</span> · 提出你的第一个问题</div>
+    <h2>输入一个真实目标，在发送前看它会被如何处理。</h2>
+    <p class="caption">我们来问一个证据类问题，因为它几秒钟就能返回：<i>"有哪些证据把 JAK1 与类风湿关节炎联系起来，这些证据有多强？"</i>在你输入时，BioMate 会给出一句简短的复述——它会如何处理你的请求（显示为"在此作答 · 附来源"），以及对主题的简明理解（"一个关于已知什么的问题"）。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t0-lane.png" alt="编排区中的一个知识问题以及请求预览" style="object-fit:contain;object-position:center"/></div>
+          <figcaption><span class="lbl">输入 → 看它会被如何处理 → 审阅 → 发送</span>你的目标落进编排区，你可以在这里修改。当它准确表达了你的意思，就按下发送（Shift+Enter 换行）。</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — HOW TO READ IT + HONEST LIMITS -->
+  <section class="scene" data-seconds="34.7">
+    <div class="kicker"><span class="st">如何阅读</span> · 答案</div>
+    <h2>一份简明、有出处、可追溯的报告。</h2>
+    <p class="caption">证据类答案带有编号标记，把每条论断对应到一个来源；引用可以点开，直达出版方页面；还有一段<b>边界说明</b>，讲清这个答案<i>不能</i>作为哪方面的证据。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">如何阅读</h4>
+            <p style="font-size:14px;line-height:1.55;margin:0">编号标记 <code>[1] [2]</code> 指向答案所用的来源。每条引用都可点开直达出版方。边界说明则告诉你这个答案能可靠到什么程度。</p>
+          </div>
+        </div>
+        <div class="lead-col">
+          <div class="card" style="border-left:3px solid var(--amber)">
+            <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">这份答案是什么</div>
+            <p style="font-size:13.5px;line-height:1.55;margin:0;color:var(--ink2)">证据类答案概括的是已发表的文献；它<b>不是</b>对你自己数据的结论。对于你自己的数据，经过验证的分析会在云端运行，并把结果连同生成过程的记录一并返回。</p>
+          </div>
+          <div class="tags" style="margin-top:16px">
+            <span class="verdict ok"><span class="mk"></span>每条论断都链接到一个来源</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — CLOSING -->
+  <section class="scene title" data-seconds="25.4">
+    <div class="kicker">一眼看懂整个流程</div>
+    <h2 style="font-size:44px">输入目标 → 看它会被如何处理 → 审阅 → 发送 → 读取结果。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">这就是整个入口。BioMate 中的其余一切，都是这同一个流程更丰富的版本，只是附上了它的来源或可复现记录。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>用日常的话输入一个目标</li>
+            <li><span class="k">2</span>看它会被如何处理——带来源的答案，或完整分析</li>
+            <li><span class="k">3–4</span>审阅被填好的消息（现成示例还会带上它的演示数据），然后自己发送</li>
+            <li><span class="k">5</span>读取结果——来源，或一份记录</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>询问已知什么</td><td>检索与证据 · <span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">在此作答 · 本教程</span></td></tr>
+            <tr><td>设计分子</td><td>设计与生成 · <span class="tag" style="font-size:10.5px">教程 1</span></td></tr>
+            <tr><td>从实验结果中学习</td><td>模型 · <span class="tag" style="font-size:10.5px">教程 2</span></td></tr>
+            <tr><td>运行完整分析</td><td>数据分析 · <span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">在云端 · 教程 3</span></td></tr>
+          </table>
+          <p class="footnote">在任何任务运行之前，BioMate 都会先让你看到它打算做什么。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

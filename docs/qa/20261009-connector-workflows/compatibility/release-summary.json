@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-10T02:55:43.312883+00:00",
+  "deployment": "https://dev-public.biomate.ai",
+  "frontendCommit": "7a2ae3e54e694e8eaf1fe2439073dabbb71b8da7",
+  "frontendImage": "sha256:2d31ffe17505de5ac2a7ef298b3aa7bf074e2486b84c0f44b2072b74bb0e8753",
+  "packages": {
+    "@biomate/mcp-server": "0.1.1",
+    "@biomate/connect": "0.1.1"
+  },
+  "publishedOAuthChecks": 14,
+  "publishedOAuthPassed": true,
+  "publishedApiKeyChecks": 4,
+  "publishedApiKeyPassed": true,
+  "deployedSessionPassed": true,
+  "publishedInstallerHelpPassed": true,
+  "installerNode18StartupPassed": true,
+  "productionVerified": false
+}

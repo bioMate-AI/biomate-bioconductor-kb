@@ -1,16 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Brain, Database, Zap, CheckSquare, Square, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Brain, Database, CheckSquare, Square, Plug } from 'lucide-react';
+import {
+  ResidencyBadge, ScopeSelector, NOT_DECLARED, runsInFromResidency,
+  type Residency, type Scope, type DeclaredFacts,
+} from './connector-residency';
+import { PrivateDbConnectionForm } from './private-db-connection-form';
+import { AddConnectorFlow } from './add-connector-flow';
+import { SettingsDialog } from './settings-dialog';
+import { normalizeSkillPack, type SkillPack } from './skills-selector';
+import { InstrumentsSection } from './instruments-section';
+import { McpServerForm } from './mcp-server-form';
 
-const ACTIVE_SKILLS_KEY = 'biomate-active-skills';
 const ACTIVE_DBS_KEY = 'biomate-active-databases';
+const CONNECTOR_SCOPES_KEY = 'biomate-connector-scopes';
 
-function loadActiveSkills(): string[] {
-  try { return JSON.parse(localStorage.getItem(ACTIVE_SKILLS_KEY) || '[]'); } catch { return []; }
+// Per-connector scope (§0.9.2). One library, one state: the selection is
+// persisted and read back — the dialog does not keep a private list.
+function loadConnectorScopes(): Record<string, Scope> {
+  try { return JSON.parse(localStorage.getItem(CONNECTOR_SCOPES_KEY) || '{}'); } catch { return {}; }
 }
-function saveActiveSkills(ids: string[]) {
-  localStorage.setItem(ACTIVE_SKILLS_KEY, JSON.stringify(ids));
+function saveConnectorScopes(scopes: Record<string, Scope>) {
+  localStorage.setItem(CONNECTOR_SCOPES_KEY, JSON.stringify(scopes));
 }
+
 function loadActiveDbs(allNames: string[]): string[] {
   try {
     const stored = localStorage.getItem(ACTIVE_DBS_KEY);
@@ -22,30 +35,37 @@ function saveActiveDbs(names: string[]) {
   localStorage.setItem(ACTIVE_DBS_KEY, JSON.stringify(names));
 }
 
-interface Connector {
+interface Connector extends DeclaredFacts {
   name: string;
   category: string;
   description: string;
+  // Declared facts (§0.9.1): residency, needs, produces, runsIn — all optional.
+  // Absent facts render as an honest "not declared" / "unspecified", never guessed.
 }
 
-interface SkillItem {
-  id: string;
-  title: string;
-  domains: string[];
-  domain?: string;
-  triggers: string[];
-  version?: string;
-  source?: string;
-  description?: string;
-  when_to_use?: string;
-  score?: number;
-}
+// Default scope shown for a source (§0.9.2 display). NOTE: scope is an
+// informational preview only — nothing in BioMate enforces it and no backend
+// reads `biomate-connector-scopes`. BioMate queries whichever public sources a
+// chat request needs regardless of what is shown here. The selector persists the
+// user's stated preference locally so the UI is stable, not because it gates access.
+const DEFAULT_SCOPE: Scope = 'account';
 
-type TabId = 'databases' | 'ai'; // 'skills' disabled — /api/skills unpopulated
+type TabId = 'databases' | 'ai' | 'yours' | 'instruments' | 'skills' | 'mcp';
+
+// NOTE: A "Skills" tab (upload / activate .md skill files) was scaffolded here but
+// removed — no backend read the selection (`/api/skills` returned nothing and
+// nothing consumed `biomate-active-skills`), so it implied an activation capability
+// that did not exist. Do not re-add it as a facade; wire a real endpoint first.
 
 // ── Scientific databases ───────────────────────────────────────────────────────
 
-const DB: Connector[] = [
+// Every entry below is a remote public database or web API: a query is sent out
+// of the estate to retrieve the answer. That makes `cloud` a genuine DECLARED
+// fact for the whole list (§0.9.1 residency), not a guess — so it is stamped
+// uniformly by `withDbFacts` rather than hand-repeated on 60 rows. Where a source
+// declares nothing further (no per-row needs/produces), those facts stay absent
+// and render as an honest "not declared".
+const DB_RAW: Connector[] = [
   // Protein & Structure
   { name: 'UniProt / Swiss-Prot', category: 'Protein', description: 'Protein sequences, function, variants, and disease associations' },
   { name: 'PDB / RCSB', category: 'Structure', description: 'Experimental 3D protein and ligand structures' },
@@ -121,6 +141,11 @@ const DB: Connector[] = [
   { name: 'GATK Best Practices', category: 'Standards', description: 'Variant calling guidelines and truth resource bundles from Broad' },
 ];
 
+// Stamp the uniform declared fact: remote public source → cloud residency.
+// `needs`/`produces`/`runsIn` remain absent (rendered "not declared") because the
+// list does not declare per-source connection scopes or output artifacts.
+const DB: Connector[] = DB_RAW.map(d => ({ residency: 'cloud' as Residency, ...d }));
+
 // ── Database category groups (for sub-tabs) ──────────────────────────────────
 
 const DB_GROUPS: { label: string; categories: string[] }[] = [
@@ -138,40 +163,92 @@ const DB_GROUPS: { label: string; categories: string[] }[] = [
 
 // ── AI models & platform connectors ───────────────────────────────────────────
 
+// Residency here is genuinely per-connector (a hosted LLM leaves the estate; a
+// self-hosted runner never does), so it is declared per row. `needs`/`produces`
+// are declared where they are real facts; left absent (→ "not declared") elsewhere.
 const AI: Connector[] = [
-  { name: 'Anthropic Claude', category: 'LLM', description: 'Primary model for workflow generation, QC analysis, and scientific planning' },
-  { name: 'Google Gemini', category: 'LLM', description: 'Alternative backbone for long-context and multimodal tasks' },
-  { name: 'OpenAI GPT', category: 'LLM', description: 'Fallback LLM for completions and embeddings' },
-  { name: 'Ollama', category: 'Local LLM', description: 'Self-hosted model runner for air-gapped deployments' },
-  { name: 'ChatGPT (GPT Actions)', category: 'AI Platform', description: 'Expose BioMate as a custom GPT action in ChatGPT' },
-  { name: 'Cursor', category: 'AI Platform', description: 'MCP connector — run workflows from within the Cursor IDE' },
-  { name: 'Coze', category: 'AI Platform', description: 'Plugin connector for building bioscience bots on the Coze platform' },
+  { name: 'Anthropic Claude', category: 'LLM', description: 'Primary model for workflow generation, QC analysis, and scientific planning',
+    residency: 'cloud', needs: 'API key', produces: 'text completions', runsIn: 'Anthropic-hosted endpoint' },
+  { name: 'Google Gemini', category: 'LLM', description: 'Alternative backbone for long-context and multimodal tasks',
+    residency: 'cloud', needs: 'API key', produces: 'text completions', runsIn: 'Google-hosted endpoint' },
+  { name: 'OpenAI GPT', category: 'LLM', description: 'Fallback LLM for completions and embeddings',
+    residency: 'cloud', needs: 'API key', produces: 'completions and embeddings', runsIn: 'OpenAI-hosted endpoint' },
+  { name: 'Ollama', category: 'Local LLM', description: 'Self-hosted model runner for air-gapped deployments',
+    residency: 'local', needs: 'local Ollama daemon', produces: 'text completions', runsIn: 'this host — never leaves' },
+  { name: 'ChatGPT (GPT Actions)', category: 'AI Platform', description: 'Expose BioMate as a custom GPT action in ChatGPT',
+    residency: 'cloud', needs: 'GPT Action manifest + auth', runsIn: 'ChatGPT-hosted' },
+  { name: 'Cursor', category: 'AI Platform', description: 'MCP connector — run workflows from within the Cursor IDE',
+    residency: 'local', needs: 'MCP endpoint', runsIn: 'the Cursor IDE on your host' },
+  { name: 'Coze', category: 'AI Platform', description: 'Plugin connector for building bioscience bots on the Coze platform',
+    residency: 'cloud', needs: 'plugin credentials', runsIn: 'Coze-hosted' },
   { name: 'Open-Claw', category: 'AI Platform', description: 'Open-source agent framework integration' },
-  { name: 'Slack', category: 'Messaging', description: 'Trigger workflows and receive run alerts in Slack channels' },
-  { name: 'Telegram', category: 'Messaging', description: 'Run BioMate sessions and receive results via Telegram bot' },
-  { name: 'WeChat / Feishu', category: 'Messaging', description: 'WeChat and Feishu bot connectors for teams in China' },
+  { name: 'Slack', category: 'Messaging', description: 'Trigger workflows and receive run alerts in Slack channels',
+    residency: 'cloud', needs: 'workspace OAuth token', runsIn: 'Slack-hosted' },
+  { name: 'Telegram', category: 'Messaging', description: 'Run BioMate sessions and receive results via Telegram bot',
+    residency: 'cloud', needs: 'bot token', runsIn: 'Telegram-hosted' },
+  { name: 'WeChat / Feishu', category: 'Messaging', description: 'WeChat and Feishu bot connectors for teams in China',
+    residency: 'cloud', needs: 'bot credentials', runsIn: 'WeChat / Feishu-hosted' },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function ConnectorTable({ rows, selected, onToggle }: { rows: Connector[]; selected?: string[]; onToggle?: (name: string) => void }) {
+// One declared fact rendered as "label: value", honest "not declared" when absent.
+function DeclaredFact({ label, value }: { label: string; value?: string }) {
+  const declared = !!value;
+  return (
+    <span
+      data-testid={`fact-${label}`}
+      data-declared={declared ? 'yes' : 'no'}
+      style={{ fontSize: 11, color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}
+    >
+      <span style={{ opacity: 0.7 }}>{label}:</span>{' '}
+      <span style={{ fontStyle: declared ? 'normal' : 'italic', opacity: declared ? 1 : 0.7 }}>
+        {declared ? value : NOT_DECLARED}
+      </span>
+    </span>
+  );
+}
+
+function ConnectorTable({
+  rows, selected, onToggle, scopes, onScopeChange, compact = false,
+}: {
+  compact?: boolean;
+  rows: Connector[];
+  selected?: string[];
+  onToggle?: (name: string) => void;
+  scopes: Record<string, Scope>;
+  onScopeChange: (name: string, scope: Scope) => void;
+}) {
+  // Embedded surface: a bordered card with zebra-striped rows, mirroring the
+  // reference `.card2` / `.connrow` treatment (data_centroid_design_v2). Even
+  // rows get a subtle edge-to-edge band (--bm-surface-2, dark-mode safe) so a
+  // wide row stays followable across; horizontal padding lives on the rows so
+  // the band spans the full card width.
+  if (compact) return <div className="p-5"><div className="rounded-lg border border-border bg-background overflow-hidden" data-testid="connector-table">{rows.map((row, i) => <article key={row.name} data-testid={`connector-row-${row.name}`} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center px-4 py-3 border-b border-border last:border-0" style={{ background: i % 2 === 1 ? 'var(--bm-surface-2)' : 'transparent' }}><div className="min-w-0"><h3 className="text-[13px] font-semibold">{row.name}</h3><p className="text-xs text-muted-foreground mt-1">{row.description}</p>{row.needs && <p className="text-xs text-muted-foreground mt-1">Requires {row.needs}</p>}</div><ResidencyBadge residency={row.residency} /><span className="text-[11px] text-muted-foreground">{row.category}</span></article>)}</div></div>;
   const checkable = !!onToggle;
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }} data-testid="connector-table">
       <thead>
         <tr style={{ borderBottom: '1px solid var(--border)' }}>
           {checkable && <th style={{ width: 36, padding: '6px 4px 6px 12px' }} />}
-          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 220 }}>Name</th>
-          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 140 }}>Category</th>
-          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600 }}>Description</th>
+          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 200 }}>Name</th>
+          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 120 }}>Category</th>
+          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 96 }}>Residency</th>
+          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600 }}>Declared facts</th>
+          <th
+            title="A preference for how widely you would scope this source (account / project / request). Informational only — scope is not enforced yet; BioMate queries public sources as each chat request needs them."
+            style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 180 }}
+          >Scope (preview)</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row, i) => {
           const active = selected?.includes(row.name) ?? false;
+          const scope = scopes[row.name] || DEFAULT_SCOPE;
           return (
             <tr
               key={row.name}
+              data-testid={`connector-row-${row.name}`}
               onClick={checkable ? () => onToggle?.(row.name) : undefined}
               style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none', cursor: checkable ? 'pointer' : 'default', background: active ? 'oklch(0.97 0.01 260 / 0.5)' : 'transparent' }}
             >
@@ -182,11 +259,33 @@ function ConnectorTable({ rows, selected, onToggle }: { rows: Connector[]; selec
                     : <Square style={{ width: 14, height: 14, color: 'var(--muted-foreground)', opacity: 0.4 }} />}
                 </td>
               )}
-              <td style={{ padding: '8px 12px', fontWeight: active ? 600 : 500, verticalAlign: 'top', color: 'var(--foreground)', whiteSpace: 'nowrap' }}>{row.name}</td>
+              <td style={{ padding: '8px 12px', fontWeight: active ? 600 : 500, verticalAlign: 'top', color: 'var(--foreground)' }}>
+                <div>{row.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted-foreground)', fontWeight: 400, marginTop: 2, lineHeight: 1.4 }}>{row.description}</div>
+              </td>
               <td style={{ padding: '8px 12px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
                 <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, background: 'var(--muted)', color: 'var(--muted-foreground)' }}>{row.category}</span>
               </td>
-              <td style={{ padding: '8px 12px', color: 'var(--muted-foreground)', verticalAlign: 'top', lineHeight: 1.5 }}>{row.description}</td>
+              {/* Residency (§0.9.3) — on every row, honest "unspecified" when undeclared */}
+              <td style={{ padding: '8px 12px', verticalAlign: 'top' }}>
+                <ResidencyBadge residency={row.residency} />
+              </td>
+              {/* Declared facts (§0.9.1) — needs / produces / where-it-runs */}
+              <td style={{ padding: '8px 12px', verticalAlign: 'top' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, lineHeight: 1.4 }}>
+                  <DeclaredFact label="needs" value={row.needs} />
+                  <DeclaredFact label="produces" value={row.produces} />
+                  <DeclaredFact label="where it runs" value={row.runsIn ?? runsInFromResidency(row.residency)} />
+                </div>
+              </td>
+              {/* Three scopes (§0.9.2) — account / project / request; one library, one state */}
+              <td style={{ padding: '8px 12px', verticalAlign: 'top' }}>
+                <ScopeSelector
+                  idBase={row.name}
+                  scope={scope}
+                  onChange={s => onScopeChange(row.name, s)}
+                />
+              </td>
             </tr>
           );
         })}
@@ -195,170 +294,15 @@ function ConnectorTable({ rows, selected, onToggle }: { rows: Connector[]; selec
   );
 }
 
-const BIOC_DOMAIN_LABELS: Record<string, string> = {
-  general: 'General', genomics: 'Genomics', transcriptomics: 'Transcriptomics',
-  'single-cell': 'Single Cell', epigenomics: 'Epigenomics', proteomics: 'Proteomics',
-  'variant-calling': 'Variant Calling', metagenomics: 'Metagenomics',
-  metabolomics: 'Metabolomics', imaging: 'Imaging', annotation: 'Annotation',
-  enrichment: 'Enrichment',
-};
-
-function SkillRow({ s, active, onToggle }: { s: SkillItem; active: boolean; onToggle: (id: string) => void }) {
-  const isExpert = s.source === 'expert' || !s.source;
-  return (
-    <tr
-      onClick={() => onToggle(s.id)}
-      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: active ? 'oklch(0.96 0.02 260 / 0.5)' : 'transparent' }}
-    >
-      <td style={{ padding: '8px 4px 8px 14px', verticalAlign: 'middle' }}>
-        <button
-          onClick={e => { e.stopPropagation(); onToggle(s.id); }}
-          style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
-          title={active ? 'Deactivate' : 'Activate'}
-        >
-          {active
-            ? <ToggleRight style={{ width: 22, height: 22, color: 'oklch(0.55 0.15 260)' }} />
-            : <ToggleLeft style={{ width: 22, height: 22, color: 'var(--muted-foreground)', opacity: 0.4 }} />}
-        </button>
-      </td>
-      <td style={{ padding: '8px 12px', fontWeight: active ? 600 : 500, verticalAlign: 'top', color: 'var(--foreground)' }}>
-        <span>{s.title}</span>
-        {active && <span style={{ marginLeft: 6, fontSize: 10, padding: '1px 5px', borderRadius: 99, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}>ACTIVE</span>}
-        {!isExpert && <span style={{ marginLeft: 5, fontSize: 10, padding: '1px 4px', borderRadius: 3, background: 'var(--muted)', color: 'var(--muted-foreground)' }}>Bioconductor</span>}
-      </td>
-      <td style={{ padding: '8px 12px', color: 'var(--muted-foreground)', verticalAlign: 'top', fontSize: 12, lineHeight: 1.5 }}>
-        {isExpert
-          ? (s.triggers || []).slice(0, 4).join(', ') + ((s.triggers || []).length > 4 ? ` +${s.triggers!.length - 4}` : '')
-          : (s.description || s.when_to_use || '').slice(0, 120) + ((s.description || '').length > 120 ? '…' : '')}
-      </td>
-    </tr>
-  );
-}
-
-function SkillTable({ skills, activeIds, onToggle }: { skills: SkillItem[]; activeIds: string[]; onToggle: (id: string) => void }) {
-  const isExpert = skills[0]?.source === 'expert' || !skills[0]?.source;
-  return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-      <thead>
-        <tr style={{ borderBottom: '1px solid var(--border)' }}>
-          <th style={{ width: 44, padding: '6px 4px 6px 14px' }} />
-          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600, width: 220 }}>Skill</th>
-          <th style={{ textAlign: 'left', padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', fontWeight: 600 }}>{isExpert ? 'Key triggers' : 'Description'}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {skills.map(s => (
-          <SkillRow key={s.id} s={s} active={activeIds.includes(s.id)} onToggle={onToggle} />
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function SkillsTab() {
-  const [allSkills, setAllSkills] = useState<SkillItem[]>([]);
-  const [biocDomains, setBiocDomains] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeIds, setActiveIds] = useState<string[]>(loadActiveSkills);
-  const [activeTab, setActiveTab] = useState<string>('expert');
-
-  useEffect(() => {
-    fetch('/api/skills')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => {
-        setAllSkills(Array.isArray(data.skills) ? data.skills : []);
-        setBiocDomains(Array.isArray(data.bioc_domains) ? data.bioc_domains : []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  const toggle = useCallback((id: string) => {
-    setActiveIds(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-      saveActiveSkills(next);
-      return next;
-    });
-  }, []);
-
-  if (loading) return <div style={{ padding: 24, color: 'var(--muted-foreground)', fontSize: 13 }}>Loading skills…</div>;
-
-  const expertSkills = allSkills.filter(s => s.source === 'expert' || !s.source);
-  const biocSkills = allSkills.filter(s => s.source === 'bioconductor');
-  const activeCount = activeIds.filter(id => allSkills.some(s => s.id === id)).length;
-
-  const tabSkills = activeTab === 'expert'
-    ? expertSkills
-    : biocSkills.filter(s => s.domain === activeTab);
-
-  const domainCount = (domain: string) =>
-    domain === 'expert' ? expertSkills.length : biocSkills.filter(s => s.domain === domain).length;
-
-  const domainSelected = (domain: string) => {
-    const relevant = domain === 'expert' ? expertSkills : biocSkills.filter(s => s.domain === domain);
-    return relevant.filter(s => activeIds.includes(s.id)).length;
-  };
-
-  const tabs = ['expert', ...biocDomains];
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Capability banner */}
-      <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'oklch(0.97 0.015 250)', display: 'flex', alignItems: 'flex-start', gap: 10, flexShrink: 0 }}>
-        <Zap style={{ width: 14, height: 14, color: 'oklch(0.45 0.15 260)', flexShrink: 0, marginTop: 2 }} />
-        <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--foreground)' }}>
-          <strong>BioMate has 4,000+ workflows across 36 biological domains</strong> — the right workflow is automatically matched to your request, no manual selection needed.{' '}
-          <span style={{ color: 'var(--muted-foreground)' }}>Skills below add deep domain reasoning on top. You can also <span style={{ color: 'oklch(0.45 0.15 260)', cursor: 'pointer', textDecoration: 'underline' }}>upload your own .md skill files</span> to customise the AI's expertise.</span>
-        </div>
-      </div>
-      {/* Active skills bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 16px', borderBottom: '1px solid var(--border)', background: 'var(--muted)', fontSize: 12, color: 'var(--muted-foreground)', flexShrink: 0 }}>
-        <span>{activeCount > 0
-          ? <><strong style={{ color: 'var(--foreground)' }}>{activeCount}</strong> skills active — injected into every AI response</>
-          : `${allSkills.length} skills (${expertSkills.length} expert + ${biocSkills.length} Bioconductor) — toggle to activate`}
-        </span>
-        {activeCount > 0 && (
-          <button onClick={() => { saveActiveSkills([]); setActiveIds([]); }} style={{ fontSize: 11, color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Clear all</button>
-        )}
-      </div>
-      {/* Domain sub-tabs */}
-      <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid var(--border)', padding: '0 12px', gap: 2, flexShrink: 0, scrollbarWidth: 'none' }}>
-        {tabs.map(tab => {
-          const isActive = tab === activeTab;
-          const count = domainCount(tab);
-          const sel = domainSelected(tab);
-          const label = tab === 'expert' ? 'Expert Roles' : (BIOC_DOMAIN_LABELS[tab] || tab);
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '6px 10px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                fontSize: 12, fontWeight: isActive ? 600 : 400,
-                color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
-                background: 'transparent',
-                borderBottom: isActive ? '2px solid var(--foreground)' : '2px solid transparent',
-                marginBottom: -1,
-              }}
-            >
-              {label}
-              <span style={{ fontSize: 10, padding: '0 4px', borderRadius: 3, background: isActive ? 'var(--foreground)' : 'var(--border)', color: isActive ? 'var(--background)' : 'var(--muted-foreground)' }}>{count}</span>
-              {sel > 0 && <span style={{ fontSize: 10, padding: '0 4px', borderRadius: 3, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}>{sel}✓</span>}
-            </button>
-          );
-        })}
-      </div>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {tabSkills.length === 0
-          ? <div style={{ padding: 24, color: 'var(--muted-foreground)', fontSize: 13 }}>No skills in this category.</div>
-          : <SkillTable skills={tabSkills} activeIds={activeIds} onToggle={toggle} />}
-      </div>
-    </div>
-  );
-}
-
-function DatabasesTab({ selected, onToggle }: { selected: string[]; onToggle: (name: string) => void }) {
+function DatabasesTab({
+  selected, onToggle, scopes, onScopeChange, compact = false,
+}: {
+  compact?: boolean;
+  selected: string[];
+  onToggle: (name: string) => void;
+  scopes: Record<string, Scope>;
+  onScopeChange: (name: string, scope: Scope) => void;
+}) {
   const [groupLabel, setGroupLabel] = useState('All');
 
   const group = DB_GROUPS.find(g => g.label === groupLabel) || DB_GROUPS[0];
@@ -408,7 +352,50 @@ function DatabasesTab({ selected, onToggle }: { selected: string[]; onToggle: (n
           );
         })}
       </div>
-      <ConnectorTable rows={rows} selected={selected} onToggle={onToggle} />
+      <ConnectorTable compact={compact} rows={rows} selected={selected} onToggle={onToggle} scopes={scopes} onScopeChange={onScopeChange} />
+    </div>
+  );
+}
+
+// ── Your connections tab ─────────────────────────────────────────────────────
+
+// This is the ONE genuinely writable surface in the dialog. Unlike the public
+// databases and AI/platform tabs — which are an honest READ-ONLY reference
+// directory (nothing to connect or switch on there) — this tab connects the
+// user's OWN private database and MCP server via real backend endpoints. Keep the
+// distinction sharp: the copy here says "connect", the reference tabs never do.
+function YourConnectionsTab() {
+  const [section, setSection] = useState<'db' | 'mcp'>('db');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }} data-testid="your-connections-tab">
+      {/* Sub-tabs: Private databases | MCP servers */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--muted)', padding: '0 12px', gap: 2, flexShrink: 0 }}>
+        {([['db', 'Private databases'], ['mcp', 'MCP servers']] as const).map(([id, label]) => {
+          const active = section === id;
+          return (
+            <button
+              key={id}
+              data-testid={`your-connections-sub-${id}`}
+              onClick={() => setSection(id)}
+              style={{
+                padding: '6px 10px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                fontSize: 12, fontWeight: active ? 600 : 400,
+                color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
+                background: 'transparent',
+                borderBottom: active ? '2px solid var(--foreground)' : '2px solid transparent',
+                marginBottom: -1,
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ padding: 16 }}>
+        {section === 'db' && <PrivateDbConnectionForm />}
+        {section === 'mcp' && <McpServerForm />}
+      </div>
     </div>
   );
 }
@@ -416,22 +403,42 @@ function DatabasesTab({ selected, onToggle }: { selected: string[]; onToggle: (n
 // ── Tab config ─────────────────────────────────────────────────────────────────
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; count?: number; tip: string }[] = [
-  { id: 'databases', label: 'Scientific Databases', icon: <Database style={{ width: 13, height: 13 }} />, count: DB.length, tip: 'Protein, genomics, omics, chemical, pathway, disease, literature, and imaging databases' },
-  { id: 'ai',        label: 'AI & Platforms',       icon: <Brain    style={{ width: 13, height: 13 }} />, count: AI.length, tip: 'LLM providers, AI coding tools, and messaging platform connectors' },
-  // Skills tab commented out — /api/skills returns 0 entries; re-enable when backend is populated
-  // { id: 'skills',    label: 'Skills',                icon: <Zap      style={{ width: 13, height: 13 }} />, tip: 'Scientific reasoning and data-retrieval skills available to the AI assistant' },
+  { id: 'databases', label: 'Data sources',   icon: <Database style={{ width: 13, height: 13 }} />, count: DB.length, tip: 'Public protein, genomics, omics, chemical, pathway, disease, literature, and imaging sources BioMate can query from chat' },
+  { id: 'ai',        label: 'Models & LLMs',      icon: <Brain    style={{ width: 13, height: 13 }} />, count: AI.length, tip: 'LLM providers and messaging / IDE surfaces BioMate exposes — reference only, not configured here' },
+  { id: 'skills', label: 'Skills & experts', icon: <Brain style={{ width: 13, height: 13 }} />, tip: 'Available expert packs; select packs for a request in the chat composer' },
+  { id: 'mcp', label: 'MCP servers', icon: <Plug style={{ width: 13, height: 13 }} />, tip: 'Manage your MCP server connections' },
+  { id: 'yours',     label: 'Private databases',    icon: <Plug     style={{ width: 13, height: 13 }} />,                   tip: 'Connect your OWN private database and MCP server — the one writable surface here, backed by real endpoints' },
+  { id: 'instruments', label: 'Instruments', icon: <Database style={{ width: 13, height: 13 }} />, tip: 'Manage laboratory instruments and data feeds' },
+  // A "Skills" tab was removed, not merely hidden: no backend read its selection,
+  // so it advertised an activation capability that did not exist. Add a real
+  // endpoint before re-introducing it — do not restore the facade.
 ];
 
 // ── Dialog ─────────────────────────────────────────────────────────────────────
 
 interface ConnectorsDialogProps {
+  embedded?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function ConnectorsDialog({ open, onOpenChange }: ConnectorsDialogProps) {
+export function ConnectorsDialog({ open, onOpenChange, embedded = false }: ConnectorsDialogProps) {
+  const [sourceView, setSourceView] = useState<'public' | 'private' | 'instruments'>('public');
+  const [adding, setAdding] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [packs, setPacks] = useState<SkillPack[] | null>(null);
+  const [packsError, setPacksError] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('databases');
+  useEffect(() => {
+    if (!open || activeTab !== 'skills') return;
+    let cancelled = false;
+    fetch('/api/skills', { credentials: 'include' }).then(r => { if (!r.ok) throw new Error('skills'); return r.json(); }).then(d => { if (!cancelled) setPacks((d.skills || []).map(normalizeSkillPack)); }).catch(() => { if (!cancelled) setPacksError(true); });
+    return () => { cancelled = true; };
+  }, [open, activeTab]);
   const [selectedDbs, setSelectedDbs] = useState<string[]>(() => loadActiveDbs(DB.map(d => d.name)));
+  // Three scopes (§0.9.2): one library, one state — the selector writes it, both
+  // tabs read it. Persisted so the "connected once, switched per project" choice survives.
+  const [scopes, setScopes] = useState<Record<string, Scope>>(loadConnectorScopes);
 
   const toggleDb = useCallback((name: string) => {
     setSelectedDbs(prev => {
@@ -441,27 +448,49 @@ export function ConnectorsDialog({ open, onOpenChange }: ConnectorsDialogProps) 
     });
   }, []);
 
-  const dbFooter = selectedDbs.length === DB.length
-    ? <><strong>All {DB.length}</strong> databases selected — <button onClick={() => { saveActiveDbs([]); setSelectedDbs([]); }} style={{ fontSize: 11, color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Deselect all</button></>
-    : selectedDbs.length > 0
-      ? <><strong>{selectedDbs.length}</strong> of {DB.length} databases selected — <button onClick={() => { const all = DB.map(d => d.name); saveActiveDbs(all); setSelectedDbs(all); }} style={{ fontSize: 11, color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Select all</button></>
-      : <>{DB.length} databases — <button onClick={() => { const all = DB.map(d => d.name); saveActiveDbs(all); setSelectedDbs(all); }} style={{ fontSize: 11, color: 'oklch(0.45 0.15 260)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Select all</button></>;
+  const setScope = useCallback((name: string, scope: Scope) => {
+    setScopes(prev => {
+      const next = { ...prev, [name]: scope };
+      saveConnectorScopes(next);
+      return next;
+    });
+  }, []);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        style={{ maxWidth: 860, width: '95vw', maxHeight: '82vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', gap: 0 }}
+  // The row checkbox is a personal reference shortlist stored in this browser only
+  // (localStorage). BioMate always queries whichever public sources a chat request
+  // needs — starring here does NOT enable, disable, or scope a source. The copy
+  // says so plainly so no one thinks a click connected or activated anything.
+  const dbFooter = selectedDbs.length === DB.length
+    ? <>All {DB.length} sources listed — BioMate queries whichever your request needs. <button onClick={() => { saveActiveDbs([]); setSelectedDbs([]); }} style={{ fontSize: 11, color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Clear your stars</button></>
+    : selectedDbs.length > 0
+      ? <><strong>{selectedDbs.length}</strong> of {DB.length} sources starred for your reference (local view filter — does not change what BioMate queries). <button onClick={() => { const all = DB.map(d => d.name); saveActiveDbs(all); setSelectedDbs(all); }} style={{ fontSize: 11, color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Star all</button></>
+      : <>{DB.length} public sources BioMate can query from chat. Click a row to star it for your own reference. <button onClick={() => { const all = DB.map(d => d.name); saveActiveDbs(all); setSelectedDbs(all); }} style={{ fontSize: 11, color: 'oklch(0.45 0.15 260)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Star all</button></>;
+
+  const Container = embedded ? 'section' : DialogContent;
+  const content = (
+      <Container
+        style={{ maxWidth: embedded ? 'none' : 1040, width: embedded ? '100%' : '96vw', height: embedded ? '100%' : undefined, maxHeight: embedded ? 'none' : '82vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', gap: 0 }}
         data-testid="connectors-dialog"
       >
-        <DialogHeader style={{ padding: '16px 20px 0', flexShrink: 0 }}>
-          <DialogTitle>Connectors</DialogTitle>
-          <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '3px 0 0' }}>
-            External data sources and integrations available in BioMate
-          </p>
-        </DialogHeader>
+        <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
+          {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connectors</p><div className="flex items-center justify-between gap-4"><h1 className="text-xl font-semibold">Connectors</h1><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => setAdding(v => !v)}>{adding ? "Close" : "Add a connector"}</button></div></> : <DialogTitle>Connectors</DialogTitle>}
+          <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '8px 0' }}>Browse public sources or manage your private database, MCP server, and instrument connections.</p>
+          {/* Residency legend (§0.9.3): the five values, so a badge is readable at a glance */}
+          <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 10.5, color: 'var(--muted-foreground)' }}>
+            <span title="data leaves the estate"><strong>cloud</strong> data leaves</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span title="stays inside your network"><strong>on-prem</strong> stays inside</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span title="read in place, never copied"><strong>mounted</strong> read in place</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span title="never leaves the host"><strong>this machine</strong> on your host</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span title="instruction text — moves no data"><strong>prompt only</strong> no data moves</span>
+          </div>
+        </div>
 
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '10px 20px 0', gap: 2, flexShrink: 0 }}>
-          {TABS.map(t => (
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '10px 20px 0', gap: 2, overflowX: 'auto', flexShrink: 0 }}>
+          {TABS.filter(t => t.id !== 'yours' && t.id !== 'instruments').map(t => (
             <button
               key={t.id}
               data-testid={`connector-tab-${t.id}`}
@@ -484,26 +513,44 @@ export function ConnectorsDialog({ open, onOpenChange }: ConnectorsDialogProps) 
                   {t.count}
                 </span>
               )}
-              {t.id === 'databases' && selectedDbs.length > 0 && (
-                <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 999, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}>
-                  {selectedDbs.length} on
+              {t.id === 'databases' && selectedDbs.length > 0 && selectedDbs.length < DB.length && (
+                <span
+                  title="Rows you have starred for your own reference. This is a local view filter only — it does not change which sources BioMate queries."
+                  style={{ fontSize: 10, padding: '1px 5px', borderRadius: 999, background: 'oklch(0.88 0.06 260)', color: 'oklch(0.35 0.12 260)', fontWeight: 600 }}
+                >
+                  {selectedDbs.length} starred
                 </span>
               )}
             </button>
           ))}
         </div>
 
+        {adding && (
+          <div className="p-5 border-b border-border">
+            <AddConnectorFlow
+              onPickDatabase={() => { setActiveTab('databases'); setSourceView('private'); setAdding(false); }}
+              onPickMcp={() => { setActiveTab('mcp'); setAdding(false); }}
+              onPickModel={() => { setSettingsOpen(true); setAdding(false); }}
+              onPickSkill={() => { setActiveTab('skills'); setAdding(false); }}
+              onPickInstrument={() => { setActiveTab('databases'); setSourceView('instruments'); setAdding(false); }}
+            />
+          </div>
+        )}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', display: 'flex', flexDirection: 'column' }}>
-          {activeTab === 'databases' && <DatabasesTab selected={selectedDbs} onToggle={toggleDb} />}
-          {activeTab === 'ai'        && <ConnectorTable rows={AI} />}
-          {/* Skills tab disabled — re-enable when /api/skills is populated */}
+          {activeTab === 'databases' && <><div className="flex flex-wrap gap-2 px-5 py-3 border-b border-border">{(['public', 'private', 'instruments'] as const).map(view => <button key={view} className={sourceView === view ? 'text-xs rounded-md px-3 py-1.5 bg-muted font-semibold' : 'text-xs rounded-md px-3 py-1.5 text-muted-foreground'} onClick={() => setSourceView(view)}>{view === 'public' ? 'Public databases' : view === 'private' ? 'Private databases' : 'Instruments'}</button>)}</div>{sourceView === 'public' ? <DatabasesTab compact={embedded} selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} /> : sourceView === 'private' ? <div className="p-5"><PrivateDbConnectionForm /></div> : <InstrumentsSection />}</>}
+          {activeTab === 'ai' && <><div className="p-4"><button className="text-sm underline" onClick={() => setSettingsOpen(true)}>Configure model providers and API keys</button></div><ConnectorTable compact={embedded} rows={AI} scopes={scopes} onScopeChange={setScope} /></>}
+          {activeTab === 'yours' && <div className="p-5"><PrivateDbConnectionForm /></div>}
+          {activeTab === 'mcp' && <div className="p-5"><McpServerForm /></div>}
+          {activeTab === 'skills' && <div className="p-5"><p className="text-sm text-muted-foreground mb-4">Select expert packs for each request using Skills &amp; experts in the chat composer.</p>{packsError ? <p role="alert">Could not load expert packs. Please reload to try again.</p> : packs === null ? <p>Loading expert packs…</p> : packs.length === 0 ? <p>No expert packs available yet.</p> : packs.map(pack => <article key={pack.id} className="py-4 border-b border-border"><h3 className="text-sm font-medium">{pack.label}</h3>{pack.description && <p className="text-sm text-muted-foreground mt-1">{pack.description}</p>}</article>)}</div>}
+          {activeTab === 'instruments' && <InstrumentsSection />}
         </div>
 
         <div style={{ flexShrink: 0, padding: '6px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--muted-foreground)' }}>
-          {activeTab === 'databases' && dbFooter}
-          {activeTab === 'ai'        && `${AI.length} connectors`}
+          {activeTab === 'databases' && sourceView === 'public' && (embedded ? 'Public sources are queried automatically when relevant to your request.' : dbFooter)}
+          {activeTab === 'ai'        && `${AI.length} AI models and platform surfaces BioMate exposes — reference only. This panel does not configure them; set up messaging bots / IDE (MCP) / GPT-action access from their own tools or the BioMate MCP install flow.`}
+          {activeTab === 'yours'     && 'Your own private database and MCP server — the one writable surface here. Connections you add are used by BioMate chat; DB queries are read-only and credentials are encrypted at rest.'}
         </div>
-      </DialogContent>
-    </Dialog>
+      </Container>
   );
+  return <>{embedded ? content : <Dialog open={open} onOpenChange={onOpenChange}>{content}</Dialog>}{settingsOpen && <SettingsDialog open onOpenChange={setSettingsOpen} />}</>;
 }

@@ -1,0 +1,11 @@
+No.,Compound ID,Sequence,Cyclization,Chelator,Purity,Amount,Salt
+1,PDL1-K-05,cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G),head-to-tail,none,≥95%,5 mg,acetate
+2,PDL1-A08,cyclo(W-Y-F-[dP]-V-[NMeI]-T-D-N-K-T-G),head-to-tail,none,≥95%,5 mg,acetate
+3,PDL1-F05,cyclo(V-R-V-S-Y-N-[dP]-W-[NMeF]-N-L-E),head-to-tail,none,≥95%,5 mg,acetate
+4,PDL1-F13,cyclo([NMeF]-V-R-V-R-F-[dP]-H-I-Q-W-D),head-to-tail,none,≥95%,5 mg,acetate
+5,AVB6-AVEBEHEXIN,cyclo(F-R-G-D-L-A-F-[dP]-[NMeK]),head-to-tail,DOTA on NMe-Lys,≥95%,5 mg,acetate
+6,AVB6-TRIVEHEXIN-mono,cyclo(Y-R-G-D-L-A-Y-[dP]-[NMeK]),head-to-tail,DOTA on NMe-Lys,≥95%,5 mg,acetate
+7,AVB6-M7,cyclo(R-G-D-L-F-[dP]-[NMeK]),head-to-tail,DOTA on NMe-Lys,≥95%,5 mg,acetate
+8,AVB6-M11,cyclo(S-G-R-G-D-L-A-F-[dP]-[NMeK]-G),head-to-tail,DOTA on NMe-Lys,≥95%,5 mg,acetate
+9,AVB6-SL,Ac-[Dap]-R-G-D-L-A-F-[dP]-[Glu]-K-NH2 (Dap-Glu side-chain lactam),side-chain lactam,DOTA on C-term Lys,≥95%,5 mg,acetate
+10,AVB6-BCY,Ac-C-R-G-D-L-A-F-C-G-S-K-G-C-NH2 (TBMB bicycle),bicyclic,DOTA on loop-2 Lys,≥95%,5 mg,acetate

@@ -1,0 +1,2858 @@
+[
+  {
+    "nct": "NCT04835441",
+    "title": "ALPN-101 (Acazicolcept) in Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 76,
+    "n_arms": 2,
+    "interventions": [
+      "ALPN-101",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 3,
+    "ae_serious_num_affected": 4,
+    "ae_other_num_affected": 43,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 38,
+        "otherNumAtRisk": 38
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 38,
+        "otherNumAtRisk": 38
+      }
+    ],
+    "withdrawals_total": 11,
+    "withdrawal_reasons": {
+      "Physician Decision": 8,
+      "Other": 2,
+      "Lost to Follow-up": 1
+    }
+  },
+  {
+    "nct": "NCT02446899",
+    "title": "Efficacy and Safety of Anifrolumab Compared to Placebo in Adult Subjects With Active Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 373,
+    "n_arms": 2,
+    "interventions": [
+      "Anifrolumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 10,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 66,
+    "ae_other_num_affected": 359,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 180,
+        "otherNumAtRisk": 180
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 182,
+        "otherNumAtRisk": 182
+      }
+    ],
+    "withdrawals_total": 73,
+    "withdrawal_reasons": {
+      "Adverse Event": 11,
+      "Condition Under Investigation Worsened": 5,
+      "Study Specific Withdrawal Criteria": 1,
+      "Lack of Efficacy": 10,
+      "Lost to Follow-up": 4,
+      "Severe Non-Compliance to Protocol": 1,
+      "Withdrawal by Subject": 30,
+      "Miscellaneous": 9,
+      "Failure to Meet Randomization Criteria": 2
+    }
+  },
+  {
+    "nct": "NCT00774852",
+    "title": "Abatacept and Cyclophosphamide Combination Therapy for Lupus Nephritis",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 137,
+    "n_arms": 2,
+    "interventions": [
+      "abatacept",
+      "cyclophosphamide",
+      "azathioprine",
+      "prednisone",
+      "abatacept placebo",
+      "azathioprine placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 18,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 92,
+    "ae_other_num_affected": 136,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 69,
+        "otherNumAtRisk": 69
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 68,
+        "otherNumAtRisk": 68
+      }
+    ],
+    "withdrawals_total": 86,
+    "withdrawal_reasons": {
+      "Adverse Event": 15,
+      "Death": 3,
+      "Lack of Efficacy": 10,
+      "Lost to Follow-up": 14,
+      "Physician Decision": 8,
+      "Pregnancy": 3,
+      "Withdrawal by Subject": 4,
+      "Non-responder": 26,
+      "Subject non-compliance": 1,
+      "Protocol Violation": 1,
+      "Subject received prohibited medication": 1
+    }
+  },
+  {
+    "nct": "NCT02554019",
+    "title": "Proof-of-Concept Study With BT063 in Subjects With Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 36,
+    "n_arms": 2,
+    "interventions": [
+      "BT063",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 5,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 3,
+    "ae_other_num_affected": 14,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 12,
+        "otherNumAtRisk": 12
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 12,
+        "otherNumAtRisk": 12
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 12,
+        "otherNumAtRisk": 12
+      }
+    ],
+    "withdrawals_total": 4,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 3,
+      "Adverse Event": 1
+    }
+  },
+  {
+    "nct": "NCT03021499",
+    "title": "Aurinia Renal Response in Active Lupus With Voclosporin",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 358,
+    "n_arms": 2,
+    "interventions": [
+      "Voclosporin",
+      "Placebo Oral Capsule"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 113,
+    "ae_other_num_affected": 651,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 178,
+        "otherNumAtRisk": 178
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 178,
+        "otherNumAtRisk": 178
+      }
+    ],
+    "withdrawals_total": 47,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Death": 6,
+      "Lack of Efficacy": 1,
+      "Lost to Follow-up": 4,
+      "Physician Decision": 5,
+      "Pregnancy": 1,
+      "Withdrawal by Subject": 21,
+      "Prohibited medication required": 1,
+      "Protocol non-compliance": 2,
+      "None of the above": 4,
+      "Adverse Event (AE) Prior to First Dose": 1
+    }
+  },
+  {
+    "nct": "NCT06046534",
+    "title": "Retrospective Medical Chart Review Study to Describe the Experience of SLE Patients Treated With Anifrolumab in the Early Access Programs.",
+    "phase": [],
+    "enrollment": 46,
+    "n_arms": 1,
+    "interventions": [
+      "None (Observational study)"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00987831",
+    "title": "Biomarkers of Lupus Disease: Serial Biomarker Sampling in Patients With Active Systemic Lupus Erythematosus (SLE)",
+    "phase": [
+      "PHASE1",
+      "PHASE2"
+    ],
+    "enrollment": 158,
+    "n_arms": 3,
+    "interventions": [
+      "Group B SLE one blood donation",
+      "Blood drawing only Group C",
+      "Group A SLE prospective study"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 2,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 1,
+    "ae_other_num_affected": 29,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 41,
+        "otherNumAtRisk": 41
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 55,
+        "otherNumAtRisk": 55
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 62,
+        "otherNumAtRisk": 62
+      }
+    ],
+    "withdrawals_total": 4,
+    "withdrawal_reasons": {
+      "Never flared in 12 months": 1,
+      "Lost to Follow-up": 3
+    }
+  },
+  {
+    "nct": "NCT05162586",
+    "title": "The WILLOW Study With M5049 in SLE and CLE (SCLE and/or DLE) (WILLOW)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 456,
+    "n_arms": 8,
+    "interventions": [
+      "Enpatoran low dose",
+      "Enpatoran medium dose",
+      "Enpatoran high dose",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 21,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 21,
+    "ae_other_num_affected": 162,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 26,
+        "otherNumAtRisk": 26
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 24,
+        "otherNumAtRisk": 24
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 26,
+        "otherNumAtRisk": 26
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 26,
+        "otherNumAtRisk": 26
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 95,
+        "otherNumAtRisk": 95
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 71,
+        "otherNumAtRisk": 71
+      },
+      {
+        "id": "EG006",
+        "seriousNumAtRisk": 74,
+        "otherNumAtRisk": 74
+      },
+      {
+        "id": "EG007",
+        "seriousNumAtRisk": 114,
+        "otherNumAtRisk": 114
+      }
+    ],
+    "withdrawals_total": 50,
+    "withdrawal_reasons": {
+      "Other": 5,
+      "Lack of Efficacy": 2,
+      "Lost to Follow-up": 4,
+      "Non-Compliance": 3,
+      "Withdrawal by Subject": 19,
+      "Adverse Event": 17
+    }
+  },
+  {
+    "nct": "NCT00705367",
+    "title": "Phase I Study in China - Tolerability of a Single Dose of Abatacept 30 mg/kg",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 13,
+    "n_arms": 3,
+    "interventions": [
+      "Placebo",
+      "Abatacept",
+      "Abatacept"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 7,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 6,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 6,
+        "otherNumAtRisk": 6
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 3,
+        "otherNumAtRisk": 3
+      }
+    ],
+    "withdrawals_total": 9,
+    "withdrawal_reasons": {
+      "Adverse Event": 2,
+      "Withdrawal by Subject": 2,
+      "Lack of Efficacy": 1,
+      "No longer met study criteria": 1,
+      "Administrative reason by sponsor": 3
+    }
+  },
+  {
+    "nct": "NCT00976300",
+    "title": "Cyclosporine A or Intravenous Cyclophosphamide for Lupus Nephritis: The Cyclofa-Lune Study",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 40,
+    "n_arms": 2,
+    "interventions": [
+      "Cyclosporine A",
+      "Cyclophosphamide"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02349061",
+    "title": "A Phase 2a, Efficacy and Safety Study of Ustekinumab in Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 102,
+    "n_arms": 2,
+    "interventions": [
+      "Ustekinumab IV",
+      "Placebo Infusion",
+      "Placebo SC",
+      "Ustekinumab SC",
+      "Concomitant Medication"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 5,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 35,
+    "ae_other_num_affected": 279,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 42,
+        "otherNumAtRisk": 42
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 60,
+        "otherNumAtRisk": 60
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 33,
+        "otherNumAtRisk": 33
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 56,
+        "otherNumAtRisk": 56
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 17,
+        "otherNumAtRisk": 17
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 29,
+        "otherNumAtRisk": 29
+      }
+    ],
+    "withdrawals_total": 27,
+    "withdrawal_reasons": {
+      "Adverse Event": 13,
+      "Lack of Efficacy": 3,
+      "Physician Decision": 3,
+      "Other": 2,
+      "Withdrawal by Subject": 6
+    }
+  },
+  {
+    "nct": "NCT03610516",
+    "title": "Safety, Pharmacokinetics and Preliminary Efficacy Study of CFZ533 in Patients With Lupus Nephritis.",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 57,
+    "n_arms": 2,
+    "interventions": [
+      "CFZ533",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 12,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 22,
+    "ae_other_num_affected": 336,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 39,
+        "otherNumAtRisk": 39
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 18,
+        "otherNumAtRisk": 18
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 57,
+        "otherNumAtRisk": 57
+      }
+    ],
+    "withdrawals_total": 28,
+    "withdrawal_reasons": {
+      "Adverse Event": 4,
+      "Death": 2,
+      "Lack of Efficacy": 1,
+      "No longer requires treatment": 1,
+      "Non-Compliance with study treatment": 1,
+      "Physician Decision": 13,
+      "Protocol Deviation": 1,
+      "Withdrawal by Subject": 4,
+      "Subject/Guardian Decision": 1
+    }
+  },
+  {
+    "nct": "NCT03312907",
+    "title": "A Study to Evaluate the Efficacy and Safety of Belimumab Administered in Combination With Rituximab to Adult Subjects With Systemic Lupus Erythematosus (SLE) - BLISS-BELIEVE",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 292,
+    "n_arms": 3,
+    "interventions": [
+      "Belimumab",
+      "Rituximab",
+      "Rituximab-placebo",
+      "Standard therapy (Including Immunosuppressants)",
+      "Standard therapy (Excluding Immunosuppressants)",
+      "Steroid Taper"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 28,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 87,
+    "ae_other_num_affected": 490,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 72,
+        "otherNumAtRisk": 72
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 144,
+        "otherNumAtRisk": 144
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 76,
+        "otherNumAtRisk": 76
+      }
+    ],
+    "withdrawals_total": 66,
+    "withdrawal_reasons": {
+      "Adverse Event": 8,
+      "Protocol Violation": 9,
+      "Lost to Follow-up": 7,
+      "Physician Decision": 9,
+      "Withdrawal by Subject": 33
+    }
+  },
+  {
+    "nct": "NCT01207297",
+    "title": "Tacrolimus Versus Cyclophosphamide as Treatment for Lupus Nephritis",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 40,
+    "n_arms": 2,
+    "interventions": [
+      "Tacrolimus",
+      "cyclophosphamide"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04870333",
+    "title": "PROphylaxis for paTiEnts at Risk of COVID-19 infecTion -V",
+    "phase": [
+      "PHASE2",
+      "PHASE3"
+    ],
+    "enrollment": 2240,
+    "n_arms": 6,
+    "interventions": [
+      "Niclosamide",
+      "Placebo",
+      "Ciclesonide",
+      "Placebo",
+      "Sotrovimab",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04065932",
+    "title": "A Study to Determine the Pharmacokinetic Profile of BMS-986165 Tablets",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 33,
+    "n_arms": 6,
+    "interventions": [
+      "BMS-986165-01",
+      "BMS-986165 Tablet",
+      "Famotidine"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT06626945",
+    "title": "AZAHAR Study To Describe Anifrolumab in a Real-World Setting",
+    "phase": [],
+    "enrollment": 152,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02446912",
+    "title": "Efficacy and Safety of Two Doses of Anifrolumab Compared to Placebo in Adult Subjects With Active Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 460,
+    "n_arms": 3,
+    "interventions": [
+      "Anifrolumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 22,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 114,
+    "ae_other_num_affected": 978,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 93,
+        "otherNumAtRisk": 93
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 180,
+        "otherNumAtRisk": 180
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 184,
+        "otherNumAtRisk": 184
+      }
+    ],
+    "withdrawals_total": 88,
+    "withdrawal_reasons": {
+      "Adverse Event": 21,
+      "Condition under investigation worsened": 2,
+      "Study-specific withdrawal criteria": 1,
+      "Lack of Efficacy": 12,
+      "Lost to Follow-up": 2,
+      "Severe non-compliance to protocol": 2,
+      "Withdrawal by Subject": 40,
+      "Miscellaneous": 8
+    }
+  },
+  {
+    "nct": "NCT02119156",
+    "title": "Belimumab Treatment Holiday and Treatment Re-start Study in Lupus Patients",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 80,
+    "n_arms": 3,
+    "interventions": [
+      "Belimumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 14,
+    "ae_other_num_affected": 204,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 39,
+        "otherNumAtRisk": 39
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 29,
+        "otherNumAtRisk": 29
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 12,
+        "otherNumAtRisk": 12
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 11,
+        "otherNumAtRisk": 11
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 16,
+        "otherNumAtRisk": 16
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 10,
+        "otherNumAtRisk": 10
+      }
+    ],
+    "withdrawals_total": 26,
+    "withdrawal_reasons": {
+      "Study Terminated By Sponsor": 18,
+      "Withdrawal by Subject": 4,
+      "Protocol Violation": 3,
+      "Physician Decision": 1
+    }
+  },
+  {
+    "nct": "NCT01632241",
+    "title": "Efficacy and Safety of Belimumab in Black Race Patients With Systemic Lupus Erythematosus (SLE)",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 503,
+    "n_arms": 2,
+    "interventions": [
+      "Placebo plus standard therapy",
+      "Belimumab 10 mg/kg plus standard therapy",
+      "Standard therapy"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 21,
+    "n_primary_outcomes": 9,
+    "ae_serious_num_affected": 145,
+    "ae_other_num_affected": 562,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 165,
+        "otherNumAtRisk": 165
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 331,
+        "otherNumAtRisk": 331
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 117,
+        "otherNumAtRisk": 117
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 242,
+        "otherNumAtRisk": 242
+      }
+    ],
+    "withdrawals_total": 155,
+    "withdrawal_reasons": {
+      "Site Closed": 18,
+      "Protocol Violation": 10,
+      "Lost to Follow-up": 14,
+      "Physician Decision": 26,
+      "Lack of Efficacy": 26,
+      "Withdrawal by Subject": 31,
+      "Adverse Event": 30
+    }
+  },
+  {
+    "nct": "NCT03200002",
+    "title": "Cyclophosphamide Versus Mycophenolate Mofetil in Lupus Nephritis",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 49,
+    "n_arms": 2,
+    "interventions": [
+      "Cyclophosphamide",
+      "Mycophenolate Mofetil"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03845517",
+    "title": "A DOSE-RANGING STUDY TO EVALUATE EFFICACY AND SAFETY OF PF-06700841 IN SYSTEMIC LUPUS ERYTHEMATOSUS (SLE)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 350,
+    "n_arms": 4,
+    "interventions": [
+      "Placebo",
+      "PF-06700841 15 mg",
+      "PF-06700841 30 mg",
+      "PF-06700841 45 mg"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 22,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 30,
+    "ae_other_num_affected": 251,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 100,
+        "otherNumAtRisk": 100
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 50,
+        "otherNumAtRisk": 50
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 101,
+        "otherNumAtRisk": 101
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 99,
+        "otherNumAtRisk": 99
+      }
+    ],
+    "withdrawals_total": 135,
+    "withdrawal_reasons": {
+      "Adverse Event": 54,
+      "Death": 3,
+      "Lack of Efficacy": 16,
+      "Lost to Follow-up": 8,
+      "Non-compliance with study drug": 1,
+      "Physician's decision": 3,
+      "Site Terminated by Sponsor": 2,
+      "Other": 4,
+      "Pregnancy": 3,
+      "Protocol Violation": 3,
+      "Withdrawal by Subject": 37,
+      "Study terminated by sponsor": 1
+    }
+  },
+  {
+    "nct": "NCT01206569",
+    "title": "Long-Acting Tacrolimus for the Treatment of Resistant Lupus Nephritis",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 2,
+    "n_arms": 1,
+    "interventions": [
+      "Long-acting tacrolimus (Advagraf, Astellas Pharma)"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03093402",
+    "title": "JBT-101 in Systemic Lupus Erythematosus (SLE)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 109,
+    "n_arms": 4,
+    "interventions": [
+      "JBT-101",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 47,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 6,
+    "ae_other_num_affected": 85,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 25,
+        "otherNumAtRisk": 25
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 27,
+        "otherNumAtRisk": 27
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 24,
+        "otherNumAtRisk": 24
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 25,
+        "otherNumAtRisk": 25
+      }
+    ],
+    "withdrawals_total": 18,
+    "withdrawal_reasons": {
+      "Lost to Follow-up": 1,
+      "Withdrawal by Subject": 7,
+      "Withdrew prior to dosing": 8,
+      "Ineligible for study": 1,
+      "Prescribed a prohibited concomitant medication": 1
+    }
+  },
+  {
+    "nct": "NCT03019926",
+    "title": "Lupus and Observance",
+    "phase": [],
+    "enrollment": 200,
+    "n_arms": 0,
+    "interventions": [
+      "Hydroxychloroquine dosage"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04870359",
+    "title": "Pre-emptive Treatments in Lupus Nephritis Patients With Serological Reactivation",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 49,
+    "n_arms": 2,
+    "interventions": [
+      "Pre-emptive increase of immunosuppressive treatments",
+      "Prednisolone and/or AZA/MMF"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04925934",
+    "title": "Study of VIB7734 for the Treatment of Moderate to Severely Active SLE",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 214,
+    "n_arms": 3,
+    "interventions": [
+      "VIB7734",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 10,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 31,
+    "ae_other_num_affected": 101,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 71,
+        "otherNumAtRisk": 71
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 72,
+        "otherNumAtRisk": 72
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 71,
+        "otherNumAtRisk": 71
+      }
+    ],
+    "withdrawals_total": 45,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Lost to Follow-up": 3,
+      "Death": 1,
+      "Withdrawal by Subject": 22,
+      "Other": 6,
+      "Eastern European Conflict": 12
+    }
+  },
+  {
+    "nct": "NCT02185040",
+    "title": "A Pilot Study of CC-220 to Treat Systemic Lupus Erythematosus.",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 42,
+    "n_arms": 5,
+    "interventions": [
+      "CC-220",
+      "CC-220",
+      "CC-220",
+      "CC-220",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 17,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 9,
+    "ae_other_num_affected": 215,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 8,
+        "otherNumAtRisk": 8
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 8,
+        "otherNumAtRisk": 8
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 8,
+        "otherNumAtRisk": 8
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 9,
+        "otherNumAtRisk": 9
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 9,
+        "otherNumAtRisk": 9
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 9,
+        "otherNumAtRisk": 9
+      },
+      {
+        "id": "EG006",
+        "seriousNumAtRisk": 8,
+        "otherNumAtRisk": 8
+      }
+    ],
+    "withdrawals_total": 19,
+    "withdrawal_reasons": {
+      "Miscellaneous": 2,
+      "Adverse Event": 11,
+      "Withdrawal by Subject": 3,
+      "Lost to Follow-up": 3
+    }
+  },
+  {
+    "nct": "NCT00377637",
+    "title": "A Study of Mycophenolate Mofetil (CellCept) in Management of Patients With Lupus Nephritis.",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 370,
+    "n_arms": 4,
+    "interventions": [
+      "Mycophenolate mofetil (MMF)",
+      "Cyclophosphamide",
+      "Azathioprine",
+      "Placebo to Azathioprine",
+      "Placebo to Mycophenolate mofetil",
+      "Corticosteroid"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 14,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 262,
+    "ae_other_num_affected": 2613,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 180,
+        "otherNumAtRisk": 180
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 184,
+        "otherNumAtRisk": 184
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 115,
+        "otherNumAtRisk": 115
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 111,
+        "otherNumAtRisk": 111
+      }
+    ],
+    "withdrawals_total": 164,
+    "withdrawal_reasons": {
+      "Adverse Event": 105,
+      "Deterioration/serum creatinine": 2,
+      "Dose reduction of MMF < 2 g/day for 14 d": 1,
+      "Lost to Follow-up": 7,
+      "Death": 5,
+      "Withdrawal by Subject": 17,
+      "Physician Decision": 13,
+      "Sponsor decision": 8,
+      "Non-Compliance": 1,
+      "Reason for withdrawal is not noted": 2,
+      "Non-compliance": 2,
+      "Study medication stopped > 14 days": 1
+    }
+  },
+  {
+    "nct": "NCT00371319",
+    "title": "Comparing the Efficacy of Tacrolimus and Mycophenolate Mofetil for the Initial Therapy of Active Lupus Nephritis",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 150,
+    "n_arms": 2,
+    "interventions": [
+      "tacrolimus",
+      "mycophenolate mofetil"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04515719",
+    "title": "Efficacy and Safety of Belimumab in SLE Patients",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 231,
+    "n_arms": 2,
+    "interventions": [
+      "Belimumab",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02633163",
+    "title": "Phase 2 Trial of Mesenchymal Stem Cells in Systemic Lupus Erythematosus (MiSLE)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 81,
+    "n_arms": 3,
+    "interventions": [
+      "Low Dose Mesenchymal Stem Cells (MSCs)",
+      "High Dose Mesenchymal Stem Cells (MSCs)",
+      "Placebo Infusion"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01988506",
+    "title": "Induction of Regulatory t Cells by Low Dose il2 in Autoimmune and Inflammatory Diseases",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 81,
+    "n_arms": 1,
+    "interventions": [
+      "Interleukin 2"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT06234852",
+    "title": "Gradual Withdrawal of Low-dose Glucocorticoid in Clinically Quiescent Systemic Lupus Erythematosus.",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 20,
+    "n_arms": 2,
+    "interventions": [
+      "Glucocorticoid withdrawal group",
+      "Glucocorticoid maintenance group"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02176148",
+    "title": "Cutaneous Lupus Medication Experience Study",
+    "phase": [],
+    "enrollment": 11,
+    "n_arms": 1,
+    "interventions": [
+      "fluocinonide 0.05% cream"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03334851",
+    "title": "Safety and Tolerability Study Of PF-06835375 In Subjects With Seropositive Systemic Lupus Erythematosus Or Rheumatoid Arthritis",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 74,
+    "n_arms": 14,
+    "interventions": [
+      "PF-06835375",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 22,
+    "n_primary_outcomes": 8,
+    "ae_serious_num_affected": 6,
+    "ae_other_num_affected": 268,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 8,
+        "otherNumAtRisk": 8
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 3,
+        "otherNumAtRisk": 3
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 3,
+        "otherNumAtRisk": 3
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 3,
+        "otherNumAtRisk": 3
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 3,
+        "otherNumAtRisk": 3
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 6,
+        "otherNumAtRisk": 6
+      },
+      {
+        "id": "EG006",
+        "seriousNumAtRisk": 5,
+        "otherNumAtRisk": 5
+      },
+      {
+        "id": "EG007",
+        "seriousNumAtRisk": 11,
+        "otherNumAtRisk": 11
+      },
+      {
+        "id": "EG008",
+        "seriousNumAtRisk": 6,
+        "otherNumAtRisk": 6
+      },
+      {
+        "id": "EG009",
+        "seriousNumAtRisk": 6,
+        "otherNumAtRisk": 6
+      },
+      {
+        "id": "EG010",
+        "seriousNumAtRisk": 7,
+        "otherNumAtRisk": 7
+      },
+      {
+        "id": "EG011",
+        "seriousNumAtRisk": 6,
+        "otherNumAtRisk": 6
+      },
+      {
+        "id": "EG012",
+        "seriousNumAtRisk": 6,
+        "otherNumAtRisk": 6
+      }
+    ],
+    "withdrawals_total": 7,
+    "withdrawal_reasons": {
+      "Other": 1,
+      "Adverse Event": 1,
+      "Withdrawal by Subject": 2,
+      "Lost to Follow-up": 3
+    }
+  },
+  {
+    "nct": "NCT03828071",
+    "title": "Autologous Hematopoietic Stem Cell Transplantation for Refractory Lupus Nephritis",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 22,
+    "n_arms": 1,
+    "interventions": [
+      "Autologous hematopoietic stem cell transplantation"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT05098600",
+    "title": "The Epidemiology, Management and Comorbidities in Alopecia Areata in Czech Republic",
+    "phase": [],
+    "enrollment": 123,
+    "n_arms": 1,
+    "interventions": [
+      "Exposure of interest"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01112215",
+    "title": "Enteric-coated Mycophenolate Sodium Versus Azathioprine for the Extra-renal Lupus Manifestations",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 240,
+    "n_arms": 2,
+    "interventions": [
+      "Azathioprine",
+      "Enteric-Coated Mycophenolate Sodium"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02842814",
+    "title": "Prediction of Relapse Risk in Stable Systemic Lupus Erythematosus",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 333,
+    "n_arms": 3,
+    "interventions": [
+      "Drug free",
+      "HCQ",
+      "GC+HCQ"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00076752",
+    "title": "Lymphocyte Depletion and Stem Cell Transplantation to Treat Severe Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 9,
+    "n_arms": 1,
+    "interventions": [
+      "fludarabine phosphate",
+      "cyclophosphamide",
+      "Rituxan (rituximab)",
+      "filgrastim",
+      "methylprednisolone",
+      "immunologic technique",
+      "laboratory biomarker analysis",
+      "autologous hematopoietic stem cell transplantation",
+      "Diphenhydramine",
+      "Mesna"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 16,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 18,
+    "ae_other_num_affected": 297,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 9,
+        "otherNumAtRisk": 9
+      }
+    ],
+    "withdrawals_total": 3,
+    "withdrawal_reasons": {
+      "Death": 2,
+      "Withdrawal per PI, PI put study on hold": 1
+    }
+  },
+  {
+    "nct": "NCT00624338",
+    "title": "Atacicept Phase 2/3 in Generalized Systemic Lupus Erythematosus (APRIL-SLE)",
+    "phase": [
+      "PHASE2",
+      "PHASE3"
+    ],
+    "enrollment": 461,
+    "n_arms": 3,
+    "interventions": [
+      "Atacicept 75 mg",
+      "Atacicept 150 mg",
+      "Placebo Comparator"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 5,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 144,
+    "ae_other_num_affected": 575,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 157,
+        "otherNumAtRisk": 157
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 144,
+        "otherNumAtRisk": 144
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 154,
+        "otherNumAtRisk": 154
+      }
+    ],
+    "withdrawals_total": 176,
+    "withdrawal_reasons": {
+      "Adverse Event": 46,
+      "Lost to Follow-up": 1,
+      "Lack of Efficacy": 28,
+      "Protocol Violation": 8,
+      "Death": 2,
+      "Immunoglobulin less than 3gram per liter": 1,
+      "Termination of 150 mg group by Sponsor": 55,
+      "Other": 29,
+      "Randomized but not treated": 6
+    }
+  },
+  {
+    "nct": "NCT03724916",
+    "title": "A Study to Evaluate the Safety, Pharmacokinetics (PK), and Pharmacodynamics (PD) of TAK-079 in Combination With Standard Background Therapy in Participants With Moderate to Severe Systemic Lupus Erythematosus (SLE)",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 23,
+    "n_arms": 4,
+    "interventions": [
+      "TAK-079",
+      "TAK-079 Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 3,
+    "ae_serious_num_affected": 2,
+    "ae_other_num_affected": 43,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 5,
+        "otherNumAtRisk": 5
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 6,
+        "otherNumAtRisk": 6
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 6,
+        "otherNumAtRisk": 6
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 5,
+        "otherNumAtRisk": 5
+      }
+    ],
+    "withdrawals_total": 5,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 4,
+      "Randomized but not Treated": 1
+    }
+  },
+  {
+    "nct": "NCT05856448",
+    "title": "A Study Evaluating the Effects of GLPG3667 Administered as Oral Treatment in Adult Participants With Active Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 186,
+    "n_arms": 3,
+    "interventions": [
+      "GLPG3667",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04882878",
+    "title": "A Study of Nipocalimab in Adult Participants With Active Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 228,
+    "n_arms": 3,
+    "interventions": [
+      "Placebo",
+      "Nipocalimab",
+      "Standard-of-care treatment"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03252587",
+    "title": "An Investigational Study to Evaluate BMS-986165 in Participants With Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 363,
+    "n_arms": 4,
+    "interventions": [
+      "BMS-986165",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 20,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 40,
+    "ae_other_num_affected": 353,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 90,
+        "otherNumAtRisk": 90
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 91,
+        "otherNumAtRisk": 91
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 93,
+        "otherNumAtRisk": 93
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 89,
+        "otherNumAtRisk": 89
+      }
+    ],
+    "withdrawals_total": 88,
+    "withdrawal_reasons": {
+      "Adverse Event": 29,
+      "Lack of Efficacy": 15,
+      "Lost to Follow-up": 4,
+      "Pregnancy": 4,
+      "Withdrawal by Subject": 20,
+      "Other Reasons": 16
+    }
+  },
+  {
+    "nct": "NCT00119678",
+    "title": "Abatacept in the Treatment and Prevention of Active Systemic Lupus Erythematosus (SLE) Flares in Combination With Prednisone",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 183,
+    "n_arms": 3,
+    "interventions": [
+      "Abatacept",
+      "Placebo",
+      "Prednisone",
+      "Abatacept"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 28,
+    "n_primary_outcomes": 9,
+    "ae_serious_num_affected": 42,
+    "ae_other_num_affected": 364,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 121,
+        "otherNumAtRisk": 121
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 59,
+        "otherNumAtRisk": 59
+      }
+    ],
+    "withdrawals_total": 177,
+    "withdrawal_reasons": {
+      "Death": 2,
+      "Adverse Event": 11,
+      "Lack of Efficacy": 42,
+      "Lost to Follow-up": 6,
+      "Participant withdrew consent": 12,
+      "Participants not meeting study criteria": 3,
+      "Poor/Non-compliance": 3,
+      "Pregnancy": 3,
+      "Not treated": 3,
+      "Site closed due to non-compliance": 5,
+      "Administrative reasons by sponsor": 87
+    }
+  },
+  {
+    "nct": "NCT00615173",
+    "title": "Prospective, Randomized, Multicenter, Control Study to Assess the Efficacy and Safety of Tacrolimus in Induction and Maintenance Phase Treatment in Lupus Nephritis",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 81,
+    "n_arms": 2,
+    "interventions": [
+      "tacrolimus (FK506)",
+      "cyclophosphamide or azathioprine"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT06720584",
+    "title": "Whole Health Empowerment for Endotypes of Lupus: Improving Quality of Life in SLE",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 36,
+    "n_arms": 2,
+    "interventions": [
+      "Health coach-led, online support program for people living with lupus"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04786431",
+    "title": "Shotgun Mass Spectrometry-based Lipid Profiling in Chronic Inflammatory Diseases",
+    "phase": [],
+    "enrollment": 427,
+    "n_arms": 1,
+    "interventions": [
+      "Blood collection for lipid profiling by LC-MS"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00042523",
+    "title": "Role of Antibodies in Cognitive Dysfunction in Patients With Systemic Lupus Erythematosus",
+    "phase": [],
+    "enrollment": 61,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01753193",
+    "title": "An Open-label Study to Evaluate the Long-term Safety of MEDI-546, for the Treatment of SLE, in Adults",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 218,
+    "n_arms": 1,
+    "interventions": [
+      "Anifrolumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 3,
+    "ae_serious_num_affected": 79,
+    "ae_other_num_affected": 646,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 218,
+        "otherNumAtRisk": 218
+      }
+    ],
+    "withdrawals_total": 46,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 23,
+      "Lost to Follow-up": 6,
+      "Death": 1,
+      "Other": 16
+    }
+  },
+  {
+    "nct": "NCT04645589",
+    "title": "Evaluating the Safety of Myfortic (Mycophenolate Sodium) in Patients With Lupus Nephritis",
+    "phase": [],
+    "enrollment": 69,
+    "n_arms": 1,
+    "interventions": [
+      "Myfortic"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01405196",
+    "title": "Subcutaneous Treatment In Randomized Subjects To Evaluate Safety And Efficacy In Generalized Lupus Erythematosus",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 183,
+    "n_arms": 4,
+    "interventions": [
+      "PF-04236921",
+      "PF-04236921",
+      "PF-04236921",
+      "PF-04236921"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 24,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 47,
+    "ae_other_num_affected": 332,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 45,
+        "otherNumAtRisk": 45
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 47,
+        "otherNumAtRisk": 47
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 46,
+        "otherNumAtRisk": 46
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 45,
+        "otherNumAtRisk": 45
+      }
+    ],
+    "withdrawals_total": 55,
+    "withdrawal_reasons": {
+      "Study Terminated by Sponsor": 9,
+      "Other": 9,
+      "Withdrawal by Subject": 19,
+      "Adverse Event": 6,
+      "Death": 4,
+      "Lost to Follow-up": 8
+    }
+  },
+  {
+    "nct": "NCT02084238",
+    "title": "Low-dose IL-2( Interleukin-2) Treatment in SLE",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 40,
+    "n_arms": 1,
+    "interventions": [
+      "Interleukin-2"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 7,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 38,
+        "otherNumAtRisk": 38
+      }
+    ],
+    "withdrawals_total": 2,
+    "withdrawal_reasons": {
+      "Lost to Follow-up": 2
+    }
+  },
+  {
+    "nct": "NCT02350491",
+    "title": "Study During Pregnancy of Expression of miRNAs in RA or SLE",
+    "phase": [],
+    "enrollment": 50,
+    "n_arms": 3,
+    "interventions": [
+      "Collection of biological samples"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01753401",
+    "title": "Acthar for the Treatment of Systemic Lupus Erythematosus (SLE) in Patients With a History of Persistently Active Disease",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 38,
+    "n_arms": 4,
+    "interventions": [
+      "Acthar",
+      "Placebo",
+      "Steroid Drug"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 21,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 15,
+    "ae_other_num_affected": 194,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 11,
+        "otherNumAtRisk": 11
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 25,
+        "otherNumAtRisk": 25
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 11,
+        "otherNumAtRisk": 11
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 22,
+        "otherNumAtRisk": 22
+      }
+    ],
+    "withdrawals_total": 18,
+    "withdrawal_reasons": {
+      "Adverse Event": 9,
+      "Withdrawal by Subject": 4,
+      "Protocol Violation": 1,
+      "Lack of Efficacy": 2,
+      "Reason not provided": 2
+    }
+  },
+  {
+    "nct": "NCT05818254",
+    "title": "The HOP-STEP Intervention: Improving Maternal Health in Women With Lupus sIRB",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 14,
+    "n_arms": 2,
+    "interventions": [
+      "HOP-STEP (Healthy Outcomes in Pregnancy with SLE Through Education of Providers) Intervention",
+      "Routine Care"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03664908",
+    "title": "Detection of Anti-glomerular Basement Membrane Antibodies (Anti-GBM): a Promising Biomarker for Lupus Nephritis (LN)?",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 100,
+    "n_arms": 3,
+    "interventions": [
+      "Detection of circulating anti-GBM antibodies (using chemiluminescence method and indirect immunofluorescence (IIF) method)."
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00001212",
+    "title": "Drug Therapy in Lupus Nephropathy",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 45,
+    "n_arms": 0,
+    "interventions": [
+      "prednisone",
+      "cyclophosphamide",
+      "cyclosporin A"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02437890",
+    "title": "A Phase II Study to Evaluate Safety and Efficacy of ALX-0061 in Subjects With Systemic Lupus Erythematosus",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 312,
+    "n_arms": 5,
+    "interventions": [
+      "ALX-0061",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 41,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 39,
+    "ae_other_num_affected": 232,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 62,
+        "otherNumAtRisk": 62
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 64,
+        "otherNumAtRisk": 64
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 62,
+        "otherNumAtRisk": 62
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 62,
+        "otherNumAtRisk": 62
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 62,
+        "otherNumAtRisk": 62
+      }
+    ],
+    "withdrawals_total": 77,
+    "withdrawal_reasons": {
+      "Non-compliance to study drug": 2,
+      "Sponsor's decision": 8,
+      "Physician Decision": 1,
+      "Unable to attend visit(s)": 1,
+      "Lack of Efficacy": 8,
+      "Adverse Event": 36,
+      "Withdrawal by Subject": 19,
+      "Death": 2
+    }
+  },
+  {
+    "nct": "NCT03288324",
+    "title": "Open-label Study of Tofacitinib for Moderate to Severe Skin Involvement in Young Adults With Lupus",
+    "phase": [
+      "PHASE1",
+      "PHASE2"
+    ],
+    "enrollment": 13,
+    "n_arms": 1,
+    "interventions": [
+      "Tofacitinib"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 12,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 3,
+    "ae_other_num_affected": 55,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 11,
+        "otherNumAtRisk": 11
+      }
+    ],
+    "withdrawals_total": 1,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01841619",
+    "title": "IVIg Efficacy Study to Treat Cutaneous Lupus Erythematosus",
+    "phase": [
+      "EARLY_PHASE1"
+    ],
+    "enrollment": 16,
+    "n_arms": 1,
+    "interventions": [
+      "IVIg"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 5,
+    "n_primary_outcomes": 2,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 17,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 16,
+        "otherNumAtRisk": 16
+      }
+    ],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01408199",
+    "title": "Study To Evaluate The Safety And Efficacy Of Lenalidomide For Refractory Cutaneous Lupus",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 15,
+    "n_arms": 1,
+    "interventions": [
+      "Lenalidomide"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02630628",
+    "title": "Efficacy and Safety of Tacrolimus Versus Mycophenolate in Lupus Nephritis",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 130,
+    "n_arms": 2,
+    "interventions": [
+      "Tacrolimus",
+      "Mycophenolate mofetil"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00392093",
+    "title": "Effect of Hormone Replacement Therapy on Lupus Activity",
+    "phase": [
+      "PHASE4"
+    ],
+    "enrollment": 108,
+    "n_arms": 0,
+    "interventions": [
+      "Conjugated equine estrogens 0.625 mg/d + MPA 5 mg/d/10d"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00712933",
+    "title": "A Continuation Trial for Subjects With Lupus That Completed Protocol HGS1006-C1056 or HGS1006-C1057",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 738,
+    "n_arms": 2,
+    "interventions": [
+      "belimumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 21,
+    "n_primary_outcomes": 21,
+    "ae_serious_num_affected": 469,
+    "ae_other_num_affected": 2801,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 735,
+        "otherNumAtRisk": 735
+      }
+    ],
+    "withdrawals_total": 367,
+    "withdrawal_reasons": {
+      "Adverse Event": 69,
+      "Lack of Efficacy": 6,
+      "Lost to Follow-up": 22,
+      "Non-compliance with study drug": 13,
+      "Other Pregnancy": 37,
+      "Sponsor decision": 14,
+      "Withdrew consent": 4,
+      "Hip replacement surgery": 1,
+      "Involved in Clinical research": 3,
+      "Participant hospitalized": 1,
+      "Participant travelled overseas": 2,
+      "Death of patient": 1,
+      "Other Physician decision": 1,
+      "Not committed to contraception": 1,
+      "Participant received medication": 1,
+      "Physician Decision": 36,
+      "Protocol Violation": 4,
+      "Withdrawal by Subject": 151
+    }
+  },
+  {
+    "nct": "NCT05001737",
+    "title": "Evaluate Efficacy, Safety and Tolerability, PK and PD of Emapalumab in Children and Adults With MAS in Still's or SLE",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 33,
+    "n_arms": 1,
+    "interventions": [
+      "Emapalumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 20,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 58,
+    "ae_other_num_affected": 174,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 25,
+        "otherNumAtRisk": 25
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 8,
+        "otherNumAtRisk": 8
+      }
+    ],
+    "withdrawals_total": 3,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01284725",
+    "title": "Weaning of Immunosuppression in Nephritis of Lupus",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 100,
+    "n_arms": 2,
+    "interventions": [
+      "mycophenolate mofetil or azathioprine",
+      "immunosuppressive treatment discontinuation"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT03921398",
+    "title": "Identifying New Therapeutic Targets for Lupus Treatment",
+    "phase": [],
+    "enrollment": 87,
+    "n_arms": 3,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00392951",
+    "title": "Sirolimus for Autoimmune Disease of Blood Cells",
+    "phase": [
+      "PHASE1",
+      "PHASE2"
+    ],
+    "enrollment": 30,
+    "n_arms": 1,
+    "interventions": [
+      "sirolimus"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 5,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 1,
+    "ae_other_num_affected": 15,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 30,
+        "otherNumAtRisk": 30
+      }
+    ],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01597622",
+    "title": "BEL114333, a Continuation Study of BEL113750 in Subjects With Systemic Lupus Erythematosus (SLE) in Northeast Asia, and in Japan Subjects Completing the Open-label Extension of HGS1006-C1115",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 142,
+    "n_arms": 1,
+    "interventions": [
+      "Belimumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 2,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 73,
+    "ae_other_num_affected": 750,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 142,
+        "otherNumAtRisk": 142
+      }
+    ],
+    "withdrawals_total": 38,
+    "withdrawal_reasons": {
+      "Adverse Event": 7,
+      "Lack of Efficacy": 3,
+      "Protocol Violation": 1,
+      "Lost to Follow-up": 1,
+      "Investigator Discretion": 5,
+      "Withdrawal by Subject": 20,
+      "Death": 1
+    }
+  },
+  {
+    "nct": "NCT05747651",
+    "title": "3TR (Taxonomy, Treatment, Targets and Remission) Systemic Lupus Erythematosus Study Protocol 2",
+    "phase": [],
+    "enrollment": 6,
+    "n_arms": 1,
+    "interventions": [
+      "Blood sample",
+      "Urine sample",
+      "Saliva sample",
+      "Stool sample",
+      "Tissue sample"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02260934",
+    "title": "Rituximab and Belimumab for Lupus Nephritis",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 43,
+    "n_arms": 2,
+    "interventions": [
+      "Rituximab",
+      "Cyclophosphamide",
+      "Prednisone",
+      "Methylprednisolone",
+      "Diphenhydramine",
+      "Acetaminophen",
+      "Rituximab",
+      "Cyclophosphamide",
+      "Prednisone",
+      "Methylprednisolone",
+      "Diphenhydramine",
+      "Acetaminophen",
+      "Belimumab"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 15,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 41,
+    "ae_other_num_affected": 264,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 22,
+        "otherNumAtRisk": 22
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 21,
+        "otherNumAtRisk": 21
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 22,
+        "otherNumAtRisk": 22
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 21,
+        "otherNumAtRisk": 21
+      }
+    ],
+    "withdrawals_total": 7,
+    "withdrawal_reasons": {
+      "Lost to Follow-up": 3,
+      "Withdrawal by Subject": 2,
+      "Participant Relocated": 1,
+      "Site error": 1
+    }
+  },
+  {
+    "nct": "NCT02453997",
+    "title": "Mycophenolic Acid Pharmacokinetics and Pharmacogenomics in Lupus Nephritis",
+    "phase": [],
+    "enrollment": 88,
+    "n_arms": 0,
+    "interventions": [],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT04647708",
+    "title": "Study of M5049 in CLE and SLE Participants",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 25,
+    "n_arms": 7,
+    "interventions": [
+      "M5049",
+      "M5049",
+      "M5049",
+      "Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01683695",
+    "title": "Safety Study of AMG 557 in Subjects With Lupus Arthritis",
+    "phase": [
+      "PHASE1"
+    ],
+    "enrollment": 20,
+    "n_arms": 2,
+    "interventions": [
+      "AMG 557",
+      "Matching Placebo"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00420173",
+    "title": "Interdisciplinary Study Group of Lupus Erythematosus (ISGLE)",
+    "phase": [],
+    "enrollment": 45,
+    "n_arms": 1,
+    "interventions": [
+      "Laboratory analysis"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT00423098",
+    "title": "Efficacy and Safety of Enteric-coated Mycophenolate Sodium in Combination With Two Corticosteroid Regimens for the Treatment of Lupus Nephritis Flare",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 81,
+    "n_arms": 2,
+    "interventions": [
+      "Mycophenolate sodium",
+      "Prednisone",
+      "Methylprednisolone"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 10,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 22,
+    "ae_other_num_affected": 105,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 42,
+        "otherNumAtRisk": 42
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 39,
+        "otherNumAtRisk": 39
+      }
+    ],
+    "withdrawals_total": 7,
+    "withdrawal_reasons": {
+      "Adverse Event": 3,
+      "Unsatisfactory therapeutic effect": 1,
+      "Administrative problems": 1,
+      "Death": 2
+    }
+  },
+  {
+    "nct": "NCT00881309",
+    "title": "To Compare the Efficacy and Safety of Tripterygium (TW) Versus AZA in the Maintenance Therapy for Lupus Nephritis",
+    "phase": [
+      "NA"
+    ],
+    "enrollment": 94,
+    "n_arms": 1,
+    "interventions": [
+      "Tripterygium"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02547922",
+    "title": "Safety and Efficacy of Two Doses of Anifrolumab Compared to Placebo in Adult Subjects With Active Proliferative Lupus Nephritis",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 147,
+    "n_arms": 3,
+    "interventions": [
+      "Anifrolumab",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 6,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 66,
+    "ae_other_num_affected": 340,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 45,
+        "otherNumAtRisk": 45
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 51,
+        "otherNumAtRisk": 51
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 96,
+        "otherNumAtRisk": 96
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 49,
+        "otherNumAtRisk": 49
+      },
+      {
+        "id": "EG004",
+        "seriousNumAtRisk": 45,
+        "otherNumAtRisk": 45
+      },
+      {
+        "id": "EG005",
+        "seriousNumAtRisk": 51,
+        "otherNumAtRisk": 51
+      },
+      {
+        "id": "EG006",
+        "seriousNumAtRisk": 96,
+        "otherNumAtRisk": 96
+      },
+      {
+        "id": "EG007",
+        "seriousNumAtRisk": 49,
+        "otherNumAtRisk": 49
+      }
+    ],
+    "withdrawals_total": 81,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 25,
+      "Adverse Event": 6,
+      "Lost to Follow-up": 1,
+      "Lack of Efficacy": 16,
+      "Death": 1,
+      "Non-responding completer, Not eligible for extension study, Use of any restricted Medications": 21,
+      "TECHNICAL PROBLEMS": 1,
+      "PROGRESSIVE DISEASE": 3,
+      "Physician Decision": 5,
+      "Patients did not receive IP": 2
+    }
+  },
+  {
+    "nct": "NCT01639339",
+    "title": "Efficacy and Safety of Belimumab in Patients With Active Lupus Nephritis",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 448,
+    "n_arms": 2,
+    "interventions": [
+      "Placebo plus standard therapy",
+      "Belimumab 10 mg/kg plus standard therapy",
+      "Standard therapy"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 9,
+    "n_primary_outcomes": 3,
+    "ae_serious_num_affected": 318,
+    "ae_other_num_affected": 1395,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 224,
+        "otherNumAtRisk": 224
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 224,
+        "otherNumAtRisk": 224
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 123,
+        "otherNumAtRisk": 123
+      },
+      {
+        "id": "EG003",
+        "seriousNumAtRisk": 132,
+        "otherNumAtRisk": 132
+      }
+    ],
+    "withdrawals_total": 101,
+    "withdrawal_reasons": {
+      "Withdrawal by Subject": 47,
+      "Physician Decision": 16,
+      "Lost to Follow-up": 10,
+      "Protocol Violation": 3,
+      "Lack of Efficacy": 3,
+      "Adverse Event": 22
+    }
+  },
+  {
+    "nct": "NCT04971590",
+    "title": "Study to Assess Demographic, Pharmacologic, Biomarker, Clinical Features and Quality of Life (QoL) of Participants With Lupus Nephritis",
+    "phase": [],
+    "enrollment": 193,
+    "n_arms": 1,
+    "interventions": [
+      "Participant completed survey",
+      "Medical chart review"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 13,
+    "n_primary_outcomes": 6,
+    "ae_serious_num_affected": 14,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 193,
+        "otherNumAtRisk": 0
+      }
+    ],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT01328834",
+    "title": "Efficacy and Safety of Tacrolimus Sustained-release Capsules in Induction Treatment in Refractory Lupus Nephritis",
+    "phase": [
+      "PHASE3"
+    ],
+    "enrollment": 20,
+    "n_arms": 1,
+    "interventions": [
+      "Tacrolimus Sustained-release Capsules (ADVAGRAF)"
+    ],
+    "has_results": false,
+    "n_outcome_measures": 0,
+    "n_primary_outcomes": 0,
+    "ae_serious_num_affected": 0,
+    "ae_other_num_affected": 0,
+    "ae_group_denoms": [],
+    "withdrawals_total": 0,
+    "withdrawal_reasons": {}
+  },
+  {
+    "nct": "NCT02270957",
+    "title": "Clarification of Abatacept Effects in SLE With Integrated Biologic and Clinical Approaches",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 66,
+    "n_arms": 2,
+    "interventions": [
+      "Abatacept",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 3,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 12,
+    "ae_other_num_affected": 138,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 31,
+        "otherNumAtRisk": 31
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 35,
+        "otherNumAtRisk": 35
+      }
+    ],
+    "withdrawals_total": 8,
+    "withdrawal_reasons": {
+      "Lack of Efficacy": 6,
+      "Adverse Event": 2
+    }
+  },
+  {
+    "nct": "NCT02141672",
+    "title": "AURA-LV: Aurinia Urinary Protein Reduction Active - Lupus With Voclosporin (AURA-LV)",
+    "phase": [
+      "PHASE2"
+    ],
+    "enrollment": 265,
+    "n_arms": 3,
+    "interventions": [
+      "Voclosporin High Dose",
+      "Voclosporin Low Dose",
+      "Placebo"
+    ],
+    "has_results": true,
+    "n_outcome_measures": 17,
+    "n_primary_outcomes": 1,
+    "ae_serious_num_affected": 96,
+    "ae_other_num_affected": 717,
+    "ae_group_denoms": [
+      {
+        "id": "EG000",
+        "seriousNumAtRisk": 89,
+        "otherNumAtRisk": 89
+      },
+      {
+        "id": "EG001",
+        "seriousNumAtRisk": 88,
+        "otherNumAtRisk": 88
+      },
+      {
+        "id": "EG002",
+        "seriousNumAtRisk": 88,
+        "otherNumAtRisk": 88
+      }
+    ],
+    "withdrawals_total": 42,
+    "withdrawal_reasons": {
+      "Adverse Event": 1,
+      "Death": 13,
+      "Lack of Efficacy": 2,
+      "Lost to Follow-up": 5,
+      "Physician Decision": 8,
+      "Protocol Violation": 1,
+      "Withdrawal by Subject": 10,
+      "refused to follow-up": 2
+    }
+  }
+]

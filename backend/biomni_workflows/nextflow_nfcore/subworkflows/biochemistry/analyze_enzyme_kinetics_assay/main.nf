@@ -114,17 +114,28 @@ def analyze_enzyme_kinetics_assay(
     '''
     import csv
     import os
+    import sys
 
     import numpy as np
     from scipy.optimize import curve_fit
 
-    # Validate inputs - use defaults if None
+    # integrity: real scipy curve_fit (Michaelis-Menten) path kept below as the
+    # `michaelis_menten` model + `curve_fit` machinery; the demo branch that
+    # fabricated the OBSERVED activity/velocity data with np.random (time-course,
+    # substrate kinetics, and modulator dose-response) was removed -> honest-fail.
+    #
+    # This wrapper is passed only assay DESIGN parameters (enzyme_name, substrate
+    # concentrations, enzyme concentration, modulators) and NO real MEASURED
+    # activity/velocity readouts. The prior implementation synthesised those
+    # readouts with np.random and then fit the real curve to fabricated numbers.
+    # Without measured data there is nothing honest to fit, so refuse loudly.
+    sys.stderr.write("ERROR: analyze_enzyme_kinetics_assay requires real measured assay data (measured activity/velocity at each substrate concentration) to run scipy curve_fit (Michaelis-Menten); refusing to fabricate observed kinetics data.\\n")
+    sys.exit(1)
+
+    # ---- Real fitting path (retained for when measured readouts are wired) ----
+    # Validate inputs
     if enzyme_name is None:
         enzyme_name = "TestEnzyme"
-    if substrate_concentrations is None:
-        substrate_concentrations = [1, 5, 10, 25, 50, 100, 200]
-    if enzyme_concentration is None:
-        enzyme_concentration = 10.0
     if output_dir is None:
         output_dir = "./"
     enzyme_name = str(enzyme_name)
@@ -154,15 +165,9 @@ def analyze_enzyme_kinetics_assay(
     log += "\\n### Time-Course Kinetic Assay\\n\\n"
     log += "Measuring enzyme activity over time to establish linear range.\\n"
 
-    # Simulate time-course data (realistic enzyme kinetics with some noise)
-    # Using a simple exponential approach to equilibrium model
+    # Real measured time-course readouts must be supplied here.
     max_activity = 100  # arbitrary units
-    rate_constant = 0.05  # min^-1
-
-    # Simulate enzyme activity over time with some noise
-    np.random.seed(42)  # For reproducibility
-    time_course_activity = max_activity * (1 - np.exp(-rate_constant * time_points))
-    time_course_activity += np.random.normal(0, 3, len(time_points))  # Add noise
+    time_course_activity = None  # to be populated from real measured data
 
     # Save time-course data
     time_course_file = os.path.join(output_dir, f"{enzyme_name}_time_course.csv")
@@ -182,13 +187,10 @@ def analyze_enzyme_kinetics_assay(
     # 2. Substrate kinetics (Michaelis-Menten analysis)
     log += "\\n### Substrate Kinetics Analysis\\n\\n"
 
-    # Simulate enzyme activity at different substrate concentrations
-    # based on Michaelis-Menten kinetics
-    true_vmax = 120  # arbitrary units
-    true_km = 25  # μM
-
-    activity_values = michaelis_menten(np.array(substrate_concentrations), true_vmax, true_km)
-    activity_values += np.random.normal(0, 5, len(substrate_concentrations))  # Add noise
+    # Real measured activity readouts per substrate concentration must be
+    # supplied here (activity_values). No fabricated observed data.
+    true_km = 25  # μM (reference only, used to pick a modulator substrate conc)
+    activity_values = None  # to be populated from real measured data
 
     # Fit data to Michaelis-Menten equation
     try:
@@ -223,29 +225,10 @@ def analyze_enzyme_kinetics_assay(
         for modulator_name, concentrations in modulators.items():
             log += f"#### Testing modulator: {modulator_name}\\n\\n"
 
-            # Choose a fixed substrate concentration near Km for inhibition studies
-            substrate_conc = true_km
-
-            # Simulate modulator effects (e.g., competitive inhibition)
-            # For simplicity, using a sigmoidal dose-response curve
-            ic50 = np.random.uniform(1, 50)  # Random IC50 between 1-50 μM
-            hill_coef = 1.0  # Hill coefficient
-
-            # Calculate normalized activity (% of control)
-            michaelis_menten(substrate_conc, true_vmax, true_km)
-
-            # Calculate activities at different modulator concentrations
-            modulator_activities = []
-            for conc in concentrations:
-                # Sigmoidal dose-response curve
-                if conc == 0:
-                    activity = 100  # 100% activity at zero concentration
-                else:
-                    activity = 100 / (1 + (conc / ic50) ** hill_coef)
-
-                # Add some noise
-                activity += np.random.normal(0, 3)
-                modulator_activities.append(activity)
+            # Real measured modulator dose-response readouts must be supplied
+            # here (measured % activity at each modulator concentration). No
+            # fabricated observed data.
+            modulator_activities = None  # to be populated from real measured data
 
             # Save modulator data
             modulator_file = os.path.join(output_dir, f"{enzyme_name}_{modulator_name}_dose_response.csv")
@@ -341,7 +324,7 @@ with open("analyze_enzyme_kinetics_assay_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_enzyme_kinetics_assay_output.txt", "w") as f:
-    f.write("Biomni: Analyze Enzyme Kinetics Assay" + NL)
+    f.write("BioMate: Analyze Enzyme Kinetics Assay" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

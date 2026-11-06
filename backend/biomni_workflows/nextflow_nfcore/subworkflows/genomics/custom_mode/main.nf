@@ -245,7 +245,7 @@ with open("custom_mode_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("custom_mode_output.txt", "w") as f:
-    f.write("Biomni: Custom Mode" + NL)
+    f.write("BioMate: Custom Mode" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

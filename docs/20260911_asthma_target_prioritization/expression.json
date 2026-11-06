@@ -1,0 +1,56 @@
+{
+  "lane": "Expression and tissue/cell context",
+  "queried_at": "2026-09-11",
+  "scores": {
+    "TSLP": 4,
+    "IL33": 4,
+    "IL1RL1": 4
+  },
+  "confidence": "moderate-high biological plausibility; provisional comparative ranking",
+  "plugin_skills": [
+    "human-protein-atlas-skill",
+    "gtex-eqtl-skill",
+    "cellxgene-skill",
+    "bgee-skill"
+  ],
+  "api_status": {
+    "HPA": "success",
+    "GTEx": "success",
+    "CELLxGENE": "success",
+    "Bgee": "success"
+  },
+  "direct_asthma": {
+    "TSLP": [
+      "human type-2-high airway expression",
+      "allergen-challenge asthma airway induction"
+    ],
+    "IL33": [
+      "human asthma epithelial mast-cell feedback",
+      "allergen-challenge asthma airway induction",
+      "published airway regulatory mapping"
+    ],
+    "IL1RL1": [
+      "published airway epithelial sST2 eQTL",
+      "asthma protein/transcript discordance"
+    ]
+  },
+  "adjacent_not_scored": [
+    "healthy lung atlases",
+    "COPD",
+    "chronic rhinitis",
+    "atopy without asthma"
+  ],
+  "gtex_note": "No colocalization or asthma risk-allele harmonization. eQTL p-values must not be shown as GWAS p-values.",
+  "reasons": {
+    "TSLP": "Respiratory basal expression plus human asthma airway induction; no queried TSLP eQTL; inducible context matters.",
+    "IL33": "Airway basal/secretory and endothelial expression plus human asthma functional circuit; endotype-dependent expression.",
+    "IL1RL1": "Lung/mast/basophil/eosinophil expression and strong lung eQTL, but soluble versus membrane ST2 remains unresolved."
+  },
+  "single_cell_differential_expression_performed": false,
+  "asthma_cohort_found_in_selected_cellxgene_metadata": false,
+  "bgee_healthy_lung_presence": {
+    "TSLP": true,
+    "IL33": true,
+    "IL1RL1": true
+  }
+}

@@ -94,39 +94,17 @@ def quantify_cell_cycle_phases_from_microscopy(image_paths, output_dir="./result
     import os
     import numpy as np
 
-    # Generate synthetic data if no input provided
+    # NO FABRICATION: the previous "DEMO MODE" invented cell counts and phase
+    # percentages with np.random (e.g. total_cells=randint, g1_pct=uniform) and
+    # returned them as results — fabricated metrics that violate the no-fabrication
+    # / no-RNG policy. Removed. With no input, honest-fail (the real skimage
+    # analysis below runs only on provided microscopy images).
     if image_paths is None or len(image_paths) == 0:
-        np.random.seed(42)
-
-        log = "# Cell Cycle Phase Quantification Analysis (DEMO MODE)\\n\\n"
-        log += "Running with synthetic data for demonstration purposes.\\n\\n"
-
-        # Simulated cell counts
-        total_cells = np.random.randint(200, 500)
-
-        # Typical yeast cell cycle distribution
-        g1_pct = np.random.uniform(55, 65)
-        s_pct = np.random.uniform(15, 25)
-        g2m_pct = 100 - g1_pct - s_pct
-
-        g1_count = int(total_cells * g1_pct / 100)
-        s_count = int(total_cells * s_pct / 100)
-        g2m_count = total_cells - g1_count - s_count
-
-        log += "## Synthetic Analysis Results\\n\\n"
-        log += f"Total cells analyzed: {total_cells}\\n\\n"
-
-        log += "### Cell Cycle Phase Distribution\\n\\n"
-        log += "| Phase | Count | Percentage |\\n"
-        log += "|-------|-------|------------|\\n"
-        log += f"| G1 | {g1_count} | {g1_pct:.1f}% |\\n"
-        log += f"| S | {s_count} | {s_pct:.1f}% |\\n"
-        log += f"| G2/M | {g2m_count} | {g2m_pct:.1f}% |\\n"
-
-        log += "\\n## Summary\\n\\n"
-        log += "Synthetic demo analysis complete. Provide image_paths for actual analysis.\\n"
-
-        return log
+        raise RuntimeError(
+            "quantify_cell_cycle_phases_from_microscopy requires image_paths "
+            "(microscopy images with a DNA/cell-wall stain). The synthetic demo "
+            "was removed because it fabricated cell counts and cell-cycle "
+            "percentages via RNG; no fabricated metrics are emitted.")
 
     import pandas as pd
     from skimage import filters, io, measure, morphology
@@ -300,7 +278,7 @@ with open("quantify_cell_cycle_phases_from_microscopy_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("quantify_cell_cycle_phases_from_microscopy_output.txt", "w") as f:
-    f.write("Biomni: Quantify Cell Cycle Phases From Microscopy" + NL)
+    f.write("BioMate: Quantify Cell Cycle Phases From Microscopy" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

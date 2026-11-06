@@ -398,7 +398,7 @@ with open("qc_metrics.json", "w") as f:
 # ── Save human-readable output ────────────────────────────────────────────────
 NL = chr(10)
 with open("ivive_output.txt", "w") as f:
-    f.write("Biomni: IVIVE Hepatic Clearance Scaling" + NL)
+    f.write("BioMate: IVIVE Hepatic Clearance Scaling" + NL)
     f.write("=" * 60 + NL + NL)
     if success and result:
         f.write(f"Species:            {result['species'].capitalize()}" + NL)

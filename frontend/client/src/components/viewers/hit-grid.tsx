@@ -32,7 +32,9 @@ export type HitVerdict = "accepted" | "flagged" | "rejected" | "held"
 export interface ChemHit {
   id: string
   smiles: string
-  score: number
+  /** Null for a held / out-of-domain hit: no confident number. Never coerce to
+   * 0 — that would silently rank an unscored compound as the worst real score. */
+  score: number | null
   /** e.g. "high" | "medium" | "low" | "out-of-domain". */
   confidence: string
   herg: string
@@ -56,11 +58,14 @@ type SortKey = "id" | "score" | "confidence" | "verdict"
 // Verdict styling
 // ---------------------------------------------------------------------------
 
+// Colours source the ported reference design tokens (styles/reference-design.css
+// → --ok/--warn/--err/--text-dim) instead of hardcoded hex, so verdict styling
+// stays 1:1 with the reference and tracks the theme (incl. dark mode).
 const VERDICT_STYLE: Record<HitVerdict, { color: string; ring: string }> = {
-  accepted: { color: "#22c55e", ring: "border-l-green-500" },
-  flagged:  { color: "#f59e0b", ring: "border-l-amber-500" },
-  rejected: { color: "#ef4444", ring: "border-l-red-500" },
-  held:     { color: "#94a3b8", ring: "border-l-slate-400" },
+  accepted: { color: "var(--ok)",       ring: "border-l-green-500" },
+  flagged:  { color: "var(--warn)",     ring: "border-l-amber-500" },
+  rejected: { color: "var(--err)",      ring: "border-l-red-500" },
+  held:     { color: "var(--text-dim)", ring: "border-l-slate-400" },
 }
 
 /** A "held" hit is out-of-domain: no confident number is offered. */
@@ -88,9 +93,18 @@ export function HitGrid({ hits, modelName = "admet-herg v3", modelId = "admet-he
   const [asc, setAsc] = useState(false)
 
   const sorted = [...hits].sort((a, b) => {
-    let cmp = 0
-    if (sortKey === "score") cmp = a.score - b.score
-    else cmp = String(a[sortKey]).localeCompare(String(b[sortKey]))
+    if (sortKey === "score") {
+      // Unscored (held/out-of-domain) hits sort to the END regardless of
+      // direction — they carry no number, so they are never "better" or "worse".
+      const an = a.score === null
+      const bn = b.score === null
+      if (an && bn) return 0
+      if (an) return 1
+      if (bn) return -1
+      const cmp = (a.score as number) - (b.score as number)
+      return asc ? cmp : -cmp
+    }
+    const cmp = String(a[sortKey]).localeCompare(String(b[sortKey]))
     return asc ? cmp : -cmp
   })
 
@@ -171,7 +185,7 @@ export function HitGrid({ hits, modelName = "admet-herg v3", modelId = "admet-he
                     >
                       <td className="px-2 py-1 font-mono font-semibold whitespace-nowrap">{h.id}</td>
                       <td className="px-2 py-1 font-mono" data-testid={`hit-score-${h.id}`}>
-                        {held ? <span className="text-muted-foreground italic">held</span> : h.score}
+                        {held ? <span className="text-muted-foreground italic">held</span> : (h.score ?? "—")}
                       </td>
                       <td className="px-2 py-1">
                         <span className="capitalize">{h.confidence}</span>
@@ -207,13 +221,13 @@ export function HitGrid({ hits, modelName = "admet-herg v3", modelId = "admet-he
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[11px] font-mono font-semibold">{h.id}</span>
                     <span className="text-[11px] font-mono" data-testid={`hit-card-score-${h.id}`}>
-                      {held ? <span className="text-muted-foreground italic">held</span> : h.score}
+                      {held ? <span className="text-muted-foreground italic">held</span> : (h.score ?? "—")}
                     </span>
                   </div>
                   <div className="flex items-center gap-1 flex-wrap">
                     <VerdictChip verdict={h.verdict} />
                     {h.confidence === "out-of-domain" && (
-                      <Badge variant="outline" className="text-[10px]" style={{ color: "#f59e0b" }}>
+                      <Badge variant="outline" className="text-[10px]" style={{ color: "var(--warn)" }}>
                         out-of-domain
                       </Badge>
                     )}

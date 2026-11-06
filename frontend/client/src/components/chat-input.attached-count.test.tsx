@@ -11,8 +11,8 @@
  */
 import React from "react"
 import { describe, it, expect, vi } from "vitest"
-import { render, screen } from "@testing-library/react"
-import { ChatInput } from "./chat-input"
+import { fireEvent, render, screen } from "@testing-library/react"
+import { ChatInput, scoreProjectMatch, suggestProject } from "./chat-input"
 
 function setup(sessionDatasetCount: number) {
   return render(
@@ -98,5 +98,52 @@ describe("Contract: indicator cap mirrors server cap", () => {
     expect(clientMatch?.[1]).toBeDefined()
     expect(serverMatch?.[1]).toBeDefined()
     expect(clientMatch![1]).toBe(serverMatch![1])
+  })
+})
+
+describe("ChatInput — composer instructions and project suggestion", () => {
+  it("sends trimmed instructions through the context override with the message", () => {
+    const onSend = vi.fn()
+    render(<ChatInput onSend={onSend} isStreaming={false} />)
+
+    fireEvent.click(screen.getByTestId("composer-instructions-toggle"))
+    fireEvent.change(screen.getByTestId("composer-instructions"), {
+      target: { value: "  Use GRCh38 and FDR < 0.05.  " },
+    })
+    fireEvent.input(screen.getByTestId("chat-input"), {
+      target: { value: "Analyze my RNA-seq dataset" },
+    })
+    fireEvent.click(screen.getByTestId("chat-send-button"))
+
+    expect(onSend).toHaveBeenCalledWith(
+      "Analyze my RNA-seq dataset",
+      undefined,
+      { composerInstructions: "Use GRCh38 and FDR < 0.05." },
+    )
+  })
+
+  it("proposes only a real matching project and files it on explicit action", async () => {
+    const onFileToProject = vi.fn()
+    render(
+      <ChatInput
+        onSend={vi.fn()}
+        isStreaming={false}
+        onFileToProject={onFileToProject}
+        projects={[{ id: "p-rna", name: "RNA-seq response study", tags: ["transcriptomics"] }]}
+      />
+    )
+
+    fireEvent.input(screen.getByTestId("chat-input"), {
+      target: { value: "Analyze RNA-seq transcriptomics response" },
+    })
+    await screen.findByTestId("composer-project-suggested")
+    fireEvent.click(screen.getByTestId("composer-project-file-it"))
+    expect(onFileToProject).toHaveBeenCalledWith("p-rna")
+  })
+
+  it("does not invent project matches from unrelated text", () => {
+    const project = { id: "p-cryo", name: "Cryo-EM structure", tags: ["protein"] }
+    expect(scoreProjectMatch("analyze RNA-seq expression", project)).toBe(0)
+    expect(suggestProject("analyze RNA-seq expression", [project])).toBeNull()
   })
 })

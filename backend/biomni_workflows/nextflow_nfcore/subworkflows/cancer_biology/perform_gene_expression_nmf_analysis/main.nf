@@ -277,7 +277,7 @@ with open("perform_gene_expression_nmf_analysis_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("perform_gene_expression_nmf_analysis_output.txt", "w") as f:
-    f.write("Biomni: Perform Gene Expression Nmf Analysis" + NL)
+    f.write("BioMate: Perform Gene Expression Nmf Analysis" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

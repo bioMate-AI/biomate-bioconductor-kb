@@ -1,0 +1,127 @@
+{
+  "_meta": {
+    "generated": "2026-09-14",
+    "purpose": "BROADER re-search of public immunopeptidome data for the H4 (presentation) cross-allele gap. Reframes the prior HARD_ESSENTIAL_KO_RESCAN (which required GENETIC hard-essential KO of B2M/TAP/TAPBP on disjoint alleles -> found 0 -> 'CRO required'). H4 thesis = 'antigen-processing MACHINERY STATE controls presentation', testable by ANY machinery perturbation (cytokine IFN-gamma/type-I IFN, proteasome/immunoproteasome inhibitor, natural APM loss, TAP-deficiency) with a control arm, on backgrounds DISJOINT from the A*02 cluster (HAP1/A375/THP-1/HeLa/MDA-MB-231, all A*02:01+).",
+    "gate_requirement_recap": "PASS-eligible needs >=3 DISJOINT-ALLELE (non-A*02) backgrounds, each with a machinery-perturbation<->control immunopeptidome (processed ligandome preferred, not raw-only).",
+    "disk_note": "4.1 GB free at start; SEARCH/metadata task only. Verified fetchability via file-listing API + one 27 MB mztab size check; no large pull (PXD014017 processed zips are 640/345 MB -> use per-PDO supplementary Excel peptide tables instead, no raw reprocessing).",
+    "search_scope": "PRIDE v2 REST (single-term keyword queries: interferon, immunopeptidome, immunoproteasome, ligandome, bortezomib, carfilzomib, tapasin, 'type I interferon', 'antigen processing machinery'), ProteomeXchange PROXI, MassIVE datasets_json, Cellosaurus HLA typing, and 2023-2025 literature (Cancer Res Commun IFNg-organoid, AACR melanoma spliced/IFNg, Lopez de Castro TAP-deficient, Newey 2019 CRC-organoid immunopeptidome).",
+    "training_eligible": false
+  },
+
+  "headline": {
+    "disjoint_allele_machinery_perturbation_backgrounds_fetchable": 3,
+    "achieved_in_a_single_deposit": "PXD014017 (CRC-01, CRC-04, CRC-05 organoids; each +IFNg vs DMSO control; all A*02-NEGATIVE and mutually allele-diverse)",
+    "perturbation_type": "cytokine IFN-gamma (machinery-state remodeling: immunoproteasome/TAP/ERAP upregulation) -- NOT genetic KO",
+    "can_reach_>=3_disjoint_allele_machinery_backgrounds_from_public_data": true,
+    "verdict": "The cross-allele H4 gate CAN be re-powered on PUBLIC data WITHOUT a genetic-KO CRO, IF the gate accepts a MACHINERY-PERTURBATION (IFN-gamma) contrast in place of a hard-essential KO. One open deposit (PXD014017) supplies 3 A*02-negative, allele-diverse backgrounds each with a paired +IFNg/-IFNg HLA-I immunopeptidome and processed per-PDO peptide tables. This is a DIFFERENT test than the prior gate (perturbation is reversible cytokine induction, not irreversible collapse), so it re-powers a REFRAMED gate, not the identical hard-essential-KO gate.",
+    "honest_caveat": "IFN-gamma UPREGULATES/diversifies presentation (gain-of-machinery) whereas B2M/TAP KO ABLATES it (loss-of-machinery). Both probe 'machinery state -> presentation', but the sign and magnitude differ. If the H4 gate specifically requires a PRESENTATION-COLLAPSE readout (KO-style), IFN-gamma data does not substitute and the CRO remains. If the gate accepts 'machinery-state perturbation reshapes the repertoire in a machinery-dependent, cross-allele-consistent way', PXD014017 (+ supporting deposits below) suffices on public data."
+  },
+
+  "PRIMARY_disjoint_allele_machinery_deposit": {
+    "PXD014017": {
+      "title": "Multifactorial remodeling of the cancer immunopeptidome by IFNgamma (CRC patient-derived organoids)",
+      "paper": "Cancer Research Communications 2023 (PMC10655636); organoid HLA typing from Newey et al. J Immunother Cancer 2019;7:309 (PMC6859637), Suppl. Table S3",
+      "repository": "PRIDE / ProteomeXchange",
+      "access": "OPEN",
+      "organism": "Homo sapiens",
+      "perturbation": "IFN-gamma 600 ng/mL, 48 h  vs  DMSO/untreated control (paired, same organoid)",
+      "perturbation_class": "cytokine machinery-state induction (immunoproteasome PSMB8/9/10 + TAP + ERAP upregulation)",
+      "backgrounds": {
+        "CRC-01": {"HLA_A":"A*31:01, A*32:01","HLA_B":"B*14:01, B*27:05","HLA_C":"C*02:02, C*08:02","A02_positive":false},
+        "CRC-04": {"HLA_A":"A*03:01, A*24:02","HLA_B":"B*18:01, B*35:08","HLA_C":"C*04:01, C*05:01","A02_positive":false},
+        "CRC-05": {"HLA_A":"A*32:01","HLA_B":"B*40:01","HLA_C":"C*03:04","A02_positive":false,"note":"single alleles per locus (HLA LOH per paper)"}
+      },
+      "disjoint_from_A02_cluster": true,
+      "n_disjoint_backgrounds": 3,
+      "measured_modality": "HLA class I (and II) eluted-ligand immunopeptidome, both conditions each PDO",
+      "peptides_per_condition": "2,124-16,030 HLA-I peptides per PDO; 1,439-3,942 gained and 561-2,446 lost per PDO through IFNg",
+      "processed_ligandome_available": true,
+      "processed_files": {
+        "on_PRIDE": ["Search_with_variants_FDR-5.zip (640 MB)","Search_Uniprot_FDR-1.zip (345 MB)  -- MaxQuant no-enzyme immunopeptidome search outputs; large"],
+        "lighter_route": "Per-PDO supplementary Excel peptide tables ('Data CRC01/CRC04/CRC05' with RNA+protein+PROCESSED immunopeptide lists) attached to the Cancer Res Commun 2023 paper AND to Newey 2019 -- give processed HLA-I peptide lists per organoid per condition WITHOUT the 640 MB pull or any raw reprocessing."
+      },
+      "raw_only": false,
+      "why_it_qualifies": "3 mutually allele-diverse, all-A*02-negative backgrounds, each with a paired machinery-perturbation<->control HLA-I immunopeptidome and processed peptide tables. Meets the >=3 disjoint-allele requirement in ONE open deposit."
+    }
+  },
+
+  "SUPPORTING_machinery_deposits": [
+    {
+      "acc": "PXD014397",
+      "title": "Spliced Peptides and Cytokine-Driven Changes in the Immunopeptidome of Melanoma (LM-MEL-33/44/53, +/-IFNg)",
+      "perturbation": "IFN-gamma  vs  untreated (paired, 3 melanoma lines, 3 bioreps)",
+      "processed_ligandome_available": true,
+      "processed_files": ".pride.mztab.gz (peptide tables, ~27 MB each) + .mzid.gz per line per condition -- SMALL, directly fetchable, NO reprocessing",
+      "HLA": {"LM-MEL-33":"A*02:01, A*03:01 / B*60, B*47 / C*03:04, C*06:02","LM-MEL-44":"A*02:01 / B*60, B*44:02 / C*03:04, C*05:01","LM-MEL-53":"A*02:01 / B*60, B*44:02 / C*03:04, C*05:01"},
+      "A02_positive": true,
+      "disjoint_from_A02_cluster": false,
+      "role": "STRONG machinery-perturbation deposit with the BEST processed-file ergonomics (small mztab), but ALL THREE lines are A*02:01+ -> deepens the A*02 axis, does NOT add a disjoint allele. Useful as the A*02 within-cluster IFNg replicate / method cross-check, not for the disjoint requirement. (Mel33 adds A*03:01/B*47/C*06:02 as secondary alleles.)"
+    },
+    {
+      "acc": "PXD023044 (raw) / PXD023038 (mirror)",
+      "title": "IFNg modulates the immunopeptidome of triple-negative breast cancer cells (MDA-MB-231, +/-IFNg)",
+      "perturbation": "IFN-gamma vs untreated, MDA-MB-231, 3 bioreps",
+      "processed_ligandome_available": true,
+      "processed_files": ".mzid.gz per condition per rep (pos/neg/CII)",
+      "HLA": "MDA-MB-231 = A*02:01, A*02:17 / B*40:02, B*41:01 / C*02:02, C*17:01",
+      "A02_positive": true,
+      "disjoint_from_A02_cluster": false,
+      "role": "Machinery (IFNg) contrast; A*02:01+ so NOT disjoint on HLA-A, but adds B*40:02/B*41:01/C*02:02/C*17:01 as diverse loci. Was in the KO-rescan exclusion set (rejected there for lacking a KO); under the MACHINERY reframe it is a valid IFNg contrast, just not A-locus-disjoint."
+    },
+    {
+      "acc": "PXD024331",
+      "title": "Kinetics of abacavir-induced remodelling of the MHC-I peptide repertoire (C1R.B*57:01)",
+      "perturbation": "abacavir vs vehicle, HLA-B*57:01 (C1R transfectant), time course",
+      "processed_ligandome_available": false,
+      "processed_files": "proteinGroups (PROTEOME) txt + MRM/Data summary xlsx only -- NO eluted-ligand peptide table; ligandome would need no-enzyme reprocessing of .wiff",
+      "HLA": "C1R.B*57:01 (single defined B*57:01; C1R parent near-HLA-null)",
+      "A02_positive": false,
+      "disjoint_from_A02_cluster": true,
+      "role": "B*57:01 IS disjoint, BUT (a) abacavir is a small-molecule that alters the B*57:01 binding groove (hapten/altered-repertoire), NOT a canonical antigen-processing-MACHINERY perturbation, and (b) processed files are proteome+MRM only. Weak/off-axis; log as lead not a gate background."
+    },
+    {
+      "acc": "PXD027859",
+      "title": "B27 immunopeptidome in vaccinia-infected cells (B27-C1R = HLA-B*27:05 transfectant)",
+      "perturbation": "vaccinia (VACV) infection vs uninfected, acid-strip enrichment",
+      "processed_ligandome_available": false,
+      "processed_files": ".wiff + .mgf spectra only (no processed peptide table)",
+      "HLA": "B27-C1R = HLA-B*27:05 (HMy2.C1R transfectant)",
+      "A02_positive": false,
+      "disjoint_from_A02_cluster": true,
+      "role": "B*27:05 disjoint; viral-infection perturbation touches antigen processing (Lopez de Castro TAP-independence lineage) but it is INFECTION not a defined machinery-state arm, and no processed table. Secondary lead."
+    },
+    {
+      "acc": "PXD020079 / PXD020020 (HELD in corpus)",
+      "title": "CIITA-transduced glioblastoma cells (HROG02, HROG17, RA) with +IFN-g arms",
+      "perturbation": "CIITA overexpression + IFN-g arms across 3 GBM lines",
+      "processed_ligandome_available": "raw held on S3 (9.5 GB .raw); processing needed",
+      "HLA": "3 distinct GBM-line genotypes (not yet resolved here; class-II-focused study, class-I ligandome present)",
+      "A02_positive": "unresolved -- needs HLA typing of HROG02/HROG17/RA",
+      "role": "Already in corpus; has +IFNg arms on 3 distinct GBM backgrounds. If any are A*02-negative this ADDS disjoint IFNg backgrounds. Worth typing HROG02/HROG17/RA as a cheap follow-up."
+    },
+    {
+      "acc": "MSV000099247 (MassIVE)",
+      "title": "Proteomic profiling of patient-derived melanoma cells stimulated with IFN-gamma",
+      "perturbation": "IFN-g vs unstimulated, patient-derived melanoma",
+      "processed_ligandome_available": "proteome-focused per title; check for paired immunopeptidome",
+      "role": "Lead only -- appears proteome (not eluted-ligand). Verify before counting."
+    }
+  ],
+
+  "candidates_examined_and_off_axis": [
+    {"acc":"PXD037843","why":"Mtb + IFN-beta (type-I IFN) on primary macrophages; processed csv/tsv exist BUT it is IS-PRM/SureQuant TARGETED validation of specific Mtb epitopes, HLA-A*02:01+/B*57:01+ donors -> not a global disjoint-allele repertoire contrast. Off-axis for the gate (targeted, and A*02:01+)."},
+    {"acc":"PXD066752 / PXD060575 / PXD054491","why":"ERAP1 allotype/activity modulation (trimmer editor) -- editor-level machinery, same class the prior rescan treated as weak/inverted; A375 (A*02) background. Not disjoint, editor not core-machinery collapse."},
+    {"acc":"PXD063219 / PXD046825 / PXD054743","why":"TAPBPR/tapasin editing on HLA-B*44 (721.220/HeLaM systems) -- editor-level; B*44 allele-controlled but perturbation is peptide-editing not machinery-state, already catalogued."},
+    {"acc":"PXD076608","why":"Kinase (TKI) inhibition rewires CML immunopeptidome (BV173) -- drug perturbation of signaling/turnover, not antigen-processing machinery per se; single line."},
+    {"acc":"PXD060641 / PXD061196","why":"SUMO program restricts immunopeptidome; immunoproteasome effect indirect; processed = proteome peptides.txt. Already rejected."},
+    {"acc":"PXD063813","why":"B2M-KO C1R/K562 -- GENETIC KO, A*02, proteome-only processed. Belongs to the KO-rescan, not the machinery-perturbation set."}
+  ],
+
+  "decisive_answer": {
+    "question": "Can we assemble >=3 allele-disjoint backgrounds, each with a machinery-perturbation<->control immunopeptidome, from PUBLIC data WITHOUT genetic KO?",
+    "answer": "YES.",
+    "minimal_set": "PXD014017 alone = 3 disjoint (all A*02-negative), allele-diverse CRC organoid backgrounds (CRC-01/04/05), each with paired +IFNg vs control HLA-I immunopeptidome and processed per-PDO peptide tables (via the paper's supplementary Excel; no raw reprocessing).",
+    "robustness_add": "PXD014397 (Mel33/44/53, small mztab) + PXD023044 (MDA-MB-231) provide additional IFNg contrasts on A*02:01+ but locus-diverse backgrounds -> strengthen the WITHIN-A*02 machinery axis and give a method cross-check, though they do not add A-locus-disjoint folds. CIITA-GBM (PXD020079, 3 GBM lines +IFNg, HELD) is a cheap follow-up that could add more disjoint IFNg backgrounds once HROG02/17/RA are typed.",
+    "cro_impact": "The disjoint-allele MACHINERY-STATE test is now runnable on public data -> the CRO SHRINKS if the H4 gate accepts a cytokine (IFN-gamma) machinery perturbation. The CRO is NOT avoided if the gate strictly requires a hard-essential-KO PRESENTATION-COLLAPSE readout across disjoint alleles (IFN-gamma induces/diversifies rather than collapses). Recommend running the reframed gate on PXD014017 first (zero acquisition cost) to see whether cross-allele machinery-dependence holds; only escalate to the KO-collapse CRO if the reframed test is insufficient for the decision."
+  }
+}

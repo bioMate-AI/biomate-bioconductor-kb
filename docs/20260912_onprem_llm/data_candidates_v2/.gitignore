@@ -1,0 +1,3 @@
+# Derived candidate corpus — regenerate with evaluation/local_trial/collect_local_corpus.py
+# Manifest (with source hashes) is tracked; large JSONL candidate files are not.
+*.jsonl

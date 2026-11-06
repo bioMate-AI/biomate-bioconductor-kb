@@ -1,0 +1,9 @@
+{
+  "profiles": 348,
+  "genes": 132,
+  "aggregate_groups": 24,
+  "guide_pool_disjoint": true,
+  "aggregates_recomputed_exactly": true,
+  "positive_n_cells": true,
+  "minimum_group_profiles": 10
+}

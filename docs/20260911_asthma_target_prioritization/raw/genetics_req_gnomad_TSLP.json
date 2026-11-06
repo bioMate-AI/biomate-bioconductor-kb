@@ -1,0 +1,1 @@
+{"query": "query { gene(gene_symbol: \"TSLP\", reference_genome: GRCh38) { gene_id symbol gnomad_constraint { pLI oe_lof oe_lof_lower oe_lof_upper } } }", "max_items": 3, "save_raw": true, "raw_output_path": "/Users/kky/biomate-review/docs/20260911_asthma_target_prioritization/raw/genetics_gnomad_TSLP.json"}

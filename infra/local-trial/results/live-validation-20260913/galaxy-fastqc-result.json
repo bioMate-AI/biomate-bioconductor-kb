@@ -1,0 +1,83 @@
+{
+  "passed": true,
+  "scope": "Actual Galaxy workflow and artifacts on synthetic reads; no LLM orchestration",
+  "history_id": "f2db41e1fa331b3e",
+  "seconds": 21.843,
+  "input_dataset_id": "f2db41e1fa331b3e",
+  "workflow_id": "f2db41e1fa331b3e",
+  "invocation_id": "f2db41e1fa331b3e",
+  "invocation_state": "scheduled",
+  "outputs": {
+    "html": {
+      "id": "f597429621d6eb2b",
+      "workflow_step_id": "f2db41e1fa331b3e",
+      "src": "hda"
+    },
+    "archive": {
+      "id": "1cd8e2f6b131e891",
+      "workflow_step_id": "f2db41e1fa331b3e",
+      "src": "hda"
+    }
+  },
+  "artifacts": {
+    "artifact_validation_passed": true,
+    "synthetic_input": true,
+    "statistics": {
+      "Filename": "dataset_1.dat",
+      "File type": "Conventional base calls",
+      "Encoding": "Illumina 1.5",
+      "Total Sequences": "100",
+      "Total Bases": "10 kbp",
+      "Sequences flagged as poor quality": "0",
+      "Sequence length": "100",
+      "%GC": "50"
+    },
+    "qc_modules": [
+      {
+        "status": "PASS",
+        "module": "Basic Statistics"
+      },
+      {
+        "status": "PASS",
+        "module": "Per base sequence quality"
+      },
+      {
+        "status": "FAIL",
+        "module": "Per sequence quality scores"
+      },
+      {
+        "status": "FAIL",
+        "module": "Per base sequence content"
+      },
+      {
+        "status": "PASS",
+        "module": "Per sequence GC content"
+      },
+      {
+        "status": "PASS",
+        "module": "Per base N content"
+      },
+      {
+        "status": "PASS",
+        "module": "Sequence Length Distribution"
+      },
+      {
+        "status": "FAIL",
+        "module": "Sequence Duplication Levels"
+      },
+      {
+        "status": "FAIL",
+        "module": "Overrepresented sequences"
+      },
+      {
+        "status": "PASS",
+        "module": "Adapter Content"
+      }
+    ],
+    "interpretation": "Functional execution evidence only; repeated synthetic reads may fail QC.",
+    "sha256": {
+      "report.html": "9a1c7196d4c79567abafdc8b1ab18ab5bd2aff343b5f8e29083c60638b413f91",
+      "report.zip": "4bbfcb1090c10f30d05de8a06802a0fad5a409cb1ec1ccb059c93f9d479a47b6"
+    }
+  }
+}

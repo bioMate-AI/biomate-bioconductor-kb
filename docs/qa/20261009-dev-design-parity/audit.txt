@@ -1,0 +1,35 @@
+Dev vs data_centroid_design_v2 — 2026-10-09
+
+METHOD
+Captured the actual https://dev-public.biomate.ai application with the existing fixture account, at 1440x1000, then resized the real workflow panel and tested window widths 1100, 1000, 900 and 760. No prompt was submitted and no workflow was started.
+Dev JavaScript asset previously checked: /assets/index-D3KDzvu4.js.
+Reference visual captures use BioMate Prototype (standalone).html. Where it conflicts with current dataui source and SIMPLIFICATION_DECISIONS.md, source/accepted decisions take precedence. Reference broken logo excluded. Captured chat sessions are different scientific examples; content and quantities are not compared as visual defects.
+
+CONFIRMED GAPS
+1. Sidebar: dev 260px, reference 224px at 1440. Dev uses 36px more width throughout the split.
+2. Navigation hierarchy: dev exposes Data, Design & Generate and Recent Tools globally; project list and Current/Recent chats are separate blocks. Reference places Files, Runs, Instructions and chats inside projects. Accepted decisions place connections in Settings; dev still has a primary Connectors entry. The older standalone also retains Connectors, so this is a source/decision gap rather than a standalone visual difference.
+3. Header: reference includes project breadcrumb and Hide chat control; dev shows session title and Run Manager without those controls.
+4. New-chat screen combines module cards with the older Input your use case here + four example-chip empty state. Reference Composer/EmptyState code treats those as alternative empty states. This produces duplicate entry mechanisms and a large disconnected gap on dev.
+5. Composer: reference caps width at 660px. Dev new-chat composer is substantially wider. Dev separates Instructions and Experts above its border and uses three unlabeled icons inside; reference groups data and Skills & experts in an internal toolbar. Accepted source puts execution-lane switching in Advanced, so do not blindly port the older standalone Lane button.
+6. Palette: dev chat surface is visibly cool tinted; reference chat canvas is white. Dev pale lavender icon/send treatment differs from the reference blue/cyan accents. Need token consolidation rather than generic v2 flags.
+7. Workflow panel has a separate 36px close-only chrome row above its heading. Reference places close and expand controls in the panel heading. Dev therefore repeats a panel header region and pushes content down.
+8. Workflow heading omits reference project/version/input-origin context and completed progress bar/counter. Data availability must be handled honestly; do not fabricate version/provenance.
+9. Results are still exposed below Workflow settings in the captured completed run (Hide results, Download all, AI analysis, Report, QC audit log, timing and output results). They compete with the separate After run surface, contrary to the accepted three-tab hierarchy.
+10. Resize: dev retains chat at 840px and 740px stage widths (1100 and 1000 viewport). Reference App auto-hides chat below 880px stage width. Dev breakpoint remains 720px; source maximum panel width 900 versus reference 860.
+11. Completed chat text initially says run finished — analyzing results; later it resolves to summary. Captured initially and after hydration. Status wording transiently contradicts completed panel; timing/summary loading needs an explicit coherent state.
+12. Captured settings contain a required field labelled CN1C whose value resembles a SMILES fragment, and all populated rows are marked Recommended/Override. This is observed live; exact origin/schema correctness is not established. It needs a parameter-contract audit rather than a styling-only fix.
+
+VERIFIED / NOT GAPS
+- The live completed After run surface already uses Summary, Outputs, Reproducibility record. Earlier claim of a missing three-tab result was too broad.
+- Real panel dragging at 1440 narrowed chat from 700 to 437px without horizontal overflow. At 1100/1000, chat is 380px with no measured container overflow. At 900/760 chat is hidden. This does not prove every long-content case is safe.
+- RolesCard and verification summary are absent from the captured Workflow settings.
+- No claim that all expert/file/citation states were tested; this pass covered home, an existing completed chat, settings and resizing.
+
+EVIDENCE
+reference-home.png / dev-home.png: identical 1440x1000 viewport.
+reference-chat.png / dev-chat.png: reference completed RNA-seq example vs real completed ADMET run; layout only, not content parity.
+dev-settings.png / dev-expanded.png: actual settings before and after panel drag.
+measurements.json and dev-1100.png, dev-1000.png, dev-900.png, dev-760.png: responsive evidence.
+
+CONCLUSION
+The actual served application does not match the requested design. Confirmed layout/control/hierarchy differences are implementation gaps. This audit does not establish deployment discrepancy as their cause. Worktree divergence separately remains a regression risk.

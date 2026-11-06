@@ -1,0 +1,453 @@
+{
+  "engine": "multi-channel target selection v1 (substrate-swappable; audit-fixed 2026-09-08)",
+  "substrate": "czi",
+  "channels_populated": [
+    "perturbation",
+    "effect_mag",
+    "pathway",
+    "network"
+  ],
+  "real_channels_combined": [
+    "perturbation",
+    "pathway"
+  ],
+  "null_channels_reported_not_combined": [
+    "network",
+    "effect_mag"
+  ],
+  "channel_provenance": {
+    "sig_source": "CZI Th2/Th1 (Ota) signature",
+    "perturbation": "7864 KO targets, 4750 sig genes",
+    "pathway": "772 TF candidates (N=6686, sig\u2229=2412)",
+    "genetics": "UNPOPULATED \u2014 no genetics score for this substrate (not faked)"
+  },
+  "channel_coverage": {
+    "perturbation": {
+      "universe_size": 7864,
+      "in_combined_union": 7864
+    },
+    "effect_mag": {
+      "universe_size": 7864,
+      "in_combined_union": 7864
+    },
+    "pathway": {
+      "universe_size": 772,
+      "in_combined_union": 772
+    },
+    "network": {
+      "universe_size": 772,
+      "in_combined_union": 772
+    }
+  },
+  "combiner_weights_real": {
+    "perturbation": 0.35,
+    "pathway": 0.2
+  },
+  "fix_note": "combiner uses REAL channels only w/ per-target weight renormalization; nulls reported not combined; per-channel AUROC on own universe + union",
+  "gold_sizes": {
+    "known": 21,
+    "validated": 18,
+    "arrayed_panel": 19,
+    "autoimmune": 342
+  },
+  "n_universe": 8299,
+  "VERDICT": {
+    "wet_lab_validated": {
+      "AUROC_combined": 0.8542,
+      "AUROC_best_single_real": 0.8572,
+      "best_single_real_channel": "perturbation",
+      "AUROC_real_channels_union": {
+        "perturbation": 0.8572,
+        "pathway": 0.52
+      },
+      "AUROC_real_channels_own_universe": {
+        "perturbation": 0.8555,
+        "pathway": 0.7058
+      },
+      "AUROC_nulls_union": {
+        "network": 0.4645,
+        "effect_mag": 0.6485
+      },
+      "combined_beats_best_single_real": false,
+      "combined_beats_nulls": true
+    },
+    "known_regulators": {
+      "AUROC_combined": 0.85,
+      "AUROC_best_single_real": 0.8496,
+      "best_single_real_channel": "perturbation",
+      "AUROC_real_channels_union": {
+        "perturbation": 0.8496,
+        "pathway": 0.5429
+      },
+      "AUROC_real_channels_own_universe": {
+        "perturbation": 0.8492,
+        "pathway": 0.7384
+      },
+      "AUROC_nulls_union": {
+        "network": 0.5425,
+        "effect_mag": 0.6807
+      },
+      "combined_beats_best_single_real": false,
+      "combined_beats_nulls": true
+    }
+  },
+  "results": {
+    "known_regulators": {
+      "COMBINED": {
+        "name": "COMBINED",
+        "n_gold_in_universe": 21,
+        "n_universe": 8299,
+        "AUROC": 0.85,
+        "AUPRC": 0.0323,
+        "AUPRC_baseline_prevalence": 0.0025,
+        "p@10": 0.0,
+        "p@20": 0.05,
+        "p@50": 0.08,
+        "p@100": 0.05,
+        "top20_ranked": [
+          "IL7R",
+          "SEC61B",
+          "CFAP298",
+          "RPRD1A",
+          "FBXO32",
+          "HPS1",
+          "SMARCE1",
+          "CPNE1",
+          "ORC4",
+          "PRPS2",
+          "MPHOSPH9",
+          "CBFB",
+          "EXOSC10",
+          "ICOS",
+          "YJU2B",
+          "DIS3",
+          "ZMAT1",
+          "ACSL6",
+          "LAT2",
+          "EHMT2"
+        ]
+      },
+      "perturbation": {
+        "AUROC_union": 0.8496,
+        "AUROC_own_universe": 0.8492
+      },
+      "effect_mag": {
+        "AUROC_union": 0.6807,
+        "AUROC_own_universe": 0.6841
+      },
+      "pathway": {
+        "AUROC_union": 0.5429,
+        "AUROC_own_universe": 0.7384
+      },
+      "network": {
+        "AUROC_union": 0.5425,
+        "AUROC_own_universe": 0.7164
+      }
+    },
+    "wet_lab_validated": {
+      "COMBINED": {
+        "name": "COMBINED",
+        "n_gold_in_universe": 18,
+        "n_universe": 8299,
+        "AUROC": 0.8542,
+        "AUPRC": 0.0437,
+        "AUPRC_baseline_prevalence": 0.0022,
+        "p@10": 0.1,
+        "p@20": 0.05,
+        "p@50": 0.1,
+        "p@100": 0.05,
+        "top20_ranked": [
+          "IL7R",
+          "SEC61B",
+          "CFAP298",
+          "RPRD1A",
+          "FBXO32",
+          "HPS1",
+          "SMARCE1",
+          "CPNE1",
+          "ORC4",
+          "PRPS2",
+          "MPHOSPH9",
+          "CBFB",
+          "EXOSC10",
+          "ICOS",
+          "YJU2B",
+          "DIS3",
+          "ZMAT1",
+          "ACSL6",
+          "LAT2",
+          "EHMT2"
+        ]
+      },
+      "perturbation": {
+        "AUROC_union": 0.8572,
+        "AUROC_own_universe": 0.8555
+      },
+      "effect_mag": {
+        "AUROC_union": 0.6485,
+        "AUROC_own_universe": 0.6536
+      },
+      "pathway": {
+        "AUROC_union": 0.52,
+        "AUROC_own_universe": 0.7058
+      },
+      "network": {
+        "AUROC_union": 0.4645,
+        "AUROC_own_universe": 0.5128
+      }
+    }
+  },
+  "evidence_breakdown_topk": [
+    {
+      "target": "IL7R",
+      "combined_z": 13.025,
+      "channels": {
+        "perturbation": 13.025,
+        "effect_mag": 4.478,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "SEC61B",
+      "combined_z": 10.94,
+      "channels": {
+        "perturbation": 10.94,
+        "effect_mag": 5.427,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "CFAP298",
+      "combined_z": 10.592,
+      "channels": {
+        "perturbation": 10.592,
+        "effect_mag": 3.565,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "RPRD1A",
+      "combined_z": 10.364,
+      "channels": {
+        "perturbation": 10.364,
+        "effect_mag": 6.049,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "FBXO32",
+      "combined_z": 9.077,
+      "channels": {
+        "perturbation": 9.077,
+        "effect_mag": 2.014,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "HPS1",
+      "combined_z": 8.556,
+      "channels": {
+        "perturbation": 8.556,
+        "effect_mag": 2.033,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "SMARCE1",
+      "combined_z": 8.216,
+      "channels": {
+        "perturbation": 8.216,
+        "effect_mag": 5.313,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "CPNE1",
+      "combined_z": 7.712,
+      "channels": {
+        "perturbation": 7.712,
+        "effect_mag": 7.026,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "ORC4",
+      "combined_z": 7.399,
+      "channels": {
+        "perturbation": 7.399,
+        "effect_mag": 5.712,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "PRPS2",
+      "combined_z": 7.376,
+      "channels": {
+        "perturbation": 7.376,
+        "effect_mag": 3.776,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "MPHOSPH9",
+      "combined_z": 7.205,
+      "channels": {
+        "perturbation": 7.205,
+        "effect_mag": 5.664,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "CBFB",
+      "combined_z": 6.981,
+      "channels": {
+        "perturbation": 6.981,
+        "effect_mag": 3.291,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "EXOSC10",
+      "combined_z": 6.929,
+      "channels": {
+        "perturbation": 6.929,
+        "effect_mag": 8.591,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "ICOS",
+      "combined_z": 6.915,
+      "channels": {
+        "perturbation": 6.915,
+        "effect_mag": 0.917,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "YJU2B",
+      "combined_z": 6.385,
+      "channels": {
+        "perturbation": 6.385,
+        "effect_mag": 5.82,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "DIS3",
+      "combined_z": 6.25,
+      "channels": {
+        "perturbation": 6.25,
+        "effect_mag": 4.186,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "ZMAT1",
+      "combined_z": 6.098,
+      "channels": {
+        "perturbation": 6.098,
+        "effect_mag": 0.517,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "ACSL6",
+      "combined_z": 6.094,
+      "channels": {
+        "perturbation": 6.094,
+        "effect_mag": 2.765,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "LAT2",
+      "combined_z": 5.424,
+      "channels": {
+        "perturbation": 5.424,
+        "effect_mag": 0.766,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "EHMT2",
+      "combined_z": 5.278,
+      "channels": {
+        "perturbation": 5.278,
+        "effect_mag": 1.409,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "PRELID1",
+      "combined_z": 5.234,
+      "channels": {
+        "perturbation": 5.234,
+        "effect_mag": 1.015,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "VAMP5",
+      "combined_z": 5.223,
+      "channels": {
+        "perturbation": 5.223,
+        "effect_mag": 3.153,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "KDM1A",
+      "combined_z": 5.164,
+      "channels": {
+        "perturbation": 5.164,
+        "effect_mag": 2.875,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "SGK3",
+      "combined_z": 4.806,
+      "channels": {
+        "perturbation": 4.806,
+        "effect_mag": 0.771,
+        "pathway": null,
+        "network": null
+      }
+    },
+    {
+      "target": "KPNA1",
+      "combined_z": 4.778,
+      "channels": {
+        "perturbation": 4.778,
+        "effect_mag": 0.893,
+        "pathway": null,
+        "network": null
+      }
+    }
+  ],
+  "gold_note": null
+}

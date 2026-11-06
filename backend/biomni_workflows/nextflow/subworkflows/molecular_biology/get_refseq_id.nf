@@ -48,7 +48,7 @@ with open("get_refseq_id_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("get_refseq_id_output.txt", "w") as f:
-    f.write("Biomni: Get Refseq Id Results" + NL)
+    f.write("BioMate: Get Refseq Id Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -9,6 +9,7 @@
  */
 
 import { memoryService } from './memory-repository';
+import { filterModelVisibleKnowledge } from './memory-knowledge-filter';
 import type { GalaxyAssistant, ChatContext, GalaxyAssistantResponse } from './galaxy-assistant';
 import type {
   Session,
@@ -104,7 +105,8 @@ export class MemoryIntegration {
     message: string,
     context: MemoryEnhancedContext,
     onChunk?: (chunk: string) => void,
-    onToolEvent?: (event: unknown) => void
+    onToolEvent?: (event: unknown) => void,
+    onProgress?: (stage: string, detail?: string) => void
   ): Promise<MemoryEnhancedResponse> {
     const startTime = Date.now();
     const log = (step: string) => console.log(`[MemoryIntegration] [${Date.now() - startTime}ms] ${step}`);
@@ -138,7 +140,7 @@ export class MemoryIntegration {
 
     // Step 5: Process with the assistant (pass streaming callbacks through)
     log('Step 5: Processing with assistant');
-    const response = await this.assistant.processMessage(message, enhancedContext, onChunk, onToolEvent);
+    const response = await this.assistant.processMessage(message, enhancedContext, onChunk, onToolEvent, onProgress);
     log('Step 5 complete');
 
     // Step 6: Record the episode
@@ -320,8 +322,10 @@ export class MemoryIntegration {
       }
     }
 
-    // Add relevant knowledge
-    const relevantKnowledge = knowledge.slice(0, 2);
+    // Add relevant knowledge — but NEVER human-only stores (user_notes /
+    // notes_synthesis). See memory-knowledge-filter.ts for the boundary; this
+    // memory-hint path must filter or a private note could leak into a hint.
+    const relevantKnowledge = filterModelVisibleKnowledge(knowledge).slice(0, 2);
     if (relevantKnowledge.length > 0) {
       const knowledgeHints = relevantKnowledge.map(k => k.title || k.content.substring(0, 50));
       hints.push(`[Memory: Project knowledge - ${knowledgeHints.join('; ')}]`);

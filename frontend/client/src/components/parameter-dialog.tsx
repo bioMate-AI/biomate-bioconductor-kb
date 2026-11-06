@@ -5,7 +5,7 @@
  * Required parameters shown first, then optional ones.
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Dialog,
   DialogContent,
@@ -94,7 +94,12 @@ export function ParameterDialog({
   const [loading, setLoading] = useState(false)
   const [appliedRecs, setAppliedRecs] = useState<Set<string>>(new Set())
   const [browsingForParam, setBrowsingForParam] = useState<{ name: string; label: string } | null>(null)
-  const [missingRequired, setMissingRequired] = useState<Set<string>>(new Set())
+  // Whether the user has attempted a save that was blocked. The set of
+  // missing-required fields is DERIVED from current values below (not stored),
+  // so it is always in sync: typing a value clears it in the same render, and
+  // emptying a field re-flags it — no stale imperative Set to drift out of date.
+  const [attemptedSave, setAttemptedSave] = useState(false)
+  const initializedForStep = useRef<string | null>(null)
 
   // Get recommendation for a parameter
   const getRecommendation = (paramName: string): ParameterRecommendation | undefined => {
@@ -186,23 +191,26 @@ export function ParameterDialog({
 
   // Initialize parameters from step or schema
   useEffect(() => {
+    // Initialize parameters ONCE per step (defaults overlaid with the step's
+    // saved values). Guarding by step id means a parent re-render that passes a
+    // fresh `step` object identity (e.g. an SSE update while the dialog is open)
+    // cannot clobber values the user has already typed. A genuinely new step
+    // re-initializes and clears any prior "attempted save" state.
+    if (!step || parameterSchema.length === 0) return
+    if (initializedForStep.current === step.id) return
     const initial: Record<string, any> = {}
     parameterSchema.forEach(param => {
       initial[param.name] = step?.parameters?.[param.name] ?? param.value
     })
     setParameters(initial)
-  }, [parameterSchema, step?.parameters])
+    setAttemptedSave(false)
+    initializedForStep.current = step.id
+  }, [parameterSchema, step?.id, step?.parameters])
 
   const handleChange = (name: string, value: any) => {
+    // Just update the value. The missing-required set is derived from current
+    // values below, so this re-render clears (or re-flags) the field on its own.
     setParameters(prev => ({ ...prev, [name]: value }))
-    // Clear the missing-required flag for this field once the user types.
-    if (missingRequired.has(name)) {
-      setMissingRequired(prev => {
-        const next = new Set(prev)
-        next.delete(name)
-        return next
-      })
-    }
   }
 
   // A required value is "missing" if it's null/undefined/empty-string/empty-array.
@@ -210,14 +218,25 @@ export function ParameterDialog({
   const isEmpty = (v: any) =>
     v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
 
+  // Derived, not stored: the required fields that are currently empty — shown
+  // only after a blocked save attempt, and recomputed every render so it never
+  // lags the inputs.
+  const missingRequired = attemptedSave
+    ? new Set(
+        parameterSchema
+          .filter(p => p.required && isEmpty(parameters[p.name]))
+          .map(p => p.name),
+      )
+    : new Set<string>()
+
   const handleSave = () => {
     if (!step) return
     const missing = parameterSchema
       .filter(p => p.required && isEmpty(parameters[p.name]))
       .map(p => p.name)
     if (missing.length > 0) {
-      setMissingRequired(new Set(missing))
-      return // block save until required fields are filled
+      setAttemptedSave(true)
+      return // block save until required fields are filled; banner derives from state
     }
     onSave(step.id, parameters)
     onOpenChange(false)

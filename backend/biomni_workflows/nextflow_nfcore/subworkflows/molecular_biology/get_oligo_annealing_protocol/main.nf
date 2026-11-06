@@ -156,7 +156,7 @@ with open("get_oligo_annealing_protocol_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("get_oligo_annealing_protocol_output.txt", "w") as f:
-    f.write("Biomni: Get Oligo Annealing Protocol" + NL)
+    f.write("BioMate: Get Oligo Annealing Protocol" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

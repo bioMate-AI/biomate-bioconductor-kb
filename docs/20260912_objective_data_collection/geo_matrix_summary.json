@@ -1,0 +1,18 @@
+{
+  "GSE35455": {
+    "design": "two-color dye-swap microarray; VALUE = log2(after/before) Tocilizumab",
+    "unit": "per-patient after/before treatment-response contrast",
+    "retraction": "NOT pre/post durability; the 2 arrays/patient are dye-swap technical replicates",
+    "n_patients": 112,
+    "n_probes": 29736,
+    "median_dye_swap_replicate_r": -0.021,
+    "replicate_r_note": "low median r => single-patient contrasts are noisy; treat as weak per-patient labels",
+    "matrix": "raw/GSE35455_afterbefore_matrix.tsv",
+    "tissue": "peripheral blood (no synovium present)"
+  },
+  "GSE113156": {
+    "design": "expression matrix NOT embedded in SOFT (0 sample tables)",
+    "gap": "needs series-matrix / supplementary download before it can be joined",
+    "labels_ready": "yes (6 subjects, CD8+CD4, w0/w24) \u2014 only the expression values are missing"
+  }
+}

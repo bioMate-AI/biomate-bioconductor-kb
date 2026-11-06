@@ -1,0 +1,1286 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2025-10-07",
+    "description": "Galaxy LC-MS Platform Dataset Index for RAG-based workflow generation",
+    "total_datasets": 79,
+    "sources": [
+      "biomni_data_lake",
+      "metaboanalyst"
+    ],
+    "biomni_count": 59,
+    "metaboanalyst_count": 20
+  },
+  "datasets": {
+    "biomni_affinity_capture_ms_parquet": {
+      "name": "affinity_capture-ms.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/affinity_capture-ms.parquet",
+      "exists": true,
+      "size": "5.3MB",
+      "format": "parquet",
+      "description": "Protein-protein interactions identified via affinity capture followed by mass spectrometry",
+      "category": "protein_interactions",
+      "data_type": "ppi",
+      "use_cases": [
+        "protein interaction networks",
+        "functional genomics",
+        "systems biology"
+      ],
+      "search_text": "affinity_capture-ms.parquet Protein-protein interactions identified via affinity capture followed by mass spectrometry protein_interactions protein interaction networks functional genomics systems biology"
+    },
+    "biomni_affinity_capture_rna_parquet": {
+      "name": "affinity_capture-rna.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/affinity_capture-rna.parquet",
+      "exists": true,
+      "size": "41.9KB",
+      "format": "parquet",
+      "description": "RNA-protein interactions identified via affinity capture",
+      "category": "rna_protein_interactions",
+      "data_type": "rpi",
+      "use_cases": [
+        "RNA binding proteins",
+        "post-transcriptional regulation"
+      ],
+      "search_text": "affinity_capture-rna.parquet RNA-protein interactions identified via affinity capture rna_protein_interactions RNA binding proteins post-transcriptional regulation"
+    },
+    "biomni_BindingDB_All_202409_tsv": {
+      "name": "BindingDB_All_202409.tsv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/BindingDB_All_202409.tsv",
+      "exists": true,
+      "size": "5.8GB",
+      "format": "tsv",
+      "description": "Comprehensive database of measured binding affinities for drug discovery (203K entries, 6.25GB)",
+      "category": "drug_discovery",
+      "data_type": "binding_affinity",
+      "use_cases": [
+        "drug target prediction",
+        "compound screening",
+        "pharmacology"
+      ],
+      "search_text": "BindingDB_All_202409.tsv Comprehensive database of measured binding affinities for drug discovery (203K entries, 6.25GB) drug_discovery drug target prediction compound screening pharmacology"
+    },
+    "biomni_broad_repurposing_hub_molecule_with_smiles_parquet": {
+      "name": "broad_repurposing_hub_molecule_with_smiles.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/broad_repurposing_hub_molecule_with_smiles.parquet",
+      "exists": true,
+      "size": "1.1MB",
+      "format": "parquet",
+      "description": "Broad Institute drug repurposing hub molecules with SMILES structures",
+      "category": "drug_repurposing",
+      "data_type": "chemical_structures",
+      "use_cases": [
+        "drug repurposing",
+        "chemical similarity search"
+      ],
+      "search_text": "broad_repurposing_hub_molecule_with_smiles.parquet Broad Institute drug repurposing hub molecules with SMILES structures drug_repurposing drug repurposing chemical similarity search"
+    },
+    "biomni_broad_repurposing_hub_phase_moa_target_info_parquet": {
+      "name": "broad_repurposing_hub_phase_moa_target_info.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/broad_repurposing_hub_phase_moa_target_info.parquet",
+      "exists": true,
+      "size": "174.0KB",
+      "format": "parquet",
+      "description": "Clinical phase, mechanism of action, and target information for repurposing drugs",
+      "category": "drug_repurposing",
+      "data_type": "drug_metadata",
+      "use_cases": [
+        "drug MOA analysis",
+        "target identification"
+      ],
+      "search_text": "broad_repurposing_hub_phase_moa_target_info.parquet Clinical phase, mechanism of action, and target information for repurposing drugs drug_repurposing drug MOA analysis target identification"
+    },
+    "biomni_co_fractionation_parquet": {
+      "name": "co-fractionation.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/co-fractionation.parquet",
+      "exists": true,
+      "size": "1.4MB",
+      "format": "parquet",
+      "description": "Protein complex prediction via co-fractionation experiments",
+      "category": "protein_complexes",
+      "data_type": "protein_complexes",
+      "use_cases": [
+        "protein complex prediction",
+        "functional modules"
+      ],
+      "search_text": "co-fractionation.parquet Protein complex prediction via co-fractionation experiments protein_complexes protein complex prediction functional modules"
+    },
+    "biomni_czi_census_datasets_v4_parquet": {
+      "name": "czi_census_datasets_v4.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/czi_census_datasets_v4.parquet",
+      "exists": true,
+      "size": "367.6KB",
+      "format": "parquet",
+      "description": "Chan Zuckerberg Initiative single-cell census datasets",
+      "category": "single_cell",
+      "data_type": "sc_metadata",
+      "use_cases": [
+        "single-cell analysis",
+        "cell atlas"
+      ],
+      "search_text": "czi_census_datasets_v4.parquet Chan Zuckerberg Initiative single-cell census datasets single_cell single-cell analysis cell atlas"
+    },
+    "biomni_DepMap_CRISPRGeneDependency_csv": {
+      "name": "DepMap_CRISPRGeneDependency.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DepMap_CRISPRGeneDependency.csv",
+      "exists": true,
+      "size": "403.3MB",
+      "format": "csv",
+      "description": "Cancer cell line gene dependency scores from CRISPR screens (403MB)",
+      "category": "cancer_genomics",
+      "data_type": "gene_dependency",
+      "use_cases": [
+        "cancer targets",
+        "synthetic lethality",
+        "precision oncology"
+      ],
+      "search_text": "DepMap_CRISPRGeneDependency.csv Cancer cell line gene dependency scores from CRISPR screens (403MB) cancer_genomics cancer targets synthetic lethality precision oncology"
+    },
+    "biomni_DepMap_CRISPRGeneEffect_csv": {
+      "name": "DepMap_CRISPRGeneEffect.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DepMap_CRISPRGeneEffect.csv",
+      "exists": true,
+      "size": "410.5MB",
+      "format": "csv",
+      "description": "CRISPR gene effect scores across cancer cell lines (410MB)",
+      "category": "cancer_genomics",
+      "data_type": "gene_effect",
+      "use_cases": [
+        "gene essentiality",
+        "cancer vulnerabilities"
+      ],
+      "search_text": "DepMap_CRISPRGeneEffect.csv CRISPR gene effect scores across cancer cell lines (410MB) cancer_genomics gene essentiality cancer vulnerabilities"
+    },
+    "biomni_DepMap_Model_csv": {
+      "name": "DepMap_Model.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DepMap_Model.csv",
+      "exists": true,
+      "size": "678.0KB",
+      "format": "csv",
+      "description": "Cancer cell line model metadata (DepMap)",
+      "category": "cancer_genomics",
+      "data_type": "cell_line_metadata",
+      "use_cases": [
+        "cell line selection",
+        "cancer model systems"
+      ],
+      "search_text": "DepMap_Model.csv Cancer cell line model metadata (DepMap) cancer_genomics cell line selection cancer model systems"
+    },
+    "biomni_DepMap_OmicsExpressionProteinCodingGenesTPMLogp1_csv": {
+      "name": "DepMap_OmicsExpressionProteinCodingGenesTPMLogp1.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DepMap_OmicsExpressionProteinCodingGenesTPMLogp1.csv",
+      "exists": true,
+      "size": "497.4MB",
+      "format": "csv",
+      "description": "RNA expression (TPM) for protein-coding genes across cancer cell lines (497MB)",
+      "category": "cancer_genomics",
+      "data_type": "gene_expression",
+      "use_cases": [
+        "cancer transcriptomics",
+        "biomarker discovery"
+      ],
+      "search_text": "DepMap_OmicsExpressionProteinCodingGenesTPMLogp1.csv RNA expression (TPM) for protein-coding genes across cancer cell lines (497MB) cancer_genomics cancer transcriptomics biomarker discovery"
+    },
+    "biomni_DisGeNET_parquet": {
+      "name": "DisGeNET.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DisGeNET.parquet",
+      "exists": true,
+      "size": "2.8MB",
+      "format": "parquet",
+      "description": "Disease-gene associations from literature and databases",
+      "category": "disease_genomics",
+      "data_type": "disease_gene",
+      "use_cases": [
+        "disease genetics",
+        "gene-disease networks"
+      ],
+      "search_text": "DisGeNET.parquet Disease-gene associations from literature and databases disease_genomics disease genetics gene-disease networks"
+    },
+    "biomni_McPAS_TCR_parquet": {
+      "name": "McPAS-TCR.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/McPAS-TCR.parquet",
+      "exists": true,
+      "size": "1011.0KB",
+      "format": "parquet",
+      "description": "T cell receptor sequences and their peptide-MHC specificities",
+      "category": "immunology",
+      "data_type": "tcr_sequences",
+      "use_cases": [
+        "immunotherapy",
+        "TCR repertoire analysis"
+      ],
+      "search_text": "McPAS-TCR.parquet T cell receptor sequences and their peptide-MHC specificities immunology immunotherapy TCR repertoire analysis"
+    },
+    "biomni_Virus_Host_PPI_P_HIPSTER_2020_parquet": {
+      "name": "Virus-Host_PPI_P-HIPSTER_2020.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/Virus-Host_PPI_P-HIPSTER_2020.parquet",
+      "exists": true,
+      "size": "774.5KB",
+      "format": "parquet",
+      "description": "Virus-host protein-protein interactions",
+      "category": "virology",
+      "data_type": "virus_host_ppi",
+      "use_cases": [
+        "viral pathogenesis",
+        "host-pathogen interactions"
+      ],
+      "search_text": "Virus-Host_PPI_P-HIPSTER_2020.parquet Virus-host protein-protein interactions virology viral pathogenesis host-pathogen interactions"
+    },
+    "biomni_ddinter_alimentary_tract_metabolism_csv": {
+      "name": "ddinter_alimentary_tract_metabolism.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_alimentary_tract_metabolism.csv",
+      "exists": true,
+      "size": "3.2MB",
+      "format": "csv",
+      "description": "Drug-drug interactions affecting alimentary tract and metabolism",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "polypharmacy",
+        "adverse drug events"
+      ],
+      "search_text": "ddinter_alimentary_tract_metabolism.csv Drug-drug interactions affecting alimentary tract and metabolism drug_interactions polypharmacy adverse drug events"
+    },
+    "biomni_ddinter_antineoplastic_csv": {
+      "name": "ddinter_antineoplastic.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_antineoplastic.csv",
+      "exists": true,
+      "size": "3.7MB",
+      "format": "csv",
+      "description": "Drug-drug interactions for antineoplastic agents",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "cancer drug combinations",
+        "chemotherapy interactions"
+      ],
+      "search_text": "ddinter_antineoplastic.csv Drug-drug interactions for antineoplastic agents drug_interactions cancer drug combinations chemotherapy interactions"
+    },
+    "biomni_ddinter_antiparasitic_csv": {
+      "name": "ddinter_antiparasitic.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_antiparasitic.csv",
+      "exists": true,
+      "size": "310.0KB",
+      "format": "csv",
+      "description": "Drug-drug interactions for antiparasitic drugs",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "parasitic disease treatment"
+      ],
+      "search_text": "ddinter_antiparasitic.csv Drug-drug interactions for antiparasitic drugs drug_interactions parasitic disease treatment"
+    },
+    "biomni_ddinter_blood_organs_csv": {
+      "name": "ddinter_blood_organs.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_blood_organs.csv",
+      "exists": true,
+      "size": "847.4KB",
+      "format": "csv",
+      "description": "Drug-drug interactions affecting blood and blood-forming organs",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "hematology",
+        "coagulation disorders"
+      ],
+      "search_text": "ddinter_blood_organs.csv Drug-drug interactions affecting blood and blood-forming organs drug_interactions hematology coagulation disorders"
+    },
+    "biomni_ddinter_dermatological_csv": {
+      "name": "ddinter_dermatological.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_dermatological.csv",
+      "exists": true,
+      "size": "1.5MB",
+      "format": "csv",
+      "description": "Drug-drug interactions for dermatological agents",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "dermatology",
+        "skin disorders"
+      ],
+      "search_text": "ddinter_dermatological.csv Drug-drug interactions for dermatological agents drug_interactions dermatology skin disorders"
+    },
+    "biomni_ddinter_hormonal_csv": {
+      "name": "ddinter_hormonal.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_hormonal.csv",
+      "exists": true,
+      "size": "688.6KB",
+      "format": "csv",
+      "description": "Drug-drug interactions for hormonal preparations",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "endocrinology",
+        "hormone therapy"
+      ],
+      "search_text": "ddinter_hormonal.csv Drug-drug interactions for hormonal preparations drug_interactions endocrinology hormone therapy"
+    },
+    "biomni_ddinter_respiratory_csv": {
+      "name": "ddinter_respiratory.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_respiratory.csv",
+      "exists": true,
+      "size": "1.7MB",
+      "format": "csv",
+      "description": "Drug-drug interactions for respiratory system drugs",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "respiratory diseases",
+        "asthma/COPD"
+      ],
+      "search_text": "ddinter_respiratory.csv Drug-drug interactions for respiratory system drugs drug_interactions respiratory diseases asthma/COPD"
+    },
+    "biomni_ddinter_various_csv": {
+      "name": "ddinter_various.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_various.csv",
+      "exists": true,
+      "size": "684.4KB",
+      "format": "csv",
+      "description": "Miscellaneous drug-drug interactions",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "general pharmacology"
+      ],
+      "search_text": "ddinter_various.csv Miscellaneous drug-drug interactions drug_interactions general pharmacology"
+    },
+    "biomni_dosage_growth_defect_parquet": {
+      "name": "dosage_growth_defect.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/dosage_growth_defect.parquet",
+      "exists": true,
+      "size": "21.1KB",
+      "format": "parquet",
+      "description": "Gene dosage and growth defect relationships",
+      "category": "genetics",
+      "data_type": "gene_dosage",
+      "use_cases": [
+        "genetic interactions",
+        "gene dosage sensitivity"
+      ],
+      "search_text": "dosage_growth_defect.parquet Gene dosage and growth defect relationships genetics genetic interactions gene dosage sensitivity"
+    },
+    "biomni_enamine_cloud_library_smiles_pkl": {
+      "name": "enamine_cloud_library_smiles.pkl",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/enamine_cloud_library_smiles.pkl",
+      "exists": true,
+      "size": "15.3KB",
+      "format": "pkl",
+      "description": "Enamine chemical library SMILES structures",
+      "category": "chemical_libraries",
+      "data_type": "smiles",
+      "use_cases": [
+        "virtual screening",
+        "compound selection"
+      ],
+      "search_text": "enamine_cloud_library_smiles.pkl Enamine chemical library SMILES structures chemical_libraries virtual screening compound selection"
+    },
+    "biomni_evebio_assay_table_csv": {
+      "name": "evebio_assay_table.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_assay_table.csv",
+      "exists": true,
+      "size": "12.3KB",
+      "format": "csv",
+      "description": "EveBio bioassay experimental data",
+      "category": "bioassays",
+      "data_type": "assay_data",
+      "use_cases": [
+        "drug screening",
+        "compound profiling"
+      ],
+      "search_text": "evebio_assay_table.csv EveBio bioassay experimental data bioassays drug screening compound profiling"
+    },
+    "biomni_evebio_bundle_table_csv": {
+      "name": "evebio_bundle_table.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_bundle_table.csv",
+      "exists": true,
+      "size": "8.0KB",
+      "format": "csv",
+      "description": "EveBio experimental bundle metadata",
+      "category": "bioassays",
+      "data_type": "experiment_metadata",
+      "use_cases": [
+        "experiment design",
+        "data provenance"
+      ],
+      "search_text": "evebio_bundle_table.csv EveBio experimental bundle metadata bioassays experiment design data provenance"
+    },
+    "biomni_evebio_compound_table_csv": {
+      "name": "evebio_compound_table.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_compound_table.csv",
+      "exists": true,
+      "size": "147.0KB",
+      "format": "csv",
+      "description": "EveBio tested compounds database",
+      "category": "bioassays",
+      "data_type": "compound_data",
+      "use_cases": [
+        "compound library",
+        "chemical diversity"
+      ],
+      "search_text": "evebio_compound_table.csv EveBio tested compounds database bioassays compound library chemical diversity"
+    },
+    "biomni_evebio_control_table_csv": {
+      "name": "evebio_control_table.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_control_table.csv",
+      "exists": true,
+      "size": "5.2MB",
+      "format": "csv",
+      "description": "EveBio experimental controls",
+      "category": "bioassays",
+      "data_type": "controls",
+      "use_cases": [
+        "quality control",
+        "assay validation"
+      ],
+      "search_text": "evebio_control_table.csv EveBio experimental controls bioassays quality control assay validation"
+    },
+    "biomni_evebio_detailed_result_table_csv": {
+      "name": "evebio_detailed_result_table.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_detailed_result_table.csv",
+      "exists": true,
+      "size": "46.6MB",
+      "format": "csv",
+      "description": "EveBio detailed experimental results",
+      "category": "bioassays",
+      "data_type": "assay_results",
+      "use_cases": [
+        "dose-response analysis",
+        "hit identification"
+      ],
+      "search_text": "evebio_detailed_result_table.csv EveBio detailed experimental results bioassays dose-response analysis hit identification"
+    },
+    "biomni_evebio_observed_points_table_csv": {
+      "name": "evebio_observed_points_table.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_observed_points_table.csv",
+      "exists": true,
+      "size": "167.2MB",
+      "format": "csv",
+      "description": "EveBio observed data points",
+      "category": "bioassays",
+      "data_type": "raw_data",
+      "use_cases": [
+        "data analysis",
+        "quality assessment"
+      ],
+      "search_text": "evebio_observed_points_table.csv EveBio observed data points bioassays data analysis quality assessment"
+    },
+    "biomni_evebio_summary_result_table_csv": {
+      "name": "evebio_summary_result_table.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_summary_result_table.csv",
+      "exists": true,
+      "size": "23.0MB",
+      "format": "csv",
+      "description": "EveBio summarized experimental results",
+      "category": "bioassays",
+      "data_type": "summary_stats",
+      "use_cases": [
+        "hit summary",
+        "activity profiling"
+      ],
+      "search_text": "evebio_summary_result_table.csv EveBio summarized experimental results bioassays hit summary activity profiling"
+    },
+    "biomni_evebio_target_table_csv": {
+      "name": "evebio_target_table.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_target_table.csv",
+      "exists": true,
+      "size": "4.2KB",
+      "format": "csv",
+      "description": "EveBio biological targets",
+      "category": "bioassays",
+      "data_type": "targets",
+      "use_cases": [
+        "target annotation",
+        "MOA analysis"
+      ],
+      "search_text": "evebio_target_table.csv EveBio biological targets bioassays target annotation MOA analysis"
+    },
+    "biomni_genebass_missense_LC_filtered_pkl": {
+      "name": "genebass_missense_LC_filtered.pkl",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/genebass_missense_LC_filtered.pkl",
+      "exists": true,
+      "size": "1.5GB",
+      "format": "pkl",
+      "description": "GeneBass missense variant associations (LC filtered)",
+      "category": "population_genetics",
+      "data_type": "variant_associations",
+      "use_cases": [
+        "variant interpretation",
+        "GWAS"
+      ],
+      "search_text": "genebass_missense_LC_filtered.pkl GeneBass missense variant associations (LC filtered) population_genetics variant interpretation GWAS"
+    },
+    "biomni_genebass_pLoF_filtered_pkl": {
+      "name": "genebass_pLoF_filtered.pkl",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/genebass_pLoF_filtered.pkl",
+      "exists": true,
+      "size": "1.4GB",
+      "format": "pkl",
+      "description": "GeneBass predicted loss-of-function variant associations",
+      "category": "population_genetics",
+      "data_type": "variant_associations",
+      "use_cases": [
+        "LoF analysis",
+        "gene function prediction"
+      ],
+      "search_text": "genebass_pLoF_filtered.pkl GeneBass predicted loss-of-function variant associations population_genetics LoF analysis gene function prediction"
+    },
+    "biomni_genebass_synonymous_filtered_pkl": {
+      "name": "genebass_synonymous_filtered.pkl",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/genebass_synonymous_filtered.pkl",
+      "exists": true,
+      "size": "1.5GB",
+      "format": "pkl",
+      "description": "GeneBass synonymous variant associations",
+      "category": "population_genetics",
+      "data_type": "variant_associations",
+      "use_cases": [
+        "negative controls",
+        "variant filtering"
+      ],
+      "search_text": "genebass_synonymous_filtered.pkl GeneBass synonymous variant associations population_genetics negative controls variant filtering"
+    },
+    "biomni_gene_info_parquet": {
+      "name": "gene_info.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/gene_info.parquet",
+      "exists": true,
+      "size": "3.8MB",
+      "format": "parquet",
+      "description": "Comprehensive gene information and annotations",
+      "category": "genomics",
+      "data_type": "gene_annotations",
+      "use_cases": [
+        "gene annotation",
+        "functional genomics"
+      ],
+      "search_text": "gene_info.parquet Comprehensive gene information and annotations genomics gene annotation functional genomics"
+    },
+    "biomni_genetic_interaction_parquet": {
+      "name": "genetic_interaction.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/genetic_interaction.parquet",
+      "exists": true,
+      "size": "8.1MB",
+      "format": "parquet",
+      "description": "Genetic interaction networks",
+      "category": "genetics",
+      "data_type": "genetic_interactions",
+      "use_cases": [
+        "synthetic lethality",
+        "genetic pathways"
+      ],
+      "search_text": "genetic_interaction.parquet Genetic interaction networks genetics synthetic lethality genetic pathways"
+    },
+    "biomni_go_plus_json": {
+      "name": "go-plus.json",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/go-plus.json",
+      "exists": true,
+      "size": "123.9MB",
+      "format": "json",
+      "description": "Gene Ontology plus extended annotations",
+      "category": "ontologies",
+      "data_type": "go_terms",
+      "use_cases": [
+        "functional enrichment",
+        "pathway analysis"
+      ],
+      "search_text": "go-plus.json Gene Ontology plus extended annotations ontologies functional enrichment pathway analysis"
+    },
+    "biomni_gtex_tissue_gene_tpm_parquet": {
+      "name": "gtex_tissue_gene_tpm.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/gtex_tissue_gene_tpm.parquet",
+      "exists": true,
+      "size": "10.4MB",
+      "format": "parquet",
+      "description": "GTEx tissue-specific gene expression (TPM)",
+      "category": "transcriptomics",
+      "data_type": "tissue_expression",
+      "use_cases": [
+        "tissue specificity",
+        "expression atlas"
+      ],
+      "search_text": "gtex_tissue_gene_tpm.parquet GTEx tissue-specific gene expression (TPM) transcriptomics tissue specificity expression atlas"
+    },
+    "biomni_gwas_catalog_pkl": {
+      "name": "gwas_catalog.pkl",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/gwas_catalog.pkl",
+      "exists": true,
+      "size": "173.1MB",
+      "format": "pkl",
+      "description": "NHGRI-EBI GWAS Catalog",
+      "category": "population_genetics",
+      "data_type": "gwas",
+      "use_cases": [
+        "genetic associations",
+        "complex traits"
+      ],
+      "search_text": "gwas_catalog.pkl NHGRI-EBI GWAS Catalog population_genetics genetic associations complex traits"
+    },
+    "biomni_hp_obo": {
+      "name": "hp.obo",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/hp.obo",
+      "exists": true,
+      "size": "9.6MB",
+      "format": "obo",
+      "description": "Human Phenotype Ontology",
+      "category": "ontologies",
+      "data_type": "phenotypes",
+      "use_cases": [
+        "phenotype annotation",
+        "disease phenotypes"
+      ],
+      "search_text": "hp.obo Human Phenotype Ontology ontologies phenotype annotation disease phenotypes"
+    },
+    "biomni_kg_csv": {
+      "name": "kg.csv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/kg.csv",
+      "exists": true,
+      "size": "936.3MB",
+      "format": "csv",
+      "description": "Knowledge graph edges",
+      "category": "knowledge_graphs",
+      "data_type": "kg_edges",
+      "use_cases": [
+        "network analysis",
+        "relationship discovery"
+      ],
+      "search_text": "kg.csv Knowledge graph edges knowledge_graphs network analysis relationship discovery"
+    },
+    "biomni_marker_celltype_parquet": {
+      "name": "marker_celltype.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/marker_celltype.parquet",
+      "exists": true,
+      "size": "71.7KB",
+      "format": "parquet",
+      "description": "Cell type marker genes",
+      "category": "single_cell",
+      "data_type": "cell_markers",
+      "use_cases": [
+        "cell type identification",
+        "marker discovery"
+      ],
+      "search_text": "marker_celltype.parquet Cell type marker genes single_cell cell type identification marker discovery"
+    },
+    "biomni_miRDB_v6_0_results_parquet": {
+      "name": "miRDB_v6.0_results.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/miRDB_v6.0_results.parquet",
+      "exists": true,
+      "size": "65.5MB",
+      "format": "parquet",
+      "description": "miRNA target prediction database",
+      "category": "rna_regulation",
+      "data_type": "mirna_targets",
+      "use_cases": [
+        "miRNA analysis",
+        "post-transcriptional regulation"
+      ],
+      "search_text": "miRDB_v6.0_results.parquet miRNA target prediction database rna_regulation miRNA analysis post-transcriptional regulation"
+    },
+    "biomni_miRTarBase_microRNA_target_interaction_parquet": {
+      "name": "miRTarBase_microRNA_target_interaction.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/miRTarBase_microRNA_target_interaction.parquet",
+      "exists": true,
+      "size": "4.5MB",
+      "format": "parquet",
+      "description": "Experimentally validated miRNA-target interactions",
+      "category": "rna_regulation",
+      "data_type": "mirna_interactions",
+      "use_cases": [
+        "miRNA functional analysis"
+      ],
+      "search_text": "miRTarBase_microRNA_target_interaction.parquet Experimentally validated miRNA-target interactions rna_regulation miRNA functional analysis"
+    },
+    "biomni_miRTarBase_microRNA_target_interaction_pubmed_abtract_txt": {
+      "name": "miRTarBase_microRNA_target_interaction_pubmed_abtract.txt",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/miRTarBase_microRNA_target_interaction_pubmed_abtract.txt",
+      "exists": true,
+      "size": "1.6MB",
+      "format": "txt",
+      "description": "PubMed abstracts for miRNA-target interactions",
+      "category": "rna_regulation",
+      "data_type": "literature",
+      "use_cases": [
+        "evidence retrieval",
+        "literature mining"
+      ],
+      "search_text": "miRTarBase_microRNA_target_interaction_pubmed_abtract.txt PubMed abstracts for miRNA-target interactions rna_regulation evidence retrieval literature mining"
+    },
+    "biomni_miRTarBase_MicroRNA_Target_Sites_parquet": {
+      "name": "miRTarBase_MicroRNA_Target_Sites.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/miRTarBase_MicroRNA_Target_Sites.parquet",
+      "exists": true,
+      "size": "279.3KB",
+      "format": "parquet",
+      "description": "miRNA target binding sites",
+      "category": "rna_regulation",
+      "data_type": "binding_sites",
+      "use_cases": [
+        "miRNA target site analysis"
+      ],
+      "search_text": "miRTarBase_MicroRNA_Target_Sites.parquet miRNA target binding sites rna_regulation miRNA target site analysis"
+    },
+    "biomni_msigdb_human_h_hallmark_geneset_parquet": {
+      "name": "msigdb_human_h_hallmark_geneset.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_h_hallmark_geneset.parquet",
+      "exists": true,
+      "size": "44.3KB",
+      "format": "parquet",
+      "description": "MSigDB Hallmark gene sets - coherent biological states/processes",
+      "category": "gene_sets",
+      "data_type": "hallmark_genes",
+      "use_cases": [
+        "pathway analysis",
+        "GSEA",
+        "functional enrichment"
+      ],
+      "search_text": "msigdb_human_h_hallmark_geneset.parquet MSigDB Hallmark gene sets - coherent biological states/processes gene_sets pathway analysis GSEA functional enrichment"
+    },
+    "biomni_omim_parquet": {
+      "name": "omim.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/omim.parquet",
+      "exists": true,
+      "size": "2.0MB",
+      "format": "parquet",
+      "description": "Online Mendelian Inheritance in Man disease database",
+      "category": "disease_genomics",
+      "data_type": "mendelian_diseases",
+      "use_cases": [
+        "genetic diseases",
+        "clinical genetics"
+      ],
+      "search_text": "omim.parquet Online Mendelian Inheritance in Man disease database disease_genomics genetic diseases clinical genetics"
+    },
+    "biomni_proteinatlas_tsv": {
+      "name": "proteinatlas.tsv",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/proteinatlas.tsv",
+      "exists": true,
+      "size": "34.9MB",
+      "format": "tsv",
+      "description": "Human Protein Atlas tissue/cell expression",
+      "category": "proteomics",
+      "data_type": "protein_expression",
+      "use_cases": [
+        "protein localization",
+        "tissue proteomics"
+      ],
+      "search_text": "proteinatlas.tsv Human Protein Atlas tissue/cell expression proteomics protein localization tissue proteomics"
+    },
+    "biomni_proximity_label_ms_parquet": {
+      "name": "proximity_label-ms.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/proximity_label-ms.parquet",
+      "exists": true,
+      "size": "836.0KB",
+      "format": "parquet",
+      "description": "Proximity labeling mass spectrometry protein interactions",
+      "category": "protein_interactions",
+      "data_type": "proximity_interactions",
+      "use_cases": [
+        "protein proximity",
+        "subcellular interactions"
+      ],
+      "search_text": "proximity_label-ms.parquet Proximity labeling mass spectrometry protein interactions protein_interactions protein proximity subcellular interactions"
+    },
+    "biomni_reconstituted_complex_parquet": {
+      "name": "reconstituted_complex.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/reconstituted_complex.parquet",
+      "exists": true,
+      "size": "14.8KB",
+      "format": "parquet",
+      "description": "Reconstituted protein complexes",
+      "category": "protein_complexes",
+      "data_type": "complexes",
+      "use_cases": [
+        "structural biology",
+        "complex assembly"
+      ],
+      "search_text": "reconstituted_complex.parquet Reconstituted protein complexes protein_complexes structural biology complex assembly"
+    },
+    "biomni_synthetic_growth_defect_parquet": {
+      "name": "synthetic_growth_defect.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/synthetic_growth_defect.parquet",
+      "exists": true,
+      "size": "20.1KB",
+      "format": "parquet",
+      "description": "Synthetic growth defect genetic interactions",
+      "category": "genetics",
+      "data_type": "genetic_interactions",
+      "use_cases": [
+        "genetic buffering",
+        "compensatory pathways"
+      ],
+      "search_text": "synthetic_growth_defect.parquet Synthetic growth defect genetic interactions genetics genetic buffering compensatory pathways"
+    },
+    "biomni_synthetic_lethality_parquet": {
+      "name": "synthetic_lethality.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/synthetic_lethality.parquet",
+      "exists": true,
+      "size": "41.9KB",
+      "format": "parquet",
+      "description": "Synthetic lethal genetic interactions",
+      "category": "genetics",
+      "data_type": "synthetic_lethality",
+      "use_cases": [
+        "cancer targets",
+        "combinatorial therapy"
+      ],
+      "search_text": "synthetic_lethality.parquet Synthetic lethal genetic interactions genetics cancer targets combinatorial therapy"
+    },
+    "biomni_synthetic_rescue_parquet": {
+      "name": "synthetic_rescue.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/synthetic_rescue.parquet",
+      "exists": true,
+      "size": "7.0KB",
+      "format": "parquet",
+      "description": "Synthetic rescue genetic interactions",
+      "category": "genetics",
+      "data_type": "genetic_interactions",
+      "use_cases": [
+        "suppressor analysis",
+        "pathway discovery"
+      ],
+      "search_text": "synthetic_rescue.parquet Synthetic rescue genetic interactions genetics suppressor analysis pathway discovery"
+    },
+    "biomni_two_hybrid_parquet": {
+      "name": "two-hybrid.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/two-hybrid.parquet",
+      "exists": true,
+      "size": "48.0KB",
+      "format": "parquet",
+      "description": "Yeast two-hybrid protein-protein interactions",
+      "category": "protein_interactions",
+      "data_type": "y2h_interactions",
+      "use_cases": [
+        "interaction mapping",
+        "PPI networks"
+      ],
+      "search_text": "two-hybrid.parquet Yeast two-hybrid protein-protein interactions protein_interactions interaction mapping PPI networks"
+    },
+    "biomni_variant_table_parquet": {
+      "name": "variant_table.parquet",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/variant_table.parquet",
+      "exists": true,
+      "size": "8.8MB",
+      "format": "parquet",
+      "description": "Genetic variant annotations",
+      "category": "genomics",
+      "data_type": "variants",
+      "use_cases": [
+        "variant analysis",
+        "mutation effects"
+      ],
+      "search_text": "variant_table.parquet Genetic variant annotations genomics variant analysis mutation effects"
+    },
+    "biomni_txgnn_name_mapping_pkl": {
+      "name": "txgnn_name_mapping.pkl",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/txgnn_name_mapping.pkl",
+      "exists": true,
+      "size": "1.5MB",
+      "format": "pkl",
+      "description": "TxGNN drug/disease name mappings",
+      "category": "drug_repurposing",
+      "data_type": "name_mappings",
+      "use_cases": [
+        "entity normalization",
+        "drug repurposing"
+      ],
+      "search_text": "txgnn_name_mapping.pkl TxGNN drug/disease name mappings drug_repurposing entity normalization drug repurposing"
+    },
+    "biomni_txgnn_prediction_pkl": {
+      "name": "txgnn_prediction.pkl",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/txgnn_prediction.pkl",
+      "exists": true,
+      "size": "65.1MB",
+      "format": "pkl",
+      "description": "TxGNN drug-disease predictions",
+      "category": "drug_repurposing",
+      "data_type": "predictions",
+      "use_cases": [
+        "drug repositioning",
+        "therapeutic predictions"
+      ],
+      "search_text": "txgnn_prediction.pkl TxGNN drug-disease predictions drug_repurposing drug repositioning therapeutic predictions"
+    },
+    "metaboanalyst_ms2id_pathway": {
+      "name": "MS2ID_Pathway",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_Pathway",
+      "exists": true,
+      "size": "96.0B",
+      "format": "mgf",
+      "description": "MS2 spectral library for pathway-level metabolite identification (KEGG pathways)",
+      "category": "ms2_identification",
+      "data_type": "ms2_spectra",
+      "use_cases": [
+        "metabolite identification",
+        "pathway annotation",
+        "MS2 matching"
+      ],
+      "search_text": "MS2ID_Pathway MS2 spectral library for pathway-level metabolite identification (KEGG pathways) ms2_identification metabolite identification pathway annotation MS2 matching"
+    },
+    "metaboanalyst_ms2id_pathwaynl": {
+      "name": "MS2ID_PathwayNL",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_PathwayNL",
+      "exists": true,
+      "size": "96.0B",
+      "format": "mgf",
+      "description": "MS2 spectral library for pathway metabolites (non-lipid)",
+      "category": "ms2_identification",
+      "data_type": "ms2_spectra",
+      "use_cases": [
+        "non-lipid metabolite ID",
+        "pathway analysis"
+      ],
+      "search_text": "MS2ID_PathwayNL MS2 spectral library for pathway metabolites (non-lipid) ms2_identification non-lipid metabolite ID pathway analysis"
+    },
+    "metaboanalyst_ms2id_bio": {
+      "name": "MS2ID_Bio",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_Bio",
+      "exists": true,
+      "size": "744MB",
+      "format": "mgf",
+      "description": "Comprehensive biological MS2 spectral library (744MB)",
+      "category": "ms2_identification",
+      "data_type": "ms2_spectra",
+      "use_cases": [
+        "untargeted metabolomics",
+        "spectral matching",
+        "compound identification"
+      ],
+      "search_text": "MS2ID_Bio Comprehensive biological MS2 spectral library (744MB) ms2_identification untargeted metabolomics spectral matching compound identification"
+    },
+    "metaboanalyst_ms2id_bionl": {
+      "name": "MS2ID_BioNL",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_BioNL",
+      "exists": true,
+      "size": "96.0B",
+      "format": "mgf",
+      "description": "Biological MS2 spectra (non-lipid focus)",
+      "category": "ms2_identification",
+      "data_type": "ms2_spectra",
+      "use_cases": [
+        "non-lipid metabolomics"
+      ],
+      "search_text": "MS2ID_BioNL Biological MS2 spectra (non-lipid focus) ms2_identification non-lipid metabolomics"
+    },
+    "metaboanalyst_ms2id_lipids": {
+      "name": "MS2ID_Lipids",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_Lipids",
+      "exists": true,
+      "size": "294MB",
+      "format": "mgf",
+      "description": "Comprehensive lipid MS2 spectral library (294MB)",
+      "category": "ms2_identification",
+      "data_type": "ms2_lipid_spectra",
+      "use_cases": [
+        "lipidomics",
+        "lipid identification",
+        "lipid class annotation"
+      ],
+      "search_text": "MS2ID_Lipids Comprehensive lipid MS2 spectral library (294MB) ms2_identification lipidomics lipid identification lipid class annotation"
+    },
+    "metaboanalyst_ms2id_lipidsnl": {
+      "name": "MS2ID_LipidsNL",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_LipidsNL",
+      "exists": true,
+      "size": "96.0B",
+      "format": "mgf",
+      "description": "Lipid MS2 spectra (neutral loss focused)",
+      "category": "ms2_identification",
+      "data_type": "ms2_lipid_spectra",
+      "use_cases": [
+        "neutral loss scanning",
+        "lipid fragmentation"
+      ],
+      "search_text": "MS2ID_LipidsNL Lipid MS2 spectra (neutral loss focused) ms2_identification neutral loss scanning lipid fragmentation"
+    },
+    "metaboanalyst_ms2id_exposomics": {
+      "name": "MS2ID_Exposomics",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_Exposomics",
+      "exists": true,
+      "size": "385MB",
+      "format": "mgf",
+      "description": "MS2 spectra for environmental/exposome compounds (385MB)",
+      "category": "ms2_identification",
+      "data_type": "ms2_exposome_spectra",
+      "use_cases": [
+        "exposomics",
+        "environmental metabolites",
+        "xenobiotic identification"
+      ],
+      "search_text": "MS2ID_Exposomics MS2 spectra for environmental/exposome compounds (385MB) ms2_identification exposomics environmental metabolites xenobiotic identification"
+    },
+    "metaboanalyst_ms2id_exposomicsnl": {
+      "name": "MS2ID_ExposomicsNL",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_ExposomicsNL",
+      "exists": true,
+      "size": "96.0B",
+      "format": "mgf",
+      "description": "Exposome MS2 spectra (neutral loss)",
+      "category": "ms2_identification",
+      "data_type": "ms2_exposome_spectra",
+      "use_cases": [
+        "exposome analysis",
+        "pollutant identification"
+      ],
+      "search_text": "MS2ID_ExposomicsNL Exposome MS2 spectra (neutral loss) ms2_identification exposome analysis pollutant identification"
+    },
+    "metaboanalyst_hmdb": {
+      "name": "HMDB",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/HMDB",
+      "exists": false,
+      "size": "50MB",
+      "format": "sdf",
+      "description": "Human Metabolome Database - urine metabolites (50MB)",
+      "category": "metabolite_reference",
+      "data_type": "metabolite_structures",
+      "use_cases": [
+        "metabolite annotation",
+        "structure search",
+        "biomarker discovery"
+      ],
+      "search_text": "HMDB Human Metabolome Database - urine metabolites (50MB) metabolite_reference metabolite annotation structure search biomarker discovery"
+    },
+    "metaboanalyst_t3db": {
+      "name": "T3DB",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/T3DB",
+      "exists": false,
+      "size": "15MB",
+      "format": "sdf",
+      "description": "Toxin and Toxin Target Database (15MB)",
+      "category": "metabolite_reference",
+      "data_type": "toxin_database",
+      "use_cases": [
+        "toxicology",
+        "environmental health",
+        "adverse effects"
+      ],
+      "search_text": "T3DB Toxin and Toxin Target Database (15MB) metabolite_reference toxicology environmental health adverse effects"
+    },
+    "metaboanalyst_stoff": {
+      "name": "STOFF",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/STOFF",
+      "exists": false,
+      "size": "60MB",
+      "format": "sdf",
+      "description": "Suspect Target and Off-target Database (60MB)",
+      "category": "metabolite_reference",
+      "data_type": "suspect_screening",
+      "use_cases": [
+        "non-target analysis",
+        "suspect screening"
+      ],
+      "search_text": "STOFF Suspect Target and Off-target Database (60MB) metabolite_reference non-target analysis suspect screening"
+    },
+    "metaboanalyst_lipidmaps": {
+      "name": "LipidMaps",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/LipidMaps",
+      "exists": false,
+      "size": "25MB",
+      "format": "sdf",
+      "description": "LIPID MAPS structural database (25MB)",
+      "category": "metabolite_reference",
+      "data_type": "lipid_structures",
+      "use_cases": [
+        "lipid annotation",
+        "lipid structure search"
+      ],
+      "search_text": "LipidMaps LIPID MAPS structural database (25MB) metabolite_reference lipid annotation lipid structure search"
+    },
+    "metaboanalyst_kegg": {
+      "name": "KEGG",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/KEGG",
+      "exists": false,
+      "size": "12MB",
+      "format": "rds",
+      "description": "KEGG pathway compound database (12MB)",
+      "category": "pathway_database",
+      "data_type": "pathway_compounds",
+      "use_cases": [
+        "pathway enrichment",
+        "metabolic pathway analysis",
+        "compound mapping"
+      ],
+      "search_text": "KEGG KEGG pathway compound database (12MB) pathway_database pathway enrichment metabolic pathway analysis compound mapping"
+    },
+    "metaboanalyst_smpdb": {
+      "name": "SMPDB",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/SMPDB",
+      "exists": false,
+      "size": "12MB",
+      "format": "rds",
+      "description": "Small Molecule Pathway Database (12MB)",
+      "category": "pathway_database",
+      "data_type": "metabolite_pathways",
+      "use_cases": [
+        "pathway visualization",
+        "metabolite pathway mapping"
+      ],
+      "search_text": "SMPDB Small Molecule Pathway Database (12MB) pathway_database pathway visualization metabolite pathway mapping"
+    },
+    "metaboanalyst_reactome": {
+      "name": "Reactome",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/Reactome",
+      "exists": false,
+      "size": "11MB",
+      "format": "rds",
+      "description": "Reactome metabolic pathway database (11MB)",
+      "category": "pathway_database",
+      "data_type": "pathways",
+      "use_cases": [
+        "pathway analysis",
+        "systems biology"
+      ],
+      "search_text": "Reactome Reactome metabolic pathway database (11MB) pathway_database pathway analysis systems biology"
+    },
+    "metaboanalyst_menu": {
+      "name": "MeNu",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MeNu",
+      "exists": false,
+      "size": "7MB",
+      "format": "rds",
+      "description": "Metabolomics and Nutrition database (7MB)",
+      "category": "metabolite_sets",
+      "data_type": "metabolite_sets",
+      "use_cases": [
+        "nutritional metabolomics",
+        "dietary biomarkers"
+      ],
+      "search_text": "MeNu Metabolomics and Nutrition database (7MB) metabolite_sets nutritional metabolomics dietary biomarkers"
+    },
+    "metaboanalyst_metabolights": {
+      "name": "MetaboLights",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MetaboLights",
+      "exists": false,
+      "size": "6MB",
+      "format": "rds",
+      "description": "MetaboLights curated study metabolite sets (6MB)",
+      "category": "metabolite_sets",
+      "data_type": "study_metabolites",
+      "use_cases": [
+        "meta-analysis",
+        "biomarker validation"
+      ],
+      "search_text": "MetaboLights MetaboLights curated study metabolite sets (6MB) metabolite_sets meta-analysis biomarker validation"
+    },
+    "metaboanalyst_metamesh": {
+      "name": "MetaMesh",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MetaMesh",
+      "exists": false,
+      "size": "25MB",
+      "format": "rds",
+      "description": "MetaMesh medical subject heading metabolite sets (25MB)",
+      "category": "compound_mapping",
+      "data_type": "mesh_mappings",
+      "use_cases": [
+        "literature mining",
+        "metabolite-disease associations"
+      ],
+      "search_text": "MetaMesh MetaMesh medical subject heading metabolite sets (25MB) compound_mapping literature mining metabolite-disease associations"
+    },
+    "metaboanalyst_ecmdb": {
+      "name": "ECMDB",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/ECMDB",
+      "exists": false,
+      "size": "11MB",
+      "format": "sdf",
+      "description": "E. coli Metabolome Database (11MB)",
+      "category": "organism_specific",
+      "data_type": "bacterial_metabolites",
+      "use_cases": [
+        "microbial metabolomics",
+        "E. coli metabolism"
+      ],
+      "search_text": "ECMDB E. coli Metabolome Database (11MB) organism_specific microbial metabolomics E. coli metabolism"
+    },
+    "metaboanalyst_ymdb": {
+      "name": "YMDB",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/YMDB",
+      "exists": false,
+      "size": "12MB",
+      "format": "sdf",
+      "description": "Yeast Metabolome Database (12MB)",
+      "category": "organism_specific",
+      "data_type": "yeast_metabolites",
+      "use_cases": [
+        "yeast metabolomics",
+        "fermentation studies"
+      ],
+      "search_text": "YMDB Yeast Metabolome Database (12MB) organism_specific yeast metabolomics fermentation studies"
+    }
+  }
+}

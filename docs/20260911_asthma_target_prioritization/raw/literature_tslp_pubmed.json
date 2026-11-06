@@ -1,0 +1,32 @@
+{
+  "header": {
+    "type": "esearch",
+    "version": "0.3"
+  },
+  "esearchresult": {
+    "count": "538",
+    "retmax": "8",
+    "retstart": "0",
+    "idlist": [
+      "42589600",
+      "42538332",
+      "42448002",
+      "42397368",
+      "42379714",
+      "42345643",
+      "42304287",
+      "42259242"
+    ],
+    "translationset": [
+      {
+        "from": "asthma",
+        "to": "\"asthma\"[MeSH Terms] OR \"asthma\"[All Fields] OR \"asthmas\"[All Fields] OR \"asthma's\"[All Fields]"
+      },
+      {
+        "from": "humans[MeSH Terms]",
+        "to": "\"humans\"[MeSH Terms]"
+      }
+    ],
+    "querytranslation": "((\"TSLP\"[All Fields] OR \"thymic stromal lymphopoietin\"[All Fields]) AND (\"asthma\"[MeSH Terms] OR \"asthma\"[All Fields] OR \"asthmas\"[All Fields] OR \"asthma s\"[All Fields]) AND \"humans\"[MeSH Terms]) NOT \"review\"[Publication Type]"
+  }
+}

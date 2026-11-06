@@ -1,0 +1,107 @@
+shuffle 0 labs 20 peptides 6784
+done 2013_CHUGAI 405 5
+done 2015_Ahlbach 270 6
+done 2015_Wang 297 6
+done 2016_Furukawa 405 7
+done 2017_Pye 0 7
+done 2018_Naylor 405 8
+done 2020_Barlow 135 8
+done 2020_Furukawa 270 9
+done 2020_Le Roux 270 9
+done 2020_Townsend 405 11
+done 2021_Comeau 270 12
+done 2021_Golosov 0 12
+done 2021_Kelly 405 13
+done 2021_Wang 0 13
+done 2022_Bhardwaj 405 14
+done 2022_Taechalertpaisarn 324 14
+done 2023_Ghosh 270 15
+done 2024_Faris 405 15
+done 2024_Koch 270 16
+done 2024_Ly 0 16
+shuffle 1 labs 20 peptides 6784
+done 2013_CHUGAI 405 23
+done 2015_Ahlbach 270 23
+done 2015_Wang 297 24
+done 2016_Furukawa 405 24
+done 2017_Pye 0 24
+done 2018_Naylor 405 25
+done 2020_Barlow 135 25
+done 2020_Furukawa 270 25
+done 2020_Le Roux 270 26
+done 2020_Townsend 405 27
+done 2021_Comeau 270 27
+done 2021_Golosov 0 28
+done 2021_Kelly 405 29
+done 2021_Wang 0 29
+done 2022_Bhardwaj 405 30
+done 2022_Taechalertpaisarn 324 30
+done 2023_Ghosh 270 31
+done 2024_Faris 405 32
+done 2024_Koch 270 32
+done 2024_Ly 0 32
+shuffle 2 labs 20 peptides 6784
+done 2013_CHUGAI 405 38
+done 2015_Ahlbach 270 38
+done 2015_Wang 297 39
+done 2016_Furukawa 405 39
+done 2017_Pye 0 39
+done 2018_Naylor 405 40
+done 2020_Barlow 135 40
+done 2020_Furukawa 270 40
+done 2020_Le Roux 270 41
+done 2020_Townsend 405 42
+done 2021_Comeau 270 43
+done 2021_Golosov 0 43
+done 2021_Kelly 405 44
+done 2021_Wang 0 44
+done 2022_Bhardwaj 405 44
+done 2022_Taechalertpaisarn 324 45
+done 2023_Ghosh 270 45
+done 2024_Faris 405 46
+done 2024_Koch 270 46
+done 2024_Ly 0 46
+shuffle 3 labs 20 peptides 6784
+done 2013_CHUGAI 405 51
+done 2015_Ahlbach 270 51
+done 2015_Wang 297 51
+done 2016_Furukawa 405 52
+done 2017_Pye 0 52
+done 2018_Naylor 405 52
+done 2020_Barlow 135 52
+done 2020_Furukawa 270 53
+done 2020_Le Roux 270 53
+done 2020_Townsend 405 55
+done 2021_Comeau 270 55
+done 2021_Golosov 0 55
+done 2021_Kelly 405 56
+done 2021_Wang 0 57
+done 2022_Bhardwaj 405 57
+done 2022_Taechalertpaisarn 324 57
+done 2023_Ghosh 270 58
+done 2024_Faris 405 58
+done 2024_Koch 270 58
+done 2024_Ly 0 58
+shuffle 4 labs 20 peptides 6784
+done 2013_CHUGAI 405 63
+done 2015_Ahlbach 270 63
+done 2015_Wang 297 63
+done 2016_Furukawa 405 64
+done 2017_Pye 0 64
+done 2018_Naylor 405 64
+done 2020_Barlow 135 64
+done 2020_Furukawa 270 65
+done 2020_Le Roux 270 65
+done 2020_Townsend 405 67
+done 2021_Comeau 270 68
+done 2021_Golosov 0 68
+done 2021_Kelly 405 69
+done 2021_Wang 0 69
+done 2022_Bhardwaj 405 70
+done 2022_Taechalertpaisarn 324 70
+done 2023_Ghosh 270 70
+done 2024_Faris 405 71
+done 2024_Koch 270 71
+done 2024_Ly 0 71
+wrote perm_shuffle_cells.csv 26055
+shuffle rc=0

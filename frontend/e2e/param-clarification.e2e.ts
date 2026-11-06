@@ -144,7 +144,8 @@ test.describe("ParamClarificationCard end-to-end", () => {
     await sendChatViaUI(page, query);
 
     // Response is synthetic (route.fulfill), so the card should appear quickly.
-    const card = page.locator('[data-testid="param-clarification-card"]');
+    // The typed ClarifyCard (spec 06 §6.4) now renders param clarifications.
+    const card = page.locator('[data-testid="clarify-card"]');
     try {
       await card.waitFor({ state: "visible", timeout: 15_000 });
     } catch {
@@ -153,32 +154,35 @@ test.describe("ParamClarificationCard end-to-end", () => {
         path: `${testInfo.outputDir}/00-card-never-rendered.png`,
         fullPage: true,
       });
-      throw new Error("ParamClarificationCard never rendered — check screenshot");
+      throw new Error("ClarifyCard never rendered — check screenshot");
     }
     await page.screenshot({
       path: `${testInfo.outputDir}/01-card-rendered.png`,
       fullPage: true,
     });
 
-    // Verify the enum_violation chip set for delivery_cell is present —
-    // chips are testid'd `param-clarify-chip-<paramName>-<value>`.
+    // Verify the enum_violation options for delivery_cell are present. The
+    // ClarifyCard renders one numbered option per allowed value, each with its
+    // bound value shown as `delivery_cell = <value>`. Options are testid'd
+    // `clarify-opt-<questionId>-<index>`; the question id is the param name.
     const allowedValues = ["T_cell", "NK_cell", "macrophage"];
-    for (const v of allowedValues) {
-      const chip = page.locator(`[data-testid="param-clarify-chip-delivery_cell-${v}"]`);
-      await expect(chip, `chip for ${v} present`).toBeVisible();
+    for (let i = 0; i < allowedValues.length; i++) {
+      const opt = page.locator(`[data-testid="clarify-opt-delivery_cell-${i}"]`);
+      await expect(opt, `option for ${allowedValues[i]} present`).toBeVisible();
+      await expect(opt, `option ${allowedValues[i]} shows its bound value`).toContainText(
+        `delivery_cell = ${allowedValues[i]}`,
+      );
     }
 
-    // Skip link must also be present per the design.
-    const skip = page.locator('[data-testid="param-clarify-skip-delivery_cell"]');
-    await expect(skip, "skip link present").toBeVisible();
+    // Skip control must also be present per the design.
+    const skip = page.locator('[data-testid="clarify-skip"]');
+    await expect(skip, "skip control present").toBeVisible();
 
-    // Click T_cell — fires the resolved CustomEvent the workflow panel
-    // listens for. Then verify either (a) the panel's delivery_cell input
-    // updates, or (b) the card hides.
-    const tCellChip = page.locator(
-      '[data-testid="param-clarify-chip-delivery_cell-T_cell"]',
-    );
-    await tCellChip.click();
+    // Pick T_cell (option 0), then confirm — Confirm fires the resolved
+    // CustomEvent the workflow panel listens for. Then verify either (a) the
+    // panel's delivery_cell input updates, or (b) the card hides.
+    await page.locator('[data-testid="clarify-opt-delivery_cell-0"]').click();
+    await page.locator('[data-testid="clarify-next"]').click();
     await page.waitForTimeout(2_500);
     await page.screenshot({
       path: `${testInfo.outputDir}/02-after-tcell-pick.png`,

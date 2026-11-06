@@ -1,12 +1,18 @@
+import { LiveVoicePanel } from "./live-voice-panel"
+import { prepareColdStartExample, INTERNAL_EXAMPLES, PREPARED_EXAMPLES, ensureInternalDemoProject } from "./cold-start-examples"
+import { toast } from "@/hooks/use-toast"
+import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { t } from "@/lib/i18n"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
+import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
-import { groupProgressMessages, FoldedProgressGroup } from "./chat-progress-fold"
+import { groupWorkflowResponses, ProgressStreamBox } from "./chat-progress-fold"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
-import { ChatInput } from "./chat-input"
+import { ChatInput, type ComposerProject } from "./chat-input"
+import { ColdStartDashboard } from "./cold-start-dashboard"
 import { TaskList, type TaskItem, type TaskStatus } from "./task-list"
 import { TypingIndicator } from "./typing-indicator"
 // FileUpload moved into ChatInput component as a popover
@@ -20,7 +26,7 @@ import { useMutation } from "@tanstack/react-query"
 import { apiRequest } from "@/lib/queryClient"
 import { chatHistoryService } from "@/lib/chat-history"
 import { emitUxEvent } from "@/lib/ux-telemetry"
-import { getChatAsyncGuidance } from "@/lib/async-guidance"
+import { getChatAsyncGuidance, isTransientChatError } from "@/lib/async-guidance"
 import { useNetworkStatus } from "@/lib/network-status"
 import type { ChatSession, ExecutionRun } from "@shared/schema"
 import { analytics } from "@/lib/analytics"
@@ -67,7 +73,7 @@ interface ChatInterfaceProps {
   showProgress?: boolean
   onToggleProgress?: () => void
   // Workflow execution props for inline artifacts
-  onRunWorkflow?: (workflow: any, steps: any[]) => void
+  onRunWorkflow?: (workflow: any, steps: any[], sourceMessageId?: string) => void
   onRunChain?: (workflow: any) => void
   onRunPipeline?: (workflow: any) => void
   onApprovePipelineStep?: (workflow: any, completedStepId: string, nextStepId: string) => void
@@ -84,7 +90,7 @@ interface ChatInterfaceProps {
   focusedRunId?: string | null
   runAnchorRequestId?: number
   // Right panel
-  onOpenWorkflowInPanel?: (messageId: string, workflow: any) => void
+  onOpenWorkflowInPanel?: (messageId: string, workflow: any, tab?: 'summary' | 'outputs' | 'report') => void
   panelWorkflowMessageId?: string | null
   /** Whether the workflow panel is currently open. When true, all inline
    *  workflow cards (viewer, pipeline, chain) are suppressed in chat messages
@@ -124,34 +130,6 @@ import { DOMAIN_TAXONOMY, DOMAIN_LABELS } from "@/components/domain-profile-sele
 const ONBOARDING_DONE_KEY = 'biomate_onboarding_done'
 
 // Example queries shown as clickable chips on the empty-state chat screen.
-// First entry is the conference demo default (MG patient stratification chain).
-/** Files to auto-attach when a demo chip is clicked. Fetched from /public at click time. */
-const DEMO_FILE_BASE = '/demo/mg_demo'
-
-const EXAMPLE_QUERIES = [
-  {
-    label: 'MG patient stratification → ADMET',
-    query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) — find the key differentially expressed genes.',
-    demoFiles: [
-      `${DEMO_FILE_BASE}/sample_metadata.csv`,
-      `${DEMO_FILE_BASE}/counts_matrix.csv`,
-      `${DEMO_FILE_BASE}/contrasts.csv`,
-    ],
-  },
-  {
-    label: 'ADMET screen from SMILES',
-    query: 'Screen these compounds for hERG cardiotoxicity, CYP3A4 inhibition, and oral bioavailability: aspirin (CC(=O)Oc1ccccc1C(=O)O), ibuprofen (CC(C)Cc1ccc(cc1)C(C)C(=O)O)',
-  },
-  {
-    label: 'RNA-seq differential expression',
-    query: 'Run nf-core RNA-seq differential expression on s3://my-bucket/fastqs/ — human GRCh38, paired-end, treated (n=3) vs control (n=3), FDR 0.05',
-  },
-  {
-    label: 'Variant calling on WGS sample',
-    query: 'Whole-genome variant calling on the uploaded FASTQ pair, human GRCh38, GATK HaplotypeCaller, germline mode',
-  },
-] as const
-
 function OnboardingWelcome({
   onComplete,
   visible,
@@ -448,6 +426,7 @@ function ReturningUserWelcome(_props: { onSend: (msg: string) => void }) {
   // Greeting + 8-domain × 4-query grid removed per todo (item #11):
   // the hardcoded suggested queries haven't been E2E-validated against every
   // workflow. Restore once each query is verified to drive a complete run.
+  // GATE: scripts/coldstart_executability_guard.py must go green (every WELCOME_PROMPT backed by a workflow in passed_workflows.txt) before re-enabling — currently 9/32.
   return null;
 }
 
@@ -509,13 +488,54 @@ export function ChatInterface({
   const abortControllerRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const followChatTailRef = useRef(true)
   // Captured setter from ChatInput — lets empty-state chips pre-fill the textarea
   const localSetDraftRef = useRef<((draft: string) => void) | null>(null)
+  const [preparingExample, setPreparingExample] = useState(false)
+  const preparingExampleRef = useRef(false)
   const localAddFilesRef = useRef<((files: File[]) => void) | null>(null)
+  const localExampleFilesRef = useRef<((files: File[]) => void) | null>(null)
   // Track whether we've pre-loaded the GSE227835 de_genes.txt for Turn 2
   const deGenesPreloadedRef = useRef(false)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
   const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
+
+  // Real projects for the composer's "project suggested" row (spec 06 §6.6)
+  // and instructions seeding (§6.5). Fetched from the SAME source the sidebar
+  // uses (GET /api/projects) so the composer proposes only projects the user
+  // actually has — never a fabricated one. Refreshed on the shared
+  // 'biomate:projects-updated' event so a newly-created project can be
+  // proposed without a reload.
+  const contextProjectId = useActiveProjectIdSafe();
+  const activeProjectContext = useActiveProjectSafe();
+  const [composerProjects, setComposerProjects] = useState<ComposerProject[]>([])
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(() => {
+    try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null }
+    catch { return null }
+  })
+  useEffect(() => { setActiveProjectId(contextProjectId) }, [contextProjectId])
+  useEffect(() => {
+    let cancelled = false
+    const loadProjects = () => {
+      fetch('/api/projects', { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : { projects: [] }))
+        .then((d) => { if (!cancelled) setComposerProjects((d.projects ?? []).map((p: any) => ({ ...p, instructions: p.researchGoal ?? p.instructions ?? "" })) as ComposerProject[]) })
+        .catch(() => { /* honest-empty: no projects → no suggestion */ })
+    }
+    loadProjects()
+    const onUpdate = () => loadProjects()
+    if (typeof window !== 'undefined') window.addEventListener('biomate:projects-updated', onUpdate)
+    return () => { cancelled = true; if (typeof window !== 'undefined') window.removeEventListener('biomate:projects-updated', onUpdate) }
+  }, [])
+  // File the current chat into a project (spec 06 §6.6 "File it there"): set the
+  // active project the existing chat-stream context already threads
+  // (`biomate-active-project-id` → context.projectId, see chatMutation) and
+  // broadcast so the sidebar reflects the new home.
+  const handleFileToProject = useCallback((projectId: string) => {
+    try { localStorage.setItem('biomate-active-project-id', projectId) } catch { /* noop */ }
+    setActiveProjectId(projectId)
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('biomate:projects-updated'))
+  }, [])
 
   // Stop dialog state
   const [showStopDialog, setShowStopDialog] = useState(false)
@@ -569,9 +589,13 @@ export function ChatInterface({
     console.log('[ChatInterface] displayMessages IDs:', displayMessages.map(m => m.id))
   }, [displayMessages])
 
-  // Auto-scroll to bottom when messages change
+  useEffect(() => { followChatTailRef.current = true }, [chatSession?.id])
+
+  // Follow new messages only while the reader is at the end of both chat and its streams.
   useEffect(() => {
-    if (messagesEndRef.current) {
+    const readingEarlierUpdate = Array.from(scrollRef.current?.querySelectorAll<HTMLElement>('[role="log"]') ?? [])
+      .some(log => log.scrollHeight - log.scrollTop - log.clientHeight > 24)
+    if (followChatTailRef.current && !readingEarlierUpdate && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [displayMessages, displayTyping])
@@ -739,21 +763,19 @@ export function ChatInterface({
     if (!chatSession?.id) return
     const session = chatHistoryService.getSession(chatSession.id)
     if (!session) return
-    // De-dupe: skip if the most-recent progress msg for this invocation has same kind+ts.
-    const last = [...session.messages].reverse().find(
-      (m) => m.metadata?.type === 'workflow_progress' && (m as any).invocationId === event.invocationId,
-    )
-    if (last && last.metadata?.kind === event.kind && (last.metadata as any)?.ts === event.ts) {
-      return
-    }
+    // Exact IDs also reject replayed events that arrive after a newer update.
+    const eventId = `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`
+    if (session.messages.some(message => message.id === eventId)) return
     const progressMsg: Message = {
-      id: `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`,
+      id: eventId,
       role: 'assistant',
       content: event.friendly_message,
       timestamp: new Date(),
       invocationId: event.invocationId,
       metadata: {
         type: 'workflow_progress',
+        ...(event.invocationId && [currentExecutionRun?.id, currentExecutionRun?.execution?.galaxyInvocationId].includes(event.invocationId)
+          ? { runId: currentExecutionRun?.id } : {}),
         kind: event.kind,
         ts: event.ts,
         technical: event.technical,
@@ -764,7 +786,7 @@ export function ChatInterface({
     if (updatedSession && onChatUpdated) {
       onChatUpdated(updatedSession)
     }
-  }, [chatSession?.id, onChatUpdated])
+  }, [chatSession?.id, onChatUpdated, currentExecutionRun?.id, currentExecutionRun?.execution?.galaxyInvocationId])
 
   // Galaxy Chat API integration with full hybrid intelligence
   // Uses /api/chat which provides: intent analysis, tool search, dataset RAG, workflow generation
@@ -809,7 +831,30 @@ export function ChatInterface({
         .filter((m) => _DATASET_BLOCK_RE.test(m.content || ""))
       const previousMessages = [..._earlierAttachments, ..._recent]
         .map((m) => ({ role: m.role, content: m.content }))
+      // A fresh AbortController drives each attempt. It is aborted for two
+      // distinct reasons that we must tell apart:
+      //   - user pressed Stop  → timedOutRef stays false; treat as a clean
+      //     stop (return partial), no retry.
+      //   - per-attempt timeout → timedOutRef is set just before we abort;
+      //     treat as a TRANSIENT failure eligible for retry.
+      // LLM workflow generation can legitimately take 30–90s (see CLAUDE.md
+      // E2E timeout guidance), so the client timeout is generous (120s) — a
+      // too-short timeout firing at 15–45s was a likely cause of the "under
+      // maintenance" dead-end on the first attempt.
+      const ATTEMPT_TIMEOUT_MS = 120_000
+      const MAX_ATTEMPTS = 3 // 1 initial + 2 retries
+      const timedOutRef = { current: false }
+
+      // Single stream attempt. Throws on failure; the caller decides whether
+      // the failure is transient (retry) or deterministic (surface now).
+      const attemptStream = async (): Promise<any> => {
+      timedOutRef.current = false
       abortControllerRef.current = new AbortController()
+      const _timeoutId = setTimeout(() => {
+        timedOutRef.current = true
+        try { abortControllerRef.current?.abort() } catch { /* noop */ }
+      }, ATTEMPT_TIMEOUT_MS)
+      try {
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
         credentials: 'include', // ensure auth cookie is sent on mobile browsers
@@ -842,10 +887,11 @@ export function ChatInterface({
         })
       })
       if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Chat API error: The service is temporarily busy. Please wait a moment and try again.')
-        }
-        throw new Error(`Chat API error: ${response.statusText}`)
+        const httpErr: any = response.status === 429
+          ? new Error('Chat API error: The service is temporarily busy. Please wait a moment and try again.')
+          : new Error(`Chat API error: ${response.statusText || response.status}`)
+        httpErr.httpStatus = response.status
+        throw httpErr
       }
       if (!response.body) {
         throw new Error('Streaming response body unavailable')
@@ -934,11 +980,40 @@ export function ChatInterface({
               } else {
                 finalPayload = payload
               }
+            } else if (eventName === 'progress') {
+              // Routing-stage progress (intent → search → matched → plan) so the
+              // user sees responsive status during the ~30s LLM chain instead of a
+              // frozen spinner. Only before the text response starts streaming.
+              const stage = (payload as any).stage as string | undefined
+              const detail = (payload as any).detail as string | undefined
+              if (stage && !accumulatedText) {
+                const label =
+                  stage === 'intent' ? tOr('chat.progress.intent', 'Understanding your goal…') :
+                  stage === 'search' ? tOr('chat.progress.search', 'Searching 4,000+ workflows…') :
+                  stage === 'matched' ? tOr('chat.progress.matched', 'Matched a workflow') :
+                  stage === 'plan' ? tOr('chat.progress.plan', 'Preparing the plan…') :
+                  stage
+                const text = detail ? `${label} · ${detail}` : label
+                const curSess = chatHistoryService.getSession(sessionId)
+                const curMsg = curSess?.messages.find(m => m.id === placeholderId)
+                updateMessageInSession(sessionId, placeholderId, {
+                  metadata: { ...(curMsg?.metadata ?? {}), progressStatus: text }
+                })
+              }
             } else if (eventName === 'workflow_ready') {
               setWorkflowGeneratingPhase('workflow')
             } else if (eventName === 'error') {
-              const errDetail = payload?.message || payload?.error || payload?.detail || 'An error occurred during chat'
-              throw new Error(errDetail)
+              // Preserve the server's real error message so the retry
+              // classifier (isTransientChatError) can decide whether this is a
+              // transient hiccup worth retrying vs a deterministic failure to
+              // surface immediately. The old opaque '__maintenance__' sentinel
+              // discarded that signal and always dead-ended. Servers report the
+              // text under message, error or detail; accept any of them.
+              const pick = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
+              const serverMsg =
+                pick(payload?.message) || pick(payload?.error) || pick(payload?.detail) ||
+                'Streaming chat failed'
+              throw new Error(serverMsg)
             }
           }
         }
@@ -946,8 +1021,19 @@ export function ChatInterface({
       } catch (err: any) {
         console.error('[ChatInterface] SSE read error:', err?.name, err?.message)
         if (err?.name === 'AbortError') {
-          // Stream was stopped by user — not an error, just return what we have
-          return finalPayload ?? { message: accumulatedText, aborted: true }
+          if (timedOutRef.current) {
+            // Per-attempt timeout — transient, eligible for retry.
+            const toErr: any = new Error(
+              `Workflow generation timed out after ${Math.round(ATTEMPT_TIMEOUT_MS / 1000)}s`,
+            )
+            toErr.timedOut = true
+            throw toErr
+          }
+          // Stream was stopped by the user — clean stop, not an error.
+          const abortErr: any = new Error('aborted')
+          abortErr.userAborted = true
+          abortErr.partial = finalPayload ?? { message: accumulatedText, aborted: true }
+          throw abortErr
         }
         throw err
       }
@@ -957,6 +1043,55 @@ export function ChatInterface({
         throw new Error('No final payload received from stream')
       }
       return finalPayload
+      } finally {
+        clearTimeout(_timeoutId)
+      }
+      } // end attemptStream
+
+      // Bounded retry: retry ONLY genuinely transient failures (network blip,
+      // 5xx, timeout, empty/incomplete stream, rate-limit). Deterministic
+      // failures (4xx, validation, clarification) are thrown immediately so
+      // the user sees the real message instead of retrying into a hang.
+      let lastError: any = null
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          return await attemptStream()
+        } catch (err: any) {
+          // User pressed Stop — return the partial payload, do not retry.
+          if (err?.userAborted) {
+            return err.partial ?? { message: '', aborted: true }
+          }
+          lastError = err
+          const transient = isTransientChatError(err?.message, {
+            httpStatus: err?.httpStatus ?? null,
+            aborted: false,
+          }) || err?.timedOut === true
+          const hasAttemptsLeft = attempt < MAX_ATTEMPTS
+          if (!transient || !hasAttemptsLeft) {
+            throw err
+          }
+          // Short exponential backoff: 800ms, 1600ms. Keep the placeholder
+          // visible with a calm "retrying" cue so the user isn't staring at a
+          // frozen bubble.
+          const backoffMs = 800 * Math.pow(2, attempt - 1)
+          console.warn(
+            `[ChatInterface] Transient generation failure (attempt ${attempt}/${MAX_ATTEMPTS}), retrying in ${backoffMs}ms:`,
+            err?.message,
+          )
+          try {
+            updateMessageInSession(sessionId, placeholderId, {
+              metadata: { progressStatus: 'Reconnecting to the workflow service…' },
+            })
+          } catch { /* placeholder may not exist yet */ }
+          await new Promise((r) => setTimeout(r, backoffMs))
+          // If the user pressed Stop during the backoff window,
+          // stopStreaming() nulled the controller — honor it, don't re-fire.
+          if (abortControllerRef.current === null) {
+            return { message: '', aborted: true }
+          }
+        }
+      }
+      throw lastError ?? new Error('Workflow generation failed')
     },
     onSuccess: async (data, variables) => {
       console.log('[ChatInterface] API Response:', data)
@@ -1052,6 +1187,16 @@ export function ChatInterface({
           };
         }
       }
+      // The workflow panel reads validation from the workflow definition while
+      // the chat card reads it from message metadata. Keep one backend verdict
+      // on both surfaces so a selected workflow cannot change readiness merely
+      // because it moved from chat into the right panel.
+      if (workflowData && data.prerequisitesValidation) {
+        workflowData = {
+          ...workflowData,
+          prerequisitesValidation: data.prerequisitesValidation,
+        };
+      }
 
       console.log('[ChatInterface] Steps array:', stepsArray)
 
@@ -1110,7 +1255,10 @@ export function ChatInterface({
           validation: data.workflow?.validation || { is_valid: true, issues: [], warnings: [] },
           tool_installation: data.workflow?.tool_installation || { success: true, failed_tools: [] },
           // Prerequisites validation (input data, parameters needed before execution)
-          prerequisitesValidation: data.prerequisitesValidation || null
+          prerequisitesValidation: data.prerequisitesValidation || null,
+          // Ids this turn's selected references could not resolve — threaded into
+          // the execute request so the server's inputs_unresolved gate engages.
+          datasetReferenceUnresolvedIds: data.datasetReferenceUnresolvedIds || undefined,
         }
       }
 
@@ -1200,9 +1348,20 @@ export function ChatInterface({
 
       const errorMessage = error.message || 'Unknown error occurred';
       const guidance = getChatAsyncGuidance(errorMessage, { isOnline });
+      // By the time onError fires, the mutationFn has already exhausted its
+      // bounded auto-retry for transient failures. So this is either a
+      // persistent transient outage or a deterministic failure. Surface a
+      // calm, honest message — a temporary hiccup the user can retry — WITHOUT
+      // implying planned downtime (the old hardcoded "under maintenance"
+      // string was misleading for a transient blip) and WITHOUT leaking raw
+      // stack traces (guidance.reason is already sanitized).
+      const transient = isTransientChatError(errorMessage, { httpStatus: null, aborted: false });
+      const content = transient
+        ? `${guidance.reason} ${guidance.retry}`.trim()
+        : `${guidance.title}. ${guidance.reason} ${guidance.retry}`.trim();
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `I encountered an error: ${errorMessage}. Please try again.`,
+        content,
         role: "assistant",
         timestamp: new Date(),
         suggestions: ["Try again"],
@@ -1711,12 +1870,15 @@ export function ChatInterface({
    * pendingMessages and auto-submitted as soon as each response completes.
    * Messages with file attachments bypass the queue and go immediately.
    */
-  const handleSendOrQueue = useCallback((content: string, files?: File[]) => {
-    if (displayTyping && !files?.length && content.trim()) {
+  const handleSendOrQueue = useCallback((content: string, files?: File[], contextOverride?: Record<string, unknown>) => {
+    // Only text-only messages with NO lane override are soft-queued; a message
+    // carrying a lane override (from the composer's lane preview) must reach the
+    // send path with its override intact, so it bypasses the queue.
+    if (displayTyping && !files?.length && !contextOverride && content.trim()) {
       setPendingMessages(prev => [...prev, content.trim()])
       return
     }
-    handleSendMessage(content, files)
+    handleSendMessage(content, files, contextOverride)
   }, [displayTyping]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopStreaming = useCallback(() => {
@@ -1920,6 +2082,24 @@ export function ChatInterface({
     handleSendOrQueue(lastUser.content)
   }, [chatSession?.messages, handleSendOrQueue])
 
+  // "Redo as a validated run" (spec 02 §2.2). Given an instant/compute-style
+  // assistant answer, find the user turn that produced it and re-send that
+  // intent forced to the Cloud/validated-workflow lane via the existing
+  // intentOverride path (backend maps 'workflow_generation' ->
+  // needsWorkflowGeneration and skips ambiguity detection).
+  const handleRedoAsValidatedRun = useCallback((message: Message) => {
+    const msgs = chatSession?.messages ?? []
+    const idx = msgs.findIndex(m => m.id === message.id)
+    // Nearest preceding user turn (fall back to the last user message).
+    const priorUser = idx >= 0
+      ? [...msgs.slice(0, idx)].reverse().find(m => m.role === 'user' && m.content?.trim())
+      : undefined
+    const source = priorUser ?? [...msgs].reverse().find(m => m.role === 'user' && m.content?.trim())
+    if (!source?.content?.trim()) return
+    analytics.track('redo_as_validated_run', { sessionId: chatSession?.id })
+    handleSendMessage(source.content, undefined, { intentOverride: 'workflow_generation' })
+  }, [chatSession?.messages, chatSession?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!externalPromptRequest) return
     if (displayTyping) return
@@ -1933,7 +2113,7 @@ export function ChatInterface({
   }, [externalPromptRequest, displayTyping])
 
   return (
-    <div className={`flex flex-col h-full ${className}`}>
+    <div className={`flex flex-col h-full min-w-0 min-h-0 ${className}`}>
       <div
         className="sr-only"
         data-testid="chat-run-anchor-state"
@@ -1962,11 +2142,51 @@ export function ChatInterface({
         </div>
       )}
 
-      <ScrollArea className="flex-1" ref={scrollRef} data-testid="chat-messages" style={{
-        padding: '28px clamp(20px, 8%, 120px) 20px',
+      <ScrollArea className="chat-thread flex-1 min-h-0 min-w-0" ref={scrollRef}
+        onScrollCapture={(event) => {
+          const viewport = event.target as HTMLElement
+          if (viewport.hasAttribute('data-radix-scroll-area-viewport')) {
+            followChatTailRef.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 48
+          }
+        }} data-testid="chat-messages" style={{
+        padding: '24px clamp(16px, 4%, 56px) 20px',
       }}>
         {displayMessages.length === 0 && !isTyping && !isTypingLocal && (
-          <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
+          <>
+            {/* ReturningUserWelcome still returns null (the old hardcoded
+                WELCOME_PROMPTS grid is intentionally not restored). The
+                cold-start module dashboard replaces it: it seeds the composer
+                (does not send) via the captured draft setter, so the user
+                still reviews and sends. Spec 00 §0.4/§0.5. */}
+            <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
+            <ColdStartDashboard
+              onSeed={async (text) => {
+                if (preparingExampleRef.current) return;
+                preparingExampleRef.current = true;
+                setPreparingExample(true);
+                try {
+                  const internal = INTERNAL_EXAMPLES.includes(text);
+                  const example = await prepareColdStartExample(internal ? PREPARED_EXAMPLES[0].label : text);
+                  if (internal) {
+                    const projectId = await ensureInternalDemoProject(example.files);
+                    activeProjectContext?.setActiveProjectId(projectId);
+                    handleFileToProject(projectId);
+                    example.prompt = `${text} Project ID: ${projectId}. Use the project files and attached tutorial inputs. Do not infer prior assay results or completed runs from these input files.`;
+                  }
+                  if (!localSetDraftRef.current || (example.files.length && !localExampleFilesRef.current)) {
+                    throw new Error("The composer is still loading. Please try again.");
+                  }
+                  localExampleFilesRef.current?.(example.files);
+                  localSetDraftRef.current(example.prompt);
+                } catch (error) {
+                  toast({ title: "Could not prepare example", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+                } finally {
+                  preparingExampleRef.current = false;
+                  setPreparingExample(false);
+                }
+              }}
+            />
+          </>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
           {(() => {
@@ -1975,13 +2195,23 @@ export function ChatInterface({
               // progressStatus to show (research-phase progress indicator).
               msg => !(msg.role === 'assistant' && !msg.content?.trim() && !(msg.metadata as any)?.progressStatus && (isTyping || isTypingLocal))
             )
-            // Render a single message exactly as before (used for un-folded
-            // singles AND for the "latest" line of a folded group AND inside
-            // the expanded hidden block).
-            const renderOne = (message: Message) => (
+            // One assistant identity owns the run's progress and completion answer.
+            const renderOne = (message: Message, progress: Message[] = [], continuation = false, hideActions = false) => {
+              // Scope the global currentExecutionRun to THIS card: show run status/findings
+              // only when the run's id/galaxyInvocationId matches the card's own invocationId.
+              // Previously the guard short-circuited when a card had no invocationId
+              // (generated-but-never-executed) and handed it the GLOBAL run → the new card
+              // showed another workflow's status + findings. (audit sweep S4#1, data-integrity)
+              const scopedRun = (!!message.invocationId &&
+                [currentExecutionRun?.id, currentExecutionRun?.execution?.galaxyInvocationId].includes(message.invocationId))
+                ? currentExecutionRun : null;
+              return (
               <div key={message.id}>
                 <ChatMessage
                   message={message}
+                  progressMessages={progress}
+                  continuation={continuation}
+                  hideActions={hideActions}
                   sessionId={chatSession?.id}
                   onToolClick={handleToolClick}
                   onDatasetClick={handleDatasetClick}
@@ -1991,7 +2221,7 @@ export function ChatInterface({
                     }
                   }}
                   // Workflow execution props for inline artifacts
-                  onRunWorkflow={onRunWorkflow}
+                  onRunWorkflow={onRunWorkflow ? (workflow, steps) => onRunWorkflow(workflow, steps, message.id) : undefined}
                   onRunChain={onRunChain}
                   onRunPipeline={onRunPipeline}
                   onApprovePipelineStep={onApprovePipelineStep}
@@ -2001,17 +2231,19 @@ export function ChatInterface({
                   onParameterChange={onParameterChange}
                   onRegenerate={handleRegenerate}
                   onSuggestionClick={handleSuggestionClick}
+                  onRedoAsValidatedRun={handleRedoAsValidatedRun}
                   onWorkflowProgress={handleWorkflowProgress}
                   isWorkflowRunning={isWorkflowRunning}
                   workflowProgress={workflowProgress}
-                  currentExecutionRun={currentExecutionRun}
+                  currentExecutionRun={scopedRun}
+                  isStreaming={(isTyping || isTypingLocal) && message.id === lastMsg?.id && message.role === "assistant"}
                   isLatestAssistantMessage={message.id === latestAssistantMessageId}
                   isRunAnchorFocused={focusedAnchorMessageId === message.id}
                   isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
-                  isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
+                  isInPanel={!!panelWorkflowMessageId && message.id === panelWorkflowMessageId}
                   onOpenInPanel={
                     message.metadata?.type === 'workflow' && message.metadata?.workflow
-                      ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
+                      ? (opts) => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow, opts?.tab)
                       : undefined
                   }
                 />
@@ -2026,33 +2258,34 @@ export function ChatInterface({
                 {/* FindingsCard — shown below completed workflow messages */}
                 {message.role === 'assistant' &&
                   message.metadata?.type === 'workflow' &&
-                  currentExecutionRun?.id &&
-                  (currentExecutionRun?.execution?.status === 'completed' || (currentExecutionRun?.execution?.status as string) === 'ok' || (currentExecutionRun?.execution?.status as string) === 'succeeded') &&
+                  scopedRun?.id &&
+                  (scopedRun?.execution?.status === 'completed' || (scopedRun?.execution?.status as string) === 'ok' || (scopedRun?.execution?.status as string) === 'succeeded') &&
                   message.id === latestAssistantMessageId && (
                   <div className="ml-10 mt-1">
                     <FindingsCard
-                      runId={currentExecutionRun.id}
+                      runId={scopedRun.id}
                       onContinueAnalysis={(suggestion) => handleSendOrQueue(suggestion)}
+                      preview
                     />
                   </div>
                 )}
               </div>
-            )
-            // Collapse consecutive same-speaker progress runs (wf/qc/loop/plan)
-            // into a caret-able "WF — N updates" summary; agent/find never fold.
-            const groups = groupProgressMessages(visible, 2)
+              );
+            }
+            // Use persisted run identities; unrelated and legacy entries keep their chronology.
+            const groups = groupWorkflowResponses(visible, currentExecutionRun ? {
+              id: currentExecutionRun.id,
+              invocationId: currentExecutionRun.execution?.galaxyInvocationId,
+            } : undefined)
             return groups.map((g) => {
-              if (g.kind === 'single') return renderOne(g.message)
-              return (
-                <div key={g.key}>
-                  <FoldedProgressGroup
-                    speaker={g.speaker}
-                    hidden={g.hidden}
-                    renderMessage={renderOne}
-                  />
-                  {renderOne(g.latest)}
-                </div>
+              if (g.kind === 'response') return (
+                <section key={g.key} aria-label="Workflow response" className="min-w-0 space-y-3">
+                  {renderOne(g.message, g.progress, false, g.findings.length > 0)}
+                  {g.findings.map(message => renderOne(message, [], true))}
+                </section>
               )
+              if (g.kind === 'single') return renderOne(g.message)
+              return <ProgressStreamBox key={g.key} messages={g.messages} />
             })
           })()}
           {displayTyping && <TypingIndicator phase={showWorkflowCue ? 'workflow' : workflowGeneratingPhase} />}
@@ -2191,72 +2424,17 @@ export function ChatInterface({
       )}
       {/* Reference design chat input wrap — padding clamp like layout.css */}
       <div style={{
-        padding: '10px clamp(20px, 8%, 120px) 22px',
-        background: 'var(--bm-bg, hsl(var(--background)))',
+        padding: '14px 24px 18px',
+        borderTop: '1px solid var(--bm-border)',
+        background: 'var(--bm-bg-elev)',
       }}>
-        {displayMessages.length === 0 && (
-          <>
-            <p style={{
-              fontSize: 13,
-              color: 'var(--bm-text-dim, oklch(0.60 0.008 240))',
-              marginBottom: 10,
-              textAlign: 'center',
-            }}>
-              {t('Input your use case here')}
-            </p>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 6,
-              justifyContent: 'center',
-              marginBottom: 10,
-            }}>
-              {EXAMPLE_QUERIES.map((q) => (
-                <button
-                  key={q.label}
-                  onClick={async () => {
-                    localSetDraftRef.current?.(q.query)
-                    const demoFiles = (q as any).demoFiles as string[] | undefined
-                    if (demoFiles && localAddFilesRef.current) {
-                      const addFiles = localAddFilesRef.current
-                      const files = await Promise.all(
-                        demoFiles.map(async (url) => {
-                          const res = await fetch(url)
-                          const blob = await res.blob()
-                          const name = url.split('/').pop() ?? 'file'
-                          return new File([blob], name, { type: blob.type || 'text/plain' })
-                        })
-                      ).catch(() => [] as File[])
-                      if (files.length > 0) addFiles(files)
-                    }
-                  }}
-                  style={{
-                    fontSize: 12,
-                    padding: '4px 10px',
-                    borderRadius: 16,
-                    border: '1px solid var(--bm-border, oklch(0.88 0.004 240))',
-                    background: 'var(--bm-surface, oklch(0.97 0.002 240))',
-                    color: 'var(--bm-text-dim, oklch(0.45 0.012 240))',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'background 0.15s, color 0.15s',
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--bm-accent-light, oklch(0.93 0.012 245))'
-                    ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--bm-accent, oklch(0.48 0.18 245))'
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--bm-surface, oklch(0.97 0.002 240))'
-                    ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--bm-text-dim, oklch(0.45 0.012 240))'
-                  }}
-                >
-                  {t(q.label)}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+        {preparingExample && <p role="status" className="text-sm text-muted-foreground px-4">Preparing sample data…</p>}
+        <LiveVoicePanel key={chatSession?.id || "new-chat"} busy={displayTyping || preparingExample}
+          reply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
+          onSend={text => handleSendOrQueue(text)} />
         <ChatInput
+          voiceContextKey={chatSession?.id || "new-chat"}
+          disabled={preparingExample}
           onSend={handleSendOrQueue}
           pendingCount={pendingMessages.length}
           isStreaming={displayTyping}
@@ -2266,10 +2444,16 @@ export function ChatInterface({
             onRegisterSetDraft?.(setter)
           }}
           onRegisterAddFiles={(adder) => { localAddFilesRef.current = adder }}
+          onRegisterExampleFiles={(setter) => { localExampleFilesRef.current = setter }}
           /* Surface session-wide attached-dataset count so the
              X / MAX_DATASET_REFS indicator in the input strip reflects
              the server-side cap (frontend/server/dataset-cap.ts). */
           sessionDatasetCount={chatSession?.datasets?.length ?? 0}
+          /* Real projects feed the "project suggested" row (§6.6) + seed the
+             instructions field (§6.5). No projects → row stays hidden. */
+          projects={composerProjects}
+          activeProjectId={activeProjectId}
+          onFileToProject={handleFileToProject}
         />
       </div>
       {/* chat-analysis-status kept for E2E selectors but visually hidden — TypingIndicator in message list handles the visual */}

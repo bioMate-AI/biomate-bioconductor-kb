@@ -1,0 +1,35 @@
+{
+  "round_id": "avb6-r1-20261019",
+  "target": "avb6",
+  "campaign": "avb6-r1-20261019",
+  "submitted_utc": "2026-10-19",
+  "queue": "biomate-gpu-spot-queue",
+  "jobdef": "boltz-snat2-direct",
+  "jobs": [
+    {
+      "id": "C000",
+      "helm": "cyclo(W-R-G-D-L-G-F-[dP]-[NMeK])",
+      "pep": "WRGDLGFPK",
+      "run_id": "avb6-r1-20261019-C000",
+      "job_id": "6e8f4add-7449-40fe-a9b7-afaf0eaf237b",
+      "result_prefix": "s3://biomate-nextflow-work/cyclic_peptide/batch_cofold/avb6-r1-20261019-C000/complexes/"
+    },
+    {
+      "id": "C001",
+      "helm": "cyclo(Y-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+      "pep": "YRGDLGFPK",
+      "run_id": "avb6-r1-20261019-C001",
+      "job_id": "c85f7b9b-b723-4b62-8328-8d9443d4f476",
+      "result_prefix": "s3://biomate-nextflow-work/cyclic_peptide/batch_cofold/avb6-r1-20261019-C001/complexes/"
+    },
+    {
+      "id": "C002",
+      "helm": "cyclo(Y-R-G-D-L-G-F-[dP]-[NMeK])",
+      "pep": "YRGDLGFPK",
+      "run_id": "avb6-r1-20261019-C002",
+      "job_id": "d2f3d14e-9fe5-4cf6-a5c9-836d499a03a9",
+      "result_prefix": "s3://biomate-nextflow-work/cyclic_peptide/batch_cofold/avb6-r1-20261019-C002/complexes/"
+    }
+  ],
+  "next": "poll physics_batch.fetch_result(run_id) -> loop_grade_bridge.record_round(run_kind=cofold, campaign=round_id)"
+}

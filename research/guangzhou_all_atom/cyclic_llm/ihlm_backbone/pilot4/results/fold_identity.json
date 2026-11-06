@@ -1,0 +1,115 @@
+{
+ "sha256_matches": true,
+ "sha256": "84e52fb23a8838b7871b661b58f26bea7ae0c402a8e9e0c871ba0b66a8edc97e",
+ "pickle_match": {
+  "n_targets": 141,
+  "exactly_one_pickle": 141,
+  "equals_file_map": 141,
+  "matching_pickle_has_lowest_fit": 141
+ },
+ "training_counts_equal_pickles": true,
+ "training_counts": [
+  {
+   "fold": 0,
+   "recomputed": [
+    180,
+    11333,
+    1143
+   ],
+   "pickle": [
+    180,
+    11333,
+    1143
+   ]
+  },
+  {
+   "fold": 1,
+   "recomputed": [
+    235,
+    18305,
+    1718
+   ],
+   "pickle": [
+    235,
+    18305,
+    1718
+   ]
+  },
+  {
+   "fold": 2,
+   "recomputed": [
+    231,
+    18905,
+    1872
+   ],
+   "pickle": [
+    231,
+    18905,
+    1872
+   ]
+  },
+  {
+   "fold": 3,
+   "recomputed": [
+    233,
+    16248,
+    1650
+   ],
+   "pickle": [
+    233,
+    16248,
+    1650
+   ]
+  },
+  {
+   "fold": 4,
+   "recomputed": [
+    236,
+    18839,
+    1748
+   ],
+   "pickle": [
+    236,
+    18839,
+    1748
+   ]
+  },
+  {
+   "fold": 5,
+   "recomputed": [
+    239,
+    18839,
+    1905
+   ],
+   "pickle": [
+    239,
+    18839,
+    1905
+   ]
+  }
+ ],
+ "heldout_targets_in_own_fold_training": 0,
+ "training_targets_sharing_family_with_heldout": 0,
+ "numerical_identity": {
+  "targets": [
+   "P30937",
+   "P13612,P26010",
+   "P05981",
+   "P49862",
+   "Q9BYF1",
+   "P07339"
+  ],
+  "rows_compared": 3858,
+  "rows_missing_in_saved": 0,
+  "max_abs_diff": {
+   "sp": 0.0,
+   "ndcg": 0.0,
+   "rec": 0.0,
+   "sp_h": 0.0,
+   "ndcg_h": 0.0,
+   "rec_h": 0.0
+  },
+  "PASS": true
+ },
+ "IDENTITY_PASS": true
+}

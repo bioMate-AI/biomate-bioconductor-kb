@@ -1,0 +1,98 @@
+{
+  "scope": "synthetic live transport smoke, not scientific acceptance",
+  "model": "Qwen/Qwen3.8-27B",
+  "results": [
+    {
+      "case": "identifier_json",
+      "passed": false,
+      "error": "Expecting value: line 1 column 1 (char 0)"
+    },
+    {
+      "case": "tool_round_trip",
+      "passed": true,
+      "seconds": 42.917,
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "Your latest run was **fixture-run-729**, and its status was **failed**."
+            }
+          }
+        ],
+        "created": 1789235763,
+        "model": "Qwen/Qwen3.8-27B",
+        "system_fingerprint": "b1-3057bb6",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 20,
+          "prompt_tokens": 341,
+          "total_tokens": 361,
+          "prompt_tokens_details": {
+            "cached_tokens": 305
+          }
+        },
+        "id": "chatcmpl-PO7isTi9AJXGdRLAgjfJqL6dCQzdXutR",
+        "timings": {
+          "cache_n": 305,
+          "prompt_n": 36,
+          "prompt_ms": 10332.062,
+          "prompt_per_token_ms": 287.0017222222222,
+          "prompt_per_second": 3.4842996489955245,
+          "predicted_n": 20,
+          "predicted_ms": 5101.443,
+          "predicted_per_token_ms": 268.497,
+          "predicted_per_second": 3.724436399661821
+        }
+      },
+      "first_response": {
+        "choices": [
+          {
+            "finish_reason": "tool_calls",
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "",
+              "tool_calls": [
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "list_history",
+                    "arguments": "{}"
+                  },
+                  "id": "yXIEZe1trXflfnXe9lmPrGGMoNTL7TPk"
+                }
+              ]
+            }
+          }
+        ],
+        "created": 1789235748,
+        "model": "Qwen/Qwen3.8-27B",
+        "system_fingerprint": "b1-3057bb6",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 14,
+          "prompt_tokens": 292,
+          "total_tokens": 306,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "id": "chatcmpl-ZccsVctaebT6ul5jitYdHbTagl394INP",
+        "timings": {
+          "cache_n": 0,
+          "prompt_n": 292,
+          "prompt_ms": 23719.773,
+          "prompt_per_token_ms": 81.2320993150685,
+          "prompt_per_second": 12.310404488272294,
+          "predicted_n": 14,
+          "predicted_ms": 3502.918,
+          "predicted_per_token_ms": 269.45523076923075,
+          "predicted_per_second": 3.711191640797758
+        }
+      }
+    }
+  ]
+}

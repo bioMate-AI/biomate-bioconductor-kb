@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T11 — Drug-development pipeline, end to end</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-d2{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.rail .kind{font-family:var(--ff-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:3px 9px; border-radius:3px}
+.rail .kind.concept{background:var(--blue-bg); color:var(--blue)}
+.rail .kind.flow{background:var(--panel2); color:var(--mut)}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 70px 48px; opacity:0; transform:translateY(8px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px}
+.kicker .st{color:var(--mut)}
+.kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
+.kicker .badge.concept{background:var(--blue-bg); color:var(--blue)}
+.kicker .badge.flow{background:var(--panel2); color:var(--mut); border:1px solid var(--line2)}
+.scene h2{font-family:var(--ff-ui); font-size:36px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 13px; max-width:20ch}
+.scene.title h2{font-size:50px; max-width:20ch; margin-bottom:18px}
+.caption{font-size:18px; line-height:1.55; color:var(--ink2); max-width:66ch; margin:0 0 6px}
+.caption.sub{font-size:15.5px; color:var(--mut); max-width:70ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* edu framing strip: task -> hard -> classical -> deep -> BioMate -> read */
+.frame-strip{display:flex; gap:0; margin:4px 0 0; flex-wrap:wrap}
+.frame-strip .fs{display:flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.04em; color:var(--mut); padding:4px 0}
+.frame-strip .fs b{color:var(--blue); font-weight:500; text-transform:uppercase; letter-spacing:.08em}
+.frame-strip .sep{color:var(--line2); margin:0 12px}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+
+/* screenshot figures (live product scenes) */
+.shots{display:flex; gap:26px; flex:1; min-height:0}
+.shot{flex:1; display:flex; flex-direction:column; min-height:0}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#0f141b; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex; align-items:center; justify-content:center}
+.shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot video{width:100%; height:100%; object-fit:contain; background:#0f141b; display:block}
+
+.scene.live{padding:34px 70px 0}
+.scene.live h2{font-size:30px; line-height:1.14; margin:2px 0 8px; max-width:44ch}
+.scene.live .caption{font-size:15px; line-height:1.5; margin:0 0 12px; max-width:96ch}
+.scene.live .scene-body{flex:0 0 auto; min-height:0; margin-top:0; display:flex}
+.scene.live .shots{flex:0 1 auto; min-height:0; display:flex; justify-content:center; align-items:flex-start; gap:0}
+.scene.live .shot{flex:0 1 auto; display:flex; flex-direction:column; align-items:center; min-height:0; max-width:100%}
+.scene.live .shot .frame{flex:0 1 auto; width:auto; height:auto; max-width:100%; background:#fff; border:1px solid var(--line2); border-radius:12px; box-shadow:0 10px 34px rgba(16,24,40,.12)}
+.scene.live .shot img{display:block; width:auto; height:auto; max-width:min(92vw,1680px); max-height:51vh; object-fit:contain; border-radius:12px}
+.scene.live .shot figcaption{font-size:12.5px; line-height:1.45; margin-top:10px; max-width:90ch; text-align:center}
+.scene.live .tags{margin-top:12px}
+.livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
+.livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
+@keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
+.shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:48ch}
+.shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:12px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row2{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
+.card.big .row2, .card.big .row3, .card.big .row4, .card.big .row5{flex:1 1 auto; grid-template-rows:minmax(0,1fr)}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px; display:flex; flex-direction:column; justify-content:center}
+.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
+.tile.hot{border-color:var(--red); background:var(--red-bg)}
+.tile.hot .n{color:var(--red)}
+.tile.good{border-color:var(--green); background:var(--green-bg)}
+.tile.good .n{color:var(--green)}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:8px 15px; font-size:14px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+svg{display:block}
+.svgwrap{flex:1; display:flex; align-items:center; justify-content:center; min-height:0}
+.metricrow{display:flex; gap:34px; margin-top:4px}
+.metric{display:flex; flex-direction:column}
+.metric .v{font-family:var(--ff-mono); font-size:26px; color:var(--ink); font-weight:600}
+.metric .k{font-size:12px; color:var(--mut); margin-top:2px}
+
+/* data table (gate / per-compound) */
+.gatetbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.gatetbl th{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut); text-align:left; padding:6px 10px 6px 0; border-bottom:1px solid var(--line2); font-weight:500}
+.gatetbl td{padding:9px 10px 9px 0; border-bottom:1px solid var(--line); vertical-align:middle}
+.gatetbl td:first-child{font-weight:600; color:var(--ink)}
+.gatetbl tr:last-child td{border-bottom:none}
+.gatetbl .num{font-family:var(--ff-mono)}
+.gatetbl .halt{color:var(--red); font-weight:600}
+.gatetbl .safe{color:var(--green); font-weight:600}
+.diff .was{font-family:var(--ff-mono); color:var(--red); text-decoration:line-through; opacity:.8}
+.diff .now{font-family:var(--ff-mono); color:var(--green); font-weight:600}
+.diff .ar{color:var(--mut); margin:0 7px}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:12px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:44px; flex:1; min-height:0}
+.two-col.even{grid-template-columns:1fr 1fr}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.deliver{list-style:none; padding:0; margin:0}
+.deliver li{display:flex; align-items:baseline; gap:11px; padding:10px 0; border-bottom:1px solid var(--line); font-size:14.5px; line-height:1.5; color:var(--ink2)}
+.deliver li:last-child{border-bottom:none}
+.deliver li .mk{flex:0 0 auto; width:7px; height:7px; border-radius:2px; background:var(--blue); transform:translateY(5px)}
+.deliver li b{color:var(--ink); font-weight:600}
+code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+/* ===== v2 slide redesign: centered, large, frame-filling ===== */
+.scene{justify-content:center; padding:60px 104px 64px}
+.topic-eyebrow{font-size:16px; margin:0 0 22px}
+.scene .kicker{font-size:14px; letter-spacing:.14em; margin:0 0 20px}
+.scene h2{font-size:40px; line-height:1.12; letter-spacing:-.02em; max-width:24ch; margin:0 0 18px}
+.scene.title h2{font-size:50px; line-height:1.08; max-width:20ch; margin:0 0 18px}
+.caption{font-size:18px; line-height:1.5; max-width:52ch; margin:0 0 6px; color:var(--ink2)}
+.caption.sub{font-size:18px; max-width:52ch; color:var(--mut)}
+.scene-body{flex:0 1 auto; align-items:center; margin-top:34px}
+.concept{flex:0 1 auto; justify-content:center; gap:24px}
+.card.big{padding:34px 38px}
+.tile{padding:26px 28px; border-radius:12px}
+.tile .n{font-size:12px; letter-spacing:.1em}
+.tile h4{font-size:21px; margin:6px 0 8px}
+.tile p{font-size:17px; line-height:1.5}
+.points li{font-size:21px; line-height:1.4; padding:13px 0}
+.points li .b{top:8px}
+.footnote{font-size:16px; line-height:1.55}
+.flowline{font-size:19px; gap:14px}
+.chip{font-size:18px; padding:12px 20px}
+.shotcol .frame, .shot .frame{box-shadow:0 20px 56px rgba(16,24,40,.16); border-radius:14px}
+.shot figcaption, .shotcol .lbl{font-size:16px}
+.verdict{font-size:14px; padding:7px 14px}
+
+/* v2 visual: scorecard */
+.caption.lead{font-size:19px; line-height:1.5; max-width:56ch; color:var(--ink2)}
+.scorecard{display:flex; gap:40px; width:100%; max-width:1000px; margin:8px auto 0}
+.sc-col{flex:1; display:flex; flex-direction:column; gap:14px}
+.sc-name{font-family:var(--ff-mono); font-size:15px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.sc-bar{height:16px; border-radius:999px; background:var(--panel2); overflow:hidden}
+.sc-bar i{display:block; height:100%; border-radius:999px; background:var(--blue)}
+.sc-bar.ok i{background:var(--green)} .sc-bar.warn i{background:var(--amber)}
+.sc-val{font-family:var(--ff-mono); font-size:19px; color:var(--ink); font-weight:500}
+.sc-note{display:flex; align-items:center; gap:14px; margin:38px auto 0; max-width:1000px; font-size:19px; color:var(--ink2); line-height:1.5}
+.sc-note .flag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; color:var(--red); background:var(--red-bg); border:1px solid var(--red); border-radius:8px; padding:8px 14px}
+
+/* ---- v2 visuals: shared ---- */
+.vis{width:100%; max-width:1180px; margin:4px auto 0; display:flex; flex-direction:column; gap:30px}
+.vis.wide{max-width:1320px}
+.vlabel{font-family:var(--ff-mono); font-size:16px; letter-spacing:.06em; color:var(--ink2); text-align:center; line-height:1.5}
+.vlabel b{color:var(--ink); font-weight:600}
+.vflag{flex:none; font-family:var(--ff-mono); font-size:15px; font-weight:600; border-radius:8px; padding:8px 14px}
+.vflag.blue{color:var(--blue); background:var(--blue-bg); border:1px solid var(--blue)}
+.vflag.green{color:var(--green); background:var(--green-bg); border:1px solid var(--green)}
+
+/* scene 2 — hero stat + four criteria chips */
+.statline{display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap}
+.statbig{font-family:var(--ff-ui); font-weight:650; font-size:108px; line-height:1; letter-spacing:-.03em; color:var(--blue)}
+.statbig sup{font-size:.5em; vertical-align:super}
+.statcap{font-size:22px; line-height:1.4; color:var(--ink2); max-width:16ch}
+.criteria{display:grid; grid-template-columns:repeat(4,1fr); gap:22px}
+.crit{border:1px solid var(--line2); border-radius:14px; background:#fff; padding:24px 24px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:8px}
+.crit .cn{font-family:var(--ff-mono); font-size:15px; color:var(--blue); letter-spacing:.08em}
+.crit .ct{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.crit .cd{font-size:17px; color:var(--mut); line-height:1.35}
+
+/* scene 3 & 10 — large stage flow */
+.flowstage{display:flex; align-items:stretch; justify-content:center; gap:16px; flex-wrap:wrap}
+.fstage{flex:1; min-width:180px; max-width:280px; border:1px solid var(--line2); border-radius:14px; background:#fff; padding:26px 22px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; gap:9px; align-items:center; text-align:center}
+.fstage.accent{border-color:var(--blue); background:var(--blue-bg)}
+.fstage.opt{border-style:dashed}
+.fstage .fs-t{font-size:24px; font-weight:650; color:var(--ink); line-height:1.1}
+.fstage .fs-s{font-size:16px; color:var(--mut); line-height:1.35}
+.fstage .fs-i{width:14px; height:14px; border-radius:50%; background:var(--blue); margin-bottom:2px}
+.fstage.opt .fs-i{background:var(--mut)}
+.farrow{display:flex; align-items:center; font-size:30px; color:var(--line2); font-weight:400}
+
+/* scene 4 — scaffold molecule cards */
+.molrow{display:grid; grid-template-columns:repeat(3,1fr); gap:28px}
+.molcard{border:1px solid var(--line2); border-radius:16px; background:#fff; padding:26px 26px 28px; box-shadow:0 6px 22px rgba(16,24,40,.06); display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center}
+.molcard .glyph{width:200px; height:132px; display:flex; align-items:center; justify-content:center}
+.molcard .mt{font-family:var(--ff-mono); font-size:16px; letter-spacing:.1em; color:var(--blue)}
+.molcard .mh{font-size:25px; font-weight:650; color:var(--ink); line-height:1.1}
+.molcard .md{font-size:17px; color:var(--mut); line-height:1.4; max-width:26ch}
+.glyph .core{fill:var(--blue)} .glyph .bond{stroke:var(--ink2); stroke-width:3; fill:none}
+.glyph .deco{fill:var(--green)} .glyph .ghost{fill:none; stroke:var(--line2); stroke-width:3; stroke-dasharray:5 5}
+.glyph .grow{fill:var(--amber)} .glyph .growb{stroke:var(--amber); stroke-width:3; fill:none; stroke-dasharray:5 5}
+
+/* scene 5 — property range bars */
+.ranges{display:flex; flex-direction:column; gap:30px; width:100%; max-width:1080px; margin:0 auto}
+.rg{display:grid; grid-template-columns:200px 1fr; align-items:center; gap:28px}
+.rg-name{font-family:var(--ff-mono); font-size:22px; color:var(--ink); font-weight:600}
+.rg-name span{display:block; font-family:var(--ff-ui); font-size:15px; color:var(--mut); font-weight:400; letter-spacing:0; margin-top:3px}
+.rg-track{position:relative; height:22px; border-radius:999px; background:var(--panel2); border:1px solid var(--line)}
+.rg-band{position:absolute; top:-1px; bottom:-1px; border-radius:999px; background:var(--blue); opacity:.85}
+.rg-band.g{background:var(--green)}
+.rg-ends{display:flex; justify-content:space-between; font-family:var(--ff-mono); font-size:13px; color:var(--mut); margin-top:7px}
+.rg-tag{position:absolute; top:50%; transform:translate(-50%,-50%); font-family:var(--ff-mono); font-size:13px; color:#fff; font-weight:600; white-space:nowrap}
+
+/* scene 11 — recap chip row */
+.recap{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:4px}
+.rchip{border:1px solid var(--green); background:var(--green-bg); color:var(--green); border-radius:12px; padding:16px 22px; display:flex; flex-direction:column; gap:4px; align-items:flex-start; min-width:220px}
+.rchip .rk{font-family:var(--ff-mono); font-size:13px; letter-spacing:.06em; color:var(--green); opacity:.85}
+.rchip .rv{font-size:19px; font-weight:600; color:var(--ink); line-height:1.15}
+
+/* live scenes: allow a larger lead line */
+.scene.live .caption.lead{font-size:22px; line-height:1.4; max-width:80ch; color:var(--ink); text-align:center; margin:0 auto 12px}
+
+/* v2 visual: molecule glyphs */
+.glyphrow{display:flex; gap:28px; width:100%; max-width:1080px; margin:0 auto}
+.glyph{flex:1; background:#fff; border:1px solid var(--line2); border-radius:16px; padding:28px 24px 24px; text-align:center; box-shadow:0 6px 20px rgba(16,24,40,.05)}
+.glyph .n{font-family:var(--ff-mono); font-size:14px; letter-spacing:.14em; color:var(--blue); font-weight:600; margin-bottom:10px}
+.glyph svg{display:block; margin:6px auto 14px}
+.glyph .gl-lbl{font-size:18px; color:var(--ink); font-weight:500; line-height:1.35}
+.mol{stroke:var(--blue); stroke-width:3.2; fill:none}
+.mol .r{fill:var(--blue); stroke:none}
+.mol .r2{fill:var(--green); stroke:none}
+.mol .ar{stroke:var(--line2); stroke-width:2.4; fill:none}
+.gl-arrow{stroke:var(--mut); stroke-width:3; fill:none}
+
+/* v2 visual: tool pipeline (generation-first, example tools, linked) */
+.pipeflow{display:flex; align-items:stretch; gap:0; width:100%; max-width:1180px; margin:4px auto 0; flex-wrap:nowrap}
+.pstep{flex:1; background:#fff; border:1px solid var(--line2); border-radius:12px; padding:16px 12px 14px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.pstep .pn{font-family:var(--ff-mono); font-size:12px; color:var(--blue); font-weight:600}
+.pstep .pc{font-size:17px; font-weight:600; color:var(--ink); margin:3px 0 8px; line-height:1.15}
+.pstep .pt{display:flex; flex-direction:column; gap:4px}
+.pstep .pt span{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); background:var(--panel2); border-radius:5px; padding:3px 6px}
+.pstep .pt span.eg{color:var(--blue); background:var(--blue-bg); font-weight:600}
+.parrow{flex:0 0 58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--mut)}
+.parrow .ag{font-size:20px; line-height:1}
+.parrow .al{font-family:var(--ff-mono); font-size:10px; color:var(--mut); text-align:center; line-height:1.2}
+.ploop{display:flex; align-items:center; justify-content:center; gap:10px; margin:18px auto 0; max-width:1180px; font-family:var(--ff-mono); font-size:13px; color:var(--blue); background:var(--blue-bg); border:1px dashed var(--blue); border-radius:999px; padding:9px 18px; width:fit-content}
+
+
+/* v2 visual: range bars (property windows) */
+.rangeset{display:flex; flex-direction:column; gap:22px; width:100%; max-width:960px; margin:4px auto 0}
+.rng{display:grid; grid-template-columns:150px 1fr 130px; align-items:center; gap:18px}
+.rng .rl{font-family:var(--ff-mono); font-size:15px; letter-spacing:.06em; text-transform:uppercase; color:var(--mut)}
+.rng .track{position:relative; height:14px; border-radius:999px; background:var(--panel2)}
+.rng .band{position:absolute; top:0; height:100%; border-radius:999px; background:var(--blue-bg); border:1px solid var(--blue)}
+.rng .val{font-family:var(--ff-mono); font-size:16px; color:var(--ink)}
+/* v2 visual: criteria/stat chips */
+.statrow{display:flex; gap:20px; width:100%; max-width:1080px; margin:4px auto 0}
+.stat{flex:1; background:#fff; border:1px solid var(--line2); border-radius:14px; padding:24px 20px; text-align:center; box-shadow:0 4px 14px rgba(16,24,40,.05)}
+.stat .si{font-size:30px; line-height:1; margin-bottom:10px}
+.stat .sh{font-size:19px; font-weight:650; color:var(--ink); margin-bottom:5px}
+.stat .sp{font-size:15px; color:var(--mut); line-height:1.4}
+.bignum{font-family:var(--ff-mono); font-weight:600; color:var(--blue); font-size:clamp(40px,5vw,72px); line-height:1; text-align:center}
+
+
+
+/* ---- drug-dev v2 additions ---- */
+/* full-width inline-SVG visuals (DBTL loop, Pareto, PK curve, lineage) */
+.svgwrap{width:100%; max-width:1120px; margin:4px auto 0; display:block; flex:none}
+.svgwrap svg{width:100%; height:auto; display:block}
+.sc-note .flag.amber{color:var(--amber); background:var(--amber-bg); border-color:var(--amber)}
+.sc-note .flag.green{color:var(--green); background:var(--green-bg); border-color:var(--green)}
+
+.brand-logo{height:32px;width:auto;display:block}
+.freetrial{position:fixed; right:40px; bottom:18px; z-index:31;
+  font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut);
+  background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2);
+  border-radius:999px; backdrop-filter:blur(4px)}
+.freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+</style>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-t11">Tutorial 11 · Drug development, end to end</span>
+  <span class="kind concept" id="kind">Concept</span>
+  <span class="spacer"></span>
+  <span class="counter">Slide <b id="cur">0</b> / <span id="tot">16</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-kind="concept" data-seconds="38.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Drug Discovery, End to End</b></div>
+    <div class="kicker">From a target idea to a defensible candidate record</div>
+    <h2>From a target idea to a defensible, ranked candidate record.</h2>
+    <p class="caption lead">Seven connected stages — each a hosted workflow — from naming a goal to an audit-grade record.</p>
+    <p class="caption sub">Demonstrated on three familiar drugs — aspirin, caffeine, ibuprofen. In-silico triage, not a clinical claim.</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:14px">
+        <span class="chip"><span class="i"></span>1 · Frame</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>2 · Design</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>3 · Properties</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>4 · Rank</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>5 · Loop</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>6 · PK/PBPK</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>7 · Record</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — CONCEPT: loop not a line -->
+  <section class="scene" data-kind="concept" data-seconds="31.3">
+    <div class="kicker"><span class="st">Idea</span> · Why drug development is a loop, not a line <span class="badge concept">Concept</span></div>
+    <h2>One pass never makes a drug — the method is a loop that compounds.</h2>
+    <p class="caption lead">Each round learns from the last — Design, Build, Test, Learn — so mistakes get cheaper every turn.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="svgwrap" style="max-width:820px">
+        <svg viewBox="0 0 820 330" preserveAspectRatio="xMidYMid meet">
+          <circle cx="410" cy="165" r="118" fill="none" stroke="#d5dae2" stroke-width="2" stroke-dasharray="5 8"/>
+          <!-- clockwise arrows along the ring -->
+          <g fill="none" stroke="#5a6474" stroke-width="3">
+            <path d="M470 72 A118 118 0 0 1 505 128"/>
+            <path d="M505 202 A118 118 0 0 1 470 258"/>
+            <path d="M350 258 A118 118 0 0 1 315 202"/>
+            <path d="M315 128 A118 118 0 0 1 350 72"/>
+          </g>
+          <g fill="#5a6474">
+            <polygon points="505,128 497,112 515,118"/>
+            <polygon points="470,258 486,250 480,268"/>
+            <polygon points="315,202 323,218 305,212"/>
+            <polygon points="350,72 334,80 340,62"/>
+          </g>
+          <g font-family="IBM Plex Sans" font-size="23" font-weight="650" fill="#101828" text-anchor="middle">
+            <g><circle cx="410" cy="55"  r="48" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="2.5"/><text x="410" y="63">Design</text></g>
+            <g><circle cx="528" cy="165" r="48" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="2.5"/><text x="528" y="173">Build</text></g>
+            <g><circle cx="410" cy="275" r="48" fill="#fdf0e3" stroke="#8a5a12" stroke-width="2.5"/><text x="410" y="283">Test</text></g>
+            <g><circle cx="292" cy="165" r="48" fill="#f1f3f7" stroke="#5a6474" stroke-width="2.5"/><text x="292" y="173">Learn</text></g>
+          </g>
+          <text x="410" y="172" text-anchor="middle" font-family="IBM Plex Mono" font-size="18" fill="#5a6474">one round</text>
+        </svg>
+      </div>
+      <div class="vlabel" style="margin-top:14px">The two features that make the loop trustworthy: the <b>QC gate</b> (Stage 5) and the <b>reproducibility record</b> (Stage 7).</div>
+    </div>
+  </section>
+
+  <!-- 2 — CONCEPT: Stage 1 framing -->
+  <section class="scene" data-kind="concept" data-seconds="32.8">
+    <div class="kicker"><span class="st">Stage 1 · Idea</span> · Framing the goal <span class="badge concept">Concept</span></div>
+    <h2>Name the target, the objectives, and the constraints — before any molecule exists.</h2>
+    <p class="caption lead">Every later stage inherits these choices — a vague goal yields a vague shortlist.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow" style="max-width:1080px">
+        <div class="stat"><div class="si tag">TARGET</div><div class="sh">A protein, e.g. JAK1</div><div class="sp">What you act on — a protein, not a molecule.</div></div>
+        <div class="stat"><div class="si tag">OBJECTIVES</div><div class="sh">Bind · Absorb · Be safe</div><div class="sp">Potent, orally absorbed, safe on the heart (hERG).</div></div>
+        <div class="stat"><div class="si tag">CONSTRAINTS</div><div class="sh">Novel · Makeable</div><div class="sp">Keep it new; keep it synthesizable.</div></div>
+      </div>
+      <div class="vlabel" style="margin-top:28px">These objectives become Stage 4's comparison columns; the hERG limit becomes the Stage 5 QC gate.</div>
+    </div>
+  </section>
+
+  <!-- 3 — CONCEPT: Stage 2 design/generate -->
+  <section class="scene" data-kind="concept" data-seconds="30.0">
+    <div class="kicker"><span class="st">Stage 2 · Idea</span> · Designing candidates <span class="badge concept">Concept</span></div>
+    <h2>Which molecules should I even consider?</h2>
+    <p class="caption lead">BioMate proposes novel candidates, filters known liabilities, and ranks survivors into a shortlist.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="flowstage">
+        <div class="fstage accent"><span class="fs-i"></span><span class="fs-t">Generate</span><span class="fs-s">propose novel molecules · REINVENT4 (example)</span></div>
+        <span class="farrow">→</span>
+        <div class="fstage"><span class="fs-i"></span><span class="fs-t">Filter</span><span class="fs-s">drop problem substructures &amp; off-window candidates</span></div>
+        <span class="farrow">→</span>
+        <div class="fstage"><span class="fs-i"></span><span class="fs-t">Rank</span><span class="fs-s">shortlist — each with a why-this-one note</span></div>
+      </div>
+      <div class="ploop" style="margin-top:26px">&#8634; design → score → loop — ADMET, QSAR &amp; docking scores steer the generator's next round</div>
+    </div>
+  </section>
+
+  <!-- 4 — CONCEPT: Stage 3 what is ADMET + hERG -->
+  <section class="scene" data-kind="concept" data-seconds="34.5">
+    <div class="kicker"><span class="st">Stage 3 · Idea</span> · What is ADMET — and why hERG is make-or-break <span class="badge concept">Concept</span></div>
+    <h2>ADMET asks: will the body even tolerate this molecule?</h2>
+    <p class="caption lead">Absorbed, distributed, not destroyed too fast, cleared cleanly, and non-toxic — five questions.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow" style="max-width:1180px">
+        <div class="stat"><div class="si">A</div><div class="sh">Absorption</div><div class="sp">Does it get in?</div></div>
+        <div class="stat"><div class="si">D</div><div class="sh">Distribution</div><div class="sp">Where does it go?</div></div>
+        <div class="stat"><div class="si">M</div><div class="sh">Metabolism</div><div class="sp">Broken down how fast?</div></div>
+        <div class="stat"><div class="si">E</div><div class="sh">Excretion</div><div class="sp">How does it leave?</div></div>
+        <div class="stat" style="border-color:var(--red); background:var(--red-bg)"><div class="si" style="color:var(--red)">T</div><div class="sh">Toxicity</div><div class="sp">Any harm? incl. hERG</div></div>
+      </div>
+      <div class="sc-note"><span class="flag">&#9873; hERG leads</span> block the heart's K⁺ channel and you risk a fatal arrhythmia — it has killed approved drugs.</div>
+    </div>
+  </section>
+
+  <!-- 5 — FLOW: Stage 3 pre-run (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="30.0">
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — the pre-run check <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>Everything you can change is shown before a single cent of compute is spent.</h2>
+    <p class="caption lead">Everything the model will use is shown — and editable — before any compute is spent.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/prerun.png" alt="Pre-run: editable Smiles List and Admet Model Type parameters above the Confirm & Run button"/></div>
+          <figcaption><span class="lbl">Pre-run · live</span>Your SMILES list and model settings, editable; a missing required param blocks with "Fix now".</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag new">editable params</span><span class="tag">Confirm &amp; Run</span><span class="tag">nothing runs until you confirm</span></div>
+  </section>
+
+  <!-- 6 — FLOW: Stage 3 running + QC gates (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="24.2">
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — running, with QC gates in view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>It runs on hosted cloud compute, and the quality gates are visible the whole time.</h2>
+    <p class="caption lead">Live phase progress streams in, and the hERG gate stays in view the whole run.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/running.png" alt="Running: the RUNNING phase card and the QC Gates list (CiPA / hERG thresholds)"/></div>
+          <figcaption><span class="lbl">Running · live</span>Phase cards flip pending → running → completed in real time while the QC gates stay listed.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag">pending → running → completed</span><span class="tag new">hERG gate listed</span><span class="tag">nothing hidden</span></div>
+  </section>
+
+  <!-- 7 — FLOW: Stage 3 completed (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="20.5">
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — completed state in the panel <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>When it finishes, the workflow panel tells the whole story.</h2>
+    <p class="caption lead">The panel reads the verdict straight from the result files — the merged Results view and the record.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/completed.png" alt="Completed: the green Completed badge and the Findings Summary with hERG, DILI and oral-bioavailability values"/></div>
+          <figcaption><span class="lbl">Completed · live</span>Values read straight from the outputs — never hand-written, withheld if unreadable.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag">Completed</span><span class="tag">Run again</span><span class="tag new">read from outputs</span></div>
+  </section>
+
+  <!-- 8 — CONCEPT: Stage 4 multi-objective rank -->
+  <section class="scene" data-kind="concept" data-seconds="32.0">
+    <div class="kicker"><span class="st">Stage 4 · Idea</span> · Multi-objective optimization &amp; the Pareto front <span class="badge concept">Concept</span></div>
+    <h2>Which handful is the best all-round compromise?</h2>
+    <p class="caption lead">Each goal keeps its own column — never blended — and the Pareto front shows the trade-offs.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="svgwrap" style="max-width:820px">
+        <svg viewBox="0 0 480 300" preserveAspectRatio="xMidYMid meet" style="overflow:visible">
+          <line x1="56" y1="20" x2="56" y2="260" stroke="#d5dae2" stroke-width="1.5"/>
+          <line x1="56" y1="260" x2="452" y2="260" stroke="#d5dae2" stroke-width="1.5"/>
+          <text x="22" y="150" fill="#5a6474" font-family="IBM Plex Mono" font-size="13" transform="rotate(-90 22 150)">heart-safety →</text>
+          <text x="196" y="288" fill="#5a6474" font-family="IBM Plex Mono" font-size="13">binding strength →</text>
+          <g fill="#aeb6c2">
+            <circle cx="110" cy="215" r="6"/><circle cx="150" cy="235" r="6"/><circle cx="130" cy="185" r="6"/>
+            <circle cx="200" cy="220" r="6"/><circle cx="175" cy="195" r="6"/><circle cx="240" cy="202" r="6"/>
+            <circle cx="215" cy="172" r="6"/><circle cx="300" cy="210" r="6"/><circle cx="280" cy="184" r="6"/>
+          </g>
+          <g fill="#1a4a9c">
+            <circle cx="100" cy="146" r="9"/><circle cx="160" cy="116" r="9"/><circle cx="235" cy="96" r="9"/>
+            <circle cx="320" cy="82" r="9"/><circle cx="400" cy="70" r="9"/>
+          </g>
+          <path d="M100 146 Q180 108 235 96 T400 70" fill="none" stroke="#1a4a9c" stroke-width="2.5" stroke-dasharray="6 5" opacity=".7"/>
+          <text x="236" y="50" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="13" font-weight="600">Pareto front — best compromises</text>
+          <text x="110" y="250" fill="#aeb6c2" font-family="IBM Plex Mono" font-size="12">dominated — beaten on every goal</text>
+        </svg>
+      </div>
+      <div class="vlabel" style="margin-top:18px"><b>You</b> pick the trade-off; goals are never silently collapsed into one number, and rejects stay visible with their reason.</div>
+    </div>
+  </section>
+
+  <!-- 9 — CONCEPT: Stage 5 QC gate never silently pass -->
+  <section class="scene" data-kind="concept" data-seconds="50.0">
+    <div class="kicker"><span class="st">Stage 5 · Idea</span> · The QC gate — why it must never silently pass <span class="badge concept">Concept</span></div>
+    <h2>A quality gate turns a threshold into a decision you can trust mid-run.</h2>
+    <p class="caption lead">The gate halts or flags — it never quietly passes a failed check.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <table class="gatetbl" style="max-width:760px; margin:0 auto; width:100%">
+        <tr><th>Endpoint (model estimate)</th><th>Value</th><th>Limit</th><th>Verdict</th></tr>
+        <tr><td>hERG blocker-risk</td><td class="num">Low</td><td class="num">—</td><td class="safe">safe</td></tr>
+        <tr><td>DILI · liver injury</td><td class="num halt">High</td><td class="num">0.5</td><td class="halt">HALT</td></tr>
+      </table>
+      <div class="sc-note" style="margin-top:28px"><span class="flag">&#9873; HALT · flag</span> A gate that silently passes is worse than no gate — it looks like success.</div>
+      <div class="vlabel diff" style="margin-top:18px">Advisory suggestion: <span class="was">logp_max 5.0</span><span class="ar">→</span><span class="now">4.0</span> — a before/after diff you choose to act on, not an auto-restart.</div>
+    </div>
+  </section>
+
+  <!-- 10 — CONCEPT: Stage 6 PK/PBPK -->
+  <section class="scene" data-kind="concept" data-seconds="34.0">
+    <div class="kicker"><span class="st">Stage 6 · Idea</span> · PK / PBPK modeling <span class="badge concept">Concept</span></div>
+    <h2>What dose would a human need?</h2>
+    <p class="caption lead">PBPK projects human exposure — Cmax, AUC, and a starting-dose scenario to reason with.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="svgwrap" style="max-width:640px">
+        <svg viewBox="0 0 480 250" preserveAspectRatio="xMidYMid meet">
+          <line x1="56" y1="16" x2="56" y2="214" stroke="#d5dae2" stroke-width="1.5"/>
+          <line x1="56" y1="214" x2="452" y2="214" stroke="#d5dae2" stroke-width="1.5"/>
+          <text x="24" y="128" fill="#5a6474" font-family="IBM Plex Mono" font-size="13" transform="rotate(-90 24 128)">plasma conc.</text>
+          <text x="356" y="240" fill="#5a6474" font-family="IBM Plex Mono" font-size="13">time (h) →</text>
+          <path d="M56 214 C108 56 148 46 188 80 C248 132 338 196 452 208" fill="none" stroke="#1a4a9c" stroke-width="3"/>
+          <circle cx="166" cy="58" r="6" fill="#1a4a9c"/>
+          <line x1="166" y1="58" x2="166" y2="214" stroke="#1a4a9c" stroke-width="1" stroke-dasharray="3 4" opacity=".5"/>
+          <text x="176" y="52" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="13" font-weight="600">Cmax</text>
+          <path d="M188 80 C248 132 338 196 452 208 L452 214 L188 214 Z" fill="#1a4a9c" opacity=".1"/>
+          <text x="300" y="162" fill="#5a6474" font-family="IBM Plex Mono" font-size="13">AUC (total exposure)</text>
+        </svg>
+      </div>
+      <div class="statrow" style="margin-top:26px; max-width:1080px">
+        <div class="stat"><div class="si tag">ALLOMETRIC</div><div class="sh">Animal → human</div><div class="sp">scale measured PK across species</div></div>
+        <div class="stat" style="border-color:var(--blue); background:var(--blue-bg)"><div class="si tag">PBPK</div><div class="sh">Organ-by-organ</div><div class="sp">mechanistic, with impairment sub-models</div></div>
+        <div class="stat"><div class="si tag">COHORT</div><div class="sh">Virtual patients</div><div class="sp">Monte-Carlo variability → dose scenario</div></div>
+      </div>
+      <div class="vlabel" style="margin-top:18px">Projected exposure for evaluation — read as a projection, not a guaranteed safe dose.</div>
+    </div>
+  </section>
+
+  <!-- 11 — CONCEPT: Stage 7 lineage / provenance -->
+  <section class="scene" data-kind="concept" data-seconds="26.4">
+    <div class="kicker"><span class="st">Stage 7 · Idea</span> · What lineage &amp; provenance mean — and why they matter <span class="badge concept">Concept</span></div>
+    <h2>A result is only as good as your ability to prove how you got it.</h2>
+    <p class="caption lead">Provenance is the chain from an output back to its exact inputs, parameters, and software.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="svgwrap" style="max-width:900px">
+        <svg viewBox="0 0 460 210" preserveAspectRatio="xMidYMid meet">
+          <g font-family="IBM Plex Sans" font-size="15" font-weight="600" fill="#101828">
+            <rect x="14" y="26" width="112" height="46" rx="9" fill="#f7f8fa" stroke="#d5dae2" stroke-width="1.5"/><text x="70" y="48" text-anchor="middle">input</text><text x="70" y="64" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#5a6474">SMILES.csv</text>
+            <rect x="14" y="128" width="112" height="46" rx="9" fill="#f7f8fa" stroke="#d5dae2" stroke-width="1.5"/><text x="70" y="150" text-anchor="middle">params</text><text x="70" y="166" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#5a6474">model, limits</text>
+            <rect x="178" y="77" width="112" height="46" rx="9" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="2"/><text x="234" y="99" text-anchor="middle">workflow</text><text x="234" y="115" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#1a4a9c">ADMET</text>
+            <rect x="342" y="77" width="112" height="46" rx="9" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="2"/><text x="398" y="99" text-anchor="middle">output</text><text x="398" y="115" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#1c6b3a">admet.csv</text>
+          </g>
+          <g stroke="#5a6474" stroke-width="2" fill="none"><path d="M126 49 L178 92"/><path d="M126 151 L178 108"/><path d="M290 100 L342 100"/></g>
+          <g fill="#5a6474"><polygon points="176,92 164,88 166,100"/><polygon points="176,108 164,112 166,100"/><polygon points="340,100 328,95 328,105"/></g>
+          <text x="200" y="152" text-anchor="middle" fill="#5a6474" font-family="IBM Plex Mono" font-size="11">run id · versions · SHA-256</text>
+          <text x="400" y="152" text-anchor="middle" fill="#1c6b3a" font-family="IBM Plex Mono" font-size="11">← trace back</text>
+        </svg>
+      </div>
+      <div class="vlabel" style="margin-top:18px">Every run captures run id, versions, SHA-256 and citations — one click to JSON. Unreadable output → the finding is withheld, not invented.</div>
+    </div>
+  </section>
+
+  <!-- 12 — FLOW: Stage 7 outputs (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="17.5">
+    <div class="kicker"><span class="st">Stage 7 · Product</span> · Outputs — filed by the step that made them <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>Every file lands under the step that produced it.</h2>
+    <p class="caption lead">Behind the summary: the raw files the model produced, filed by the step that made them.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/outputs.png" alt="Outputs: the six output files filed under the step that produced them"/></div>
+          <figcaption><span class="lbl">Outputs · live</span>Tables as tables, text as code — each previews in place and is yours to download.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag new">ADMET table</span><span class="tag">qc_metrics.json</span><span class="tag">toxicity report</span></div>
+  </section>
+
+  <!-- 13 — FLOW: Stage 7 reproducibility (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="23.9">
+    <div class="kicker"><span class="st">Stage 7 · Product</span> · The reproducibility record <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
+    <h2>The full audit trail — downloadable as one JSON.</h2>
+    <p class="caption lead">Run id, parameters, versions, outputs and citations — the provenance concept made concrete.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/record.png" alt="Reproducibility record: workflow name, run id, timestamps and the outputs table with SHA-256 checksums"/></div>
+          <figcaption><span class="lbl">Reproducibility · live</span>One record, one click to JSON — the evidence a reviewer, examiner, or regulator asks for.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag new">run id · versions</span><span class="tag">SHA-256</span><span class="tag">export to JSON</span></div>
+  </section>
+
+  <!-- 14 — FLOW: Stage 7 lineage (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="13.6">
+    <div class="kicker"><span class="st">Stage 7 · Product</span> · Dataset lineage <span class="badge flow">Real UI · still</span></div>
+    <h2>Each output traces back to what produced it.</h2>
+    <p class="caption lead">The provenance graph made navigable — walk any dataset back to its run and its inputs.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/t10-2-dataset-lineage.png" alt="Dataset lineage"/></div>
+          <figcaption><span class="lbl">Lineage · real-UI still</span>Follow any dataset back to its producing run — and forward to everything downstream.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags" style="justify-content:center"><span class="tag new">backward to inputs</span><span class="tag">forward to consumers</span><span class="tag">one click</span></div>
+  </section>
+
+  <!-- 15 — CLOSING -->
+  <section class="scene title" data-kind="concept" data-seconds="40.0">
+    <div class="kicker">The pipeline at a glance</div>
+    <h2 style="font-size:36px">Generate → predict → rank → refine — then loop.</h2>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch; justify-content:center">
+      <p class="caption lead" style="text-align:center; margin:0 auto 26px">BioMate chains the tools — each step feeds the next, and real results loop back. The models named are examples; you can swap any step.</p>
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · GENERATE</div><div class="pc">Propose candidates</div><div class="pt"><span class="eg">REINVENT4</span><span>+ other generators</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">candidates</span></div>
+        <div class="pstep"><div class="pn">2 · PREDICT</div><div class="pc">Score each goal</div><div class="pt"><span class="eg">ADMET</span><span class="eg">QSAR</span><span class="eg">docking</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">scores</span></div>
+        <div class="pstep"><div class="pn">3 · RANK</div><div class="pc">Trade off goals</div><div class="pt"><span class="eg">Pareto</span><span>QC gate</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">shortlist</span></div>
+        <div class="pstep"><div class="pn">4 · REFINE</div><div class="pc">Confirm binding</div><div class="pt"><span class="eg">FEP / RBFE</span></div></div>
+        <div class="parrow"><span class="ag">&rarr;</span><span class="al">top analogs</span></div>
+        <div class="pstep"><div class="pn">5 · PK</div><div class="pc">Project the dose</div><div class="pt"><span class="eg">PBPK</span><span>NCA</span></div></div>
+      </div>
+      <div class="ploop">&#8634; lab results feed back into the generator&rsquo;s next round — the closed loop</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  var kindEl = document.getElementById('kind');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0){
+      scenes[idx].classList.remove('active');
+      var pv = scenes[idx].querySelector('video');
+      if (pv){ try { pv.pause(); } catch(e){} }
+    }
+    idx = i;
+    scenes[i].classList.add('active');
+    // Restart any embedded live-UI clip from the top when its scene activates.
+    var v = scenes[i].querySelector('video');
+    if (v){ try { v.currentTime = 0; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){} }
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+    var kind = scenes[i].getAttribute('data-kind') || 'concept';
+    if (kindEl){
+      kindEl.textContent = (kind === 'flow') ? 'Live UI' : 'Concept';
+      kindEl.className = 'kind ' + kind;
+    }
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

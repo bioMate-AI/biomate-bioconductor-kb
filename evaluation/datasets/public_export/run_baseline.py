@@ -28,6 +28,8 @@ TASKS = {
         instr="Classify this pipeline failure into exactly one fix CATEGORY."),
     "protocol_thresholds": dict(gt="expected_correct_action", inp=lambda r: f"Protocol: {r['protocol']}\nQC situation: {r['universal_threshold_problem']}",
         instr="Given the sequencing protocol and the QC situation, decide the correct action: PASS, FAIL, or WARN."),
+    "intent_interpretation": dict(gt="intent", inp=lambda r: r["query"],
+        instr="Classify this BioMate user request into exactly one INTENT (capability) label from the list."),
 }
 
 def labels(task, rows):
@@ -60,8 +62,10 @@ GEN = {
         parse=_extract_json),
     "pbpk_benchmark": dict(
         inp=lambda r: f"Compound {r.get('name')} (SMILES {r.get('smiles')}), dose {r.get('dose_mg')} mg {r.get('route')}. "
-                      f"Task inputs: {r.get('inputs')}",
-        instr="Predict the requested pharmacokinetic value. Respond with a single number only (no units).",
+                      f"Task inputs: {r.get('inputs')}. "
+                      f"Predict: {r.get('target_endpoint','Cmax')} (peak plasma concentration) in {r.get('target_units','uM')}.",
+        instr="Predict the peak plasma concentration Cmax in µM for the compound and dose given, using the "
+              "provided PK inputs. Respond with a single number only (no units).",
         parse=lambda t: (re.search(r"[-+]?\d*\.?\d+", t or "") or type("x", (), {"group": lambda s: ""})()).group()),
     # LitQA2 bare baseline (C0): parametric MCQ, NO retrieval. Retrieval systems run via
     # litqa2/run_biomate.py and litqa2/run_paperqa2.py. score.py::score_litqa2 maps the
@@ -86,6 +90,17 @@ GEN = {
               "Respond with a JSON list of the ligand indices (1-based, matching the input order), "
               "e.g. [3, 2, 1]. JSON list only.",
         parse=lambda t: (lambda m: json.loads(m.group()) if m else [])(re.search(r"\[.*?\]", t or "", re.S))),
+    "findings_probe": dict(
+        inp=lambda r: f"Run context: {r.get('context')}. Output artifacts produced: {r.get('artifacts')}.",
+        instr="Given the outputs this BioMate run produced, state the key finding(s) concisely for the user.",
+        parse=lambda t: (t or "").strip()),
+    "task_decomposition": dict(
+        inp=lambda r: r["query"],
+        instr=("Decompose this request into an ordered plan of sub-tasks. Reply ONLY a JSON list of "
+               "{\"sub_task\": ..., \"order\": N, \"depends_on\": [prerequisite orders]} — INDEPENDENT "
+               "sub-tasks have empty depends_on (they can run in parallel); a sub-task that needs an "
+               "earlier one's output lists that order in depends_on."),
+        parse=lambda t: (lambda m: json.loads(m.group()) if m else [])(re.search(r"\[.*\]", t or "", re.S))),
 }
 
 def main():
@@ -98,6 +113,12 @@ def main():
     ap.add_argument("--mode", choices=["bare", "catalog"], default="catalog",
                     help="routing only: 'bare' = from the model's own knowledge (no candidate list); "
                          "'catalog' = give the candidate workflows in-context (RAG-fair). Other tasks always use their label set.")
+    ap.add_argument("--catalog-style", choices=["names", "described"], default="names",
+                    help="routing catalog only: 'names' = bare workflow names (legacy); 'described' = each "
+                         "candidate annotated with its one-line description[:120] from the workflows DB, "
+                         "faithful to what the production harness (UnifiedWorkflowSearch) actually shows the LLM.")
+    ap.add_argument("--wf-db", default=os.path.join(HERE, "..", "..", "..", "backend", "database", "galaxy_ai_tools.db"),
+                    help="SQLite DB with the `workflows` table (for --catalog-style described).")
     ap.add_argument("--price-in", type=float, default=None,
                     help="USD per 1M input tokens (optional; enables per-run $ cost logging).")
     ap.add_argument("--price-out", type=float, default=None,
@@ -106,6 +127,15 @@ def main():
 
     from openai import OpenAI
     client = OpenAI(base_url=args.base_url, api_key=os.environ[args.key_env])
+
+    # Optional, env-gated decoding controls (default OFF -> behavior unchanged for all existing runs).
+    # OR_REASONING_DISABLE=1 passes OpenRouter's {"reasoning":{"enabled":false}} so a *thinking* model
+    # answers directly — needed to evaluate reasoning-model families within a bounded token/$ budget and
+    # to avoid runaway-reasoning truncation. OR_MAX_TOKENS overrides the 2000 completion cap.
+    _extra_body = {}
+    if os.environ.get("OR_REASONING_DISABLE") == "1":
+        _extra_body["reasoning"] = {"enabled": False}
+    _max_tok = int(os.environ.get("OR_MAX_TOKENS", "2000"))
 
     task = args.task
     is_gen = task in GEN
@@ -118,7 +148,36 @@ def main():
         labset = {l.lower(): l for l in labs}
         give_list = not (task == "cross_domain_routing" and args.mode == "bare")
 
+    # Faithful catalog: annotate each candidate name with its production routing description (desc[:120]),
+    # exactly as UnifiedWorkflowSearch._browse_catalog_with_llm feeds the LLM. Grounded in the workflows
+    # table (real metadata), NOT per-item rules, so it generalizes. Falls back to bare name if no DB row.
+    described = (task == "cross_domain_routing" and args.mode == "catalog" and args.catalog_style == "described")
+    wf_desc = {}
+    if described:
+        import sqlite3
+        con = sqlite3.connect(args.wf_db)
+        # desc, falling back to the grounded `annotation` blob when description is empty — 16 custom
+        # BioMate workflows have no description but a rich annotation (the production fix is to backfill
+        # description from annotation; this measures that fixed system). annotation is already FTS-indexed.
+        for nm, ds in con.execute("SELECT name, COALESCE(NULLIF(TRIM(description),''), annotation, '') FROM workflows "
+                                  "WHERE source IN ('nfcore','nfcore_subwf','nextflow','biomni_nextflow','bioconductor',"
+                                  "'custom','custom_composer','biomate-ai-tools')"):
+            if nm not in wf_desc or (ds and not wf_desc[nm]):
+                wf_desc[nm] = ds
+        con.close()
+        def menu_line(lab):
+            d = (wf_desc.get(lab) or "")[:120].replace("\n", " ").strip()
+            return f"{lab} — {d}" if d else lab
+        menu = "\n".join(menu_line(l) for l in labs)
+
     suffix = f"_{args.mode}" if task == "cross_domain_routing" else ""
+    if described: suffix += "_described"
+    # param_prefill: 'catalog' (default, no suffix -> matches existing leaderboard files) gives the
+    # candidate param names (the harness's schema layer); 'bare' omits them (no suffix collision) to
+    # measure the harness dividend for parameter extraction. A bare LLM cannot know a workflow's exact
+    # param keys, so bare F1 is a floor by construction — reported as the dividend's lower anchor.
+    param_bare = (task == "param_prefill" and args.mode == "bare")
+    if param_bare: suffix = "_bare"
     outdir = os.path.join(HERE, "results", args.model.replace("/", "_"))
     os.makedirs(outdir, exist_ok=True)
     outpath = os.path.join(outdir, f"{task}{suffix}.jsonl")
@@ -136,8 +195,19 @@ def main():
     n_usage = 0  # items for which the provider returned a usage block
     with open(outpath, "w") as f:
         for r in rows:
-            if is_gen:
+            if param_bare:
+                # bare param extraction: request only, no candidate param names (no schema help)
+                prompt = ("Extract any analysis parameters explicitly specified in this request as a flat "
+                          "JSON object {name: value}. Use canonical/standard values (e.g. official "
+                          "reference-genome assembly identifiers, not organism common names). Include a "
+                          "parameter ONLY if its value is clearly stated. Respond with JSON only.\n\n"
+                          f"INPUT:\nRequest: {r['user_query']}")
+            elif is_gen:
                 prompt = f"{spec['instr']}\n\nINPUT:\n{spec['inp'](r)}"
+            elif described:
+                prompt = (f"{spec['instr']}\nEach candidate is 'name — description'. Choose the single best match "
+                          f"and respond with EXACTLY its name and nothing else:\n"
+                          f"{menu}\n\nINPUT:\n{spec['inp'](r)}")
             elif give_list:
                 prompt = (f"{spec['instr']}\nRespond with EXACTLY ONE option from this list and nothing else:\n"
                           f"{', '.join(labs)}\n\nINPUT:\n{spec['inp'](r)}")
@@ -153,7 +223,8 @@ def main():
                     resp = client.chat.completions.create(
                         model=args.model,
                         messages=[{"role": "user", "content": prompt}],
-                        max_completion_tokens=2000)
+                        max_completion_tokens=_max_tok,
+                        extra_body=_extra_body)
                     dt_ms = int((time.time() - t0) * 1000)
                     txt = resp.choices[0].message.content
                     pred = spec["parse"](txt) if is_gen else parse_cls(txt)

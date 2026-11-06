@@ -67,10 +67,19 @@ def test_autoloop_started_with_changes():
     assert "mw_max=480" in msg
 
 
-def test_failed_msg_with_reason():
+def test_failed_msg_bare_exit_code_is_suppressed():
+    # A bare exit code means nothing to a user — it must NOT appear in the
+    # friendly line (it lives in the engineer log). Neutral, non-terminal wording.
     msg = render_friendly("workflow.failed", {"reason": "exit 127"})
-    assert "Workflow stopped" in msg
-    assert "exit 127" in msg
+    assert "hit an error" in msg
+    assert "127" not in msg
+    assert "stopped" not in msg.lower()
+
+
+def test_failed_msg_keeps_informative_reason():
+    msg = render_friendly("workflow.failed", {"reason": "Out of memory on the GPU node"})
+    assert "hit an error" in msg
+    assert "Out of memory" in msg
 
 
 def test_unknown_kind_is_safe():

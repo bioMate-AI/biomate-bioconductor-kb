@@ -54,7 +54,7 @@ with open("quantify_corneal_nerve_fibers_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("quantify_corneal_nerve_fibers_output.txt", "w") as f:
-    f.write("Biomni: Quantify Corneal Nerve Fibers Results" + NL)
+    f.write("BioMate: Quantify Corneal Nerve Fibers Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

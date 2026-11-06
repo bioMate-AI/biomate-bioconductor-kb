@@ -1,0 +1,16 @@
+{
+  "task": "param_prefill",
+  "mode": null,
+  "model": "google/gemini-3.8-flash",
+  "n": 170,
+  "n_with_usage": 170,
+  "input_tokens_total": 19301,
+  "output_tokens_total": 121146,
+  "input_tokens_mean": 113.53529411764706,
+  "output_tokens_mean": 712.6235294117647,
+  "latency_ms_p50": 4666,
+  "latency_ms_p95": 16772,
+  "latency_ms_mean": 6810.052941176471,
+  "n_with_latency": 170,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

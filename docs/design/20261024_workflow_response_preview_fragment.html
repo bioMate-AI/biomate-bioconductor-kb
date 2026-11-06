@@ -1,0 +1,133 @@
+<style>
+#bm-completed {color-scheme:light dark;--p-bg:light-dark(#fafbfc,#191c21);--p-surface:light-dark(#f1f3f5,#242830);--p-ink:light-dark(#252a32,#edf0f4);--p-muted:light-dark(#606975,#acb5c2);--p-line:light-dark(#dce1e7,#39404c);--p-link:light-dark(#315d92,#9bc5f7);--p-flag:light-dark(#886019,#e9bc6b);--p-ok:light-dark(#3b7257,#9bc9af);font:400 13.5px/1.65 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--p-ink)}
+#bm-completed *{box-sizing:border-box}
+#bm-completed [hidden]{display:none!important}
+#bm-completed .product{background:var(--p-bg);border:1px solid var(--p-line);border-radius:10px;overflow:hidden}
+#bm-completed .top{padding:16px 22px;border-bottom:1px solid var(--p-line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+#bm-completed .columns{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,1fr)}
+#bm-completed .chat{padding:22px;min-width:0}
+#bm-completed .user{padding:10px 13px;background:var(--p-surface);border-radius:8px;margin:0 0 24px auto;max-width:90%}
+#bm-completed .response{display:flex;flex-direction:column;gap:12px;min-width:0}
+#bm-completed .who{font:500 11px/1.5 ui-monospace,monospace;letter-spacing:.1em;color:var(--p-muted)}
+#bm-completed p{margin:0}
+#bm-completed .updates{max-height:112px;overflow-y:auto;overscroll-behavior:contain;background:var(--p-surface);border:1px solid var(--p-line);border-radius:8px;padding:8px 10px;font:400 11.5px/1.8 ui-monospace,monospace;color:var(--p-muted)}
+#bm-completed .run{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid var(--p-line);border-radius:8px;padding:10px 12px}
+#bm-completed .small{font-size:12px;color:var(--p-muted)}
+#bm-completed strong{font-weight:500}
+#bm-completed button{font:inherit;color:var(--p-link);background:none;border:0;padding:4px 0;cursor:pointer;text-align:left}
+#bm-completed button:focus-visible{outline:2px solid var(--p-link);outline-offset:3px}
+#bm-completed .flag{color:var(--p-flag)}
+#bm-completed .ok{color:var(--p-ok)}
+#bm-completed table{width:100%;border-collapse:collapse;font-size:12px}
+#bm-completed th,#bm-completed td{padding:9px 4px;border-bottom:1px solid var(--p-line);text-align:left;font-weight:400;overflow-wrap:anywhere}
+#bm-completed thead{color:var(--p-muted)}
+#bm-completed td:nth-child(2){font-variant-numeric:tabular-nums}
+#bm-completed .panel{border-left:1px solid var(--p-line);padding:22px;min-width:0;background:var(--p-surface)}
+#bm-completed .tabs{display:flex;flex-wrap:wrap;gap:16px;border-bottom:1px solid var(--p-line);margin:14px 0}
+#bm-completed .tabs button{color:var(--p-muted);font-size:12px;padding:8px 0}
+#bm-completed .tabs button[aria-selected=true]{color:var(--p-ink);box-shadow:0 2px var(--p-ink)}
+#bm-completed .file{display:block;padding:12px 0;border-bottom:1px solid var(--p-line);width:100%;overflow-wrap:anywhere}
+#bm-completed details{border-bottom:1px solid var(--p-line);padding:10px 0}
+#bm-completed summary{cursor:pointer}
+#bm-completed pre{font:400 11px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto}
+#bm-completed .no-panel .columns{grid-template-columns:1fr}
+#bm-completed .no-panel .panel{display:none}
+@media(max-width:650px){#bm-completed .columns{grid-template-columns:1fr}#bm-completed .panel{border-left:0;border-top:1px solid var(--p-line)}#bm-completed .chat,#bm-completed .panel{padding:18px 16px}}
+@media(pointer:coarse){#bm-completed button{min-height:44px}}
+</style>
+<div id="bm-completed" aria-label="Completed workflow response">
+  <div class="product">
+    <header class="top"><strong>ADMET screen</strong><button type="button" data-panel-toggle>Hide run panel</button></header>
+    <div class="columns">
+      <main class="chat">
+        <div class="user">Review the ADMET results and show me the QC metrics.</div>
+        <section class="response" aria-label="BioMate response">
+          <span class="who">BIOMATE</span>
+          <div class="updates" role="log" aria-label="Workflow updates" aria-live="off" tabindex="0">
+            <div>I will review the ADMET results for the three input compounds.</div>
+            <div>Input structures resolved.</div><div>ADMET inference started.</div><div>ADMET inference completed.</div><div>QC metrics generated.</div><div>DILI threshold exceeded for aspirin and caffeine.</div><div>Report and output files saved.</div>
+          </div>
+          <div class="run"><span data-state>Completed</span><button type="button" data-open-run>Open run →</button></div>
+          <p data-conclusion>Aspirin and caffeine exceed the DILI threshold.</p>
+          <div data-findings>
+            <table aria-label="DILI probability by compound"><thead><tr><th>Compound</th><th>DILI probability</th><th>Check</th></tr></thead><tbody>
+              <tr><th scope="row">Aspirin</th><td>85.5%</td><td class="flag">Flagged</td></tr>
+              <tr><th scope="row">Caffeine</th><td>87.5%</td><td class="flag">Flagged</td></tr>
+              <tr><th scope="row">Ibuprofen</th><td>48.7%</td><td class="ok">Pass</td></tr>
+            </tbody></table>
+            <div class="small">DILI threshold: 50%. <button type="button" data-source>toxicity_report.json ↗</button></div>
+          </div>
+        </section>
+      </main>
+      <aside class="panel" aria-label="Run results">
+        <strong>ADMET screen</strong>
+        <div class="tabs" role="tablist" aria-label="Results">
+          <button type="button" role="tab" id="bm-summary-tab" aria-controls="bm-summary" aria-selected="true" data-tab="summary">Summary</button>
+          <button type="button" role="tab" id="bm-outputs-tab" aria-controls="bm-outputs" aria-selected="false" data-tab="outputs">Outputs</button>
+          <button type="button" role="tab" id="bm-record-tab" aria-controls="bm-record" aria-selected="false" data-tab="record">Reproducibility record</button>
+        </div>
+        <section id="bm-summary" role="tabpanel" aria-labelledby="bm-summary-tab" data-content="summary">
+          <p>3 compounds assessed. 2 exceed the DILI threshold.</p>
+          <table aria-label="Batch QC metrics"><tbody>
+            <tr><th scope="row">Highest DILI probability</th><td>87.5%</td></tr>
+            <tr><th scope="row">DILI threshold</th><td>50%</td></tr>
+            <tr><th scope="row">hERG IC₅₀</th><td>432.42 µM</td></tr>
+            <tr><th scope="row">hERG criterion</th><td>&gt; 10 µM · Pass</td></tr>
+            <tr><th scope="row">Ames positive</th><td>No</td></tr>
+          </tbody></table>
+          <button type="button" data-qc-source>qc_metrics.json ↗</button>
+        </section>
+        <section id="bm-outputs" role="tabpanel" aria-labelledby="bm-outputs-tab" data-content="outputs" hidden>
+          <button class="file" type="button" data-file="toxicity_report.json">toxicity_report.json</button>
+          <button class="file" type="button" data-file="qc_metrics.json">qc_metrics.json</button>
+          <pre data-file-body aria-label="Selected file"></pre>
+        </section>
+        <section id="bm-record" role="tabpanel" aria-labelledby="bm-record-tab" data-content="record" hidden>
+          <details><summary>Methods</summary>ADMET-AI / Chemprop; source model metadata: MPNN.</details>
+          <details><summary>Parameters</summary>3 input structures. DILI probability threshold: 0.5.</details>
+          <details><summary>Software</summary>Version unavailable in the source fixture.</details>
+          <details><summary>Citations</summary>Redfern 2003; Kazius 2005; Mulliner 2016. See qc_metrics.json.</details>
+          <details><summary>QC / audit</summary>Predictions complete. DILI flags retained for aspirin and caffeine. No execution hold or retry.</details>
+          <details><summary>Trajectory</summary>Resolved inputs → inference → QC findings → saved outputs.</details>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('bm-completed');
+  const product = root.querySelector('.product');
+  const log = root.querySelector('[role="log"]');
+  const state = { phase: 'Completed' };
+  const files = {
+    'qc_metrics.json': { compounds_assessed:3, herg_ic50_uM:432.4246, herg_safe_above_10uM:true, ames_positive:false, ames_probability:0.1, dili_risk:'high', dili_probability:0.875, dili_probability_threshold:0.5, admet_dili_probability_passes:false },
+    'toxicity_report.json': { compounds_assessed:3, per_compound:[{smiles:'CC(=O)Oc1ccccc1C(=O)O',dili_probability:0.855,dili_source:'admet_ai'},{smiles:'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',dili_probability:0.875,dili_source:'admet_ai'},{smiles:'CC(C)Cc1ccc(C(C)C(=O)O)cc1',dili_probability:0.487,dili_source:'admet_ai'}] }
+  };
+  function tab(name) {
+    product.classList.remove('no-panel');
+    root.querySelector('[data-panel-toggle]').textContent = 'Hide run panel';
+    root.querySelectorAll('[data-tab]').forEach(button => button.setAttribute('aria-selected',String(button.dataset.tab === name)));
+    root.querySelectorAll('[data-content]').forEach(panel => panel.hidden = panel.dataset.content !== name);
+  }
+  function file(name) { tab('outputs'); root.querySelector('[data-file-body]').textContent = JSON.stringify(files[name],null,2); }
+  root.addEventListener('click', event => {
+    const button = event.target.closest('button'); if (!button) return;
+    if (button.dataset.tab) tab(button.dataset.tab);
+    if (button.hasAttribute('data-open-run')) tab('summary');
+    if (button.hasAttribute('data-source')) file('toxicity_report.json');
+    if (button.hasAttribute('data-qc-source')) file('qc_metrics.json');
+    if (button.dataset.file) file(button.dataset.file);
+    if (button.hasAttribute('data-panel-toggle')) { product.classList.toggle('no-panel'); button.textContent = product.classList.contains('no-panel') ? 'Show run panel' : 'Hide run panel'; }
+  });
+  function render() {
+    const running = state.phase === 'Running';
+    root.querySelector('[data-state]').textContent = running ? 'Running' : 'Completed';
+    root.querySelector('[data-conclusion]').textContent = running ? 'Checking ADMET properties…' : state.phase === 'Findings unavailable' ? 'The run completed. Findings are unavailable; output files remain available.' : 'Aspirin and caffeine exceed the DILI threshold.';
+    root.querySelector('[data-findings]').hidden = state.phase !== 'Completed';
+    Array.from(log.children).forEach((line,index) => line.hidden = running && index > 2);
+  }
+  render();
+  if (globalThis.Tweak) { const tweak = new Tweak({container:root,onChange:render}); tweak.addSelect(state,'phase',{label:'Response state',options:['Running','Completed','Findings unavailable']}); }
+})();
+</script>

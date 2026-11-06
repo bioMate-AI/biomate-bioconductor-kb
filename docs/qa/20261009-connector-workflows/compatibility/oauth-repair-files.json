@@ -1,0 +1,92 @@
+[
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/remote_mcp/identity.py",
+    "destination": "/Users/kky/biomate-connector/remote_mcp/identity.py",
+    "before_sha256": "2e3e796861236cb2ea5d4d09182088c600adf3dbb973c902ca353c8fd2fb1292",
+    "after_sha256": "327248a9bf2c0992b910e5c128c8e4d7158c2417fd0b384f5924156a32a1ba48"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/remote_mcp/server.py",
+    "destination": "/Users/kky/biomate-connector/remote_mcp/server.py",
+    "before_sha256": "bc94db9d175063a2098efe6d359876b58ec881e8ee0094084a34af6bac42fc32",
+    "after_sha256": "37c4716d79662b2b405fd9d23f9c0ee4b48d5fe3493a8f2c33d2ea4b06d4a2d1"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/remote_mcp/oauth_app.py",
+    "destination": "/Users/kky/biomate-connector/remote_mcp/oauth_app.py",
+    "before_sha256": "952de280e2a591b304d01336e9996a0c93f12129c344b70e96c7379914c47b61",
+    "after_sha256": "f6fb33110574593423f121f767b2033722ff50fd39ee9cf20f1e31bc34eb3653"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/remote_mcp/app.py",
+    "destination": "/Users/kky/biomate-connector/remote_mcp/app.py",
+    "before_sha256": "f6870af66962df746aee51e4a471e5d9c4c188273c7ac174c070fec440b84dad",
+    "after_sha256": "57f0775c42c6613f5f46c5f938569f776dabd2d74e3376db40cf9d064252ef0c"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/remote_mcp/tool_bridge.py",
+    "destination": "/Users/kky/biomate-connector/remote_mcp/tool_bridge.py",
+    "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "after_sha256": "a0048744df000b0b4a450c46e2fe3bdcd8bf9274c240191d3597b09275c6ed98"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/mcp-server/src/index.ts",
+    "destination": "/Users/kky/biomate-connector/connectors/mcp-server/src/index.ts",
+    "before_sha256": "29acb43f87b3f700253c069463e733fe596961dad85123ccf1c38fe29b990bae",
+    "after_sha256": "1c11013fe981c5723268df944903616ce5d7770058c1dc01dbfb108f616a932f"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/mcp-server/src/auth.ts",
+    "destination": "/Users/kky/biomate-connector/connectors/mcp-server/src/auth.ts",
+    "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "after_sha256": "71abaf0d081cc77a8d0b659545efb21fa42a3b339e5d440c580b2bf7c213ba5e"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/mcp-server/src/tools_manifest.json",
+    "destination": "/Users/kky/biomate-connector/connectors/mcp-server/src/tools_manifest.json",
+    "before_sha256": "b60ab87c3c300233c965c29a2fcb98a32aeda0a0f17d95279eb83959d443d1c8",
+    "after_sha256": "a87c65624510e4dde4d8dcc0d878f39cae2c6d491c53a6bd83ad590bf0c99d51"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/mcp-server/package.json",
+    "destination": "/Users/kky/biomate-connector/connectors/mcp-server/package.json",
+    "before_sha256": "ecfe066c07e452f894bc248af10faac9a8cf8118401b66785b92d3a990a758a0",
+    "after_sha256": "72f86aef1777835d5a789b02ac57ade3b98412da0d0df7d698bae849f025814a"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/installer/src/surfaces.ts",
+    "destination": "/Users/kky/biomate-review/connectors/installer/src/surfaces.ts",
+    "before_sha256": "01fbdc5353af825cabeb3f6898603268ef8c4c6ee48488e9fec30972d2523a6a",
+    "after_sha256": "836035641656361549e74ff05f4acc6ce9924e41cbcb0d1e9a7e5b1ada3ff566"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/installer/src/oauth.ts",
+    "destination": "/Users/kky/biomate-review/connectors/installer/src/oauth.ts",
+    "before_sha256": "2667f906f1454892f78ee7b10f51139a26d193ee41f6239595e9d85bf37866be",
+    "after_sha256": "82a359e1c38c3a4f6a01b4a1d8c9a0b93d3be35f782374274b184f8521e0f68b"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/installer/src/cli.ts",
+    "destination": "/Users/kky/biomate-review/connectors/installer/src/cli.ts",
+    "before_sha256": "06ad8ddd0b9e46a0055e75967e10adce30ff9ec9df502b2b9be7f614ed2544d5",
+    "after_sha256": "6d19a77c5305880648f3863110988d7e5267fa0495d6e1879e0acfc052d46201"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/installer/src/configWriters.ts",
+    "destination": "/Users/kky/biomate-review/connectors/installer/src/configWriters.ts",
+    "before_sha256": "fb362bc139a02db362e569f074f977fedce8f92f5bfd74ad574dfba0dc260787",
+    "after_sha256": "d07f8050dee76372089755ba90c6e681789d4b3f768c1e2ef4a6629d5f5468dc"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/installer/src/__tests__/flow.test.ts",
+    "destination": "/Users/kky/biomate-review/connectors/installer/src/__tests__/flow.test.ts",
+    "before_sha256": "ef20affb5cb32b246a041aff404cdd860b279882177fe3b21bdfd7afdbcfed6b",
+    "after_sha256": "c6894a269de6da0127c4aad759a210e552741e901dd27488168f40ff4ca60163"
+  },
+  {
+    "source": "/private/tmp/biomate-connector-auth-review/connectors/installer/package.json",
+    "destination": "/Users/kky/biomate-review/connectors/installer/package.json",
+    "before_sha256": "4cf98d983f1659a988a7baefca242e4de1c357e44f1f24991db9475452287148",
+    "after_sha256": "05211bbd990f3a4bd45da501d4549edb5907272e0f8d9b7abbf53ffea38a0a9b"
+  }
+]

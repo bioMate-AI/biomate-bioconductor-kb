@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Sample-QC instruments — a number into a defensible gate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:74ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:74ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+/* figure placeholder — Claude Design: drop the real screenshot here (see data-capture note) */
+.ph{flex:1; min-height:0; border:1.5px dashed var(--line2); border-radius:8px; background:
+  repeating-linear-gradient(135deg,#fff,#fff 10px,var(--panel) 10px,var(--panel) 20px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:28px}
+.ph .pht{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--blue)}
+.ph .phd{font-size:14px; color:var(--mut); max-width:46ch; line-height:1.5}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Instrument tutorial · Sample-QC instruments — a number into a defensible gate</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Sample-QC Instruments &rarr; A Defensible Gate</b></div>
+    <div class="kicker">RIN · NanoDrop · cell counter · gel &amp; blot imager</div>
+    <h2>Turn a RIN or a purity ratio into a documented pass/fail call.</h2>
+    <p class="caption">The small QC instruments that gate a wet-lab pipeline — an Agilent <b>Bioanalyzer / TapeStation</b> (RNA integrity, RIN), a <b>NanoDrop</b> microvolume spectrophotometer (A260/280 &amp; A260/230 purity), an <b>automated cell counter</b> (count + viability %), and a <b>gel &amp; blot imager</b> (Western densitometry) — each produce a tiny export. BioMate turns that export into a pass/fail table and a durable QC record, with no coding.</p>
+    <p class="caption sub">Each instrument measures a different quality axis — but all four answer one question: is this sample good enough to put into the expensive downstream run?</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Instrument export (CSV / image)</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Threshold applied</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Per-sample pass/fail table</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>QC record &amp; downstream gate</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker">The problem</div>
+    <h2>A number on a vendor screen is not a QC record.</h2>
+    <p class="caption">A RIN of 6.4, or an A260/230 of 1.1, means nothing until it is checked against an explicit threshold, written down <i>with</i> that threshold, and carried forward as a <b>gate</b> on whatever the sample feeds next. Until then it is a sticky note, not a decision.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · A VALUE, NOT A VERDICT</div><h4>Checked against a threshold</h4><p>A bare measurement is not a pass or a fail. It becomes one only once an explicit cut-off is applied and recorded alongside the value.</p></div>
+            <div class="tile"><div class="n">2 · A DIFFERENT AXIS EACH</div><h4>Integrity, purity, viability, amount</h4><p>Each instrument answers one axis: is my RNA intact, is my nucleic acid pure, are enough of my cells alive, how much protein is there.</p></div>
+            <div class="tile"><div class="n">3 · THE GATE IS THE POINT</div><h4>Entry condition to a pipeline</h4><p>The QC verdict is the front door of a real downstream run — RNA-seq, WGS, single-cell, proteomics. The gate has to travel with the sample.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Each gate is the entry condition for a real downstream pipeline &mdash; not a side-show, but the quality front-end of the facility.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the problem in one line</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four quality axes, four small workflows.</h2>
+    <p class="caption">These instruments do not produce large primary-data files — they produce small tabular or image exports. Four ideas cover how each one is scored.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · RNA INTEGRITY</div><h4>RIN (or DV200)</h4><p>Bioanalyzer / TapeStation score how intact the RNA is on a <b>1&ndash;10</b> scale. <b>RIN &lt; 7</b> flags RNA-seq risk; for FFPE the gate switches to <b>DV200</b>.</p></div>
+            <div class="tile"><div class="n">2 · PURITY</div><h4>A260/280 &amp; A260/230</h4><p>NanoDrop ratios flag contamination. A260/280 window is <b>1.7&ndash;2.0 for DNA, 1.9&ndash;2.2 for RNA</b>; <b>A260/230 &lt; 2.0</b> flags organic carry-over.</p></div>
+            <div class="tile"><div class="n">3 · VIABILITY</div><h4>Live fraction + floor</h4><p>A cell counter reports <b>viability %</b> and live concentration. Downstream single-cell / flow assays expect <b>&ge; 80&ndash;90 %</b> viable.</p></div>
+            <div class="tile"><div class="n">4 · DENSITOMETRY</div><h4>Band vs loading control</h4><p>A blot imager's band intensity, normalised to a <b>loading control</b> (GAPDH / &beta;-actin), gives relative protein expression.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The threshold is the hinge: defaults encode the standard cut-offs, and the sample type (fresh vs FFPE, DNA vs RNA) selects which gate applies.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the vocabulary of sample QC</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">Step 1</span> · What you provide</div>
+    <h2>The small export, plus the one detail that sets the gate.</h2>
+    <p class="caption">These instruments produce a small file, so getting the data in is simple: upload the per-sample <b>CSV</b> (Bioanalyzer / NanoDrop / cell counter) or the <b>band image</b> (PNG / TIFF / JPEG, for the blot). If your software only exports a PDF, save the tabular CSV view alongside it — the parser reads the table, not the electropherogram picture.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · THE EXPORT</div><h4>A tidy table or image</h4><p>The per-sample CSV, or the blot's band image. The parsers are tolerant — they accept the several column spellings different firmwares emit, and recompute omitted fields.</p></div>
+            <div class="tile"><div class="n">2 · THE SAMPLE CONTEXT</div><h4>Which gate applies</h4><p><b>RIN:</b> fresh or FFPE (sets <code>assay_type</code>). <b>NanoDrop:</b> DNA or RNA (sets the A260/280 window). <b>Western:</b> the pixel ROI of each band + the loading control.</p></div>
+            <div class="tile"><div class="n">3 · THE THRESHOLD</div><h4>The cut-off to gate on</h4><p>Set what you want to fail on — <code>rin_threshold</code>, <code>a260_230_min</code>, <code>viability_min_pct</code>. The defaults are the standard cut-offs; override only with a protocol reason.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">If no file is supplied, each workflow emits demonstration data so you can see the output shape before wiring in your own export.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>A small export plus the gate-setting detail</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 2</span> · How a run works</div>
+    <h2>Ask for the QC, check the panel, confirm.</h2>
+    <p class="caption">State the instrument and the gate the way you would to a colleague — for example, <i>&ldquo;RIN QC on this Bioanalyzer CSV, fail anything under 7,&rdquo;</i> or <i>&ldquo;NanoDrop purity QC on this CSV, these are RNA samples.&rdquo;</i> Then check the panel opened the right workflow, fill the key parameters, and confirm.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:22px">
+            <span class="chip"><span class="i"></span>Ask in chat / pick the card</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Routes to the QC workflow</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Set the threshold</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Confirm &amp; run (seconds)</span>
+          </div>
+          <ul class="points">
+            <li><span class="b"></span><span><b>The panel names a real workflow</b> &mdash; <code>rin_bioanalyzer_qc</code>, <code>nanodrop_purity_qc</code>, <code>cell_counter_viability_qc</code>, or <code>analyze_western_blot</code> &mdash; never &ldquo;undefined.&rdquo;</span></li>
+            <li><span class="b am"></span><span><b>Routing is pending for the three <code>lab_automation</code> parsers.</b> RIN / NanoDrop / cell-counter QC are built in-repo but not yet registered on dev — if the card does not appear, that is the known registration gap, not your mistake.</span></li>
+            <li><span class="b"></span><span><b>These are light jobs.</b> Expect a result in seconds to about a minute; watch the phase move <i>pending &rarr; running &rarr; completed</i>.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>Three QC parsers pending dev routing</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — RESULTS (figure placeholder + three-file output) -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker"><span class="st">Step 3</span> · The result</div>
+    <h2>The same three-file shape, every QC workflow.</h2>
+    <p class="caption">Read one and you can read them all: a per-sample CSV, a results JSON with the batch verdict, and a human-readable summary.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">After run · RIN QC per-sample table</span>
+        <div class="ph">
+          <div class="pht">Figure slot — Claude Design</div>
+          <div class="phd">Capture: the <code>rin_bioanalyzer_qc</code> After-run panel — the per-sample table (columns <code>RIN</code>, <code>28S/18S</code>, <code>DV200_pct</code>, the <code>gate</code> applied, <code>qc_pass</code>, <code>fail_reason</code>) with a <b>batch_qc_status: REVIEW</b> badge where one borderline sample failed. (Also capture a <code>nanodrop_purity_qc</code> result naming the offending axis, and the Western <code>Relative Expression</code> table.)</div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>A per-sample CSV</b> &mdash; one row per sample with the measured values, a <code>qc_pass</code> boolean, and a <code>fail_reason</code> naming exactly which threshold was missed (e.g. <code>A260/230=1.1 &lt; 2.0</code>). This is the QC record you file.</span></li>
+          <li><span class="b"></span><span><b>A results JSON</b> with a batch summary &mdash; <code>n_pass</code> / <code>n_fail</code>, pass-rate %, and a <code>batch_qc_status</code> of <b>PASS</b> or <b>REVIEW</b>. This is the machine-readable gate a downstream pipeline reads.</span></li>
+          <li><span class="b"></span><span><b>A summary <code>.txt</code></b> &mdash; the thresholds used and a one-line verdict per sample.</span></li>
+          <li><span class="b gr"></span><span><b>Downloadable</b> &mdash; the per-sample CSV + batch-status JSON travel with the sample into its downstream run.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>One record shape, every instrument</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — READING / TRUSTING -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 4</span> · Reading and trusting it</div>
+    <h2>Read the fail reason, and own the honest status.</h2>
+    <p class="caption">A clean batch is <code>batch_qc_status: PASS</code> with every <code>fail_reason</code> empty. A <b>REVIEW</b> is a stop-and-look, not an automatic discard.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>Read every <code>fail_reason</code>.</b> A single borderline sample (RIN 6.8 against a 7.0 cut) is a judgement call; a whole batch failing A260/230 points at an <b>extraction problem upstream</b>, not a bad instrument.</span></li>
+            <li><span class="b am"></span><span><b>FFPE RNA uses a different gate.</b> RIN is uninformative for fixed tissue, so <code>assay_type=FFPE_RNA</code> switches the gate to <b>DV200</b> &mdash; so you do not mis-fail degraded-but-usable archival RNA.</span></li>
+            <li><span class="b am"></span><span><b>Western ROIs are manual.</b> There is no automatic lane/band detection; a loading-control intensity near zero or wildly uneven across lanes usually means the pixel ROIs are mis-placed &mdash; re-check them before trusting the numbers.</span></li>
+            <li><span class="b rd"></span><span><b>Honest status.</b> The three <code>lab_automation</code> parsers are built but <b>not yet live in routing</b>; and there is <b>no</b> densitometry for a photographed DNA/protein <i>gel</i> &mdash; only Western <i>blot</i> membranes. Do not report these as validated production runs until routing is confirmed.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>Defensible — within the honest status</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34">
+    <div class="kicker">The habit at a glance</div>
+    <h2 style="font-size:38px">Upload the export → ask for the matching QC workflow → set the threshold → run → file the CSV + JSON as the record.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The value is simple: a RIN, a purity ratio, a viability %, or a band intensity becomes a documented pass/fail call — with the threshold recorded, the failing axis named, and a QC record that travels with the sample into its downstream pipeline rather than a sticky note.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Upload the small export (CSV or band image)</li>
+            <li><span class="k">2</span>Ask for the matching QC workflow</li>
+            <li><span class="k">3</span>Set the sample type + threshold to gate on</li>
+            <li><span class="k">4</span>Confirm &amp; Run — seconds to a minute</li>
+            <li><span class="k">5</span>Read each fail_reason; file the CSV + batch-status JSON</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Input</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">A small per-sample export</span></td></tr>
+            <tr><td>RIN QC</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">rin_bioanalyzer_qc — built, routing pending</span></td></tr>
+            <tr><td>NanoDrop QC</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">nanodrop_purity_qc — built, routing pending</span></td></tr>
+            <tr><td>Cell counter</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">cell_counter_viability_qc — built, routing pending</span></td></tr>
+            <tr><td>Western</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">analyze_western_blot — real, manual ROIs</span></td></tr>
+            <tr><td>Gel image</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">No densitometry — gap</span></td></tr>
+          </table>
+          <p class="footnote">The three <code>lab_automation</code> parsers are built in-repo (PR #226) but pending dev DB registration — a one-step re-index, not a usage change. Gel-image densitometry does not exist; use the Western-blot path for membrane densitometry.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

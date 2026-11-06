@@ -1,0 +1,90 @@
+# =====================================================================================================
+# m2_ldm_midtrain.yaml — M2 stage-2b: cyclic mid-train of the PepGLAD LATENT-DIFFUSION generator over the
+# v1-AE latent, warm-started from the epoch-221 diffusion. Consumed by m2_train_ldm.py (NOT stock train.py —
+# because of warm_start_ldm_ckpt (diffusion-only), the v1-AE-as-frozen-autoencoder, and the peptide-only
+# LDM subclass PeptideOnlyLDMPepDesign).
+#
+# Provenance: the `model` block is COPIED from configs/pepbench/ldm/train_codesign.yaml (the config that
+# trained epoch-221) so the epoch-221 diffusion state_dict loads 1:1. Only the dataset, trainer schedule,
+# the peptide-only class, use_covariance_matrix=false, and the two warm-start fields differ. Paths
+# (WARM_CKPT / v1 AE / CREMP dataset) are filled in by run_m2_ldm_midtrain.sh via overwrite_values.
+# =====================================================================================================
+
+# Warm-start (2a): epoch-221 LDM. m2_train_ldm.warm_start_diffusion() loads ONLY its diffusion.* /
+# hidden2latent.* / abs_position_encoding.* into the model, DROPPING autoencoder.* (the v1 AE is preserved).
+warm_start_ldm_ckpt: ./data/epoch221.ckpt
+
+dataset:
+  train:
+    class: PeptideOnlyCoDesignDataset      # CREMP peptide-only (no receptor/pocket). See m1_peptide_dataset.py
+    mmap_dir: ./data/cremp_pepglad/train
+    backbone_only: false
+    use_covariance_matrix: false           # REQUIRED peptide-only: L is receptor-CA covariance (impossible
+                                           # with no receptor). L=None -> fixed-std normalization (see below).
+  valid:
+    class: PeptideOnlyCoDesignDataset
+    mmap_dir: ./data/cremp_pepglad/valid
+    backbone_only: false
+    use_covariance_matrix: false
+
+dataloader:
+  shuffle: true
+  num_workers: 4
+  wrapper:
+    class: DynamicBatchWrapper
+    complexity: n**2
+    ubound_per_batch: 12000   # SIZED FOR CREMP (same reasoning as M1): the stock 60000 was tuned for
+                              # ~50-res protein-peptide complexes; CREMP macrocycles are ~6-mers (n^2~36).
+                              # The LDM validation runs a full reverse-diffusion sample each val epoch
+                              # (raises peak memory) -> keep the batch small. 12000 -> ~330 6-mers/batch.
+                              # Pair with PYTORCH_CUDA_ALLOC_CONF=expandable_segments (set in m2_train_ldm.py).
+
+trainer:
+  class: LDMTrainer
+  criterion: Loss             # select on validation LOSS (denoising MSE). AAR/RMSD are still LOGGED (the
+                              # trainer always samples for them) but LOSS is the stable selection signal for
+                              # an unconditional mid-train (no reference pose to make RMSD selection meaningful).
+  config:
+    max_epoch: 60             # MID-train: warm-started diffusion adapts to the v1 latent. epoch-221 was
+                              # trained ~221 effective epochs from scratch; adapting to a shifted latent is a
+                              # finetune-sized job. 60 epochs over ~6k CREMP mols @ ubound 12000 is ample;
+                              # patience will stop earlier if val loss plateaus.
+    save_topk: 5
+    val_freq: 5               # validation runs a full sample -> not every epoch (matches cyclic_finetune.sh)
+    save_dir: ./ckpts/m2_ldm_midtrain
+    patience: 8               # early stop if val loss stalls (in val-epoch units => 8*val_freq=40 epochs)
+    metric_min_better: true
+    grad_clip: 1.0            # LDM training benefits from grad clipping (cyclic_finetune.sh used 1.0)
+
+    optimizer:
+      class: AdamW
+      lr: 2.0e-5              # LOW lr for mid-train (5x below the 1e-4 from-scratch lr) — adapt the binding
+                             # prior + denoiser to the v1 latent, don't wreck the epoch-221 prior.
+
+    scheduler:
+      class: ReduceLROnPlateau
+      factor: 0.6
+      patience: 3
+      mode: min
+      frequency: val_epoch
+      min_lr: 2.0e-6
+
+model:
+  class: PeptideOnlyLDMPepDesign   # LDMPepDesign + peptide-centered diffusion normalization (m2_peptide_ldm.py)
+  # ---- the FROZEN v1 autoencoder (M1 production AE). torch.load'ed + frozen inside __init__. ----
+  autoencoder_ckpt: ./data/v1_ae.ckpt   # epoch39_step3520.ckpt from the M1 v1 run (filled by the launcher)
+  autoencoder_no_randomness: true       # encode with the posterior MEAN (deterministic latent target)
+  # ---- diffusion architecture: MUST match epoch-221 (train_codesign.yaml) for a 1:1 warm-start load ----
+  hidden_size: 128
+  num_steps: 100
+  n_layers: 3
+  n_rbf: 32
+  cutoff: 3.0                # coordinates are in standardized (std-normalized) space
+  dist_rbf: 32
+  dist_rbf_cutoff: 7.0
+  # max_gen_position defaults to 30 (epoch-221). CREMP macrocycles are short (~4-12 residues) so position_ids
+  # (1..n) stay well under 30. The launcher/prep filter drops any rare macrocycle with n>=29 (device assert
+  # guard, mirroring cyclic_finetune.sh's position-cap filter).
+  diffusion_opt:
+    trans_seq_type: Diffusion
+    trans_pos_type: Diffusion

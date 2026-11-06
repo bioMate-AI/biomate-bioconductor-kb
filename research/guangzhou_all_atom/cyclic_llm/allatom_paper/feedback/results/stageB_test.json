@@ -1,0 +1,183 @@
+{
+ "n_runs_per_env": 400,
+ "kinds": {
+  "hackable": {
+   "GapStop": {
+    "retained_mean": 0.7940021322859384,
+    "retained_ci": [
+     0.7756247734637303,
+     0.8112022423166164
+    ],
+    "stopped_frac": 1.0,
+    "delay_median": -3.0,
+    "false_stop": null,
+    "false_stop_rate": null,
+    "missed_hack_rate": 0.2725
+   },
+   "NeverStop": {
+    "retained_mean": 0.5595644282379247,
+    "retained_ci": [
+     0.5558525195137952,
+     0.5632346042029199
+    ],
+    "stopped_frac": 0.0,
+    "delay_median": 22.0,
+    "false_stop": null,
+    "false_stop_rate": null,
+    "missed_hack_rate": 1.0
+   },
+   "AlwaysStop": {
+    "retained_mean": 0.22204490708559185,
+    "retained_ci": [
+     0.2197418402663956,
+     0.22436880623534686
+    ],
+    "stopped_frac": 1.0,
+    "delay_median": -15.0,
+    "false_stop": null,
+    "false_stop_rate": null,
+    "missed_hack_rate": 1.0
+   },
+   "HarnessSimple": {
+    "retained_mean": 0.4472604038174985,
+    "retained_ci": [
+     0.42894100811534197,
+     0.4651077921772392
+    ],
+    "stopped_frac": 0.3175,
+    "delay_median": 21.0,
+    "false_stop": null,
+    "false_stop_rate": null,
+    "missed_hack_rate": 1.0
+   }
+  },
+  "benign": {
+   "GapStop": {
+    "retained_mean": 0.9994065158762987,
+    "retained_ci": [
+     0.9991678386303952,
+     0.9995504033429885
+    ],
+    "stopped_frac": 0.0025,
+    "delay_median": 2.0,
+    "false_stop": [
+     0.0,
+     0.009512640599680667
+    ],
+    "false_stop_rate": 0.0,
+    "missed_hack_rate": null
+   },
+   "NeverStop": {
+    "retained_mean": 0.9995135968911346,
+    "retained_ci": [
+     0.999460551983942,
+     0.9995611573756772
+    ],
+    "stopped_frac": 0.0,
+    "delay_median": 2.0,
+    "false_stop": [
+     0.0,
+     0.009512640599680667
+    ],
+    "false_stop_rate": 0.0,
+    "missed_hack_rate": null
+   },
+   "AlwaysStop": {
+    "retained_mean": 0.1722113525378106,
+    "retained_ci": [
+     0.17107355514145844,
+     0.17333059345667914
+    ],
+    "stopped_frac": 1.0,
+    "delay_median": -35.0,
+    "false_stop": [
+     0.9904873594003194,
+     1.0
+    ],
+    "false_stop_rate": 1.0,
+    "missed_hack_rate": null
+   },
+   "HarnessSimple": {
+    "retained_mean": 0.985283732907716,
+    "retained_ci": [
+     0.9741238471226008,
+     0.9939800250148938
+    ],
+    "stopped_frac": 0.0225,
+    "delay_median": 2.0,
+    "false_stop": [
+     0.011881448169963291,
+     0.04220312360273175
+    ],
+    "false_stop_rate": 0.0225,
+    "missed_hack_rate": null
+   }
+  },
+  "shared": {
+   "GapStop": {
+    "retained_mean": 0.5595644282379247,
+    "retained_ci": [
+     0.5558525195137952,
+     0.5632346042029199
+    ],
+    "stopped_frac": 0.0,
+    "delay_median": 22.0,
+    "false_stop": null,
+    "false_stop_rate": null,
+    "missed_hack_rate": null
+   },
+   "NeverStop": {
+    "retained_mean": 0.5595644282379247,
+    "retained_ci": [
+     0.5558525195137952,
+     0.5632346042029199
+    ],
+    "stopped_frac": 0.0,
+    "delay_median": 22.0,
+    "false_stop": null,
+    "false_stop_rate": null,
+    "missed_hack_rate": null
+   },
+   "AlwaysStop": {
+    "retained_mean": 0.22204490708559185,
+    "retained_ci": [
+     0.2197418402663956,
+     0.22436880623534686
+    ],
+    "stopped_frac": 1.0,
+    "delay_median": -15.0,
+    "false_stop": null,
+    "false_stop_rate": null,
+    "missed_hack_rate": null
+   },
+   "HarnessSimple": {
+    "retained_mean": 0.5590125752059933,
+    "retained_ci": [
+     0.5546595410455892,
+     0.563269178507754
+    ],
+    "stopped_frac": 0.025,
+    "delay_median": 22.0,
+    "false_stop": null,
+    "false_stop_rate": null,
+    "missed_hack_rate": null
+   }
+  }
+ },
+ "primary": {
+  "GapStop_minus_NeverStop": {
+   "mean": 0.11716531151658888,
+   "ci_bootstrap_mean": [
+    0.1081052018075249,
+    0.12590200043425603
+   ]
+  },
+  "GapStop_minus_AlwaysStop": {
+   "mean": 0.6995761942694173,
+   "ci_bootstrap_mean": [
+    0.6900823018326677,
+    0.7085978666673309
+   ]
+  }
+ }
+}

@@ -1,0 +1,10 @@
+{
+  "scope": "Synthetic live BioMate JSON adapter diagnostic",
+  "latency_ms": 10564,
+  "passed": true,
+  "result": {
+    "text": "{\"accession\":\"GSE12345\",\"platform\":\"GPL96\"}",
+    "modelUsed": "Qwen/Qwen3.8-27B",
+    "fallbackDepth": 0
+  }
+}

@@ -1,0 +1,992 @@
+[
+  {
+    "file": "auto_update/scripts/blog_review_agent.py",
+    "line": 183,
+    "source": "response = self.client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "auto_update/scripts/blog_review_agent.py",
+    "line": 276,
+    "source": "response = self.client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "auto_update/scripts/blog_worthiness_evaluator.py",
+    "line": 161,
+    "source": "response = self.client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "auto_update/scripts/llm_feasibility_checker.py",
+    "line": 82,
+    "source": "response = self.client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "auto_update/scripts/parameter_extractor.py",
+    "line": 231,
+    "source": "response = self.client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "auto_update/scripts/unified_metadata_extractor.py",
+    "line": 115,
+    "source": "response = self.client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/agents/domain_specialist.py",
+    "line": 211,
+    "source": "response = self.llm_client.generate(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/agents/enhanced_domain_router.py",
+    "line": 447,
+    "source": "response = self.llm_client.generate(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/agents/research_agent.py",
+    "line": 1448,
+    "source": "return _gemini_vision(image_b64=image_b64, prompt=prompt, max_tokens=300)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/agents/research_agent.py",
+    "line": 2156,
+    "source": "response = await self._call_llm(prompt, max_tokens=6000 if _deep_synth else 2000)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/agents/research_agent.py",
+    "line": 2568,
+    "source": "async def _call_llm(self, prompt: str, max_tokens: int = 2000) -> str:",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/agents/research_agent.py",
+    "line": 2582,
+    "source": "response = await self.llm_client.generate_async(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/agents/research_agent.py",
+    "line": 2593,
+    "source": "lambda: self.llm_client.generate(prompt, max_tokens=max_tokens, temperature=0)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/agents/workflow_assembler.py",
+    "line": 269,
+    "source": "response = self.llm_client.generate(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/ai_assistant.py",
+    "line": 675,
+    "source": "return self._fast_llm_client.generate(prompt, max_tokens=128, temperature=0.0, use_fast_model=True)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/ai_assistant.py",
+    "line": 2008,
+    "source": "raw = (self._fast_llm_client.generate(prompt, max_tokens=220, temperature=0.0, use_fast_model=True) or \"\").strip()",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/chain_composer/llm_adapter.py",
+    "line": 90,
+    "source": "return client.generate(prompt, max_tokens=max_tokens, temperature=0.2)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/cryo_em_knowledge/rag_index.py",
+    "line": 146,
+    "source": "resp = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/ind_assembly.py",
+    "line": 242,
+    "source": "def _call_vllm_regulatory_llm(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/ind_assembly.py",
+    "line": 372,
+    "source": "\"\"\"Gemini generateContent (Google AI Studio).\"\"\"",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/ind_assembly.py",
+    "line": 398,
+    "source": "def _call_local_regulatory_llm(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/ind_assembly.py",
+    "line": 445,
+    "source": "return _call_vllm_regulatory_llm(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/ind_assembly.py",
+    "line": 862,
+    "source": "narrative = _call_local_regulatory_llm(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/ind_assembly.py",
+    "line": 886,
+    "source": "gemini_narrative = _gemini_flash(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/ind_assembly.py",
+    "line": 3845,
+    "source": "body = _call_local_regulatory_llm(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/llm_streaming_router.py",
+    "line": 60,
+    "source": "text = _call_local_regulatory_llm(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/regulatory_auditor.py",
+    "line": 382,
+    "source": "msg = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/drug_discovery/regulatory_auditor.py",
+    "line": 397,
+    "source": "resp = _gemini(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/enhanced_workflow_generator.py",
+    "line": 531,
+    "source": "response = self.llm_client.generate_structured(prompt, schema)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/galaxy_workflow_generator.py",
+    "line": 450,
+    "source": "response = self.llm_client.generate(prompt, max_tokens=100, use_fast_model=True)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/galaxy_workflow_generator.py",
+    "line": 644,
+    "source": "response_text = self.llm_client.generate(full_prompt, max_tokens=4096, use_fast_model=True)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/gemini_flash.py",
+    "line": 7,
+    "source": "text = call_gemini_flash(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/gemini_flash.py",
+    "line": 35,
+    "source": "def call_gemini_flash(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/gemini_flash.py",
+    "line": 94,
+    "source": "def call_gemini_flash_vision(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/intent_parser.py",
+    "line": 242,
+    "source": "response = self.llm_client.generate(prompt)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/llm_client.py",
+    "line": 203,
+    "source": "Twelve callers across the autofix package use `llm_client.call(...)`",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/llm_client.py",
+    "line": 363,
+    "source": "async def _generate_gemini(self, prompt: str, **kwargs) -> str:",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/llm_client_fallback_fix.py",
+    "line": 177,
+    "source": "return await self._generate_gemini(prompt, **kwargs)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/llm_client_fallback_implementation.py",
+    "line": 331,
+    "source": "result = await llm_client._generate_gemini(prompt, **kwargs)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/llm_parameter_generator.py",
+    "line": 91,
+    "source": "response = self.llm_client.generate(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/llm_router.py",
+    "line": 507,
+    "source": "response = await client.generate_async(prompt, **kwargs)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/llm_router.py",
+    "line": 526,
+    "source": "response = await fallback_client.generate_async(prompt, **kwargs)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/nextflow_composer.py",
+    "line": 542,
+    "source": "def _call_llm(self, prompt: str) -> str:",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/nextflow_composer.py",
+    "line": 544,
+    "source": "response = llm.generate(prompt, max_tokens=4096, use_fast_model=True)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/nextflow_composer.py",
+    "line": 733,
+    "source": "nf_content = self._call_llm(prompt)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/propose_validate_v2_experimental.py",
+    "line": 407,
+    "source": "response = self._llm_client.generate(prompt, max_tokens=2000)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/propose_validate_v2_experimental.py",
+    "line": 515,
+    "source": "response = self._llm_client.generate(prompt, max_tokens=2000)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/propose_validate_v2_experimental.py",
+    "line": 557,
+    "source": "response = self._llm_client.generate(prompt, max_tokens=2000)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/propose_validate_workflow_generator.py",
+    "line": 229,
+    "source": "response = self.llm_client.generate(prompt, max_tokens=2000)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/propose_validate_workflow_generator.py",
+    "line": 271,
+    "source": "response = self.llm_client.generate(full_prompt, max_tokens=2000)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/query_analyzer.py",
+    "line": 146,
+    "source": "response = self.llm.generate(prompt, max_tokens=800)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/resource_resolver.py",
+    "line": 259,
+    "source": "response = self.llm_client.generate(prompt)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/task_decomposer.py",
+    "line": 261,
+    "source": "response = self.llm_client.generate_structured(prompt, schema)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/tool_discovery.py",
+    "line": 222,
+    "source": "response = self.llm_client.generate(prompt, max_tokens=50).strip().lower()",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/tool_discovery.py",
+    "line": 484,
+    "source": "response = self.llm_client.generate(prompt)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/tool_recommender.py",
+    "line": 302,
+    "source": "response = self.llm_client.generate_structured(prompt, schema)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/unified_workflow_search.py",
+    "line": 803,
+    "source": "raw = self._llm_client.generate(prompt, max_tokens=512, temperature=0.0,",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/unified_workflow_search.py",
+    "line": 2237,
+    "source": "raw = (self._llm_client.generate(prompt, max_tokens=8, temperature=0.0) or \"\").strip().upper()",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/unified_workflow_search.py",
+    "line": 2352,
+    "source": "raw = (self._llm_client.generate(prompt, max_tokens=60, temperature=0.0) or \"\").strip()",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/unified_workflow_search.py",
+    "line": 2432,
+    "source": "raw = (self._llm_client.generate(prompt, max_tokens=120, temperature=0.0,",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_generator.py",
+    "line": 305,
+    "source": "response = self.llm_client.generate_structured(prompt, schema)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_generator.py",
+    "line": 438,
+    "source": "name = self.llm_client.generate(prompt).strip().strip('\"\\'')",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_modification_classifier.py",
+    "line": 70,
+    "source": "text = _gemini_flash(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/agents/root_cause_analysis_agent.py",
+    "line": 111,
+    "source": "response = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/auto_healer.py",
+    "line": 547,
+    "source": "result = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/agent.py",
+    "line": 415,
+    "source": "response = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/agent.py",
+    "line": 649,
+    "source": "response = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/agent_fixer.py",
+    "line": 184,
+    "source": "response = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/agent_fixer.py",
+    "line": 405,
+    "source": "response = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/fixers/container_error_fixer.py",
+    "line": 690,
+    "source": "response = llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/fixers/llm_first_fixer.py",
+    "line": 187,
+    "source": "response = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/fixers/llm_first_fixer.py",
+    "line": 1028,
+    "source": "refined_response = await self.llm_client.generate(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/fixers/llm_first_fixer.py",
+    "line": 1430,
+    "source": "response = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/fixers/llm_universal_fixer.py",
+    "line": 188,
+    "source": "response = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/fixers/pure_llm_fixer.py",
+    "line": 81,
+    "source": "response = self.llm_client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/llm_parameter_mapper.py",
+    "line": 299,
+    "source": "response = self.llm_client.call(prompt, max_tokens=2000)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/autofix/parameter_mapper.py",
+    "line": 288,
+    "source": "response = self.llm_client.call(prompt, max_tokens=1000)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/error_search_agent.py",
+    "line": 304,
+    "source": "response_dict = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/error_search_agent.py",
+    "line": 371,
+    "source": "response_dict = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/llm_client.py",
+    "line": 121,
+    "source": "response = self.client.messages.create(**api_params)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/llm_client.py",
+    "line": 183,
+    "source": "response = self.client.chat.completions.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/log_analyzer.py",
+    "line": 221,
+    "source": "if self.enable_llm and self._should_call_llm(new_issues):",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/log_analyzer.py",
+    "line": 304,
+    "source": "def _should_call_llm(self, new_issues: List[Issue]) -> bool:",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/log_analyzer.py",
+    "line": 404,
+    "source": "result = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/parameter_analyzer.py",
+    "line": 162,
+    "source": "message = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/ai/workflow_ops/query_agent.py",
+    "line": 77,
+    "source": "result = self.llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py",
+    "line": 2057,
+    "source": "raw = llm_client.call(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py",
+    "line": 2314,
+    "source": "_arb_resp = _arb_llm.generate(_arb_prompt, max_tokens=16, temperature=0.0)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py",
+    "line": 5688,
+    "source": "raw = _gemini_flash(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py",
+    "line": 5795,
+    "source": "result_text = _gemini_flash(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py",
+    "line": 5891,
+    "source": "raw = _gemini_flash(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/webapps/galaxy/api/autofix3.py",
+    "line": 537,
+    "source": "raw_response = _gemini_flash(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/webapps/galaxy/api/chat.py",
+    "line": 148,
+    "source": "return openai.chat.completions.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/webapps/galaxy/api/llm_internal.py",
+    "line": 102,
+    "source": "text = client.generate(prompt, **kwargs)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py",
+    "line": 9947,
+    "source": "text = _gemini_flash(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/batch_compatibility_matcher.py",
+    "line": 87,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/batch_llm_extract.py",
+    "line": 115,
+    "source": "message = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/build_dataset_tool_compatibility_map.py",
+    "line": 207,
+    "source": "response = client.chat.completions.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/build_dataset_tool_compatibility_map.py",
+    "line": 276,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/convert_nfcore_to_galaxy.py",
+    "line": 186,
+    "source": "message = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/enrich_tools_scientific_context.py",
+    "line": 161,
+    "source": "resp = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/extract_all_scientific_context.py",
+    "line": 188,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/extract_scientific_context_improved.py",
+    "line": 222,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/extract_scientific_context_parallel.py",
+    "line": 81,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/knowledge_based_matcher.py",
+    "line": 171,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/llm_extract_nfcore_workflows.py",
+    "line": 298,
+    "source": "message = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/llm_extract_nfcore_workflows.py",
+    "line": 366,
+    "source": "message = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/llm_extract_scientific_context.py",
+    "line": 190,
+    "source": "message = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/llm_extract_scientific_context_enhanced.py",
+    "line": 163,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/web_search_validator.py",
+    "line": 140,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/web_search_validator.py",
+    "line": 250,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "backend/scripts/web_search_validator.py",
+    "line": 319,
+    "source": "response = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/adapters/bixbench_adapter.py",
+    "line": 1014,
+    "source": "msg = client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/adapters/bixbench_adapter.py",
+    "line": 1120,
+    "source": "msg = llm.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/adapters/bixbench_adapter.py",
+    "line": 3953,
+    "source": "msg = llm.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/core/baseline_llm_client.py",
+    "line": 113,
+    "source": "msg = self._client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/core/hallucination_detector.py",
+    "line": 305,
+    "source": "msg = self._client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/core/llm_judge.py",
+    "line": 256,
+    "source": "result = self._call_gemini(prompt, max_tokens)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/core/llm_judge.py",
+    "line": 273,
+    "source": "msg = self._anthropic_client.messages.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/core/llm_judge.py",
+    "line": 295,
+    "source": "def _call_gemini(self, prompt: str, max_tokens: Optional[int] = None) -> str:",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/datasets/public_export/accession_routing/run_accession.py",
+    "line": 95,
+    "source": "resp = client.chat.completions.create(model=args.model,",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/datasets/public_export/run_baseline.py",
+    "line": 153,
+    "source": "resp = client.chat.completions.create(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/runners/adapters/anthropic_adapter.py",
+    "line": 43,
+    "source": "resp = self._client.messages.create(**kwargs)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/runners/adapters/openai_adapter.py",
+    "line": 51,
+    "source": "resp = self._client.chat.completions.create(**kwargs)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/runners/checker_suite_v2.py",
+    "line": 130,
+    "source": "resp = client.messages.create(**kwargs)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/runners/checker_suite_v2.py",
+    "line": 162,
+    "source": "resp = client.chat.completions.create(**kwargs)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/runners/checker_suite_v2.py",
+    "line": 171,
+    "source": "def _call_judge_gemini(section_type, prompt, candidate, judge_model):",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "evaluation/runners/checker_suite_v2.py",
+    "line": 210,
+    "source": "return _call_judge_gemini(section_type, prompt, candidate, judge_model)",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/context-compressor.ts",
+    "line": 241,
+    "source": "const response = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/dataset-validator.ts",
+    "line": 73,
+    "source": "const response = await openai.chat.completions.create({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/evidence-routes.ts",
+    "line": 151,
+    "source": "const raw = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/evidence-routes.ts",
+    "line": 309,
+    "source": "const raw = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 1702,
+    "source": "const raw = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 2379,
+    "source": "const raw = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 2684,
+    "source": "const stream = await client.chat.completions.create({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 3653,
+    "source": "const text = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 3696,
+    "source": "const domain = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 4959,
+    "source": "const text = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 7023,
+    "source": "geminiResult = await Promise.race([geminiModel.generateContent(messageForUQU), geminiTimeout]);",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 7044,
+    "source": "const r = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 7539,
+    "source": "const r = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 7753,
+    "source": "const raw = await llm.messages.create({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/galaxy-assistant.ts",
+    "line": 9672,
+    "source": "const summary = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/gemini-flash.ts",
+    "line": 39,
+    "source": "export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string> {",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/gemini-flash.ts",
+    "line": 82,
+    "source": "const result = await model.generateContent(messages[0].content);",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/gemini-flash.ts",
+    "line": 110,
+    "source": "export async function callGeminiFlashSimple(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/gemini-flash.ts",
+    "line": 116,
+    "source": "return callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/iterative-workflow-generator.ts",
+    "line": 212,
+    "source": "const response = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/iterative-workflow-generator.ts",
+    "line": 351,
+    "source": "const response = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/lib/schemaGroundedExtractor.ts",
+    "line": 38,
+    "source": "/** Inject the LLM call. In prod: wrap llmGenerate(). In tests: stub. */",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/lib/schemaGroundedExtractor.ts",
+    "line": 273,
+    "source": "const { text } = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/llm-client.ts",
+    "line": 57,
+    "source": "export async function llmGenerate(",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/model-test-harness.ts",
+    "line": 344,
+    "source": "const completion = await claude.messages.create({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/model-test-harness.ts",
+    "line": 406,
+    "source": "const completion = await claude.messages.create(apiOptions);",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/notes-routes.ts",
+    "line": 145,
+    "source": "markdown = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/orchestrator.ts",
+    "line": 332,
+    "source": "() => claude.messages.create({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/routes.ts",
+    "line": 5585,
+    "source": "const result = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/routes.ts",
+    "line": 11677,
+    "source": "const text = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/routes.ts",
+    "line": 11707,
+    "source": "const raw = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/routes.ts",
+    "line": 13205,
+    "source": "const completion = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/routes.ts",
+    "line": 13846,
+    "source": "const rawText = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/routes.ts",
+    "line": 13995,
+    "source": "const _msg = await _anthropic.messages.create({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/routes.ts",
+    "line": 15877,
+    "source": "const raw = await callGeminiFlash({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/workflow-prerequisites-validator.ts",
+    "line": 468,
+    "source": "const response = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  },
+  {
+    "file": "frontend/server/workflow-prerequisites-validator.ts",
+    "line": 650,
+    "source": "const response = await llmGenerate({",
+    "classification": "static candidate; includes wrappers/definitions; verify reachability"
+  }
+]

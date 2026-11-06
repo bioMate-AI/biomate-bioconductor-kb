@@ -1,0 +1,856 @@
+{
+  "immune": [
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/immune/GSE119450",
+      "Size": 0,
+      "StorageClass": "DIRECTORY",
+      "type": "directory",
+      "size": 0,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/immune/GSE119450"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/immune/GSE146194",
+      "Size": 0,
+      "StorageClass": "DIRECTORY",
+      "type": "directory",
+      "size": 0,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/immune/GSE146194"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/immune/GSE190604",
+      "Size": 0,
+      "StorageClass": "DIRECTORY",
+      "type": "directory",
+      "size": 0,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/immune/GSE190604"
+    }
+  ],
+  "jiang2025": [
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/jiang2025/COVERAGE_ANALYSIS_no_download_9of300.txt",
+      "LastModified": "2026-08-26 03:09:31+00:00",
+      "ETag": "\"79fe2b2b388cc435044ea6a6a4033ed2\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 987,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 987,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/jiang2025/COVERAGE_ANALYSIS_no_download_9of300.txt"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/jiang2025/jiang_union_218_perturbed_regulators.txt",
+      "LastModified": "2026-08-26 03:09:32+00:00",
+      "ETag": "\"32bb8dc8837a7efabe4d7844dc6486f0\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1272,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1272,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/jiang2025/jiang_union_218_perturbed_regulators.txt"
+    }
+  ],
+  "scperturb": [
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/AdamsonWeissman2016_GSM2406675_10X001.h5ad",
+      "LastModified": "2026-08-13 05:05:04+00:00",
+      "ETag": "\"10ce0d9f7bd0974380d1da4e5e543c61-5\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 34557246,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 34557246,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/AdamsonWeissman2016_GSM2406675_10X001.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/AdamsonWeissman2016_GSM2406677_10X005.h5ad",
+      "LastModified": "2026-08-13 05:05:17+00:00",
+      "ETag": "\"91801b1dce3698b75d0ed243f434d180-17\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 139059637,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 139059637,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/AdamsonWeissman2016_GSM2406677_10X005.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/AdamsonWeissman2016_GSM2406681_10X010.h5ad",
+      "LastModified": "2026-08-13 05:06:12+00:00",
+      "ETag": "\"54d48a8641a8e793100d75f834d9f125-57\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 471286951,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 471286951,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/AdamsonWeissman2016_GSM2406681_10X010.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/AissaBenevolenskaya2021.h5ad",
+      "LastModified": "2026-08-13 05:03:59+00:00",
+      "ETag": "\"c62198a27d6d2f0d58957c3dd5edcda9-6\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 45919115,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 45919115,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/AissaBenevolenskaya2021.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ChangYe2021.h5ad",
+      "LastModified": "2026-08-13 05:07:31+00:00",
+      "ETag": "\"402cd167e7a79ed5d07b0dc1caaa1707-60\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 501823050,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 501823050,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ChangYe2021.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/CuiHacohen2023.h5ad",
+      "LastModified": "2026-08-13 05:29:29+00:00",
+      "ETag": "\"9fa2dee833dcf5e27aa6614aac41f5ee-57\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 472111867,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 472111867,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/CuiHacohen2023.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DatlingerBock2017.h5ad",
+      "LastModified": "2026-08-13 05:05:25+00:00",
+      "ETag": "\"96419e1e827fc534aeab4ea4447e8390-5\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 39085166,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 39085166,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DatlingerBock2017.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DatlingerBock2021.h5ad",
+      "LastModified": "2026-08-13 05:06:12+00:00",
+      "ETag": "\"4ea8d5756a77b3a85a18ae03a61981af-5\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 33600780,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 33600780,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DatlingerBock2021.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DixitRegev2016_K562_TFs_13_days.h5ad",
+      "LastModified": "2026-08-13 05:04:27+00:00",
+      "ETag": "\"0ac8ca3dbc706106291960994234fbdc-15\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 121166672,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 121166672,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DixitRegev2016_K562_TFs_13_days.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DixitRegev2016_K562_TFs_7_days.h5ad",
+      "LastModified": "2026-08-13 05:02:09+00:00",
+      "ETag": "\"be0cfd2e23b80b34b2ba7dae01ea00a2-31\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 256685252,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 256685252,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DixitRegev2016_K562_TFs_7_days.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DixitRegev2016_K562_TFs_High_MOI.h5ad",
+      "LastModified": "2026-08-13 05:03:01+00:00",
+      "ETag": "\"5209152d98a4e69751b3f58e4818f1d9-39\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 319735470,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 319735470,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/DixitRegev2016_K562_TFs_High_MOI.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/FrangiehIzar2021_RNA.h5ad",
+      "LastModified": "2026-08-13 05:13:43+00:00",
+      "ETag": "\"522169f5d235baa3d82cb3f77735ceb4-174\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1458928348,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1458928348,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/FrangiehIzar2021_RNA.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/FrangiehIzar2021_protein.h5ad",
+      "LastModified": "2026-08-13 05:06:11+00:00",
+      "ETag": "\"ecbbbd3380c6e2346f2a69cd7a9ae504-3\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 24714445,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 24714445,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/FrangiehIzar2021_protein.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/GasperiniShendure2019_atscale.h5ad",
+      "LastModified": "2026-08-13 05:18:57+00:00",
+      "ETag": "\"b1a8ffa5adbc2e6a21d36af32ef3a508-223\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1866293566,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1866293566,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/GasperiniShendure2019_atscale.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/GasperiniShendure2019_highMOI.h5ad",
+      "LastModified": "2026-08-13 05:10:07+00:00",
+      "ETag": "\"2f9c9ac3d378c76ce9491439826aeeb6-50\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 418337592,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 418337592,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/GasperiniShendure2019_highMOI.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/GasperiniShendure2019_lowMOI.h5ad",
+      "LastModified": "2026-08-13 05:09:12+00:00",
+      "ETag": "\"54a662f042f5df88dcec1115132b73f8-39\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 322716827,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 322716827,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/GasperiniShendure2019_lowMOI.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/GehringPachter2019.h5ad",
+      "LastModified": "2026-08-13 05:10:53+00:00",
+      "ETag": "\"a3faea2fc1ec6cceea91ea45073567a1-9\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 73274146,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 73274146,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/GehringPachter2019.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/JoungZhang2023_atlas.h5ad",
+      "LastModified": "2026-08-13 05:46:33+00:00",
+      "ETag": "\"b23446b5b23dd8e4dcc6a8ccecbfcdea-692\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 5804454475,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 5804454475,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/JoungZhang2023_atlas.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/JoungZhang2023_combinatorial.h5ad",
+      "LastModified": "2026-08-13 05:10:27+00:00",
+      "ETag": "\"dcf103ee4c65e77a5ddea4ceda437bb6-100\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 834073300,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 834073300,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/JoungZhang2023_combinatorial.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LaraAstiasoHuntly2023_exvivo.h5ad",
+      "LastModified": "2026-08-13 05:11:54+00:00",
+      "ETag": "\"2ae489b9b129aaa6b1a751348fdca98b-129\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1080740763,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1080740763,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LaraAstiasoHuntly2023_exvivo.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LaraAstiasoHuntly2023_invivo.h5ad",
+      "LastModified": "2026-08-13 05:24:57+00:00",
+      "ETag": "\"4272415aa203f2a7e3c773a2ba89a013-91\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 760312556,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 760312556,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LaraAstiasoHuntly2023_invivo.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LaraAstiasoHuntly2023_leukemia.h5ad",
+      "LastModified": "2026-08-13 05:27:37+00:00",
+      "ETag": "\"f1c6642635c3f2d4b4279f82eb731d43-141\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1176002572,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1176002572,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LaraAstiasoHuntly2023_leukemia.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LiangWang2023.h5ad",
+      "LastModified": "2026-08-13 05:25:12+00:00",
+      "ETag": "\"f38f90a7c1303fd300b744d73e7037d1-44\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 364166137,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 364166137,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LiangWang2023.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LotfollahiTheis2023.h5ad",
+      "LastModified": "2026-08-13 05:28:41+00:00",
+      "ETag": "\"ac7965ee32cf703078c579d5198013f1-29\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 235963662,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 235963662,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/LotfollahiTheis2023.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/McFarlandTsherniak2020.h5ad",
+      "LastModified": "2026-08-13 05:14:14+00:00",
+      "ETag": "\"9266e39306cc35010812cf62a8dbc68f-174\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1459410830,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1459410830,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/McFarlandTsherniak2020.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/NadigOConner2024_hepg2.h5ad",
+      "LastModified": "2026-08-13 05:06:36+00:00",
+      "ETag": "\"0a03ae67e4d7c83c8106ed3f27cbba64-102\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 850590740,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 850590740,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/NadigOConner2024_hepg2.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/NadigOConner2024_jurkat.h5ad",
+      "LastModified": "2026-08-13 05:04:20+00:00",
+      "ETag": "\"99a7db47f40fb22c272f71c5372093e8-155\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1293665804,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1293665804,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/NadigOConner2024_jurkat.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/NormanWeissman2019_filtered.h5ad",
+      "LastModified": "2026-08-13 05:18:38+00:00",
+      "ETag": "\"3fc6b52afaaff67925ebd694f33a24e1-84\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 698680199,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 698680199,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/NormanWeissman2019_filtered.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/PapalexiSatija2021_eccite_RNA.h5ad",
+      "LastModified": "2026-08-13 05:07:43+00:00",
+      "ETag": "\"7b3b739edc0220a74411eea76d149af7-18\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 147215278,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 147215278,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/PapalexiSatija2021_eccite_RNA.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/PapalexiSatija2021_eccite_arrayed_RNA.h5ad",
+      "LastModified": "2026-08-13 05:06:59+00:00",
+      "ETag": "\"3cf0527299d28b73b1228711b29d699f-7\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 52339395,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 52339395,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/PapalexiSatija2021_eccite_arrayed_RNA.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/PapalexiSatija2021_eccite_arrayed_protein.h5ad",
+      "LastModified": "2026-08-13 05:11:59+00:00",
+      "ETag": "\"5e4346855f70c7ae90da9eb75ea12414\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 550922,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 550922,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/PapalexiSatija2021_eccite_arrayed_protein.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/PapalexiSatija2021_eccite_protein.h5ad",
+      "LastModified": "2026-08-13 05:06:41+00:00",
+      "ETag": "\"07290242b0e835c9474bb816de9cda45\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1191551,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1191551,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/PapalexiSatija2021_eccite_protein.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ReplogleWeissman2022_K562_essential.h5ad",
+      "LastModified": "2026-08-13 05:18:38+00:00",
+      "ETag": "\"813776ce2316b901f771618cf8c0e1a8-185\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1546729675,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1546729675,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ReplogleWeissman2022_K562_essential.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ReplogleWeissman2022_K562_gwps.h5ad",
+      "LastModified": "2026-08-13 05:52:12+00:00",
+      "ETag": "\"8f433b3804d2bf040f419ffc38942d14-1050\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 8805466154,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 8805466154,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ReplogleWeissman2022_K562_gwps.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ReplogleWeissman2022_rpe1.h5ad",
+      "LastModified": "2026-08-13 05:21:15+00:00",
+      "ETag": "\"85c803a6efda20457bdd51caceea6615-148\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1236886900,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1236886900,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ReplogleWeissman2022_rpe1.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SantinhaPlatt2023.h5ad",
+      "LastModified": "2026-08-13 05:28:36+00:00",
+      "ETag": "\"85abc9d966b887366512979962249c87-112\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 939335004,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 939335004,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SantinhaPlatt2023.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SchiebingerLander2019_GSE106340.h5ad",
+      "LastModified": "2026-08-13 05:15:55+00:00",
+      "ETag": "\"1bf2977380fe669cc056ffe02f34e3eb-46\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 378858726,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 378858726,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SchiebingerLander2019_GSE106340.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SchiebingerLander2019_GSE115943.h5ad",
+      "LastModified": "2026-08-13 05:30:21+00:00",
+      "ETag": "\"980eb45e01e2d74680c3756b45bf35f1-196\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 1640956517,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 1640956517,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SchiebingerLander2019_GSE115943.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SchraivogelSteinmetz2020_TAP_SCREEN__chromosome_11_screen.h5ad",
+      "LastModified": "2026-08-13 05:19:18+00:00",
+      "ETag": "\"05747eb3613c9966e26ac59a639b4975-3\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 21815981,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 21815981,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SchraivogelSteinmetz2020_TAP_SCREEN__chromosome_11_screen.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SchraivogelSteinmetz2020_TAP_SCREEN__chromosome_8_screen.h5ad",
+      "LastModified": "2026-08-13 05:15:27+00:00",
+      "ETag": "\"7f8da058785932ba5ac76985c97c2226-3\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 21015792,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 21015792,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SchraivogelSteinmetz2020_TAP_SCREEN__chromosome_8_screen.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ShifrutMarson2018.h5ad",
+      "LastModified": "2026-08-13 05:05:29+00:00",
+      "ETag": "\"d706da80f6e1e7203bd0cf2d6baddc95-104\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 871481676,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 871481676,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ShifrutMarson2018.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SrivatsanTrapnell2020_sciplex2.h5ad",
+      "LastModified": "2026-08-13 05:18:21+00:00",
+      "ETag": "\"0d6c2f268091856769511fe493b78649-18\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 145178504,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 145178504,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SrivatsanTrapnell2020_sciplex2.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SrivatsanTrapnell2020_sciplex3.h5ad",
+      "LastModified": "2026-08-13 05:14:48+00:00",
+      "ETag": "\"c5b03691a8824f192374ae5114954be5-302\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 2526631614,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 2526631614,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SrivatsanTrapnell2020_sciplex3.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SrivatsanTrapnell2020_sciplex4.h5ad",
+      "LastModified": "2026-08-13 05:17:59+00:00",
+      "ETag": "\"734a2428945745bc0c280ee77fd30bcc-31\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 253335945,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 253335945,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SrivatsanTrapnell2020_sciplex4.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SunshineHein2023.h5ad",
+      "LastModified": "2026-08-13 05:09:49+00:00",
+      "ETag": "\"769722afba58e12d3acb6fb0daa33d17-89\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 743672579,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 743672579,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/SunshineHein2023.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/TianKampmann2019_day7neuron.h5ad",
+      "LastModified": "2026-08-13 05:18:52+00:00",
+      "ETag": "\"ab901bda220e37f60494015dc1b133ba-33\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 268921535,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 268921535,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/TianKampmann2019_day7neuron.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/TianKampmann2019_iPSC.h5ad",
+      "LastModified": "2026-08-13 05:20:08+00:00",
+      "ETag": "\"b4e3279cbeb0ac9d86481dd80ac9ecb4-42\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 350848489,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 350848489,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/TianKampmann2019_iPSC.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/TianKampmann2021_CRISPRa.h5ad",
+      "LastModified": "2026-08-13 05:21:40+00:00",
+      "ETag": "\"6cd326d8e884256b443dcd051d17b114-19\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 154788473,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 154788473,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/TianKampmann2021_CRISPRa.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/TianKampmann2021_CRISPRi.h5ad",
+      "LastModified": "2026-08-13 05:21:40+00:00",
+      "ETag": "\"c0c850a5f3105e6df95a7d35da2b5b53-35\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 289389479,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 289389479,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/TianKampmann2021_CRISPRi.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/WeinrebKlein2020.h5ad",
+      "LastModified": "2026-08-13 05:21:54+00:00",
+      "ETag": "\"606e1950b635bd1252bc42eacbd98a9b-28\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 228524613,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 228524613,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/WeinrebKlein2020.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/WesselsSatija2023.h5ad",
+      "LastModified": "2026-08-13 05:26:48+00:00",
+      "ETag": "\"62960cba0bd23bc940358810e45f7f18-27\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 219393529,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 219393529,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/WesselsSatija2023.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/XieHon2017.h5ad",
+      "LastModified": "2026-08-13 05:21:10+00:00",
+      "ETag": "\"eecedc8ac95f35d43c121255f73bd675-14\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 117356359,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 117356359,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/XieHon2017.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/XuCao2023.h5ad",
+      "LastModified": "2026-08-13 05:23:11+00:00",
+      "ETag": "\"636af7abbe0b02e8d76d489b1ebffa83-41\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 336637209,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 336637209,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/XuCao2023.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ZhaoSims2021.h5ad",
+      "LastModified": "2026-08-13 05:25:13+00:00",
+      "ETag": "\"29fa22bf2161188d04018733ca1af36d-70\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 586888140,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 586888140,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ZhaoSims2021.h5ad"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/_pull.log",
+      "LastModified": "2026-08-13 05:52:26+00:00",
+      "ETag": "\"fe4266dbd8fd4b9236452a293e4c7407\"",
+      "ChecksumAlgorithm": [
+        "CRC64NVME"
+      ],
+      "ChecksumType": "FULL_OBJECT",
+      "Size": 2332,
+      "StorageClass": "STANDARD",
+      "type": "file",
+      "size": 2332,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/_pull.log"
+    }
+  ],
+  "reference": [
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/reference/GSE133344",
+      "Size": 0,
+      "StorageClass": "DIRECTORY",
+      "type": "directory",
+      "size": 0,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/reference/GSE133344"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/reference/GSE90063",
+      "Size": 0,
+      "StorageClass": "DIRECTORY",
+      "type": "directory",
+      "size": 0,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/reference/GSE90063"
+    },
+    {
+      "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/reference/GSE90546",
+      "Size": 0,
+      "StorageClass": "DIRECTORY",
+      "type": "directory",
+      "size": 0,
+      "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/reference/GSE90546"
+    }
+  ]
+}

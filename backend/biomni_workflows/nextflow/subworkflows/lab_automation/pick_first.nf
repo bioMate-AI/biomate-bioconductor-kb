@@ -48,7 +48,7 @@ with open("pick_first_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("pick_first_output.txt", "w") as f:
-    f.write("Biomni: Pick First Results" + NL)
+    f.write("BioMate: Pick First Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

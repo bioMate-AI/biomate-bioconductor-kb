@@ -1,0 +1,111 @@
+; cada_mn.itp — CaDA (cationic-dummy-atom) octahedral Mn2+ model for GROMACS.
+; SOURCE: Duarte, Bauer, Barrozo, Amrein, Purg, Aqvist, Kamerlin, J. Phys. Chem. B
+;         2014, 118, 4351, Table 1 (Mn2+, octahedral), fit for TIP3P/SPC.
+;         Values transcribed verbatim from docs/20261019_AVB6_CADA_AND_FEP_SETUP.md (commit d08855662).
+;
+; ============================= AUDIT / VERIFY-BEFORE-SPEND ============================
+; The Duarte values are given in AMBER-convention kcal/mol & Angstrom. The GROMACS
+; numbers below are the unit conversions, with the arithmetic shown inline so a human
+; (and `gmx grompp`) can verify every one. DO NOT trust these as validated until a
+; `gmx grompp` dry-run in the gromacs-cuda:2024-cu12 container parses this file without
+; error AND a short NVT of the metal-complete complex keeps the 6 Mn-O(Asp) inner-sphere
+; distances at ~2.0-2.4 A (the CaDA model's whole purpose). This file is INPUT to that
+; validation step, not a validated artifact. See the review note.
+;
+; Conversion factors used (shown, not asserted):
+;   energy : 1 kcal = 4.184 kJ
+;   length : 1 A    = 0.1 nm
+;   bond k : AMBER U=K(r-r0)^2 ; GROMACS type1 U=(1/2)k(r-r0)^2  => k_gmx = 2*K*4.184*100 = K*836.8  [kJ/mol/nm^2]
+;   angle k: AMBER U=K(th-th0)^2; GROMACS type1 U=(1/2)k(th-th0)^2 => k_gmx = 2*K*4.184 = K*8.368      [kJ/mol/rad^2]
+;   LJ     : Rmin/2 -> sigma = (2*(Rmin/2)) / 2^(1/6) ; eps[kJ] = eps[kcal]*4.184
+; =====================================================================================
+
+[ atomtypes ]
+; name  at.num   mass      charge  ptype   sigma(nm)     epsilon(kJ/mol)
+; center: Duarte mass 36.94, LJ Rmin/2=0.952 A, eps=12.83 kcal/mol
+;   Rmin = 1.904 A ; sigma = 1.904 / 2^(1/6) = 1.904/1.122462 = 1.69627 A = 0.169627 nm
+;   epsilon = 12.83 * 4.184 = 53.68072 kJ/mol
+  MNC    25     36.94000   0.00000   A     1.69627e-01   5.368072e+01
+; dummy: Duarte mass 3.00, B_i=0 => epsilon = 0 (point charge, negligible vdW); sigma nominal.
+; at.num is a COSMETIC label GROMACS ignores for energetics; it is set NONZERO (1) only so that
+; ParmEd/OpenMM parsers (used elsewhere in this repo) do not misclassify the dummy as a massless
+; virtual site and refuse its bonds. The dummy is a REAL mass-bearing, bonded, charged particle
+; (CaDA convention), NOT a GROMACS [virtual_sites*] entry. Verified: with at.num=1 ParmEd parses
+; the full bonded network and OpenMM builds a valid System (fep/validate_cada_itp.py).
+  MND     1      3.00000   0.00000   A     1.00000e-02   0.000000e+00
+
+[ moleculetype ]
+; name   nrexcl
+  MN2     3
+
+[ atoms ]
+; id  type  resnr  resname  atom  cgnr   charge     mass
+;   center carries -1.00 ; six dummies +0.50 each ; net = -1.00 + 6*0.50 = +2.00 (Mn2+)
+   1   MNC    1     MN2      MN     1    -1.00000   36.94000
+   2   MND    1     MN2      D1     1     0.50000    3.00000
+   3   MND    1     MN2      D2     1     0.50000    3.00000
+   4   MND    1     MN2      D3     1     0.50000    3.00000
+   5   MND    1     MN2      D4     1     0.50000    3.00000
+   6   MND    1     MN2      D5     1     0.50000    3.00000
+   7   MND    1     MN2      D6     1     0.50000    3.00000
+
+[ bonds ]
+; M-D : K=800 kcal/mol/A^2, r0=0.900 A  -> k=800*836.8=669440 kJ/mol/nm^2 ; r0=0.0900 nm
+; func 1 = harmonic
+   1   2   1   0.09000   669440.0
+   1   3   1   0.09000   669440.0
+   1   4   1   0.09000   669440.0
+   1   5   1   0.09000   669440.0
+   1   6   1   0.09000   669440.0
+   1   7   1   0.09000   669440.0
+; D-Dadjacent : K=800, r0=1.273 A (=0.9*sqrt2) -> k=669440 ; r0=0.1273 nm
+; 12 edges of the octahedron (each dummy adjacent to 4 others; opposite pair excluded)
+   2   4   1   0.12730   669440.0
+   2   5   1   0.12730   669440.0
+   2   6   1   0.12730   669440.0
+   2   7   1   0.12730   669440.0
+   3   4   1   0.12730   669440.0
+   3   5   1   0.12730   669440.0
+   3   6   1   0.12730   669440.0
+   3   7   1   0.12730   669440.0
+   4   6   1   0.12730   669440.0
+   4   7   1   0.12730   669440.0
+   5   6   1   0.12730   669440.0
+   5   7   1   0.12730   669440.0
+
+[ angles ]
+; Kth=250 kcal/mol/rad^2 -> k=250*8.368=2092.0 kJ/mol/rad^2 (func 1 harmonic; th0 in degrees)
+; D-M-D trans (opposite dummies) = 180 deg ; D-M-D cis (adjacent) = 90 deg.
+; PAIRING RESOLVED (fep/validate_cada_itp.py): the dummy build convention is
+;   D1..D6 (atoms 2..7) = +x,-x,+y,-y,+z,-z. Geometry proof confirms the three TRANS (180 deg)
+;   pairs are exactly (2,3),(4,5),(6,7) and the twelve CIS (90 deg) pairs are the remaining
+;   X-M-X combinations -- which match the [bonds] D-D list (adjacent D-D = 0.9*sqrt2 = 1.273 A;
+;   opposite D-D = 1.800 A, intentionally NOT bonded). The coordinate builder MUST emit dummies
+;   in this +x,-x,+y,-y,+z,-z order for the pairing to hold.
+; --- trans (180): the three opposite pairs through the center
+   2   1   3   1   180.0   2092.0
+   4   1   5   1   180.0   2092.0
+   6   1   7   1   180.0   2092.0
+; --- cis (90): the twelve adjacent D-M-D angles
+   2   1   4   1    90.0   2092.0
+   2   1   5   1    90.0   2092.0
+   2   1   6   1    90.0   2092.0
+   2   1   7   1    90.0   2092.0
+   3   1   4   1    90.0   2092.0
+   3   1   5   1    90.0   2092.0
+   3   1   6   1    90.0   2092.0
+   3   1   7   1    90.0   2092.0
+   4   1   6   1    90.0   2092.0
+   4   1   7   1    90.0   2092.0
+   5   1   6   1    90.0   2092.0
+   5   1   7   1    90.0   2092.0
+
+[ exclusions ]
+; exclude all intra-complex non-bonded within the dummy cage (handled by nrexcl=3 +
+; explicit; the center<->dummy and dummy<->dummy LJ/Coulomb are not physical)
+  1  2 3 4 5 6 7
+  2  3 4 5 6 7
+  3  4 5 6 7
+  4  5 6 7
+  5  6 7
+  6  7

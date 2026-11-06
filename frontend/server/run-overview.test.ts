@@ -79,6 +79,27 @@ describe("run-overview", () => {
     expect(row.artifactReadiness?.source).toBe("nextflow_status");
   });
 
+  it("does not call an output directory an artifact", () => {
+    const row = buildRunOverviewRow(makeRun({
+      metrics: { outputs: { fileCount: 0 } } as any,
+      execution: {
+        status: "completed",
+        executionEngine: "nextflow",
+        nextflowStatus: {
+          outdir: "s3://biomate-nextflow-work/nextflow/outputs/user/run-1",
+          log_tail: ["published to /tmp/work"],
+        },
+      },
+    }));
+
+    expect(row.artifactReadiness).toMatchObject({
+      hasOutputs: false,
+      estimatedOutputCount: 0,
+      meetsContract: false,
+      source: "unknown",
+    });
+  });
+
   it("getExecutionRunsOverview applies scope, status/search filters, sort and pagination", async () => {
     const run1 = makeRun({
       id: "run-1",

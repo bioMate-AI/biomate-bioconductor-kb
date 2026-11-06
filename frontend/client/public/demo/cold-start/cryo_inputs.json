@@ -1,0 +1,20 @@
+{
+  "dataset": "EMPIAR-10028",
+  "description": "E. coli beta-galactosidase, 7028 EER/MRCS movies (300 kV Krios, K2 Summit)",
+  "pixel_size_angstrom": 0.885,
+  "voltage_kv": 300,
+  "cs_mm": 2.7,
+  "amplitude_contrast": 0.1,
+  "symmetry": "D2",
+  "particle_diameter_angstrom": 180,
+  "target_resolution_angstrom": 2.2,
+  "movie_format": "mrcs",
+  "num_movies_total": 7028,
+  "num_movies_staged": 20,
+  "staged_movies_prefix": "Micrographs/",
+  "source_ftp": "ftp://ftp.ebi.ac.uk/pub/databases/empiar/archive/10028/",
+  "source_http": "https://ftp.ebi.ac.uk/empiar/world_availability/10028/data/Micrographs/",
+  "staged_date": "2026-03-12",
+  "s3_path": "s3://biomate-cryo-data/empiar-10028/",
+  "notes": "Subset: 20 movies from Micrographs_part1 (001-020_movie.mrcs). Full dataset available via EMPIAR FTP."
+}

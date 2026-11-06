@@ -1,0 +1,3842 @@
+{
+  "metadata": {
+    "version": "2.0.0",
+    "created": "2025-10-07",
+    "description": "Comprehensive Galaxy LC-MS Platform Dataset Index - All local files and API functions",
+    "total_datasets": 115,
+    "sources": [
+      "biomni_data_lake",
+      "metaboanalyst",
+      "biomni_api"
+    ],
+    "biomni_local_count": 76,
+    "metaboanalyst_count": 8,
+    "api_count": 31
+  },
+  "datasets": {
+    "biomni_data_lake_BindingDB_All_202409_tsv": {
+      "name": "BindingDB_All_202409.tsv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/BindingDB_All_202409.tsv",
+      "exists": true,
+      "size": "5.8GB",
+      "format": "tsv",
+      "description": "Comprehensive database of measured binding affinities for drug discovery (203K entries)",
+      "category": "drug_discovery",
+      "data_type": "binding_affinity",
+      "use_cases": [
+        "drug target prediction",
+        "compound screening",
+        "pharmacology"
+      ],
+      "search_text": "BindingDB_All_202409.tsv Comprehensive database of measured binding affinities for drug discovery (203K entries) drug_discovery drug target prediction compound screening pharmacology",
+      "index_columns": [
+        "ligand",
+        "target",
+        "affinity",
+        "ki",
+        "kd",
+        "ic50"
+      ],
+      "schema": {
+        "format": "tsv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM BindingDB_All_202409.tsv WHERE affinity < 0.05 ORDER BY affinity",
+        "Find compounds in BindingDB_All_202409.tsv for drug target prediction"
+      ]
+    },
+    "biomni_data_lake_DepMap_CRISPRGeneDependency_csv": {
+      "name": "DepMap_CRISPRGeneDependency.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DepMap_CRISPRGeneDependency.csv",
+      "exists": true,
+      "size": "403.3MB",
+      "format": "csv",
+      "description": "Cancer cell line gene dependency scores from CRISPR screens",
+      "category": "cancer_genomics",
+      "data_type": "gene_dependency",
+      "use_cases": [
+        "cancer targets",
+        "synthetic lethality",
+        "precision oncology"
+      ],
+      "search_text": "DepMap_CRISPRGeneDependency.csv Cancer cell line gene dependency scores from CRISPR screens cancer_genomics cancer targets synthetic lethality precision oncology",
+      "index_columns": [
+        "cell_line",
+        "gene",
+        "dependency_score",
+        "effect_score"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM DepMap_CRISPRGeneDependency.csv WHERE gene = 'BRCA1'"
+      ]
+    },
+    "biomni_data_lake_DepMap_CRISPRGeneEffect_csv": {
+      "name": "DepMap_CRISPRGeneEffect.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DepMap_CRISPRGeneEffect.csv",
+      "exists": true,
+      "size": "410.5MB",
+      "format": "csv",
+      "description": "CRISPR gene effect scores across cancer cell lines",
+      "category": "cancer_genomics",
+      "data_type": "gene_effect",
+      "use_cases": [
+        "gene essentiality",
+        "cancer vulnerabilities"
+      ],
+      "search_text": "DepMap_CRISPRGeneEffect.csv CRISPR gene effect scores across cancer cell lines cancer_genomics gene essentiality cancer vulnerabilities",
+      "index_columns": [
+        "cell_line",
+        "gene",
+        "dependency_score",
+        "effect_score"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM DepMap_CRISPRGeneEffect.csv WHERE gene = 'BRCA1'"
+      ]
+    },
+    "biomni_data_lake_DepMap_Model_csv": {
+      "name": "DepMap_Model.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DepMap_Model.csv",
+      "exists": true,
+      "size": "678.0KB",
+      "format": "csv",
+      "description": "Cancer cell line model metadata (DepMap)",
+      "category": "cancer_genomics",
+      "data_type": "cell_line_metadata",
+      "use_cases": [
+        "cell line selection",
+        "cancer model systems"
+      ],
+      "search_text": "DepMap_Model.csv Cancer cell line model metadata (DepMap) cancer_genomics cell line selection cancer model systems",
+      "index_columns": [
+        "cell_line",
+        "gene",
+        "dependency_score",
+        "effect_score"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM DepMap_Model.csv WHERE gene = 'BRCA1'"
+      ]
+    },
+    "biomni_data_lake_DepMap_OmicsExpressionProteinCodingGenesTPMLogp1_csv": {
+      "name": "DepMap_OmicsExpressionProteinCodingGenesTPMLogp1.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DepMap_OmicsExpressionProteinCodingGenesTPMLogp1.csv",
+      "exists": true,
+      "size": "497.4MB",
+      "format": "csv",
+      "description": "RNA expression (TPM) for protein-coding genes across cancer cell lines",
+      "category": "cancer_genomics",
+      "data_type": "gene_expression",
+      "use_cases": [
+        "cancer transcriptomics",
+        "biomarker discovery"
+      ],
+      "search_text": "DepMap_OmicsExpressionProteinCodingGenesTPMLogp1.csv RNA expression (TPM) for protein-coding genes across cancer cell lines cancer_genomics cancer transcriptomics biomarker discovery",
+      "index_columns": [
+        "cell_line",
+        "gene",
+        "dependency_score",
+        "effect_score"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM DepMap_OmicsExpressionProteinCodingGenesTPMLogp1.csv WHERE gene = 'BRCA1'"
+      ]
+    },
+    "biomni_data_lake_DisGeNET_parquet": {
+      "name": "DisGeNET.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/DisGeNET.parquet",
+      "exists": true,
+      "size": "2.8MB",
+      "format": "parquet",
+      "description": "Disease-gene associations from literature and databases",
+      "category": "disease_genomics",
+      "data_type": "disease_gene",
+      "use_cases": [
+        "disease genetics",
+        "gene-disease networks"
+      ],
+      "search_text": "DisGeNET.parquet Disease-gene associations from literature and databases disease_genomics disease genetics gene-disease networks",
+      "index_columns": [
+        "gene",
+        "disease",
+        "score",
+        "pmid"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM DisGeNET.parquet WHERE gene = 'BRCA1'",
+        "SELECT * FROM DisGeNET.parquet WHERE disease LIKE '%cancer%'",
+        "SELECT * FROM DisGeNET.parquet WHERE score < 0.05 ORDER BY score"
+      ]
+    },
+    "biomni_data_lake_McPAS_TCR_parquet": {
+      "name": "McPAS-TCR.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/McPAS-TCR.parquet",
+      "exists": true,
+      "size": "1011.0KB",
+      "format": "parquet",
+      "description": "T cell receptor sequences and their peptide-MHC specificities",
+      "category": "immunology",
+      "data_type": "tcr_sequences",
+      "use_cases": [
+        "immunotherapy",
+        "TCR repertoire analysis"
+      ],
+      "search_text": "McPAS-TCR.parquet T cell receptor sequences and their peptide-MHC specificities immunology immunotherapy TCR repertoire analysis",
+      "index_columns": [
+        "tcr_sequence",
+        "epitope",
+        "mhc",
+        "pathology"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_Virus_Host_PPI_P_HIPSTER_2020_parquet": {
+      "name": "Virus-Host_PPI_P-HIPSTER_2020.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/Virus-Host_PPI_P-HIPSTER_2020.parquet",
+      "exists": true,
+      "size": "774.5KB",
+      "format": "parquet",
+      "description": "Virus-host protein-protein interactions",
+      "category": "virology",
+      "data_type": "virus_host_ppi",
+      "use_cases": [
+        "viral pathogenesis",
+        "host-pathogen interactions"
+      ],
+      "search_text": "Virus-Host_PPI_P-HIPSTER_2020.parquet Virus-host protein-protein interactions virology viral pathogenesis host-pathogen interactions",
+      "index_columns": [
+        "virus_protein",
+        "host_protein",
+        "interaction_type"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_affinity_capture_ms_parquet": {
+      "name": "affinity_capture-ms.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/affinity_capture-ms.parquet",
+      "exists": true,
+      "size": "5.3MB",
+      "format": "parquet",
+      "description": "Protein-protein interactions identified via affinity capture followed by mass spectrometry",
+      "category": "protein_interactions",
+      "data_type": "ppi",
+      "use_cases": [
+        "protein interaction networks",
+        "functional genomics",
+        "systems biology"
+      ],
+      "search_text": "affinity_capture-ms.parquet Protein-protein interactions identified via affinity capture followed by mass spectrometry protein_interactions protein interaction networks functional genomics systems biology",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Search affinity_capture-ms.parquet for protein interactions in protein interaction networks"
+      ]
+    },
+    "biomni_data_lake_affinity_capture_rna_parquet": {
+      "name": "affinity_capture-rna.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/affinity_capture-rna.parquet",
+      "exists": true,
+      "size": "41.9KB",
+      "format": "parquet",
+      "description": "RNA-protein interactions identified via affinity capture",
+      "category": "rna_protein_interactions",
+      "data_type": "rpi",
+      "use_cases": [
+        "RNA binding proteins",
+        "post-transcriptional regulation"
+      ],
+      "search_text": "affinity_capture-rna.parquet RNA-protein interactions identified via affinity capture rna_protein_interactions RNA binding proteins post-transcriptional regulation",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Search affinity_capture-rna.parquet for protein interactions in RNA binding proteins"
+      ]
+    },
+    "biomni_data_lake_broad_repurposing_hub_molecule_with_smiles_parquet": {
+      "name": "broad_repurposing_hub_molecule_with_smiles.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/broad_repurposing_hub_molecule_with_smiles.parquet",
+      "exists": true,
+      "size": "1.1MB",
+      "format": "parquet",
+      "description": "Broad Institute drug repurposing hub molecules with SMILES structures",
+      "category": "drug_repurposing",
+      "data_type": "chemical_structures",
+      "use_cases": [
+        "drug repurposing",
+        "chemical similarity search"
+      ],
+      "search_text": "broad_repurposing_hub_molecule_with_smiles.parquet Broad Institute drug repurposing hub molecules with SMILES structures drug_repurposing drug repurposing chemical similarity search",
+      "index_columns": [
+        "compound",
+        "target",
+        "phase",
+        "moa"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Find compounds in broad_repurposing_hub_molecule_with_smiles.parquet for drug repurposing"
+      ]
+    },
+    "biomni_data_lake_broad_repurposing_hub_phase_moa_target_info_parquet": {
+      "name": "broad_repurposing_hub_phase_moa_target_info.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/broad_repurposing_hub_phase_moa_target_info.parquet",
+      "exists": true,
+      "size": "174.0KB",
+      "format": "parquet",
+      "description": "Clinical phase, mechanism of action, and target information for repurposing drugs",
+      "category": "drug_repurposing",
+      "data_type": "drug_metadata",
+      "use_cases": [
+        "drug MOA analysis",
+        "target identification"
+      ],
+      "search_text": "broad_repurposing_hub_phase_moa_target_info.parquet Clinical phase, mechanism of action, and target information for repurposing drugs drug_repurposing drug MOA analysis target identification",
+      "index_columns": [
+        "compound",
+        "target",
+        "phase",
+        "moa"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Find compounds in broad_repurposing_hub_phase_moa_target_info.parquet for drug MOA analysis"
+      ]
+    },
+    "biomni_data_lake_co_fractionation_parquet": {
+      "name": "co-fractionation.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/co-fractionation.parquet",
+      "exists": true,
+      "size": "1.4MB",
+      "format": "parquet",
+      "description": "Protein complex prediction via co-fractionation experiments",
+      "category": "protein_complexes",
+      "data_type": "protein_complexes",
+      "use_cases": [
+        "protein complex prediction",
+        "functional modules"
+      ],
+      "search_text": "co-fractionation.parquet Protein complex prediction via co-fractionation experiments protein_complexes protein complex prediction functional modules",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Search co-fractionation.parquet for protein interactions in protein complex prediction"
+      ]
+    },
+    "biomni_data_lake_czi_census_datasets_v4_parquet": {
+      "name": "czi_census_datasets_v4.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/czi_census_datasets_v4.parquet",
+      "exists": true,
+      "size": "367.6KB",
+      "format": "parquet",
+      "description": "Chan Zuckerberg Initiative single-cell census datasets",
+      "category": "single_cell",
+      "data_type": "sc_metadata",
+      "use_cases": [
+        "single-cell analysis",
+        "cell atlas"
+      ],
+      "search_text": "czi_census_datasets_v4.parquet Chan Zuckerberg Initiative single-cell census datasets single_cell single-cell analysis cell atlas",
+      "index_columns": [
+        "dataset_id",
+        "cell_type",
+        "tissue",
+        "organism"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_ddinter_alimentary_tract_metabolism_csv": {
+      "name": "ddinter_alimentary_tract_metabolism.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_alimentary_tract_metabolism.csv",
+      "exists": true,
+      "size": "3.2MB",
+      "format": "csv",
+      "description": "Drug-drug interactions affecting alimentary tract and metabolism",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "polypharmacy",
+        "adverse drug events"
+      ],
+      "search_text": "ddinter_alimentary_tract_metabolism.csv Drug-drug interactions affecting alimentary tract and metabolism drug_interactions polypharmacy adverse drug events",
+      "index_columns": [
+        "drug1",
+        "drug2",
+        "interaction_type",
+        "severity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Find compounds in ddinter_alimentary_tract_metabolism.csv for adverse drug events"
+      ]
+    },
+    "biomni_data_lake_ddinter_antineoplastic_csv": {
+      "name": "ddinter_antineoplastic.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_antineoplastic.csv",
+      "exists": true,
+      "size": "3.7MB",
+      "format": "csv",
+      "description": "Drug-drug interactions for antineoplastic agents",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "cancer drug combinations",
+        "chemotherapy interactions"
+      ],
+      "search_text": "ddinter_antineoplastic.csv Drug-drug interactions for antineoplastic agents drug_interactions cancer drug combinations chemotherapy interactions",
+      "index_columns": [
+        "drug1",
+        "drug2",
+        "interaction_type",
+        "severity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Find compounds in ddinter_antineoplastic.csv for cancer drug combinations"
+      ]
+    },
+    "biomni_data_lake_ddinter_antiparasitic_csv": {
+      "name": "ddinter_antiparasitic.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_antiparasitic.csv",
+      "exists": true,
+      "size": "310.0KB",
+      "format": "csv",
+      "description": "Drug-drug interactions for antiparasitic drugs",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "parasitic disease treatment"
+      ],
+      "search_text": "ddinter_antiparasitic.csv Drug-drug interactions for antiparasitic drugs drug_interactions parasitic disease treatment",
+      "index_columns": [
+        "drug1",
+        "drug2",
+        "interaction_type",
+        "severity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_ddinter_blood_organs_csv": {
+      "name": "ddinter_blood_organs.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_blood_organs.csv",
+      "exists": true,
+      "size": "847.4KB",
+      "format": "csv",
+      "description": "Drug-drug interactions affecting blood and blood-forming organs",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "hematology",
+        "coagulation disorders"
+      ],
+      "search_text": "ddinter_blood_organs.csv Drug-drug interactions affecting blood and blood-forming organs drug_interactions hematology coagulation disorders",
+      "index_columns": [
+        "drug1",
+        "drug2",
+        "interaction_type",
+        "severity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_ddinter_dermatological_csv": {
+      "name": "ddinter_dermatological.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_dermatological.csv",
+      "exists": true,
+      "size": "1.5MB",
+      "format": "csv",
+      "description": "Drug-drug interactions for dermatological agents",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "dermatology",
+        "skin disorders"
+      ],
+      "search_text": "ddinter_dermatological.csv Drug-drug interactions for dermatological agents drug_interactions dermatology skin disorders",
+      "index_columns": [
+        "drug1",
+        "drug2",
+        "interaction_type",
+        "severity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_ddinter_hormonal_csv": {
+      "name": "ddinter_hormonal.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_hormonal.csv",
+      "exists": true,
+      "size": "688.6KB",
+      "format": "csv",
+      "description": "Drug-drug interactions for hormonal preparations",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "endocrinology",
+        "hormone therapy"
+      ],
+      "search_text": "ddinter_hormonal.csv Drug-drug interactions for hormonal preparations drug_interactions endocrinology hormone therapy",
+      "index_columns": [
+        "drug1",
+        "drug2",
+        "interaction_type",
+        "severity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_ddinter_respiratory_csv": {
+      "name": "ddinter_respiratory.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_respiratory.csv",
+      "exists": true,
+      "size": "1.7MB",
+      "format": "csv",
+      "description": "Drug-drug interactions for respiratory system drugs",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "respiratory diseases",
+        "asthma/COPD"
+      ],
+      "search_text": "ddinter_respiratory.csv Drug-drug interactions for respiratory system drugs drug_interactions respiratory diseases asthma/COPD",
+      "index_columns": [
+        "drug1",
+        "drug2",
+        "interaction_type",
+        "severity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_ddinter_various_csv": {
+      "name": "ddinter_various.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/ddinter_various.csv",
+      "exists": true,
+      "size": "684.4KB",
+      "format": "csv",
+      "description": "Miscellaneous drug-drug interactions",
+      "category": "drug_interactions",
+      "data_type": "ddi",
+      "use_cases": [
+        "general pharmacology"
+      ],
+      "search_text": "ddinter_various.csv Miscellaneous drug-drug interactions drug_interactions general pharmacology",
+      "index_columns": [
+        "drug1",
+        "drug2",
+        "interaction_type",
+        "severity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_dosage_growth_defect_parquet": {
+      "name": "dosage_growth_defect.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/dosage_growth_defect.parquet",
+      "exists": true,
+      "size": "21.1KB",
+      "format": "parquet",
+      "description": "Gene dosage and growth defect relationships",
+      "category": "genetics",
+      "data_type": "gene_dosage",
+      "use_cases": [
+        "genetic interactions",
+        "gene dosage sensitivity"
+      ],
+      "search_text": "dosage_growth_defect.parquet Gene dosage and growth defect relationships genetics genetic interactions gene dosage sensitivity",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_enamine_cloud_library_smiles_pkl": {
+      "name": "enamine_cloud_library_smiles.pkl",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/enamine_cloud_library_smiles.pkl",
+      "exists": true,
+      "size": "15.3KB",
+      "format": "pkl",
+      "description": "Enamine chemical library SMILES structures",
+      "category": "chemical_libraries",
+      "data_type": "smiles",
+      "use_cases": [
+        "virtual screening",
+        "compound selection"
+      ],
+      "search_text": "enamine_cloud_library_smiles.pkl Enamine chemical library SMILES structures chemical_libraries virtual screening compound selection",
+      "index_columns": [
+        "object_id"
+      ],
+      "schema": {
+        "format": "pkl",
+        "encoding": "utf-8",
+        "type": "pickle",
+        "python_version": "3.x"
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_evebio_assay_table_csv": {
+      "name": "evebio_assay_table.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_assay_table.csv",
+      "exists": true,
+      "size": "12.3KB",
+      "format": "csv",
+      "description": "EveBio bioassay experimental data",
+      "category": "bioassays",
+      "data_type": "assay_data",
+      "use_cases": [
+        "drug screening",
+        "compound profiling"
+      ],
+      "search_text": "evebio_assay_table.csv EveBio bioassay experimental data bioassays drug screening compound profiling",
+      "index_columns": [
+        "compound_id",
+        "assay_id",
+        "target",
+        "activity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Find compounds in evebio_assay_table.csv for drug screening"
+      ]
+    },
+    "biomni_data_lake_evebio_bundle_table_csv": {
+      "name": "evebio_bundle_table.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_bundle_table.csv",
+      "exists": true,
+      "size": "8.0KB",
+      "format": "csv",
+      "description": "EveBio experimental bundle metadata",
+      "category": "bioassays",
+      "data_type": "experiment_metadata",
+      "use_cases": [
+        "experiment design",
+        "data provenance"
+      ],
+      "search_text": "evebio_bundle_table.csv EveBio experimental bundle metadata bioassays experiment design data provenance",
+      "index_columns": [
+        "compound_id",
+        "assay_id",
+        "target",
+        "activity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_evebio_compound_table_csv": {
+      "name": "evebio_compound_table.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_compound_table.csv",
+      "exists": true,
+      "size": "147.0KB",
+      "format": "csv",
+      "description": "EveBio tested compounds database",
+      "category": "bioassays",
+      "data_type": "compound_data",
+      "use_cases": [
+        "compound library",
+        "chemical diversity"
+      ],
+      "search_text": "evebio_compound_table.csv EveBio tested compounds database bioassays compound library chemical diversity",
+      "index_columns": [
+        "compound_id",
+        "assay_id",
+        "target",
+        "activity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_evebio_control_table_csv": {
+      "name": "evebio_control_table.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_control_table.csv",
+      "exists": true,
+      "size": "5.2MB",
+      "format": "csv",
+      "description": "EveBio experimental controls",
+      "category": "bioassays",
+      "data_type": "controls",
+      "use_cases": [
+        "quality control",
+        "assay validation"
+      ],
+      "search_text": "evebio_control_table.csv EveBio experimental controls bioassays quality control assay validation",
+      "index_columns": [
+        "compound_id",
+        "assay_id",
+        "target",
+        "activity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_evebio_detailed_result_table_csv": {
+      "name": "evebio_detailed_result_table.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_detailed_result_table.csv",
+      "exists": true,
+      "size": "46.6MB",
+      "format": "csv",
+      "description": "EveBio detailed experimental results",
+      "category": "bioassays",
+      "data_type": "assay_results",
+      "use_cases": [
+        "dose-response analysis",
+        "hit identification"
+      ],
+      "search_text": "evebio_detailed_result_table.csv EveBio detailed experimental results bioassays dose-response analysis hit identification",
+      "index_columns": [
+        "compound_id",
+        "assay_id",
+        "target",
+        "activity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_evebio_observed_points_table_csv": {
+      "name": "evebio_observed_points_table.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_observed_points_table.csv",
+      "exists": true,
+      "size": "167.2MB",
+      "format": "csv",
+      "description": "EveBio observed data points",
+      "category": "bioassays",
+      "data_type": "raw_data",
+      "use_cases": [
+        "data analysis",
+        "quality assessment"
+      ],
+      "search_text": "evebio_observed_points_table.csv EveBio observed data points bioassays data analysis quality assessment",
+      "index_columns": [
+        "compound_id",
+        "assay_id",
+        "target",
+        "activity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_evebio_summary_result_table_csv": {
+      "name": "evebio_summary_result_table.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_summary_result_table.csv",
+      "exists": true,
+      "size": "23.0MB",
+      "format": "csv",
+      "description": "EveBio summarized experimental results",
+      "category": "bioassays",
+      "data_type": "summary_stats",
+      "use_cases": [
+        "hit summary",
+        "activity profiling"
+      ],
+      "search_text": "evebio_summary_result_table.csv EveBio summarized experimental results bioassays hit summary activity profiling",
+      "index_columns": [
+        "compound_id",
+        "assay_id",
+        "target",
+        "activity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_evebio_target_table_csv": {
+      "name": "evebio_target_table.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/evebio_target_table.csv",
+      "exists": true,
+      "size": "4.2KB",
+      "format": "csv",
+      "description": "EveBio biological targets",
+      "category": "bioassays",
+      "data_type": "targets",
+      "use_cases": [
+        "target annotation",
+        "MOA analysis"
+      ],
+      "search_text": "evebio_target_table.csv EveBio biological targets bioassays target annotation MOA analysis",
+      "index_columns": [
+        "compound_id",
+        "assay_id",
+        "target",
+        "activity"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_gene_info_parquet": {
+      "name": "gene_info.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/gene_info.parquet",
+      "exists": true,
+      "size": "3.8MB",
+      "format": "parquet",
+      "description": "Comprehensive gene information and annotations",
+      "category": "genomics",
+      "data_type": "gene_annotations",
+      "use_cases": [
+        "gene annotation",
+        "functional genomics"
+      ],
+      "search_text": "gene_info.parquet Comprehensive gene information and annotations genomics gene annotation functional genomics",
+      "index_columns": [
+        "gene_id",
+        "symbol",
+        "description",
+        "organism"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_genebass_missense_LC_filtered_pkl": {
+      "name": "genebass_missense_LC_filtered.pkl",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/genebass_missense_LC_filtered.pkl",
+      "exists": true,
+      "size": "1.5GB",
+      "format": "pkl",
+      "description": "GeneBass missense variant associations (LC filtered)",
+      "category": "population_genetics",
+      "data_type": "variant_associations",
+      "use_cases": [
+        "variant interpretation",
+        "GWAS"
+      ],
+      "search_text": "genebass_missense_LC_filtered.pkl GeneBass missense variant associations (LC filtered) population_genetics variant interpretation GWAS",
+      "index_columns": [
+        "gene",
+        "variant",
+        "phenotype",
+        "pvalue"
+      ],
+      "schema": {
+        "format": "pkl",
+        "encoding": "utf-8",
+        "type": "pickle",
+        "python_version": "3.x"
+      },
+      "query_examples": [
+        "SELECT * FROM genebass_missense_LC_filtered.pkl WHERE gene = 'BRCA1'",
+        "SELECT * FROM genebass_missense_LC_filtered.pkl WHERE pvalue < 0.05 ORDER BY pvalue"
+      ]
+    },
+    "biomni_data_lake_genebass_pLoF_filtered_pkl": {
+      "name": "genebass_pLoF_filtered.pkl",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/genebass_pLoF_filtered.pkl",
+      "exists": true,
+      "size": "1.4GB",
+      "format": "pkl",
+      "description": "GeneBass predicted loss-of-function variant associations",
+      "category": "population_genetics",
+      "data_type": "variant_associations",
+      "use_cases": [
+        "LoF analysis",
+        "gene function prediction"
+      ],
+      "search_text": "genebass_pLoF_filtered.pkl GeneBass predicted loss-of-function variant associations population_genetics LoF analysis gene function prediction",
+      "index_columns": [
+        "gene",
+        "variant",
+        "phenotype",
+        "pvalue"
+      ],
+      "schema": {
+        "format": "pkl",
+        "encoding": "utf-8",
+        "type": "pickle",
+        "python_version": "3.x"
+      },
+      "query_examples": [
+        "SELECT * FROM genebass_pLoF_filtered.pkl WHERE gene = 'BRCA1'",
+        "SELECT * FROM genebass_pLoF_filtered.pkl WHERE pvalue < 0.05 ORDER BY pvalue"
+      ]
+    },
+    "biomni_data_lake_genebass_synonymous_filtered_pkl": {
+      "name": "genebass_synonymous_filtered.pkl",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/genebass_synonymous_filtered.pkl",
+      "exists": true,
+      "size": "1.5GB",
+      "format": "pkl",
+      "description": "GeneBass synonymous variant associations",
+      "category": "population_genetics",
+      "data_type": "variant_associations",
+      "use_cases": [
+        "negative controls",
+        "variant filtering"
+      ],
+      "search_text": "genebass_synonymous_filtered.pkl GeneBass synonymous variant associations population_genetics negative controls variant filtering",
+      "index_columns": [
+        "gene",
+        "variant",
+        "phenotype",
+        "pvalue"
+      ],
+      "schema": {
+        "format": "pkl",
+        "encoding": "utf-8",
+        "type": "pickle",
+        "python_version": "3.x"
+      },
+      "query_examples": [
+        "SELECT * FROM genebass_synonymous_filtered.pkl WHERE gene = 'BRCA1'",
+        "SELECT * FROM genebass_synonymous_filtered.pkl WHERE pvalue < 0.05 ORDER BY pvalue"
+      ]
+    },
+    "biomni_data_lake_genetic_interaction_parquet": {
+      "name": "genetic_interaction.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/genetic_interaction.parquet",
+      "exists": true,
+      "size": "8.1MB",
+      "format": "parquet",
+      "description": "Genetic interaction networks",
+      "category": "genetics",
+      "data_type": "genetic_interactions",
+      "use_cases": [
+        "synthetic lethality",
+        "genetic pathways"
+      ],
+      "search_text": "genetic_interaction.parquet Genetic interaction networks genetics synthetic lethality genetic pathways",
+      "index_columns": [
+        "gene1",
+        "gene2",
+        "interaction_type",
+        "score"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM genetic_interaction.parquet WHERE score < 0.05 ORDER BY score",
+        "Query genetic_interaction.parquet for pathway enrichment in genetic pathways"
+      ]
+    },
+    "biomni_data_lake_go_plus_json": {
+      "name": "go-plus.json",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/go-plus.json",
+      "exists": true,
+      "size": "123.9MB",
+      "format": "json",
+      "description": "Gene Ontology plus extended annotations",
+      "category": "ontologies",
+      "data_type": "go_terms",
+      "use_cases": [
+        "functional enrichment",
+        "pathway analysis"
+      ],
+      "search_text": "go-plus.json Gene Ontology plus extended annotations ontologies functional enrichment pathway analysis",
+      "index_columns": [
+        "key",
+        "value"
+      ],
+      "schema": {
+        "format": "json",
+        "encoding": "utf-8",
+        "type": "json",
+        "structure": "object"
+      },
+      "query_examples": [
+        "Query go-plus.json for pathway enrichment in pathway analysis"
+      ]
+    },
+    "biomni_data_lake_gtex_tissue_gene_tpm_parquet": {
+      "name": "gtex_tissue_gene_tpm.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/gtex_tissue_gene_tpm.parquet",
+      "exists": true,
+      "size": "10.4MB",
+      "format": "parquet",
+      "description": "GTEx tissue-specific gene expression (TPM)",
+      "category": "transcriptomics",
+      "data_type": "tissue_expression",
+      "use_cases": [
+        "tissue specificity",
+        "expression atlas"
+      ],
+      "search_text": "gtex_tissue_gene_tpm.parquet GTEx tissue-specific gene expression (TPM) transcriptomics tissue specificity expression atlas",
+      "index_columns": [
+        "gene",
+        "tissue",
+        "tpm",
+        "expression"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM gtex_tissue_gene_tpm.parquet WHERE gene = 'BRCA1'"
+      ]
+    },
+    "biomni_data_lake_gwas_catalog_pkl": {
+      "name": "gwas_catalog.pkl",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/gwas_catalog.pkl",
+      "exists": true,
+      "size": "173.1MB",
+      "format": "pkl",
+      "description": "NHGRI-EBI GWAS Catalog",
+      "category": "population_genetics",
+      "data_type": "gwas",
+      "use_cases": [
+        "genetic associations",
+        "complex traits"
+      ],
+      "search_text": "gwas_catalog.pkl NHGRI-EBI GWAS Catalog population_genetics genetic associations complex traits",
+      "index_columns": [
+        "variant",
+        "trait",
+        "pvalue",
+        "odds_ratio"
+      ],
+      "schema": {
+        "format": "pkl",
+        "encoding": "utf-8",
+        "type": "pickle",
+        "python_version": "3.x"
+      },
+      "query_examples": [
+        "SELECT * FROM gwas_catalog.pkl WHERE pvalue < 0.05 ORDER BY pvalue"
+      ]
+    },
+    "biomni_data_lake_hp_obo": {
+      "name": "hp.obo",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/hp.obo",
+      "exists": true,
+      "size": "9.6MB",
+      "format": "obo",
+      "description": "Human Phenotype Ontology",
+      "category": "ontologies",
+      "data_type": "phenotypes",
+      "use_cases": [
+        "phenotype annotation",
+        "disease phenotypes"
+      ],
+      "search_text": "hp.obo Human Phenotype Ontology ontologies phenotype annotation disease phenotypes",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "obo",
+        "encoding": "utf-8",
+        "type": "ontology"
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_kg_csv": {
+      "name": "kg.csv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/kg.csv",
+      "exists": true,
+      "size": "936.3MB",
+      "format": "csv",
+      "description": "Knowledge graph edges",
+      "category": "knowledge_graphs",
+      "data_type": "kg_edges",
+      "use_cases": [
+        "network analysis",
+        "relationship discovery"
+      ],
+      "search_text": "kg.csv Knowledge graph edges knowledge_graphs network analysis relationship discovery",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "csv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_marker_celltype_parquet": {
+      "name": "marker_celltype.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/marker_celltype.parquet",
+      "exists": true,
+      "size": "71.7KB",
+      "format": "parquet",
+      "description": "Cell type marker genes",
+      "category": "single_cell",
+      "data_type": "cell_markers",
+      "use_cases": [
+        "cell type identification",
+        "marker discovery"
+      ],
+      "search_text": "marker_celltype.parquet Cell type marker genes single_cell cell type identification marker discovery",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_miRDB_v6_0_results_parquet": {
+      "name": "miRDB_v6.0_results.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/miRDB_v6.0_results.parquet",
+      "exists": true,
+      "size": "65.5MB",
+      "format": "parquet",
+      "description": "miRNA target prediction database",
+      "category": "rna_regulation",
+      "data_type": "mirna_targets",
+      "use_cases": [
+        "miRNA analysis",
+        "post-transcriptional regulation"
+      ],
+      "search_text": "miRDB_v6.0_results.parquet miRNA target prediction database rna_regulation miRNA analysis post-transcriptional regulation",
+      "index_columns": [
+        "mirna",
+        "target_gene",
+        "score",
+        "validation"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM miRDB_v6.0_results.parquet WHERE score < 0.05 ORDER BY score"
+      ]
+    },
+    "biomni_data_lake_miRTarBase_MicroRNA_Target_Sites_parquet": {
+      "name": "miRTarBase_MicroRNA_Target_Sites.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/miRTarBase_MicroRNA_Target_Sites.parquet",
+      "exists": true,
+      "size": "279.3KB",
+      "format": "parquet",
+      "description": "miRNA target binding sites",
+      "category": "rna_regulation",
+      "data_type": "binding_sites",
+      "use_cases": [
+        "miRNA target site analysis"
+      ],
+      "search_text": "miRTarBase_MicroRNA_Target_Sites.parquet miRNA target binding sites rna_regulation miRNA target site analysis",
+      "index_columns": [
+        "mirna",
+        "target_gene",
+        "score",
+        "validation"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM miRTarBase_MicroRNA_Target_Sites.parquet WHERE score < 0.05 ORDER BY score"
+      ]
+    },
+    "biomni_data_lake_miRTarBase_microRNA_target_interaction_parquet": {
+      "name": "miRTarBase_microRNA_target_interaction.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/miRTarBase_microRNA_target_interaction.parquet",
+      "exists": true,
+      "size": "4.5MB",
+      "format": "parquet",
+      "description": "Experimentally validated miRNA-target interactions",
+      "category": "rna_regulation",
+      "data_type": "mirna_interactions",
+      "use_cases": [
+        "miRNA functional analysis"
+      ],
+      "search_text": "miRTarBase_microRNA_target_interaction.parquet Experimentally validated miRNA-target interactions rna_regulation miRNA functional analysis",
+      "index_columns": [
+        "mirna",
+        "target_gene",
+        "score",
+        "validation"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM miRTarBase_microRNA_target_interaction.parquet WHERE score < 0.05 ORDER BY score"
+      ]
+    },
+    "biomni_data_lake_miRTarBase_microRNA_target_interaction_pubmed_abtract_txt": {
+      "name": "miRTarBase_microRNA_target_interaction_pubmed_abtract.txt",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/miRTarBase_microRNA_target_interaction_pubmed_abtract.txt",
+      "exists": true,
+      "size": "1.6MB",
+      "format": "txt",
+      "description": "PubMed abstracts for miRNA-target interactions",
+      "category": "rna_regulation",
+      "data_type": "literature",
+      "use_cases": [
+        "evidence retrieval",
+        "literature mining"
+      ],
+      "search_text": "miRTarBase_microRNA_target_interaction_pubmed_abtract.txt PubMed abstracts for miRNA-target interactions rna_regulation evidence retrieval literature mining",
+      "index_columns": [
+        "mirna",
+        "target_gene",
+        "score",
+        "validation"
+      ],
+      "schema": {
+        "format": "txt",
+        "encoding": "utf-8"
+      },
+      "query_examples": [
+        "SELECT * FROM miRTarBase_microRNA_target_interaction_pubmed_abtract.txt WHERE score < 0.05 ORDER BY score"
+      ]
+    },
+    "biomni_data_lake_mousemine_m1_positional_geneset_parquet": {
+      "name": "mousemine_m1_positional_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/mousemine_m1_positional_geneset.parquet",
+      "exists": true,
+      "size": "264.8KB",
+      "format": "parquet",
+      "description": "Data file: mousemine_m1_positional_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "mousemine_m1_positional_geneset.parquet Data file: mousemine_m1_positional_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_mousemine_m2_curated_geneset_parquet": {
+      "name": "mousemine_m2_curated_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/mousemine_m2_curated_geneset.parquet",
+      "exists": true,
+      "size": "1.0MB",
+      "format": "parquet",
+      "description": "Data file: mousemine_m2_curated_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "mousemine_m2_curated_geneset.parquet Data file: mousemine_m2_curated_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_mousemine_m3_regulatory_target_geneset_parquet": {
+      "name": "mousemine_m3_regulatory_target_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/mousemine_m3_regulatory_target_geneset.parquet",
+      "exists": true,
+      "size": "1.9MB",
+      "format": "parquet",
+      "description": "Data file: mousemine_m3_regulatory_target_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "mousemine_m3_regulatory_target_geneset.parquet Data file: mousemine_m3_regulatory_target_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_mousemine_m5_ontology_geneset_parquet": {
+      "name": "mousemine_m5_ontology_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/mousemine_m5_ontology_geneset.parquet",
+      "exists": true,
+      "size": "4.0MB",
+      "format": "parquet",
+      "description": "Data file: mousemine_m5_ontology_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "mousemine_m5_ontology_geneset.parquet Data file: mousemine_m5_ontology_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_mousemine_m8_celltype_signature_geneset_parquet": {
+      "name": "mousemine_m8_celltype_signature_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/mousemine_m8_celltype_signature_geneset.parquet",
+      "exists": true,
+      "size": "227.0KB",
+      "format": "parquet",
+      "description": "Data file: mousemine_m8_celltype_signature_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "mousemine_m8_celltype_signature_geneset.parquet Data file: mousemine_m8_celltype_signature_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_mousemine_mh_hallmark_geneset_parquet": {
+      "name": "mousemine_mh_hallmark_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/mousemine_mh_hallmark_geneset.parquet",
+      "exists": true,
+      "size": "46.1KB",
+      "format": "parquet",
+      "description": "Data file: mousemine_mh_hallmark_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "mousemine_mh_hallmark_geneset.parquet Data file: mousemine_mh_hallmark_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_c1_positional_geneset_parquet": {
+      "name": "msigdb_human_c1_positional_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_c1_positional_geneset.parquet",
+      "exists": true,
+      "size": "263.0KB",
+      "format": "parquet",
+      "description": "Data file: msigdb_human_c1_positional_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "msigdb_human_c1_positional_geneset.parquet Data file: msigdb_human_c1_positional_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_c2_curated_geneset_parquet": {
+      "name": "msigdb_human_c2_curated_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_c2_curated_geneset.parquet",
+      "exists": true,
+      "size": "2.9MB",
+      "format": "parquet",
+      "description": "Data file: msigdb_human_c2_curated_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "msigdb_human_c2_curated_geneset.parquet Data file: msigdb_human_c2_curated_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_c3_regulatory_target_geneset_parquet": {
+      "name": "msigdb_human_c3_regulatory_target_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_c3_regulatory_target_geneset.parquet",
+      "exists": true,
+      "size": "3.9MB",
+      "format": "parquet",
+      "description": "Data file: msigdb_human_c3_regulatory_target_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "msigdb_human_c3_regulatory_target_geneset.parquet Data file: msigdb_human_c3_regulatory_target_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_c3_subset_transcription_factor_targets_from_GTRD_parquet": {
+      "name": "msigdb_human_c3_subset_transcription_factor_targets_from_GTRD.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_c3_subset_transcription_factor_targets_from_GTRD.parquet",
+      "exists": true,
+      "size": "2.1MB",
+      "format": "parquet",
+      "description": "Data file: msigdb_human_c3_subset_transcription_factor_targets_from_GTRD.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "msigdb_human_c3_subset_transcription_factor_targets_from_GTRD.parquet Data file: msigdb_human_c3_subset_transcription_factor_targets_from_GTRD.parquet unknown data analysis",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_c4_computational_geneset_parquet": {
+      "name": "msigdb_human_c4_computational_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_c4_computational_geneset.parquet",
+      "exists": true,
+      "size": "396.7KB",
+      "format": "parquet",
+      "description": "Data file: msigdb_human_c4_computational_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "msigdb_human_c4_computational_geneset.parquet Data file: msigdb_human_c4_computational_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_c5_ontology_geneset_parquet": {
+      "name": "msigdb_human_c5_ontology_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_c5_ontology_geneset.parquet",
+      "exists": true,
+      "size": "6.1MB",
+      "format": "parquet",
+      "description": "Data file: msigdb_human_c5_ontology_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "msigdb_human_c5_ontology_geneset.parquet Data file: msigdb_human_c5_ontology_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_c6_oncogenic_signature_geneset_parquet": {
+      "name": "msigdb_human_c6_oncogenic_signature_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_c6_oncogenic_signature_geneset.parquet",
+      "exists": true,
+      "size": "162.8KB",
+      "format": "parquet",
+      "description": "Data file: msigdb_human_c6_oncogenic_signature_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "msigdb_human_c6_oncogenic_signature_geneset.parquet Data file: msigdb_human_c6_oncogenic_signature_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_c7_immunologic_signature_geneset_parquet": {
+      "name": "msigdb_human_c7_immunologic_signature_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_c7_immunologic_signature_geneset.parquet",
+      "exists": true,
+      "size": "4.9MB",
+      "format": "parquet",
+      "description": "Data file: msigdb_human_c7_immunologic_signature_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "msigdb_human_c7_immunologic_signature_geneset.parquet Data file: msigdb_human_c7_immunologic_signature_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_c8_celltype_signature_geneset_parquet": {
+      "name": "msigdb_human_c8_celltype_signature_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_c8_celltype_signature_geneset.parquet",
+      "exists": true,
+      "size": "744.6KB",
+      "format": "parquet",
+      "description": "Data file: msigdb_human_c8_celltype_signature_geneset.parquet",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "msigdb_human_c8_celltype_signature_geneset.parquet Data file: msigdb_human_c8_celltype_signature_geneset.parquet unknown data analysis",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_msigdb_human_h_hallmark_geneset_parquet": {
+      "name": "msigdb_human_h_hallmark_geneset.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/msigdb_human_h_hallmark_geneset.parquet",
+      "exists": true,
+      "size": "44.3KB",
+      "format": "parquet",
+      "description": "MSigDB Hallmark gene sets - coherent biological states/processes",
+      "category": "gene_sets",
+      "data_type": "hallmark_genes",
+      "use_cases": [
+        "pathway analysis",
+        "GSEA",
+        "functional enrichment"
+      ],
+      "search_text": "msigdb_human_h_hallmark_geneset.parquet MSigDB Hallmark gene sets - coherent biological states/processes gene_sets pathway analysis GSEA functional enrichment",
+      "index_columns": [
+        "geneset_name",
+        "genes",
+        "category",
+        "description"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Query msigdb_human_h_hallmark_geneset.parquet for pathway enrichment in pathway analysis"
+      ]
+    },
+    "biomni_data_lake_omim_parquet": {
+      "name": "omim.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/omim.parquet",
+      "exists": true,
+      "size": "2.0MB",
+      "format": "parquet",
+      "description": "Online Mendelian Inheritance in Man disease database",
+      "category": "disease_genomics",
+      "data_type": "mendelian_diseases",
+      "use_cases": [
+        "genetic diseases",
+        "clinical genetics"
+      ],
+      "search_text": "omim.parquet Online Mendelian Inheritance in Man disease database disease_genomics genetic diseases clinical genetics",
+      "index_columns": [
+        "gene",
+        "disease",
+        "phenotype",
+        "inheritance"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM omim.parquet WHERE gene = 'BRCA1'",
+        "SELECT * FROM omim.parquet WHERE disease LIKE '%cancer%'"
+      ]
+    },
+    "biomni_data_lake_proteinatlas_tsv": {
+      "name": "proteinatlas.tsv",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/proteinatlas.tsv",
+      "exists": true,
+      "size": "34.9MB",
+      "format": "tsv",
+      "description": "Human Protein Atlas tissue/cell expression",
+      "category": "proteomics",
+      "data_type": "protein_expression",
+      "use_cases": [
+        "protein localization",
+        "tissue proteomics"
+      ],
+      "search_text": "proteinatlas.tsv Human Protein Atlas tissue/cell expression proteomics protein localization tissue proteomics",
+      "index_columns": [
+        "gene",
+        "protein",
+        "tissue",
+        "expression_level"
+      ],
+      "schema": {
+        "format": "tsv",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "SELECT * FROM proteinatlas.tsv WHERE gene = 'BRCA1'",
+        "Search proteinatlas.tsv for protein interactions in protein localization"
+      ]
+    },
+    "biomni_data_lake_proximity_label_ms_parquet": {
+      "name": "proximity_label-ms.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/proximity_label-ms.parquet",
+      "exists": true,
+      "size": "836.0KB",
+      "format": "parquet",
+      "description": "Proximity labeling mass spectrometry protein interactions",
+      "category": "protein_interactions",
+      "data_type": "proximity_interactions",
+      "use_cases": [
+        "protein proximity",
+        "subcellular interactions"
+      ],
+      "search_text": "proximity_label-ms.parquet Proximity labeling mass spectrometry protein interactions protein_interactions protein proximity subcellular interactions",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Search proximity_label-ms.parquet for protein interactions in protein proximity"
+      ]
+    },
+    "biomni_data_lake_reconstituted_complex_parquet": {
+      "name": "reconstituted_complex.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/reconstituted_complex.parquet",
+      "exists": true,
+      "size": "14.8KB",
+      "format": "parquet",
+      "description": "Reconstituted protein complexes",
+      "category": "protein_complexes",
+      "data_type": "complexes",
+      "use_cases": [
+        "structural biology",
+        "complex assembly"
+      ],
+      "search_text": "reconstituted_complex.parquet Reconstituted protein complexes protein_complexes structural biology complex assembly",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_sgRNA_KO_SP_human_txt": {
+      "name": "sgRNA_KO_SP_human.txt",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/sgRNA_KO_SP_human.txt",
+      "exists": true,
+      "size": "361.6MB",
+      "format": "txt",
+      "description": "Data file: sgRNA_KO_SP_human.txt",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "sgRNA_KO_SP_human.txt Data file: sgRNA_KO_SP_human.txt unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "txt",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_sgRNA_KO_SP_mouse_txt": {
+      "name": "sgRNA_KO_SP_mouse.txt",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/sgRNA_KO_SP_mouse.txt",
+      "exists": true,
+      "size": "355.0MB",
+      "format": "txt",
+      "description": "Data file: sgRNA_KO_SP_mouse.txt",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "sgRNA_KO_SP_mouse.txt Data file: sgRNA_KO_SP_mouse.txt unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "txt",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_synthetic_growth_defect_parquet": {
+      "name": "synthetic_growth_defect.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/synthetic_growth_defect.parquet",
+      "exists": true,
+      "size": "20.1KB",
+      "format": "parquet",
+      "description": "Synthetic growth defect genetic interactions",
+      "category": "genetics",
+      "data_type": "genetic_interactions",
+      "use_cases": [
+        "genetic buffering",
+        "compensatory pathways"
+      ],
+      "search_text": "synthetic_growth_defect.parquet Synthetic growth defect genetic interactions genetics genetic buffering compensatory pathways",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Query synthetic_growth_defect.parquet for pathway enrichment in compensatory pathways"
+      ]
+    },
+    "biomni_data_lake_synthetic_lethality_parquet": {
+      "name": "synthetic_lethality.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/synthetic_lethality.parquet",
+      "exists": true,
+      "size": "41.9KB",
+      "format": "parquet",
+      "description": "Synthetic lethal genetic interactions",
+      "category": "genetics",
+      "data_type": "synthetic_lethality",
+      "use_cases": [
+        "cancer targets",
+        "combinatorial therapy"
+      ],
+      "search_text": "synthetic_lethality.parquet Synthetic lethal genetic interactions genetics cancer targets combinatorial therapy",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_synthetic_rescue_parquet": {
+      "name": "synthetic_rescue.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/synthetic_rescue.parquet",
+      "exists": true,
+      "size": "7.0KB",
+      "format": "parquet",
+      "description": "Synthetic rescue genetic interactions",
+      "category": "genetics",
+      "data_type": "genetic_interactions",
+      "use_cases": [
+        "suppressor analysis",
+        "pathway discovery"
+      ],
+      "search_text": "synthetic_rescue.parquet Synthetic rescue genetic interactions genetics suppressor analysis pathway discovery",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": [
+        "Query synthetic_rescue.parquet for pathway enrichment in pathway discovery"
+      ]
+    },
+    "biomni_data_lake_two_hybrid_parquet": {
+      "name": "two-hybrid.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/two-hybrid.parquet",
+      "exists": true,
+      "size": "48.0KB",
+      "format": "parquet",
+      "description": "Yeast two-hybrid protein-protein interactions",
+      "category": "protein_interactions",
+      "data_type": "y2h_interactions",
+      "use_cases": [
+        "interaction mapping",
+        "PPI networks"
+      ],
+      "search_text": "two-hybrid.parquet Yeast two-hybrid protein-protein interactions protein_interactions interaction mapping PPI networks",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "biomni_data_lake_txgnn_name_mapping_pkl": {
+      "name": "txgnn_name_mapping.pkl",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/txgnn_name_mapping.pkl",
+      "exists": true,
+      "size": "1.5MB",
+      "format": "pkl",
+      "description": "TxGNN drug/disease name mappings",
+      "category": "drug_repurposing",
+      "data_type": "name_mappings",
+      "use_cases": [
+        "entity normalization",
+        "drug repurposing"
+      ],
+      "search_text": "txgnn_name_mapping.pkl TxGNN drug/disease name mappings drug_repurposing entity normalization drug repurposing",
+      "index_columns": [
+        "drug",
+        "disease",
+        "prediction_score"
+      ],
+      "schema": {
+        "format": "pkl",
+        "encoding": "utf-8",
+        "type": "pickle",
+        "python_version": "3.x"
+      },
+      "query_examples": [
+        "SELECT * FROM txgnn_name_mapping.pkl WHERE disease LIKE '%cancer%'",
+        "Find compounds in txgnn_name_mapping.pkl for drug repurposing"
+      ]
+    },
+    "biomni_data_lake_txgnn_prediction_pkl": {
+      "name": "txgnn_prediction.pkl",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/txgnn_prediction.pkl",
+      "exists": true,
+      "size": "65.1MB",
+      "format": "pkl",
+      "description": "TxGNN drug-disease predictions",
+      "category": "drug_repurposing",
+      "data_type": "predictions",
+      "use_cases": [
+        "drug repositioning",
+        "therapeutic predictions"
+      ],
+      "search_text": "txgnn_prediction.pkl TxGNN drug-disease predictions drug_repurposing drug repositioning therapeutic predictions",
+      "index_columns": [
+        "drug",
+        "disease",
+        "prediction_score"
+      ],
+      "schema": {
+        "format": "pkl",
+        "encoding": "utf-8",
+        "type": "pickle",
+        "python_version": "3.x"
+      },
+      "query_examples": [
+        "SELECT * FROM txgnn_prediction.pkl WHERE disease LIKE '%cancer%'",
+        "Find compounds in txgnn_prediction.pkl for drug repositioning"
+      ]
+    },
+    "biomni_data_lake_variant_table_parquet": {
+      "name": "variant_table.parquet",
+      "access_method": "local_file",
+      "source": "biomni_data_lake",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/variant_table.parquet",
+      "exists": true,
+      "size": "8.8MB",
+      "format": "parquet",
+      "description": "Genetic variant annotations",
+      "category": "genomics",
+      "data_type": "variants",
+      "use_cases": [
+        "variant analysis",
+        "mutation effects"
+      ],
+      "search_text": "variant_table.parquet Genetic variant annotations genomics variant analysis mutation effects",
+      "index_columns": [
+        "id",
+        "name",
+        "value"
+      ],
+      "schema": {
+        "format": "parquet",
+        "encoding": "utf-8",
+        "type": "tabular",
+        "has_header": true
+      },
+      "query_examples": []
+    },
+    "metaboanalyst_MS2ID_BioNL_v09102023_zip": {
+      "name": "MS2ID_BioNL_v09102023.zip",
+      "access_method": "local_file",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_BioNL_v09102023.zip",
+      "exists": true,
+      "size": "135.8MB",
+      "format": "zip",
+      "description": "Data file: MS2ID_BioNL_v09102023.zip",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "MS2ID_BioNL_v09102023.zip Data file: MS2ID_BioNL_v09102023.zip unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "zip",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "metaboanalyst_MS2ID_Bio_v09102023_zip": {
+      "name": "MS2ID_Bio_v09102023.zip",
+      "access_method": "local_file",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_Bio_v09102023.zip",
+      "exists": true,
+      "size": "197.8MB",
+      "format": "zip",
+      "description": "Data file: MS2ID_Bio_v09102023.zip",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "MS2ID_Bio_v09102023.zip Data file: MS2ID_Bio_v09102023.zip unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "zip",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "metaboanalyst_MS2ID_ExposomicsNL_v09102023_zip": {
+      "name": "MS2ID_ExposomicsNL_v09102023.zip",
+      "access_method": "local_file",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_ExposomicsNL_v09102023.zip",
+      "exists": true,
+      "size": "283.6MB",
+      "format": "zip",
+      "description": "Data file: MS2ID_ExposomicsNL_v09102023.zip",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "MS2ID_ExposomicsNL_v09102023.zip Data file: MS2ID_ExposomicsNL_v09102023.zip unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "zip",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "metaboanalyst_MS2ID_Exposomics_v09102023_zip": {
+      "name": "MS2ID_Exposomics_v09102023.zip",
+      "access_method": "local_file",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_Exposomics_v09102023.zip",
+      "exists": true,
+      "size": "385.1MB",
+      "format": "zip",
+      "description": "Data file: MS2ID_Exposomics_v09102023.zip",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "MS2ID_Exposomics_v09102023.zip Data file: MS2ID_Exposomics_v09102023.zip unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "zip",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "metaboanalyst_MS2ID_LipidsNL_v09102023_zip": {
+      "name": "MS2ID_LipidsNL_v09102023.zip",
+      "access_method": "local_file",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_LipidsNL_v09102023.zip",
+      "exists": true,
+      "size": "214.4MB",
+      "format": "zip",
+      "description": "Data file: MS2ID_LipidsNL_v09102023.zip",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "MS2ID_LipidsNL_v09102023.zip Data file: MS2ID_LipidsNL_v09102023.zip unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "zip",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "metaboanalyst_MS2ID_Lipids_v09102023_zip": {
+      "name": "MS2ID_Lipids_v09102023.zip",
+      "access_method": "local_file",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_Lipids_v09102023.zip",
+      "exists": true,
+      "size": "294.1MB",
+      "format": "zip",
+      "description": "Data file: MS2ID_Lipids_v09102023.zip",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "MS2ID_Lipids_v09102023.zip Data file: MS2ID_Lipids_v09102023.zip unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "zip",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "metaboanalyst_MS2ID_PathwayNL_v09102023_zip": {
+      "name": "MS2ID_PathwayNL_v09102023.zip",
+      "access_method": "local_file",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_PathwayNL_v09102023.zip",
+      "exists": true,
+      "size": "24.8MB",
+      "format": "zip",
+      "description": "Data file: MS2ID_PathwayNL_v09102023.zip",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "MS2ID_PathwayNL_v09102023.zip Data file: MS2ID_PathwayNL_v09102023.zip unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "zip",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "metaboanalyst_MS2ID_Pathway_v09102023_zip": {
+      "name": "MS2ID_Pathway_v09102023.zip",
+      "access_method": "local_file",
+      "source": "metaboanalyst",
+      "path": "/private/tmp/lcms-platform-galaxy/knowledge_data/metaboanalyst/MS2ID_Pathway_v09102023.zip",
+      "exists": true,
+      "size": "37.3MB",
+      "format": "zip",
+      "description": "Data file: MS2ID_Pathway_v09102023.zip",
+      "category": "unknown",
+      "data_type": "unknown",
+      "use_cases": [
+        "data analysis"
+      ],
+      "search_text": "MS2ID_Pathway_v09102023.zip Data file: MS2ID_Pathway_v09102023.zip unknown data analysis",
+      "index_columns": [
+        "data"
+      ],
+      "schema": {
+        "format": "zip",
+        "encoding": "utf-8"
+      },
+      "query_examples": []
+    },
+    "api_uniprot": {
+      "name": "UNIPROT",
+      "access_method": "api",
+      "api_function": "query_uniprot",
+      "api_module": "biomni.tool.database",
+      "description": "Query UniProt protein database for protein information and sequences",
+      "category": "protein_database",
+      "data_type": "protein_data",
+      "use_cases": [
+        "protein annotation",
+        "sequence retrieval",
+        "protein function"
+      ],
+      "search_text": "uniprot Query UniProt protein database for protein information and sequences protein_database protein annotation sequence retrieval protein function",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "5",
+          "description": "Parameter max_results"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://rest.uniprot.org",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_alphafold": {
+      "name": "ALPHAFOLD",
+      "access_method": "api",
+      "api_function": "query_alphafold",
+      "api_module": "biomni.tool.database",
+      "description": "Query AlphaFold Database for protein structure predictions",
+      "category": "protein_structure",
+      "data_type": "structural_predictions",
+      "use_cases": [
+        "protein structure prediction",
+        "3D modeling",
+        "structural biology"
+      ],
+      "search_text": "alphafold Query AlphaFold Database for protein structure predictions protein_structure protein structure prediction 3D modeling structural biology",
+      "parameters": {
+        "uniprot_id": {
+          "type": "Any",
+          "required": true,
+          "default": null,
+          "description": "Parameter uniprot_id"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "'prediction'",
+          "description": "Parameter endpoint"
+        },
+        "residue_range": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter residue_range"
+        },
+        "download": {
+          "type": "Any",
+          "required": false,
+          "default": "False",
+          "description": "Parameter download"
+        },
+        "output_dir": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter output_dir"
+        },
+        "file_format": {
+          "type": "Any",
+          "required": false,
+          "default": "'pdb'",
+          "description": "Parameter file_format"
+        },
+        "model_version": {
+          "type": "Any",
+          "required": false,
+          "default": "'v4'",
+          "description": "Parameter model_version"
+        },
+        "model_number": {
+          "type": "Any",
+          "required": false,
+          "default": "1",
+          "description": "Parameter model_number"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://alphafold.ebi.ac.uk/api",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_interpro": {
+      "name": "INTERPRO",
+      "access_method": "api",
+      "api_function": "query_interpro",
+      "api_module": "biomni.tool.database",
+      "description": "Query InterPro for protein domains, families, and functional sites",
+      "category": "protein_domains",
+      "data_type": "domain_annotations",
+      "use_cases": [
+        "domain prediction",
+        "protein family classification",
+        "functional annotation"
+      ],
+      "search_text": "interpro Query InterPro for protein domains, families, and functional sites protein_domains domain prediction protein family classification functional annotation",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "3",
+          "description": "Parameter max_results"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://www.ebi.ac.uk/interpro/api",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_pdb": {
+      "name": "PDB",
+      "access_method": "api",
+      "api_function": "query_pdb",
+      "api_module": "biomni.tool.database",
+      "description": "Query RCSB PDB for experimentally determined protein structures",
+      "category": "protein_structure",
+      "data_type": "experimental_structures",
+      "use_cases": [
+        "structure retrieval",
+        "structural analysis",
+        "crystallography"
+      ],
+      "search_text": "pdb Query RCSB PDB for experimentally determined protein structures protein_structure structure retrieval structural analysis crystallography",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "query": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter query"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "3",
+          "description": "Parameter max_results"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://search.rcsb.org",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_pdb_identifiers": {
+      "name": "PDB_IDENTIFIERS",
+      "access_method": "api",
+      "api_function": "query_pdb_identifiers",
+      "api_module": "biomni.tool.database",
+      "description": "Retrieve detailed data and/or download files for PDB identifiers. identifiers (list): List of PDB identifiers (from query_pdb)",
+      "category": "api_database",
+      "data_type": "api_data",
+      "use_cases": [
+        "data query",
+        "API access"
+      ],
+      "search_text": "pdb_identifiers Retrieve detailed data and/or download files for PDB identifiers. identifiers (list): List of PDB identifiers (from query_pdb) api_database data query API access",
+      "parameters": {
+        "identifiers": {
+          "type": "Any",
+          "required": true,
+          "default": null,
+          "description": "Parameter identifiers"
+        },
+        "return_type": {
+          "type": "Any",
+          "required": false,
+          "default": "'entry'",
+          "description": "Parameter return_type"
+        },
+        "download": {
+          "type": "Any",
+          "required": false,
+          "default": "False",
+          "description": "Parameter download"
+        },
+        "attributes": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter attributes"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "Unknown",
+      "rate_limit": "Unknown"
+    },
+    "api_kegg": {
+      "name": "KEGG",
+      "access_method": "api",
+      "api_function": "query_kegg",
+      "api_module": "biomni.tool.database",
+      "description": "Query KEGG for pathway, genome, and disease information",
+      "category": "pathway_database",
+      "data_type": "pathway_data",
+      "use_cases": [
+        "pathway analysis",
+        "metabolic networks",
+        "disease pathways"
+      ],
+      "search_text": "kegg Query KEGG for pathway, genome, and disease information pathway_database pathway analysis metabolic networks disease pathways",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": true,
+          "default": null,
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://rest.kegg.jp",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_stringdb": {
+      "name": "STRINGDB",
+      "access_method": "api",
+      "api_function": "query_stringdb",
+      "api_module": "biomni.tool.database",
+      "description": "Query STRING database for protein-protein interaction networks",
+      "category": "protein_interactions",
+      "data_type": "ppi_networks",
+      "use_cases": [
+        "interaction networks",
+        "functional association",
+        "network analysis"
+      ],
+      "search_text": "stringdb Query STRING database for protein-protein interaction networks protein_interactions interaction networks functional association network analysis",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "download_image": {
+          "type": "Any",
+          "required": false,
+          "default": "False",
+          "description": "Parameter download_image"
+        },
+        "output_dir": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter output_dir"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://version-12-0.string-db.org/api",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_iucn": {
+      "name": "IUCN",
+      "access_method": "api",
+      "api_function": "query_iucn",
+      "api_module": "biomni.tool.database",
+      "description": "Query IUCN Red List for species conservation status",
+      "category": "conservation_biology",
+      "data_type": "species_conservation",
+      "use_cases": [
+        "endangered species",
+        "conservation status",
+        "biodiversity"
+      ],
+      "search_text": "iucn Query IUCN Red List for species conservation status conservation_biology endangered species conservation status biodiversity",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "token": {
+          "type": "Any",
+          "required": false,
+          "default": "''",
+          "description": "Parameter token"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://apiv3.iucnredlist.org/api/v3",
+      "rate_limit": "Token required"
+    },
+    "api_paleobiology": {
+      "name": "PALEOBIOLOGY",
+      "access_method": "api",
+      "api_function": "query_paleobiology",
+      "api_module": "biomni.tool.database",
+      "description": "Query Paleobiology Database for fossil records and extinctions",
+      "category": "paleobiology",
+      "data_type": "fossil_records",
+      "use_cases": [
+        "fossil data",
+        "extinction events",
+        "paleontology"
+      ],
+      "search_text": "paleobiology Query Paleobiology Database for fossil records and extinctions paleobiology fossil data extinction events paleontology",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://paleobiodb.org/data1.2",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_jaspar": {
+      "name": "JASPAR",
+      "access_method": "api",
+      "api_function": "query_jaspar",
+      "api_module": "biomni.tool.database",
+      "description": "Query JASPAR for transcription factor binding site profiles",
+      "category": "transcription_factors",
+      "data_type": "binding_profiles",
+      "use_cases": [
+        "TFBS prediction",
+        "regulatory elements",
+        "motif analysis"
+      ],
+      "search_text": "jaspar Query JASPAR for transcription factor binding site profiles transcription_factors TFBS prediction regulatory elements motif analysis",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://jaspar.elixir.no/api/v1",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_worms": {
+      "name": "WORMS",
+      "access_method": "api",
+      "api_function": "query_worms",
+      "api_module": "biomni.tool.database",
+      "description": "Query World Register of Marine Species for marine organism taxonomy",
+      "category": "marine_biology",
+      "data_type": "marine_taxonomy",
+      "use_cases": [
+        "marine species",
+        "taxonomic classification",
+        "biodiversity"
+      ],
+      "search_text": "worms Query World Register of Marine Species for marine organism taxonomy marine_biology marine species taxonomic classification biodiversity",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://www.marinespecies.org/rest",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_cbioportal": {
+      "name": "CBIOPORTAL",
+      "access_method": "api",
+      "api_function": "query_cbioportal",
+      "api_module": "biomni.tool.database",
+      "description": "Query cBioPortal for cancer genomics data",
+      "category": "cancer_genomics",
+      "data_type": "cancer_mutations",
+      "use_cases": [
+        "cancer mutations",
+        "clinical data",
+        "tumor analysis"
+      ],
+      "search_text": "cbioportal Query cBioPortal for cancer genomics data cancer_genomics cancer mutations clinical data tumor analysis",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://www.cbioportal.org/api",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_clinvar": {
+      "name": "CLINVAR",
+      "access_method": "api",
+      "api_function": "query_clinvar",
+      "api_module": "biomni.tool.database",
+      "description": "Query ClinVar for genetic variant clinical significance",
+      "category": "clinical_genetics",
+      "data_type": "variant_annotations",
+      "use_cases": [
+        "variant interpretation",
+        "pathogenicity",
+        "clinical genetics"
+      ],
+      "search_text": "clinvar Query ClinVar for genetic variant clinical significance clinical_genetics variant interpretation pathogenicity clinical genetics",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "search_term": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter search_term"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "3",
+          "description": "Parameter max_results"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "rate_limit": "NCBI rate limits (3 req/sec)"
+    },
+    "api_geo": {
+      "name": "GEO",
+      "access_method": "api",
+      "api_function": "query_geo",
+      "api_module": "biomni.tool.database",
+      "description": "Query Gene Expression Omnibus for gene expression datasets",
+      "category": "transcriptomics",
+      "data_type": "expression_data",
+      "use_cases": [
+        "gene expression",
+        "RNA-seq",
+        "microarray"
+      ],
+      "search_text": "geo Query Gene Expression Omnibus for gene expression datasets transcriptomics gene expression RNA-seq microarray",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "search_term": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter search_term"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "3",
+          "description": "Parameter max_results"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "rate_limit": "NCBI rate limits (3 req/sec)"
+    },
+    "api_dbsnp": {
+      "name": "DBSNP",
+      "access_method": "api",
+      "api_function": "query_dbsnp",
+      "api_module": "biomni.tool.database",
+      "description": "Query dbSNP for single nucleotide polymorphisms",
+      "category": "genomic_variation",
+      "data_type": "snp_data",
+      "use_cases": [
+        "SNP annotation",
+        "variant discovery",
+        "population genetics"
+      ],
+      "search_text": "dbsnp Query dbSNP for single nucleotide polymorphisms genomic_variation SNP annotation variant discovery population genetics",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "search_term": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter search_term"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "3",
+          "description": "Parameter max_results"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "rate_limit": "NCBI rate limits (3 req/sec)"
+    },
+    "api_ucsc": {
+      "name": "UCSC",
+      "access_method": "api",
+      "api_function": "query_ucsc",
+      "api_module": "biomni.tool.database",
+      "description": "Query UCSC Genome Browser for genomic sequences and annotations",
+      "category": "genome_browser",
+      "data_type": "genomic_data",
+      "use_cases": [
+        "sequence retrieval",
+        "genome annotation",
+        "comparative genomics"
+      ],
+      "search_text": "ucsc Query UCSC Genome Browser for genomic sequences and annotations genome_browser sequence retrieval genome annotation comparative genomics",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://api.genome.ucsc.edu",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_ensembl": {
+      "name": "ENSEMBL",
+      "access_method": "api",
+      "api_function": "query_ensembl",
+      "api_module": "biomni.tool.database",
+      "description": "Query Ensembl for gene annotations and comparative genomics",
+      "category": "genomics",
+      "data_type": "gene_annotations",
+      "use_cases": [
+        "gene lookup",
+        "sequence retrieval",
+        "variant annotation"
+      ],
+      "search_text": "ensembl Query Ensembl for gene annotations and comparative genomics genomics gene lookup sequence retrieval variant annotation",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://rest.ensembl.org",
+      "rate_limit": "15 req/sec"
+    },
+    "api_opentarget": {
+      "name": "OPENTARGET",
+      "access_method": "api",
+      "api_function": "query_opentarget",
+      "api_module": "biomni.tool.database",
+      "description": "Query Open Targets Platform for drug targets and disease associations",
+      "category": "drug_discovery",
+      "data_type": "target_disease",
+      "use_cases": [
+        "target identification",
+        "drug discovery",
+        "disease genetics"
+      ],
+      "search_text": "opentarget Query Open Targets Platform for drug targets and disease associations drug_discovery target identification drug discovery disease genetics",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "query": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter query"
+        },
+        "variables": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter variables"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "False",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://api.platform.opentargets.org/api/v4/graphql",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_monarch": {
+      "name": "MONARCH",
+      "access_method": "api",
+      "api_function": "query_monarch",
+      "api_module": "biomni.tool.database",
+      "description": "Query Monarch Initiative for phenotype-disease-gene associations",
+      "category": "phenomics",
+      "data_type": "phenotype_associations",
+      "use_cases": [
+        "phenotype analysis",
+        "disease genetics",
+        "model organisms"
+      ],
+      "search_text": "monarch Query Monarch Initiative for phenotype-disease-gene associations phenomics phenotype analysis disease genetics model organisms",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "2",
+          "description": "Parameter max_results"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "False",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://api.monarchinitiative.org/v3/api",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_openfda": {
+      "name": "OPENFDA",
+      "access_method": "api",
+      "api_function": "query_openfda",
+      "api_module": "biomni.tool.database",
+      "description": "Query OpenFDA for drug adverse events, recalls, and labels",
+      "category": "pharmacovigilance",
+      "data_type": "drug_safety",
+      "use_cases": [
+        "adverse events",
+        "drug recalls",
+        "drug labels"
+      ],
+      "search_text": "openfda Query OpenFDA for drug adverse events, recalls, and labels pharmacovigilance adverse events drug recalls drug labels",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "100",
+          "description": "Parameter max_results"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://api.fda.gov",
+      "rate_limit": "240 req/min (1000/hour)"
+    },
+    "api_clinicaltrials": {
+      "name": "CLINICALTRIALS",
+      "access_method": "api",
+      "api_function": "query_clinicaltrials",
+      "api_module": "biomni.tool.database",
+      "description": "Query ClinicalTrials.gov for clinical study information",
+      "category": "clinical_research",
+      "data_type": "clinical_trials",
+      "use_cases": [
+        "trial search",
+        "recruitment status",
+        "study results"
+      ],
+      "search_text": "clinicaltrials Query ClinicalTrials.gov for clinical study information clinical_research trial search recruitment status study results",
+      "parameters": {
+        "prompt": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "term": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter term"
+        },
+        "status": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter status"
+        },
+        "condition": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter condition"
+        },
+        "intervention": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter intervention"
+        },
+        "location": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter location"
+        },
+        "phase": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter phase"
+        },
+        "page_size": {
+          "type": "int",
+          "required": false,
+          "default": "10",
+          "description": "Parameter page_size"
+        },
+        "max_pages": {
+          "type": "int",
+          "required": false,
+          "default": "1",
+          "description": "Parameter max_pages"
+        },
+        "page_token": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter page_token"
+        },
+        "verbose": {
+          "type": "bool",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://clinicaltrials.gov/api/v2",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_gwas_catalog": {
+      "name": "GWAS_CATALOG",
+      "access_method": "api",
+      "api_function": "query_gwas_catalog",
+      "api_module": "biomni.tool.database",
+      "description": "Query GWAS Catalog for genome-wide association studies",
+      "category": "population_genetics",
+      "data_type": "gwas_associations",
+      "use_cases": [
+        "trait associations",
+        "genetic variants",
+        "complex diseases"
+      ],
+      "search_text": "gwas_catalog Query GWAS Catalog for genome-wide association studies population_genetics trait associations genetic variants complex diseases",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "3",
+          "description": "Parameter max_results"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://www.ebi.ac.uk/gwas/rest/api",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_gnomad": {
+      "name": "GNOMAD",
+      "access_method": "api",
+      "api_function": "query_gnomad",
+      "api_module": "biomni.tool.database",
+      "description": "Query gnomAD for population allele frequencies",
+      "category": "population_genetics",
+      "data_type": "allele_frequencies",
+      "use_cases": [
+        "variant annotation",
+        "population frequencies",
+        "rare variants"
+      ],
+      "search_text": "gnomad Query gnomAD for population allele frequencies population_genetics variant annotation population frequencies rare variants",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "gene_symbol": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter gene_symbol"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://gnomad.broadinstitute.org/api",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_reactome": {
+      "name": "REACTOME",
+      "access_method": "api",
+      "api_function": "query_reactome",
+      "api_module": "biomni.tool.database",
+      "description": "Query Reactome for biological pathway data",
+      "category": "pathway_database",
+      "data_type": "pathway_data",
+      "use_cases": [
+        "pathway analysis",
+        "systems biology",
+        "molecular interactions"
+      ],
+      "search_text": "reactome Query Reactome for biological pathway data pathway_database pathway analysis systems biology molecular interactions",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "download": {
+          "type": "Any",
+          "required": false,
+          "default": "False",
+          "description": "Parameter download"
+        },
+        "output_dir": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter output_dir"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://reactome.org/ContentService",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_regulomedb": {
+      "name": "REGULOMEDB",
+      "access_method": "api",
+      "api_function": "query_regulomedb",
+      "api_module": "biomni.tool.database",
+      "description": "Query RegulomeDB for regulatory variant annotations",
+      "category": "regulatory_genomics",
+      "data_type": "regulatory_variants",
+      "use_cases": [
+        "regulatory elements",
+        "variant annotation",
+        "GWAS interpretation"
+      ],
+      "search_text": "regulomedb Query RegulomeDB for regulatory variant annotations regulatory_genomics regulatory elements variant annotation GWAS interpretation",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "False",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://regulomedb.org/regulome-search",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_pride": {
+      "name": "PRIDE",
+      "access_method": "api",
+      "api_function": "query_pride",
+      "api_module": "biomni.tool.database",
+      "description": "Query PRIDE for proteomics experimental data",
+      "category": "proteomics",
+      "data_type": "proteomics_data",
+      "use_cases": [
+        "protein identification",
+        "mass spectrometry",
+        "proteomics datasets"
+      ],
+      "search_text": "pride Query PRIDE for proteomics experimental data proteomics protein identification mass spectrometry proteomics datasets",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "max_results": {
+          "type": "Any",
+          "required": false,
+          "default": "3",
+          "description": "Parameter max_results"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://www.ebi.ac.uk/pride/ws/archive/v2",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_gtopdb": {
+      "name": "GTOPDB",
+      "access_method": "api",
+      "api_function": "query_gtopdb",
+      "api_module": "biomni.tool.database",
+      "description": "Query Guide to PHARMACOLOGY for drug-target interactions",
+      "category": "pharmacology",
+      "data_type": "drug_target",
+      "use_cases": [
+        "drug targets",
+        "ligand binding",
+        "pharmacology"
+      ],
+      "search_text": "gtopdb Query Guide to PHARMACOLOGY for drug-target interactions pharmacology drug targets ligand binding pharmacology",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://www.guidetopharmacology.org/services",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_remap": {
+      "name": "REMAP",
+      "access_method": "api",
+      "api_function": "query_remap",
+      "api_module": "biomni.tool.database",
+      "description": "Query ReMap for transcription factor binding sites from ChIP-seq",
+      "category": "regulatory_genomics",
+      "data_type": "chip_seq",
+      "use_cases": [
+        "TF binding sites",
+        "regulatory elements",
+        "ChIP-seq data"
+      ],
+      "search_text": "remap Query ReMap for transcription factor binding sites from ChIP-seq regulatory_genomics TF binding sites regulatory elements ChIP-seq data",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://remap.univ-amu.fr/api/v1",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_mpd": {
+      "name": "MPD",
+      "access_method": "api",
+      "api_function": "query_mpd",
+      "api_module": "biomni.tool.database",
+      "description": "Query Mouse Phenome Database for mouse strain phenotypes",
+      "category": "model_organisms",
+      "data_type": "mouse_phenotypes",
+      "use_cases": [
+        "mouse genetics",
+        "phenotyping",
+        "strain comparison"
+      ],
+      "search_text": "mpd Query Mouse Phenome Database for mouse strain phenotypes model_organisms mouse genetics phenotyping strain comparison",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://phenome.jax.org",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_emdb": {
+      "name": "EMDB",
+      "access_method": "api",
+      "api_function": "query_emdb",
+      "api_module": "biomni.tool.database",
+      "description": "Query Electron Microscopy Data Bank for 3D structures",
+      "category": "structural_biology",
+      "data_type": "em_structures",
+      "use_cases": [
+        "cryo-EM",
+        "3D structures",
+        "macromolecular complexes"
+      ],
+      "search_text": "emdb Query Electron Microscopy Data Bank for 3D structures structural_biology cryo-EM 3D structures macromolecular complexes",
+      "parameters": {
+        "prompt": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "endpoint": {
+          "type": "Any",
+          "required": false,
+          "default": "None",
+          "description": "Parameter endpoint"
+        },
+        "verbose": {
+          "type": "Any",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://www.ebi.ac.uk/emdb/api",
+      "rate_limit": "Standard API rate limits"
+    },
+    "api_synapse": {
+      "name": "SYNAPSE",
+      "access_method": "api",
+      "api_function": "query_synapse",
+      "api_module": "biomni.tool.database",
+      "description": "Query Synapse for biomedical research datasets",
+      "category": "data_repository",
+      "data_type": "research_datasets",
+      "use_cases": [
+        "dataset discovery",
+        "data sharing",
+        "collaborative research"
+      ],
+      "search_text": "synapse Query Synapse for biomedical research datasets data_repository dataset discovery data sharing collaborative research",
+      "parameters": {
+        "prompt": {
+          "type": "str | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter prompt"
+        },
+        "query_term": {
+          "type": "str | list[str] | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter query_term"
+        },
+        "return_fields": {
+          "type": "list[str] | None",
+          "required": false,
+          "default": "None",
+          "description": "Parameter return_fields"
+        },
+        "max_results": {
+          "type": "int",
+          "required": false,
+          "default": "20",
+          "description": "Parameter max_results"
+        },
+        "query_type": {
+          "type": "str",
+          "required": false,
+          "default": "'dataset'",
+          "description": "Parameter query_type"
+        },
+        "verbose": {
+          "type": "bool",
+          "required": false,
+          "default": "True",
+          "description": "Parameter verbose"
+        }
+      },
+      "returns": "dict: Query results with metadata",
+      "api_base_url": "https://repo-prod.prod.sagebase.org",
+      "rate_limit": "Standard API rate limits"
+    }
+  }
+}

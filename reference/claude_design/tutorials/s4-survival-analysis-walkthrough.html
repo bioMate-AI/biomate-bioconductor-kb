@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Survival analysis — Kaplan–Meier and Cox, done correctly</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Survival analysis — time-to-event with Kaplan–Meier and Cox, run on the cloud</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="32.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Survival Analysis</b></div>
+    <div class="kicker">For anyone asking "how long until the event — and what changes it"</div>
+    <h2>Time-to-event data needs its own statistics. BioMate runs them.</h2>
+    <p class="caption">"How long until relapse?" "Does this marker shorten survival?" These are time-to-event questions, and ordinary tests get them wrong because real follow-up is <b>incomplete</b> — patients are still alive at the last visit, or lost before the end. BioMate routes these questions to the proper methods — <b>Kaplan–Meier</b> curves and <b>Cox</b> regression — from a goal and a survival table, and runs them on cloud compute with a record you can defend.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>A survival table + a goal</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Kaplan–Meier curves</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Log-rank between groups</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Cox hazard ratios</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>A result you can defend</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Censoring breaks ordinary statistics — and it's in almost every study.</h2>
+    <p class="caption">In time-to-event data, you rarely see the event for everyone. A study ends; a patient moves away; some are simply still alive. Those observations are <b>censored</b> — you know they survived <i>at least</i> this long, but not their full time. Treat the data as if the numbers were complete, and you throw that information away or quietly bias the answer.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">THE WRONG TOOL · A</div><h4>A t-test on "time"</h4><p>Averaging survival times silently assumes everyone's event was observed. Censored patients have no final time to average — so the mean is wrong.</p></div>
+          <div class="tile"><div class="n">THE WRONG TOOL · B</div><h4>Logistic "dead by now?"</h4><p>Collapsing to a yes/no outcome at one moment discards <i>when</i> things happened, and depends entirely on an arbitrary cut-off.</p></div>
+          <div class="tile"><div class="n">THE RIGHT TOOL</div><h4>Survival methods</h4><p>Kaplan–Meier and Cox are built for censoring: a patient contributes information up to their last known time, and no further.</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>The need: use every patient's follow-up honestly — including the ones without an observed event</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four plain ideas carry the whole analysis.</h2>
+    <p class="caption">You don't need the mathematics — just these four, and everything that follows reads clearly.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · TIME &amp; CENSORING</div><h4>Two columns</h4><p>Each subject has a <code>time</code> (how long observed) and a <code>status</code> — <code>1</code> if the event happened, <code>0</code> if censored. That pair is the whole input.</p></div>
+            <div class="tile"><div class="n">2 · KAPLAN–MEIER</div><h4>The survival curve</h4><p>A step curve estimating the probability of surviving past each time, using censored subjects correctly up to their last visit.</p></div>
+            <div class="tile"><div class="n">3 · LOG-RANK TEST</div><h4>Do groups differ?</h4><p>A formal test of whether two or more survival curves — say treated vs control — differ more than chance would explain.</p></div>
+            <div class="tile"><div class="n">4 · HAZARD RATIO</div><h4>By how much?</h4><p>From a Cox model: the relative rate of the event per unit of a covariate. HR &lt; 1 is protective, HR &gt; 1 is harmful.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The arc is: <b>describe</b> survival (Kaplan–Meier) → <b>compare</b> groups (log-rank) → <b>quantify and adjust</b> for covariates (Cox hazard ratios).</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — the vocabulary the rest of the walkthrough uses</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker"><span class="st">Stage 1</span> · goal → workflow</div>
+    <h2>State the goal and hand over a survival table; BioMate picks the workflow.</h2>
+    <p class="caption">You don't assemble an R environment. You describe the question and hand over a survival table; BioMate routes it to a real, indexed survival workflow and runs it on cloud compute.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · the survival workflow in BioMate</span>
+        <div class="frame"><img src="assets/live/survival-live-panel.png" alt="BioMate workflow panel for survival_analysis_km — drug-discovery workflow, 4 phases, inputs mapped, no configurable parameters, Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain English in, workflow out.</b> You describe the goal; BioMate routes it to the real <b>survival_analysis_km</b> workflow — no R environment to install.</span></li>
+          <li><span class="b gr"></span><span><b>Inputs mapped for you.</b> The survival table — <code>time</code> + event <code>status</code> (1/0) — is already wired; the panel reports "no data inputs to bind."</span></li>
+          <li><span class="b"></span><span><b>Four phases, the standard methods.</b> Kaplan–Meier, log-rank, Cox and Lasso-Cox — the <b>4 phases</b> listed under the Phases tab.</span></li>
+          <li><span class="b"></span><span><b>Nothing to configure.</b> No parameters to set — one <b>Confirm &amp; Run</b> launches it on cloud compute.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real survival workflow, set up for you</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE INPUT -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">Stage 1, the input</span> · what a survival table needs</div>
+    <h2>Three kinds of column: the time, the event, and what you compare by.</h2>
+    <p class="caption">The input is an ordinary table — one row per subject. What makes it a survival table is a time column, an event-status column, and a grouping or covariate column. BioMate maps your headers to these roles and standardizes the status to the required <code>1</code>/<code>0</code> coding.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">TIME</div><h4>How long observed</h4><p>Months, days, or years until the event or the last contact — e.g. a <code>time</code> column. The duration each subject was followed.</p></div>
+          <div class="tile"><div class="n">STATUS</div><h4>Event or censored</h4><p>A <code>status</code> column coded <code>1</code> = event (death, relapse), <code>0</code> = censored. BioMate maps common labels like "dead"/"alive" onto this coding.</p></div>
+          <div class="tile"><div class="n">GROUP / COVARIATES</div><h4>What you compare by</h4><p>A treatment arm or subgroup for Kaplan–Meier; any mix of clinical covariates — age, stage, markers — for Cox.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Grounded in the real workflow: the KM step fits <code>survfit(Surv(time, status) ~ group)</code>; the Cox step fits <code>coxph(Surv(time, status) ~ .)</code> over the covariate columns.</p>
+        <div><span class="verdict ok"><span class="mk"></span>A plain table becomes a valid survival input</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — KAPLAN–MEIER -->
+  <section class="scene" data-seconds="37.0">
+    <div class="kicker"><span class="st">Stage 2</span> · Kaplan–Meier + log-rank</div>
+    <h2>Describe survival, then test whether the groups really differ.</h2>
+    <p class="caption">The Kaplan–Meier workflow estimates the survival curve for each group and reports the numbers behind it. It is a <b>descriptive</b> step: it shows the shape of survival over time and the median survival per group — it does not, on its own, prove a cause.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">THE CURVES</div><h4>Survival over time</h4><p><code>survfit()</code> produces the step curve per group and saves it — the Kaplan–Meier plot plus a summary table of time, number at risk, and survival probability with confidence bounds.</p></div>
+          <div class="tile"><div class="n">MEDIAN SURVIVAL</div><h4>The headline number</h4><p>The time at which half the group has had the event — read directly from each curve, and comparable across groups.</p></div>
+          <div class="tile"><div class="n">LOG-RANK</div><h4>Difference, or chance?</h4><p>The log-rank test asks whether the separation between curves is more than sampling noise. A small p-value says the groups' survival genuinely differs.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Real outputs: a Kaplan–Meier curve PDF, a per-time survival summary table, and the saved fit object — all from the R <code>survival</code> package.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Curves and median survival per group — a comparison, not yet a mechanism</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — COX & LASSO-COX -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">Stage 3</span> · Cox regression &amp; Lasso-Cox</div>
+    <h2>Quantify the effect — and, with many covariates, select which ones matter.</h2>
+    <p class="caption">Kaplan–Meier compares groups; Cox regression puts a number on it. The Cox proportional-hazards model estimates a <b>hazard ratio</b> for each covariate while adjusting for the others. When covariates are many — a gene-expression signature with hundreds of features — a regularized Lasso-Cox selects a sparse, prognostic subset.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">COX MODEL</div><h4>coxph(Surv ~ covariates)</h4><p>Fits all covariates jointly and reports a hazard ratio with confidence interval and significance for each — the adjusted effect of one factor, holding the rest fixed.</p></div>
+          <div class="tile"><div class="n">LASSO-COX</div><h4>Many covariates → a few</h4><p>The <code>rlassocox</code> workflow applies an L1 penalty with cross-validation to pick the optimal <code>lambda</code>, then extracts the non-zero (active) prognostic features and their coefficients.</p></div>
+          <div class="tile"><div class="n">VALIDATE</div><h4>Hold-out, not just fit</h4><p>It splits train / test, fits on the training set, and predicts risk on the held-out set — because feature selection on high-dimensional data is easy to overfit.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Grounded: <code>rlassocox</code> takes a gene-expression matrix + a survival table (time, status) + a gene network, cross-validates <code>lambda</code>, and writes a <code>prognostic_features.csv</code> of selected genes with coefficients.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Hazard ratios for the effect; a validated, sparse signature when covariates are many</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — READING IT -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker">Reading the result</div>
+    <h2>What a hazard ratio says — and what "significant" does and doesn't mean.</h2>
+    <p class="caption">The output is only as good as your reading of it. Two numbers carry most of the meaning: the hazard ratio and its confidence interval, together with the test's p-value.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">THE DIRECTION</div><h4>Above or below 1</h4><p>HR = 1 means no effect on the event rate. HR &lt; 1 means a lower hazard (protective); HR &gt; 1 means a higher hazard (harmful). An HR of 0.70 is roughly a 30% lower rate.</p></div>
+          <div class="tile"><div class="n">THE UNCERTAINTY</div><h4>The confidence interval</h4><p>A 95% CI that crosses 1 means the effect is not distinguishable from "no effect" at this sample size — the point estimate alone can mislead.</p></div>
+          <div class="tile"><div class="n">SIGNIFICANCE</div><h4>What p actually means</h4><p>A small p-value says the difference is unlikely under "no difference". It does <i>not</i> measure effect size, prove causation, or guarantee the result replicates.</p></div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Read the HR, its interval, and the p-value together — never one alone</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="53.0">
+    <div class="kicker">Reading the result so it holds up to review</div>
+    <h2>The checks that make a survival result defensible.</h2>
+    <p class="caption">These methods are standard and trustworthy, and BioMate runs the diagnostics that keep them so. Reading those checks — and the assumptions behind them — is what makes a survival result hold up to review.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">ASSUMPTION</div><h4>Proportional hazards</h4><p>Cox assumes a covariate's effect is constant over time. The workflow runs the <code>cox.zph()</code> test and diagnostic plots — check them; if the assumption fails, the HR is hard to interpret.</p></div>
+          <div class="tile"><div class="n">DATA QUALITY</div><h4>Censoring must be fair</h4><p>Results assume censoring is unrelated to prognosis (non-informative). If sicker patients drop out, estimates are biased — no method repairs that.</p></div>
+          <div class="tile"><div class="n">SELECTION</div><h4>Lasso picks are tentative</h4><p>Lasso-Cox feature selection is data-dependent: a different sample can select different genes. Treat the signature as a hypothesis to validate, not a verdict.</p></div>
+          <div class="tile"><div class="n">INFERENCE</div><h4>Association ≠ causation</h4><p>A hazard ratio describes association, adjusted for the covariates you included. Unmeasured confounders remain; observational survival is not a causal claim.</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>Specific and honest — standard methods with their assumptions stated, not hidden</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="40.0">
+    <div class="kicker">The value at a glance</div>
+    <h2 style="font-size:40px">Hand over a survival table. Get curves, a test, and hazard ratios.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The whole point is one sentence: <b>time-to-event questions deserve time-to-event methods — and BioMate runs them properly, with the assumptions on the table.</b> You provide a survival table and a goal; BioMate estimates Kaplan–Meier curves, compares groups with the log-rank test, fits Cox hazard ratios, and — for high-dimensional covariates — selects a validated Lasso-Cox signature, all on cloud compute with a reproducible record.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Provide a table with <code>time</code> and event <code>status</code> (1/0)</li>
+            <li><span class="k">2</span>Say the goal — compare groups, or model covariates</li>
+            <li><span class="k">3</span>BioMate runs Kaplan–Meier, log-rank, and Cox</li>
+            <li><span class="k">4</span>Read the HR, the interval, and the PH diagnostics — honestly</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Handle censoring</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Built in</span></td></tr>
+            <tr><td>Describe survival</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Kaplan–Meier + median</span></td></tr>
+            <tr><td>Compare groups</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Log-rank test</span></td></tr>
+            <tr><td>Quantify / select</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Cox HR + Lasso-Cox</span></td></tr>
+            <tr><td>Honest edges</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">PH, censoring, causation</span></td></tr>
+          </table>
+          <p class="footnote">From a survival table to curves, a log-rank test, and interpretable hazard ratios — the proper statistics for time-to-event data, run on the cloud and checked, not assumed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

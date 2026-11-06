@@ -20,36 +20,54 @@ import numpy as np
 import pytest
 
 # ---------------------------------------------------------------------------
-# Defensive import — skip the whole module if gates are not installed yet
+# Hard import — the module exists now, so an ImportError is a REAL failure and
+# must surface as a collection error, not silently vanish the whole suite.
+#
+# The previous version wrapped this in try/except and a module-level
+# `skipif(not HAS_MODULE)`. That meant ANY import error (a syntax error, a
+# renamed symbol, a broken dependency) turned the entire cryo-EM QC gate suite
+# into a silent skip — a false-green: the gates could be completely broken and
+# CI would stay green because "the module isn't installed yet". It IS installed.
 # ---------------------------------------------------------------------------
 sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), "..", "lib", "galaxy", "webapps", "galaxy", "api"),
 )
 
-try:
-    from cryosparc_qc_gates import (
-        PROFILES,
-        QCResult,
-        _compute_orientation_anisotropy,
-        _fsc_to_resolution_A,
-        check_abinitio_gate,
-        check_ctf_gate,
-        check_fsc_gate,
-        check_junk_class_gate,
-        check_model_quality_gate,
-        check_motion_gate,
-        check_orientation_gate,
-        write_audit_event,
-    )
-
-    HAS_MODULE = True
-except ImportError:
-    HAS_MODULE = False
-
-pytestmark = pytest.mark.skipif(
-    not HAS_MODULE, reason="cryosparc_qc_gates not yet installed"
+from cryosparc_qc_gates import (  # noqa: E402 — path insert must precede import
+    PROFILES,
+    QCResult,
+    _compute_orientation_anisotropy,
+    _fsc_to_resolution_A,
+    check_abinitio_gate,
+    check_ctf_gate,
+    check_fsc_gate,
+    check_junk_class_gate,
+    check_model_quality_gate,
+    check_motion_gate,
+    check_orientation_gate,
+    write_audit_event,
 )
+
+# Retained for any downstream reference, but always True now: if the import
+# above fails, collection fails loudly before this line is ever reached.
+HAS_MODULE = True
+
+
+def test_cryosparc_qc_gates_module_importable():
+    """The cryo-EM QC gate module must import with all its public symbols.
+
+    A dedicated guard so a broken/renamed import FAILS loudly instead of
+    silently skipping the whole suite (the false-green this test file used to
+    produce via `skipif(not HAS_MODULE)`).
+    """
+    assert HAS_MODULE is True
+    # Spot-check that the key public gate functions resolved to callables.
+    for fn in (check_fsc_gate, check_ctf_gate, check_motion_gate,
+               check_abinitio_gate, check_junk_class_gate,
+               check_model_quality_gate, check_orientation_gate):
+        assert callable(fn), f"{fn!r} is not callable — cryosparc_qc_gates export broken"
+    assert isinstance(PROFILES, dict) and PROFILES, "PROFILES must be a non-empty dict"
 
 # ===========================================================================
 # Constants / profile names

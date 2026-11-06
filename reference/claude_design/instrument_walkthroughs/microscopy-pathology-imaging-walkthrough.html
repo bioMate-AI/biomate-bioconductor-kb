@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Microscopy &amp; pathology imaging — pixels to cells</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:74ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:74ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+/* figure placeholder — Claude Design: drop the real screenshot here (see data-capture note) */
+.ph{flex:1; min-height:0; border:1.5px dashed var(--line2); border-radius:8px; background:
+  repeating-linear-gradient(135deg,#fff,#fff 10px,var(--panel) 10px,var(--panel) 20px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:28px}
+.ph .pht{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--blue)}
+.ph .phd{font-size:14px; color:var(--mut); max-width:46ch; line-height:1.5}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Instrument tutorial · Microscopy &amp; pathology imaging — pixels to cells</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Microscopy &amp; Pathology &rarr; Cells</b></div>
+    <div class="kicker">Microscope &amp; slide images — from pixels to cells</div>
+    <h2>Turn microscope and slide images into cell counts and marker levels.</h2>
+    <p class="caption">A <b>fluorescence</b> or <b>confocal microscope</b>, or a <b>digital slide scanner</b>, writes pixel images. BioMate <b>segments</b> every cell or nucleus and then <b>quantifies</b> size, shape, and per-channel marker intensity inside each boundary — using the Cellpose&nbsp;/&nbsp;Omnipose and scikit-image toolkits, on cloud compute.</p>
+    <p class="caption sub">A picture is not a measurement. Segment-then-quantify is the pipeline — and whether BioMate can even open your file depends entirely on the <b>format</b> you hold.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Pixel image</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Segment cells</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Quantify markers</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Counts &middot; marker intensity</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker">The problem</div>
+    <h2>A picture is not a measurement — and the format decides if it even opens.</h2>
+    <p class="caption">Millions of pixels mean nothing until every cell or nucleus is bounded and measured. And before any of that, the file has to be readable: several common vendor microscope and scanner formats cannot yet be opened — feeding one in produces an error or an empty result, not a finding.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · PIXELS, NOT COUNTS</div><h4>Segment, then quantify</h4><p>Drawing the boundary of every cell (<b>segmentation</b>) must come before a single count or marker intensity exists.</p></div>
+            <div class="tile"><div class="n">2 · THE FORMAT GATES</div><h4>Not every file opens</h4><p>2-D <b>TIFF/PNG/JPEG</b> and <b>OME-TIFF</b> run today. Vendor WSI (<code>.svs</code>/<code>.kfb</code>/<code>.sdpc</code>) and confocal z-stacks (<code>.czi</code>/<code>.lif</code>/<code>.nd2</code>/<code>.oir</code>) have no reader.</p></div>
+            <div class="tile"><div class="n">3 · OVERLAY OR MISLEAD</div><h4>Boundaries can be wrong</h4><p>Under- and over-segmentation distort every downstream count. There is no recorded real end-to-end imaging run — treat numbers as experimental.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The toolkits (Cellpose/Omnipose, scikit-image) are standard and license-clean. The work is getting a readable file to the right workflow and overlay-checking the result.</p>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>Background — and a real format gate (§6)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas behind image-to-cells.</h2>
+    <p class="caption">From a microscope or scanner image to a readable cell table is a short, well-trodden chain. These four ideas cover all of it.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · THE IMAGE</div><h4>Pixels at a scale</h4><p>A 2-D fluorescence field, a confocal <b>z-stack</b>, or a gigapixel <b>whole-slide image</b>. The format and dimensionality decide the path.</p></div>
+            <div class="tile"><div class="n">2 · SEGMENTATION</div><h4>The boundary of every cell</h4><p>Deep-learning generalist models — <b>Cellpose&nbsp;/&nbsp;Omnipose</b> — label each cell/nucleus. Everything downstream rests on it.</p></div>
+            <div class="tile"><div class="n">3 · QUANTIFICATION</div><h4>Measure inside each boundary</h4><p>Size, shape, and <b>per-channel marker intensity</b>, measured with <b>scikit-image</b> region properties.</p></div>
+            <div class="tile"><div class="n">4 · FORMAT READINESS</div><h4>What actually opens</h4><p>TIFF/PNG/JPEG and OME-TIFF run; vendor WSI and confocal z-stacks are roadmap (<b>gap B1</b>) — convert first.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The format is the hinge: it picks the workflow and decides whether BioMate can open the file at all.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the vocabulary of imaging analysis</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">Step 1</span> · What you provide</div>
+    <h2>A readable image — plus, for tissue, your marker list.</h2>
+    <p class="caption">Once your files are in BioMate (connecting an instrument is <b>Tutorial 6</b>; a single hand upload is <b>Tutorial 4</b>), you bring the image in a readable format and, for multiplex tissue, the names of your channels.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · A READABLE IMAGE</div><h4>Format first</h4><p>2-D <code>TIFF</code>/<code>PNG</code>/<code>JPEG</code> for microscopy, or (pyramidal) <b>OME-TIFF</b> for multiplex / whole-slide. The image is the key input, <code>image_path</code>.</p></div>
+            <div class="tile"><div class="n">2 · MARKER LIST (TISSUE)</div><h4>Channels in order</h4><p>For multiplex tissue, <code>markers_list</code> names each fluorescence channel so expression is measured per marker.</p></div>
+            <div class="tile"><div class="n">3 · IMAGE SCALE</div><h4>If you report sizes</h4><p>Note the scale (microns per pixel) if you intend to report object sizes in physical units.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">If you only hold a vendor format (<code>.czi</code>/<code>.lif</code>/<code>.nd2</code>/<code>.oir</code>/<code>.svs</code>/<code>.ndpi</code>/<code>.mrxs</code>/<code>.kfb</code>/<code>.sdpc</code>), convert to TIFF/OME-TIFF first or the run will not proceed.</p>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>A readable image, and marker names for tissue</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 2</span> · How a run works</div>
+    <h2>Ask in plain language, confirm the workflow, then run.</h2>
+    <p class="caption">Describe the goal the way you would to a colleague — for example, <i>&ldquo;segment nuclei in this fluorescence TIFF and count cells,&rdquo;</i> or <i>&ldquo;segment and quantify markers CD3, CD8, PanCK in this multiplex OME-TIFF.&rdquo;</i> BioMate opens the matching workflow card; nothing runs yet.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:22px">
+            <span class="chip"><span class="i"></span>Image / plain request</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Format &amp; intent route the workflow</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Review &amp; confirm inputs</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Runs on cloud compute</span>
+          </div>
+          <ul class="points">
+            <li><span class="b"></span><span><b>The workflow is chosen from your goal and format.</b> Single field &rarr; <code>segment_cells_with_deep_learning</code>; multiplex tissue &rarr; <code>segment_and_quantify_cells_in_multiplexed_images</code>; whole slide &rarr; <code>nf-core/mcmicro</code> — a real named workflow, never &ldquo;undefined.&rdquo;</span></li>
+            <li><span class="b"></span><span><b>You fill the key inputs.</b> Attach the image as <code>image_path</code>; for multiplex tissue also fill <code>markers_list</code> with your channel names.</span></li>
+            <li><span class="b"></span><span><b>Then Confirm &amp; Run.</b> Phases move <i>pending &rarr; running &rarr; completed</i>. Single-field segmentation is quick; a whole-slide <code>mcmicro</code> run is heavy compute and can take a long time.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Nothing runs until you confirm</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — RESULTS (figure placeholder + outputs) -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker"><span class="st">Step 3</span> · The result — a mask and a cell table</div>
+    <h2>A labelled mask and a per-cell table, matched to the image.</h2>
+    <p class="caption">The run returns the segmentation as labelled objects, a per-cell table, a QC summary, and the record of what produced it.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">After run · cell segmentation mask overlay</span>
+        <div class="ph">
+          <div class="pht">Figure slot — Claude Design</div>
+          <div class="phd">Capture: the <b>After run</b> segmentation mask overlaid on the raw fluorescence image — each cell/nucleus as a distinct labelled object — beside the object / cell table (position, area, per-marker intensity) and the QC summary (object counts, intensity statistics; plus the tiling / background / blur overlay for the <code>wsi_he_nuclei_segmentation</code> subworkflow).</div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Segmentation mask:</b> every detected cell or nucleus as a distinct labelled object — the primary output. Overlay it on the original to sanity-check boundaries.</span></li>
+          <li><span class="b"></span><span><b>Object / cell table:</b> one row per object with position, area, and &mdash; for the quantification and multiplex workflows &mdash; <b>per-marker intensity</b>. This is what you count and compare.</span></li>
+          <li><span class="b"></span><span><b>QC summary:</b> object counts and intensity statistics; for the WSI nuclei subworkflow, a tiling / background / blur overlay showing which tiles were usable.</span></li>
+          <li><span class="b gr"></span><span><b>Reproducibility record:</b> the model, parameters, container/versions, and outputs — the audit trail.</span></li>
+        </ul>
+        <div><span class="verdict partial"><span class="mk"></span>Experimental until the mask is overlay-checked</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — READING / TRUSTING -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 4</span> · Reading and trusting it</div>
+    <h2>Overlay-check the mask, report your threshold, and treat results as experimental.</h2>
+    <p class="caption">The toolkits are standard and license-clean, but the workflows are indexed without a recorded real end-to-end imaging run. What makes a result defensible is the overlay check, the stated threshold, and the record you keep.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>Overlay-check first.</b> Boundaries should follow individual cells. <b>Under-segmentation</b> (touching cells merged) and <b>over-segmentation</b> (one cell split) distort every count; very few objects usually means a contrast/channel problem or the wrong model.</span></li>
+            <li><span class="b am"></span><span><b>Marker positivity depends on the threshold.</b> Treat positive-percentages as dependent on the intensity threshold used — state it when you report.</span></li>
+            <li><span class="b rd"></span><span><b>Several formats do not open yet.</b> Vendor WSI (<code>.svs</code>/<code>.ndpi</code>/<code>.mrxs</code>/<code>.kfb</code>/<code>.sdpc</code>) and confocal z-stacks (<code>.czi</code>/<code>.lif</code>/<code>.nd2</code>/<code>.oir</code>) have no reader (<b>gap B1</b>); pathology foundation models (UNI, CONCH, Virchow2, Prov-GigaPath — B2) and QuPath (B4) are not present. Convert vendor files to OME-TIFF first.</span></li>
+            <li><span class="b gr"></span><span><b>A record you keep — and RUO where it applies.</b> The model, parameters, and versions travel with each run; the <code>wsi_he_nuclei_segmentation</code> subworkflow is <b>research-use-only</b>, not a diagnostic device — pathologist review required.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>Experimental — overlay-check and keep the record</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34">
+    <div class="kicker">The habit at a glance</div>
+    <h2 style="font-size:38px">Check the format → ask to segment / quantify → confirm the workflow and attach the image → run → overlay-check the mask and read the table.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The value is simple: microscope and slide images become cell counts and marker levels through standard segmentation (Cellpose/Omnipose + scikit-image) on cloud compute — provided your file is in a readable format, and read as experimental until the mask is overlay-checked.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Check your format first — convert vendor files to TIFF/OME-TIFF</li>
+            <li><span class="k">2</span>Ask BioMate to segment / quantify in plain language</li>
+            <li><span class="k">3</span>Confirm the workflow name and attach the image (+ markers_list)</li>
+            <li><span class="k">4</span>Confirm &amp; Run — watch phases pending &rarr; running &rarr; completed</li>
+            <li><span class="k">5</span>Overlay-check the mask, read the cell table, report your threshold</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Input</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">A readable image — TIFF / OME-TIFF</span></td></tr>
+            <tr><td>Method (single field)</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">segment_cells_with_deep_learning — registered</span></td></tr>
+            <tr><td>Method (multiplex)</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">segment_and_quantify… — registered</span></td></tr>
+            <tr><td>Method (whole slide)</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">nf-core/mcmicro — OME-TIFF only</span></td></tr>
+            <tr><td>Vendor WSI / confocal</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">No reader yet — roadmap (B1)</span></td></tr>
+            <tr><td>Result</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Masks + cell table — experimental</span></td></tr>
+          </table>
+          <p class="footnote">Imaging ingestion is format-gated (gap B1); vendor WSI and confocal z-stacks have no reader. <code>nf-core/mcmicro</code> needs an OME-TIFF; <code>wsi_he_nuclei_segmentation</code> (OpenSlide + Cellpose) is research-use-only and not yet DB-routable.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

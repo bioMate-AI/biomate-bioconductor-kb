@@ -1,111 +1,255 @@
 /**
- * Project Notes (synthesis) source-level contract tests.
+ * Project Notes (synthesis) route BEHAVIOUR tests.
  *
- * Same pattern as project-routes.test.ts — locks in the policy
- * invariants without booting Postgres or calling Gemini. The four
- * scenarios from the task spec are covered as source-text assertions:
- *   (a) unauthenticated → 401
- *   (b) non-member (cross-user) → 404 (never leak existence)
- *   (c) GET when no synthesis exists → 404
- *   (d) POST → creates a row via memoryService.projects.addProjectKnowledge
+ * These mount the real `registerNotesRoutes` handler on an express app
+ * and drive it over a real (loopback) HTTP request, with the repo + LLM
+ * seams faked. They assert STATUS + BODY — so an inverted ownership
+ * check (cross-user leak), a reversed `createdAt` sort, or a collapsed
+ * 502/500 distinction FAILS the suite. (The prior version was 100%
+ * `SRC.match(regex)` source-grep and caught none of these — see
+ * docs/20260909_UPGRADE_TEST_QUALITY_AUDIT.md gap #1.)
+ *
+ * Seams faked (our own code, never a real DB / real Gemini):
+ *   - ./auth-middleware  authenticateToken → pass-through; req.user is
+ *     set by a preceding middleware from a per-test `currentUser`.
+ *   - ./gemini-flash     callGeminiFlash → vi.fn we script per test.
+ *   - ./memory-repository memoryService.projects.{getProject,
+ *     getProjectKnowledge,addProjectKnowledge,loadProjectContext}.
  */
-import { describe, expect, it } from "vitest";
-import * as fs from "fs";
-import * as path from "path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AddressInfo } from "net";
+import express, { type Express } from "express";
+import type { Server } from "http";
 
-const SRC = fs.readFileSync(path.join(__dirname, "notes-routes.ts"), "utf-8");
+// Capture the real fetch BEFORE any global stubbing so we can talk to
+// our own test server. (notes-routes makes no outbound fetch, but we
+// keep the same discipline as evidence-routes.test.ts.)
+const httpFetch = globalThis.fetch;
 
-describe("notes-routes — contract", () => {
-  it("registers both endpoints", () => {
-    expect(
-      SRC.match(/app\.post\(\s*"\/api\/projects\/:projectId\/notes\/refresh"/)?.length,
-    ).toBe(1);
-    expect(
-      SRC.match(/app\.get\(\s*"\/api\/projects\/:projectId\/notes"/)?.length,
-    ).toBe(1);
+// ─── Fakes wired through vi.mock ──────────────────────────────────────
+const fakeProjects = {
+  getProject: vi.fn(),
+  getProjectKnowledge: vi.fn(),
+  addProjectKnowledge: vi.fn(),
+  loadProjectContext: vi.fn(),
+};
+const callGeminiFlash = vi.fn();
+
+vi.mock("./auth-middleware", () => ({
+  // Pass-through: the real middleware calls next() when req.user is
+  // already set, which our test middleware does below.
+  authenticateToken: (_req: any, _res: any, next: any) => next(),
+}));
+vi.mock("./memory-repository", () => ({
+  memoryService: { projects: fakeProjects },
+}));
+vi.mock("./gemini-flash", () => ({
+  callGeminiFlash: (...args: any[]) => callGeminiFlash(...args),
+}));
+
+let app: Express;
+let server: Server;
+let baseUrl = "";
+// Per-test authenticated user (or null for the unauth case).
+let currentUser: { id: string } | null = null;
+
+beforeAll(async () => {
+  const { registerNotesRoutes } = await import("./notes-routes");
+  app = express();
+  app.use(express.json());
+  // Stand in for the auth layer: attach req.user from currentUser.
+  app.use((req, _res, next) => {
+    if (currentUser) (req as any).user = currentUser;
+    next();
+  });
+  registerNotesRoutes(app);
+  await new Promise<void>((r) => {
+    server = app.listen(0, "127.0.0.1", () => r());
+  });
+  const { port } = server.address() as AddressInfo;
+  baseUrl = `http://127.0.0.1:${port}`;
+});
+
+afterAll(() => {
+  server?.close();
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  currentUser = { id: "owner-1" };
+});
+
+async function get(path: string) {
+  const r = await httpFetch(`${baseUrl}${path}`);
+  const body = await r.json().catch(() => ({}));
+  return { status: r.status, body };
+}
+async function post(path: string, payload: unknown = {}) {
+  const r = await httpFetch(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const body = await r.json().catch(() => ({}));
+  return { status: r.status, body };
+}
+
+describe("notes-routes — GET /api/projects/:id/notes", () => {
+  it("owner with rows → 200 and returns the NEWEST synthesis first", async () => {
+    // Ownership passes.
+    fakeProjects.getProject.mockResolvedValue({ id: "p1", userId: "owner-1", name: "P" });
+    // Two rows, both relevanceScore 1.0 (so a relevance sort can't
+    // disambiguate). The handler MUST pick by createdAt desc. The rows
+    // are deliberately fed OLDEST-first so a missing/forward sort would
+    // return the older row and this test would fail.
+    const older = {
+      id: "n-old",
+      content: "old brief",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      relevanceScore: 1.0,
+    };
+    const newer = {
+      id: "n-new",
+      content: "new brief",
+      createdAt: "2026-09-01T00:00:00.000Z",
+      relevanceScore: 1.0,
+    };
+    fakeProjects.getProjectKnowledge.mockResolvedValue([older, newer]);
+
+    const { status, body } = await get("/api/projects/p1/notes");
+
+    expect(status).toBe(200);
+    // The freshest note wins — catches a reversed / removed createdAt sort.
+    expect(body.note.id).toBe("n-new");
+    expect(body.note.content).toBe("new brief");
+    expect(fakeProjects.getProjectKnowledge).toHaveBeenCalledWith("p1", "notes_synthesis");
   });
 
-  it("both endpoints go through authenticateToken", () => {
-    const handlers =
-      SRC.match(
-        /app\.(get|post)\(\s*"\/api\/projects\/:projectId\/notes[^"]*",\s*\n?\s*authenticateToken/g,
-      ) ?? [];
-    expect(handlers.length).toBe(2);
+  it("cross-user access → 404 (NOT 403, never leak existence)", async () => {
+    // Project exists but is owned by someone else.
+    fakeProjects.getProject.mockResolvedValue({ id: "p1", userId: "other-99", name: "P" });
+    currentUser = { id: "owner-1" };
+
+    const { status, body } = await get("/api/projects/p1/notes");
+
+    expect(status).toBe(404); // an inverted `===`/`!==` ownership check would leak → 200
+    expect(status).not.toBe(403);
+    expect(body.error).toMatch(/not found/i);
+    // Never even read the notes rows for a non-owner.
+    expect(fakeProjects.getProjectKnowledge).not.toHaveBeenCalled();
   });
 
-  it("(a) unauthenticated request short-circuits with 401", () => {
-    // Both handlers call userId(req); if null, return 401.
-    const matches = SRC.match(/if\s*\(!uid\)\s*return\s+res\.status\(401\)/g) ?? [];
-    expect(matches.length).toBeGreaterThanOrEqual(2);
+  it("owner but no synthesis rows yet → 404", async () => {
+    fakeProjects.getProject.mockResolvedValue({ id: "p1", userId: "owner-1", name: "P" });
+    fakeProjects.getProjectKnowledge.mockResolvedValue([]);
+
+    const { status, body } = await get("/api/projects/p1/notes");
+
+    expect(status).toBe(404);
+    expect(body.error).toMatch(/no synthesis/i);
   });
 
-  it("(b) cross-user access returns 404 (never leak existence)", () => {
-    const ownership =
-      /project\.userId\s*!==\s*uid[\s\S]{0,80}404[\s\S]{0,80}Project not found/g;
-    const matches = SRC.match(ownership) ?? [];
-    // One per endpoint (refresh + get).
-    expect(matches.length).toBeGreaterThanOrEqual(2);
+  it("unauthenticated → 401", async () => {
+    currentUser = null; // no req.user attached
+    fakeProjects.getProject.mockResolvedValue({ id: "p1", userId: "owner-1", name: "P" });
+
+    const { status } = await get("/api/projects/p1/notes");
+
+    expect(status).toBe(401);
+    expect(fakeProjects.getProject).not.toHaveBeenCalled();
   });
 
-  it("(c) GET returns 404 when no synthesis exists", () => {
-    expect(/No synthesis yet/.test(SRC)).toBe(true);
-    const getBlock = SRC.split('app.get(')[1] ?? "";
-    expect(/!rows\s*\|\|\s*rows\.length\s*===\s*0[\s\S]{0,80}404/.test(getBlock)).toBe(
-      true,
-    );
-  });
+  it("unexpected repo throw → 500 (internal bug, not an upstream 502)", async () => {
+    fakeProjects.getProject.mockResolvedValue({ id: "p1", userId: "owner-1", name: "P" });
+    fakeProjects.getProjectKnowledge.mockRejectedValue(new Error("db exploded"));
 
-  it("(d) POST creates a row via addProjectKnowledge with type=notes_synthesis", () => {
-    expect(SRC.includes("addProjectKnowledge")).toBe(true);
-    expect(/knowledgeType:\s*NOTES_TYPE/.test(SRC)).toBe(true);
-    expect(/const\s+NOTES_TYPE\s*=\s*"notes_synthesis"/.test(SRC)).toBe(true);
-    // Returns 201 with the saved note.
-    expect(/res\.status\(201\)\.json\(\{\s*note:\s*saved\s*\}\)/.test(SRC)).toBe(true);
-  });
+    const { status, body } = await get("/api/projects/p1/notes");
 
-  it("uses callGeminiFlash with bounded maxTokens for cost control", () => {
-    expect(SRC.includes("callGeminiFlash")).toBe(true);
-    expect(/LLM_MAX_TOKENS\s*=\s*4096/.test(SRC)).toBe(true);
-    expect(/maxTokens:\s*LLM_MAX_TOKENS/.test(SRC)).toBe(true);
-  });
-
-  it("LLM failure surfaces as 502, not 500", () => {
-    // Distinguishes upstream failure (Gemini) from internal bug.
-    expect(/LLM synthesis failed/.test(SRC)).toBe(true);
-    expect(/return\s+res\.status\(502\)/.test(SRC)).toBe(true);
-  });
-
-  it("chat lookback window is 30 days per spec", () => {
-    expect(/CHAT_LOOKBACK_DAYS\s*=\s*30/.test(SRC)).toBe(true);
-  });
-
-  it("latest note picked by createdAt desc (not relevanceScore which is constant)", () => {
-    expect(/sort\([\s\S]*createdAt[\s\S]*\)/.test(SRC)).toBe(true);
+    expect(status).toBe(500);
+    expect(body.error).toMatch(/failed to fetch/i);
   });
 });
 
-describe("notes-routes — registered into main router", () => {
-  const ROUTES = fs.readFileSync(path.join(__dirname, "routes.ts"), "utf-8");
-  it("the main router imports + calls registerNotesRoutes", () => {
-    expect(
-      /registerNotesRoutes\s*\}\s*=\s*await\s+import\("\.\/notes-routes"\)/.test(
-        ROUTES,
-      ),
-    ).toBe(true);
-    expect(/registerNotesRoutes\(app\)/.test(ROUTES)).toBe(true);
+describe("notes-routes — POST /api/projects/:id/notes/refresh", () => {
+  beforeEach(() => {
+    // Default happy-path context for the refresh handler.
+    fakeProjects.getProject.mockResolvedValue({
+      id: "p1",
+      userId: "owner-1",
+      name: "My project",
+      description: "desc",
+    });
+    fakeProjects.loadProjectContext.mockResolvedValue({
+      recentWorkflows: [],
+      recentEpisodes: [],
+    });
   });
-});
 
-describe("shared/schema — projectDocumentSchema accepts notes_synthesis", () => {
-  const SCHEMA = fs.readFileSync(
-    path.join(__dirname, "..", "shared", "schema.ts"),
-    "utf-8",
-  );
-  it("type enum now includes notes_synthesis", () => {
-    expect(
-      /type:\s*z\.enum\(\[\s*"file",\s*"text",\s*"url",\s*"notes_synthesis"\s*\]\)/.test(
-        SCHEMA,
-      ),
-    ).toBe(true);
+  it("owner → 201 with the created note", async () => {
+    callGeminiFlash.mockResolvedValue("# Synthesis\n\nreal markdown");
+    const savedRow = { id: "note-created", content: "# Synthesis\n\nreal markdown" };
+    fakeProjects.addProjectKnowledge.mockResolvedValue(savedRow);
+
+    const { status, body } = await post("/api/projects/p1/notes/refresh");
+
+    expect(status).toBe(201);
+    expect(body.note).toEqual(savedRow);
+    // The row it persists must be typed as notes_synthesis with the LLM
+    // markdown as content — catches a wrong knowledgeType / dropped body.
+    const arg = fakeProjects.addProjectKnowledge.mock.calls[0][0];
+    expect(arg.knowledgeType).toBe("notes_synthesis");
+    expect(arg.content).toBe("# Synthesis\n\nreal markdown");
+    expect(arg.projectId).toBe("p1");
+  });
+
+  it("cross-user → 404 and never calls the LLM or persists a row", async () => {
+    fakeProjects.getProject.mockResolvedValue({ id: "p1", userId: "other-99", name: "P" });
+
+    const { status } = await post("/api/projects/p1/notes/refresh");
+
+    expect(status).toBe(404);
+    expect(callGeminiFlash).not.toHaveBeenCalled();
+    expect(fakeProjects.addProjectKnowledge).not.toHaveBeenCalled();
+  });
+
+  it("LLM call rejects → 502 (upstream failure, not 500) and no row persisted", async () => {
+    callGeminiFlash.mockRejectedValue(new Error("gemini 503"));
+
+    const { status, body } = await post("/api/projects/p1/notes/refresh");
+
+    expect(status).toBe(502);
+    expect(body.error).toMatch(/synthesis failed/i);
+    expect(fakeProjects.addProjectKnowledge).not.toHaveBeenCalled();
+  });
+
+  it("LLM returns empty/whitespace content → 502, no empty row persisted", async () => {
+    callGeminiFlash.mockResolvedValue("   \n  ");
+
+    const { status, body } = await post("/api/projects/p1/notes/refresh");
+
+    expect(status).toBe(502);
+    expect(body.error).toMatch(/empty/i);
+    expect(fakeProjects.addProjectKnowledge).not.toHaveBeenCalled();
+  });
+
+  it("unexpected throw before the LLM → 500", async () => {
+    // loadProjectContext explodes → generic internal error, not 502.
+    callGeminiFlash.mockResolvedValue("# ok");
+    fakeProjects.loadProjectContext.mockRejectedValue(new Error("ctx boom"));
+
+    const { status, body } = await post("/api/projects/p1/notes/refresh");
+
+    expect(status).toBe(500);
+    expect(body.error).toMatch(/failed to refresh/i);
+    expect(callGeminiFlash).not.toHaveBeenCalled();
+  });
+
+  it("unauthenticated → 401", async () => {
+    currentUser = null;
+
+    const { status } = await post("/api/projects/p1/notes/refresh");
+
+    expect(status).toBe(401);
+    expect(fakeProjects.getProject).not.toHaveBeenCalled();
   });
 });

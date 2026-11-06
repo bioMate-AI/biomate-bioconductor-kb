@@ -49,7 +49,9 @@ def main():
             args=['--no-sandbox','--disable-setuid-sandbox',
                   '--disable-dev-shm-usage','--disable-gpu'],
         )
-        context = browser.new_context(viewport={'width': 1920, 'height': 1080})
+        # HIGH-RES screenshots: deviceScaleFactor=2 renders the 1920x1080 viewport at 3840x2160 (retina),
+        # so tour PNGs are crisp in slides/docs regardless of host display (headless = 1x otherwise).
+        context = browser.new_context(viewport={'width': 1920, 'height': 1080}, device_scale_factor=2)
         context.add_init_script(f'''() => {{
             try {{ localStorage.setItem('biomate-tweaks',          JSON.stringify({json.dumps(tweaks_init)})); }} catch(e) {{}}
             try {{ localStorage.setItem('biomate-research-tweaks', JSON.stringify({json.dumps(tweaks_init)})); }} catch(e) {{}}

@@ -52,7 +52,7 @@ with open("check_fda_drug_recalls_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("check_fda_drug_recalls_output.txt", "w") as f:
-    f.write("Biomni: Check Fda Drug Recalls Results" + NL)
+    f.write("BioMate: Check Fda Drug Recalls Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

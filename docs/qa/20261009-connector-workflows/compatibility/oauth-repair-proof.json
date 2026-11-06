@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-10T02:33:45.936Z",
+  "scope": "Isolated candidate gateway/client with real BioMate fixture account and existing run; no workflow execution",
+  "results": [
+    {
+      "step": "isolated-service-started",
+      "passed": true
+    },
+    {
+      "step": "dynamic-client-registration",
+      "passed": true
+    },
+    {
+      "step": "real-account-login-and-consent",
+      "passed": true
+    },
+    {
+      "step": "oauth-state-preserved",
+      "passed": true
+    },
+    {
+      "step": "pkce-code-exchange",
+      "passed": true
+    },
+    {
+      "step": "nineteen-supported-tools",
+      "passed": true
+    },
+    {
+      "step": "oauth-read-real-owned-run",
+      "passed": true
+    },
+    {
+      "step": "refresh-rotated-and-persisted",
+      "passed": true
+    },
+    {
+      "step": "old-refresh-token-rejected",
+      "passed": true
+    },
+    {
+      "step": "write-without-scope-denied",
+      "passed": true
+    },
+    {
+      "step": "personal-key-revocation",
+      "passed": true
+    },
+    {
+      "step": "revoked-personal-key-denied",
+      "passed": true
+    },
+    {
+      "step": "reconnect-replaces-revoked-personal-key",
+      "passed": true
+    },
+    {
+      "step": "credentials-survive-client-restart",
+      "passed": true
+    },
+    {
+      "step": "revoke-temporary-personal-key",
+      "passed": true
+    },
+    {
+      "step": "revoke-temporary-personal-key",
+      "passed": true
+    }
+  ]
+}

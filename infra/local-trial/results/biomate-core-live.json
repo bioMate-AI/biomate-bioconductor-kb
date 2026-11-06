@@ -1,0 +1,45 @@
+{
+  "scope": "live model and actual BioMate orchestration, synthetic storage",
+  "model": "Qwen/Qwen3.8-27B",
+  "latency_ms": 106555,
+  "events": [
+    {
+      "type": "tool_call",
+      "tool_use_id": "ZyA6VkxjK1eJ0nyCFbHiCAm1C1Ufp8XM",
+      "name": "list_history",
+      "input": {
+        "limit": 1
+      }
+    },
+    {
+      "type": "tool_result",
+      "tool_use_id": "ZyA6VkxjK1eJ0nyCFbHiCAm1C1Ufp8XM",
+      "name": "list_history",
+      "output": {
+        "userId": "synthetic-trial-user",
+        "count": 1,
+        "filter": {
+          "workflow_filter": null,
+          "status_filter": null
+        },
+        "runs": [
+          {
+            "id": "fixture-",
+            "fullId": "fixture-run-729",
+            "workflow": "rnaseq",
+            "status": "failed",
+            "paramCount": 0,
+            "paramKeys": [],
+            "outputCount": 0
+          }
+        ],
+        "usage_hint": "To reuse params: read the full row for an id; to reference outputs of a run, prefix file params with `run:<fullId>:` once chain-panel work merges."
+      },
+      "duration_ms": 1
+    }
+  ],
+  "result": {
+    "message": "**Result** — Your latest workflow run is **`fixture-run-729`** (short ID `fixture-`), and its status is **failed**.\n\n**Rationale** — I pulled your most recent run from the history (no new run was started). It was an `rnaseq` workflow with 0 outputs recorded. If you'd like, I can dig into why it failed or show the full parameter set.",
+    "truncated": false
+  }
+}

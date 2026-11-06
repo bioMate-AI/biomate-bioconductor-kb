@@ -1,0 +1,11 @@
+**T5. Controlled retrospective loop (L5; hits among 500 picks, within-source top-decile definition)**
+
+| regime                         |   seeds |   loop hits/500 |   random hits/500 | loop − random (95% CI)   |   rule K_z hits/500 | loop − rule K_z (95% CI)   | 95% CI of loop − random excludes 0   |
+|:-------------------------------|--------:|----------------:|------------------:|:-------------------------|--------------------:|:---------------------------|:-------------------------------------|
+| A in-distribution              |      30 |           236.1 |              49.8 | +186.3 [+158.5, +209.0]  |               182.5 | +53.6 [+25.1, +77.0]       | yes                                  |
+| B scaffold-shifted             |      30 |            52.3 |              30.1 | +22.2 [-1.6, +44.1]      |                52.8 | -0.5 [-20.0, +17.2]        | no                                   |
+| C identical-structure-excluded |      30 |           212.5 |              49.2 | +163.4 [+128.1, +196.3]  |               158.8 | +53.7 [+30.9, +74.3]       | yes                                  |
+
+Pre-registered claim C1 (loop beats random in A and B): NOT met. All 15 knowledge-arm contrasts: 99% intervals include 0.
+
+Sources: research/guangzhou_all_atom/cyclic_llm/loop_retro/results/l5_aggregate.json@18fa89b54

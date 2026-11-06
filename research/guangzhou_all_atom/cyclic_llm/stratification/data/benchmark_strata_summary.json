@@ -1,0 +1,14 @@
+{
+ "n_compounds": 16195,
+ "topology_T2": {
+  "lariat": 12694,
+  "head_to_tail": 3501
+ },
+ "stratum": {
+  "ncaa_peptide": 13783,
+  "non_peptide_macrocycle": 2101,
+  "peptide": 311
+ },
+ "n_nme_mean": 1.1030564989194196,
+ "flat_size_gt1_frac": 0.1753627662858907
+}

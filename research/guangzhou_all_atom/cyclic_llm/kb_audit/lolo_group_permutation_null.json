@@ -1,0 +1,162 @@
+{
+ "observed_median": 0.2519126076018747,
+ "null_median_mean": 0.000815118526592728,
+ "null_median_sd": 0.03545377201620665,
+ "null_median_95": [
+  -0.06957179348598193,
+  0.07027136371397721
+ ],
+ "p_median": 0.0001999600079984003,
+ "n_labs": 21,
+ "n_labs_p_lt_0_05": 10,
+ "expected": 1.05,
+ "per_lab": {
+  "2013_CHUGAI": {
+   "n": 719,
+   "n_groups": 712,
+   "K_const_within_group": true,
+   "rho": 0.1505811751307256,
+   "p": 0.0001999600079984003
+  },
+  "2015_Ahlbach": {
+   "n": 28,
+   "n_groups": 28,
+   "K_const_within_group": true,
+   "rho": 0.6461328402503026,
+   "p": 0.0001999600079984003
+  },
+  "2015_Wang": {
+   "n": 47,
+   "n_groups": 33,
+   "K_const_within_group": true,
+   "rho": 0.7469829463461596,
+   "p": 0.0001999600079984003
+  },
+  "2016_Furukawa": {
+   "n": 662,
+   "n_groups": 411,
+   "K_const_within_group": true,
+   "rho": -0.1008626036522823,
+   "p": 0.15516896620675866
+  },
+  "2017_Pye": {
+   "n": 21,
+   "n_groups": 21,
+   "K_const_within_group": true,
+   "rho": 0.12068968071662249,
+   "p": 0.5956808638272345
+  },
+  "2018_Naylor": {
+   "n": 69,
+   "n_groups": 68,
+   "K_const_within_group": true,
+   "rho": 0.031666560373385,
+   "p": 0.7986402719456108
+  },
+  "2020_Barlow": {
+   "n": 26,
+   "n_groups": 26,
+   "K_const_within_group": true,
+   "rho": 0.5710302480378213,
+   "p": 0.003599280143971206
+  },
+  "2020_Furukawa": {
+   "n": 36,
+   "n_groups": 36,
+   "K_const_within_group": true,
+   "rho": 0.10135875340255543,
+   "p": 0.556488702259548
+  },
+  "2020_Le Roux": {
+   "n": 47,
+   "n_groups": 34,
+   "K_const_within_group": true,
+   "rho": 0.570999639542705,
+   "p": 0.0003999200159968006
+  },
+  "2020_Townsend": {
+   "n": 2881,
+   "n_groups": 254,
+   "K_const_within_group": true,
+   "rho": 0.5028641120785413,
+   "p": 0.0001999600079984003
+  },
+  "2021_Comeau": {
+   "n": 42,
+   "n_groups": 24,
+   "K_const_within_group": true,
+   "rho": 0.1378354818535772,
+   "p": 0.4243151369726055
+  },
+  "2021_Golosov": {
+   "n": 23,
+   "n_groups": 20,
+   "K_const_within_group": true,
+   "rho": 0.7333981785102073,
+   "p": 0.0003999200159968006
+  },
+  "2021_Kelly": {
+   "n": 1518,
+   "n_groups": 181,
+   "K_const_within_group": true,
+   "rho": 0.4922062027038002,
+   "p": 0.0001999600079984003
+  },
+  "2021_Wang": {
+   "n": 22,
+   "n_groups": 22,
+   "K_const_within_group": true,
+   "rho": 0.4909168072134727,
+   "p": 0.02439512097580484
+  },
+  "2022_Bhardwaj": {
+   "n": 133,
+   "n_groups": 131,
+   "K_const_within_group": true,
+   "rho": 0.1308644625888296,
+   "p": 0.1239752049590082
+  },
+  "2022_Taechalertpaisarn": {
+   "n": 50,
+   "n_groups": 38,
+   "K_const_within_group": true,
+   "rho": 0.2393958517591222,
+   "p": 0.14277144571085784
+  },
+  "2023_Ghosh": {
+   "n": 33,
+   "n_groups": 33,
+   "K_const_within_group": true,
+   "rho": -0.28679751477309634,
+   "p": 0.10057988402319536
+  },
+  "2023_Ohta": {
+   "n": 150,
+   "n_groups": 149,
+   "K_const_within_group": true,
+   "rho": 0.2519126076018747,
+   "p": 0.0023995200959808036
+  },
+  "2024_Faris": {
+   "n": 207,
+   "n_groups": 43,
+   "K_const_within_group": true,
+   "rho": 0.03875580545997435,
+   "p": 0.8312337532493501
+  },
+  "2024_Koch": {
+   "n": 42,
+   "n_groups": 42,
+   "K_const_within_group": true,
+   "rho": 0.2869836481296754,
+   "p": 0.07378524295140972
+  },
+  "2024_Ly": {
+   "n": 20,
+   "n_groups": 20,
+   "K_const_within_group": true,
+   "rho": 0.31118716949915287,
+   "p": 0.16756648670265947
+  }
+ }
+}

@@ -1,0 +1,55 @@
+{
+  "source": {
+    "key": "immunology_sc_corpus_broad/tracks/text_knowledge/fulltext/shard_0000.jsonl.gz",
+    "bytes": 76712837,
+    "etag": "\"c27cb062f1adb93a20f0bb87ae626a47-10\"",
+    "last_modified": "2026-08-09T04:27:22+00:00"
+  },
+  "inspected_records": 1,
+  "record_sha256": "44e8f5504f44812a0b461f1083c4b8c6ed7bbfa237a7132844f894f020252b76",
+  "schema": {
+    "pmcid": {
+      "type": "str",
+      "length": 11,
+      "preview": "PMC10000926"
+    },
+    "pmid": {
+      "type": "str",
+      "length": 8,
+      "preview": "36900307"
+    },
+    "title": {
+      "type": "str",
+      "length": 34,
+      "preview": "B Cells in Breast Cancer Pathology"
+    },
+    "journal": {
+      "type": "str",
+      "length": 7,
+      "preview": "Cancers"
+    },
+    "year": {
+      "type": "str",
+      "length": 4,
+      "preview": "2023"
+    },
+    "license_href": {
+      "type": "str",
+      "length": 44,
+      "preview": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "abstract": {
+      "type": "str",
+      "length": 2374,
+      "preview": "Simple SummaryB cells in the tumour microenvironment and lymph nodes have affirmed their role in breast cancer pathology. Multiplex imaging, single ce"
+    },
+    "body": {
+      "type": "str",
+      "length": 31955,
+      "preview": "1. IntroductionBreast cancer is the most common cancer in women, with 2.3 million new cases diagnosed per year, attributing to 690,000 deaths annually"
+    }
+  },
+  "catalog_shards": 24,
+  "catalog_bytes": 1586078454,
+  "not_full_download": true
+}

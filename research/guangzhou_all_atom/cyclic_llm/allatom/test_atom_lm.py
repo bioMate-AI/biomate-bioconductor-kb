@@ -1,0 +1,91 @@
+"""Atom-level LM tests (tokenizer, causality, exact resume, upsampling, learn-and-sample). Run: python3 test_atom_lm.py"""
+import os, sys, tempfile
+import numpy as np, torch
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import atom_lm as A
+
+CYC = "CC(C)C[C@@H]1C(=O)N(C)[C@@H](C)C(=O)N[C@H](Cc2ccccc2)C(=O)N(C)[C@@H](CC(C)C)C(=O)N[C@@H](C)C(=O)N1C"
+BIG = "C%10CC%11CCC%12CCCC%13CC%10%11%12%13"          # two-digit ring closures ("%nn") must survive tokenisation
+MOLS = ["CCO", "c1ccccc1O", "CC(=O)Nc1ccc(O)cc1", "[NH3+]CC(=O)[O-]", "BrCCCl", CYC, BIG, "C[C@H](N)C(=O)O", "O=C1CCCCN1", "CS(=O)(=O)N", "O=C1CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CN1"]
+
+def test_tokenizer_roundtrip_and_ring_closures():
+    for s in MOLS:
+        t = A.tokenize(s); assert "".join(t) == s, (s, t)
+    assert "%10" in A.tokenize(BIG) and "[C@@H]" in A.tokenize(CYC) and "Cl" in A.tokenize("BrCCCl") and "Br" in A.tokenize("BrCCCl")
+
+def test_vocab_encode_decode_roundtrip_and_unk():
+    v = A.Vocab.build(MOLS); ids = v.encode(CYC); assert ids[0] == v.bos and ids[-1] == v.eos and v.decode(ids) == CYC
+    assert v.unk in v.encode("[Fe]")                                         # unseen bracket atom -> <unk>, never a crash
+
+def test_model_is_causal():
+    torch.manual_seed(0); v = A.Vocab.build(MOLS); m = A.GPT(len(v), d=32, layers=2, heads=2, max_len=64).eval()
+    x = torch.tensor([v.encode(CYC)[:30]]); y = x.clone(); y[0, 20] = (y[0, 20] + 1) % len(v)
+    with torch.no_grad(): a, b = m(x), m(y)
+    assert torch.allclose(a[0, :20], b[0, :20], atol=1e-5) and not torch.allclose(a[0, 20:], b[0, 20:], atol=1e-5)
+
+def test_resume_is_bitwise_deterministic():
+    v = A.Vocab.build(MOLS); enc = [v.encode(s) for s in MOLS]; d = tempfile.mkdtemp()
+    def run(steps, ckpt, resume=False):
+        torch.manual_seed(1); m = A.GPT(len(v), d=32, layers=2, heads=2, max_len=64)
+        return A.train(m, enc, v, steps=steps, batch_size=4, lr=1e-3, seed=7, ckpt=ckpt, ckpt_every=10, resume=resume, device="cpu")
+    full = run(20, os.path.join(d, "full.pt")); part = run(10, os.path.join(d, "p.pt")); resumed = run(20, os.path.join(d, "p.pt"), resume=True)
+    for (k, a), (_, b) in zip(full.state_dict().items(), resumed.state_dict().items()): assert torch.equal(a, b), k
+
+def test_macrocycle_upsampling_changes_batch_composition():
+    v = A.Vocab.build(MOLS); enc = [v.encode(s) for s in MOLS]; macro = np.array([A.has_macrocycle(s) for s in MOLS])
+    assert macro.sum() >= 2 and macro.sum() < len(MOLS)
+    w1 = A.sampling_weights(macro, upsample=1.0); w20 = A.sampling_weights(macro, upsample=20.0)
+    f = lambda w: np.mean([macro[i] for st in range(300) for i in A.batch_indices(len(MOLS), 8, st, 3, w)])
+    assert f(w20) > f(w1) + 0.2, (f(w1), f(w20))
+
+def test_learns_and_samples_valid_molecules():
+    torch.manual_seed(0); v = A.Vocab.build(MOLS); enc = [v.encode(s) for s in MOLS]; m = A.GPT(len(v), d=64, layers=2, heads=2, max_len=160)
+    l0 = A.eval_loss(m, enc, v, "cpu"); A.train(m, enc, v, steps=400, batch_size=8, lr=3e-3, seed=0, device="cpu"); l1 = A.eval_loss(m, enc, v, "cpu")
+    assert l1 < 0.35 * l0, (l0, l1)
+    out = A.sample(m, v, n=60, max_len=150, temperature=0.8, seed=0, device="cpu"); ok = np.mean([A.valid(s) for s in out])
+    assert ok > 0.5, ok
+
+def test_checkpoint_callback_fires_at_intervals_and_end():
+    v = A.Vocab.build(MOLS); enc = [v.encode(s) for s in MOLS]; seen = []; d = tempfile.mkdtemp()
+    m = A.GPT(len(v), d=32, layers=1, heads=2, max_len=64); A.train(m, enc, v, steps=25, batch_size=4, lr=1e-3, ckpt=os.path.join(d, "c.pt"), ckpt_every=10, on_ckpt=lambda p, s: seen.append(s), device="cpu")
+    assert seen == [10, 20, 25], seen
+
+def test_bucketed_batches_cut_padding_and_are_pure_functions_of_step():
+    rng = np.random.default_rng(0); lengths = np.clip(rng.lognormal(3.8, 0.45, 5000).astype(int), 8, 256); w = None
+    def eff(idx_fn):
+        real = pad = 0
+        for st in range(64): b = lengths[idx_fn(st)]; real += b.sum(); pad += len(b) * b.max()
+        return real / pad
+    plain = eff(lambda st: A.batch_indices(len(lengths), 64, st, 3, w)); buck = eff(lambda st: A.bucketed_indices(lengths, 64, st, 3, w, pool_mult=16))
+    assert buck > 0.85 and buck > plain + 0.25, (plain, buck)
+    assert np.array_equal(A.bucketed_indices(lengths, 64, 21, 3, w, 16), A.bucketed_indices(lengths, 64, 21, 3, w, 16))
+    assert not np.array_equal(A.bucketed_indices(lengths, 64, 21, 3, w, 16), A.bucketed_indices(lengths, 64, 22, 3, w, 16))
+
+def test_resume_is_bitwise_deterministic_with_bucketing():
+    v = A.Vocab.build(MOLS); enc = [v.encode(s) for s in MOLS]; d = tempfile.mkdtemp()
+    def run(steps, ckpt, resume=False):
+        torch.manual_seed(1); m = A.GPT(len(v), d=32, layers=2, heads=2, max_len=64)
+        return A.train(m, enc, v, steps=steps, batch_size=4, lr=1e-3, seed=7, ckpt=ckpt, ckpt_every=10, resume=resume, device="cpu", pool_mult=4)
+    full = run(20, os.path.join(d, "f.pt")); run(10, os.path.join(d, "p.pt")); resumed = run(20, os.path.join(d, "p.pt"), resume=True)
+    for (k, a), (_, b) in zip(full.state_dict().items(), resumed.state_dict().items()): assert torch.equal(a, b), k
+
+def test_fused_attention_matches_reference_causal_attention():
+    torch.manual_seed(0); blk = A.Block(32, 4).eval(); x = torch.randn(2, 9, 32)
+    with torch.no_grad():
+        h = blk.ln1(x); q, k, v = blk.qkv(h).view(2, 9, 3, 4, 8).permute(2, 0, 3, 1, 4)
+        att = (q @ k.transpose(-1, -2)) / (8 ** 0.5); att = att.masked_fill(torch.triu(torch.ones(9, 9, dtype=torch.bool), 1), float("-inf")).softmax(-1)
+        ref = x + blk.proj((att @ v).transpose(1, 2).reshape(2, 9, 32)); ref = ref + blk.mlp(blk.ln2(ref)); out = blk(x)
+    assert torch.allclose(out, ref, atol=1e-5), (out - ref).abs().max()
+
+def test_eval_callback_receives_model_and_step_at_checkpoints():
+    v = A.Vocab.build(MOLS); enc = [v.encode(s) for s in MOLS]; seen = []; d = tempfile.mkdtemp()
+    m = A.GPT(len(v), d=32, layers=1, heads=2, max_len=64)
+    A.train(m, enc, v, steps=20, batch_size=4, lr=1e-3, ckpt=os.path.join(d, "c.pt"), ckpt_every=10, on_eval=lambda mod, st: seen.append((st, mod.training, type(mod).__name__)), device="cpu")
+    assert [s for s, _, _ in seen] == [10, 20] and all(name == "GPT" for _, _, name in seen)
+    assert m.training                                                              # training mode restored after the callback
+
+if __name__ == "__main__":
+    k = 0
+    for n, f in sorted(globals().items()):
+        if n.startswith("test_"): f(); k += 1; print("PASS", n)
+    print(k, "tests passed")

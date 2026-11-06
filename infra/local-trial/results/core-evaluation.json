@@ -1,0 +1,295 @@
+{
+  "scope": "Synthetic development diagnostics for BioMate core behavior; not a locked release benchmark or training set",
+  "model": "Qwen/Qwen3.8-27B",
+  "results": [
+    {
+      "id": "intent-explain-only",
+      "task_id": "T01",
+      "passed": true,
+      "answer": {
+        "action": "explain",
+        "execute_workflow": false
+      },
+      "expected": {
+        "action": "explain",
+        "execute_workflow": false
+      },
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 72,
+        "total_tokens": 91,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "seconds": 17.363
+    },
+    {
+      "id": "preserve-identifiers",
+      "task_id": "T02",
+      "passed": true,
+      "answer": {
+        "accession": "GSE184729",
+        "platform": "GPL24676",
+        "genome": "GRCh38"
+      },
+      "expected": {
+        "accession": "GSE184729",
+        "platform": "GPL24676",
+        "genome": "GRCh38"
+      },
+      "usage": {
+        "completion_tokens": 44,
+        "prompt_tokens": 83,
+        "total_tokens": 127,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 23.312
+    },
+    {
+      "id": "missing-required-input",
+      "task_id": "T03",
+      "passed": true,
+      "answer": {
+        "missing": [
+          "reads"
+        ],
+        "ready_to_run": false
+      },
+      "expected": {
+        "missing": [
+          "reads"
+        ],
+        "ready_to_run": false
+      },
+      "usage": {
+        "completion_tokens": 26,
+        "prompt_tokens": 88,
+        "total_tokens": 114,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 18.339
+    },
+    {
+      "id": "respect-correction",
+      "task_id": "T04",
+      "passed": true,
+      "answer": {
+        "genome": "GRCm39",
+        "paired_end": true,
+        "padj": 0.01
+      },
+      "expected": {
+        "genome": "GRCm39",
+        "paired_end": true,
+        "padj": 0.01
+      },
+      "usage": {
+        "completion_tokens": 35,
+        "prompt_tokens": 99,
+        "total_tokens": 134,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 21.519
+    },
+    {
+      "id": "select-available-tool",
+      "task_id": "T05",
+      "passed": true,
+      "answer": {
+        "tool_id": "fastqc_0_12"
+      },
+      "expected": {
+        "tool_id": "fastqc_0_12"
+      },
+      "usage": {
+        "completion_tokens": 19,
+        "prompt_tokens": 106,
+        "total_tokens": 125,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 17.727
+    },
+    {
+      "id": "schema-parameter-types",
+      "task_id": "T06",
+      "passed": true,
+      "answer": {
+        "genome": "GRCh38",
+        "threads": 8,
+        "paired_end": true
+      },
+      "expected": {
+        "genome": "GRCh38",
+        "threads": 8,
+        "paired_end": true
+      },
+      "usage": {
+        "completion_tokens": 30,
+        "prompt_tokens": 93,
+        "total_tokens": 123,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 20.354
+    },
+    {
+      "id": "invalid-enum",
+      "task_id": "T06",
+      "passed": true,
+      "answer": {
+        "valid": false,
+        "requested_genome": "hg19",
+        "needs_clarification": true
+      },
+      "expected": {
+        "valid": false,
+        "requested_genome": "hg19",
+        "needs_clarification": true
+      },
+      "usage": {
+        "completion_tokens": 32,
+        "prompt_tokens": 87,
+        "total_tokens": 119,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 20.329
+    },
+    {
+      "id": "input-compatibility",
+      "task_id": "T07",
+      "passed": true,
+      "answer": {
+        "inputs_compatible": false,
+        "missing_types": [
+          "gene-by-sample count matrix",
+          "sample metadata"
+        ]
+      },
+      "expected": {
+        "inputs_compatible": false,
+        "missing_types": [
+          "gene-by-sample count matrix",
+          "sample metadata"
+        ]
+      },
+      "usage": {
+        "completion_tokens": 38,
+        "prompt_tokens": 92,
+        "total_tokens": 130,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 21.802
+    },
+    {
+      "id": "edit-only-requested-parameter",
+      "task_id": "T10",
+      "passed": true,
+      "answer": {
+        "genome": "GRCh38",
+        "threads": 4,
+        "padj": 0.05
+      },
+      "expected": {
+        "genome": "GRCh38",
+        "threads": 4,
+        "padj": 0.05
+      },
+      "usage": {
+        "completion_tokens": 34,
+        "prompt_tokens": 84,
+        "total_tokens": 118,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 20.346
+    },
+    {
+      "id": "diagnose-observed-failure",
+      "task_id": "T18",
+      "passed": true,
+      "answer": {
+        "category": "missing_input",
+        "next_action": "locate_or_stage_input"
+      },
+      "expected": {
+        "category": "missing_input",
+        "next_action": "locate_or_stage_input"
+      },
+      "usage": {
+        "completion_tokens": 25,
+        "prompt_tokens": 99,
+        "total_tokens": 124,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 18.38
+    },
+    {
+      "id": "no-output-no-claim",
+      "task_id": "T20",
+      "passed": true,
+      "answer": {
+        "artifacts_verified": false,
+        "can_report_numerical_results": false,
+        "next_action": "inspect_missing_outputs"
+      },
+      "expected": {
+        "artifacts_verified": false,
+        "can_report_numerical_results": false,
+        "next_action": "inspect_missing_outputs"
+      },
+      "usage": {
+        "completion_tokens": 35,
+        "prompt_tokens": 86,
+        "total_tokens": 121,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 73.955
+    },
+    {
+      "id": "unit-calculation",
+      "task_id": "T20",
+      "passed": true,
+      "answer": {
+        "unbound_ng_ml": 20.0,
+        "unbound_micromolar": 0.04,
+        "ratio_to_ic50": 0.4
+      },
+      "expected": {
+        "unbound_ng_ml": 20,
+        "unbound_micromolar": 0.04,
+        "ratio_to_ic50": 0.4
+      },
+      "usage": {
+        "completion_tokens": 47,
+        "prompt_tokens": 113,
+        "total_tokens": 160,
+        "prompt_tokens_details": {
+          "cached_tokens": 27
+        }
+      },
+      "seconds": 314.519
+    }
+  ],
+  "passed": 12,
+  "completed": 12,
+  "total": 12
+}

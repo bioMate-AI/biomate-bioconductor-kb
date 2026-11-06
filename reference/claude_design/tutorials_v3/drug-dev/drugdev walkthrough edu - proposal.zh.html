@@ -1,0 +1,108 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"/><title>BioMate · Drug development pipeline — walkthrough edu (proposal)</title><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet"/><link rel="stylesheet" href="../_ui/bm-ui.css"/><link rel="stylesheet" href="../_v4.css"/><link rel="stylesheet" href="../_lens.css"/><link rel="stylesheet" href="../_deck.css"/>
+<style>
+/* edu additions: compact teaching SVG stage + 2-col compare card, all within v4 tokens */
+.csvg{width:100%;height:auto;display:block;overflow:visible}
+.cnote{font-size:19px;line-height:1.5;color:var(--ink2)}
+.cnote b{color:var(--ink)}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.vs .col{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:var(--bm-surface)}
+.vs .col.deep{border-color:var(--ok);background:var(--ok-soft)}
+.vs .col .k{font:600 13px/1 var(--ff-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.vs .col h4{margin:0 0 10px;font:600 21px/1.2 var(--ff-ui);color:var(--ink)}
+.vs .col p{margin:0;font-size:17px;line-height:1.5;color:var(--ink2)}
+</style>
+</head><body data-deck="drugdevzh"><header class="rail"><span class="brand"><img src="../assets/biomate-logo.png" alt=""/>BioMate</span><span class="ep">药物研发 · 从设计到暴露量 · 教程版</span><nav class="journey" aria-label="Journey"><span data-j="1"><i>1</i>数据</span><span class="sep"></span><span data-j="2"><i>2</i>工作流</span><span class="sep"></span><span data-j="3"><i>3</i>结果</span><span class="sep"></span><span data-j="4"><i>4</i>报告</span></nav><div class="ctl"><button class="pv" aria-label="Previous">‹</button><button class="pp" aria-label="Play or pause">❚❚</button><button class="nx" aria-label="Next">›</button><span class="n">1 / 12</span><button class="ovb" aria-label="Overview" title="Overview (O)">▦</button></div></header><div class="prog"></div>
+<section class="scene" data-seconds="30" data-journey="0" data-label="01 · 问题"><div class="s-text hero" style="width:1700px;top:46%;transform:translateY(-50%)"><div class="kick in" data-at="0.2">问题 <em>· 第 8 集 · 完整闭环</em></div><h1 class="in" data-at="0.5" style="font-size:76px">从靶点<br/>到筛选后的候选清单。</h1><p class="lead in" data-at="1.2" style="max-width:1100px">设计、预测、排序并外推暴露量，每个数字都可追溯。</p></div></section>
+<section class="scene" data-seconds="36" data-journey="0" data-label="02 · 闭环带来了什么"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· 闭环带来了什么</em></div><h2 class="in" data-at="0.4">优势在于闭环，而不是某一个模型。</h2><ol class="beats"><li data-at="3" data-off="12"><b>设计与检测相连</b><span>候选分子直接流入预测，结果再回流。</span></li><li data-at="12" data-off="22"><b>每个目标各占一列</b><span>结合、吸收和安全性绝不合并成一个得分。</span></li><li data-at="22"><b>每个数字都可追溯</b><span>每个值都链接到产生它的文件和运行。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1.5" style="left:0px;top:40px;width:1040px;"><div class="ct">· 链路</div><table class="t" style="font-size:20px"><thead><tr><th>阶段</th><th>做什么</th><th>产出</th></tr></thead><tbody><tr><td><b>设计</b></td><td class="n">围绕种子枚举并过滤</td><td>候选清单</td></tr><tr><td><b>ADMET</b></td><td class="n">预测性质并检查判据</td><td>毒性报告</td></tr><tr><td><b>排序</b></td><td class="n">每个目标一列</td><td>并排排序</td></tr><tr><td><b>暴露量</b></td><td class="n">异速生长与 PBPK</td><td>Cmax、AUC 外推</td></tr></tbody></table></div>
+<div class="crop concept pad in r" data-at="24" style="left:0px;top:400px;width:1040px;"><div class="ct">· 仅作示例</div><div style="font-size:20px;line-height:1.5;color:var(--ink2)">这里以 <b>JAK1</b> 为靶点，以吸收和 hERG 安全为目标。BioMate 针对其他目标还提供其他设计、预测和暴露量工具。暴露量数字是<b>外推值</b>，不是已验证的绝对值。</div></div></div></section>
+
+<!-- EDU A — the pipeline is a loop (stage map · where each episode fits) -->
+<section class="scene" data-seconds="30" data-journey="0" data-label="概念 · 研发是一个循环"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· 研发是一个循环</em></div><h2 class="in" data-at="0.4">一次走完产不出成品药——它是一个会累积收益的循环。</h2><ol class="beats"><li data-at="2" data-off="11"><b>不是一条直线</b><span>设计一次、测试一次就完工，真实项目从不是这样。</span></li><li data-at="11" data-off="20"><b>设计—构建—测试—学习</b><span>每转一圈，都把上一轮学到的喂回下一轮。</span></li><li data-at="20"><b>前面各集都在圈上</b><span>生成、docking、ADMET、QSAR、PK 都是可复用的一环。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1" style="left:0px;top:70px;width:1040px;"><div class="ct">· 直线 vs 循环</div><svg class="csvg" viewBox="0 0 980 400" preserveAspectRatio="xMidYMid meet">
+<text x="30" y="36" fill="var(--mut)" font-family="JetBrains Mono" font-size="15">误解 · 一条直线</text>
+<rect x="30" y="50" width="130" height="38" rx="8" fill="var(--bm-surface-3)" stroke="var(--line2)"/><text x="95" y="74" text-anchor="middle" font-family="Inter" font-size="16" fill="var(--mut)">设计一次</text>
+<rect x="190" y="50" width="130" height="38" rx="8" fill="var(--bm-surface-3)" stroke="var(--line2)"/><text x="255" y="74" text-anchor="middle" font-family="Inter" font-size="16" fill="var(--mut)">测试一次</text>
+<rect x="350" y="50" width="130" height="38" rx="8" fill="var(--bm-surface-3)" stroke="var(--line2)"/><text x="415" y="74" text-anchor="middle" font-family="Inter" font-size="16" fill="var(--mut)">一款药？</text>
+<path d="M160 69 L190 69" stroke="var(--mut)" stroke-width="1.8"/><path d="M320 69 L350 69" stroke="var(--mut)" stroke-width="1.8"/>
+<line x1="500" y1="52" x2="556" y2="86" stroke="var(--hot)" stroke-width="3"/><line x1="556" y1="52" x2="500" y2="86" stroke="var(--hot)" stroke-width="3"/>
+<text x="30" y="138" fill="var(--acc)" font-family="JetBrains Mono" font-size="15" font-weight="600">方法 · 设计—构建—测试—学习</text>
+<circle cx="260" cy="262" r="96" fill="none" stroke="var(--line2)" stroke-width="1.5" stroke-dasharray="5 7"/>
+<circle cx="260" cy="176" r="38" fill="var(--acc-soft)" stroke="var(--acc)" stroke-width="2"/><text x="260" y="182" text-anchor="middle" font-family="Inter" font-size="18" font-weight="600" fill="var(--acc)">设计</text>
+<circle cx="356" cy="262" r="38" fill="var(--ok-soft)" stroke="var(--ok)" stroke-width="2"/><text x="356" y="268" text-anchor="middle" font-family="Inter" font-size="18" font-weight="600" fill="var(--ok)">构建</text>
+<circle cx="260" cy="348" r="38" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="2"/><text x="260" y="354" text-anchor="middle" font-family="Inter" font-size="18" font-weight="600" fill="var(--warn)">测试</text>
+<circle cx="164" cy="262" r="38" fill="var(--bm-surface-3)" stroke="var(--mut)" stroke-width="2"/><text x="164" y="268" text-anchor="middle" font-family="Inter" font-size="18" font-weight="600" fill="var(--ink2)">学习</text>
+<g fill="var(--mut)" font-family="JetBrains Mono" font-size="22"><text x="322" y="205">↘</text><text x="322" y="330">↙</text><text x="188" y="330">↖</text><text x="188" y="205">↗</text></g>
+<text x="500" y="150" fill="var(--ink)" font-family="Inter" font-size="18" font-weight="600">圈上各环 = 前面各集</text>
+<circle cx="512" cy="192" r="7" fill="var(--acc)"/><text x="530" y="198" font-family="Inter" font-size="17" fill="var(--ink2)">设计 → 生成 · docking · 新颖性</text>
+<circle cx="512" cy="236" r="7" fill="var(--warn)"/><text x="530" y="242" font-family="Inter" font-size="17" fill="var(--ink2)">测试 → ADMET · QSAR · PK · 稳定性</text>
+<circle cx="512" cy="280" r="7" fill="var(--mut)"/><text x="530" y="286" font-family="Inter" font-size="17" fill="var(--ink2)">学习 → 排序 · 反馈打分</text>
+<text x="500" y="336" fill="var(--hot)" font-family="JetBrains Mono" font-size="15">每转一圈，错误更便宜，候选更好。</text>
+</svg></div></div></section>
+
+<!-- EDU B — design & generate -->
+<section class="scene" data-seconds="30" data-journey="0" data-label="概念 · 设计与生成"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· 设计与生成</em></div><h2 class="in" data-at="0.4">到底该考虑哪些分子？围绕种子枚举，再过滤。</h2><ol class="beats"><li data-at="2" data-off="11"><b>种子结构</b><span>一个起点骨架。</span></li><li data-at="11" data-off="20"><b>枚举</b><span>系统地生成大量类似物。</span></li><li data-at="20"><b>过滤</b><span>按规则和性质，缩小到一份候选清单。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1" style="left:0px;top:230px;width:1040px;"><div class="ct">· 枚举 → 过滤</div><svg class="csvg" viewBox="0 0 980 230" preserveAspectRatio="xMidYMid meet">
+<text x="20" y="30" fill="var(--mut)" font-family="JetBrains Mono" font-size="16">种子</text>
+<g stroke="var(--acc)" stroke-width="2.4" fill="var(--acc-soft)"><circle cx="55" cy="110" r="16"/></g>
+<g stroke="var(--line2)" stroke-width="1.6" fill="none"><path d="M75 100 L200 50"/><path d="M75 108 L200 90"/><path d="M75 112 L200 130"/><path d="M75 120 L200 170"/></g>
+<text x="200" y="30" fill="var(--acc)" font-family="JetBrains Mono" font-size="16" font-weight="500">枚举类似物</text>
+<g stroke="var(--acc)" stroke-width="2" fill="var(--acc-soft)"><circle cx="220" cy="50" r="13"/><circle cx="220" cy="90" r="13"/><circle cx="220" cy="130" r="13"/><circle cx="220" cy="170" r="13"/></g>
+<path d="M250 110 L370 110" stroke="var(--mut)" stroke-width="2"/><polygon points="370,110 357,104 357,116" fill="var(--mut)"/>
+<text x="395" y="30" fill="var(--warn)" font-family="JetBrains Mono" font-size="16" font-weight="500">按规则过滤</text>
+<rect x="390" y="55" width="190" height="110" rx="12" fill="var(--warn-soft)" stroke="var(--line2)"/>
+<text x="485" y="118" text-anchor="middle" font-family="Inter" font-size="19" fill="var(--ink2)">可合成 · 类药</text>
+<path d="M590 110 L710 110" stroke="var(--mut)" stroke-width="2"/><polygon points="710,110 697,104 697,116" fill="var(--mut)"/>
+<rect x="720" y="60" width="230" height="100" rx="12" fill="var(--ok-soft)" stroke="var(--ok)" stroke-width="1.8"/>
+<text x="835" y="105" text-anchor="middle" font-family="Inter" font-size="20" font-weight="600" fill="var(--ok)">候选清单</text>
+<text x="835" y="133" text-anchor="middle" font-family="JetBrains Mono" font-size="15" fill="var(--ok)">已筛选 · 可排序</text>
+</svg></div></div></section>
+
+<!-- EDU C — multi-objective ranking (Pareto) -->
+<section class="scene" data-seconds="30" data-journey="0" data-label="概念 · 多目标排序"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· 多目标排序</em></div><h2 class="in" data-at="0.4">哪一小部分是综合最好的折中？各目标分开排。</h2><ol class="beats"><li data-at="2" data-off="11"><b>目标互相竞争</b><span>结合、吸收、安全很难同时最优。</span></li><li data-at="11" data-off="20"><b>绝不合并成一个分</b><span>压成单一得分会藏起真实取舍。</span></li><li data-at="20"><b>看前沿</b><span>没有谁能被别人全面超越的那一撮，才是最佳折中。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1" style="left:0px;top:150px;width:1040px;"><div class="ct">· 帕累托前沿</div><svg class="csvg" viewBox="0 0 980 300" preserveAspectRatio="xMidYMid meet">
+<line x1="90" y1="250" x2="900" y2="250" stroke="var(--line2)" stroke-width="1.5"/>
+<line x1="90" y1="40" x2="90" y2="250" stroke="var(--line2)" stroke-width="1.5"/>
+<text x="500" y="288" text-anchor="middle" fill="var(--mut)" font-family="JetBrains Mono" font-size="16">结合强度 →</text>
+<text x="60" y="150" text-anchor="middle" fill="var(--mut)" font-family="JetBrains Mono" font-size="16" transform="rotate(-90 60 150)">安全性 →</text>
+<g fill="var(--mut)" opacity="0.45"><circle cx="200" cy="210" r="8"/><circle cx="300" cy="230" r="8"/><circle cx="420" cy="200" r="8"/><circle cx="350" cy="170" r="8"/><circle cx="520" cy="215" r="8"/><circle cx="470" cy="150" r="8"/><circle cx="620" cy="190" r="8"/></g>
+<path d="M150 90 Q420 95 820 220" fill="none" stroke="var(--acc)" stroke-width="2" stroke-dasharray="7 6"/>
+<g fill="var(--hot)" stroke="#fff" stroke-width="2"><circle cx="170" cy="95" r="11"/><circle cx="330" cy="110" r="11"/><circle cx="520" cy="135" r="11"/><circle cx="700" cy="185" r="11"/></g>
+<text x="150" y="70" fill="var(--hot)" font-family="Inter" font-size="18" font-weight="600">帕累托前沿：最佳折中</text>
+<text x="640" y="245" fill="var(--mut)" font-family="Inter" font-size="16">被全面超越 → 淘汰</text>
+</svg></div></div></section>
+
+<!-- EDU D — the QC gate (the decision gate; never silently pass) -->
+<section class="scene" data-seconds="30" data-journey="0" data-label="概念 · 质控闸门"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· 质控闸门</em></div><h2 class="in" data-at="0.4">一道质控闸门，把阈值变成运行途中就能信赖的决定。</h2><ol class="beats"><li data-at="2" data-off="11"><b>拿数值对比上限</b><span>闸门把一个阈值，变成一个明确的拦或放。</span></li><li data-at="11" data-off="20"><b>绝不静默放行</b><span>悄悄放过不合格的检查，比没有闸门更糟。</span></li><li data-at="20"><b>标记后给出建议</b><span>记成改动前后对照，由你决定是否采纳，而非自动重跑。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1" style="left:0px;top:150px;width:1040px;"><div class="ct">· 拦截还是放行</div><svg class="csvg" viewBox="0 0 980 340" preserveAspectRatio="xMidYMid meet">
+<text x="30" y="30" fill="var(--acc)" font-family="JetBrains Mono" font-size="16" font-weight="600">一个数值 → 对比你的上限 → 闸门决定</text>
+<rect x="360" y="48" width="260" height="64" rx="12" fill="var(--bm-surface)" stroke="var(--acc)" stroke-width="1.6"/>
+<text x="490" y="82" text-anchor="middle" font-family="Inter" font-size="20" font-weight="600" fill="var(--ink)">最差情形 hERG</text>
+<text x="490" y="103" text-anchor="middle" font-family="JetBrains Mono" font-size="14" fill="var(--mut)">对比你的上限</text>
+<path d="M490 112 L490 150" stroke="var(--mut)" stroke-width="2"/>
+<polygon points="410,150 570,150 490,212" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.8"/>
+<text x="490" y="182" text-anchor="middle" font-family="Inter" font-size="19" font-weight="600" fill="var(--warn)">闸门</text>
+<path d="M470 200 L250 262" stroke="var(--line2)" stroke-width="1.6" stroke-dasharray="5 6"/>
+<rect x="90" y="262" width="300" height="66" rx="12" fill="var(--bm-surface-3)" stroke="var(--line2)" stroke-width="1.4"/>
+<text x="240" y="294" text-anchor="middle" font-family="Inter" font-size="19" font-weight="600" fill="var(--mut)">静默放行</text>
+<text x="240" y="316" text-anchor="middle" font-family="JetBrains Mono" font-size="14" fill="var(--hot)">✕ 严禁——比没有闸门更糟</text>
+<path d="M510 200 L720 262" stroke="var(--hot)" stroke-width="2.6"/><polygon points="720,262 707,258 711,270" fill="var(--hot)"/>
+<rect x="610" y="262" width="340" height="66" rx="12" fill="var(--hot-soft)" stroke="var(--hot)" stroke-width="1.6"/>
+<text x="780" y="292" text-anchor="middle" font-family="Inter" font-size="20" font-weight="600" fill="var(--hot)">拦截 · 标记</text>
+<text x="780" y="314" text-anchor="middle" font-family="JetBrains Mono" font-size="14" fill="var(--hot)">随后给出修正（仅建议）</text>
+</svg></div></div></section>
+
+<section class="scene" data-seconds="36" data-journey="1" data-label="03 · 导入目标与结构"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 1 数据</em></div><h2 class="in" data-at="0.4">说明你的需求，并带上结构。</h2><ol class="beats"><li data-at="2" data-off="10"><b>在对话中说明目标</b><span>用自己的话说明靶点、目标和约束。</span></li><li data-at="10" data-off="18"><b>BioMate 读取文件</b><span>结构被解析并按名称列出。</span></li><li data-at="18" data-off="28"><b>每个参数都标明来源</b><span>靶点与目标来自你的消息；阈值是默认值。</span></li></ol></div><div class="stage"><div class="lens in" data-at="0.6" data-run="drugdevzh" data-screen="settings" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:chat-user@1.9|8:in-1@1.6|17:p-params@1.5" data-rings="17-27:p-params"></div></div></section>
+<section class="scene" data-seconds="44" data-journey="2" data-label="04 · 工作流，逐步讲解"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 2 工作流</em></div><h2 class="in" data-at="0.4">四个阶段，一份记录。</h2><ol class="beats"><li data-at="4" data-off="16"><b>设计</b><span>围绕种子枚举候选分子并过滤。</span></li><li data-at="16" data-off="26"><b>ADMET</b><span>预测性质，并按记录的判据检查。</span></li><li data-at="26" data-off="34"><b>排序，再外推暴露量</b><span>各目标并排排序，再外推暴露量。</span></li></ol></div><div class="stage"><div class="lens in l" data-at="1" data-run="drugdevzh" data-screen="phases" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:phase-A@1.5|4:step-3@1.9|16:step-4@1.9|26:qc-B@1.8" data-rings="4-16:step-3|16-26:step-4|26-34:qc-B-1" data-size="5:540"></div><div class="crop concept pad in" data-at="5" style="left:0px;top:640px;width:330px;"><div class="ct">· 设计</div><div style="font-size:20px;line-height:1.5;color:var(--ink2)">一个种子变成一份通过过滤的候选清单。</div></div>
+<div class="crop concept pad in" data-at="17" style="left:355px;top:640px;width:330px;"><div class="ct">· ADMET</div><div style="font-size:20px;line-height:1.5;color:var(--ink2)">每个化合物 15 项性质，并对 hERG 和 DILI 设有判据。</div></div>
+<div class="crop concept pad in" data-at="27" style="left:710px;top:640px;width:330px;"><div class="ct">· 暴露量</div><div style="font-size:20px;line-height:1.5;color:var(--ink2)">先异速生长，再用 PBPK 外推 Cmax 和 AUC。</div></div></div></section>
+<section class="scene" data-seconds="34" data-journey="2" data-label="05 · 运行整条链路"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 2 工作流 · 运行中</em></div><h2 class="in" data-at="0.4">看它运行，看哪里被标记。</h2><ol class="beats"><li data-at="2" data-off="12"><b>各阶段依次完成</b><span>设计、ADMET、排序、暴露量。</span></li><li data-at="12" data-off="22"><b>对每个化合物做 ADMET 检查</b><span>DILI 概率与 0.5 的阈值比较。</span></li><li data-at="22"><b>两个化合物被标记</b><span>已完成运行上的标记是发现，不会让运行停下。</span></li></ol></div><div class="stage"><div class="lens in l" data-at="1" data-run="drugdevzh" data-screen="running" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:phase-A@1.5|14:qc-B@1.8|26:phase-D@1.6" data-rings="14-26:qc-B-1" data-progress="0:1|4:2|8:3|12:4|18:5|24:6|28:7"></div></div></section>
+<section class="scene" data-seconds="40" data-journey="3" data-label="06 · 结论"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 3 结果</em></div><h2 class="in" data-at="0.4">筛选结果，每项限值就在旁边。</h2><ol class="beats"><li data-at="2" data-off="12"><b>结论先在对话中给出</b><span>谁被标记，依据是什么。</span></li><li data-at="12" data-off="18"><b>打开运行查看证据</b><span>面板中是每个化合物和每项性质。</span></li><li data-at="18" data-off="28"><b>判据与限值放在一起</b><span>DILI 概率与其 0.5 的阈值并排。</span></li><li data-at="28"><b>批次值单独列出</b><span>批次 hERG 值不属于任何单个化合物。</span></li></ol></div><div class="stage"><div class="lens in" data-at="0.6" data-run="drugdevzh" data-screen="summary" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:chat-reply@2.2L" data-cursor="9:chat-runref" data-off="12"></div>
+<div class="lens in" data-at="12" data-run="drugdevzh" data-screen="summary" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:fd-answer@1.7L|18:fd-m-gated@1.5L|28:fd-batch@1.7L" data-rings="19-28:fd-m-gated|29-38:fd-batch"></div></div></section>
+<section class="scene" data-seconds="40" data-journey="3" data-label="07 · 正确解读"><div class="s-text"><div class="kick in" data-at="0.2">正确解读 <em>· 继续推进之前</em></div><h2 class="in" data-at="0.4">每个数字都指向一个文件。</h2><ol class="beats"><li data-at="2" data-off="12"><b>打开数字背后的文件</b><span>toxicity_report.json 记录了每个化合物。</span></li><li data-at="12" data-off="24"><b>通过不等于安全结论</b><span>布洛芬低于 DILI 阈值，这只是其中一项检查。</span></li><li data-at="24" data-off="34"><b>可复现记录呈现整条链路</b><span>参数、软件和检查，每一项都标明来源。</span></li><li data-at="34"><b>需要时可修改后重新运行</b><span>建议的改动只在重新运行时生效。</span></li></ol></div><div class="stage"><div class="lens in" data-at="0.6" data-run="drugdevzh" data-screen="outputs:toxicity_report.json" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:o-list@1.7L|4:pv-t@1.6L|14:pv-t@1.9L" data-off="24"></div>
+<div class="lens in" data-at="24" data-run="drugdevzh" data-screen="record" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:r-orig@1.8L|26:r-params@1.6L|34:r-software@1.8L"></div></div></section>
+<section class="scene" data-seconds="38" data-journey="4" data-label="08 · 报告与收尾"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 4 报告</em></div><h2 class="in" data-at="0.4">报告：问题、结论、数据、方法。</h2><ol class="beats"><li data-at="2" data-off="18"><b>问题、结论、数据、方法</b><span>每次运行的报告章节相同、顺序相同。</span></li><li data-at="18" data-off="30"><b>结果与质量检查</b><span>与面板中的内容块相同，无需重新录入。</span></li><li data-at="30"><b>编辑、版本、下载</b><span>你的修改保存为 v2，运行保留原始的 v1。</span></li></ol></div><div class="stage"><div class="lens in" data-at="0.6" data-run="drugdevzh" data-screen="report" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:doc-title@1.6L|4:doc-question@1.6L|8:doc-answer@1.6L|12:doc-data@1.6L|15:doc-method@1.6L|18:doc-results@1.25|25:doc-qc@1.6L|28:doc-caveats@1.6L|30:doc-edit@2" data-rings="18-25:doc-results|30-38:doc-edit"></div></div></section>
+<div class="ovw"></div><script>window.BMUI={runs:{},lang:"zh",logo:"../assets/biomate-logo.png"};</script>
+<script src="../_ui/bm-ui.js"></script>
+<script src="../_ui/findings.js"></script>
+<script src="../_ui/runs.js"></script>
+<script src="../_ui/fixture-admet3.js"></script>
+<script src="../_ui/runs-more.js"></script>
+<script src="../_ui/runs-zh-more.js"></script>
+<script src="../_ui/viewer3d.js"></script>
+<script src="../_lens.js"></script><script src="../_v4.js"></script></body></html>

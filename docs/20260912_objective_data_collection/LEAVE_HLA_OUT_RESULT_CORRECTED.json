@@ -1,0 +1,111 @@
+{
+  "artifact": "LEAVE_HLA_OUT_RESULT_CORRECTED",
+  "supersedes": "LEAVE_HLA_OUT_RESULT.json (uncorrected)",
+  "verified_against": "GATE_VERIFICATION.json (independent raw-data recompute) + A375_B2M_KO_DIAGNOSTIC.json (ligand method)",
+  "date": "2026-09-14",
+  "training_eligible": false,
+  "purpose": "Authoritative corrected leave-HLA-out gate: does the widened H4 (presentation controlled by antigen-processing MACHINERY STATE) generalize across HLA backgrounds, scored on GENUINE HLA-I LIGANDS so acid-elution (MHC1-TIP) and antibody-IP deposits are comparable.",
+
+  "fixes_applied": {
+    "fix1_TAPBPR_mislabel": "HeLa (PXD078020) KO is TAPBPR (gene TAPBPL, a peptide EDITOR), NOT TAPBP (tapasin, a hard essential). Severity set to editor-class 0.20 (was mislabeled 0.80). Condition relabeled TAPBPR.",
+    "fix2_disjoint_allele_parser": "hla_overlap_leakage tokenizer now splits genotypes on [;,\\s] (was ',' only, which left ';'-separated strings as one glued token that never matched -> always reported 'disjoint'). Added 1-field group normalization so 'A*02' matches 'A*02:01'. Now correctly detects that A375/THP-1/HeLa all share HLA-A*02.",
+    "fix3_ligand_stratified_retention": "ALL 4 backgrounds re-scored on genuine-HLA-I-ligand retention = |{8-11mer KO peptides that are exact anchor ligands of THIS background's HLA-I alleles}| / |{same for WT}|, using the 202-allele mono-allelic anchor (combined_monoallelic_hlaI_human.tsv). This is the A375_B2M_KO_DIAGNOSTIC method that turned A375 B2M-KO from 0.878 (total-peptide) -> ~0.12-0.19 (ligand). It removes the mild-acid-elution non-HLA background that inflated MAE deposits and makes them comparable to W6/32-IP deposits (HAP1)."
+  },
+
+  "per_background_ligand_stratified_KO_retention": {
+    "_measure": "ligand_ret = anchor-matched-8to11mer(KO) / anchor-matched-8to11mer(WT); total_ret shown for contrast",
+    "HAP1_PXD056426_W632_IP": {
+      "B2M":  {"ligand_ret": 0.0936, "total_ret": 0.0279},
+      "TAP2": {"ligand_ret": 0.3239, "total_ret": 0.1715},
+      "TAPBP":{"ligand_ret": 0.2912, "total_ret": 0.2416},
+      "IRF2": {"ligand_ret": 0.3744, "total_ret": 0.2853},
+      "ERP57":{"ligand_ret": 0.4933, "total_ret": 0.3887},
+      "TAP1": {"ligand_ret": 0.6478, "total_ret": 0.4862},
+      "ERAP1":{"ligand_ret": 0.5617, "total_ret": 0.4987},
+      "GIIA": {"ligand_ret": 0.7786, "total_ret": 0.6149},
+      "SPPL3":{"ligand_ret": 0.8410, "total_ret": 0.8005},
+      "CANX": {"ligand_ret": 0.9079, "total_ret": 0.8729},
+      "CALR": {"ligand_ret": 0.9747, "total_ret": 0.9306},
+      "wt_ligand_anchor_hits": 673,
+      "within_HAP1_severity_vs_ligand_loss_spearman": 0.8656,
+      "note": "H4 holds within HAP1 on the ligand measure (severity predicts ligand loss, rho=0.87). Ligand-ret slightly HIGHER than total-ret because W6/32 IP is already ligand-pure; anchor-matched ligands are more robustly re-detected."
+    },
+    "A375_PXD065279_B2M_MHC1TIP_MAE__PXD060572_ERAP1_DIA": {
+      "B2M":  {"ligand_ret": 0.1889, "total_ret": 0.8784, "wt_lig": 868, "ko_lig": 164,
+               "reconciliation": "total-peptide 88% RETAINED collapses to ~19% on genuine HLA-I ligands -> AGREES with HAP1 B2M (9% ligand). The 88% was a mild-acid-elution non-HLA background artifact (see A375_B2M_KO_DIAGNOSTIC.json)."},
+      "ERAP1":{"ligand_ret": 0.9380, "total_ret": 0.9876, "note": "trimmer KO, weak loss expected"}
+    },
+    "THP-1_PXD060575_ERAP1_DIA": {
+      "ERAP1":{"ligand_ret": 1.0015, "total_ret": 0.8451, "note": "trimmer KO, no ligand collapse (expected)"}
+    },
+    "HeLa_PXD078020_TAPBPR_msf": {
+      "TAPBPR":{"ligand_ret": 1.0647, "total_ret": 1.0495, "ligand_ret_c3only": 1.0891,
+                "note": "peptide EDITOR KO broadens/retains repertoire (>=100%), expected opposite-of-loss; correctly low severity now."}
+    }
+  },
+
+  "CORRECTED_GATE_RESULT": {
+    "measure": "ligand-stratified retention (all fixes applied)",
+    "full_4_backgrounds": {
+      "pooled_leave_HLA_out_transfer_spearman": 0.6792,
+      "permutation_null": {"n_permutations": 3000, "null_mean": -0.2194, "null_p05": -0.8472, "null_p50": -0.3396, "null_p95": 0.5362, "perm_pvalue_one_sided": 0.0003},
+      "n_pooled_KO_predictions": 15,
+      "leave_HLA_out_folds": [
+        {"held_out": "HAP1", "n_KO": 11, "transfer_spearman": 0.8656, "train_slope": 1.1394,
+         "note": "SIGN FLIPPED positive (was -0.9203). Trained on A375+THP-1+HeLa ligand-losses, the fitted slope is now POSITIVE (higher machinery severity -> more ligand loss), so predicting HAP1's severity->loss ordering transfers strongly."},
+        {"held_out": "A375", "n_KO": 2, "transfer_spearman": null, "reason": "<3 KO -> per-fold rho uncomputable", "train_slope": 0.9899},
+        {"held_out": "THP-1", "n_KO": 1, "transfer_spearman": null, "reason": "<3 KO", "train_slope": 0.9961},
+        {"held_out": "HeLa", "n_KO": 1, "transfer_spearman": null, "reason": "<3 KO", "train_slope": 0.9938}
+      ],
+      "n_backgrounds_carrying_positive_ordering": 1,
+      "disjoint_allele_check": {
+        "any_shared_alleles": true,
+        "HAP1_disjoint_from_all_others": true,
+        "shared_pairs": [
+          {"pair": ["A375","THP-1"], "shared": ["HLA-A*02"]},
+          {"pair": ["A375","HeLa"], "shared": ["HLA-A*02","HLA-C*06:02"]},
+          {"pair": ["THP-1","HeLa"], "shared": ["HLA-A*02","HLA-B*35"]}
+        ],
+        "note": "Parser now works. HAP1 (A*03:01/B*51:01/C*01:02) is fully disjoint from the 3 public backgrounds, but A375/THP-1/HeLa are NOT disjoint from each other (all carry HLA-A*02). Disjoint-across-ALL-folds PASS criterion NOT met."
+      }
+    },
+    "no_A375_sensitivity": {
+      "pooled_transfer_spearman": 0.3906,
+      "perm_pvalue_one_sided": 0.0017,
+      "HAP1_fold": 0.8656,
+      "note": "Even excluding A375, sign stays positive and significant -> the corrected positive transfer is NOT an A375 artifact either."
+    }
+  },
+
+  "PASS_FAIL_vs_rule": {
+    "rule": "PASS requires ALL of: pooled transfer rho>=0.30 AND perm p<=0.05 AND >=3 backgrounds each carry positive ordering (transfer>=0.3/fold) AND disjoint HLA alleles across folds.",
+    "pooled_rho>=0.3": {"value": 0.6792, "met": true},
+    "perm_p<=0.05": {"value": 0.0003, "met": true},
+    ">=3_backgrounds_carry_ordering": {"value": 1, "met": false, "why": "only HAP1 has >=3 KO conditions -> only 1 computable fold; the 3 public backgrounds have 1-2 KOs each"},
+    "disjoint_alleles": {"value": "A*02 shared across A375/THP-1/HeLa", "met": false},
+    "VERDICT": "UNPROVEN_across_HLA (NOT contradicted, NOT passed)",
+    "verdict_change": "Was 'FAIL / ACTIVELY CONTRADICTED (rho=-0.93)'. Corrected to 'UNPROVEN / UNDER-POWERED (rho=+0.68, p=0.0003)'. The two effect-size/significance criteria now PASS; the two structural criteria (>=3 informative backgrounds, disjoint alleles) still fail."
+  },
+
+  "interpretation": {
+    "sign_flip_confirmed": "YES. Corrected pooled transfer rho = +0.6792 (p=0.0003), up from -0.9312 (p=0.883). The negative sign in the original result was an artifact of (a) the TAPBPR->TAPBP mislabel inverting the training slope and (b) scoring MAE deposits on total-peptide retention (non-HLA background) instead of genuine HLA-I ligands.",
+    "hard_essentials_agree_on_collapse": "YES. On the ligand measure, the two independent B2M-KO replicates AGREE: HAP1 B2M 0.09, A375 B2M 0.19 (both collapse). The ERAP1 trimmer KOs (A375 0.94, THP-1 1.00) and the TAPBPR editor KO (HeLa 1.06) correctly show no collapse. H4's machinery->presentation ordering now transfers to the held-out HAP1 background (rho +0.87).",
+    "still_unproven_because": "The gate remains structurally under-powered: only HAP1 carries >=3 KO conditions, so only ONE fold is informative (the 'pooled' statistic is effectively 'can the public backgrounds predict HAP1'). And the public backgrounds are NOT allele-disjoint (all HLA-A*02), so a passing transfer could partly ride on shared-A*02 processing rather than pure machinery generalization. Two independent hard-essential collapses (HAP1 + A375 B2M) is corroborating but does not meet the >=3-disjoint-background bar."
+  },
+
+  "CRO_sizing_implication": {
+    "verdict_for_CRO": "UNPROVEN -> the CRO is still needed, but the framing changes from 'the thesis is contradicted, must re-establish it' to 'the thesis is CORROBORATED on 2 backgrounds but not yet PROVEN cross-allele; fill the disjoint-background gap'.",
+    "what_is_now_established": "B2M-KO collapses genuine HLA-I ligand presentation in TWO independent HLA backgrounds (HAP1 A*03:01/B*51:01/C*01:02 via IP; A375 A*01/A*02/B*44/B*57 via MAE, re-scored on ligands). H4 holds within HAP1 across the full 11-KO severity gradient (rho 0.87) and transfers positively to it.",
+    "what_the_CRO_must_still_supply": "The disjoint-allele-coverage requirement HOLDS. Need >=3 DISTINCT, ALLELE-DISJOINT HLA backgrounds each carrying the HARD-ESSENTIAL machinery-KO panel (B2M, TAP1, TAP2, TAPBP) with >=3 KO conditions per background, same-flask matched proteome, and W6/32-IP (or ligand-validated) enrichment (NOT bare MAE). The current public corpus gives only 1 background (HAP1) with the full essential panel; the others contribute 1-2 trimmer/editor KOs and share A*02.",
+    "priority": "Because the load-bearing A375 anomaly is now RESOLVED (method+measure artifact, not biology), the CRO priority shifts from 'diagnose the discordance' to 'establish >=3 disjoint hard-essential backgrounds' - a cleaner, still-expensive path. Use W6/32-IP enrichment or always ligand-stratify to avoid the MAE background confound."
+  },
+
+  "caveats": [
+    "training_eligible=false; decision/evaluation harness.",
+    "Ligand set = EXACT-match to a finite 202-allele mono-allelic anchor -> conservative lower bound on ligand count; true binders absent from the anchor are miscounted as background symmetrically in WT and KO, so the retention RATIO is robust (the A375 88%->19% and HAP1 3%->9% shifts, and the +0.87 HAP1 transfer, do not depend on anchor completeness).",
+    "HeLa alleles are 1-field-typed (A*02/B*35/B*08); the anchor union expands each to all 2-field members -> broader ligand set, but HeLa is an editor-KO fold that does not drive the essential-collapse signal.",
+    "Only HAP1 has >=3 KOs -> 1 informative fold. The pooled statistic and its null are a single-fold sign test blurred by 4 minority points. A real >=3-background PASS still requires new data.",
+    "A375 is cross-method merged (MHC1-TIP/MAE B2M + DIA-NN ERAP1); ligand-stratification mitigates the method difference but per-deposit WT baselines still differ.",
+    "No NetMHCpan/MHCflurry affinity prediction run; exact anchor-overlap used (as in the diagnostic). A predicted-affinity re-score would refine but is very unlikely to overturn a 4-5x anchor-hit drop on B2M-KO."
+  ]
+}

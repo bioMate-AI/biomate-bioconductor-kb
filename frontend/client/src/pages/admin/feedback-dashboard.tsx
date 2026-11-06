@@ -87,6 +87,9 @@ function formatDateForInput(d: Date): string {
 }
 
 export default function AdminFeedbackDashboardPage() {
+  const [, setLocation] = useLocation();
+  const { isAuthenticated } = useAuth();
+
   if (!UX_FEEDBACK_ADMIN_ENABLED) {
     return (
       <div className="min-h-screen bg-background">
@@ -97,17 +100,15 @@ export default function AdminFeedbackDashboardPage() {
               UX feedback dashboard is currently disabled by feature flag.
             </AlertDescription>
           </Alert>
-          <Button variant="outline" className="mt-4" onClick={() => setLocation("/dashboard")}>
+          <Button variant="outline" className="mt-4" onClick={() => setLocation("/")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            Back to BioMate
           </Button>
         </div>
       </div>
     );
   }
 
-  const [, setLocation] = useLocation();
-  const { isAuthenticated } = useAuth();
   const [from, setFrom] = useState(formatDateForInput(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)));
   const [to, setTo] = useState(formatDateForInput(new Date()));
   const [summary, setSummary] = useState<FeedbackSummary | null>(null);
@@ -252,9 +253,9 @@ export default function AdminFeedbackDashboardPage() {
               Admin access required. You do not have permission to view this page.
             </AlertDescription>
           </Alert>
-          <Button variant="outline" className="mt-4" onClick={() => setLocation("/dashboard")}>
+          <Button variant="outline" className="mt-4" onClick={() => setLocation("/")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            Back to BioMate
           </Button>
         </div>
       </div>
@@ -269,11 +270,11 @@ export default function AdminFeedbackDashboardPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setLocation("/dashboard")}
+              onClick={() => setLocation("/")}
               className="mb-2"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
+              Back to BioMate
             </Button>
             <h1 className="text-3xl font-bold">UX Feedback Dashboard</h1>
             <p className="text-muted-foreground mt-1">

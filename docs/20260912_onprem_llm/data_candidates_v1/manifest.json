@@ -1,0 +1,56 @@
+{
+  "scope": "BioMate core; IND excluded; candidate inventory only",
+  "application_commit": "909f3b35ecbd1900c3396ff22e9dc8a6115ccb29",
+  "database": "backend/database/galaxy_ai_tools.db",
+  "database_sha256": "439f147cb4dea1a43ab46663e7927d70b77679f9af39d18cb1dce390f12459a2",
+  "counts": {
+    "tools": 12312,
+    "workflows": 4198,
+    "excluded_by_scope_name": 2
+  },
+  "workflow_status_counts": {
+    "unrecorded": 1866,
+    "ok_warnings": 402,
+    "ok": 690,
+    "exec_error": 797,
+    "runnable_assumed": 109,
+    "fixture_failed": 277,
+    "timeout": 18,
+    "skip_input_type": 36,
+    "ran_empty_output": 3
+  },
+  "repair_candidates": 99,
+  "approved_training_examples": 0,
+  "frozen_test_examples": 0,
+  "limitations": [
+    "Name-based scope exclusion needs review of actual content.",
+    "Recorded success is not verified execution.",
+    "No private conversations exported.",
+    "Source groups must be extended with study/session/incident/augmentation ancestry before splitting."
+  ],
+  "files": {
+    "repair_candidates.jsonl": "e9f0b7ad47172d714eddf8c9dd5fdd6fb30aa2f451c83f71e57295fd46c3d599",
+    "knowledge_candidates.jsonl": "a89d132a862df07cbf7fe822c7e62b5cdc858f022c5bfae9cee8c92f968a60eb",
+    "codedebug_candidates.jsonl": "9937863cdff3b96db114999f9b8caeef5d6debe88ac4e71dca468da1b723fbd9"
+  },
+  "codedebug_candidates": {
+    "count": 44,
+    "intended_task": "biomate_workflow_logic_repair",
+    "touches_nf_file": 0
+  },
+  "data_track_findings": {
+    "dev_logs": {
+      "source": "dev i-06696b0d91f4346e0 postgres biomate (via SSM, read-only)",
+      "chat_sessions": 2081,
+      "chat_sessions_with_messages": 2077,
+      "total_messages": 6463,
+      "sessions_mentioning_workflow": 1959,
+      "sessions_mentioning_nextflow": 396,
+      "audit_logs": 1209174,
+      "correction_log": 0,
+      "conversation_messages": 0,
+      "note": "chat_sessions link workflow_id/invocation_id -> verifiable episodes. correction_log empty. reasoning column empty in audit_logs."
+    },
+    "nextflow_debug_source": "Repair commits are BioMate-logic fixes, NOT .nf debugging. True nextflow-debug needs failure->fix pairs (dev run history / 797 exec_error + 277 fixture_failed workflows / nf-core PRs)."
+  }
+}

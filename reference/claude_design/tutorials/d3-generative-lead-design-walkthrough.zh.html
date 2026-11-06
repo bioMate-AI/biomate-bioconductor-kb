@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 用强化学习做生成式先导设计</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">生成式先导设计 — 描述你想要的分子，获得由 RL 设计的新颖候选物</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>生成式先导设计</b></div>
+    <div class="kicker">献给想要全新化学物质的药物化学家</div>
+    <h2>你还没有一个分子。BioMate 从零开始设计候选物。</h2>
+    <p class="caption">筛选是从你已经拥有的库里挑出赢家。生成式设计反其道而行：它<b>发明</b>对准你所陈述目标的新分子。BioMate 运行 <b>REINVENT4</b>——来自 MolecularAI / AstraZeneca 的一个强化学习生成器——来提出新颖、类药的候选物，再对它们做过滤与排序。你描述骨架以及什么算"好"；BioMate 就产出你可以拿去合成的结构。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一个目标 + 一个种子骨架</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>REINVENT4 生成</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一个打分函数给出奖励</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>过滤 + 排序</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>排好序的候选假设</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="32.0">
+    <div class="kicker">它解决的问题</div>
+    <h2>类药化学空间太过浩瀚，既无法枚举，也无法逐一筛选。</h2>
+    <p class="caption">可合成、又类药的分子，其空间常被估计在 <code>10^60</code> 上下——比任何库、任何筛选、任何算力所能覆盖的都要多。你无法把它一一列出，而围着一个骨架做暴力枚举会组合爆炸，产出的大多是不类药、难以合成或平淡无奇的类似物。真正的需求是<b>聪明地搜索那片空间</b>——只提出那些新颖、可合成、且对准你目标的候选物。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">规模</div><h4>约 10^60 个分子</h4><p>类药空间让有史以来建成的每一个实体与虚拟库都相形见绌。枚举根本行不通。</p></div>
+          <div class="tile"><div class="n">组合学</div><h4>类似物爆炸</h4><p>只用寥寥几个片段去装饰一个骨架，就已经生出数百万个——其中大多数不值得去做。</p></div>
+          <div class="tile"><div class="n">质量</div><h4>大多是废料</h4><p>随机或穷举得到的候选物通常不可合成、不类药，或会干扰实验测定。</p></div>
+          <div class="tile"><div class="n">目标</div><h4>多个目标同时兼顾</h4><p>一个先导化合物必须同时平衡活性、类药性与合成难易——而不是孤立地看某一项指标。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>需求：靠设计去搜索化学空间，而不是靠枚举</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">你需要先懂的几个概念</div>
+    <h2>四个大白话词，就能说清整套方法。</h2>
+    <p class="caption">你不需要懂神经网络的内部机理——只要这四个，其余的自会顺理成章。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 生成模型</div><h4>学会"画"出分子</h4><p>一个在已知化学上训练出来的策略，一块一块地写出新的 SMILES——它是一个训练出来的模型，而不是一张查找表。REINVENT4 就是那个生成器。</p></div>
+            <div class="tile"><div class="n">2 · 打分函数</div><h4>定义什么算"好"</h4><p>一个奖励，为每个被提出的分子打分——类药性、合成难易、一个 docking 分数。这就是把你的目标变成了数字。</p></div>
+            <div class="tile"><div class="n">3 · RL 循环</div><h4>生成 → 打分 → 学习</h4><p>强化学习经过多轮，把生成器一点点推向打分更高的分子，于是提案随历练而改进。</p></div>
+            <div class="tile"><div class="n">4 · 多参数优化</div><h4>多个目标一起兼顾</h4><p>奖励可以糅合多个目标——活性、类药性与可合成性——让候选物在它们之间取得平衡，而非一味追逐一个。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">整套方法就是一个循环：<b>生成模型</b>提出、<b>打分函数</b>评判、<b>RL</b> 引导下一批提案——并<b>同时优化多个目标</b>。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲余下部分会用到的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="49.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 大白话目标 → 工作流 → 云端</div>
+    <h2>用大白话说出目标；BioMate 把它路由到 REINVENT4 工作流。</h2>
+    <p class="caption">你不用去配置一个神经网络。你陈述意图——"设计这个骨架的新颖、类药类似物"——BioMate 就路由到 <b>REINVENT4 Generative Lead Design</b> 工作流，填好参数，再在云端算力上运行它。这是一条四步流水线，而每一步都是系统真实的行为，而非演示。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate 中的 REINVENT4 生成式先导设计</span>
+        <div class="frame"><img src="assets/live/generative-live-panel.png" alt="BioMate workflow panel for REINVENT4 Generative Lead Design — inputs, synthesizability seed, output location, Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话进，工作流出。</b>你只需描述设计目标，BioMate 就把它路由到 <b>REINVENT4 Generative Lead Design</b>，并展示真实的参数面板。</span></li>
+          <li><span class="b gr"></span><span><b>种子骨架已预填。</b>必填的 <b>Synthesizability</b> 参数里已填好一个种子 SMILES（<code>CC(=O)Oc1ccccc1C(=O)O</code>，阿司匹林）——可换成你自己的骨架。</span></li>
+          <li><span class="b gr"></span><span><b>五个阶段，已为你串好。</b>输入已映射、可选参数已折叠，整条运行按五个阶段铺好，无需手动配置。</span></li>
+          <li><span class="b am"></span><span><b>选好输出位置，一键启动。</b>结果存入 BioMate 托管存储（或你自己的 S3），点 <b>Confirm &amp; Run</b> 即在云端算力上运行。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的生成式工作流，已为你配好</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE SCORING FUNCTION -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">奖励</span> · 你朝什么方向优化</div>
+    <h2>打分函数就是目标——结果再好也不会超过它。</h2>
+    <p class="caption">强化学习会优化你告诉它的一切。<code>scoring_function</code> 参数<i>就是</i>那个目标，BioMate 给出三个真实的选择。挑一个与你能多有把握地为靶点定义"好"相匹配的。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">qed_sa · 默认</div><h4>类药性 + 可合成性</h4><p>奖励高 QED（类药性）和低 SA 分数（合成可及性代价）。快、不需要靶点结构——适合通用的类先导候选物。</p></div>
+          <div class="tile"><div class="n">docking_gnina</div><h4>针对受体的构象打分</h4><p>针对你提供的受体（<code>receptor.pdb</code>），为一个 AutoDock-GPU / GNINA docking 构象打分。靶点感知——是一个计算机模拟的估计，而非实测亲和力。</p></div>
+          <div class="tile"><div class="n">custom_toml</div><h4>你自己的奖励配方</h4><p>一份用户提供的 REINVENT4 TOML，糅合许多组分——通往真正多参数优化最灵活的路径。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">奖励奖励什么，你就得到什么。一个孱弱或设定失当的打分函数，只会给你打分很高、却并非更好的药的分子。</p>
+        <div><span class="verdict ok"><span class="mk"></span>把目标定义好——奖励决定了结果的上限</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE RL OPTIMIZATION LOOP -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker"><span class="st">引擎</span> · 生成、打分、改进</div>
+    <h2>REINVENT4 运行一个循环，把生成引导向奖励。</h2>
+    <p class="caption">这个生成器是一个训练出来的自回归策略——它写出 SMILES，而不是枚举。一轮又一轮地，它提出一批分子，给每个分子打分，再更新，让下一批偏向更高的奖励。BioMate 把这个循环真实的控制旋钮都暴露出来。</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">概念 · 强化学习循环</span>
+        <div class="frame" style="padding:34px; align-items:center; justify-content:center">
+          <div class="flowline" style="flex-direction:column; gap:18px; align-items:stretch; width:100%; max-width:460px">
+            <span class="chip" style="justify-content:center"><span class="i"></span>策略提出一批 SMILES</span>
+            <span class="arrow" style="text-align:center">↓</span>
+            <span class="chip" style="justify-content:center"><span class="i"></span>打分函数给每个分子奖励</span>
+            <span class="arrow" style="text-align:center">↓</span>
+            <span class="chip" style="justify-content:center"><span class="i"></span>策略朝更高的奖励更新</span>
+            <span class="arrow" style="text-align:center">↺ 重复 n_steps 次</span>
+          </div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>n_steps。</b>RL 训练轮数——默认 <code>500</code>（在 GPU 上约 15 分钟）；快速试跑用 <code>200</code>。</span></li>
+          <li><span class="b"></span><span><b>batch_size。</b>每轮采样的分子数——默认 <code>128</code>；越大越多样，也越占内存。</span></li>
+          <li><span class="b"></span><span><b>sigma / learning_rate。</b>奖励把策略引导得有多陡（<code>120</code>），以及更新步长（<code>0.0001</code>）。</span></li>
+          <li><span class="b gr"></span><span><b>temperature。</b>采样的发散程度——名义值 <code>1.0</code>，越低越保守。</span></li>
+          <li><span class="b am"></span><span>一个学习出来的策略——若模型或先验缺失，运行会高声报错；它绝不会悄悄退回去做枚举。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>一个由奖励引导的训练生成器——而不是对一张清单做过滤</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">结果</span> · 排好序、过滤过的候选物</div>
+    <h2>一张排好序的新颖候选物表——每一个都带着它的分数，并过滤了质量。</h2>
+    <p class="caption">在排序之前，BioMate 会先施加真实的药物化学过滤，所以你看到的不是模型的原始输出，而是经受住了类药性、干扰和新颖度检查的候选物。输出是你可以打开、也可以直接交付的文件——无需截图来描述它们。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">FILTER_RANK</div><h4>质量门</h4><p>QED ≥ <code>0.4</code>、SA ≤ <code>5.0</code>、MW ≤ <code>500</code>（Lipinski），移除 PAINS，并对比种子做一道 Tanimoto 新颖度过滤——然后按 Murcko 骨架挑出多样化的头部 N 个。</p></div>
+          <div class="tile"><div class="n">generated_molecules.csv</div><h4>每一个被接受的分子</h4><p>SMILES 连同它的分数、QED、SA 和 MW——完整、排好序的候选集，可直接拿去分流。</p></div>
+          <div class="tile"><div class="n">top_compounds.sdf</div><h4>头部 N 个的三维结构</h4><p>把最佳候选物给成三维构象（RDKit ETKDG），可直接拿去 docking、查看或进一步建模。</p></div>
+          <div class="tile"><div class="n">报告 + 轨迹</div><h4>一份你读得懂的记录</h4><p>一份 HTML 报告，带结构网格和分数拆解、一张分数随 epoch 变化的曲线图，以及一份运行配置的 JSON 摘要。</p></div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>新颖、过滤过、排好序——并带着决定排序的那些分数</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT RESPONSIBLY -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker">负责任地使用它</div>
+    <h2>这些是假设，不是命中——排序是走向实验台的起点。</h2>
+    <p class="caption">每一个生成出来的分子都是一个计算上的<b>估计</b>：一个模型认为会在你的目标下得高分的结构。其中没有一项是实测的。它的价值，是一份排好优先级的新颖候选短名单——一批有希望的实验，而不是一批答案。正确的下一步永远是实验室。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">分流</div><h4>把排名当作先导来读</h4><p>把靠前的化合物当作最值得化学家留意的分子——一个待验证的假设队列，而非一纸定论。</p></div>
+          <div class="tile"><div class="n">合成</div><h4>先做出来，再信它</h4><p>一个预测出来的分数不是一个真实的化合物。可合成性过滤降低风险；但它们并不保证真有一条可行的路线。</p></div>
+          <div class="tile"><div class="n">测定</div><h4>在实验台上验证</h4><p>用实验去确认活性、选择性与安全性。计算机模拟的分数——哪怕是 docking——也是必须被实测的估计。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">生成式设计把一片大到不可能的空间，收窄成可以检验的寥寥几个。判定哪些是真的，靠的是实验，而不是模型。</p>
+        <div><span class="verdict open"><span class="mk"></span>只有经过合成与测定，才赢得信任的估计</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker">把范围讲清楚 · 你确切得到什么</div>
+    <h2>把范围讲清楚，好让你确切知道自己得到了什么。</h2>
+    <p class="caption">这份能力是真实而具体的。知道它确切能做什么，正是它能让你放心用于一个要去捍卫的项目的原因。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">受制于奖励</div><h4>再好也不超过分数</h4><p>RL 优化的是你给它的打分函数，而不是"成为一种药"。<code>qed_sa</code> 是廉价的描述符；docking 是一个计算机模拟的构象，而非实测亲和力。选好目标——排序的好坏，只取决于它。</p></div>
+          <div class="tile"><div class="n">学习 vs 基线</div><h4>两种模式</h4><p>默认是真实训练出来的 REINVENT4 策略。此外也提供一个 <code>brics</code> 枚举基线，清楚地标明为一个非 RL 对照项，绝不被装扮成一条训练曲线。</p></div>
+          <div class="tile"><div class="n">设计引擎</div><h4>对准你的目标</h4><p>它提出并排序新颖、可合成、对准你目标的结构——让你的化学家优先去做对的分子。</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>一个设计引擎——新颖、可合成、对准你目标的结构</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="36.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">说出目标。获得被设计并排好序的新颖候选物。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">要点就一句话：<b>你本该能朝着一个目标去设计全新的化学物质——而不是去枚举、去指望。</b>BioMate 运行 REINVENT4 的强化学习生成器，你定义奖励，它就在云端算力上提出、过滤并排序新颖、类药的候选物——留给你一份短名单和一份你拿得出手去捍卫的记录。候选物是假设；让它们成真的，是实验室。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>说出目标和一个种子骨架——挑一个设计 <code>mode</code></li>
+            <li><span class="k">2</span>选定奖励——<code>qed_sa</code>、docking 或一份自定义配方</li>
+            <li><span class="k">3</span>确认路由好的工作流和它的 RL 参数</li>
+            <li><span class="k">4</span>获得排好序的候选物、三维结构和一份报告——再把它们带去实验台</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>生成</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">REINVENT4 RL</span></td></tr>
+            <tr><td>奖励</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">QED/SA · docking · 自定义</span></td></tr>
+            <tr><td>过滤 + 排序</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">类药 · PAINS · 新颖</span></td></tr>
+            <tr><td>输出</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">CSV · SDF · 报告</span></td></tr>
+            <tr><td>结果的性质</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">假设——待验证</span></td></tr>
+          </table>
+          <p class="footnote">从一片大到不可能的化学空间，到一份排好序、新颖、可检验的短名单——朝着你的目标设计。生成式设计，正确地用。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

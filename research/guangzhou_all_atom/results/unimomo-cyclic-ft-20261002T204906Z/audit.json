@@ -1,0 +1,23 @@
+{
+  "training_qualified": false,
+  "training_issues": [
+    "79 OOM events in training log",
+    "No explicit successful-update evidence in training log"
+  ],
+  "targets": 88,
+  "candidates_per_target": 100,
+  "aggregation": "mean of per-target oracle maximum DockQ",
+  "base_dockq": 0.40292045454545455,
+  "ft_dockq": 0.4125909090909091,
+  "delta": 0.009670454545454546,
+  "paired_target_bootstrap_95pct_ci": [
+    -0.0017159090909090928,
+    0.021409090909090912
+  ],
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 0,
+  "improved_targets": 47,
+  "worsened_targets": 41,
+  "tied_targets": 0,
+  "limitation": "Target resampling measures this run only; not training-seed uncertainty, leakage clearance, or wet-lab validation."
+}

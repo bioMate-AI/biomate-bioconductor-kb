@@ -1,0 +1,59 @@
+{
+ "L-CHEMFM": {
+  "prefix": 0.85,
+  "temp": 1.0
+ },
+ "_dev_grid": {
+  "L-CHEMFM": [
+   {
+    "cfg": {
+     "prefix": 0.3,
+     "temp": 1.0
+    },
+    "Y_mean": 100.0,
+    "Y": [
+     90.0,
+     113.333,
+     96.667
+    ]
+   },
+   {
+    "cfg": {
+     "prefix": 0.5,
+     "temp": 1.0
+    },
+    "Y_mean": 220.0,
+    "Y": [
+     243.333,
+     236.667,
+     180.0
+    ]
+   },
+   {
+    "cfg": {
+     "prefix": 0.7,
+     "temp": 1.0
+    },
+    "Y_mean": 265.556,
+    "Y": [
+     286.667,
+     256.667,
+     253.333
+    ]
+   },
+   {
+    "cfg": {
+     "prefix": 0.85,
+     "temp": 1.0
+    },
+    "Y_mean": 298.889,
+    "Y": [
+     310.0,
+     296.667,
+     290.0
+    ]
+   }
+  ]
+ },
+ "_note": "Frozen 2026-10-29 07:10 CDT from DEV: original grid + A1 extension cell (prefix 0.85, Y_mean 298.9 vs 265.6 at 0.7). Edge-bound after the single pre-registered extension round (prefix 0.85 is the new edge); at prefix 0.85 the model completes only the last ~15% of the seed's tokens, so the output stays close to the seed: read ChemFM results with that caveat. Test seeds cut from 5 to 3 under section 7 and the coordinator's USD 1.5 cap. Committed before any ChemFM test sample."
+}

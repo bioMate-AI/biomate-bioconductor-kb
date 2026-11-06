@@ -50,7 +50,7 @@ with open("estimate_cell_cycle_phase_durations_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("estimate_cell_cycle_phase_durations_output.txt", "w") as f:
-    f.write("Biomni: Estimate Cell Cycle Phase Durations Results" + NL)
+    f.write("BioMate: Estimate Cell Cycle Phase Durations Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

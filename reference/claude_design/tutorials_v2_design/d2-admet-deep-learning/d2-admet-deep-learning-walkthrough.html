@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · ADMET deep learning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_v2lib.css"/>
+</head>
+<body>
+
+
+<div class="freetrial">Free trial · <b>www.biomate.ai</b></div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="../assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tag-d2">Drug-dev models · ADMET deep learning</span>
+  <span class="kind concept" id="kind">Concept</span>
+  <span class="spacer"></span>
+  <span class="counter">Slide <b id="cur">0</b> / <span id="tot">15</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-kind="concept" data-seconds="46.0">
+    <div class="kicker">Deep learning for molecular safety · from structure to a safety verdict</div>
+    <h2>Predict a molecule's ADMET and toxicity from its structure alone — with a graph neural network.</h2>
+    <p class="caption lead">A graph neural network reads the structure and scores 15 safety endpoints — behind a cited QC gate.</p>
+    <div class="scene-body" style="align-items:center">
+      <div class="flowline" style="justify-content:center; width:100%; gap:16px">
+        <span class="chip"><span class="i"></span>The task</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Why it's hard</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Classical QSAR</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Graph neural net</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Run + QC gate</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Read results</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — IDEA: the task -->
+  <section class="scene" data-kind="concept" data-seconds="37.0">
+    <div class="kicker"><span class="st">Idea · 1</span> · The task — what ADMET predicts, and why hERG leads <span class="badge concept">Concept</span></div>
+    <h2>ADMET asks: will the body even tolerate this molecule?</h2>
+    <p class="caption lead">Binding the target is not enough — the body must absorb, tolerate, and clear the molecule.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow" style="max-width:1180px">
+        <div class="stat"><div class="si">A</div><div class="sh">Absorption</div><div class="sp">Does it get in?</div></div>
+        <div class="stat"><div class="si">D</div><div class="sh">Distribution</div><div class="sp">Where does it go?</div></div>
+        <div class="stat"><div class="si">M</div><div class="sh">Metabolism</div><div class="sp">Broken down how fast?</div></div>
+        <div class="stat"><div class="si">E</div><div class="sh">Excretion</div><div class="sp">How does it leave?</div></div>
+        <div class="stat" style="border-color:var(--red); background:var(--red-bg)"><div class="si" style="color:var(--red)">T</div><div class="sh">Toxicity</div><div class="sp">Any harm? incl. hERG</div></div>
+      </div>
+      <div class="sc-note"><span class="flag">&#9873; hERG leads</span> block the heart's K⁺ channel and you risk a fatal arrhythmia — it has killed approved drugs.</div>
+    </div>
+  </section>
+
+  <!-- 2 — IDEA: SOTA + why hard -->
+  <section class="scene" data-kind="concept" data-seconds="49.0">
+    <div class="kicker"><span class="st">Idea · 2</span> · Why it is hard — and what good looks like <span class="badge concept">Concept</span></div>
+    <h2>The structure–property map is non-linear, the labels are sparse, and new scaffolds break shortcuts.</h2>
+    <p class="caption lead">A good model generalizes to chemotypes it has never seen — not one that memorizes a table.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis wide">
+        <div class="statline">
+          <span class="statbig">10<sup>60</sup></span>
+          <span class="statcap">drug-like molecules — labels number only in the thousands per endpoint</span>
+        </div>
+        <div class="criteria">
+          <div class="crit"><span class="cn">01 · VAST SPACE</span><span class="ct">Can't enumerate</span><span class="cd">Interpolate from a tiny labeled slice</span></div>
+          <div class="crit"><span class="cn">02 · SPARSE LABELS</span><span class="ct">Noisy assays</span><span class="cd">Same compound reads differently across labs</span></div>
+          <div class="crit"><span class="cn">03 · THE HARD PART</span><span class="ct">New scaffolds</span><span class="cd">Least reliable exactly where you need it</span></div>
+          <div class="crit"><span class="cn">04 · ASYMMETRIC COST</span><span class="ct">One miss is fatal</span><span class="cd">Must flag hERG, never silently pass</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — IDEA: classical baseline QSAR -->
+  <section class="scene" data-kind="concept" data-seconds="44.0">
+    <div class="kicker"><span class="st">Idea · 3</span> · The classical baseline — QSAR on molecular descriptors <span class="badge concept">Concept</span></div>
+    <h2>First, the method it must beat: hand-engineered descriptors into a shallow model.</h2>
+    <p class="caption lead">Interpretable and fast — but blind to any signal its fixed descriptors don't encode.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="vis wide">
+        <div class="flowstage">
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">Structure</span><span class="fs-s">one SMILES string</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">Fixed descriptors</span><span class="fs-s">logP, MW, rings, fingerprint bits</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage"><span class="fs-i"></span><span class="fs-t">Random forest</span><span class="fs-s">a shallow learner</span></div>
+          <span class="farrow">→</span>
+          <div class="fstage accent"><span class="fs-i"></span><span class="fs-t">Endpoint estimate</span><span class="fs-s">one value per model</span></div>
+        </div>
+        <div class="vlabel">Fast, interpretable, data-efficient — but the features are <b>fixed in advance</b>, so any unencoded signal is invisible. A real baseline, not a strawman.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — IDEA: deep learning graph NN -->
+  <section class="scene" data-kind="concept" data-seconds="58.0">
+    <div class="kicker"><span class="st">Idea · 4</span> · The deep-learning model — a message-passing graph network <span class="badge concept">Concept</span></div>
+    <h2>Let the molecule be a graph, and let the model learn its own features.</h2>
+    <p class="caption lead">No hand-engineered features — the network discovers what matters, bond by bond.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="glyphrow">
+        <div class="glyph"><div class="n">A MOLECULE IS A GRAPH</div>
+          <svg width="170" height="118" viewBox="0 0 170 118"><g class="mol">
+            <polygon points="85,16 128,41 128,88 85,113 42,88 42,41" fill="none"/>
+            <line x1="128" y1="41" x2="154" y2="28"/>
+            <circle class="r" cx="85" cy="16" r="8"/><circle class="r" cx="128" cy="41" r="8"/>
+            <circle class="r2" cx="128" cy="88" r="8"/><circle class="r" cx="85" cy="113" r="8"/>
+            <circle class="r" cx="42" cy="88" r="8"/><circle class="r" cx="42" cy="41" r="8"/>
+            <circle class="r2" cx="156" cy="26" r="8"/>
+          </g></svg>
+          <div class="gl-lbl">Atoms are nodes, bonds are edges</div></div>
+        <div class="glyph"><div class="n">MESSAGE PASSING</div>
+          <svg width="170" height="118" viewBox="0 0 170 118"><g class="mol">
+            <line x1="85" y1="60" x2="32" y2="30"/><line x1="85" y1="60" x2="138" y2="30"/><line x1="85" y1="60" x2="85" y2="110"/>
+            <circle class="r" cx="32" cy="30" r="8"/><circle class="r" cx="138" cy="30" r="8"/><circle class="r2" cx="85" cy="110" r="8"/>
+            <circle class="r" cx="85" cy="60" r="12"/>
+          </g>
+          <g stroke="#94600f" stroke-width="3" fill="none"><path d="M46,38 L68,51"/><path d="M124,38 L102,51"/><path d="M85,98 L85,76"/></g>
+          <g fill="#94600f"><polygon points="70,52 60,49 65,59"/><polygon points="100,52 110,49 105,59"/><polygon points="85,74 80,84 90,84"/></g>
+          </svg>
+          <div class="gl-lbl">Messages flow along bonds</div></div>
+        <div class="glyph"><div class="n">ONE PASS → 15 ENDPOINTS</div>
+          <svg width="190" height="118" viewBox="0 0 190 118">
+            <rect x="8" y="46" width="48" height="26" rx="6" fill="#e9f2fd" stroke="#1d5fa6" stroke-width="2.4"/>
+            <path class="gl-arrow" d="M62,59 L86,59"/><polygon points="88,59 78,54 78,64" fill="#5c6573"/>
+            <g>
+              <rect x="96" y="70" width="12" height="32" rx="2" fill="#1f6e43"/>
+              <rect x="114" y="54" width="12" height="48" rx="2" fill="#94600f"/>
+              <rect x="132" y="38" width="12" height="64" rx="2" fill="#a8312f"/>
+              <rect x="150" y="64" width="12" height="38" rx="2" fill="#1f6e43"/>
+              <rect x="168" y="78" width="12" height="24" rx="2" fill="#1f6e43"/>
+            </g>
+          </svg>
+          <div class="gl-lbl">Pool, then read every endpoint</div></div>
+      </div>
+      <div class="vlabel">BioMate runs the published <b>ADMET-AI / Chemprop</b> MPNN — 15 endpoints, 2M+ measurements from ChEMBL / TDC. <span style="color:var(--mut)">Example tool; features learned, not hand-coded.</span></div>
+    </div>
+  </section>
+
+  <!-- 5 — IDEA: classical vs deep -->
+  <section class="scene" data-kind="concept" data-seconds="33.0">
+    <div class="kicker"><span class="st">Idea · 5</span> · Classical vs deep — when each wins <span class="badge concept">Concept</span></div>
+    <h2>Not "deep is always better" — two tools with different trade-offs.</h2>
+    <p class="caption lead">The graph net wins on diverse chemistry; the forest wins on speed and tiny data.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statrow" style="max-width:940px">
+        <div class="stat">
+          <div class="sh">Classical · QSAR + forest</div>
+          <div class="sc-bar warn" style="margin:14px 0 10px"><i style="width:62%"></i></div>
+          <div class="sp">Fixed features — fast and interpretable, but blind to unencoded signal; weak on new scaffolds.</div>
+        </div>
+        <div class="stat" style="border-color:var(--green); background:var(--green-bg)">
+          <div class="sh" style="color:var(--green)">Deep · Chemprop graph net</div>
+          <div class="sc-bar ok" style="margin:14px 0 10px"><i style="width:88%"></i></div>
+          <div class="sp">Learned features — 15 endpoints at once, best across diverse chemistry. BioMate's default.</div>
+        </div>
+      </div>
+      <div class="vlabel">Both are <b>estimators of experimental values</b> — both need wet-lab confirmation before any decision that matters.</div>
+    </div>
+  </section>
+
+  <!-- 6 — IDEA: how BioMate runs it -->
+  <section class="scene" data-kind="concept" data-seconds="29.0">
+    <div class="kicker"><span class="st">Idea · 6</span> · How BioMate runs it — chat, route, managed compute <span class="badge concept">Concept</span></div>
+    <h2>You describe the goal in plain language; BioMate picks the model and runs it on hosted compute.</h2>
+    <p class="caption lead">Route to the validated workflow, review the panel, then run — results stream back live.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow">
+        <div class="pstep"><div class="pn">1 · ASK</div><div class="pc">Plain language</div><div class="pt"><span>"screen for ADMET"</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">intent</span></div>
+        <div class="pstep"><div class="pn">2 · ROUTE</div><div class="pc">Pick the workflow</div><div class="pt"><span class="eg">ADMET-AI</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">panel</span></div>
+        <div class="pstep"><div class="pn">3 · REVIEW</div><div class="pc">Pre-run panel</div><div class="pt"><span>params editable</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">confirm</span></div>
+        <div class="pstep"><div class="pn">4 · RUN</div><div class="pc">Managed compute</div><div class="pt"><span class="eg">AWS Batch</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">results</span></div>
+        <div class="pstep"><div class="pn">5 · GATE</div><div class="pc">QC + report</div><div class="pt"><span class="eg">hERG gate</span></div></div>
+      </div>
+      <div class="ploop">No environment to set up, no model to license — BioMate hosts the compute and streams the QC gate live</div>
+    </div>
+  </section>
+
+  <!-- 7 — PRODUCT: pre-run -->
+  <section class="scene live split" data-kind="flow" data-seconds="28.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">Product · 1</span> · The pre-run check <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div><h2>Everything the model will use is shown — and editable — before a cent of compute is spent.</h2><div class="tags" style="justify-content:center"><span class="tag new">editable params</span><span class="tag">Confirm &amp; Run</span><span class="tag">nothing runs until you confirm</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/prerun.png" alt="Pre-run: editable SMILES list and ADMET model-type parameters above the Confirm and Run button"></div>
+          <figcaption><span class="lbl">Pre-run · live</span>Your SMILES list and model settings, editable — a missing required param blocks with "Fix now".</figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 8 — PRODUCT: running + gates -->
+  <section class="scene live split" data-kind="flow" data-seconds="24.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">Product · 2</span> · The live progress stream <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div><h2>The chat streams every step as it happens — run on hosted cloud, until the workflow finishes.</h2><div class="tags" style="justify-content:center"><span class="tag">step → step → done</span><span class="tag new">QC gate paused on DILI, then remediated</span><span class="tag">nothing hidden</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/admet-stream.png" alt="Live chat progress stream: Step ADMET_INFER_SHARD done, Step PREDICT_ADMET_PROPERTIES, paused on a safety QC gate (dili_risk high), QC blocked adjusting parameters, done, workflow finished — with key results"></div>
+          <figcaption><span class="lbl">Progress stream · live</span>Every step narrated in the chat as it runs — including the safety QC gate pausing on high DILI, then remediating — through to “Workflow finished.”</figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 9 — HERO DATA: the hERG QC gate FIRES -->
+  <section class="scene" data-kind="concept" data-seconds="67.0">
+    <div class="kicker"><span class="st">Product · 3 · the hero beat</span> · The hERG QC gate HALTS a cardiotoxic candidate <span class="badge concept">Real run · d0ff684b</span></div>
+    <h2>On a real run, the gate caught terfenadine at 0.012&nbsp;µM — and said why, with a citation.</h2>
+    <p class="caption lead">Aspirin passed; terfenadine — a known hERG liability — tripped the gate at the worst case.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="statline" style="gap:44px">
+        <div style="text-align:center">
+          <div class="bignum" style="color:var(--red)">0.012<span> µM</span></div>
+          <div class="vlabel" style="margin-top:8px">terfenadine · worst-case hERG IC50 <span style="color:var(--mut)">(estimate)</span></div>
+        </div>
+        <div style="color:var(--mut)">&#8810;</div>
+        <div style="text-align:center">
+          <div class="bignum" style="color:var(--ink2)">1.0<span> µM</span></div>
+          <div class="vlabel" style="margin-top:8px">GOLD safety threshold <span style="color:var(--mut)">(cited)</span></div>
+        </div>
+      </div>
+      <div class="sc-note" style="margin-top:26px"><span class="flag">&#9873; [GOLD] HALT</span> predicts QT prolongation / Torsade de Pointes (Sanguinetti 2006; FDA E14). A naive pipeline ships this silently.</div>
+      <table class="gatetbl" style="max-width:720px; margin:24px auto 0; width:100%">
+        <tr><th>Compound</th><th>logP</th><th>MW</th><th>hERG IC50</th><th>verdict</th></tr>
+        <tr><td>aspirin</td><td class="num">1.31</td><td class="num">180.2</td><td class="num">10000 µM</td><td class="safe">safe</td></tr>
+        <tr><td>terfenadine</td><td class="num">7.01</td><td class="num">499.7</td><td class="num halt">0.012 µM</td><td class="halt">HALT</td></tr>
+      </table>
+      <div class="vlabel" style="margin-top:14px">Advisory remediation: tighten <code>logp_max</code> 5.0 → 4.0, <code>mw_max</code> 500 → 400 — a suggestion, not an auto-restart. Re-run on safe chemistry passed clean: the gate <b>discriminates</b>.</div>
+    </div>
+  </section>
+
+  <!-- 10 — PRODUCT: completed -->
+  <section class="scene live split" data-kind="flow" data-seconds="28.0">
+    <div class="scene-head"><div class="kicker"><span class="st">Product · 4</span> · Completed — the findings table <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div><h2>When it finishes, the panel reads every endpoint per compound — straight from the output files.</h2><div class="tags" style="justify-content:center"><span class="tag">Completed</span><span class="tag new">per-compound Key Results</span><span class="tag">with source files</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/admet-findings.png" alt="Findings Summary: per-compound Key Results table — hERG, DILI, oral bioavailability, BBB, ClinTox, plasma protein binding, Caco-2, CYP2D6/3A4 — with interpretation and source file"></div>
+          <figcaption><span class="lbl">Findings · live</span>Every endpoint per compound — hERG, DILI, oral bioavailability, BBB, ClinTox, Caco-2, CYP — with interpretation and the source file.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 — PRODUCT: outputs -->
+  <section class="scene live split" data-kind="flow" data-seconds="28.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">Product · 5</span> · Outputs — the QC-gate metrics <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div><h2>Behind the summary: each output file previews in place — here the QC metrics that drove the safety gate.</h2><div class="tags" style="justify-content:center"><span class="tag new">qc_metrics.json</span><span class="tag">hERG IC50 · Ames · DILI</span><span class="tag">previews in place</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/admet-qc.png" alt="qc_metrics.json expanded in place: herg_ic50_uM 432.42, herg_safe_above_10uM true, ames_positive false, ames_probability 0.1, dili_risk high, dili_probability 0.875 vs threshold 0.5"></div>
+          <figcaption><span class="lbl">Outputs · live</span>qc_metrics.json previews in place — the hERG IC50, Ames and DILI-risk numbers that tripped the safety gate.</figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 12 — PRODUCT: reproducibility record -->
+  <section class="scene live split" data-kind="flow" data-seconds="29.0">
+    
+    
+    
+    <div class="scene-head"><div class="kicker"><span class="st">Product · 6</span> · The reproducibility record <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div><h2>What makes a model estimate defensible — the full audit trail, one JSON.</h2><p class="caption lead">The full audit trail in one JSON — which model, on which inputs, produced the number.</p><div class="tags" style="justify-content:center"><span class="tag">run id + params</span><span class="tag">model + versions</span><span class="tag new">SHA-256 checksums</span></div></div><div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="../assets/live/record.png" alt="Reproducibility record: workflow name, run id, timestamps and the outputs table with SHA-256 checksums"></div>
+          <figcaption><span class="lbl">Reproducibility · live</span>One click to JSON — the evidence a reviewer or regulator asks for; empty fields shown, not hidden.</figcaption>
+        </figure>
+      </div>
+    </div>
+    
+  </section>
+
+  <!-- 13 — IDEA: read the outputs + caveats -->
+  <section class="scene" data-kind="concept" data-seconds="55.0">
+    <div class="kicker"><span class="st">Idea · 7</span> · How to read the ADMET results <span class="badge concept">Concept</span></div>
+    <h2>Read the gate and the per-compound scores — not any single number in isolation.</h2>
+    <p class="caption lead">The defensible output is a table, a cited gate decision, and a reproducibility record.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="ranges">
+        <div class="rg">
+          <div class="rg-name">Applicability<span>how close to training chemistry</span></div>
+          <div>
+            <div class="rg-track">
+              <div class="rg-band g" style="left:5%; width:55%"></div>
+              <div class="rg-tag" style="left:32%">in-domain · trust</div>
+            </div>
+            <div class="rg-ends"><span>near ChEMBL / TDC</span><span>novel scaffold → least reliable</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="tags" style="justify-content:center; margin-top:4px">
+        <span class="tag new">Estimates, not assays</span>
+        <span class="tag">Know the edge</span>
+        <span class="tag">Trust the gate — flag, never silent-pass</span>
+      </div>
+      <div class="vlabel">The IC50 shown is an estimate derived from a blocker-risk probability — a model output, not a measurement.</div>
+    </div>
+  </section>
+
+  <!-- 14 — CLOSING -->
+  <section class="scene title" data-kind="concept" data-seconds="54.0">
+    <div class="kicker">ADMET deep learning at a glance</div>
+    <h2>Structure in → learned graph features → cited safety verdict out.</h2>
+    <p class="caption lead" style="text-align:center; max-width:76ch; margin:0 auto 10px">ADMET deep learning predicts whether the body tolerates a molecule — straight from its structure.</p>
+    <div class="scene-body" style="flex-direction:column; align-items:stretch">
+      <div class="pipeflow" style="max-width:1040px">
+        <div class="pstep"><div class="pn">IN</div><div class="pc">Structure</div><div class="pt"><span>SMILES</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">graph</span></div>
+        <div class="pstep"><div class="pn">MODEL</div><div class="pc">Learned features</div><div class="pt"><span class="eg">Chemprop MPNN</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">15 endpoints</span></div>
+        <div class="pstep"><div class="pn">GATE</div><div class="pc">Cited QC</div><div class="pt"><span class="eg">hERG · DILI</span></div></div>
+        <div class="parrow"><span class="ag">→</span><span class="al">record</span></div>
+        <div class="pstep"><div class="pn">OUT</div><div class="pc">Safety verdict</div><div class="pt"><span>audit JSON</span></div></div>
+      </div>
+      <div class="recap">
+        <div class="rchip"><span class="rk">THE MODEL</span><span class="rv">Graph net · 15 endpoints · 2M+ measurements</span></div>
+        <div class="rchip"><span class="rk">THE RUN</span><span class="rv">hERG gate halted terfenadine · 0.012 µM</span></div>
+        <div class="rchip"><span class="rk">THE RECORD</span><span class="rv">Audit-grade, one click to JSON</span></div>
+      </div>
+      <p class="footnote" style="text-align:center; margin-top:8px">In-silico triage, not a clinical result — model estimates require experimental validation.</p>
+    </div>
+  </section>
+
+</div>
+
+<script>(function(){function f(){var s=Math.min(innerWidth/1920,innerHeight/1080);document.body.style.transform=Math.abs(s-1)<0.001?"":"scale("+s+")";}addEventListener("resize",f);f();})();</script>
+<script>(function(){if(!/[?&]review\b/.test(location.search))return;var sc=document.querySelectorAll(".scene");window.__sceneDurations=Array.prototype.map.call(sc,function(){return 1e6});var i=0;function go(n){i=Math.max(0,Math.min(sc.length-1,n));sc.forEach(function(s,j){s.classList.toggle("active",j===i)});var c=document.getElementById("cur");if(c)c.textContent=i+1;var p=document.getElementById("prog");if(p)p.style.width=((i+1)/sc.length*100)+"%";var k=document.getElementById("kind");if(k){var kd=sc[i].getAttribute("data-kind")||"concept";k.className="kind "+kd;}}window.addEventListener("load",function(){setTimeout(function(){go(0)},450)});addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(i+1);e.preventDefault()}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(i-1);e.preventDefault()}});addEventListener("click",function(e){go(e.clientX>innerWidth/2?i+1:i-1)});})();</script>
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  var kindEl = document.getElementById('kind');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0){
+      scenes[idx].classList.remove('active');
+      var pv = scenes[idx].querySelector('video');
+      if (pv){ try { pv.pause(); } catch(e){} }
+    }
+    idx = i;
+    scenes[i].classList.add('active');
+    // Restart any embedded live-UI clip from the top when its scene activates.
+    var v = scenes[i].querySelector('video');
+    if (v){ try { v.currentTime = 0; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){} }
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+    var kind = scenes[i].getAttribute('data-kind') || 'concept';
+    if (kindEl){
+      kindEl.textContent = (kind === 'flow') ? 'Live UI' : 'Concept';
+      kindEl.className = 'kind ' + kind;
+    }
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

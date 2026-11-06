@@ -1,7 +1,8 @@
 #!/usr/bin/env nextflow
 /*
  * immunology/analyze_atac_seq_differential_accessibility
- * Perform ATAC-seq peak calling and differential accessibility analysis using MACS2.
+ * Perform ATAC-seq peak calling and differential accessibility analysis using MACS3
+ * (maintained MACS2 successor). Param-less -> auto-downloads a real labeled demo BAM pair.
  *
  * nf-core style module generated from tested Galaxy wrapper
  */
@@ -10,7 +11,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-// Demo: Uses simulation mode when BAM files are not provided
+// Demo: when BAM files are not provided, auto-downloads a real public demo BAM pair (nf-core
+// test-datasets) for a param-less quick run. 'SIMULATE'/empty = the no-input sentinel.
 params.treatment_bam = 'SIMULATE'
 params.control_bam = 'SIMULATE'
 params.output_dir = './atac_results'
@@ -23,8 +25,12 @@ process ANALYZE_ATAC_SEQ_DIFFERENTIAL_ACCESSIBILITY {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
-    // Use biomate/biotools for ARM64
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    // Peak-calling engine = MACS3 (maintained, CLI-compatible successor to MACS2). biomni-tools:x86
+    // ships no macs2, and the bioconda macs2 biocontainers fail at runtime with
+    // `undefined symbol: __log_finite` (glibc math alias dropped in glibc >=2.28; verified on real
+    // Batch probes 2026-10-04). macs3 imports clean; `macs3 callpeak`/`bdgdiff` take the same args.
+    // See docs/20261004_DEMO_DATA_VALIDATION.md.
+    container 'quay.io/biocontainers/macs3:3.0.5--py312h9639c01_0'
 
     input:
     val(meta)  // Meta information for this run
@@ -116,7 +122,7 @@ def analyze_atac_seq_differential_accessibility(
     import datetime
     import os
     import subprocess
-    import numpy as np
+    import sys
 
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -125,89 +131,42 @@ def analyze_atac_seq_differential_accessibility(
     log = f"ATAC-seq Analysis Log - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n"
     log += "=" * 80 + "\\n\\n"
 
-    # Check if we should run in simulation mode
-    simulation_mode = treatment_bam == 'SIMULATE' or control_bam == 'SIMULATE' or treatment_bam is None or control_bam is None
+    # integrity: real macs3 callpeak path kept; the old SIMULATE branch that fabricated
+    # peaks/differential regions with np.random stays removed. When no real BAMs are supplied,
+    # fall back to a REAL, clearly-labeled public demo BAM pair (merfish/voyager pattern) so a
+    # param-less quick run works — downloaded in-task; honest-fail if the download fails. NEVER
+    # fabricate peaks.
+    if treatment_bam == 'SIMULATE' or control_bam == 'SIMULATE' or treatment_bam is None or control_bam is None:
+        import urllib.request
+        demo_urls = {
+            "treatment": "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/bam/test.paired_end.sorted.bam",
+            "control": "https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/homo_sapiens/illumina/bam/test2.paired_end.sorted.bam",
+        }
+        try:
+            treatment_bam = os.path.join(output_dir, "demo_treatment.bam")
+            control_bam = os.path.join(output_dir, "demo_control.bam")
+            urllib.request.urlretrieve(demo_urls["treatment"], treatment_bam)
+            urllib.request.urlretrieve(demo_urls["control"], control_bam)
+            if os.path.getsize(treatment_bam) < 1000 or os.path.getsize(control_bam) < 1000:
+                raise RuntimeError("demo BAM download incomplete")
+            log += "[demo] No BAMs supplied -> nf-core test-datasets human BAM pair "
+            log += "(test.paired_end=treatment, test2.paired_end=control), real data, demo only.\\n\\n"
+        except Exception as e:
+            sys.stderr.write(
+                "ERROR: no treatment/control BAM supplied and the demo BAM pair could not be "
+                "downloaded (%s). Provide real ATAC-seq BAMs or ensure network egress. "
+                "Refusing to fabricate peaks.\\n" % e
+            )
+            sys.exit(1)
 
-    if simulation_mode:
-        log += "** SIMULATION MODE: Running with simulated ATAC-seq data **\\n\\n"
-
-        # Simulate realistic ATAC-seq peak calling results
-        np.random.seed(42)
-
-        # Step 1: Simulated treatment peak calling
-        log += "Step 1: Peak calling on treatment sample (simulated)\\n"
-        treatment_peak_count = np.random.randint(15000, 25000)
-        log += f"Identified {treatment_peak_count} peaks in treatment sample.\\n\\n"
-
-        # Step 2: Simulated control peak calling
-        log += "Step 2: Peak calling on control sample (simulated)\\n"
-        control_peak_count = np.random.randint(12000, 20000)
-        log += f"Identified {control_peak_count} peaks in control sample.\\n\\n"
-
-        # Step 3: Simulated differential accessibility
-        log += "Step 3: Differential accessibility analysis (simulated)\\n"
-        treatment_enriched_count = np.random.randint(1500, 3500)
-        control_enriched_count = np.random.randint(1000, 2500)
-        log += f"Found {treatment_enriched_count} regions with higher accessibility in treatment.\\n"
-        log += f"Found {control_enriched_count} regions with higher accessibility in control.\\n\\n"
-
-        # Step 4: Summary
-        log += "Step 4: Analysis Summary\\n"
-        log += f"Total peaks in treatment: {treatment_peak_count}\\n"
-        log += f"Total peaks in control: {control_peak_count}\\n"
-        log += f"Differentially accessible regions: {treatment_enriched_count + control_enriched_count}\\n"
-        log += f"  - Enriched in treatment: {treatment_enriched_count}\\n"
-        log += f"  - Enriched in control: {control_enriched_count}\\n\\n"
-
-        # Create simulated output files
-        treatment_peaks_file = os.path.join(output_dir, f"{name_prefix}_treatment_peaks.narrowPeak")
-        control_peaks_file = os.path.join(output_dir, f"{name_prefix}_control_peaks.narrowPeak")
-        enriched_in_treatment = os.path.join(output_dir, f"{name_prefix}_differential_cond1.bed")
-        enriched_in_control = os.path.join(output_dir, f"{name_prefix}_differential_cond2.bed")
-
-        # Write simulated narrowPeak files
-        with open(treatment_peaks_file, 'w') as f:
-            for i in range(min(100, treatment_peak_count)):
-                chrom = f"chr{np.random.randint(1, 23)}"
-                start = np.random.randint(1000000, 50000000)
-                end = start + np.random.randint(200, 800)
-                f.write(f"{chrom}\\t{start}\\t{end}\\tpeak_{i}\\t{np.random.randint(100, 1000)}\\t.\\t{np.random.uniform(5, 20):.2f}\\t{np.random.uniform(5, 15):.2f}\\t{np.random.uniform(3, 10):.2f}\\t{np.random.randint(50, 300)}\\n")
-
-        with open(control_peaks_file, 'w') as f:
-            for i in range(min(100, control_peak_count)):
-                chrom = f"chr{np.random.randint(1, 23)}"
-                start = np.random.randint(1000000, 50000000)
-                end = start + np.random.randint(200, 800)
-                f.write(f"{chrom}\\t{start}\\t{end}\\tpeak_{i}\\t{np.random.randint(100, 1000)}\\t.\\t{np.random.uniform(5, 20):.2f}\\t{np.random.uniform(5, 15):.2f}\\t{np.random.uniform(3, 10):.2f}\\t{np.random.randint(50, 300)}\\n")
-
-        with open(enriched_in_treatment, 'w') as f:
-            for i in range(min(50, treatment_enriched_count)):
-                chrom = f"chr{np.random.randint(1, 23)}"
-                start = np.random.randint(1000000, 50000000)
-                end = start + np.random.randint(200, 800)
-                f.write(f"{chrom}\\t{start}\\t{end}\\n")
-
-        with open(enriched_in_control, 'w') as f:
-            for i in range(min(50, control_enriched_count)):
-                chrom = f"chr{np.random.randint(1, 23)}"
-                start = np.random.randint(1000000, 50000000)
-                end = start + np.random.randint(200, 800)
-                f.write(f"{chrom}\\t{start}\\t{end}\\n")
-
-        log += "Output Files (simulated):\\n"
-        log += f"  - Treatment peaks: {treatment_peaks_file}\\n"
-        log += f"  - Control peaks: {control_peaks_file}\\n"
-        log += f"  - Treatment-enriched regions: {enriched_in_treatment}\\n"
-        log += f"  - Control-enriched regions: {enriched_in_control}\\n"
-
-        return log
-
-    # Real MACS2 analysis mode
-    # Step 1: Run MACS2 for peak calling on treatment sample
+    # Real MACS3 analysis mode
+    # Step 1: Run MACS3 for peak calling on treatment sample. ATAC uses --nomodel --shift -100
+    # --extsize 200 (Tn5). -B emits the pileup/lambda bedGraphs the bdgdiff step (Step 3) needs.
+    # -n is a bare NAME and --outdir places outputs (no path in -n -> no double-outdir).
     log += "Step 1: Peak calling on treatment sample\\n"
-    treatment_output = os.path.join(output_dir, f"{name_prefix}_treatment")
+    treatment_output = f"{name_prefix}_treatment"
     treatment_cmd = [
-        "macs2",
+        "macs3",
         "callpeak",
         "-t",
         treatment_bam,
@@ -219,6 +178,7 @@ def analyze_atac_seq_differential_accessibility(
         treatment_output,
         "--outdir",
         output_dir,
+        "-B",
         "--nomodel",
         "--shift",
         "-100",
@@ -242,11 +202,11 @@ def analyze_atac_seq_differential_accessibility(
         log += f"Error in treatment peak calling: {e.stderr}\\n\\n"
         return log
 
-    # Step 2: Run MACS2 for peak calling on control sample
+    # Step 2: Run MACS3 for peak calling on control sample
     log += "Step 2: Peak calling on control sample\\n"
-    control_output = os.path.join(output_dir, f"{name_prefix}_control")
+    control_output = f"{name_prefix}_control"
     control_cmd = [
-        "macs2",
+        "macs3",
         "callpeak",
         "-t",
         control_bam,
@@ -258,6 +218,7 @@ def analyze_atac_seq_differential_accessibility(
         control_output,
         "--outdir",
         output_dir,
+        "-B",
         "--nomodel",
         "--shift",
         "-100",
@@ -281,14 +242,17 @@ def analyze_atac_seq_differential_accessibility(
         log += f"Error in control peak calling: {e.stderr}\\n\\n"
         return log
 
-    # Step 3: Perform differential accessibility analysis using MACS2 bdgdiff
+    # Step 3: Differential accessibility analysis using MACS3 bdgdiff on the pileup/lambda
+    # bedGraphs emitted by -B above. --d1/--d2 are placeholder depths (=1): the demo shows the
+    # pipeline end-to-end; real quantitative differential should pass the per-sample read depths.
     log += "Step 3: Differential accessibility analysis\\n"
+    import glob as _glob
     treatment_pileup = os.path.join(output_dir, f"{treatment_output}_treat_pileup.bdg")
     control_pileup = os.path.join(output_dir, f"{control_output}_treat_pileup.bdg")
-    diff_output = os.path.join(output_dir, f"{name_prefix}_differential")
+    diff_prefix = f"{name_prefix}_differential"
 
     diff_cmd = [
-        "macs2",
+        "macs3",
         "bdgdiff",
         "--t1",
         treatment_pileup,
@@ -302,8 +266,10 @@ def analyze_atac_seq_differential_accessibility(
         "1",
         "--d2",
         "1",
+        "--outdir",
+        output_dir,
         "--o-prefix",
-        diff_output,
+        diff_prefix,
     ]
 
     log += f"Command: {' '.join(diff_cmd)}\\n"
@@ -311,15 +277,13 @@ def analyze_atac_seq_differential_accessibility(
         subprocess.run(diff_cmd, check=True, capture_output=True, text=True)
         log += "Differential accessibility analysis completed successfully.\\n"
 
-        # Count differential regions
-        enriched_in_treatment = f"{diff_output}_cond1.bed"
-        enriched_in_control = f"{diff_output}_cond2.bed"
-
-        with open(os.path.join(output_dir, enriched_in_treatment)) as f:
-            treatment_enriched_count = sum(1 for _ in f)
-
-        with open(os.path.join(output_dir, enriched_in_control)) as f:
-            control_enriched_count = sum(1 for _ in f)
+        # Count differential regions. macs3 bdgdiff names outputs <prefix>_c<cutoff>_cond{1,2}.bed.
+        cond1 = _glob.glob(os.path.join(output_dir, f"{diff_prefix}*cond1.bed"))
+        cond2 = _glob.glob(os.path.join(output_dir, f"{diff_prefix}*cond2.bed"))
+        treatment_enriched_count = sum(1 for _ in open(cond1[0])) if cond1 else 0
+        control_enriched_count = sum(1 for _ in open(cond2[0])) if cond2 else 0
+        enriched_in_treatment = os.path.basename(cond1[0]) if cond1 else f"{diff_prefix}_cond1.bed"
+        enriched_in_control = os.path.basename(cond2[0]) if cond2 else f"{diff_prefix}_cond2.bed"
 
         log += f"Found {treatment_enriched_count} regions with higher accessibility in treatment.\\n"
         log += f"Found {control_enriched_count} regions with higher accessibility in control.\\n\\n"
@@ -382,7 +346,7 @@ with open("analyze_atac_seq_differential_accessibility_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_atac_seq_differential_accessibility_output.txt", "w") as f:
-    f.write("Biomni: Analyze Atac Seq Differential Accessibility" + NL)
+    f.write("BioMate: Analyze Atac Seq Differential Accessibility" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

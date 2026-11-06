@@ -48,7 +48,7 @@ with open("merge_overlapping_regions_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("merge_overlapping_regions_output.txt", "w") as f:
-    f.write("Biomni: Merge Overlapping Regions Results" + NL)
+    f.write("BioMate: Merge Overlapping Regions Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -1,0 +1,165 @@
+{
+ "a5b1": {
+  "docs_uncensored_long": 47,
+  "compounds": 357,
+  "docs_in_primary_pairs": 33
+ },
+ "a8b1": {
+  "docs_uncensored_long": 2,
+  "compounds": 18,
+  "docs_in_primary_pairs": 2
+ },
+ "aIIbb3": {
+  "docs_uncensored_long": 120,
+  "compounds": 1250,
+  "docs_in_primary_pairs": 32
+ },
+ "avb1": {
+  "docs_uncensored_long": 19,
+  "compounds": 194,
+  "docs_in_primary_pairs": 15
+ },
+ "avb3": {
+  "docs_uncensored_long": 129,
+  "compounds": 1352,
+  "docs_in_primary_pairs": 74
+ },
+ "avb5": {
+  "docs_uncensored_long": 49,
+  "compounds": 389,
+  "docs_in_primary_pairs": 47
+ },
+ "avb6": {
+  "docs_uncensored_long": 35,
+  "compounds": 542,
+  "docs_in_primary_pairs": 24
+ },
+ "avb8": {
+  "docs_uncensored_long": 16,
+  "compounds": 210,
+  "docs_in_primary_pairs": 15
+ },
+ "avb6_pair_docs_by_partner": {
+  "avb3": 21,
+  "avb5": 17,
+  "avb8": 15,
+  "a5b1": 13,
+  "avb1": 11,
+  "aIIbb3": 1
+ },
+ "avb6_rows_top_docs": {
+  "CHEMBL5728858": 79,
+  "CHEMBL4411322": 51,
+  "CHEMBL1147945": 48,
+  "CHEMBL5727784": 46,
+  "CHEMBL3351497": 30
+ },
+ "avb6_rows_total": 610,
+ "avb6_remapped_rows": 56,
+ "pairs_per_target_pair": {
+  "a5b1-a8b1": {
+   "n_pairs": 17,
+   "n_docs": 1
+  },
+  "a5b1-aIIbb3": {
+   "n_pairs": 69,
+   "n_docs": 7
+  },
+  "a5b1-avb1": {
+   "n_pairs": 55,
+   "n_docs": 7
+  },
+  "a5b1-avb3": {
+   "n_pairs": 180,
+   "n_docs": 32
+  },
+  "a5b1-avb5": {
+   "n_pairs": 129,
+   "n_docs": 18
+  },
+  "a5b1-avb6": {
+   "n_pairs": 62,
+   "n_docs": 13
+  },
+  "a5b1-avb8": {
+   "n_pairs": 52,
+   "n_docs": 9
+  },
+  "a8b1-avb1": {
+   "n_pairs": 18,
+   "n_docs": 2
+  },
+  "a8b1-avb3": {
+   "n_pairs": 17,
+   "n_docs": 1
+  },
+  "a8b1-avb5": {
+   "n_pairs": 17,
+   "n_docs": 1
+  },
+  "a8b1-avb6": {
+   "n_pairs": 17,
+   "n_docs": 1
+  },
+  "a8b1-avb8": {
+   "n_pairs": 17,
+   "n_docs": 1
+  },
+  "aIIbb3-avb1": {
+   "n_pairs": 1,
+   "n_docs": 1
+  },
+  "aIIbb3-avb3": {
+   "n_pairs": 266,
+   "n_docs": 31
+  },
+  "aIIbb3-avb5": {
+   "n_pairs": 88,
+   "n_docs": 12
+  },
+  "aIIbb3-avb6": {
+   "n_pairs": 1,
+   "n_docs": 1
+  },
+  "avb1-avb3": {
+   "n_pairs": 114,
+   "n_docs": 14
+  },
+  "avb1-avb5": {
+   "n_pairs": 106,
+   "n_docs": 14
+  },
+  "avb1-avb6": {
+   "n_pairs": 116,
+   "n_docs": 11
+  },
+  "avb1-avb8": {
+   "n_pairs": 97,
+   "n_docs": 9
+  },
+  "avb3-avb5": {
+   "n_pairs": 322,
+   "n_docs": 45
+  },
+  "avb3-avb6": {
+   "n_pairs": 228,
+   "n_docs": 21
+  },
+  "avb3-avb8": {
+   "n_pairs": 110,
+   "n_docs": 12
+  },
+  "avb5-avb6": {
+   "n_pairs": 147,
+   "n_docs": 17
+  },
+  "avb5-avb8": {
+   "n_pairs": 102,
+   "n_docs": 11
+  },
+  "avb6-avb8": {
+   "n_pairs": 196,
+   "n_docs": 15
+  }
+ }
+}

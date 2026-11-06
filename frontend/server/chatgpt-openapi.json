@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "BioMate Connector API",
-    "description": "Run bioinformatics, drug-discovery, and clinical workflows on BioMate's BioMate cloud infrastructure. Search 2,455 indexed workflows, execute on real compute, stream live progress, and retrieve structured findings + reports. Schema is generated from backend/lib/mcp/tools_manifest.py.",
+    "description": "Run bioinformatics, drug-discovery, and clinical workflows on BioMate's BioMate cloud infrastructure. Search 4,200+ indexed workflows, execute on real compute, stream live progress, and retrieve structured findings + reports. Schema is generated from backend/lib/mcp/tools_manifest.py.",
     "version": "2.0.0",
     "contact": {
       "name": "BioMate Support",
@@ -23,7 +23,7 @@
       "post": {
         "operationId": "biomate_session",
         "summary": "**Primary entry point \u2014 use this for 90% of requests.",
-        "description": "**Primary entry point \u2014 use this for 90% of requests.** Run a complete BioMate scientific session from a natural-language goal. BioMate selects the right workflow from 2,455 indexed pipelines, pre-fills parameters from your goal text, executes on BioMate cloud, handles QC gates with auto-loop remediation, and produces structured findings. While running, the tool streams real-time progress (phase started, step completed, QC gate, auto-loop remediation, finding) back to the host. Returns a final run summary, a deep link to the live results panel, and the report URL. \n\n**How to write the `goal` parameter** \u2014 plain English, one to three sentences:\n\u2022 Include the *what*: analysis type + subject (e.g. 'ADMET screening', 'RNA-seq DE', 'variant calling')\n\u2022 Include *data location*: inline SMILES/sequences, S3 paths, accession numbers, or upload first with upload_file\n\u2022 Include key *parameters* that matter: organism, library type, comparisons, thresholds\n\u2022 You can omit anything BioMate can infer (it will ask if genuinely ambiguous)\n\n**Good examples:**\n  'Screen aspirin (CC(=O)Oc1ccccc1C(=O)O) and caffeine (Cn1cnc2c1c(=O)n(c(=O)n2C)C) for hERG inhibition, CYP3A4, and oral bioavailability'\n  'RNA-seq differential expression on s3://lab-bucket/exp42/fastqs/ \u2014 human GRCh38, dUTP strand-specific, treated (n=3) vs control (n=3), FDR 0.05'\n  'Whole-genome variant calling on the uploaded FASTQ pair, GRCh38, GATK HaplotypeCaller, germline mode'\n  'Run homogeneous 3D refinement in CryoSPARC on s3://cryo/job042/, C2 symmetry, box size 256'\n  'Fetch GSE183947 from GEO and run the same RNA-seq pipeline'\n\nUse run_workflow instead when the user wants to call a specific workflow by ID with explicit parameter control.",
+        "description": "**Primary entry point \u2014 use this for 90% of requests.** Run a complete BioMate scientific session from a natural-language goal. BioMate selects the right workflow from 4,200+ indexed pipelines, pre-fills parameters from your goal text, executes on BioMate cloud, handles QC gates with auto-loop remediation, and produces structured findings. While running, the tool streams real-time progress (phase started, step completed, QC gate, auto-loop remediation, finding) back to the host. Returns a final run summary, a deep link to the live results panel, and the report URL. \n\n**How to write the `goal` parameter** \u2014 plain English, one to three sentences:\n\u2022 Include the *what*: analysis type + subject (e.g. 'ADMET screening', 'RNA-seq DE', 'variant calling')\n\u2022 Include *data location*: inline SMILES/sequences, S3 paths, accession numbers, or upload first with upload_file\n\u2022 Include key *parameters* that matter: organism, library type, comparisons, thresholds\n\u2022 You can omit anything BioMate can infer (it will ask if genuinely ambiguous)\n\n**Good examples:**\n  'Screen aspirin (CC(=O)Oc1ccccc1C(=O)O) and caffeine (Cn1cnc2c1c(=O)n(c(=O)n2C)C) for hERG inhibition, CYP3A4, and oral bioavailability'\n  'RNA-seq differential expression on s3://lab-bucket/exp42/fastqs/ \u2014 human GRCh38, dUTP strand-specific, treated (n=3) vs control (n=3), FDR 0.05'\n  'Whole-genome variant calling on the uploaded FASTQ pair, GRCh38, GATK HaplotypeCaller, germline mode'\n  'Run homogeneous 3D refinement in CryoSPARC on s3://cryo/job042/, C2 symmetry, box size 256'\n  'Fetch GSE183947 from GEO and run the same RNA-seq pipeline'\n\nUse run_workflow instead when the user wants to call a specific workflow by ID with explicit parameter control.",
         "x-streaming": true,
         "requestBody": {
           "required": true,
@@ -96,8 +96,8 @@
     "/tools/search_workflow": {
       "post": {
         "operationId": "search_workflow",
-        "summary": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language.",
-        "description": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language. Returns ranked workflow cards with id, name, domain, one-line description, and estimated BioMate cloud cost. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
+        "summary": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language.",
+        "description": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language. Returns ranked workflow cards with id, name, domain, one-line description, and estimated BioMate cloud cost. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
         "x-streaming": false,
         "requestBody": {
           "required": true,

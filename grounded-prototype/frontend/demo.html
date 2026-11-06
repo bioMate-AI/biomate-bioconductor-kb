@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grounded Standards Assistant — prototype</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #171a22; --panel-2: #1e2230; --border: #2a2f3d;
+    --text: #e6e8ee; --muted: #9aa3b2; --accent: #6ea8fe;
+    --a: #34d399; --b: #60a5fa; --c: #a78bfa; --d: #f59e0b;
+    --warn-bg: #2a1d12; --warn-border: #7c4a1d; --warn-text: #fbbf77;
+    --ok: #34d399; --mod: #fbbf24; --low: #fb923c; --none: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 72px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  .card { background: var(--panel); border: 1px solid var(--border);
+          border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em; }
+  textarea, select { width:100%; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:14px; font-family:inherit; }
+  textarea { min-height:70px; resize:vertical; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-top:12px; }
+  .row > div { flex:1; min-width:160px; }
+  button { background:var(--accent); color:#0b1020; border:none; border-radius:8px;
+           padding:10px 18px; font-weight:600; font-size:14px; cursor:pointer; }
+  button.secondary { background:var(--panel-2); color:var(--text); border:1px solid var(--border); font-weight:500; }
+  button:disabled { opacity:.5; cursor:default; }
+  .examples { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .examples button { font-size:12px; padding:6px 10px; }
+  .meta { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .pill { font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; letter-spacing:.03em; }
+  .grade-high{background:rgba(52,211,153,.15);color:var(--ok);border:1px solid var(--ok);}
+  .grade-moderate{background:rgba(251,191,36,.13);color:var(--mod);border:1px solid var(--mod);}
+  .grade-low{background:rgba(251,146,60,.13);color:var(--low);border:1px solid var(--low);}
+  .grade-not_established{background:rgba(248,113,113,.13);color:var(--none);border:1px solid var(--none);}
+  .qtype{background:var(--panel-2);color:var(--muted);border:1px solid var(--border);}
+  .claim { border-left:3px solid var(--border); padding:4px 0 4px 12px; margin:10px 0; }
+  .claim.grounded { border-left-color: var(--a); }
+  .claim .txt { margin-bottom:6px; }
+  .src { font-size:12px; color:var(--muted); margin:3px 0 3px 6px; }
+  .tier { display:inline-block; font-weight:700; font-size:10px; padding:1px 6px; border-radius:4px; margin-right:6px; }
+  .tier.A{background:rgba(52,211,153,.15);color:var(--a);} .tier.B{background:rgba(96,165,250,.15);color:var(--b);}
+  .tier.C{background:rgba(167,139,250,.15);color:var(--c);} .tier.D{background:rgba(245,158,11,.15);color:var(--d);}
+  .unverified { color:var(--d); font-weight:600; }
+  .boundary { background:var(--warn-bg); border:1px solid var(--warn-border); border-radius:8px; padding:14px; margin-top:12px; }
+  .boundary h3 { margin:0 0 8px; color:var(--warn-text); font-size:14px; }
+  .boundary .frag { font-weight:600; }
+  .boundary ul { margin:6px 0; padding-left:18px; }
+  .section-h { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:18px 0 8px; }
+  .personal { background:var(--panel-2); border:1px dashed var(--d); border-radius:8px; padding:12px; margin-top:12px; font-size:13px; }
+  .audit { font-size:12px; color:var(--muted); margin-top:16px; border-top:1px solid var(--border); padding-top:12px; }
+  .audit b { color:var(--text); }
+  .block-flash { color:var(--d); font-weight:600; }
+  code { background:var(--panel-2); padding:1px 5px; border-radius:4px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Grounded Standards Assistant</h1>
+  <p class="sub">Evidence-tiered answers for regulated questions. Grounds what it can, names where the authoritative record stops, routes the rest to real experts — and never leaks one user's notes to another.</p>
+
+  <div class="card">
+    <label for="q">Question</label>
+    <textarea id="q">Why is the steam dryness value threshold set to 0.95 in EN 285? What experiments and committee work produced that specific number?</textarea>
+    <div class="examples">
+      <button class="secondary" data-q="Why is the steam dryness value threshold set to 0.95 in EN 285? What experiments and committee work produced that specific number?">RATIONALE: why 0.95?</button>
+      <button class="secondary" data-q="What dryness value does EN 285 require for the steam supplied to the sterilizer?">NORMATIVE: what value?</button>
+      <button class="secondary" data-q="Our steam quality dryness test failed — what should we check?">INVESTIGATION: test failed</button>
+      <button class="secondary" data-q="What colour should the sterilizer chamber be painted?">OFF-TOPIC: refuses</button>
+    </div>
+    <div class="row">
+      <div>
+        <label for="user">Acting as (tenant — switch to see isolation)</label>
+        <select id="user">
+          <option value="alice">alice (has a private draft note)</option>
+          <option value="bob">bob (has a different private note)</option>
+          <option value="carol">carol (no notes)</option>
+        </select>
+      </div>
+      <div style="flex:0 0 auto;">
+        <button id="go">Ask</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+const API = (location.port && location.port !== "7788")
+  ? "http://127.0.0.1:7788/api/grounded/answer"   // served elsewhere; call the API port
+  : "/api/grounded/answer";
+
+const el = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h !== undefined) e.innerHTML = h; return e; };
+const esc = s => (s||"").replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+
+function render(data) {
+  const out = document.getElementById("out");
+  out.innerHTML = "";
+  const card = el("div", "card");
+
+  const meta = el("div", "meta");
+  meta.appendChild(el("span", "pill qtype", esc(data.question_type)));
+  meta.appendChild(el("span", "pill grade-" + data.grade, "grade: " + esc(data.grade)));
+  card.appendChild(meta);
+
+  const grounded = data.claims.filter(c => c.grounded);
+  const personal = data.claims.filter(c => !c.grounded && c.sources.length);
+
+  if (grounded.length) {
+    card.appendChild(el("div", "section-h", "What the evidence supports"));
+    grounded.forEach(c => {
+      const d = el("div", "claim grounded");
+      d.appendChild(el("div", "txt", esc(c.text)));
+      c.sources.forEach(s => {
+        const ver = s.verified ? "verified" : "<span class='unverified'>UNVERIFIED</span>";
+        d.appendChild(el("div", "src",
+          "<span class='tier " + esc(s.tier) + "'>" + esc(s.tier) + "</span>" +
+          esc(s.citation) + " · " + ver + " · <code>" + esc(s.locator || "n/a") + "</code>"));
+      });
+      card.appendChild(d);
+    });
+  }
+
+  (data.boundaries || []).forEach(b => {
+    const bx = el("div", "boundary");
+    bx.appendChild(el("h3", null, "⚠️ Where the record stops — not answered from memory"));
+    bx.appendChild(el("div", null, "<span class='frag'>Not grounded:</span> " + esc(b.question_fragment)));
+    bx.appendChild(el("div", "src", esc(b.reason)));
+    if (b.escalate_to && b.escalate_to.length) {
+      bx.appendChild(el("div", null, "<b>Ask the people who hold this answer:</b>"));
+      const ul = el("ul"); b.escalate_to.forEach(x => ul.appendChild(el("li", null, esc(x)))); bx.appendChild(ul);
+    }
+    if (b.suggested_questions && b.suggested_questions.length) {
+      bx.appendChild(el("div", null, "<b>Concrete questions to put to them:</b>"));
+      const ul = el("ul"); b.suggested_questions.forEach(x => ul.appendChild(el("li", null, esc(x)))); bx.appendChild(ul);
+    }
+    card.appendChild(bx);
+  });
+
+  if (personal.length) {
+    card.appendChild(el("div", "section-h", "Your unverified notes (shown to you only — not evidence)"));
+    personal.forEach(c => card.appendChild(el("div", "personal", esc(c.text))));
+  }
+
+  const iso = data.isolation || {};
+  const audit = el("div", "audit");
+  const blocked = iso.other_tenant_personal_blocked || 0;
+  audit.innerHTML =
+    "<b>Provenance &amp; isolation audit</b> · acting as <code>" + esc(iso.requesting_user) + "</code><br>" +
+    "shared/authoritative sources used: <b>" + (iso.shared_sources_used||0) + "</b> · " +
+    "your own notes used (demoted): <b>" + (iso.own_personal_sources_used||0) + "</b> · " +
+    "other users' private notes blocked: <span class='block-flash'>" + blocked + "</span>";
+  card.appendChild(audit);
+
+  out.appendChild(card);
+}
+
+async function go() {
+  const btn = document.getElementById("go");
+  const question = document.getElementById("q").value;
+  const user = document.getElementById("user").value;
+  btn.disabled = true; btn.textContent = "Asking…";
+  try {
+    const r = await fetch(API, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ question, user })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "request failed");
+    render(data);
+  } catch (e) {
+    document.getElementById("out").innerHTML =
+      "<div class='card' style='color:var(--none)'>Error: " + esc(e.message) +
+      "<br><span class='src'>Is the API running? <code>python3 grounded-prototype/mcp_server/http_api.py</code></span></div>";
+  } finally {
+    btn.disabled = false; btn.textContent = "Ask";
+  }
+}
+
+document.getElementById("go").addEventListener("click", go);
+document.querySelectorAll(".examples button").forEach(b =>
+  b.addEventListener("click", () => { document.getElementById("q").value = b.dataset.q; go(); }));
+go();
+</script>
+</body>
+</html>

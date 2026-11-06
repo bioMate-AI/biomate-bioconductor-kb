@@ -124,7 +124,7 @@ with open("command_iteration_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("command_iteration_output.txt", "w") as f:
-    f.write("Biomni: Command Iteration" + NL)
+    f.write("BioMate: Command Iteration" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

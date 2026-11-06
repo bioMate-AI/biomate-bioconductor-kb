@@ -1,0 +1,22 @@
+shuffle None 2013_CHUGAI n_train 6237 54 s
+shuffle None 2015_Ahlbach n_train 6932 98 s
+shuffle None 2015_Wang n_train 6903 139 s
+shuffle None 2016_Furukawa n_train 6298 191 s
+shuffle None 2017_Pye n_train 6939 229 s
+shuffle None 2018_Naylor n_train 6874 274 s
+shuffle None 2020_Barlow n_train 6934 310 s
+shuffle None 2020_Furukawa n_train 6924 361 s
+shuffle None 2020_Le Roux n_train 6913 395 s
+shuffle None 2020_Townsend n_train 4079 440 s
+shuffle None 2021_Comeau n_train 6918 483 s
+shuffle None 2021_Golosov n_train 6937 535 s
+shuffle None 2021_Kelly n_train 5442 619 s
+shuffle None 2021_Wang n_train 6938 689 s
+shuffle None 2022_Bhardwaj n_train 6826 778 s
+shuffle None 2022_Taechalertpaisarn n_train 6910 821 s
+shuffle None 2023_Ghosh n_train 6925 867 s
+shuffle None 2023_Ohta n_train 6807 901 s
+shuffle None 2024_Faris n_train 6753 924 s
+shuffle None 2024_Koch n_train 6918 940 s
+shuffle None 2024_Ly n_train 6940 959 s
+wrote real 2626

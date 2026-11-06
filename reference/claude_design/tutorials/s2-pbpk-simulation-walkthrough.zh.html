@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · S2 — PBPK 模拟，一个机理统计模型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-s2{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.rail .kind{font-family:var(--ff-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:3px 9px; border-radius:3px}
+.rail .kind.concept{background:var(--blue-bg); color:var(--blue)}
+.rail .kind.flow{background:var(--panel2); color:var(--mut)}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 70px 48px; opacity:0; transform:translateY(8px);
+  /* Deactivate instantly (no lingering fade-out) so two scenes' text never
+     overlap mid-dissolve; the incoming scene does a quick <0.3s fade-in. */
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px}
+.kicker .st{color:var(--mut)}
+.kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
+.kicker .badge.concept{background:var(--blue-bg); color:var(--blue)}
+.kicker .badge.flow{background:var(--panel2); color:var(--mut); border:1px solid var(--line2)}
+.scene h2{font-family:var(--ff-ui); font-size:36px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 13px; max-width:20ch}
+.scene.title h2{font-size:50px; max-width:21ch; margin-bottom:18px}
+.caption{font-size:18px; line-height:1.55; color:var(--ink2); max-width:66ch; margin:0 0 6px}
+.caption.sub{font-size:15.5px; color:var(--mut); max-width:70ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* edu framing strip: task -> hard -> classical -> BioMate -> read */
+.frame-strip{display:flex; gap:0; margin:4px 0 0; flex-wrap:wrap}
+.frame-strip .fs{display:flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.04em; color:var(--mut); padding:4px 0}
+.frame-strip .fs b{color:var(--blue); font-weight:500; text-transform:uppercase; letter-spacing:.08em}
+.frame-strip .sep{color:var(--line2); margin:0 12px}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:12px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row2{display:grid; grid-template-columns:repeat(2,1fr); gap:18px}
+.card.big .row2, .card.big .row3, .card.big .row4, .card.big .row5{flex:1 1 auto; grid-template-rows:minmax(0,1fr)}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px; display:flex; flex-direction:column; justify-content:center}
+.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
+.tile.hot{border-color:var(--amber); background:var(--amber-bg)}
+.tile.hot .n{color:var(--amber)}
+.tile.blu{border-color:var(--blue); background:var(--blue-bg)}
+.tile.blu .n{color:var(--blue)}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:8px 15px; font-size:14px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+svg{display:block}
+.svgwrap{flex:1; display:flex; align-items:center; justify-content:center; min-height:0}
+.metricrow{display:flex; gap:30px; margin-top:4px; flex-wrap:wrap}
+.metric{display:flex; flex-direction:column}
+.metric .v{font-family:var(--ff-mono); font-size:24px; color:var(--ink); font-weight:600}
+.metric .k{font-size:12px; color:var(--mut); margin-top:2px; max-width:22ch}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:12px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:44px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.deliver{list-style:none; padding:0; margin:0}
+.deliver li{display:flex; align-items:baseline; gap:11px; padding:10px 0; border-bottom:1px solid var(--line); font-size:14.5px; line-height:1.5; color:var(--ink2)}
+.deliver li:last-child{border-bottom:none}
+.deliver li .mk{flex:0 0 auto; width:7px; height:7px; border-radius:2px; background:var(--blue); transform:translateY(5px)}
+.deliver li b{color:var(--ink); font-weight:600}
+.code-strip{font-family:var(--ff-mono); font-size:12.5px; color:var(--ink2); background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:9px 13px; line-height:1.7}
+.code-strip b{color:var(--blue); font-weight:500}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-s2">统计系列 · S2 — PBPK 模拟</span>
+  <span class="kind concept" id="kind">概念</span>
+  <span class="spacer"></span>
+  <span class="counter">幻灯片 <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-kind="concept" data-seconds="40.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>PBPK 仿真</b></div>
+    <div class="kicker">一个关于身体对药物做了什么的机理统计模型</div>
+    <h2>预测药物随时间变化的浓度——逐器官、逐人群。</h2>
+    <p class="caption">基于生理的药代动力学（PBPK）回答一个任何结合分数都答不了的问题：一次剂量服下之后，<b>药物能升到多高、能停留多久、又会在哪里聚集</b>？BioMate 把请求路由到一个经过验证的求解器，在托管算力上运行真实的微分方程模型，再把浓度-时间曲线和标准的 PK 参数——Cmax、AUC、半衰期——交回给你。</p>
+    <p class="caption sub">用到的化合物：<b>阿司匹林、咖啡因、布洛芬</b>——三个熟悉的药物，这里只用来展示机理。这是一份<b>供推理和分流之用的机理预测，而非临床给药建议</b>。BioMate 的价值在于它运行的是<b>真实、已发表的求解器</b>——它不会让一个语言模型去猜一个 Cmax。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>1 · 任务</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>2 · 为什么难</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>3 · NCA 基线</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>4 · 机理式 PBPK</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>5 · 特殊人群</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>6 · 在 BioMate 中</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>7 · 经过验证</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — CONCEPT: the task, PK over time -->
+  <section class="scene" data-kind="concept" data-seconds="37.0">
+    <div class="kicker"><span class="st">1 · 概念</span> · 任务——一条浓度-时间曲线 <span class="badge concept">概念</span></div>
+    <h2>药代动力学，就是身体随时间对药物做了什么。</h2>
+    <p class="caption">服药之后，血浆浓度随着药物被吸收而上升，到达峰值，再随着它被分布、代谢和排泄而下降。读懂这一条曲线，你就得到每一个给药决策所依赖的那些数字：<b>Cmax</b>（峰值）、<b>Tmax</b>（达峰时刻）、<b>AUC</b>（总暴露量），以及<b>半衰期</b>（清除得有多快）。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 480 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <line x1="56" y1="20" x2="56" y2="258" stroke="#d5dae2" stroke-width="1.5"/>
+            <line x1="56" y1="258" x2="452" y2="258" stroke="#d5dae2" stroke-width="1.5"/>
+            <text x="20" y="150" fill="#5a6474" font-family="IBM Plex Mono" font-size="12" transform="rotate(-90 20 150)">血浆浓度</text>
+            <text x="356" y="284" fill="#5a6474" font-family="IBM Plex Mono" font-size="12">时间 (h) →</text>
+            <path d="M56 258 C110 60 150 48 190 88 C250 150 340 230 452 248" fill="none" stroke="#1a4a9c" stroke-width="2.5"/>
+            <circle cx="168" cy="63" r="5" fill="#1a4a9c"/>
+            <line x1="168" y1="63" x2="168" y2="258" stroke="#1a4a9c" stroke-width="1" stroke-dasharray="3 4" opacity=".5"/>
+            <text x="150" y="56" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="12" font-weight="500">Cmax</text>
+            <text x="150" y="273" fill="#5a6474" font-family="IBM Plex Mono" font-size="11">Tmax</text>
+            <path d="M190 88 C250 150 340 230 452 248 L452 258 L190 258 Z" fill="#1a4a9c" opacity=".08"/>
+            <text x="286" y="192" fill="#5a6474" font-family="IBM Plex Mono" font-size="12">AUC — 总暴露量</text>
+            <path d="M300 170 C340 205 400 232 452 244" fill="none" stroke="#8a5a12" stroke-width="1.6" stroke-dasharray="4 4"/>
+            <text x="356" y="160" fill="#8a5a12" font-family="IBM Plex Mono" font-size="11">t½ — 末端斜率</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="frame-strip">
+            <span class="fs"><b>任务</b>&nbsp;预测浓度随时间</span><span class="sep">·</span>
+            <span class="fs"><b>读出</b>&nbsp;Cmax · Tmax · AUC · t½</span><span class="sep">·</span>
+            <span class="fs"><b>为何</b>&nbsp;剂量与安全边际都取决于它</span>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <p style="font-size:14.5px; line-height:1.6; margin:0">峰值太<b>低</b>，药就不起效；太<b>高</b>，就有毒性风险。同一条曲线，针对不同<b>组织</b>（血液、肝、肾）和不同<b>人群</b>（成人、儿童、功能受损者）计算出来，正是把一个分子变成一套给药方案的东西。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — CONCEPT: why it's hard -->
+  <section class="scene" data-kind="concept" data-seconds="46.0">
+    <div class="kicker"><span class="st">2 · 概念</span> · 现状，以及 PBPK 为什么难 <span class="badge concept">概念</span></div>
+    <h2>难的是输入和方程——而不是画那条曲线。</h2>
+    <p class="caption">一个 PBPK 模型是一组耦合的微分方程，每个器官一个，由生理学（血流、器官体积）和分子自身的性质共同驱动。曲线的好坏，取决于那些输入——而它们中的大多数本身也是估计。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">输入 · 理化</div><h4>分子性质</h4><p>MW、logP、pKa——决定药物如何向组织分配。</p></div>
+            <div class="tile"><div class="n">输入 · ADME</div><h4>清除率与结合</h4><p>内在清除率（CLint）、游离分数（fu）、肾 CL——往往是测量或预测的，很少精确。</p></div>
+            <div class="tile"><div class="n">模型 · ODE</div><h4>耦合方程</h4><p>每个器官一个质量平衡方程，一起随时间求解——一个刚性 ODE 系统。</p></div>
+            <div class="tile hot"><div class="n">风险 · 传导</div><h4>误差会累积</h4><p>一个错误的清除率或 fu 会把整条曲线挪位——垃圾进，垃圾出。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:18px">这正是 PBPK 是一门专科的原因：方程是标准的，但选取并论证参数才是真正的工作。BioMate 把每一项输入都暴露出来，让你在求解器运行之前核对并覆盖它。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — CONCEPT: NCA baseline -->
+  <section class="scene" data-kind="concept" data-seconds="44.0">
+    <div class="kicker"><span class="st">3 · 概念</span> · 基线——非房室分析（NCA） <span class="badge concept">概念</span></div>
+    <h2>如果你已经有了实测的浓度，你就不需要模型。</h2>
+    <p class="caption">非房室分析（NCA）不对器官做任何假设。给定一张观测到的浓度-时间表，它直接从曲线上读出数字——用梯形法则求面积、读取峰值、求末端斜率。它是那把诚实的、无需模型的基线，PBPK 正是拿它来比照的。BioMate 以 <b>Nca Pknca</b> 提供它，底层建立在 R 语言的 <b>PKNCA</b> 包之上。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 460 290" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <line x1="52" y1="18" x2="52" y2="250" stroke="#d5dae2" stroke-width="1.5"/>
+            <line x1="52" y1="250" x2="440" y2="250" stroke="#d5dae2" stroke-width="1.5"/>
+            <text x="18" y="150" fill="#5a6474" font-family="IBM Plex Mono" font-size="11" transform="rotate(-90 18 150)">观测浓度</text>
+            <!-- measured points -->
+            <path d="M52 250 L96 120 L140 70 L190 100 L250 150 L320 200 L400 232" fill="none" stroke="#1c6b3a" stroke-width="1.6" stroke-dasharray="3 4" opacity=".7"/>
+            <g fill="#1c6b3a">
+              <circle cx="96" cy="120" r="5"/><circle cx="140" cy="70" r="5"/><circle cx="190" cy="100" r="5"/>
+              <circle cx="250" cy="150" r="5"/><circle cx="320" cy="200" r="5"/><circle cx="400" cy="232" r="5"/>
+            </g>
+            <path d="M140 70 L190 100 L250 150 L320 200 L400 232 L400 250 L140 250 Z" fill="#1c6b3a" opacity=".08"/>
+            <text x="250" y="200" fill="#5a6474" font-family="IBM Plex Mono" font-size="11">梯形法 AUC</text>
+            <text x="120" y="56" fill="#1c6b3a" font-family="IBM Plex Mono" font-size="11" font-weight="500">实测采样点</text>
+            <text x="250" y="278" fill="#5a6474" font-family="IBM Plex Mono" font-size="11">时间 →（无器官模型——直接从数据读出）</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">NCA vs PBPK——一个有用的对照</h4>
+            <p style="font-size:14px;line-height:1.55;margin:0 0 10px"><b>NCA</b> 归纳你已经有的数据——AUClast、AUCinf、Cmax、Tmax、t½、CL/F、Vd/F，逐受试者。</p>
+            <p style="font-size:14px;line-height:1.55;margin:0"><b>PBPK</b> 则<b>向前</b>预测到一个新剂量、一个儿童，或一个肾功能受损的病人——正是那些你恰恰没有数据的情形。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — CONCEPT: mechanistic PBPK, the compartment model -->
+  <section class="scene" data-kind="concept" data-seconds="51.0">
+    <div class="kicker"><span class="st">4 · 概念</span> · 机理式 PBPK——器官房室作为 ODE <span class="badge concept">概念</span></div>
+    <h2>把身体建模成相连的房室，每个器官一个方程。</h2>
+    <p class="caption">BioMate 的原生引擎是一个<b>八房室 Rodgers/Rowland 模型</b>：肠腔和肠壁、血液、肝脏（含首过代谢）、肺、肾，以及一个合并的外周组织。血流把它们连起来；组织分配系数（Kp）和一个充分搅拌的肝清除模型，决定药物如何扩散、如何离开。整个系统由一个 <b>SciPy LSODA</b> ODE 求解器积分。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 440 310" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <!-- central blood -->
+            <rect x="168" y="130" width="104" height="48" rx="8" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.6"/>
+            <text x="220" y="150" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="600" fill="#101828">血液</text>
+            <text x="220" y="166" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a4a9c">中央池</text>
+            <!-- organs -->
+            <g font-family="IBM Plex Sans" font-size="11.5" font-weight="600" fill="#101828">
+              <rect x="20" y="18" width="92" height="38" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="66" y="41" text-anchor="middle">肠腔</text>
+              <rect x="20" y="78" width="92" height="38" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="66" y="101" text-anchor="middle">肠壁</text>
+              <rect x="20" y="190" width="92" height="38" rx="7" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.3"/><text x="66" y="208" text-anchor="middle">肝脏</text><text x="66" y="221" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#8a5a12">首过 CL</text>
+              <rect x="20" y="252" width="92" height="38" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="66" y="275" text-anchor="middle">外周</text>
+              <rect x="328" y="40" width="92" height="38" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="374" y="63" text-anchor="middle">肺</text>
+              <rect x="328" y="138" width="92" height="38" rx="7" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="1.3"/><text x="374" y="156" text-anchor="middle">肾脏</text><text x="374" y="169" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#1c6b3a">肾 CL</text>
+            </g>
+            <!-- flow links -->
+            <g stroke="#9aa4b2" stroke-width="1.4" fill="none">
+              <path d="M66 56 L66 78"/>
+              <path d="M112 97 L168 140"/>
+              <path d="M112 205 L168 168"/>
+              <path d="M112 265 L168 170"/>
+              <path d="M272 150 L328 150"/>
+              <path d="M272 140 L328 66"/>
+            </g>
+            <text x="220" y="250" text-anchor="middle" fill="#5a6474" font-family="IBM Plex Mono" font-size="9.5">Q = 血流 · Kp = 组织分配 · CL = 清除率</text>
+            <text x="220" y="296" text-anchor="middle" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="10">作为一个 ODE 系统求解（SciPy LSODA）</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:16px;margin:0 0 8px;color:var(--ink)">扎根于已发表的方法</h4>
+            <p style="font-size:13.5px;line-height:1.55;margin:0 0 10px">组织分配：Poulin &amp; Theil (2002) / Rodgers &amp; Rowland (2006)。生理学数据库：Willmann (2003)。肝清除：充分搅拌模型（Wilkinson 2005）。这些正是支撑着商业工具的同一批方法。</p>
+            <div class="code-strip"><b>入</b> SMILES · MW · logP · pKa · fu_plasma · CLint · renal_CL · dose · route<br/><b>出</b> pk_profile.csv · nca_parameters.json · qc_metrics.json</div>
+          </div>
+          <p class="footnote" style="margin-top:12px">需要授权的引擎——<b>Simcyp</b> 和 <b>PK-Sim</b>（开源、获 EMA 认可）——也已接入，并在没有授权时自动回退到这个原生引擎。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — CONCEPT: special populations -->
+  <section class="scene" data-kind="concept" data-seconds="55.0">
+    <div class="kicker"><span class="st">5 · 概念</span> · 特殊人群——选择机理方式的真正理由 <span class="badge concept">概念</span></div>
+    <h2>改变生理学，再跑同一组方程。</h2>
+    <p class="caption">机理模型的回报在于：一个儿童、一个孕妇，或一个器官功能受损的病人，<b>不是</b>一个新模型——而是同一组方程，换上不同的生理参数。BioMate 为每一类都提供专门的工作流，都扎根于监管指南。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">儿科</div><h4>酶成熟</h4><p>CYP3A4/2D6/2C9/1A2 成熟 Hill 函数（Bjorkman 2005、Johnson 2006）；按年龄缩放的器官体积（WHO 生长数据）。</p></div>
+            <div class="tile"><div class="n">妊娠</div><h4>逐孕期生理</h4><p>血浆容量扩张、GFR +50%、CYP3A4 诱导（T3 ≈ 1.8×），以及一个胎儿房室（Jeong 2012）。</p></div>
+            <div class="tile blu"><div class="n">肾 / 肝</div><h4>疾病状态子模型</h4><p>按 eGFR 分级的肾 CL（FDA 2010 / ICH E7）；按 Child-Pugh A/B/C 缩放的肝脏（FDA 2003，Wilkinson 充分搅拌）。</p></div>
+            <div class="tile"><div class="n">成人变体</div><h4>老年与功能受损</h4><p>核心引擎还开箱自带健康成人、老年和肝功能受损的生理预设。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:18px">疾病状态工作流会给出 AUC 和 Cmax 比值（受损 / 正常）、一条剂量调整建议，以及用于 IND/NDA 的 FDA "特殊人群用药"标签草稿文本——一份供推理之用、由药理学家审阅的预测，绝不自动提交。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — FLOW-ish CONCEPT: how BioMate does it -->
+  <section class="scene" data-kind="concept" data-seconds="46.0">
+    <div class="kicker"><span class="st">6 · 在 BioMate 中</span> · 对话 → 路由 → 运行真实的求解器 <span class="badge concept">概念</span></div>
+    <h2>你描述场景；BioMate 运行经过验证的求解器，而不是一个猜测。</h2>
+    <p class="caption">用大白话去问——"在一名健康成人身上模拟口服阿司匹林 500 mg 的 PBPK"。BioMate 把它路由到 <code style="font-family:var(--ff-mono);background:var(--panel2);padding:1px 5px;border-radius:3px">pbpk_simulation</code> 工作流，在运行之前展示每一个可编辑的参数，在托管算力上执行 ODE 模型，再直接从求解器的输出文件里读出 PK 参数。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 440 250" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <g font-family="IBM Plex Sans" font-size="11.5" font-weight="600" fill="#101828">
+              <rect x="14" y="98" width="88" height="44" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="58" y="117" text-anchor="middle">对话</text><text x="58" y="131" text-anchor="middle" font-family="IBM Plex Mono" font-size="8.5" fill="#5a6474">大白话</text>
+              <rect x="128" y="98" width="88" height="44" rx="7" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.3"/><text x="172" y="117" text-anchor="middle">路由</text><text x="172" y="131" text-anchor="middle" font-family="IBM Plex Mono" font-size="8.5" fill="#1a4a9c">pbpk_simulation</text>
+              <rect x="242" y="98" width="88" height="44" rx="7" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.3"/><text x="286" y="113" text-anchor="middle">运行求解器</text><text x="286" y="127" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#8a5a12">LSODA ODE</text><text x="286" y="137" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#8a5a12">托管算力</text>
+              <rect x="356" y="98" width="72" height="44" rx="7" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="1.3"/><text x="392" y="117" text-anchor="middle">读取</text><text x="392" y="131" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#1c6b3a">PK 参数</text>
+            </g>
+            <g stroke="#5a6474" stroke-width="1.5" fill="#5a6474">
+              <line x1="102" y1="120" x2="124" y2="120"/><polygon points="124,120 116,116 116,124"/>
+              <line x1="216" y1="120" x2="238" y2="120"/><polygon points="238,120 230,116 230,124"/>
+              <line x1="330" y1="120" x2="352" y2="120"/><polygon points="352,120 344,116 344,124"/>
+            </g>
+            <rect x="128" y="24" width="202" height="40" rx="7" fill="#fff" stroke="#d5dae2"/>
+            <text x="229" y="42" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="600" fill="#101828">每个参数先可编辑</text>
+            <text x="229" y="56" text-anchor="middle" font-family="IBM Plex Mono" font-size="8.5" fill="#5a6474">剂量 · 给药途径 · CLint · fu · 人群</text>
+            <line x1="229" y1="64" x2="200" y2="96" stroke="#9aa4b2" stroke-width="1.3" stroke-dasharray="3 3"/>
+            <text x="220" y="196" text-anchor="middle" fill="#1c6b3a" font-family="IBM Plex Mono" font-size="10">输出从文件读取——绝不由语言模型造出</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:16px;margin:0 0 8px;color:var(--ink)">回传的是什么</h4>
+            <p style="font-size:13.5px;line-height:1.55;margin:0 0 10px"><b>pk_profile.csv</b>——血液、肝和肾的完整浓度-时间曲线。<b>nca_parameters.json</b>——Cmax、AUCinf、Tmax、t½、CL/F、稳态容积 Vss、口服生物利用度 F。</p>
+            <p style="font-size:13.5px;line-height:1.55;margin:0">每一次运行还带着可复现记录——运行 id、参数、软件版本、校验和——于是这份预测是站得住脚的，而不只是被产出来的。</p>
+          </div>
+          <p class="footnote" style="margin-top:12px">语言模型的职责是路由和解释。数字来自 ODE 求解器。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CONCEPT: reading the output + QC gates -->
+  <section class="scene" data-kind="concept" data-seconds="52.0">
+    <div class="kicker"><span class="st">7 · 在 BioMate 中</span> · 读懂结果——对物理设门 <span class="badge concept">概念</span></div>
+    <h2>PK 参数附带自动的合理性检查。</h2>
+    <p class="caption">只有当模拟本身物理上站得住脚，一个 PBPK 结果才值得信赖。BioMate 对每一次 PBPK 运行跑四道 QC 闸门，于是一条不合理的曲线会被标出，而不是被当作事实报告。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <div class="card">
+            <div class="row2">
+              <div class="tile"><div class="n">闸门 · 质量平衡</div><h4>没有丢失</h4><p>药物总量（各房室 + 已排泄）必须回收到剂量，0.95–1.05——ODE 守恒了质量。</p></div>
+              <div class="tile"><div class="n">闸门 · Tmax 占比</div><h4>峰值落在窗内</h4><p>Tmax 必须落在模拟的时间窗之内（≤ 时长的 0.8）——而不是被太短的运行截断。</p></div>
+              <div class="tile"><div class="n">闸门 · CL 下限</div><h4>清除率合理</h4><p>CL = dose / AUC 必须越过一个生理下限（≥ 0.01 L/h）。</p></div>
+              <div class="tile blu"><div class="n">闸门 · AUC 倍数误差</div><h4>对比实测</h4><p>当你提供一个观测到的 AUC 时，它会报告倍数误差，以及是否落在两倍之内（FDA 2018）。</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="lead-col">
+          <div class="card" style="border-left:3px solid var(--blue)">
+            <h4 style="font-family:var(--ff-ui);font-size:16px;margin:0 0 8px;color:var(--ink)">把它当作一份预测来读</h4>
+            <p style="font-size:13.5px;line-height:1.55;margin:0 0 10px">这些闸门检查的是模拟的<b>内部自洽性</b>——也就是数学是否成立。它们<b>并不</b>证明预测相对一个真实病人是正确的；只有一个观测 AUC 的比对才能做到这一点。</p>
+            <p style="font-size:13.5px;line-height:1.55;margin:0">所以请把 Cmax、AUC 和 t½ 当作一份机理上自洽、可供推理的预测来读——然后只要你有任何体内数据，就把它锚定上去。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — CONCEPT: honest caveats + benchmark -->
+  <section class="scene" data-kind="concept" data-seconds="54.0">
+    <div class="kicker"><span class="st">8 · 经过验证</span> · 对照临床真值 · 真实求解器，带出处 <span class="badge concept">概念</span></div>
+    <h2>BioMate 运行真实的求解器——每一个数字都有出处可循。</h2>
+    <p class="caption">BioMate 运行的是一个经过验证、已发表的微分方程求解器，每一个数字背后都有完整的溯源，并把每一个结果都对照真实的临床 PK 来检验。在 BioMate 的 <b>RealBio pbpk_benchmark</b> 里——15 个有已发表人体 PK 的参考化合物，按其预测 Cmax/AUC 是否落在临床值<b>两倍之内</b>来评分——每一个数字都对照临床真值核验，而不是靠猜。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 420 260" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <text x="210" y="22" text-anchor="middle" fill="#5a6474" font-family="IBM Plex Mono" font-size="11">预测对实测——两倍区间</text>
+            <line x1="56" y1="40" x2="56" y2="222" stroke="#d5dae2" stroke-width="1.5"/>
+            <line x1="56" y1="222" x2="392" y2="222" stroke="#d5dae2" stroke-width="1.5"/>
+            <text x="20" y="150" fill="#5a6474" font-family="IBM Plex Mono" font-size="11" transform="rotate(-90 20 150)">预测值</text>
+            <text x="300" y="246" fill="#5a6474" font-family="IBM Plex Mono" font-size="11">实测值 →</text>
+            <!-- identity + 2-fold band -->
+            <line x1="56" y1="222" x2="372" y2="50" stroke="#1a4a9c" stroke-width="1.6"/>
+            <line x1="56" y1="222" x2="372" y2="136" stroke="#9aa4b2" stroke-width="1.1" stroke-dasharray="4 4"/>
+            <line x1="56" y1="136" x2="286" y2="50" stroke="#9aa4b2" stroke-width="1.1" stroke-dasharray="4 4"/>
+            <text x="300" y="92" fill="#1c6b3a" font-family="IBM Plex Mono" font-size="10">两倍以内 = 通过</text>
+            <!-- points, some outside -->
+            <g fill="#1c6b3a">
+              <circle cx="120" cy="178" r="5"/><circle cx="170" cy="150" r="5"/><circle cx="230" cy="120" r="5"/>
+            </g>
+            <g fill="#9c1a2e">
+              <circle cx="150" cy="90" r="5"/><circle cx="300" cy="190" r="5"/><circle cx="260" cy="70" r="5"/>
+            </g>
+            <text x="150" y="80" fill="#9c1a2e" font-family="IBM Plex Mono" font-size="9">未达标 (&gt;2倍)</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card" style="border-left:3px solid var(--amber)">
+            <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">要带走的三点</div>
+            <ul class="deliver">
+              <li><span class="mk"></span><span><b>输入为王。</b>准确度取决于好的理化和 ADME 输入；默认值是估计，所以只要你有实测值就用上。</span></li>
+              <li><span class="mk"></span><span><b>是估计，不是保证。</b>绝对 Cmax/AUC 都是预测；基准的两倍以内目标（0.70）说明了这有多难。</span></li>
+              <li><span class="mk"></span><span><b>真正的护城河。</b>BioMate 运行一个<b>经过验证、已发表的 ODE 求解器</b>，带着完整溯源——而不是一个语言模型吐出一个看起来合理的数字。</span></li>
+            </ul>
+          </div>
+          <p class="footnote" style="margin-top:12px">基准来源：FDA 药品标签、Wishart 2006（DrugBank）、Rodgers 2007。评分是客观的——没有 LLM 裁判。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-kind="concept" data-seconds="42.0">
+    <div class="kicker">PBPK 一眼看懂</div>
+    <h2 style="font-size:38px">描述场景 → 运行真实的 ODE 模型 → 读出一份站得住脚的预测。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:16px">PBPK 把一个分子的性质和身体的生理学，变成一条你可以据以推理的浓度-时间曲线——包括在儿童、妊娠和器官功能受损这些尚无试验数据的情形里。NCA 描述你已有的数据；PBPK 预测你没有的场景。BioMate 所添加的，是在托管算力上运行那个<b>真实、经过验证的求解器</b>，对物理设门，并保留一份完整的溯源记录——绝不让一个语言模型凭空造出一个 PK 数字。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>记住那些读出——Cmax、Tmax、AUC、半衰期</li>
+            <li><span class="k">2–3</span>你有的数据用 NCA；你没有的场景用 PBPK</li>
+            <li><span class="k">4–5</span>机理式房室；为特殊人群换上生理参数</li>
+            <li><span class="k">6–8</span>在 BioMate 里运行它，带着闸门去读，尊重局限</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 10px;color:var(--ink)">这条工作流交付什么</h4>
+            <ul class="deliver">
+              <li><span class="mk"></span><span>逐组织的<b>浓度-时间曲线</b>，外加 Cmax、AUC、t½、Vss、F。</span></li>
+              <li><span class="mk"></span><span><b>特殊人群变体</b>——儿科、妊娠、肾/肝功能受损。</span></li>
+              <li><span class="mk"></span><span>对物理的四道 <b>QC 闸门</b>，包括提供实测数据时的两倍以内检验。</span></li>
+              <li><span class="mk"></span><span>每一个数字背后一份<b>可复现记录</b>，一键导出 JSON。</span></li>
+            </ul>
+          </div>
+          <p class="footnote" style="margin-top:14px">一份供分流和剂量推理之用、并由药理学家审阅的机理预测——而非一个可以独自做出的临床给药决定。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  var kindEl = document.getElementById('kind');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0){
+      scenes[idx].classList.remove('active');
+      var pv = scenes[idx].querySelector('video');
+      if (pv){ try { pv.pause(); } catch(e){} }
+    }
+    idx = i;
+    scenes[i].classList.add('active');
+    // Restart any embedded live-UI clip from the top when its scene activates.
+    var v = scenes[i].querySelector('video');
+    if (v){ try { v.currentTime = 0; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){} }
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+    var kind = scenes[i].getAttribute('data-kind') || 'concept';
+    if (kindEl){
+      kindEl.textContent = (kind === 'flow') ? 'Live UI' : 'Concept';
+      kindEl.className = 'kind ' + kind;
+    }
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

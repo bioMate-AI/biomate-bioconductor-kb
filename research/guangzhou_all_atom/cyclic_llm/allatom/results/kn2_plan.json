@@ -1,0 +1,3044 @@
+{
+ "title": "KN-2 simulated metal-aware engagement assay candidates (PREREG_KN2)",
+ "seed": 20261027,
+ "peptides": {
+  "avb6_kn2": [
+   {
+    "id": "KN2-L0-000",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-G-Y-[dP]-[NMeK])",
+    "pep": "FRGDLGYPK"
+   },
+   {
+    "id": "KN2-L0-001",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-[Aib]-F-[dP]-[NMeK])",
+    "pep": "YRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-002",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-003",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-[Abu]-F-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-004",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-[Aib]-Y-[dP]-[NMeK])",
+    "pep": "FRGDLAYPK"
+   },
+   {
+    "id": "KN2-L0-005",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-G-W-[dP]-[NMeK])",
+    "pep": "FRGDLGWPK"
+   },
+   {
+    "id": "KN2-L0-006",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+    "pep": "YRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-007",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-G-W-[dP]-[NMeK])",
+    "pep": "FRGDLGWPK"
+   },
+   {
+    "id": "KN2-L0-008",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-A-F-[dP]-[NMeK])",
+    "pep": "WRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-009",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-[Abu]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-010",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-A-W-[dP]-[NMeK])",
+    "pep": "WRGDLAWPK"
+   },
+   {
+    "id": "KN2-L0-011",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-[Aib]-W-[dP]-[NMeK])",
+    "pep": "FRGDLAWPK"
+   },
+   {
+    "id": "KN2-L0-012",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-[Abu]-F-[dP]-[NMeK])",
+    "pep": "WRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-013",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-S-W-[dP]-[NMeK])",
+    "pep": "FRGDLSWPK"
+   },
+   {
+    "id": "KN2-L0-014",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-S-[Phe4F]-[dP]-[NMeK])",
+    "pep": "FRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-015",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-016",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-S-Y-[dP]-[NMeK])",
+    "pep": "WRGDLSYPK"
+   },
+   {
+    "id": "KN2-L0-017",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-[Abu]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-018",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-A-Y-[dP]-[NMeK])",
+    "pep": "FRGDLAYPK"
+   },
+   {
+    "id": "KN2-L0-019",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-G-[Phe4F]-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-020",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-S-[Phe4F]-[dP]-[NMeK])",
+    "pep": "YRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-021",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-[Abu]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "WRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-022",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-023",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-[Abu]-W-[dP]-[NMeK])",
+    "pep": "WRGDLAWPK"
+   },
+   {
+    "id": "KN2-L0-024",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-[Aib]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-025",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-026",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-[Aib]-[Phe4F]-[dP]-[NMeK])",
+    "pep": "WRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-027",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-A-F-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-028",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-G-[Phe4F]-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-029",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-[Aib]-F-[dP]-[NMeK])",
+    "pep": "WRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-030",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-S-F-[dP]-[NMeK])",
+    "pep": "YRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-031",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-G-F-[dP]-[NMeK])",
+    "pep": "YRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-032",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-G-Y-[dP]-[NMeK])",
+    "pep": "YRGDLGYPK"
+   },
+   {
+    "id": "KN2-L0-033",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-[Aib]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-034",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-[Abu]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "YRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-035",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-G-[Phe4F]-[dP]-[NMeK])",
+    "pep": "WRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-036",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-S-Y-[dP]-[NMeK])",
+    "pep": "FRGDLSYPK"
+   },
+   {
+    "id": "KN2-L0-037",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-[Aib]-Y-[dP]-[NMeK])",
+    "pep": "FRGDLAYPK"
+   },
+   {
+    "id": "KN2-L0-038",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-S-F-[dP]-[NMeK])",
+    "pep": "FRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-039",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-[Aib]-[Phe4F]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-040",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-G-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-041",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-042",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-S-Y-[dP]-[NMeK])",
+    "pep": "FRGDLSYPK"
+   },
+   {
+    "id": "KN2-L0-043",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-G-Y-[dP]-[NMeK])",
+    "pep": "WRGDLGYPK"
+   },
+   {
+    "id": "KN2-L0-044",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-S-W-[dP]-[NMeK])",
+    "pep": "FRGDLSWPK"
+   },
+   {
+    "id": "KN2-L0-045",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-046",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-[Aib]-[Phe4F]-[dP]-[NMeK])",
+    "pep": "YRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-047",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+    "pep": "YRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-048",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-[Aib]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "WRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-049",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-G-Y-[dP]-[NMeK])",
+    "pep": "FRGDLGYPK"
+   },
+   {
+    "id": "KN2-L0-050",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+    "pep": "WRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-051",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+    "pep": "YRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-052",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-053",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-S-[Phe4F]-[dP]-[NMeK])",
+    "pep": "FRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-054",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-G-F-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-055",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-[Abu]-W-[dP]-[NMeK])",
+    "pep": "YRGDLAWPK"
+   },
+   {
+    "id": "KN2-L0-056",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-A-W-[dP]-[NMeK])",
+    "pep": "FRGDLAWPK"
+   },
+   {
+    "id": "KN2-L0-057",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-S-[Phe4F]-[dP]-[NMeK])",
+    "pep": "WRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-058",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-[Abu]-Y-[dP]-[NMeK])",
+    "pep": "FRGDLAYPK"
+   },
+   {
+    "id": "KN2-L0-059",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-A-Y-[dP]-[NMeK])",
+    "pep": "FRGDLAYPK"
+   },
+   {
+    "id": "KN2-L0-060",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-G-F-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-061",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-G-Y-[dP]-[NMeK])",
+    "pep": "FRGDLGYPK"
+   },
+   {
+    "id": "KN2-L0-062",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-S-W-[dP]-[NMeK])",
+    "pep": "YRGDLSWPK"
+   },
+   {
+    "id": "KN2-L0-063",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-064",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-A-F-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-065",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-A-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "WRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-066",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-S-F-[dP]-[NMeK])",
+    "pep": "FRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-067",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-S-[Phe4F]-[dP]-[NMeK])",
+    "pep": "FRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-068",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
+    "pep": "YRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-069",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-G-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-070",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-071",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-S-W-[dP]-[NMeK])",
+    "pep": "FRGDLSWPK"
+   },
+   {
+    "id": "KN2-L0-072",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-G-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "YRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-073",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-[Abu]-W-[dP]-[NMeK])",
+    "pep": "FRGDLAWPK"
+   },
+   {
+    "id": "KN2-L0-074",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-[Aib]-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-075",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-[Abu]-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-076",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-[Aib]-Y-[dP]-[NMeK])",
+    "pep": "FRGDLAYPK"
+   },
+   {
+    "id": "KN2-L0-077",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-[Aib]-[2Nal]-[dP]-[NMeK])",
+    "pep": "WRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-078",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-[Abu]-F-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-079",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-[Abu]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-080",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-[Abu]-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-081",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-A-W-[dP]-[NMeK])",
+    "pep": "YRGDLAWPK"
+   },
+   {
+    "id": "KN2-L0-082",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-A-F-[dP]-[NMeK])",
+    "pep": "YRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-083",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-A-W-[dP]-[NMeK])",
+    "pep": "FRGDLAWPK"
+   },
+   {
+    "id": "KN2-L0-084",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-[Abu]-W-[dP]-[NMeK])",
+    "pep": "FRGDLAWPK"
+   },
+   {
+    "id": "KN2-L0-085",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-S-[Phe4F]-[dP]-[NMeK])",
+    "pep": "FRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-086",
+    "group": "L0",
+    "helm": "cyclo(W-R-G-D-L-G-F-[dP]-[NMeK])",
+    "pep": "WRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-087",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-S-Y-[dP]-[NMeK])",
+    "pep": "FRGDLSYPK"
+   },
+   {
+    "id": "KN2-L0-088",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-[Aib]-F-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-089",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-G-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLGFPK"
+   },
+   {
+    "id": "KN2-L0-090",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-[Aib]-F-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-091",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-[Aib]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-092",
+    "group": "L0",
+    "helm": "cyclo([2Nal]-R-G-D-L-A-Y-[dP]-[NMeK])",
+    "pep": "FRGDLAYPK"
+   },
+   {
+    "id": "KN2-L0-093",
+    "group": "L0",
+    "helm": "cyclo([Phe4F]-R-G-D-L-S-F-[dP]-[NMeK])",
+    "pep": "FRGDLSFPK"
+   },
+   {
+    "id": "KN2-L0-094",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-G-W-[dP]-[NMeK])",
+    "pep": "YRGDLGWPK"
+   },
+   {
+    "id": "KN2-L0-095",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-[Abu]-F-[dP]-[NMeK])",
+    "pep": "YRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-096",
+    "group": "L0",
+    "helm": "cyclo(F-R-G-D-L-A-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-097",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-[Abu]-Y-[dP]-[NMeK])",
+    "pep": "FRGDLAYPK"
+   },
+   {
+    "id": "KN2-L0-098",
+    "group": "L0",
+    "helm": "cyclo(Y-R-G-D-L-[Aib]-[Phe4Cl]-[dP]-[NMeK])",
+    "pep": "YRGDLAFPK"
+   },
+   {
+    "id": "KN2-L0-099",
+    "group": "L0",
+    "helm": "cyclo([Phe4Cl]-R-G-D-L-[Aib]-[2Nal]-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "KN2-L1_9-000",
+    "group": "L1_9",
+    "helm": "cyclo(E-[NMeA]-T-R-G-D-L-A-[NMeK])",
+    "pep": "EATRGDLAK"
+   },
+   {
+    "id": "KN2-L1_9-001",
+    "group": "L1_9",
+    "helm": "cyclo(F-P-[Phe4F]-R-G-D-L-[Abu]-K)",
+    "pep": "FPFRGDLAK"
+   },
+   {
+    "id": "KN2-L1_9-002",
+    "group": "L1_9",
+    "helm": "cyclo([Aib]-[Phe4F]-P-[NMeK]-E-R-G-D-L)",
+    "pep": "AFPKERGDL"
+   },
+   {
+    "id": "KN2-L1_9-003",
+    "group": "L1_9",
+    "helm": "cyclo(T-Q-E-R-G-D-L-K-V)",
+    "pep": "TQERGDLKV"
+   },
+   {
+    "id": "KN2-L1_9-004",
+    "group": "L1_9",
+    "helm": "cyclo(D-R-G-D-L-K-I-[dP]-G)",
+    "pep": "DRGDLKIPG"
+   },
+   {
+    "id": "KN2-L1_9-005",
+    "group": "L1_9",
+    "helm": "cyclo(Q-[NMeK]-M-H-R-G-D-L-P)",
+    "pep": "QKMHRGDLP"
+   },
+   {
+    "id": "KN2-L1_9-006",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-R-[Phe4F]-G-F-R-G-D-L)",
+    "pep": "KRFGFRGDL"
+   },
+   {
+    "id": "KN2-L1_9-007",
+    "group": "L1_9",
+    "helm": "cyclo(K-[NMeA]-E-R-G-D-L-G-F)",
+    "pep": "KAERGDLGF"
+   },
+   {
+    "id": "KN2-L1_9-008",
+    "group": "L1_9",
+    "helm": "cyclo(L-S-C-[Phe4Cl]-R-G-D-L-[NMeK])",
+    "pep": "LSCFRGDLK"
+   },
+   {
+    "id": "KN2-L1_9-009",
+    "group": "L1_9",
+    "helm": "cyclo(S-[Phe4Cl]-K-[Aib]-G-R-G-D-L)",
+    "pep": "SFKAGRGDL"
+   },
+   {
+    "id": "KN2-L1_9-010",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-L-[NMeA]-I-K-N)",
+    "pep": "RGDLLAIKN"
+   },
+   {
+    "id": "KN2-L1_9-011",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-R-K-Y-E-[dP])",
+    "pep": "RGDLRKYEP"
+   },
+   {
+    "id": "KN2-L1_9-012",
+    "group": "L1_9",
+    "helm": "cyclo(C-R-G-D-L-[2Nal]-K-W-C)",
+    "pep": "CRGDLFKWC"
+   },
+   {
+    "id": "KN2-L1_9-013",
+    "group": "L1_9",
+    "helm": "cyclo(G-R-G-D-L-[NMeK]-D-I-Y)",
+    "pep": "GRGDLKDIY"
+   },
+   {
+    "id": "KN2-L1_9-014",
+    "group": "L1_9",
+    "helm": "cyclo(D-V-G-Q-R-G-D-L-K)",
+    "pep": "DVGQRGDLK"
+   },
+   {
+    "id": "KN2-L1_9-015",
+    "group": "L1_9",
+    "helm": "cyclo(W-R-G-D-L-[NMeK]-N-D-G)",
+    "pep": "WRGDLKNDG"
+   },
+   {
+    "id": "KN2-L1_9-016",
+    "group": "L1_9",
+    "helm": "cyclo([Aib]-S-[NMeK]-M-S-R-G-D-L)",
+    "pep": "ASKMSRGDL"
+   },
+   {
+    "id": "KN2-L1_9-017",
+    "group": "L1_9",
+    "helm": "cyclo([dP]-D-[dP]-H-[NMeK]-R-G-D-L)",
+    "pep": "PDPHKRGDL"
+   },
+   {
+    "id": "KN2-L1_9-018",
+    "group": "L1_9",
+    "helm": "cyclo(P-F-[NMeK]-[Phe4Cl]-C-R-G-D-L)",
+    "pep": "PFKFCRGDL"
+   },
+   {
+    "id": "KN2-L1_9-019",
+    "group": "L1_9",
+    "helm": "cyclo(E-R-G-D-L-Y-K-S-F)",
+    "pep": "ERGDLYKSF"
+   },
+   {
+    "id": "KN2-L1_9-020",
+    "group": "L1_9",
+    "helm": "cyclo(K-[Aib]-R-G-D-L-Y-G-D)",
+    "pep": "KARGDLYGD"
+   },
+   {
+    "id": "KN2-L1_9-021",
+    "group": "L1_9",
+    "helm": "cyclo([dP]-R-G-D-L-F-K-[Abu]-[Aib])",
+    "pep": "PRGDLFKAA"
+   },
+   {
+    "id": "KN2-L1_9-022",
+    "group": "L1_9",
+    "helm": "cyclo(K-R-W-G-R-G-D-L-[NMeA])",
+    "pep": "KRWGRGDLA"
+   },
+   {
+    "id": "KN2-L1_9-023",
+    "group": "L1_9",
+    "helm": "cyclo(G-R-G-D-L-[NMeK]-E-V-[Abu])",
+    "pep": "GRGDLKEVA"
+   },
+   {
+    "id": "KN2-L1_9-024",
+    "group": "L1_9",
+    "helm": "cyclo(V-R-G-D-L-R-E-K-Y)",
+    "pep": "VRGDLREKY"
+   },
+   {
+    "id": "KN2-L1_9-025",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-L-Y-[Phe4F]-E-R-G-D-L)",
+    "pep": "KLYFERGDL"
+   },
+   {
+    "id": "KN2-L1_9-026",
+    "group": "L1_9",
+    "helm": "cyclo(F-[Phe4Cl]-R-G-D-L-M-K-W)",
+    "pep": "FFRGDLMKW"
+   },
+   {
+    "id": "KN2-L1_9-027",
+    "group": "L1_9",
+    "helm": "cyclo(D-E-Y-R-G-D-L-[NMeK]-P)",
+    "pep": "DEYRGDLKP"
+   },
+   {
+    "id": "KN2-L1_9-028",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-K-C-A-E-T)",
+    "pep": "RGDLKCAET"
+   },
+   {
+    "id": "KN2-L1_9-029",
+    "group": "L1_9",
+    "helm": "cyclo(N-C-K-P-R-G-D-L-S)",
+    "pep": "NCKPRGDLS"
+   },
+   {
+    "id": "KN2-L1_9-030",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-R-G-D-L-I-D-H-D)",
+    "pep": "KRGDLIDHD"
+   },
+   {
+    "id": "KN2-L1_9-031",
+    "group": "L1_9",
+    "helm": "cyclo(Q-R-R-G-D-L-[Abu]-K-Q)",
+    "pep": "QRRGDLAKQ"
+   },
+   {
+    "id": "KN2-L1_9-032",
+    "group": "L1_9",
+    "helm": "cyclo(Q-[Abu]-N-R-G-D-L-K-V)",
+    "pep": "QANRGDLKV"
+   },
+   {
+    "id": "KN2-L1_9-033",
+    "group": "L1_9",
+    "helm": "cyclo([dP]-K-R-G-D-L-N-G-Q)",
+    "pep": "PKRGDLNGQ"
+   },
+   {
+    "id": "KN2-L1_9-034",
+    "group": "L1_9",
+    "helm": "cyclo([Phe4F]-R-[NMeK]-C-R-G-D-L-[Phe4Cl])",
+    "pep": "FRKCRGDLF"
+   },
+   {
+    "id": "KN2-L1_9-035",
+    "group": "L1_9",
+    "helm": "cyclo(H-P-[Phe4Cl]-R-G-D-L-K-N)",
+    "pep": "HPFRGDLKN"
+   },
+   {
+    "id": "KN2-L1_9-036",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-R-G-D-L-G-Y-M-M)",
+    "pep": "KRGDLGYMM"
+   },
+   {
+    "id": "KN2-L1_9-037",
+    "group": "L1_9",
+    "helm": "cyclo(P-R-G-D-L-K-S-E-P)",
+    "pep": "PRGDLKSEP"
+   },
+   {
+    "id": "KN2-L1_9-038",
+    "group": "L1_9",
+    "helm": "cyclo(A-K-R-G-D-L-[Phe4F]-T-P)",
+    "pep": "AKRGDLFTP"
+   },
+   {
+    "id": "KN2-L1_9-039",
+    "group": "L1_9",
+    "helm": "cyclo(A-I-[NMeK]-I-F-R-G-D-L)",
+    "pep": "AIKIFRGDL"
+   },
+   {
+    "id": "KN2-L1_9-040",
+    "group": "L1_9",
+    "helm": "cyclo([2Nal]-G-G-[NMeK]-R-G-D-L-W)",
+    "pep": "FGGKRGDLW"
+   },
+   {
+    "id": "KN2-L1_9-041",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-R-G-D-L-S-R-A-H)",
+    "pep": "KRGDLSRAH"
+   },
+   {
+    "id": "KN2-L1_9-042",
+    "group": "L1_9",
+    "helm": "cyclo(Q-S-A-L-K-R-G-D-L)",
+    "pep": "QSALKRGDL"
+   },
+   {
+    "id": "KN2-L1_9-043",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-D-S-I-R-R-G-D-L)",
+    "pep": "KDSIRRGDL"
+   },
+   {
+    "id": "KN2-L1_9-044",
+    "group": "L1_9",
+    "helm": "cyclo(P-R-G-D-L-V-[Abu]-C-K)",
+    "pep": "PRGDLVACK"
+   },
+   {
+    "id": "KN2-L1_9-045",
+    "group": "L1_9",
+    "helm": "cyclo(I-K-[Phe4F]-H-D-R-G-D-L)",
+    "pep": "IKFHDRGDL"
+   },
+   {
+    "id": "KN2-L1_9-046",
+    "group": "L1_9",
+    "helm": "cyclo(K-D-R-G-D-L-R-W-N)",
+    "pep": "KDRGDLRWN"
+   },
+   {
+    "id": "KN2-L1_9-047",
+    "group": "L1_9",
+    "helm": "cyclo(S-L-R-G-D-L-[NMeK]-[2Nal]-[NMeA])",
+    "pep": "SLRGDLKFA"
+   },
+   {
+    "id": "KN2-L1_9-048",
+    "group": "L1_9",
+    "helm": "cyclo(A-[NMeK]-R-R-G-D-L-G-C)",
+    "pep": "AKRRGDLGC"
+   },
+   {
+    "id": "KN2-L1_9-049",
+    "group": "L1_9",
+    "helm": "cyclo(C-A-R-G-D-L-K-W-W)",
+    "pep": "CARGDLKWW"
+   },
+   {
+    "id": "KN2-L1_9-050",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-L-G-R-K-[Abu])",
+    "pep": "RGDLLGRKA"
+   },
+   {
+    "id": "KN2-L1_9-051",
+    "group": "L1_9",
+    "helm": "cyclo(T-[Phe4F]-R-G-D-L-[2Nal]-W-K)",
+    "pep": "TFRGDLFWK"
+   },
+   {
+    "id": "KN2-L1_9-052",
+    "group": "L1_9",
+    "helm": "cyclo(Y-Q-R-G-D-L-A-L-K)",
+    "pep": "YQRGDLALK"
+   },
+   {
+    "id": "KN2-L1_9-053",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-K-[Aib]-N-M-[dP])",
+    "pep": "RGDLKANMP"
+   },
+   {
+    "id": "KN2-L1_9-054",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-Y-R-C-D-[NMeK])",
+    "pep": "RGDLYRCDK"
+   },
+   {
+    "id": "KN2-L1_9-055",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-R-G-D-L-E-D-Q-F)",
+    "pep": "KRGDLEDQF"
+   },
+   {
+    "id": "KN2-L1_9-056",
+    "group": "L1_9",
+    "helm": "cyclo(G-E-R-G-D-L-N-I-[NMeK])",
+    "pep": "GERGDLNIK"
+   },
+   {
+    "id": "KN2-L1_9-057",
+    "group": "L1_9",
+    "helm": "cyclo(D-N-R-G-D-L-[NMeK]-N-M)",
+    "pep": "DNRGDLKNM"
+   },
+   {
+    "id": "KN2-L1_9-058",
+    "group": "L1_9",
+    "helm": "cyclo([Aib]-R-S-K-H-R-G-D-L)",
+    "pep": "ARSKHRGDL"
+   },
+   {
+    "id": "KN2-L1_9-059",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-H-[Phe4F]-Q-K-[Phe4F])",
+    "pep": "RGDLHFQKF"
+   },
+   {
+    "id": "KN2-L1_9-060",
+    "group": "L1_9",
+    "helm": "cyclo(H-R-V-[2Nal]-K-R-G-D-L)",
+    "pep": "HRVFKRGDL"
+   },
+   {
+    "id": "KN2-L1_9-061",
+    "group": "L1_9",
+    "helm": "cyclo(Y-[NMeK]-L-N-R-G-D-L-M)",
+    "pep": "YKLNRGDLM"
+   },
+   {
+    "id": "KN2-L1_9-062",
+    "group": "L1_9",
+    "helm": "cyclo(K-V-[Abu]-P-R-G-D-L-S)",
+    "pep": "KVAPRGDLS"
+   },
+   {
+    "id": "KN2-L1_9-063",
+    "group": "L1_9",
+    "helm": "cyclo([Phe4F]-R-G-D-L-D-H-[NMeK]-I)",
+    "pep": "FRGDLDHKI"
+   },
+   {
+    "id": "KN2-L1_9-064",
+    "group": "L1_9",
+    "helm": "cyclo([Abu]-L-P-K-L-R-G-D-L)",
+    "pep": "ALPKLRGDL"
+   },
+   {
+    "id": "KN2-L1_9-065",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-Q-R-G-D-L-R-W-Y)",
+    "pep": "KQRGDLRWY"
+   },
+   {
+    "id": "KN2-L1_9-066",
+    "group": "L1_9",
+    "helm": "cyclo(K-R-G-D-L-Q-Q-L-P)",
+    "pep": "KRGDLQQLP"
+   },
+   {
+    "id": "KN2-L1_9-067",
+    "group": "L1_9",
+    "helm": "cyclo(R-M-E-R-G-D-L-[NMeK]-Y)",
+    "pep": "RMERGDLKY"
+   },
+   {
+    "id": "KN2-L1_9-068",
+    "group": "L1_9",
+    "helm": "cyclo([Phe4F]-R-G-D-L-H-[NMeK]-[Aib]-D)",
+    "pep": "FRGDLHKAD"
+   },
+   {
+    "id": "KN2-L1_9-069",
+    "group": "L1_9",
+    "helm": "cyclo(V-P-P-R-G-D-L-F-K)",
+    "pep": "VPPRGDLFK"
+   },
+   {
+    "id": "KN2-L1_9-070",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-[Phe4F]-T-C-L-R-G-D-L)",
+    "pep": "KFTCLRGDL"
+   },
+   {
+    "id": "KN2-L1_9-071",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-[Phe4Cl]-C-K-I-D)",
+    "pep": "RGDLFCKID"
+   },
+   {
+    "id": "KN2-L1_9-072",
+    "group": "L1_9",
+    "helm": "cyclo(K-R-G-D-L-C-[NMeA]-V-I)",
+    "pep": "KRGDLCAVI"
+   },
+   {
+    "id": "KN2-L1_9-073",
+    "group": "L1_9",
+    "helm": "cyclo([Abu]-V-R-G-D-L-[NMeK]-[Abu]-[Phe4Cl])",
+    "pep": "AVRGDLKAF"
+   },
+   {
+    "id": "KN2-L1_9-074",
+    "group": "L1_9",
+    "helm": "cyclo(P-R-G-D-L-K-F-L-D)",
+    "pep": "PRGDLKFLD"
+   },
+   {
+    "id": "KN2-L1_9-075",
+    "group": "L1_9",
+    "helm": "cyclo(E-M-K-R-G-D-L-D-[Phe4F])",
+    "pep": "EMKRGDLDF"
+   },
+   {
+    "id": "KN2-L1_9-076",
+    "group": "L1_9",
+    "helm": "cyclo(D-[Phe4F]-[Aib]-R-G-D-L-D-K)",
+    "pep": "DFARGDLDK"
+   },
+   {
+    "id": "KN2-L1_9-077",
+    "group": "L1_9",
+    "helm": "cyclo(V-R-G-D-L-E-R-K-V)",
+    "pep": "VRGDLERKV"
+   },
+   {
+    "id": "KN2-L1_9-078",
+    "group": "L1_9",
+    "helm": "cyclo(T-H-R-G-D-L-P-W-K)",
+    "pep": "THRGDLPWK"
+   },
+   {
+    "id": "KN2-L1_9-079",
+    "group": "L1_9",
+    "helm": "cyclo(H-R-G-D-L-E-G-I-[NMeK])",
+    "pep": "HRGDLEGIK"
+   },
+   {
+    "id": "KN2-L1_9-080",
+    "group": "L1_9",
+    "helm": "cyclo([Phe4Cl]-Y-K-I-R-G-D-L-P)",
+    "pep": "FYKIRGDLP"
+   },
+   {
+    "id": "KN2-L1_9-081",
+    "group": "L1_9",
+    "helm": "cyclo([Phe4F]-[NMeK]-[Phe4F]-[NMeA]-G-R-G-D-L)",
+    "pep": "FKFAGRGDL"
+   },
+   {
+    "id": "KN2-L1_9-082",
+    "group": "L1_9",
+    "helm": "cyclo(P-I-K-R-R-G-D-L-F)",
+    "pep": "PIKRRGDLF"
+   },
+   {
+    "id": "KN2-L1_9-083",
+    "group": "L1_9",
+    "helm": "cyclo(I-C-I-D-R-G-D-L-[NMeK])",
+    "pep": "ICIDRGDLK"
+   },
+   {
+    "id": "KN2-L1_9-084",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-V-I-M-E-R-G-D-L)",
+    "pep": "KVIMERGDL"
+   },
+   {
+    "id": "KN2-L1_9-085",
+    "group": "L1_9",
+    "helm": "cyclo([dP]-K-R-G-D-L-[dP]-W-I)",
+    "pep": "PKRGDLPWI"
+   },
+   {
+    "id": "KN2-L1_9-086",
+    "group": "L1_9",
+    "helm": "cyclo([dP]-K-V-A-T-R-G-D-L)",
+    "pep": "PKVATRGDL"
+   },
+   {
+    "id": "KN2-L1_9-087",
+    "group": "L1_9",
+    "helm": "cyclo([NMeK]-[2Nal]-D-R-G-D-L-D-H)",
+    "pep": "KFDRGDLDH"
+   },
+   {
+    "id": "KN2-L1_9-088",
+    "group": "L1_9",
+    "helm": "cyclo([Aib]-[NMeK]-F-R-G-D-L-C-[2Nal])",
+    "pep": "AKFRGDLCF"
+   },
+   {
+    "id": "KN2-L1_9-089",
+    "group": "L1_9",
+    "helm": "cyclo([NMeA]-D-[NMeK]-R-G-D-L-P-V)",
+    "pep": "ADKRGDLPV"
+   },
+   {
+    "id": "KN2-L1_9-090",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-V-L-K-Q-G)",
+    "pep": "RGDLVLKQG"
+   },
+   {
+    "id": "KN2-L1_9-091",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-N-Y-[Phe4Cl]-H-[NMeK])",
+    "pep": "RGDLNYFHK"
+   },
+   {
+    "id": "KN2-L1_9-092",
+    "group": "L1_9",
+    "helm": "cyclo(Y-[NMeK]-R-G-D-L-R-[NMeA]-F)",
+    "pep": "YKRGDLRAF"
+   },
+   {
+    "id": "KN2-L1_9-093",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-[Phe4Cl]-W-[NMeK]-[Phe4F]-F)",
+    "pep": "RGDLFWKFF"
+   },
+   {
+    "id": "KN2-L1_9-094",
+    "group": "L1_9",
+    "helm": "cyclo(Y-T-R-G-D-L-H-R-[NMeK])",
+    "pep": "YTRGDLHRK"
+   },
+   {
+    "id": "KN2-L1_9-095",
+    "group": "L1_9",
+    "helm": "cyclo(R-G-D-L-K-T-D-N-W)",
+    "pep": "RGDLKTDNW"
+   },
+   {
+    "id": "KN2-L1_9-096",
+    "group": "L1_9",
+    "helm": "cyclo(R-K-Q-W-G-R-G-D-L)",
+    "pep": "RKQWGRGDL"
+   },
+   {
+    "id": "KN2-L1_9-097",
+    "group": "L1_9",
+    "helm": "cyclo(K-I-R-G-D-L-M-L-C)",
+    "pep": "KIRGDLMLC"
+   },
+   {
+    "id": "KN2-L1_9-098",
+    "group": "L1_9",
+    "helm": "cyclo(T-G-G-R-G-D-L-[dP]-K)",
+    "pep": "TGGRGDLPK"
+   },
+   {
+    "id": "KN2-L1_9-099",
+    "group": "L1_9",
+    "helm": "cyclo([dP]-M-C-R-G-D-L-[dP]-[NMeK])",
+    "pep": "PMCRGDLPK"
+   },
+   {
+    "id": "KN2-L1_other-000",
+    "group": "L1_other",
+    "helm": "cyclo([dP]-K-R-Q-F-I-F-R-G-D-L)",
+    "pep": "PKRQFIFRGDL"
+   },
+   {
+    "id": "KN2-L1_other-001",
+    "group": "L1_other",
+    "helm": "cyclo([NMeA]-G-R-G-D-L-[NMeK]-R-G-[NMeA])",
+    "pep": "AGRGDLKRGA"
+   },
+   {
+    "id": "KN2-L1_other-002",
+    "group": "L1_other",
+    "helm": "cyclo(Y-R-G-D-L-[NMeK]-[dP]-[2Nal])",
+    "pep": "YRGDLKPF"
+   },
+   {
+    "id": "KN2-L1_other-003",
+    "group": "L1_other",
+    "helm": "cyclo(K-D-M-R-G-D-L-[NMeA]-[Phe4Cl]-V-N)",
+    "pep": "KDMRGDLAFVN"
+   },
+   {
+    "id": "KN2-L1_other-004",
+    "group": "L1_other",
+    "helm": "cyclo(L-R-G-D-L-H-[Phe4F]-T-C-K-[2Nal])",
+    "pep": "LRGDLHFTCKF"
+   },
+   {
+    "id": "KN2-L1_other-005",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-Y-K-C)",
+    "pep": "RGDLYKC"
+   },
+   {
+    "id": "KN2-L1_other-006",
+    "group": "L1_other",
+    "helm": "cyclo(Y-D-R-G-D-L-K)",
+    "pep": "YDRGDLK"
+   },
+   {
+    "id": "KN2-L1_other-007",
+    "group": "L1_other",
+    "helm": "cyclo(L-R-G-D-L-T-S-F-M-E-[NMeK])",
+    "pep": "LRGDLTSFMEK"
+   },
+   {
+    "id": "KN2-L1_other-008",
+    "group": "L1_other",
+    "helm": "cyclo(R-R-G-D-L-[Aib]-Y-[NMeK]-I-R-V)",
+    "pep": "RRGDLAYKIRV"
+   },
+   {
+    "id": "KN2-L1_other-009",
+    "group": "L1_other",
+    "helm": "cyclo(S-[Abu]-[2Nal]-R-G-D-L-S-K-H)",
+    "pep": "SAFRGDLSKH"
+   },
+   {
+    "id": "KN2-L1_other-010",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-K-A-I-E-[NMeA]-S-[Aib])",
+    "pep": "RGDLKAIEASA"
+   },
+   {
+    "id": "KN2-L1_other-011",
+    "group": "L1_other",
+    "helm": "cyclo([Aib]-V-Y-Y-W-R-G-D-L-[NMeK]-G)",
+    "pep": "AVYYWRGDLKG"
+   },
+   {
+    "id": "KN2-L1_other-012",
+    "group": "L1_other",
+    "helm": "cyclo(Q-R-G-D-L-S-[NMeK]-N-N-L-R)",
+    "pep": "QRGDLSKNNLR"
+   },
+   {
+    "id": "KN2-L1_other-013",
+    "group": "L1_other",
+    "helm": "cyclo(C-[NMeA]-R-G-D-L-[NMeK])",
+    "pep": "CARGDLK"
+   },
+   {
+    "id": "KN2-L1_other-014",
+    "group": "L1_other",
+    "helm": "cyclo(P-[NMeK]-A-R-G-D-L-R)",
+    "pep": "PKARGDLR"
+   },
+   {
+    "id": "KN2-L1_other-015",
+    "group": "L1_other",
+    "helm": "cyclo(W-[Aib]-R-G-D-L-V-[NMeK]-[2Nal]-[2Nal])",
+    "pep": "WARGDLVKFF"
+   },
+   {
+    "id": "KN2-L1_other-016",
+    "group": "L1_other",
+    "helm": "cyclo(I-R-G-D-L-R-[NMeK]-T)",
+    "pep": "IRGDLRKT"
+   },
+   {
+    "id": "KN2-L1_other-017",
+    "group": "L1_other",
+    "helm": "cyclo([Phe4F]-Q-C-K-R-G-D-L)",
+    "pep": "FQCKRGDL"
+   },
+   {
+    "id": "KN2-L1_other-018",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-R-N-K)",
+    "pep": "RGDLRNK"
+   },
+   {
+    "id": "KN2-L1_other-019",
+    "group": "L1_other",
+    "helm": "cyclo(K-A-Q-Y-R-G-D-L)",
+    "pep": "KAQYRGDL"
+   },
+   {
+    "id": "KN2-L1_other-020",
+    "group": "L1_other",
+    "helm": "cyclo(K-V-S-F-L-M-Y-R-G-D-L)",
+    "pep": "KVSFLMYRGDL"
+   },
+   {
+    "id": "KN2-L1_other-021",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-[NMeK]-D-R-T)",
+    "pep": "RGDLKDRT"
+   },
+   {
+    "id": "KN2-L1_other-022",
+    "group": "L1_other",
+    "helm": "cyclo(K-[Aib]-T-R-G-D-L)",
+    "pep": "KATRGDL"
+   },
+   {
+    "id": "KN2-L1_other-023",
+    "group": "L1_other",
+    "helm": "cyclo(F-[NMeK]-W-[2Nal]-R-G-D-L)",
+    "pep": "FKWFRGDL"
+   },
+   {
+    "id": "KN2-L1_other-024",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-[NMeK]-L-S-C)",
+    "pep": "RGDLKLSC"
+   },
+   {
+    "id": "KN2-L1_other-025",
+    "group": "L1_other",
+    "helm": "cyclo(P-M-K-R-G-D-L)",
+    "pep": "PMKRGDL"
+   },
+   {
+    "id": "KN2-L1_other-026",
+    "group": "L1_other",
+    "helm": "cyclo(K-I-R-G-D-L-[dP]-Q)",
+    "pep": "KIRGDLPQ"
+   },
+   {
+    "id": "KN2-L1_other-027",
+    "group": "L1_other",
+    "helm": "cyclo(E-R-G-D-L-[Phe4Cl]-[dP]-K-R-L)",
+    "pep": "ERGDLFPKRL"
+   },
+   {
+    "id": "KN2-L1_other-028",
+    "group": "L1_other",
+    "helm": "cyclo(K-R-G-D-L-I-N-[NMeA]-G-[Abu]-V)",
+    "pep": "KRGDLINAGAV"
+   },
+   {
+    "id": "KN2-L1_other-029",
+    "group": "L1_other",
+    "helm": "cyclo(M-E-R-G-D-L-[NMeK]-[Phe4Cl]-[2Nal]-G)",
+    "pep": "MERGDLKFFG"
+   },
+   {
+    "id": "KN2-L1_other-030",
+    "group": "L1_other",
+    "helm": "cyclo(G-R-G-D-L-R-F-[Phe4F]-K-T-S)",
+    "pep": "GRGDLRFFKTS"
+   },
+   {
+    "id": "KN2-L1_other-031",
+    "group": "L1_other",
+    "helm": "cyclo([Aib]-[Abu]-[NMeK]-[Phe4F]-R-G-D-L-G-C)",
+    "pep": "AAKFRGDLGC"
+   },
+   {
+    "id": "KN2-L1_other-032",
+    "group": "L1_other",
+    "helm": "cyclo(R-[Abu]-K-N-R-G-D-L)",
+    "pep": "RAKNRGDL"
+   },
+   {
+    "id": "KN2-L1_other-033",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-V-[Abu]-[Phe4F]-[NMeK]-[Phe4Cl]-L)",
+    "pep": "RGDLVAFKFL"
+   },
+   {
+    "id": "KN2-L1_other-034",
+    "group": "L1_other",
+    "helm": "cyclo(H-C-[2Nal]-K-P-P-R-G-D-L)",
+    "pep": "HCFKPPRGDL"
+   },
+   {
+    "id": "KN2-L1_other-035",
+    "group": "L1_other",
+    "helm": "cyclo(H-K-A-[2Nal]-H-H-R-G-D-L-N)",
+    "pep": "HKAFHHRGDLN"
+   },
+   {
+    "id": "KN2-L1_other-036",
+    "group": "L1_other",
+    "helm": "cyclo([Phe4F]-S-H-G-[dP]-R-G-D-L-[NMeK])",
+    "pep": "FSHGPRGDLK"
+   },
+   {
+    "id": "KN2-L1_other-037",
+    "group": "L1_other",
+    "helm": "cyclo(M-K-[Abu]-R-G-D-L)",
+    "pep": "MKARGDL"
+   },
+   {
+    "id": "KN2-L1_other-038",
+    "group": "L1_other",
+    "helm": "cyclo(K-I-[Phe4F]-Y-E-[NMeA]-R-G-D-L-M)",
+    "pep": "KIFYEARGDLM"
+   },
+   {
+    "id": "KN2-L1_other-039",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-L-[NMeK]-Y-D)",
+    "pep": "RGDLLKYD"
+   },
+   {
+    "id": "KN2-L1_other-040",
+    "group": "L1_other",
+    "helm": "cyclo(L-R-G-D-L-L-I-L-A-K-R)",
+    "pep": "LRGDLLILAKR"
+   },
+   {
+    "id": "KN2-L1_other-041",
+    "group": "L1_other",
+    "helm": "cyclo(E-[dP]-[NMeK]-G-[Aib]-R-G-D-L-V)",
+    "pep": "EPKGARGDLV"
+   },
+   {
+    "id": "KN2-L1_other-042",
+    "group": "L1_other",
+    "helm": "cyclo(K-[Phe4F]-[Phe4Cl]-[Phe4Cl]-R-G-D-L-T-D-V)",
+    "pep": "KFFFRGDLTDV"
+   },
+   {
+    "id": "KN2-L1_other-043",
+    "group": "L1_other",
+    "helm": "cyclo(F-Y-W-P-R-G-D-L-K-S)",
+    "pep": "FYWPRGDLKS"
+   },
+   {
+    "id": "KN2-L1_other-044",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-M-K-F-R)",
+    "pep": "RGDLMKFR"
+   },
+   {
+    "id": "KN2-L1_other-045",
+    "group": "L1_other",
+    "helm": "cyclo(K-W-I-N-R-G-D-L-P-P)",
+    "pep": "KWINRGDLPP"
+   },
+   {
+    "id": "KN2-L1_other-046",
+    "group": "L1_other",
+    "helm": "cyclo(K-I-[dP]-R-G-D-L)",
+    "pep": "KIPRGDL"
+   },
+   {
+    "id": "KN2-L1_other-047",
+    "group": "L1_other",
+    "helm": "cyclo(M-N-S-H-[NMeA]-K-[dP]-R-G-D-L)",
+    "pep": "MNSHAKPRGDL"
+   },
+   {
+    "id": "KN2-L1_other-048",
+    "group": "L1_other",
+    "helm": "cyclo([NMeK]-R-G-D-L-G-A-[NMeA]-F-L-G)",
+    "pep": "KRGDLGAAFLG"
+   },
+   {
+    "id": "KN2-L1_other-049",
+    "group": "L1_other",
+    "helm": "cyclo(K-V-C-P-A-S-R-G-D-L-[NMeA])",
+    "pep": "KVCPASRGDLA"
+   },
+   {
+    "id": "KN2-L1_other-050",
+    "group": "L1_other",
+    "helm": "cyclo([NMeA]-R-G-D-L-K-R)",
+    "pep": "ARGDLKR"
+   },
+   {
+    "id": "KN2-L1_other-051",
+    "group": "L1_other",
+    "helm": "cyclo(T-R-G-D-L-T-V-M-T-[Abu]-[NMeK])",
+    "pep": "TRGDLTVMTAK"
+   },
+   {
+    "id": "KN2-L1_other-052",
+    "group": "L1_other",
+    "helm": "cyclo(D-R-G-D-L-V-C-[NMeK]-Q-N-M)",
+    "pep": "DRGDLVCKQNM"
+   },
+   {
+    "id": "KN2-L1_other-053",
+    "group": "L1_other",
+    "helm": "cyclo(Y-K-M-D-Y-A-R-G-D-L)",
+    "pep": "YKMDYARGDL"
+   },
+   {
+    "id": "KN2-L1_other-054",
+    "group": "L1_other",
+    "helm": "cyclo(K-R-G-D-L-[NMeA]-A-Y)",
+    "pep": "KRGDLAAY"
+   },
+   {
+    "id": "KN2-L1_other-055",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-L-K-A-E)",
+    "pep": "RGDLLKAE"
+   },
+   {
+    "id": "KN2-L1_other-056",
+    "group": "L1_other",
+    "helm": "cyclo([NMeK]-N-C-R-G-D-L)",
+    "pep": "KNCRGDL"
+   },
+   {
+    "id": "KN2-L1_other-057",
+    "group": "L1_other",
+    "helm": "cyclo([Abu]-D-G-L-R-G-D-L-K-R-F)",
+    "pep": "ADGLRGDLKRF"
+   },
+   {
+    "id": "KN2-L1_other-058",
+    "group": "L1_other",
+    "helm": "cyclo(L-[NMeK]-E-D-R-G-D-L)",
+    "pep": "LKEDRGDL"
+   },
+   {
+    "id": "KN2-L1_other-059",
+    "group": "L1_other",
+    "helm": "cyclo(P-R-G-D-L-[NMeK]-[Abu])",
+    "pep": "PRGDLKA"
+   },
+   {
+    "id": "KN2-L1_other-060",
+    "group": "L1_other",
+    "helm": "cyclo([2Nal]-V-R-G-D-L-H-[NMeK]-[NMeA]-Q)",
+    "pep": "FVRGDLHKAQ"
+   },
+   {
+    "id": "KN2-L1_other-061",
+    "group": "L1_other",
+    "helm": "cyclo(K-R-G-D-L-[2Nal]-Y)",
+    "pep": "KRGDLFY"
+   },
+   {
+    "id": "KN2-L1_other-062",
+    "group": "L1_other",
+    "helm": "cyclo(V-R-G-D-L-Q-[NMeK])",
+    "pep": "VRGDLQK"
+   },
+   {
+    "id": "KN2-L1_other-063",
+    "group": "L1_other",
+    "helm": "cyclo(P-T-[dP]-R-G-D-L-A-R-W-K)",
+    "pep": "PTPRGDLARWK"
+   },
+   {
+    "id": "KN2-L1_other-064",
+    "group": "L1_other",
+    "helm": "cyclo(Q-N-R-G-D-L-K-[Aib]-A-R-W)",
+    "pep": "QNRGDLKAARW"
+   },
+   {
+    "id": "KN2-L1_other-065",
+    "group": "L1_other",
+    "helm": "cyclo(H-R-G-D-L-H-N-E-K-[Aib])",
+    "pep": "HRGDLHNEKA"
+   },
+   {
+    "id": "KN2-L1_other-066",
+    "group": "L1_other",
+    "helm": "cyclo(G-[Phe4Cl]-N-[Phe4Cl]-R-G-D-L-[Abu]-G-[NMeK])",
+    "pep": "GFNFRGDLAGK"
+   },
+   {
+    "id": "KN2-L1_other-067",
+    "group": "L1_other",
+    "helm": "cyclo([NMeK]-A-[Phe4F]-R-G-D-L-H)",
+    "pep": "KAFRGDLH"
+   },
+   {
+    "id": "KN2-L1_other-068",
+    "group": "L1_other",
+    "helm": "cyclo(K-Y-R-G-D-L-P)",
+    "pep": "KYRGDLP"
+   },
+   {
+    "id": "KN2-L1_other-069",
+    "group": "L1_other",
+    "helm": "cyclo(L-L-[NMeK]-R-G-D-L)",
+    "pep": "LLKRGDL"
+   },
+   {
+    "id": "KN2-L1_other-070",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-L-R-R-[NMeK])",
+    "pep": "RGDLLRRK"
+   },
+   {
+    "id": "KN2-L1_other-071",
+    "group": "L1_other",
+    "helm": "cyclo(K-R-G-D-L-[Phe4Cl]-H-[Abu]-C-G-[dP])",
+    "pep": "KRGDLFHACGP"
+   },
+   {
+    "id": "KN2-L1_other-072",
+    "group": "L1_other",
+    "helm": "cyclo(K-R-R-G-D-L-M-[Phe4F]-E-R)",
+    "pep": "KRRGDLMFER"
+   },
+   {
+    "id": "KN2-L1_other-073",
+    "group": "L1_other",
+    "helm": "cyclo(H-[Aib]-K-R-G-D-L-Y)",
+    "pep": "HAKRGDLY"
+   },
+   {
+    "id": "KN2-L1_other-074",
+    "group": "L1_other",
+    "helm": "cyclo(V-R-G-D-L-[NMeK]-I)",
+    "pep": "VRGDLKI"
+   },
+   {
+    "id": "KN2-L1_other-075",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-G-I-E-K-E-[2Nal]-L)",
+    "pep": "RGDLGIEKEFL"
+   },
+   {
+    "id": "KN2-L1_other-076",
+    "group": "L1_other",
+    "helm": "cyclo(H-F-H-R-G-D-L-[NMeK]-[Aib]-T)",
+    "pep": "HFHRGDLKAT"
+   },
+   {
+    "id": "KN2-L1_other-077",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-V-K-H-Q-R-I-L)",
+    "pep": "RGDLVKHQRIL"
+   },
+   {
+    "id": "KN2-L1_other-078",
+    "group": "L1_other",
+    "helm": "cyclo(Y-H-K-R-G-D-L)",
+    "pep": "YHKRGDL"
+   },
+   {
+    "id": "KN2-L1_other-079",
+    "group": "L1_other",
+    "helm": "cyclo(F-G-[Phe4F]-R-G-D-L-F-K-R)",
+    "pep": "FGFRGDLFKR"
+   },
+   {
+    "id": "KN2-L1_other-080",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-G-K-[Aib]-N-I-[Phe4F]-S)",
+    "pep": "RGDLGKANIFS"
+   },
+   {
+    "id": "KN2-L1_other-081",
+    "group": "L1_other",
+    "helm": "cyclo(K-M-D-Q-[Abu]-[Abu]-R-G-D-L-Y)",
+    "pep": "KMDQAARGDLY"
+   },
+   {
+    "id": "KN2-L1_other-082",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-Q-V-K-R)",
+    "pep": "RGDLQVKR"
+   },
+   {
+    "id": "KN2-L1_other-083",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-W-[NMeA]-[NMeK])",
+    "pep": "RGDLWAK"
+   },
+   {
+    "id": "KN2-L1_other-084",
+    "group": "L1_other",
+    "helm": "cyclo(M-R-G-D-L-L-K)",
+    "pep": "MRGDLLK"
+   },
+   {
+    "id": "KN2-L1_other-085",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-[dP]-K-D)",
+    "pep": "RGDLPKD"
+   },
+   {
+    "id": "KN2-L1_other-086",
+    "group": "L1_other",
+    "helm": "cyclo(N-R-G-D-L-[NMeA]-K-L)",
+    "pep": "NRGDLAKL"
+   },
+   {
+    "id": "KN2-L1_other-087",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-C-[NMeK]-V)",
+    "pep": "RGDLCKV"
+   },
+   {
+    "id": "KN2-L1_other-088",
+    "group": "L1_other",
+    "helm": "cyclo(F-R-G-D-L-V-K)",
+    "pep": "FRGDLVK"
+   },
+   {
+    "id": "KN2-L1_other-089",
+    "group": "L1_other",
+    "helm": "cyclo(R-G-D-L-[NMeK]-F-N-F)",
+    "pep": "RGDLKFNF"
+   },
+   {
+    "id": "KN2-L1_other-090",
+    "group": "L1_other",
+    "helm": "cyclo([Abu]-R-G-D-L-R-K)",
+    "pep": "ARGDLRK"
+   },
+   {
+    "id": "KN2-L1_other-091",
+    "group": "L1_other",
+    "helm": "cyclo(T-Q-H-[NMeK]-R-G-D-L-P-I-[2Nal])",
+    "pep": "TQHKRGDLPIF"
+   },
+   {
+    "id": "KN2-L1_other-092",
+    "group": "L1_other",
+    "helm": "cyclo(D-[Phe4F]-Q-G-[Phe4F]-K-R-G-D-L)",
+    "pep": "DFQGFKRGDL"
+   },
+   {
+    "id": "KN2-L1_other-093",
+    "group": "L1_other",
+    "helm": "cyclo(K-R-G-D-L-R-R-[dP])",
+    "pep": "KRGDLRRP"
+   },
+   {
+    "id": "KN2-L1_other-094",
+    "group": "L1_other",
+    "helm": "cyclo(A-K-R-G-D-L-[2Nal]-F)",
+    "pep": "AKRGDLFF"
+   },
+   {
+    "id": "KN2-L1_other-095",
+    "group": "L1_other",
+    "helm": "cyclo(K-R-G-D-L-T-[Phe4F]-A-P-M-G)",
+    "pep": "KRGDLTFAPMG"
+   },
+   {
+    "id": "KN2-L1_other-096",
+    "group": "L1_other",
+    "helm": "cyclo(P-R-G-D-L-K-A)",
+    "pep": "PRGDLKA"
+   },
+   {
+    "id": "KN2-L1_other-097",
+    "group": "L1_other",
+    "helm": "cyclo(L-[Abu]-R-G-D-L-[NMeK]-[Aib])",
+    "pep": "LARGDLKA"
+   },
+   {
+    "id": "KN2-L1_other-098",
+    "group": "L1_other",
+    "helm": "cyclo([Aib]-K-R-G-D-L-[Phe4Cl])",
+    "pep": "AKRGDLF"
+   },
+   {
+    "id": "KN2-L1_other-099",
+    "group": "L1_other",
+    "helm": "cyclo(Y-K-M-[dP]-R-G-D-L)",
+    "pep": "YKMPRGDL"
+   },
+   {
+    "id": "KN2-L2-000",
+    "group": "L2",
+    "helm": "cyclo(Q-[Abu]-E-R-G-D-N-R-M-[2Nal]-P)",
+    "pep": "QAERGDNRMFP"
+   },
+   {
+    "id": "KN2-L2-001",
+    "group": "L2",
+    "helm": "cyclo(I-R-G-D-D-[Abu]-H-W-E-I)",
+    "pep": "IRGDDAHWEI"
+   },
+   {
+    "id": "KN2-L2-002",
+    "group": "L2",
+    "helm": "cyclo(W-[Phe4Cl]-[Phe4F]-R-G-D-M)",
+    "pep": "WFFRGDM"
+   },
+   {
+    "id": "KN2-L2-003",
+    "group": "L2",
+    "helm": "cyclo(K-T-R-G-D-D-[dP])",
+    "pep": "KTRGDDP"
+   },
+   {
+    "id": "KN2-L2-004",
+    "group": "L2",
+    "helm": "cyclo([2Nal]-[Abu]-N-R-G-D-P-D-[Abu]-Q)",
+    "pep": "FANRGDPDAQ"
+   },
+   {
+    "id": "KN2-L2-005",
+    "group": "L2",
+    "helm": "cyclo(N-S-R-G-D-[Aib]-C-L-[Phe4Cl]-K-[2Nal])",
+    "pep": "NSRGDACLFKF"
+   },
+   {
+    "id": "KN2-L2-006",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-D-[Phe4Cl]-F-I-R-H-W)",
+    "pep": "RGDDFFIRHW"
+   },
+   {
+    "id": "KN2-L2-007",
+    "group": "L2",
+    "helm": "cyclo(K-[2Nal]-G-F-R-G-D-[NMeA])",
+    "pep": "KFGFRGDA"
+   },
+   {
+    "id": "KN2-L2-008",
+    "group": "L2",
+    "helm": "cyclo(N-Y-G-Q-Y-G-S-R-G-D-[2Nal])",
+    "pep": "NYGQYGSRGDF"
+   },
+   {
+    "id": "KN2-L2-009",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-C-L-Y-S)",
+    "pep": "RGDCLYS"
+   },
+   {
+    "id": "KN2-L2-010",
+    "group": "L2",
+    "helm": "cyclo(L-[Abu]-I-R-G-D-W-[2Nal])",
+    "pep": "LAIRGDWF"
+   },
+   {
+    "id": "KN2-L2-011",
+    "group": "L2",
+    "helm": "cyclo(V-R-Y-D-I-R-G-D-[NMeK]-R)",
+    "pep": "VRYDIRGDKR"
+   },
+   {
+    "id": "KN2-L2-012",
+    "group": "L2",
+    "helm": "cyclo(H-[Aib]-R-G-D-[Aib]-R)",
+    "pep": "HARGDAR"
+   },
+   {
+    "id": "KN2-L2-013",
+    "group": "L2",
+    "helm": "cyclo(R-P-R-G-D-N-[Abu])",
+    "pep": "RPRGDNA"
+   },
+   {
+    "id": "KN2-L2-014",
+    "group": "L2",
+    "helm": "cyclo(T-R-Y-R-G-D-[Aib]-E-K)",
+    "pep": "TRYRGDAEK"
+   },
+   {
+    "id": "KN2-L2-015",
+    "group": "L2",
+    "helm": "cyclo([NMeA]-A-M-[Phe4Cl]-R-G-D-G-S)",
+    "pep": "AAMFRGDGS"
+   },
+   {
+    "id": "KN2-L2-016",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-Q-K-[Phe4Cl]-F)",
+    "pep": "RGDQKFF"
+   },
+   {
+    "id": "KN2-L2-017",
+    "group": "L2",
+    "helm": "cyclo(N-I-R-G-D-L-[NMeK]-W-R-[Phe4Cl]-M)",
+    "pep": "NIRGDLKWRFM"
+   },
+   {
+    "id": "KN2-L2-018",
+    "group": "L2",
+    "helm": "cyclo(L-A-C-R-G-D-K)",
+    "pep": "LACRGDK"
+   },
+   {
+    "id": "KN2-L2-019",
+    "group": "L2",
+    "helm": "cyclo(A-[Phe4F]-G-T-K-R-G-D-S-[Abu])",
+    "pep": "AFGTKRGDSA"
+   },
+   {
+    "id": "KN2-L2-020",
+    "group": "L2",
+    "helm": "cyclo([dP]-W-R-G-D-[Phe4Cl]-F-K-V-R)",
+    "pep": "PWRGDFFKVR"
+   },
+   {
+    "id": "KN2-L2-021",
+    "group": "L2",
+    "helm": "cyclo(M-T-[Abu]-R-G-D-N-Y-D-A)",
+    "pep": "MTARGDNYDA"
+   },
+   {
+    "id": "KN2-L2-022",
+    "group": "L2",
+    "helm": "cyclo(E-H-R-G-D-[Phe4F]-[Phe4F]-[NMeK]-I)",
+    "pep": "EHRGDFFKI"
+   },
+   {
+    "id": "KN2-L2-023",
+    "group": "L2",
+    "helm": "cyclo(V-I-R-G-D-E-[Phe4F]-F-N-G-T)",
+    "pep": "VIRGDEFFNGT"
+   },
+   {
+    "id": "KN2-L2-024",
+    "group": "L2",
+    "helm": "cyclo(K-W-A-W-R-G-D-[dP])",
+    "pep": "KWAWRGDP"
+   },
+   {
+    "id": "KN2-L2-025",
+    "group": "L2",
+    "helm": "cyclo(S-[NMeA]-T-K-G-R-G-D-V)",
+    "pep": "SATKGRGDV"
+   },
+   {
+    "id": "KN2-L2-026",
+    "group": "L2",
+    "helm": "cyclo(V-R-G-D-[Phe4Cl]-C-[Aib]-[NMeK])",
+    "pep": "VRGDFCAK"
+   },
+   {
+    "id": "KN2-L2-027",
+    "group": "L2",
+    "helm": "cyclo(I-M-W-R-G-D-[Abu])",
+    "pep": "IMWRGDA"
+   },
+   {
+    "id": "KN2-L2-028",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-C-T-P-K-M-Q)",
+    "pep": "RGDCTPKMQ"
+   },
+   {
+    "id": "KN2-L2-029",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-[NMeA]-A-Y-G-V)",
+    "pep": "RGDAAYGV"
+   },
+   {
+    "id": "KN2-L2-030",
+    "group": "L2",
+    "helm": "cyclo(M-R-G-D-[Aib]-N-[Abu]-[Phe4Cl]-[Abu]-G-C)",
+    "pep": "MRGDANAFAGC"
+   },
+   {
+    "id": "KN2-L2-031",
+    "group": "L2",
+    "helm": "cyclo([Phe4F]-S-V-G-R-G-D-Q-V-I-N)",
+    "pep": "FSVGRGDQVIN"
+   },
+   {
+    "id": "KN2-L2-032",
+    "group": "L2",
+    "helm": "cyclo(H-[Phe4Cl]-I-[Phe4Cl]-[NMeK]-[NMeK]-W-R-G-D-M)",
+    "pep": "HFIFKKWRGDM"
+   },
+   {
+    "id": "KN2-L2-033",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-G-D-H-F)",
+    "pep": "RGDGDHF"
+   },
+   {
+    "id": "KN2-L2-034",
+    "group": "L2",
+    "helm": "cyclo(N-[Phe4Cl]-R-G-D-[Phe4F]-H-G)",
+    "pep": "NFRGDFHG"
+   },
+   {
+    "id": "KN2-L2-035",
+    "group": "L2",
+    "helm": "cyclo(Q-M-R-G-D-D-[Phe4Cl])",
+    "pep": "QMRGDDF"
+   },
+   {
+    "id": "KN2-L2-036",
+    "group": "L2",
+    "helm": "cyclo([Phe4Cl]-R-G-D-V-V-K)",
+    "pep": "FRGDVVK"
+   },
+   {
+    "id": "KN2-L2-037",
+    "group": "L2",
+    "helm": "cyclo(F-R-G-D-R-M-H)",
+    "pep": "FRGDRMH"
+   },
+   {
+    "id": "KN2-L2-038",
+    "group": "L2",
+    "helm": "cyclo([2Nal]-Q-R-G-D-[NMeA]-R-H-I)",
+    "pep": "FQRGDARHI"
+   },
+   {
+    "id": "KN2-L2-039",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-[dP]-N-W-L-[Aib])",
+    "pep": "RGDPNWLA"
+   },
+   {
+    "id": "KN2-L2-040",
+    "group": "L2",
+    "helm": "cyclo(M-[Phe4F]-Q-C-R-G-D-S-[Aib]-C)",
+    "pep": "MFQCRGDSAC"
+   },
+   {
+    "id": "KN2-L2-041",
+    "group": "L2",
+    "helm": "cyclo(W-[Abu]-H-A-R-G-D-[dP]-[Abu]-P-[Aib])",
+    "pep": "WAHARGDPAPA"
+   },
+   {
+    "id": "KN2-L2-042",
+    "group": "L2",
+    "helm": "cyclo([dP]-[Phe4Cl]-S-[NMeA]-R-G-D-L)",
+    "pep": "PFSARGDL"
+   },
+   {
+    "id": "KN2-L2-043",
+    "group": "L2",
+    "helm": "cyclo(N-F-G-R-G-D-E)",
+    "pep": "NFGRGDE"
+   },
+   {
+    "id": "KN2-L2-044",
+    "group": "L2",
+    "helm": "cyclo([2Nal]-R-G-D-H-[Phe4F]-T-E-I-F-[dP])",
+    "pep": "FRGDHFTEIFP"
+   },
+   {
+    "id": "KN2-L2-045",
+    "group": "L2",
+    "helm": "cyclo(Q-P-R-G-D-[NMeA]-[Phe4Cl]-M-V-L-H)",
+    "pep": "QPRGDAFMVLH"
+   },
+   {
+    "id": "KN2-L2-046",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-W-G-V-K)",
+    "pep": "RGDWGVK"
+   },
+   {
+    "id": "KN2-L2-047",
+    "group": "L2",
+    "helm": "cyclo(Q-R-G-D-E-L-W-E)",
+    "pep": "QRGDELWE"
+   },
+   {
+    "id": "KN2-L2-048",
+    "group": "L2",
+    "helm": "cyclo(G-R-R-R-G-D-L)",
+    "pep": "GRRRGDL"
+   },
+   {
+    "id": "KN2-L2-049",
+    "group": "L2",
+    "helm": "cyclo(D-[NMeA]-W-[Phe4F]-R-G-D-[Aib])",
+    "pep": "DAWFRGDA"
+   },
+   {
+    "id": "KN2-L2-050",
+    "group": "L2",
+    "helm": "cyclo(G-D-R-G-D-Q-[NMeK]-T)",
+    "pep": "GDRGDQKT"
+   },
+   {
+    "id": "KN2-L2-051",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-L-N-T-E-P)",
+    "pep": "RGDLNTEP"
+   },
+   {
+    "id": "KN2-L2-052",
+    "group": "L2",
+    "helm": "cyclo(S-R-G-D-P-[dP]-F-C-N)",
+    "pep": "SRGDPPFCN"
+   },
+   {
+    "id": "KN2-L2-053",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-T-M-I-L-M-[NMeK]-G-Y)",
+    "pep": "RGDTMILMKGY"
+   },
+   {
+    "id": "KN2-L2-054",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-I-V-V-T)",
+    "pep": "RGDIVVT"
+   },
+   {
+    "id": "KN2-L2-055",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-[NMeK]-[NMeK]-[Abu]-G-M-N)",
+    "pep": "RGDKKAGMN"
+   },
+   {
+    "id": "KN2-L2-056",
+    "group": "L2",
+    "helm": "cyclo(E-L-[dP]-N-[Phe4F]-R-G-D-M-R-C)",
+    "pep": "ELPNFRGDMRC"
+   },
+   {
+    "id": "KN2-L2-057",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-N-L-T-[Abu]-P)",
+    "pep": "RGDNLTAP"
+   },
+   {
+    "id": "KN2-L2-058",
+    "group": "L2",
+    "helm": "cyclo(N-R-G-D-[Phe4F]-T-Q-T-[Aib])",
+    "pep": "NRGDFTQTA"
+   },
+   {
+    "id": "KN2-L2-059",
+    "group": "L2",
+    "helm": "cyclo(H-[Phe4F]-L-R-G-D-L-F-[Abu]-T)",
+    "pep": "HFLRGDLFAT"
+   },
+   {
+    "id": "KN2-L2-060",
+    "group": "L2",
+    "helm": "cyclo(D-R-G-D-M-[dP]-[Phe4F])",
+    "pep": "DRGDMPF"
+   },
+   {
+    "id": "KN2-L2-061",
+    "group": "L2",
+    "helm": "cyclo(R-E-K-N-A-R-G-D-Y-[dP])",
+    "pep": "REKNARGDYP"
+   },
+   {
+    "id": "KN2-L2-062",
+    "group": "L2",
+    "helm": "cyclo(T-Q-R-G-D-[Aib]-[Abu]-N)",
+    "pep": "TQRGDAAN"
+   },
+   {
+    "id": "KN2-L2-063",
+    "group": "L2",
+    "helm": "cyclo(C-L-T-T-R-G-D-I-G)",
+    "pep": "CLTTRGDIG"
+   },
+   {
+    "id": "KN2-L2-064",
+    "group": "L2",
+    "helm": "cyclo(Q-[Aib]-L-R-G-D-[Abu])",
+    "pep": "QALRGDA"
+   },
+   {
+    "id": "KN2-L2-065",
+    "group": "L2",
+    "helm": "cyclo(A-[dP]-R-G-D-L-[2Nal])",
+    "pep": "APRGDLF"
+   },
+   {
+    "id": "KN2-L2-066",
+    "group": "L2",
+    "helm": "cyclo(Y-K-R-G-D-S-[Aib]-[Abu]-H)",
+    "pep": "YKRGDSAAH"
+   },
+   {
+    "id": "KN2-L2-067",
+    "group": "L2",
+    "helm": "cyclo([NMeK]-R-G-D-I-N-[Abu]-V)",
+    "pep": "KRGDINAV"
+   },
+   {
+    "id": "KN2-L2-068",
+    "group": "L2",
+    "helm": "cyclo(N-R-G-D-P-M-V)",
+    "pep": "NRGDPMV"
+   },
+   {
+    "id": "KN2-L2-069",
+    "group": "L2",
+    "helm": "cyclo(G-R-G-D-C-L-[2Nal]-G-I-D)",
+    "pep": "GRGDCLFGID"
+   },
+   {
+    "id": "KN2-L2-070",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-I-F-T-C-T-F-[Phe4Cl])",
+    "pep": "RGDIFTCTFF"
+   },
+   {
+    "id": "KN2-L2-071",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-I-Y-[NMeA]-[Phe4F]-M)",
+    "pep": "RGDIYAFM"
+   },
+   {
+    "id": "KN2-L2-072",
+    "group": "L2",
+    "helm": "cyclo(V-R-G-D-[Aib]-M-Y-[Abu]-I-C-V)",
+    "pep": "VRGDAMYAICV"
+   },
+   {
+    "id": "KN2-L2-073",
+    "group": "L2",
+    "helm": "cyclo(F-R-G-D-R-[Phe4F]-W-T-[dP]-L-C)",
+    "pep": "FRGDRFWTPLC"
+   },
+   {
+    "id": "KN2-L2-074",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-F-[NMeA]-[NMeK]-A-[NMeA])",
+    "pep": "RGDFAKAA"
+   },
+   {
+    "id": "KN2-L2-075",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-N-[Aib]-[Phe4F]-[Aib]-[Phe4F]-W)",
+    "pep": "RGDNAFAFW"
+   },
+   {
+    "id": "KN2-L2-076",
+    "group": "L2",
+    "helm": "cyclo(C-A-E-G-E-Q-R-G-D-I)",
+    "pep": "CAEGEQRGDI"
+   },
+   {
+    "id": "KN2-L2-077",
+    "group": "L2",
+    "helm": "cyclo([Phe4F]-G-Y-R-G-D-[Phe4F]-Q-R-E)",
+    "pep": "FGYRGDFQRE"
+   },
+   {
+    "id": "KN2-L2-078",
+    "group": "L2",
+    "helm": "cyclo(M-W-W-R-G-D-S-A-M)",
+    "pep": "MWWRGDSAM"
+   },
+   {
+    "id": "KN2-L2-079",
+    "group": "L2",
+    "helm": "cyclo(I-Q-P-[Phe4Cl]-[dP]-R-G-D-V)",
+    "pep": "IQPFPRGDV"
+   },
+   {
+    "id": "KN2-L2-080",
+    "group": "L2",
+    "helm": "cyclo([NMeA]-M-N-R-G-D-N)",
+    "pep": "AMNRGDN"
+   },
+   {
+    "id": "KN2-L2-081",
+    "group": "L2",
+    "helm": "cyclo(Q-P-E-R-G-D-P-R-A-G)",
+    "pep": "QPERGDPRAG"
+   },
+   {
+    "id": "KN2-L2-082",
+    "group": "L2",
+    "helm": "cyclo(L-[NMeK]-Y-[NMeK]-A-R-G-D-[dP]-N)",
+    "pep": "LKYKARGDPN"
+   },
+   {
+    "id": "KN2-L2-083",
+    "group": "L2",
+    "helm": "cyclo([NMeA]-N-P-R-G-D-R-H-K-V-K)",
+    "pep": "ANPRGDRHKVK"
+   },
+   {
+    "id": "KN2-L2-084",
+    "group": "L2",
+    "helm": "cyclo(D-[NMeK]-K-R-G-D-L-[Phe4F]-[Phe4F])",
+    "pep": "DKKRGDLFF"
+   },
+   {
+    "id": "KN2-L2-085",
+    "group": "L2",
+    "helm": "cyclo([Phe4F]-R-R-L-[NMeK]-L-R-G-D-[dP]-D)",
+    "pep": "FRRLKLRGDPD"
+   },
+   {
+    "id": "KN2-L2-086",
+    "group": "L2",
+    "helm": "cyclo([Phe4Cl]-A-P-R-S-R-G-D-M-A)",
+    "pep": "FAPRSRGDMA"
+   },
+   {
+    "id": "KN2-L2-087",
+    "group": "L2",
+    "helm": "cyclo(I-N-Q-R-G-D-K-A-W)",
+    "pep": "INQRGDKAW"
+   },
+   {
+    "id": "KN2-L2-088",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-[dP]-A-F-[NMeA])",
+    "pep": "RGDPAFA"
+   },
+   {
+    "id": "KN2-L2-089",
+    "group": "L2",
+    "helm": "cyclo([dP]-L-R-K-H-R-G-D-M-K-W)",
+    "pep": "PLRKHRGDMKW"
+   },
+   {
+    "id": "KN2-L2-090",
+    "group": "L2",
+    "helm": "cyclo([Aib]-H-R-D-R-G-D-T)",
+    "pep": "AHRDRGDT"
+   },
+   {
+    "id": "KN2-L2-091",
+    "group": "L2",
+    "helm": "cyclo(S-[dP]-[Phe4F]-I-R-G-D-[NMeA]-[NMeA]-[Aib]-F)",
+    "pep": "SPFIRGDAAAF"
+   },
+   {
+    "id": "KN2-L2-092",
+    "group": "L2",
+    "helm": "cyclo(A-[NMeK]-Y-L-[Phe4F]-[2Nal]-[Aib]-R-G-D-R)",
+    "pep": "AKYLFFARGDR"
+   },
+   {
+    "id": "KN2-L2-093",
+    "group": "L2",
+    "helm": "cyclo(M-F-[NMeA]-R-S-N-Q-R-G-D-N)",
+    "pep": "MFARSNQRGDN"
+   },
+   {
+    "id": "KN2-L2-094",
+    "group": "L2",
+    "helm": "cyclo(H-H-R-G-D-Y-E)",
+    "pep": "HHRGDYE"
+   },
+   {
+    "id": "KN2-L2-095",
+    "group": "L2",
+    "helm": "cyclo(K-[Phe4F]-Y-R-[NMeA]-L-R-G-D-R-[NMeK])",
+    "pep": "KFYRALRGDRK"
+   },
+   {
+    "id": "KN2-L2-096",
+    "group": "L2",
+    "helm": "cyclo(R-G-D-T-Q-D-D)",
+    "pep": "RGDTQDD"
+   },
+   {
+    "id": "KN2-L2-097",
+    "group": "L2",
+    "helm": "cyclo(C-E-R-G-D-[2Nal]-R-R-[NMeK])",
+    "pep": "CERGDFRRK"
+   },
+   {
+    "id": "KN2-L2-098",
+    "group": "L2",
+    "helm": "cyclo(G-[dP]-N-R-G-D-[Aib]-G-P-C)",
+    "pep": "GPNRGDAGPC"
+   },
+   {
+    "id": "KN2-L2-099",
+    "group": "L2",
+    "helm": "cyclo([Aib]-C-R-G-D-H-C-Y)",
+    "pep": "ACRGDHCY"
+   },
+   {
+    "id": "KN2-L3-000",
+    "group": "L3",
+    "helm": "cyclo([NMeK]-[2Nal]-[NMeA]-[Phe4Cl]-[2Nal]-D-[NMeA]-[NMeK]-N)",
+    "pep": "KFAFFDAKN"
+   },
+   {
+    "id": "KN2-L3-001",
+    "group": "L3",
+    "helm": "cyclo([2Nal]-Q-V-N-P-V-G-[Phe4F]-E-H-[Aib])",
+    "pep": "FQVNPVGFEHA"
+   },
+   {
+    "id": "KN2-L3-002",
+    "group": "L3",
+    "helm": "cyclo([Aib]-A-[dP]-V-[dP]-V-[Aib])",
+    "pep": "AAPVPVA"
+   },
+   {
+    "id": "KN2-L3-003",
+    "group": "L3",
+    "helm": "cyclo(V-[2Nal]-F-[2Nal]-E-[Phe4F]-H-T-L-[Aib])",
+    "pep": "VFFFEFHTLA"
+   },
+   {
+    "id": "KN2-L3-004",
+    "group": "L3",
+    "helm": "cyclo(M-S-T-[2Nal]-V-V-D-[Aib]-L-[Abu]-R)",
+    "pep": "MSTFVVDALAR"
+   },
+   {
+    "id": "KN2-L3-005",
+    "group": "L3",
+    "helm": "cyclo([Abu]-Y-[Phe4Cl]-Y-M-K-[Abu]-Q)",
+    "pep": "AYFYMKAQ"
+   },
+   {
+    "id": "KN2-L3-006",
+    "group": "L3",
+    "helm": "cyclo(N-C-I-E-M-[Abu]-A-M-I)",
+    "pep": "NCIEMAAMI"
+   },
+   {
+    "id": "KN2-L3-007",
+    "group": "L3",
+    "helm": "cyclo(F-C-H-W-Q-K-I-H-K)",
+    "pep": "FCHWQKIHK"
+   },
+   {
+    "id": "KN2-L3-008",
+    "group": "L3",
+    "helm": "cyclo(S-V-[NMeA]-P-T-V-[Abu]-H-[Abu])",
+    "pep": "SVAPTVAHA"
+   },
+   {
+    "id": "KN2-L3-009",
+    "group": "L3",
+    "helm": "cyclo(K-R-I-A-G-N-[2Nal]-[NMeK]-L-M)",
+    "pep": "KRIAGNFKLM"
+   },
+   {
+    "id": "KN2-L3-010",
+    "group": "L3",
+    "helm": "cyclo(N-Y-N-Q-[Abu]-A-[2Nal]-Y-[Phe4Cl])",
+    "pep": "NYNQAAFYF"
+   },
+   {
+    "id": "KN2-L3-011",
+    "group": "L3",
+    "helm": "cyclo(Y-Y-K-Y-A-[Phe4Cl]-[NMeA]-I-[Phe4F]-[Phe4F])",
+    "pep": "YYKYAFAIFF"
+   },
+   {
+    "id": "KN2-L3-012",
+    "group": "L3",
+    "helm": "cyclo(K-[Abu]-W-S-A-L-[NMeK]-[NMeK]-Y-H-[2Nal])",
+    "pep": "KAWSALKKYHF"
+   },
+   {
+    "id": "KN2-L3-013",
+    "group": "L3",
+    "helm": "cyclo(C-V-M-W-D-P-F-E-A)",
+    "pep": "CVMWDPFEA"
+   },
+   {
+    "id": "KN2-L3-014",
+    "group": "L3",
+    "helm": "cyclo(S-D-N-[Aib]-[Aib]-[Aib]-G)",
+    "pep": "SDNAAAG"
+   },
+   {
+    "id": "KN2-L3-015",
+    "group": "L3",
+    "helm": "cyclo([Phe4F]-R-S-W-C-[2Nal]-C-Y)",
+    "pep": "FRSWCFCY"
+   },
+   {
+    "id": "KN2-L3-016",
+    "group": "L3",
+    "helm": "cyclo(L-Q-N-Q-A-H-[dP])",
+    "pep": "LQNQAHP"
+   },
+   {
+    "id": "KN2-L3-017",
+    "group": "L3",
+    "helm": "cyclo([NMeA]-T-[Aib]-[NMeA]-K-F-[Abu]-[2Nal]-R-[NMeA])",
+    "pep": "ATAAKFAFRA"
+   },
+   {
+    "id": "KN2-L3-018",
+    "group": "L3",
+    "helm": "cyclo(N-[Phe4Cl]-A-[Aib]-R-[NMeA]-P-K)",
+    "pep": "NFAARAPK"
+   },
+   {
+    "id": "KN2-L3-019",
+    "group": "L3",
+    "helm": "cyclo(W-T-[2Nal]-K-W-R-L-[NMeK]-K-[NMeK])",
+    "pep": "WTFKWRLKKK"
+   },
+   {
+    "id": "KN2-L3-020",
+    "group": "L3",
+    "helm": "cyclo(I-Y-M-[Phe4F]-T-[Phe4F]-E-[NMeK])",
+    "pep": "IYMFTFEK"
+   },
+   {
+    "id": "KN2-L3-021",
+    "group": "L3",
+    "helm": "cyclo(L-V-L-[2Nal]-C-K-M-S-K-S)",
+    "pep": "LVLFCKMSKS"
+   },
+   {
+    "id": "KN2-L3-022",
+    "group": "L3",
+    "helm": "cyclo(M-[Aib]-[Abu]-Y-S-V-A-N)",
+    "pep": "MAAYSVAN"
+   },
+   {
+    "id": "KN2-L3-023",
+    "group": "L3",
+    "helm": "cyclo(H-Q-D-M-D-N-K)",
+    "pep": "HQDMDNK"
+   },
+   {
+    "id": "KN2-L3-024",
+    "group": "L3",
+    "helm": "cyclo(R-L-M-I-Y-Q-Y-[dP]-P-Y-Y)",
+    "pep": "RLMIYQYPPYY"
+   },
+   {
+    "id": "KN2-L3-025",
+    "group": "L3",
+    "helm": "cyclo(M-G-I-R-F-N-[Aib]-S)",
+    "pep": "MGIRFNAS"
+   },
+   {
+    "id": "KN2-L3-026",
+    "group": "L3",
+    "helm": "cyclo(I-K-R-[Abu]-R-W-[dP]-G)",
+    "pep": "IKRARWPG"
+   },
+   {
+    "id": "KN2-L3-027",
+    "group": "L3",
+    "helm": "cyclo(M-[NMeK]-E-M-S-H-E-T-[NMeK])",
+    "pep": "MKEMSHETK"
+   },
+   {
+    "id": "KN2-L3-028",
+    "group": "L3",
+    "helm": "cyclo([dP]-W-L-W-S-R-T-[Aib])",
+    "pep": "PWLWSRTA"
+   },
+   {
+    "id": "KN2-L3-029",
+    "group": "L3",
+    "helm": "cyclo(M-S-Y-T-[NMeA]-H-H-Q)",
+    "pep": "MSYTAHHQ"
+   },
+   {
+    "id": "KN2-L3-030",
+    "group": "L3",
+    "helm": "cyclo(L-H-N-H-W-T-[NMeK])",
+    "pep": "LHNHWTK"
+   },
+   {
+    "id": "KN2-L3-031",
+    "group": "L3",
+    "helm": "cyclo(Y-C-[Aib]-G-[NMeA]-W-H)",
+    "pep": "YCAGAWH"
+   },
+   {
+    "id": "KN2-L3-032",
+    "group": "L3",
+    "helm": "cyclo(A-W-T-M-[Aib]-Y-S-N-M)",
+    "pep": "AWTMAYSNM"
+   },
+   {
+    "id": "KN2-L3-033",
+    "group": "L3",
+    "helm": "cyclo(V-[Abu]-[NMeK]-S-[Aib]-[NMeA]-K)",
+    "pep": "VAKSAAK"
+   },
+   {
+    "id": "KN2-L3-034",
+    "group": "L3",
+    "helm": "cyclo(N-[2Nal]-V-L-V-F-E-M-[NMeK]-R-K)",
+    "pep": "NFVLVFEMKRK"
+   },
+   {
+    "id": "KN2-L3-035",
+    "group": "L3",
+    "helm": "cyclo(W-R-R-R-G-A-G-N-Q-[Aib]-H)",
+    "pep": "WRRRGAGNQAH"
+   },
+   {
+    "id": "KN2-L3-036",
+    "group": "L3",
+    "helm": "cyclo(E-I-[Abu]-H-I-C-S-A-F)",
+    "pep": "EIAHICSAF"
+   },
+   {
+    "id": "KN2-L3-037",
+    "group": "L3",
+    "helm": "cyclo(M-Q-[2Nal]-Q-K-E-T-W-W-W-[NMeA])",
+    "pep": "MQFQKETWWWA"
+   },
+   {
+    "id": "KN2-L3-038",
+    "group": "L3",
+    "helm": "cyclo(P-[Phe4Cl]-L-A-E-F-P-N-G)",
+    "pep": "PFLAEFPNG"
+   },
+   {
+    "id": "KN2-L3-039",
+    "group": "L3",
+    "helm": "cyclo([dP]-T-[Aib]-R-P-G-D-C-[NMeA]-M)",
+    "pep": "PTARPGDCAM"
+   },
+   {
+    "id": "KN2-L3-040",
+    "group": "L3",
+    "helm": "cyclo(E-E-V-V-R-C-A)",
+    "pep": "EEVVRCA"
+   },
+   {
+    "id": "KN2-L3-041",
+    "group": "L3",
+    "helm": "cyclo(I-[Phe4F]-V-[NMeA]-S-K-D-[Abu])",
+    "pep": "IFVASKDA"
+   },
+   {
+    "id": "KN2-L3-042",
+    "group": "L3",
+    "helm": "cyclo(H-L-C-S-W-M-L)",
+    "pep": "HLCSWML"
+   },
+   {
+    "id": "KN2-L3-043",
+    "group": "L3",
+    "helm": "cyclo([Phe4Cl]-K-S-N-N-V-I-G-Y-[Abu])",
+    "pep": "FKSNNVIGYA"
+   },
+   {
+    "id": "KN2-L3-044",
+    "group": "L3",
+    "helm": "cyclo(I-[2Nal]-K-R-P-E-V-L-P-[Abu])",
+    "pep": "IFKRPEVLPA"
+   },
+   {
+    "id": "KN2-L3-045",
+    "group": "L3",
+    "helm": "cyclo([Abu]-[Phe4F]-R-[NMeK]-[Abu]-G-R)",
+    "pep": "AFRKAGR"
+   },
+   {
+    "id": "KN2-L3-046",
+    "group": "L3",
+    "helm": "cyclo(S-L-H-V-[dP]-R-I-R-[2Nal]-[Aib]-Q)",
+    "pep": "SLHVPRIRFAQ"
+   },
+   {
+    "id": "KN2-L3-047",
+    "group": "L3",
+    "helm": "cyclo(Q-A-D-[NMeK]-E-F-[NMeA]-[Aib]-G)",
+    "pep": "QADKEFAAG"
+   },
+   {
+    "id": "KN2-L3-048",
+    "group": "L3",
+    "helm": "cyclo(Y-F-E-E-A-N-[Phe4F]-N-N)",
+    "pep": "YFEEANFNN"
+   },
+   {
+    "id": "KN2-L3-049",
+    "group": "L3",
+    "helm": "cyclo(P-G-E-C-R-Y-V-P-A-A-Y)",
+    "pep": "PGECRYVPAAY"
+   },
+   {
+    "id": "KN2-L3-050",
+    "group": "L3",
+    "helm": "cyclo(R-[NMeA]-A-[Aib]-[Phe4Cl]-[Aib]-[NMeA]-Q)",
+    "pep": "RAAAFAAQ"
+   },
+   {
+    "id": "KN2-L3-051",
+    "group": "L3",
+    "helm": "cyclo(N-S-F-W-D-[Aib]-E-C-N-V)",
+    "pep": "NSFWDAECNV"
+   },
+   {
+    "id": "KN2-L3-052",
+    "group": "L3",
+    "helm": "cyclo(T-[2Nal]-Q-I-K-F-K-S)",
+    "pep": "TFQIKFKS"
+   },
+   {
+    "id": "KN2-L3-053",
+    "group": "L3",
+    "helm": "cyclo(H-P-C-I-R-S-W-A)",
+    "pep": "HPCIRSWA"
+   },
+   {
+    "id": "KN2-L3-054",
+    "group": "L3",
+    "helm": "cyclo(V-[Phe4F]-G-E-P-M-Y-F-W-D-T)",
+    "pep": "VFGEPMYFWDT"
+   },
+   {
+    "id": "KN2-L3-055",
+    "group": "L3",
+    "helm": "cyclo(V-Y-W-G-H-C-G)",
+    "pep": "VYWGHCG"
+   },
+   {
+    "id": "KN2-L3-056",
+    "group": "L3",
+    "helm": "cyclo(A-I-F-M-N-K-F-I)",
+    "pep": "AIFMNKFI"
+   },
+   {
+    "id": "KN2-L3-057",
+    "group": "L3",
+    "helm": "cyclo([NMeA]-[Abu]-L-[Abu]-[Phe4F]-[Abu]-C-Q-M-A-[Phe4F])",
+    "pep": "AALAFACQMAF"
+   },
+   {
+    "id": "KN2-L3-058",
+    "group": "L3",
+    "helm": "cyclo(H-I-W-K-[NMeK]-Q-A-[NMeK]-T-A)",
+    "pep": "HIWKKQAKTA"
+   },
+   {
+    "id": "KN2-L3-059",
+    "group": "L3",
+    "helm": "cyclo(W-C-R-H-R-[Phe4F]-M-[NMeA]-[2Nal]-D)",
+    "pep": "WCRHRFMAFD"
+   },
+   {
+    "id": "KN2-L3-060",
+    "group": "L3",
+    "helm": "cyclo(H-[2Nal]-S-K-T-I-F-Y-L-H-L)",
+    "pep": "HFSKTIFYLHL"
+   },
+   {
+    "id": "KN2-L3-061",
+    "group": "L3",
+    "helm": "cyclo([Aib]-W-L-V-K-P-F-A-Q-G)",
+    "pep": "AWLVKPFAQG"
+   },
+   {
+    "id": "KN2-L3-062",
+    "group": "L3",
+    "helm": "cyclo(G-S-V-[Abu]-Q-P-M)",
+    "pep": "GSVAQPM"
+   },
+   {
+    "id": "KN2-L3-063",
+    "group": "L3",
+    "helm": "cyclo(M-[Phe4F]-G-W-A-[Phe4Cl]-A-L-D-F-[2Nal])",
+    "pep": "MFGWAFALDFF"
+   },
+   {
+    "id": "KN2-L3-064",
+    "group": "L3",
+    "helm": "cyclo(F-R-D-V-[dP]-H-[NMeK])",
+    "pep": "FRDVPHK"
+   },
+   {
+    "id": "KN2-L3-065",
+    "group": "L3",
+    "helm": "cyclo([NMeK]-[Phe4F]-P-Y-L-Q-C-P-F)",
+    "pep": "KFPYLQCPF"
+   },
+   {
+    "id": "KN2-L3-066",
+    "group": "L3",
+    "helm": "cyclo(I-Y-Q-Y-V-P-C-[dP]-H-G)",
+    "pep": "IYQYVPCPHG"
+   },
+   {
+    "id": "KN2-L3-067",
+    "group": "L3",
+    "helm": "cyclo([Aib]-I-C-S-[Phe4Cl]-Y-R)",
+    "pep": "AICSFYR"
+   },
+   {
+    "id": "KN2-L3-068",
+    "group": "L3",
+    "helm": "cyclo(A-[Abu]-C-[NMeK]-G-A-R-A)",
+    "pep": "AACKGARA"
+   },
+   {
+    "id": "KN2-L3-069",
+    "group": "L3",
+    "helm": "cyclo(W-M-S-K-Y-I-[Phe4F]-K-I-F-[Abu])",
+    "pep": "WMSKYIFKIFA"
+   },
+   {
+    "id": "KN2-L3-070",
+    "group": "L3",
+    "helm": "cyclo(K-E-D-H-K-D-[Phe4Cl]-G-T-G)",
+    "pep": "KEDHKDFGTG"
+   },
+   {
+    "id": "KN2-L3-071",
+    "group": "L3",
+    "helm": "cyclo([Phe4F]-Y-K-[Aib]-W-[Aib]-[dP]-A)",
+    "pep": "FYKAWAPA"
+   },
+   {
+    "id": "KN2-L3-072",
+    "group": "L3",
+    "helm": "cyclo(W-S-Q-F-P-G-T-I-S-[Phe4F]-H)",
+    "pep": "WSQFPGTISFH"
+   },
+   {
+    "id": "KN2-L3-073",
+    "group": "L3",
+    "helm": "cyclo(Y-Q-[Abu]-R-Q-E-[NMeK]-[dP])",
+    "pep": "YQARQEKP"
+   },
+   {
+    "id": "KN2-L3-074",
+    "group": "L3",
+    "helm": "cyclo(R-L-[2Nal]-[Aib]-D-[2Nal]-G-[Phe4Cl]-S-F)",
+    "pep": "RLFADFGFSF"
+   },
+   {
+    "id": "KN2-L3-075",
+    "group": "L3",
+    "helm": "cyclo([NMeK]-L-L-N-Y-[dP]-K-[Phe4Cl]-H)",
+    "pep": "KLLNYPKFH"
+   },
+   {
+    "id": "KN2-L3-076",
+    "group": "L3",
+    "helm": "cyclo(F-A-E-I-D-A-R)",
+    "pep": "FAEIDAR"
+   },
+   {
+    "id": "KN2-L3-077",
+    "group": "L3",
+    "helm": "cyclo(E-E-P-G-Y-H-V)",
+    "pep": "EEPGYHV"
+   },
+   {
+    "id": "KN2-L3-078",
+    "group": "L3",
+    "helm": "cyclo(F-S-P-[NMeA]-K-E-[Phe4F]-M-Y-W-F)",
+    "pep": "FSPAKEFMYWF"
+   },
+   {
+    "id": "KN2-L3-079",
+    "group": "L3",
+    "helm": "cyclo(T-[Aib]-S-[2Nal]-H-H-R-[Phe4F])",
+    "pep": "TASFHHRF"
+   },
+   {
+    "id": "KN2-L3-080",
+    "group": "L3",
+    "helm": "cyclo([Aib]-V-F-[Abu]-T-Q-G)",
+    "pep": "AVFATQG"
+   },
+   {
+    "id": "KN2-L3-081",
+    "group": "L3",
+    "helm": "cyclo(Q-C-S-[dP]-Q-D-N-V)",
+    "pep": "QCSPQDNV"
+   },
+   {
+    "id": "KN2-L3-082",
+    "group": "L3",
+    "helm": "cyclo(H-D-A-[NMeA]-[NMeA]-Q-[2Nal]-Q-[Phe4Cl]-[Phe4F])",
+    "pep": "HDAAAQFQFF"
+   },
+   {
+    "id": "KN2-L3-083",
+    "group": "L3",
+    "helm": "cyclo(V-[Phe4Cl]-S-I-F-V-A-C-Y-[Abu])",
+    "pep": "VFSIFVACYA"
+   },
+   {
+    "id": "KN2-L3-084",
+    "group": "L3",
+    "helm": "cyclo([NMeA]-[dP]-[Aib]-E-S-W-[2Nal]-T-P)",
+    "pep": "APAESWFTP"
+   },
+   {
+    "id": "KN2-L3-085",
+    "group": "L3",
+    "helm": "cyclo(C-T-C-L-[Abu]-D-I-[2Nal]-E-A-F)",
+    "pep": "CTCLADIFEAF"
+   },
+   {
+    "id": "KN2-L3-086",
+    "group": "L3",
+    "helm": "cyclo(F-[2Nal]-A-[Phe4F]-K-W-D-E-V-[Phe4F])",
+    "pep": "FFAFKWDEVF"
+   },
+   {
+    "id": "KN2-L3-087",
+    "group": "L3",
+    "helm": "cyclo([NMeK]-[Phe4F]-[2Nal]-T-N-[dP]-A-C)",
+    "pep": "KFFTNPAC"
+   },
+   {
+    "id": "KN2-L3-088",
+    "group": "L3",
+    "helm": "cyclo(Q-D-[Phe4F]-P-N-T-V)",
+    "pep": "QDFPNTV"
+   },
+   {
+    "id": "KN2-L3-089",
+    "group": "L3",
+    "helm": "cyclo(R-K-K-P-D-L-S-H-C-Y-V)",
+    "pep": "RKKPDLSHCYV"
+   },
+   {
+    "id": "KN2-L3-090",
+    "group": "L3",
+    "helm": "cyclo([Abu]-Y-P-R-L-F-A-Q-Q-Q-[Abu])",
+    "pep": "AYPRLFAQQQA"
+   },
+   {
+    "id": "KN2-L3-091",
+    "group": "L3",
+    "helm": "cyclo(I-L-[Phe4Cl]-N-Y-N-T-L)",
+    "pep": "ILFNYNTL"
+   },
+   {
+    "id": "KN2-L3-092",
+    "group": "L3",
+    "helm": "cyclo([NMeK]-Q-[2Nal]-H-M-N-[Aib])",
+    "pep": "KQFHMNA"
+   },
+   {
+    "id": "KN2-L3-093",
+    "group": "L3",
+    "helm": "cyclo(M-N-D-[Phe4Cl]-[dP]-[Aib]-S-[dP]-[Abu]-A-Q)",
+    "pep": "MNDFPASPAAQ"
+   },
+   {
+    "id": "KN2-L3-094",
+    "group": "L3",
+    "helm": "cyclo([NMeA]-[Phe4F]-S-E-L-N-[NMeK]-[Abu]-[NMeA])",
+    "pep": "AFSELNKAA"
+   },
+   {
+    "id": "KN2-L3-095",
+    "group": "L3",
+    "helm": "cyclo(L-F-M-H-T-[Phe4F]-R-L-F-[Aib]-[Abu])",
+    "pep": "LFMHTFRLFAA"
+   },
+   {
+    "id": "KN2-L3-096",
+    "group": "L3",
+    "helm": "cyclo([Phe4F]-G-[Abu]-K-R-R-[Phe4F]-C)",
+    "pep": "FGAKRRFC"
+   },
+   {
+    "id": "KN2-L3-097",
+    "group": "L3",
+    "helm": "cyclo(A-[Phe4F]-M-[2Nal]-A-[NMeA]-T-[2Nal]-P)",
+    "pep": "AFMFAATFP"
+   },
+   {
+    "id": "KN2-L3-098",
+    "group": "L3",
+    "helm": "cyclo(R-N-D-L-Y-[Phe4F]-S-[Phe4F])",
+    "pep": "RNDLYFSF"
+   },
+   {
+    "id": "KN2-L3-099",
+    "group": "L3",
+    "helm": "cyclo(N-W-Q-[dP]-I-K-I-P-N-W)",
+    "pep": "NWQPIKIPNW"
+   },
+   {
+    "id": "CTRL-TRIVEHEXIN",
+    "group": "POS",
+    "helm": "cyclo(Y-R-G-D-L-A-Y-[dP]-[NMeK])",
+    "pep": "YRGDLAYPK"
+   },
+   {
+    "id": "CTRL-AVEBEHEXIN",
+    "group": "POS",
+    "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])",
+    "pep": "FRGDLAFPK"
+   },
+   {
+    "id": "NEG-1",
+    "group": "NEG",
+    "helm": "cyclo(F-W-L-[dP]-Y-S-[NMeF]-D-T-K)",
+    "pep": "FWLPYSFDTK"
+   },
+   {
+    "id": "NEG-2",
+    "group": "NEG",
+    "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G)",
+    "pep": "WYFPLITENKSG"
+   },
+   {
+    "id": "NEG-3",
+    "group": "NEG",
+    "helm": "cyclo(Y-S-A-G-P-F-[dP]-[NMeK])",
+    "pep": "YSAGPFPK"
+   },
+   {
+    "id": "NEG-4",
+    "group": "NEG",
+    "helm": "cyclo(F-A-G-R-D-L-A-F-[dP]-[NMeK])",
+    "pep": "FAGRDLAFPK"
+   }
+  ]
+ }
+}

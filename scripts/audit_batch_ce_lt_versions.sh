@@ -36,7 +36,7 @@ while read CE_NAME LT_ID LT_VER; do
     LATEST=$(aws ec2 describe-launch-templates --launch-template-ids "$LT_ID" --region "$REGION" \
         --query 'LaunchTemplates[0].LatestVersionNumber' --output text)
     if [ "$LT_VER" = "$LATEST" ]; then
-        [ $QUIET -eq 0 ] && printf "  %-30s v%s ✅\n" "$CE_NAME" "$LT_VER"
+        if [ $QUIET -eq 0 ]; then printf "  %-30s v%s ✅\n" "$CE_NAME" "$LT_VER"; fi
     else
         LAGGING=$((LAGGING + 1))
         printf "  %-30s v%s → v%s ❌\n" "$CE_NAME" "$LT_VER" "$LATEST"
@@ -86,7 +86,7 @@ for name, its in ces:
             echo "    → restricted $CE_NAME to x86_64 families"
         fi
     else
-        [ $QUIET -eq 0 ] && printf "  %-30s %s ✅\n" "$CE_NAME" "$ITS"
+        if [ $QUIET -eq 0 ]; then printf "  %-30s %s ✅\n" "$CE_NAME" "$ITS"; fi
     fi
 done
 

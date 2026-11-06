@@ -1,0 +1,8 @@
+imported 11_h4b_run 67 s
+P_B fitted 71 s
+target 0 46 72
+target 10 46 85
+target 20 46 91
+target 30 46 102
+target 40 46 112
+wrote bind_cells.csv 14812 121 s

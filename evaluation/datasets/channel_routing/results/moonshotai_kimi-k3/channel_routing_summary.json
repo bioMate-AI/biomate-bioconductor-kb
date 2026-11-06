@@ -1,0 +1,14 @@
+{
+  "model": "moonshotai/kimi-k3",
+  "bare": {
+    "accuracy": 0.8452,
+    "drug_discovery_accuracy": 0.8889,
+    "off_channel_or_empty": 0
+  },
+  "harness": {
+    "accuracy": 0.9881,
+    "drug_discovery_accuracy": 0.9815,
+    "off_channel_or_empty": 0
+  },
+  "harness_dividend": 0.1429
+}

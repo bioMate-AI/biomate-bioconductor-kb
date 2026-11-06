@@ -15,8 +15,8 @@ Endpoints:
        Run BayesianOptimizer.propose_next_round() against a virtual library.
        Body: {virtual_library_smiles: [...], n_propose: 10, diversity_weight: 0.2}
 
-  GET  /api/drug-discovery/{campaign_id}/lims/poll
-       Poll Benchling LIMS for new assay data and ingest any new results.
+  POST /api/drug-discovery/{campaign_id}/lims/poll
+       Pull reviewed Benchling assay results (explicit schema mapping) and ingest them.
 
   POST /api/drug-discovery/{campaign_id}/models/register
        Register a custom predictive model (Python function, Docker, or REST).
@@ -890,8 +890,14 @@ async def propose_next_round(
         diversity_weight: 0–1 weight for Tanimoto diversity penalty (default 0.2).
 
     Returns:
-        proposed_smiles: selected SMILES,
-        proposed_scores: surrogate predicted scores per objective,
+        proposed_smiles: selected SMILES (n_proposed may be below n_requested
+            when library entries are invalid, duplicates or already measured;
+            see surrogate_report.excluded_candidates),
+        predicted_scores: surrogate predicted scores per objective,
+        gp_stds: posterior std per objective and proposed compound,
+        can_discriminate: False when the surrogate cannot confidently order
+            any candidate pair — the scores then do not rank the compounds,
+        surrogate_report: kernel, discrimination evidence, exclusions, warnings,
         round_metadata: acquisition details.
     """
     try:
@@ -945,12 +951,15 @@ async def propose_next_round(
     return {
         "campaign_id": campaign_id,
         "training_report": report,
+        "n_requested": body.n_propose,
         "n_proposed": len(proposal.proposed_compounds),
         "proposed_smiles": proposal.proposed_compounds,
         "predicted_scores": proposal.scores,
         "confidence_intervals": proposal.confidence_intervals,
         "ad_statuses": proposal.ad_statuses,
         "gp_stds": proposal.gp_stds,
+        "can_discriminate": proposal.can_discriminate,
+        "surrogate_report": proposal.surrogate_report,
         "round_metadata": {
             "round_number": proposal.round_number,
             "diversity_score": proposal.diversity_score,
@@ -965,87 +974,124 @@ async def propose_next_round(
 # Track G — Benchling LIMS polling (G3 gap closure)
 # ---------------------------------------------------------------------------
 
-@router.get("/{campaign_id}/lims/poll")
+class PollLimsRequest(BaseModel):
+    mapping: Optional[dict] = None        # BenchlingSchemaMapping; omitted → stored mapping
+    schema_id: Optional[str] = None       # selects the stored mapping when mapping is omitted
+    since: Optional[str] = None           # RFC 3339 start for a first sync (default: full history)
+    full_resync: bool = False             # ignore the stored watermark
+
+
+_SECRET_QUERY_PARAMS = {"benchling_api_key", "api_key", "client_secret", "token", "access_token"}
+
+
+@router.post("/{campaign_id}/lims/poll")
 async def poll_lims(
     campaign_id: str,
-    benchling_api_key: str = Query(None, description="Benchling API key (overrides env BENCHLING_API_KEY)"),
-    assay_schema_id: str   = Query(None, description="Benchling assay schema ID to poll"),
-    since_hours: float     = Query(24.0, description="Look back N hours for new results"),
+    body: PollLimsRequest,
+    request: Request,
     _audit: None = Depends(_audit_fn),
 ):
     """
-    Poll Benchling LIMS for new assay results and ingest them into the
-    campaign compound ranking.
+    Pull reviewed, non-archived Benchling assay results for one assay-result
+    schema into the campaign, then re-rank compounds.
 
-    The Benchling API key can be supplied via query param (for dev) or the
-    BENCHLING_API_KEY environment variable (for production).
+    Credentials and the tenant URL come only from the server's environment /
+    secret store (BENCHLING_TENANT_URL with BENCHLING_CLIENT_ID +
+    BENCHLING_CLIENT_SECRET, or BENCHLING_API_KEY for trials); never from the
+    request, so a caller cannot redirect server credentials to another host.
 
-    Returns a summary of ingested records and updated compound ranks.
+    Body: ``mapping`` (explicit per-schema field mapping, see
+    drug_discovery.benchling_connector.BenchlingSchemaMapping) or ``schema_id``
+    of a mapping stored by an earlier poll. Polls are incremental on the stored
+    ``modifiedAt`` watermark and idempotent (rows are upserted on the Benchling
+    result ID); results archived since the last poll are retracted.
     """
+    leaked = sorted(_SECRET_QUERY_PARAMS & set(request.query_params))
+    if leaked:
+        raise HTTPException(status_code=400, detail=(
+            f"Credentials must not be sent in the URL ({', '.join(leaked)}); they may now be in "
+            "access logs, so rotate them. Configure Benchling credentials on the server instead."))
     try:
-        from .benchling_connector import BenchlingConnector
+        from .benchling_connector import (
+            BenchlingAPIError, BenchlingAssayPoller, BenchlingConfigError, BenchlingConnector,
+            BenchlingMappingError, BenchlingSchemaMapping, SOURCE_SYSTEM, load_sync_state,
+            save_sync_state,
+        )
         from .assay_ingestion import AssayIngestionService
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
-    api_key = benchling_api_key or os.environ.get("BENCHLING_API_KEY", "")
-    if not api_key:
-        raise HTTPException(
-            status_code=400,
-            detail="Benchling API key required. Pass benchling_api_key query param "
-                   "or set BENCHLING_API_KEY env var."
-        )
+    db_path = _campaign_db(campaign_id)
+    schema_id = (body.mapping or {}).get("schema_id") or body.schema_id
+    if not schema_id:
+        raise HTTPException(status_code=400, detail="Give a mapping (with schema_id) or the schema_id "
+                                                    "of a mapping stored by an earlier poll.")
+    state = load_sync_state(db_path, campaign_id, schema_id)
+    try:
+        if body.mapping is not None:
+            mapping = BenchlingSchemaMapping.from_dict(body.mapping)
+        elif state is not None:
+            mapping = BenchlingSchemaMapping.from_dict(state["mapping"])
+        else:
+            raise BenchlingMappingError(f"no stored mapping for schema '{schema_id}' in this campaign; "
+                                        "send the mapping")
+    except BenchlingMappingError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid Benchling mapping: {exc}")
 
     try:
-        connector = BenchlingConnector(api_key=api_key)
-        new_results = connector.list_assay_results(
-            schema_id=assay_schema_id,
-            since_hours=since_hours,
-        )
-    except Exception as exc:
-        log.exception("Benchling LIMS poll failed for campaign %s", campaign_id)
+        client = BenchlingConnector.from_env()
+    except BenchlingConfigError as exc:
+        raise HTTPException(status_code=503, detail=f"Benchling is not configured on this server: {exc}")
+
+    notes: list[str] = []
+    watermark = body.since
+    if state is not None and not body.full_resync:
+        if state["tenant_host"] != client.tenant_host:
+            notes.append(f"Stored watermark belongs to tenant {state['tenant_host']}; "
+                         f"reading {client.tenant_host} from the start.")
+        elif state["mapping"] != mapping.to_dict():
+            notes.append("Schema mapping changed since the last poll; re-reading the schema from the "
+                         "start so every stored result is mapped the same way.")
+        else:
+            watermark = state["watermark"] or body.since
+
+    try:
+        polled = BenchlingAssayPoller(client, mapping).poll(modified_after=watermark)
+    except (BenchlingAPIError, BenchlingConfigError) as exc:
+        log.warning("Benchling LIMS poll failed for campaign %s: %s", campaign_id, exc)
         raise HTTPException(status_code=502, detail=f"Benchling API error: {exc}")
 
-    if not new_results:
-        return {
-            "campaign_id": campaign_id,
-            "status": "no_new_data",
-            "records_ingested": 0,
-            "message": f"No new Benchling results in the last {since_hours}h",
-        }
-
-    # Convert Benchling results to AssayIngestionService-compatible CSV rows
-    import io, csv as csv_module, tempfile
-
-    fieldnames = list(new_results[0].keys()) if new_results else ["compound_id", "smiles"]
-    buf = io.StringIO()
-    writer = csv_module.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
-    writer.writeheader()
-    writer.writerows(new_results)
-    csv_bytes = buf.getvalue().encode()
-
     try:
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
-            tmp.write(csv_bytes)
-            tmp_path = tmp.name
-
-        svc = AssayIngestionService(_campaign_db(campaign_id))
-        result = svc.ingest(campaign_id, tmp_path)
+        svc = AssayIngestionService(db_path)
+        result = svc.ingest_rows(campaign_id, polled.rows)
+        retracted = 0
+        if polled.archived_result_ids:
+            retraction = svc.retract_records(campaign_id, SOURCE_SYSTEM, polled.archived_result_ids)
+            retracted = retraction["retracted"]
+            result.update({k: retraction[k] for k in ("warnings", "updated_ranks")})
     except Exception as exc:
+        log.exception("Benchling ingestion failed for campaign %s", campaign_id)
         raise HTTPException(status_code=500, detail=f"Ingestion error: {exc}")
-    finally:
-        import os as _os
-        try: _os.unlink(tmp_path)
-        except: pass
 
+    save_sync_state(db_path, campaign_id, mapping, client.tenant_host, polled.next_watermark)
     return {
         "campaign_id": campaign_id,
-        "status": "ingested",
-        "records_ingested": len(new_results),
-        "ingestion_result": {
-            "compounds_updated": result.compounds_updated if hasattr(result, "compounds_updated") else len(new_results),
-            "new_compounds": result.new_compounds if hasattr(result, "new_compounds") else 0,
-        },
+        "source": "benchling",
+        "tenant_host": client.tenant_host,
+        "auth": client.auth_kind,
+        "schema_id": mapping.schema_id,
+        "status": "ingested" if (result["ingested"] or result["updated"] or retracted) else "no_new_data",
+        "fetched": polled.fetched,
+        "records_ingested": result["ingested"],
+        "records_updated": result["updated"],
+        "records_unchanged": result["unchanged"],
+        "records_retracted": retracted,
+        "skipped": polled.skipped,
+        "errors": result["errors"],
+        "warnings": result["warnings"],
+        "notes": notes + result["notes"],
+        "watermark": {"previous": polled.previous_watermark, "next": polled.next_watermark},
+        "updated_ranks": result["updated_ranks"],
     }
 
 
@@ -1152,7 +1198,8 @@ async def get_auto_proposal(
     Return the latest auto-retrain proposal for a campaign.
 
     Returns the Proposal shape expected by DrugDiscoveryAutoRetrain:
-      { round, generated_at, trigger, items: [{rank, smiles, score, ci_lo, ci_hi, ad}] }
+      { round, generated_at, trigger, can_discriminate,
+        items: [{rank, smiles, score, std, ci_lo, ci_hi, ad}] }
 
     format=csv → downloadable CSV file
     """
@@ -1176,7 +1223,8 @@ async def get_auto_proposal(
 
         shaped = _format_proposal(proposal)
         buf = io.StringIO()
-        writer = _csv.DictWriter(buf, fieldnames=["rank", "smiles", "score", "ci_lo", "ci_hi", "ad"])
+        writer = _csv.DictWriter(buf, fieldnames=["rank", "smiles", "score", "std", "ci_lo",
+                                                   "ci_hi", "ad"])
         writer.writeheader()
         writer.writerows(shaped["items"])
         filename = f"{campaign_id}_round{shaped['round']}_proposals.csv"
@@ -1233,9 +1281,12 @@ async def trigger_retrain(
         "proposed_smiles": proposal.proposed_smiles,
         "scores": proposal.scores,
         "confidence_intervals": proposal.confidence_intervals,
+        "gp_stds": proposal.gp_stds,
         "ad_statuses": proposal.ad_statuses,
         "created_at": proposal.created_at,
         "training_report": proposal.training_report,
+        "can_discriminate": proposal.can_discriminate,
+        "surrogate_report": proposal.surrogate_report,
     }
 
 
@@ -1649,6 +1700,132 @@ def _format_audit_record(r) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# De-novo generation — expose the existing closed generate->predict->select->rank
+# loop over HTTP. DeNovoPipeline + get_generator + BayesianOptimizer already
+# exist and are unit-tested (test_denovo_pipeline.py); only the endpoint was
+# missing. Built-in RDKit objectives (QED / SA) keep the BRICS path fully
+# self-contained (no external key, no retraining). The learned NIM generators
+# (bionemo_genmol/molmim) are selectable and degrade HONESTLY to an empty ranked
+# list + status note when NVIDIA_API_KEY is unset — never fabricated molecules.
+# ---------------------------------------------------------------------------
+
+class DeNovoRunRequest(BaseModel):
+    seed_smiles: list                      # labelled seeds the GP is fit on
+    generator: str = "brics"               # brics | bionemo_genmol | bionemo_molmim
+    objectives: list = ["qed", "sa"]       # built-in RDKit objectives
+    n_molecules: int = 50
+    max_candidates: int = 2000
+    n_propose: int = 10
+    campaign_id: Optional[str] = None
+
+
+def _builtin_objective(name: str):
+    """ObjectiveSpec for a built-in RDKit objective, or None if unknown.
+
+    'qed' -> drug-likeness (maximize) · 'sa' -> synthetic accessibility (minimize).
+    Predictors omit molecules RDKit cannot parse (honest partial scoring), and
+    return {} if RDKit is unavailable so the pipeline degrades rather than crashes.
+    """
+    from .denovo_pipeline import ObjectiveSpec
+    key = (name or "").strip().lower()
+    if key == "qed":
+        def _qed(smiles_list: list) -> dict:
+            try:
+                from rdkit import Chem
+                from rdkit.Chem import QED
+            except Exception:
+                return {}
+            out = {}
+            for smi in smiles_list:
+                mol = Chem.MolFromSmiles(smi)
+                if mol is not None:
+                    out[smi] = float(QED.qed(mol))
+            return out
+        return ObjectiveSpec("qed", _qed, direction="maximize")
+    if key in ("sa", "sa_score", "synthetic_accessibility"):
+        def _sa(smiles_list: list) -> dict:
+            from .cro_order_export import _sa_score
+            out = {}
+            for smi in smiles_list:
+                v = _sa_score(smi)
+                if v is not None:
+                    out[smi] = float(v)
+            return out
+        return ObjectiveSpec("sa", _sa, direction="minimize")
+    return None
+
+
+@router.post("/denovo/run-round")
+async def denovo_run_round(request: DeNovoRunRequest):
+    """Run one closed de-novo generate -> predict -> GP-select -> rank iteration.
+
+    Thin wiring over the existing DeNovoPipeline + get_generator + BayesianOptimizer.
+    Honest: BRICS is deterministic enumeration (is_learned=False); NIM generators
+    are learned but return an empty ranked list + status when no NVIDIA_API_KEY —
+    never fabricated molecules.
+    """
+    from .generators import get_generator, GenerationSpec
+    from .denovo_pipeline import DeNovoPipeline
+
+    objectives = []
+    for nm in (request.objectives or []):
+        spec_obj = _builtin_objective(nm)
+        if spec_obj is None:
+            raise HTTPException(status_code=400, detail=f"Unknown objective {nm!r}; available: qed, sa")
+        objectives.append(spec_obj)
+    if not objectives:
+        raise HTTPException(status_code=400, detail="At least one objective is required")
+    if not request.seed_smiles:
+        raise HTTPException(status_code=400, detail="seed_smiles must be a non-empty list")
+
+    try:
+        generator = get_generator(request.generator)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Isolated ephemeral DB for the optimizer's persistence. A stateless one-shot
+    # round must NOT write bo_proposals into a shared/relative "galaxy_ai_tools.db"
+    # (default), which — resolved against the backend CWD — could collide with the
+    # real workflow DB. Use a per-request temp file and delete it afterward.
+    _fd, _tmp_db = tempfile.mkstemp(prefix="denovo_", suffix=".db")
+    os.close(_fd)
+    pipeline = DeNovoPipeline(
+        campaign_id=request.campaign_id or "denovo-adhoc",
+        generator=generator,
+        objectives=objectives,
+        db_path=_tmp_db,
+        n_initial=min(8, max(1, len(request.seed_smiles))),
+    )
+    spec = GenerationSpec(
+        seed_smiles=request.seed_smiles[0],
+        n_molecules=request.n_molecules,
+        max_candidates=request.max_candidates,
+    )
+    try:
+        result = pipeline.run_round(spec, seed_smiles=request.seed_smiles, n_propose=request.n_propose)
+    except (ImportError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    finally:
+        try:
+            os.remove(_tmp_db)
+        except OSError:
+            pass
+
+    # Return only JSON-safe fields (ranked is a list of plain dicts); omit the
+    # RoundProposal object which may carry numpy arrays.
+    return {
+        "campaign_id": result.campaign_id,
+        "generator_name": result.generator_name,
+        "generator_is_learned": result.generator_is_learned,
+        "generator_status": result.generator_status,
+        "n_generated": result.n_generated,
+        "n_scored": result.n_scored,
+        "ranked": result.ranked,
+        "notes": result.notes,
+    }
+
+
 @router.get("/audit")
 async def query_audit_log(
     resource_id: Optional[str] = Query(None, description="campaign_id to filter by"),
@@ -1842,7 +2019,8 @@ async def trigger_retrain_now(
     Force an immediate GP refit + proposal round.
 
     Returns the new Proposal in the shape expected by DrugDiscoveryAutoRetrain:
-      { round, generated_at, trigger, items: [{rank, smiles, score, ci_lo, ci_hi, ad}] }
+      { round, generated_at, trigger, can_discriminate,
+        items: [{rank, smiles, score, std, ci_lo, ci_hi, ad}] }
     """
     try:
         from .auto_retrain import CampaignDataError, refit_and_propose, start_background_loop
@@ -1894,7 +2072,8 @@ async def trigger_retrain_legacy(
 def _format_proposal(proposal) -> dict:
     """
     Shape an AutoProposal into the Proposal contract expected by the frontend:
-      { round, generated_at, trigger, items: [{rank, smiles, score, ci_lo, ci_hi, ad}] }
+      { round, generated_at, trigger, can_discriminate,
+        items: [{rank, smiles, score, std, ci_lo, ci_hi, ad}] }
     """
     from .auto_retrain import CAMPAIGN_OBJECTIVE
 
@@ -1903,6 +2082,13 @@ def _format_proposal(proposal) -> dict:
     scores = proposal.scores
     ci = proposal.confidence_intervals
     ad = proposal.ad_statuses  # list parallel to smiles
+    stds = getattr(proposal, "gp_stds", None) or {}
+    std_list = stds.get(CAMPAIGN_OBJECTIVE) if isinstance(stds, dict) else None
+
+    if isinstance(scores, dict) and CAMPAIGN_OBJECTIVE in scores:
+        scores = scores[CAMPAIGN_OBJECTIVE]
+    if isinstance(ci, dict) and CAMPAIGN_OBJECTIVE in ci:
+        ci = ci[CAMPAIGN_OBJECTIVE]
 
     if isinstance(scores, dict) and CAMPAIGN_OBJECTIVE in scores:
         scores = scores[CAMPAIGN_OBJECTIVE]
@@ -1943,6 +2129,8 @@ def _format_proposal(proposal) -> dict:
             "rank":    i + 1,
             "smiles":  smi,
             "score":   score_list[i] if i < len(score_list) else 0.0,
+            # None for rounds persisted before posterior stds were stored.
+            "std":     float(std_list[i]) if std_list and i < len(std_list) else None,
             "ci_lo":   ci_lo_list[i] if i < len(ci_lo_list) else 0.0,
             "ci_hi":   ci_hi_list[i] if i < len(ci_hi_list) else 1.0,
             "ad":      ad_list[i] if i < len(ad_list) else "in_domain",
@@ -1954,6 +2142,10 @@ def _format_proposal(proposal) -> dict:
         "trigger":      proposal.triggered_by,
         "items":        items,
         "training_report": proposal.training_report,
+        # False: predicted differences are within uncertainty, so the items are
+        # not a ranking. None: round persisted before this was recorded.
+        "can_discriminate": getattr(proposal, "can_discriminate", None),
+        "surrogate_report": getattr(proposal, "surrogate_report", None) or {},
     }
 
 

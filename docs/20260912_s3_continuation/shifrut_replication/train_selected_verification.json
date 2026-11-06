@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "selected_lists_verified": 8,
+  "rows_verified": 160,
+  "metric_and_summary_comparisons": 1992,
+  "selection_reconstruction": "Independent per-gene numpy variance over training donor effects; exclude own perturbation; control CPM >=1 from training donor only; Python stable sort by descending variance and gene name",
+  "mask_verification": "Both true and mismatched target removed for every arm",
+  "leakage_review": "No held-out outcome values enter selection or predictions. Gene/target identities and common coverage are shared design information. This is reused-data development sensitivity, not untouched confirmation. Source inclusion and target availability can still limit generalization.",
+  "input_sha256": "a4dc1e3d8146f09bf6e947c39a710bea4a5408ae1acd6203a54c86c0f4aaee1e"
+}

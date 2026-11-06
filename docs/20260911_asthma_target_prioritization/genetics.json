@@ -1,0 +1,302 @@
+{
+  "lane": "Human genetics and GWAS",
+  "retrieved": "2026-09-11",
+  "scores": {
+    "TSLP": 4,
+    "IL33": 5,
+    "IL1RL1": 4
+  },
+  "variants": [
+    {
+      "target": "TSLP",
+      "score": 4,
+      "rsid": "rs1837253",
+      "p": 1e-40,
+      "p_value": 1e-40,
+      "minus_log10_p": 40.0,
+      "reported_allele": "T",
+      "effect_verbatim": "0.1191 unit decrease",
+      "beta_signed": -0.1191,
+      "or": null,
+      "effect_scale": "GWAS Catalog unit beta; do not convert to OR without study scale verification",
+      "reported_range_verbatim": "[0.1-0.13]",
+      "study": "GCST90480249",
+      "PMID": "39024449",
+      "phenotype": "Asthma",
+      "phenotype_class": "direct",
+      "ancestry": "Multi-ancestry MVP: European, African American/Afro-Caribbean, Hispanic/Latin American, East Asian",
+      "mapped_genes": [
+        "BCLAF1P1",
+        "TSLP"
+      ],
+      "catalog_association_id": 226258978,
+      "source": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226258978",
+      "gnomad": {
+        "data": {
+          "gene": {
+            "gene_id": "ENSG00000145777",
+            "symbol": "TSLP",
+            "gnomad_constraint": {
+              "pLI": 7.048325843013238e-05,
+              "oe_lof": 0.9668179885443776,
+              "oe_lof_lower": 0.6195352180557557,
+              "oe_lof_upper": 1.5664521476402535
+            }
+          }
+        }
+      },
+      "opentargets": {
+        "data": {
+          "target": {
+            "id": "ENSG00000145777",
+            "approvedSymbol": "TSLP",
+            "evidences": {
+              "count": 123,
+              "rows": [
+                {
+                  "datasourceId": "gwas_credible_sets",
+                  "disease": {
+                    "id": "MONDO_0004979",
+                    "name": "asthma"
+                  }
+                },
+                {
+                  "datasourceId": "gwas_credible_sets",
+                  "disease": {
+                    "id": "MONDO_0004979",
+                    "name": "asthma"
+                  }
+                },
+                {
+                  "datasourceId": "gwas_credible_sets",
+                  "disease": {
+                    "id": "MONDO_0004979",
+                    "name": "asthma"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "target": "IL33",
+      "score": 5,
+      "rsid": "rs1888909",
+      "p": 5e-31,
+      "p_value": 5e-31,
+      "minus_log10_p": 30.30102999566398,
+      "reported_allele": "T",
+      "effect_verbatim": "0.08906 unit increase",
+      "beta_signed": 0.08906,
+      "or": null,
+      "effect_scale": "GWAS Catalog unit beta; do not convert to OR without study scale verification",
+      "reported_range_verbatim": "[0.073-0.105]",
+      "study": "GCST90480249",
+      "PMID": "39024449",
+      "phenotype": "Asthma",
+      "phenotype_class": "direct",
+      "ancestry": "Multi-ancestry MVP: European, African American/Afro-Caribbean, Hispanic/Latin American, East Asian",
+      "mapped_genes": [
+        "GTF3AP1",
+        "IL33"
+      ],
+      "catalog_association_id": 226259178,
+      "source": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226259178",
+      "gnomad": {
+        "data": {
+          "gene": {
+            "gene_id": "ENSG00000137033",
+            "symbol": "IL33",
+            "gnomad_constraint": {
+              "pLI": 2.3090042515888047e-16,
+              "oe_lof": 1.3556097021262896,
+              "oe_lof_lower": 1.0427169707559196,
+              "oe_lof_upper": 1.7833772967192716
+            }
+          }
+        }
+      },
+      "opentargets": {
+        "data": {
+          "target": {
+            "id": "ENSG00000137033",
+            "approvedSymbol": "IL33",
+            "evidences": {
+              "count": 126,
+              "rows": [
+                {
+                  "datasourceId": "gwas_credible_sets",
+                  "disease": {
+                    "id": "MONDO_0004979",
+                    "name": "asthma"
+                  }
+                },
+                {
+                  "datasourceId": "gwas_credible_sets",
+                  "disease": {
+                    "id": "MONDO_0004979",
+                    "name": "asthma"
+                  }
+                },
+                {
+                  "datasourceId": "gwas_credible_sets",
+                  "disease": {
+                    "id": "MONDO_0004979",
+                    "name": "asthma"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "target": "IL1RL1",
+      "score": 4,
+      "rsid": "rs13001714",
+      "p": 1e-43,
+      "p_value": 1e-43,
+      "minus_log10_p": 43.0,
+      "reported_allele": "A",
+      "effect_verbatim": "0.09795 unit decrease",
+      "beta_signed": -0.09795,
+      "or": null,
+      "effect_scale": "GWAS Catalog unit beta; do not convert to OR without study scale verification",
+      "reported_range_verbatim": "[0.085-0.11]",
+      "study": "GCST90480249",
+      "PMID": "39024449",
+      "phenotype": "Asthma",
+      "phenotype_class": "direct",
+      "ancestry": "Multi-ancestry MVP: European, African American/Afro-Caribbean, Hispanic/Latin American, East Asian",
+      "mapped_genes": [
+        "IL18R1",
+        "IL1RL1"
+      ],
+      "catalog_association_id": 226258966,
+      "source": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226258966",
+      "gnomad": {
+        "data": {
+          "gene": {
+            "gene_id": "ENSG00000115602",
+            "symbol": "IL1RL1",
+            "gnomad_constraint": {
+              "pLI": 4.862191700831543e-07,
+              "oe_lof": 0.629059545458912,
+              "oe_lof_lower": 0.47479623573428587,
+              "oe_lof_upper": 0.8449538375062217
+            }
+          }
+        }
+      },
+      "opentargets": {
+        "data": {
+          "target": {
+            "id": "ENSG00000115602",
+            "approvedSymbol": "IL1RL1",
+            "evidences": {
+              "count": 92,
+              "rows": [
+                {
+                  "datasourceId": "gwas_credible_sets",
+                  "disease": {
+                    "id": "MONDO_0004979",
+                    "name": "asthma"
+                  }
+                },
+                {
+                  "datasourceId": "gwas_credible_sets",
+                  "disease": {
+                    "id": "MONDO_0004979",
+                    "name": "asthma"
+                  }
+                },
+                {
+                  "datasourceId": "gwas_credible_sets",
+                  "disease": {
+                    "id": "MONDO_0004979",
+                    "name": "asthma"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "figure_note": "Selected lead asthma-linked associations in the SAME study GCST90480249 (MVP, Verma 2024 PMID 39024449), not globally strongest or proven causal variants. P-values quantify association evidence, not comparative therapeutic value.",
+  "study_metadata": {
+    "initial_sample_size": "12,093 African American or Afro-Caribbean cases, 105,134 African American or Afro-Caribbean controls, 5,688 Hispanic or Latin American cases, 52,071 Hispanic or Latin American controls, 609 East Asian ancestry cases, 6,004 East Asian ancestry controls, 36,823 European ancestry cases, 398,278 European ancestry controls",
+    "replication_sample_size": "NA",
+    "gxe": false,
+    "gxg": false,
+    "snp_count": 44300000,
+    "imputed": true,
+    "pooled": false,
+    "accession_id": "GCST90480249",
+    "full_summary_stats_available": true,
+    "user_requested": false,
+    "pubmed_id": 39024449,
+    "platforms": "NR [44300000] (imputed)",
+    "disease_trait": "Asthma",
+    "genotyping_technologies": [
+      "Genome-wide genotyping array"
+    ],
+    "efo_traits": [
+      {
+        "efo_id": "MONDO_0004979",
+        "efo_trait": "asthma"
+      }
+    ],
+    "discovery_ancestry": [
+      "435101 European (U.S.)",
+      "57759 Hispanic or Latin American (U.S.)",
+      "117227 African American or Afro-Caribbean (U.S.)",
+      "6613 East Asian (U.S.)"
+    ],
+    "replication_ancestry": [],
+    "full_summary_stats": "http://ftp.ebi.ac.uk/pub/databases/gwas/summary_statistics/GCST90480001-GCST90481000/GCST90480249",
+    "terms_of_license": "https://www.ebi.ac.uk/about/terms-of-use/",
+    "bg_efo_traits": [],
+    "cohort": [
+      "MVP"
+    ],
+    "array_manufacturer": [],
+    "_links": {
+      "self": {
+        "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/studies/GCST90480249"
+      },
+      "ancestries": {
+        "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/studies/GCST90480249/ancestries{?sort,direction}",
+        "templated": true
+      }
+    }
+  },
+  "functional_rare_variant": {
+    "target": "IL33",
+    "rsid": "rs146597587",
+    "reported_allele": "C",
+    "p": 0.00018,
+    "or": 0.47,
+    "ci": [
+      0.32,
+      0.7
+    ],
+    "cases": 6465,
+    "controls": 302977,
+    "ancestry": "European; Icelandic discovery",
+    "PMID": "28273074",
+    "context": "Splice-acceptor LoF supports lower IL33 activity protective for asthma; p is not genome-wide significant in this experiment.",
+    "source": "https://pubmed.ncbi.nlm.nih.gov/28273074/"
+  },
+  "caveats": [
+    "GWAS Catalog mapped_gene is positional annotation, not causal gene proof.",
+    "Only first 10 associations per target retrieved; not comprehensive or independent study counts.",
+    "Family-history and medication-use asthma rows excluded from chosen figure.",
+    "Open Targets gwas_credible_sets counts contain correlated/overlapping study evidence; not independent replication.",
+    "gnomAD constraint retrieved using gnomad_constraint on GRCh38; API field release unspecified and must not be labelled current v4 LOEUF. Constraint is not asthma evidence or drug-safety clearance."
+  ]
+}

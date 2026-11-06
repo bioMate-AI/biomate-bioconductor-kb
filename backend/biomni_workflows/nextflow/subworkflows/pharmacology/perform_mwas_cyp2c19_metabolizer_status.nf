@@ -56,7 +56,7 @@ with open("perform_mwas_cyp2c19_metabolizer_status_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("perform_mwas_cyp2c19_metabolizer_status_output.txt", "w") as f:
-    f.write("Biomni: Perform Mwas Cyp2C19 Metabolizer Status Results" + NL)
+    f.write("BioMate: Perform Mwas Cyp2C19 Metabolizer Status Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

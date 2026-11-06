@@ -1,0 +1,8 @@
+{
+ "chembl_release": "ChEMBL_37 (2026-05-01)",
+ "licence": "CC BY-SA 3.0",
+ "query": "molecule_properties__full_mwt__range=700,1400",
+ "api_total": 122413,
+ "kept_macrocycle_peptidelike": 14802,
+ "removed_overlap_with_cycpeptmpdb_inchikey": 219
+}

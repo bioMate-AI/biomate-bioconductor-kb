@@ -153,6 +153,27 @@ describe("SeqTracks", () => {
     fireEvent.click(within(flag).getByText("open"))
     expect(onOpen).toHaveBeenCalledWith(TRACKS_FIXTURE.flagged[0])
   })
+
+  it("aligns marks and ticks on one shared domain, not per-track extent", () => {
+    // Regression: each track used to normalise against its OWN max, so a mark
+    // and a variant tick at the SAME base rendered at different x. With bp known,
+    // both map to true base coordinates.
+    render(
+      <SeqTracks
+        locus="loc"
+        bp={100}
+        tracks={[
+          { kind: "marks", name: "M", intervals: [[40, 50]] as [number, number][] },
+          { kind: "ticks", name: "T", values: [40, 90] },
+        ]}
+      />,
+    )
+    const markX = screen.getByTestId("seq-track-M").querySelector("rect")?.getAttribute("x")
+    const firstTickX = screen.getByTestId("seq-track-T").querySelectorAll("rect")[0]?.getAttribute("x")
+    // base 40 on both tracks → identical x (old code: 80 vs ~44.4)
+    expect(markX).toBe(firstTickX)
+    expect(markX).toBe("40") // 40/100 * viewbox-100
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -209,5 +230,28 @@ describe("HitGrid", () => {
     // click to flip to ascending → lowest score first (held BM-4541 sorts by 7.1)
     fireEvent.click(screen.getByTestId("hit-sort-score"))
     expect(firstRowId()).toBe("hit-row-BM-4541")
+  })
+
+  it("sorts a null-score (held) hit to the end, never coerced to 0", () => {
+    // Regression: ChemicalView coerced a held/stub null score to 0, so an
+    // unscored compound sorted as the worst real score (and FIRST when ascending).
+    const hits: ChemHit[] = [
+      { id: "NULL1", smiles: "C", score: null, confidence: "out-of-domain", herg: "—", drugLike: "—", verdict: "held" },
+      { id: "LOW", smiles: "CC", score: 2.0, confidence: "low", herg: "1", drugLike: "1/4", verdict: "rejected" },
+      { id: "HIGH", smiles: "CCC", score: 9.0, confidence: "high", herg: "9", drugLike: "4/4", verdict: "accepted" },
+    ]
+    render(<HitGrid hits={hits} />)
+    const ids = () =>
+      Array.from(screen.getByTestId("hit-table").querySelectorAll("tbody tr")).map(r =>
+        r.getAttribute("data-testid"),
+      )
+    // default desc: real 9, 2, then unscored LAST
+    expect(ids()).toEqual(["hit-row-HIGH", "hit-row-LOW", "hit-row-NULL1"])
+    // ascending: real 2, 9, unscored STILL last (the 0-coercion bug put it FIRST)
+    fireEvent.click(screen.getByTestId("hit-sort-score"))
+    expect(ids()).toEqual(["hit-row-LOW", "hit-row-HIGH", "hit-row-NULL1"])
+    // the unscored hit shows "held", not a fabricated 0
+    expect(screen.getByTestId("hit-score-NULL1")).toHaveTextContent("held")
+    expect(screen.getByTestId("hit-score-NULL1")).not.toHaveTextContent("0")
   })
 })

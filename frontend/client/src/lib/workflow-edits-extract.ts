@@ -73,6 +73,39 @@ function findStepIdByParam(steps: WorkflowStep[], paramName: string): string | n
 }
 
 /**
+ * Collect every parameter name the workflow actually declares — step params,
+ * inline_parameters/parameters maps, and required_params/optional_params lists.
+ * Used to reject edits for names the workflow does not have (see the schema gate
+ * in extractWorkflowEdits): the "<key> = <value>" / "<key>: <value>" patterns
+ * otherwise match chemistry in a user message, e.g. a SMILES like
+ * "CN1C=NC2=C1C(=O)…" parses as param "CN1C" = "NC2=…" and injects a phantom row.
+ */
+export function knownParamNames(wf: WorkflowArtifact): Set<string> {
+  const names = new Set<string>();
+  const addObj = (o: unknown) => {
+    if (o && typeof o === 'object' && !Array.isArray(o)) {
+      for (const k of Object.keys(o as Record<string, unknown>)) names.add(k);
+    }
+  };
+  const addList = (l: unknown) => {
+    if (Array.isArray(l)) {
+      for (const p of l) {
+        const n = (p && typeof p === 'object') ? (p as { name?: unknown }).name : p;
+        if (typeof n === 'string' && n) names.add(n);
+      }
+    }
+  };
+  const w = wf as Record<string, unknown>;
+  addObj(w.inline_parameters);
+  addObj(w.parameters);
+  addList(w.required_params);
+  addList(w.optional_params);
+  const steps = getSteps(wf);
+  if (steps) for (const s of steps) addObj((s as { params?: unknown; parameters?: unknown }).params ?? (s as { parameters?: unknown }).parameters);
+  return names;
+}
+
+/**
  * Extract zero or more WorkflowEdits from a user message + the currently
  * open workflow artifact. Returns [] when nothing clear was matched.
  */
@@ -90,6 +123,16 @@ export function extractWorkflowEdits(
     const rawValue = m[2];
     const stepHint = m[3];
     if (!paramName || rawValue == null) continue;
+
+    // Schema gate: when the workflow declares its parameters, only accept an
+    // edit for a name it actually has. This blocks "<key>=<value>" / "<key>:
+    // <value>" false matches on chemistry/prose in a user message (e.g. a
+    // SMILES "CN1C=NC2=…" → phantom param "CN1C"). When no param metadata is
+    // present (lazy-loaded workflow), fall through to the legacy behaviour so a
+    // real edit is not dropped.
+    const known = knownParamNames(workflow);
+    if (known.size > 0 && !known.has(paramName)) return [];
+
     const value = coerceValue(rawValue);
 
     // Resolve target step.

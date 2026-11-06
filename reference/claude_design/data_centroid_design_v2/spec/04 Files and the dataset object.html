@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 04 — Files &amp; the dataset object</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Files &amp; the dataset object</h1>
+<p class="docmeta"><span>BioMate · Function-module spec 04</span><span>Status: for review</span><span>Surface: Project → Files</span></p>
+
+<p class="lede">Everything in BioMate is downstream of a file. This spec covers the project file system and the <strong>dataset object</strong> — the claim that a file is not an inert blob but an object with quality, versions, lineage and a list of everything that has consumed it. Two design commitments run through it: the object is <em>attached to</em> the familiar file, never a replacement for it; and history is <strong>append-only</strong>, so nothing a finished run consumed can change underneath it.</p>
+
+<h2><span class="num">4.1</span>Why a file becomes an object</h2>
+<table class="st">
+<thead><tr><th>Question a scientist actually asks</th><th>A plain file system</th><th>The dataset object</th></tr></thead>
+<tbody>
+<tr><td>"Is this the version the figure came from?"</td><td>Guess from the filename.</td><td>The run records the exact version it read.</td></tr>
+<tr><td>"Where did this file come from?"</td><td>Ask a colleague.</td><td>Origin, who added it, and the run that produced it.</td></tr>
+<tr><td>"Can I trust it?"</td><td>Open it and look.</td><td>A quality verdict from ingest, with the specific notes behind it.</td></tr>
+<tr><td>"What did we do with it?"</td><td>Search chat history.</td><td>Every run that read it, and everything those runs wrote.</td></tr>
+<tr><td>"Someone edited it — what broke?"</td><td>Unanswerable.</td><td>Versions, a diff, and which runs pinned which version.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Attachment rule</span><p>The object does not replace the file. Users still see folders, filenames and extensions, and can still open the thing in Jupyter. Everything the object adds hangs off that familiar row — because a tool that renames the user's mental model to "dataset entity" loses before it starts.</p></div>
+
+<h2><span class="num">4.2</span>The file system <span class="tag ship">shipped</span></h2>
+<h3>4.2.1 Layout</h3>
+<figure>
+<div class="wire">┌──────────────────────┬───────────────────────────────────────────┐
+│ Files        [＋ Add] │ Fibrosis target triage / Files            │
+│                      │                                           │
+│ ▾ uploads          3 │ counts.tsv        v3   ● good             │
+│   ● design.csv   v3  │ [Jupyter] [RStudio] [Plot] [Ask in chat]  │
+│   ● reads_R1.fq.gz   │                                           │
+│   ◐ assay_2026.csv   │ ┌ Preview ┬ Versions ┬ Where it came from │
+│ ▾ results          2 │ │ [Table] [Columns] [Plot]        [Edit] ││
+│   ● counts.tsv   v3  │ │                                        ││
+│   ● de_results.tsv   │ │  gene_id  gene_name  CTRL_01  TREAT_01 ││
+│ ▾ shared           1 │ │  ENSG…    TP53       1042     908      ││
+│                      │ └────────────────────────────────────────┘│
+│                      │ 38,214 rows · 24 cols · 14.2 MB · v3      │
+└──────────────────────┴───────────────────────────────────────────┘</div>
+<figcaption>Project → Files. Left: the tree, with a quality dot and a version tag per file. Right: the dataset object for the selected file, in three tabs.</figcaption>
+</figure>
+
+<h3>4.2.2 Tree elements</h3>
+<table class="el">
+<thead><tr><th>Element</th><th>What it is</th><th>States &amp; behaviour</th></tr></thead>
+<tbody>
+<tr><td>.hublist</td><td>The file tree column.</td><td>Independent scroll from the object pane. Header states the scope: "Uploads and run outputs in <em>this project</em>".</td></tr>
+<tr><td>＋ Add</td><td>Ingest entry.</td><td>Drop a file, paste a URL, or pull from a connected database. The quality card is produced <strong>before</strong> anything runs — see §4.5.</td></tr>
+<tr><td>.folderrow</td><td>A folder: chevron, icon, name, file count.</td><td>Click folds. Folders are conventional — <code>uploads/</code>, <code>results/</code>, <code>shared/</code> — not a taxonomy the user must learn.</td></tr>
+<tr><td>.filerow</td><td>A file: quality dot, mono filename, version tag.</td><td>Click selects. Selected row is accented. The dot is the only always-visible quality signal, and it is never the only carrier — the object pane spells it out.</td></tr>
+<tr><td>.vtag</td><td><code>v3</code> — the current version.</td><td>Present only where more than one version exists.</td></tr>
+</tbody>
+</table>
+<h3>4.2.3 Scope: project, shared, account</h3>
+<p>A file lives in a project by default. It can be promoted to account scope — <code>shared/</code> — and then used from any project <strong>without re-uploading</strong>: still one file, one version history, one lineage. Demoting it back restricts new use, and other projects keep a read-only reference to the version they already consumed. A content hash means the same file added twice links to one entry rather than creating two.</p>
+
+<h2><span class="num">4.3</span>The dataset object — Preview <span class="tag ship">shipped</span></h2>
+<p>Tab one answers "what is in it". Three views over the same bytes, plus editing.</p>
+<table class="el">
+<thead><tr><th>View</th><th>Shows</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Table</td><td>Rows and columns, with cells the quality check flagged shown amber.</td><td>The default. Flagged cells are the actual evidence for the file's amber verdict.</td></tr>
+<tr><td>Columns</td><td>Per column: name, inferred type, % missing with a bar, distinct count or a note, and a <span class="tag">watch</span> chip where something is wrong.</td><td>This is the view that makes a quality verdict arguable rather than mysterious.</td></tr>
+<tr><td>Plot</td><td>Distributions and structure drawn from the file — library sizes with a floor, a PCA, a volcano.</td><td>If nothing numeric is present the view says so and offers Jupyter or chat, rather than rendering an empty axis.</td></tr>
+<tr><td>Edit</td><td>The table becomes editable in place. Amber cells are the ones to fix.</td><td>See the append-only rule below.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Append-only rule</span><p>Saving an edit writes <strong>a new version</strong>. It never overwrites. The copy says so at the moment of editing — "saving writes v4 and leaves earlier versions intact, so a completed run always keeps the exact bytes it consumed". This is the single most important sentence in the file system, because it is what makes the rest of the audit trail true.</p></div>
+<p>Below the preview, a stat grid: rows, columns, size, current version, and any domain-specific summary the ingest produced.</p>
+<h3>4.3.1 Open in</h3>
+<p>The object header offers the environments that fit the file — Jupyter (Python, pandas, scanpy), RStudio (R, tidyverse, DESeq2), a plot viewer, and <em>Ask in chat</em>. A session mounts the current version read-write; saving from that session writes a new version, exactly as an in-place edit does. Environments are offered by file type, so a VCF gets bcftools and a terminal rather than a plotting kernel.</p>
+
+<h2><span class="num">4.4</span>The dataset object — Versions <span class="tag ship">shipped</span></h2>
+<figure>
+<div class="wire">┌──────────────────────────────────────────────────────────────┐
+│ v3  Merged the two spellings of “control”                    │
+│     A. Dike · 14 Aug · used by 2 runs           ● current    │
+│ v2  Added batch for the 4 re-sequenced samples               │
+│     A. Dike · 11 Aug              [Compare]  [Restore]       │
+│ v1  Original upload                                          │
+│     R. Osei · 2 Aug               [Compare]  [Restore]       │
+└──────────────────────────────────────────────────────────────┘
+Runs that read this file:
+  ● completed  Bulk RNA-seq differential expression   read v2
+  ● running    Pathway scoring                        read v3</div>
+<figcaption>Versions. Each row: number, what changed in words, who and when, and what used it. Restoring writes a new version — history never rewinds.</figcaption>
+</figure>
+<table class="el">
+<thead><tr><th>Element</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>.versrow</td><td>One version. The current one is marked and offers no destructive action.</td></tr>
+<tr><td>what changed</td><td>Written in words — "merged the two spellings of control" — not a commit hash or a byte count. If a change came from a run, the run is named.</td></tr>
+<tr><td>Compare</td><td>Cell-level and column-level diff against the current version, side by side.</td></tr>
+<tr><td>Restore</td><td>Writes the old content as a <em>new</em> version. Append-only, so nothing is lost and no run is retroactively altered.</td></tr>
+<tr><td>Runs that read this file</td><td>Derived from the authoritative link — a run appears here only if it lists this file as an input, so the run list and the version chips cannot disagree.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">4.5</span>The dataset object — Where it came from <span class="tag ship">shipped</span></h2>
+<h3>4.5.1 Origin</h3>
+<p>Type (upload, run output, database pull, shared), a human label, who added it and when, and a note about how. If it was produced by a run, <em>Open the run that produced it →</em> goes straight to that run surface. The content hash is shown, with the deduplication behaviour stated plainly. Visibility — this project or the whole account — is a two-button control here, with the consequence written next to it rather than in a help article.</p>
+<h3>4.5.2 Quality, at ingest</h3>
+<p>Quality is assessed <strong>when the file arrives</strong>, not when a run fails. The verdict is one of three, and it always comes with the specific notes that produced it.</p>
+<table class="st">
+<thead><tr><th>Verdict</th><th>Meaning</th><th>Consequence</th></tr></thead>
+<tbody>
+<tr><td>Good</td><td>Nothing found that should stop use.</td><td>None.</td></tr>
+<tr><td>Watch</td><td>Something specific is wrong — a missing batch column, two spellings of one level, an outlier depth.</td><td>Runs can still use it; outputs inherit the amber verdict.</td></tr>
+<tr><td>Blocked</td><td>Unusable as-is — malformed, or a licence not accepted.</td><td>Cannot be an input until resolved.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Inheritance rule</span><p>Anything produced from an amber input <strong>stays amber until a human clears it</strong>. A figure built from a watch-flagged table carries the flag. This is what stops a quality problem from being laundered by three steps of processing.</p></div>
+<h3>4.5.3 What used it, and what came out</h3>
+<p>The lineage section, and the reason the object exists. Every run that read the file, with its status, the version it read, and its gate summary — and beneath it, everything those runs produced, each output typed by evidence class (Spec 00 §0.7) and openable. Outputs that are themselves datasets — a counts matrix, a DE results table — open as dataset objects, which is how lineage chains without a separate lineage viewer. Training runs appear in this same list alongside workflow runs: one history, not two (Spec 03 §3.4).</p>
+<p><em>Export for deposit</em> emits an RO-Crate: source, checksums, versions, runs, parameters, software and outputs — the archive a journal or a regulator asks for, assembled from what the object already knows.</p>
+
+<h2><span class="num">4.6</span>Ingest <span class="tag new">new</span></h2>
+<p>The moment that determines whether everything downstream is trustworthy. Three sources, one outcome.</p>
+<ul class="deck">
+  <li><b>Drop a file</b><span>Local upload. Parsed, typed and profiled on arrival.</span></li>
+  <li><b>Paste a URL</b><span>Fetched, with the source URL retained as origin.</span></li>
+  <li><b>Pull from a database</b><span>From a connector configured for the account; the query and the corpus version are retained as origin.</span></li>
+</ul>
+<p>In all three cases ingest produces the <strong>quality card before anything runs</strong>: detected type, row and column counts, the column profile, and the specific notes. The user sees what BioMate thinks the file is, and can correct a mis-detected column mapping <em>then</em> — which is far cheaper than discovering it in a 40-minute run's phase C.</p>
+
+<h2><span class="num">4.7</span>Where datasets appear elsewhere</h2>
+<table class="st">
+<thead><tr><th>Surface</th><th>How</th></tr></thead>
+<tbody>
+<tr><td>The composer</td><td>An attached file becomes a data chip; the chip opens the object. See Spec 06.</td></tr>
+<tr><td>Workflow input slots</td><td>Slots resolve from the project's files rather than asking for an upload. A slot shows the resolved dataset and version as a chip (Spec 02 §2.4.2).</td></tr>
+<tr><td>The full step view</td><td>A step's provenance row shows the dataset chips it ran with; an output tagged as a dataset opens here (Spec 08).</td></tr>
+<tr><td>Models</td><td>Training data and held-out sets are dataset objects, and a model's lineage links to the exact version it learned from (Spec 03 §3.3).</td></tr>
+<tr><td>The after-run report</td><td>Outputs are listed by producing step; those that are datasets link into Files.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">4.8</span>Empty and failure states</h2>
+<table class="st">
+<thead><tr><th>Situation</th><th>What the UI does</th></tr></thead>
+<tbody>
+<tr><td>Project has no files</td><td>Says so and offers the three ingest routes. Does not show an empty tree with empty folders.</td></tr>
+<tr><td>One version only</td><td>"Only one version of this file exists. Editing it, or a run writing to it, creates the next one." — teaches the model at the moment it is relevant.</td></tr>
+<tr><td>Nothing has used the file</td><td>"Nothing has used this file yet." No fabricated lineage graph.</td></tr>
+<tr><td>No preview captured</td><td>States it plainly and offers Jupyter or chat. Never a broken table.</td></tr>
+<tr><td>File is blocked</td><td>The reason is on the row and in the object header, with the action that unblocks it — accept a licence, fix a malformed header.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">4.9</span>Copy rules</h2>
+<ol>
+<li><strong>Say "file", show the object.</strong> Never make the user learn a new noun for their data.</li>
+<li><strong>Version changes are described in words.</strong> What changed, not which bytes.</li>
+<li><strong>A quality verdict always carries its evidence.</strong> A dot with no notes behind it is a rumour.</li>
+<li><strong>State the consequence at the control.</strong> Scope buttons, edit saves and restores all say what will happen next to them.</li>
+<li><strong>Amber travels.</strong> Inherited quality is shown on the descendant, not only on the ancestor.</li>
+</ol>
+
+<h2><span class="num">4.10</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Whether a human clearing an inherited amber flag needs a recorded reason, and whether that reason belongs in the report.</li>
+<li><span class="tag open">open</span> How far lineage should render as a graph rather than nested lists, for a file eight runs deep.</li>
+<li><span class="tag open">open</span> Whether account-scope promotion needs an approval step in regulated organisations.</li>
+<li><span class="tag open">open</span> Retention: whether old versions of very large files can be pruned, and how a pinned run survives if they are.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 04 · Files &amp; the dataset object</span><span>Next: 05 — Design &amp; generate</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

@@ -19,6 +19,7 @@ import {
   runRulePass,
   hasParameterSignal,
   validateAgainstSchema,
+  coerceNumericParams,
   type ValidationReport,
 } from "./paramRules.js";
 import {
@@ -168,6 +169,16 @@ export async function extractParameters(
   // Drop any user-overridden keys from output (caller merges them in instead).
   if (userOverriddenKeys) {
     for (const k of userOverriddenKeys) delete params[k];
+  }
+
+  // Stage 3c-pre — numeric guardrail: strip prose punctuation that bled into
+  // numeric-typed values (e.g. "500000)" from "(max_spots=500000).") so the
+  // workflow's Groovy `as int` coercion doesn't throw and fail the whole run.
+  for (const c of coerceNumericParams(params, schema)) {
+    provenance.push({ key: c.key, source: "rules", rule: "numeric-coerce" });
+    console.log(
+      `[schemaGroundedExtractor] numeric-coerce ${c.key}: "${c.from}" -> "${c.to}"`,
+    );
   }
 
   // Stage 3c — validate.

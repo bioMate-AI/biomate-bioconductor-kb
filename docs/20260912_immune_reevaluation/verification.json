@@ -1,0 +1,65 @@
+{
+  "runs": [
+    {
+      "run": "ERM_seed0",
+      "source_labels": "pass",
+      "split_separation": "pass",
+      "metrics": "pass"
+    },
+    {
+      "run": "IRM_seed0",
+      "source_labels": "pass",
+      "split_separation": "pass",
+      "metrics": "pass"
+    },
+    {
+      "run": "shuffled_ERM_seed0",
+      "source_labels": "pass",
+      "split_separation": "pass",
+      "metrics": "pass"
+    },
+    {
+      "run": "ERM_seed1",
+      "source_labels": "pass",
+      "split_separation": "pass",
+      "metrics": "pass"
+    },
+    {
+      "run": "IRM_seed1",
+      "source_labels": "pass",
+      "split_separation": "pass",
+      "metrics": "pass"
+    },
+    {
+      "run": "shuffled_ERM_seed1",
+      "source_labels": "pass",
+      "split_separation": "pass",
+      "metrics": "pass"
+    },
+    {
+      "run": "ERM_seed2",
+      "source_labels": "pass",
+      "split_separation": "pass",
+      "metrics": "pass"
+    },
+    {
+      "run": "IRM_seed2",
+      "source_labels": "pass",
+      "split_separation": "pass",
+      "metrics": "pass"
+    },
+    {
+      "run": "shuffled_ERM_seed2",
+      "source_labels": "pass",
+      "split_separation": "pass",
+      "metrics": "pass"
+    }
+  ],
+  "pooled_row_spearman": {
+    "ERM": 0.05663811130312715,
+    "IRM": 0.05663784509071116,
+    "shuffled_ERM": 0.05648227055480193,
+    "condition_mean": 0.05666478578721017
+  },
+  "note": "Development subset; overlapping test targets across seeds; not independent cohort uncertainty"
+}

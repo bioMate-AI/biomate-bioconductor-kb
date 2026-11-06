@@ -56,7 +56,7 @@ with open("quantify_amyloid_beta_plaques_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("quantify_amyloid_beta_plaques_output.txt", "w") as f:
-    f.write("Biomni: Quantify Amyloid Beta Plaques Results" + NL)
+    f.write("BioMate: Quantify Amyloid Beta Plaques Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

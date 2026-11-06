@@ -1,0 +1,7 @@
+{
+  "http_status": 200,
+  "body": {
+    "status": "pending",
+    "message": "Analysis triggered \u2014 check back in a few seconds."
+  }
+}

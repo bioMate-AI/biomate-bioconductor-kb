@@ -1,0 +1,170 @@
+{
+  "target": "pdl2",
+  "n_designs": 8,
+  "n_ok": 8,
+  "within_target_ranking": [
+    {
+      "design": "PDL1-G2-F10",
+      "seq": "VPDFRFVTINWE",
+      "dG": -46.59,
+      "ring": true
+    },
+    {
+      "design": "PDL1-G2-F11",
+      "seq": "FRFPKLNWNLIE",
+      "dG": -42.29,
+      "ring": true
+    },
+    {
+      "design": "PDL1-G2-A02",
+      "seq": "WYFPVISDQKTA",
+      "dG": -42.28,
+      "ring": true
+    },
+    {
+      "design": "PDL1-G2-F01",
+      "seq": "V WEYPEFRLLD",
+      "dG": -40.69,
+      "ring": true
+    },
+    {
+      "design": "PDL1-G2-A04",
+      "seq": "WYFPLISENKTG",
+      "dG": -37.37,
+      "ring": true
+    },
+    {
+      "design": "PDL1-G2-F05",
+      "seq": "VRVSYNPWFNLE",
+      "dG": -37.03,
+      "ring": true
+    },
+    {
+      "design": "PDL1-G2-F13",
+      "seq": "FVRVRFP IQWD",
+      "dG": -32.15,
+      "ring": true
+    },
+    {
+      "design": "PDL1-G2-A08",
+      "seq": "WYFPVITDNKTG",
+      "dG": -25.11,
+      "ring": true
+    }
+  ],
+  "note": "Within-TARGET MM-GBSA ranking of designs for one receptor (the valid use). Implicit GBn2 minimized single-point, CHARMM36m, cyclic via psfgen CYCP patch. RELATIVE ranking, not absolute affinity; entropy omitted; confirm finalists with FEP. Trust only ring=true rows.",
+  "all": [
+    {
+      "target": "pdl2",
+      "design": "PDL1-G2-A02",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "WYFPVISDQKTA",
+      "dG_bind_kcal_mol": -42.28,
+      "E_complex_kcal": -3113.7,
+      "E_receptor_kcal": -3046.3,
+      "E_ligand_kcal": -25.2,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "pdl2",
+      "design": "PDL1-G2-A04",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "WYFPLISENKTG",
+      "dG_bind_kcal_mol": -37.37,
+      "E_complex_kcal": -3142.9,
+      "E_receptor_kcal": -3061.9,
+      "E_ligand_kcal": -43.6,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "pdl2",
+      "design": "PDL1-G2-A08",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "WYFPVITDNKTG",
+      "dG_bind_kcal_mol": -25.11,
+      "E_complex_kcal": -3185.4,
+      "E_receptor_kcal": -3068.7,
+      "E_ligand_kcal": -91.6,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "pdl2",
+      "design": "PDL1-G2-F01",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "V WEYPEFRLLD",
+      "dG_bind_kcal_mol": -40.69,
+      "E_complex_kcal": -3585.9,
+      "E_receptor_kcal": -3059.6,
+      "E_ligand_kcal": -485.6,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "pdl2",
+      "design": "PDL1-G2-F05",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "VRVSYNPWFNLE",
+      "dG_bind_kcal_mol": -37.03,
+      "E_complex_kcal": -3474.1,
+      "E_receptor_kcal": -3050.3,
+      "E_ligand_kcal": -386.7,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "pdl2",
+      "design": "PDL1-G2-F10",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "VPDFRFVTINWE",
+      "dG_bind_kcal_mol": -46.59,
+      "E_complex_kcal": -3454.1,
+      "E_receptor_kcal": -3021.7,
+      "E_ligand_kcal": -385.8,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "pdl2",
+      "design": "PDL1-G2-F11",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "FRFPKLNWNLIE",
+      "dG_bind_kcal_mol": -42.29,
+      "E_complex_kcal": -3508.4,
+      "E_receptor_kcal": -3042.4,
+      "E_ligand_kcal": -423.7,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "pdl2",
+      "design": "PDL1-G2-F13",
+      "nrec_res": 115,
+      "npep_res": 12,
+      "ligand_ring_closed": true,
+      "seq": "FVRVRFP IQWD",
+      "dG_bind_kcal_mol": -32.15,
+      "E_complex_kcal": -3713.4,
+      "E_receptor_kcal": -3063.1,
+      "E_ligand_kcal": -618.1,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    }
+  ]
+}

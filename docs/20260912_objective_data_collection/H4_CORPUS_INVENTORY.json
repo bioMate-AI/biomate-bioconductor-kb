@@ -1,0 +1,373 @@
+{
+  "_meta": {
+    "generated": "2026-09-13",
+    "purpose": "H4 (presentation) corpus inventory: catalog 23 HELD immunopeptidome/proteome deposits + fetch confirmed-missing backlog. Corrects W7 'single-HLA / 1 cell line' claim.",
+    "s3_bucket": "s3://knowledge-datasets-1759951976",
+    "s3_prefix": "immunology_sc_corpus_broad/acquisitions/immunopeptidome/ (+ acquisitions/proteome/, proteome_raw/, references/pride/)",
+    "training_eligible": false,
+    "modality_key": "HLA-I = MHC class-I eluted-ligand immunopeptidome; HLA-II = MHC class-II; P = whole/total proteome; L = ligandome(immunopeptidome)",
+    "paired_definition": "SAME-FLASK PAIRED = proteome AND immunopeptidome measured on the same physical samples in the same deposit (P+L)"
+  },
+
+  "HELD": {
+    "PXD000394": {
+      "title": "MS of HLA-I peptidomes reveals effects of protein abundance/turnover on antigen presentation (Bassani-Sternberg 2015)",
+      "modality": "HLA-I immunopeptidome (metadata/reference only on S3)",
+      "cell_context": "7 cancer cell lines + primary cells; >22,000 unique HLA peptides across allelic specificities",
+      "HLA_background": "multi-allele panel (7 lines, distinct HLA genotypes)",
+      "KO_perturbation": "none (baseline abundance/turnover study)",
+      "same_flask_paired": false,
+      "s3_content": "1 file: references/pride/PXD000394/Instructions_viewer.txt (639 B) - VIEWER STUB ONLY, no usable peptide table held",
+      "usable": false,
+      "note": "Cataloged by accession; S3 holds only a viewer-instructions stub. Multi-line HLA panel exists at source."
+    },
+    "PXD004352": {
+      "title": "Social Network Architecture of Human Immune Cells (Rieckmann 2017)",
+      "modality": "PROTEOME (not immunopeptidome)",
+      "cell_context": "28 primary human immune cell populations, steady + activated states, >10,000 proteins each",
+      "HLA_background": "primary immune cells (not HLA-typed lines)",
+      "KO_perturbation": "none (activation states only)",
+      "same_flask_paired": false,
+      "s3_content": "acquisitions/proteome/PXD004352/PXD004352_total_proteomes_single_shot.zip (680 MB) - USABLE proteome",
+      "usable": true,
+      "note": "Immune-cell proteome reference; contributes P baseline, not an immunopeptidome or HLA background."
+    },
+    "PXD020079": {
+      "title": "CIITA-transduced glioblastoma cells uncover clinically relevant tumor-associated HLA-II antigens",
+      "modality": "HLA-I + HLA-II immunopeptidome + proteome (.raw)",
+      "cell_context": "3 GBM cell lines: HROG02, HROG17, RA",
+      "HLA_background": "3 distinct GBM-line HLA genotypes",
+      "KO_perturbation": "CIITA stable overexpression (transduction) vs baseline; +IFN-gamma arm",
+      "same_flask_paired": true,
+      "s3_content": "6 .raw files (9.5 GB): HLA-Ip/HLA-IIp ligandome + Prot proteome runs, CIITA vs parental, +IFN-g",
+      "usable": true,
+      "note": "Only held HLA-II paired set. CIITA-OE perturbation. 3 cell lines (W7 called it 1)."
+    },
+    "PXD022020": {
+      "title": "MHC-I peptidome analysis of human cancer cell lines",
+      "modality": "HLA-I immunopeptidome (processed peptide tables held)",
+      "cell_context": "8 cancer cell lines: PANC.1, A.375, SW527, CaSki, PC.3, LNCaP, MCF.7, VMRC.LCD",
+      "HLA_background": "8 distinct cancer-line HLA genotypes",
+      "KO_perturbation": "none (baseline panel)",
+      "same_flask_paired": false,
+      "s3_content": "2 files: references/pride/PXD022020/ZUH_Study_peptides.csv (2.4 MB) + ZWJ_Study_peptides.csv (3.1 MB) - USABLE peptide lists (2 study/donor groups)",
+      "usable": true,
+      "note": "MISSED BY W7. Multi-line HLA-I baseline; strong background-diversity contributor."
+    },
+    "PXD022950": {
+      "title": "Improved sensitivity of immunopeptidomics via pan-HLA spectral libraries + DIA",
+      "modality": "HLA-I immunopeptidome (DIA method paper)",
+      "cell_context": "pan-HLA allotype library samples",
+      "HLA_background": "pan-HLA (method-development)",
+      "KO_perturbation": "none",
+      "same_flask_paired": false,
+      "s3_content": "1 file: PXD022950/PXD022950_README.txt (6.8 KB) - README ONLY, no data held",
+      "usable": false,
+      "note": "W7 correctly flagged: README only, not usable."
+    },
+    "PXD023038": {
+      "title": "IFN-gamma modulates the immunopeptidome of triple-negative breast cancer cells",
+      "modality": "PROTEOME (DIA .raw held) + immunopeptidome at source; L half is PXD023044 (NOT held)",
+      "cell_context": "TNBC cell line MDA-MB-231",
+      "HLA_background": "1 (MDA-MB-231)",
+      "KO_perturbation": "IFN-gamma treatment vs untreated",
+      "same_flask_paired": false,
+      "s3_content": "12 .raw DIA proteome files (32.5 GB) under proteome_raw/PXD023038/ (IFN-negative + IFN-positive pools). Ligandome half not held.",
+      "usable": true,
+      "note": "Held arm is PROTEOME only; pairing to its immunopeptidome (PXD023044) requires fetching that separate accession."
+    },
+    "PXD037837": {
+      "title": "Immunopeptidomics of M. tuberculosis antigen presentation on MHC-I (DDA)",
+      "modality": "HLA-I immunopeptidome (.mzML raw + .mzid.gz identifications)",
+      "cell_context": "Primary human monocyte-derived macrophages, multiple donors (C, D, E...)",
+      "HLA_background": "multiple primary donors (distinct HLA genotypes)",
+      "KO_perturbation": "Mtb infection vs mock (infectious perturbation)",
+      "same_flask_paired": false,
+      "s3_content": "42 files (10.6 GB): mzML + mzid.gz per donor, Mtb vs mock",
+      "usable": true,
+      "note": "Infection-perturbation on primary macrophages across donors -> multiple HLA backgrounds + a perturbation condition."
+    },
+    "PXD041578": {
+      "title": "Zapnometinib (MEKi) + influenza A infection alter HLA-I ligandome of lung adenocarcinoma",
+      "modality": "HLA-I immunopeptidome (.msf processed search results)",
+      "cell_context": "Calu-3 lung adenocarcinoma",
+      "HLA_background": "1 (Calu-3)",
+      "KO_perturbation": "MEK inhibitor (zapnometinib/ATR002) x H3N2 influenza infection (2x2 drug x infection)",
+      "same_flask_paired": false,
+      "s3_content": "31 files (6.8 GB): Calu-3 DMSO/ATR002/H3N2/H3N2+ATR002 .msf replicates",
+      "usable": true,
+      "note": "Drug x infection factorial perturbation on 1 line."
+    },
+    "PXD045265": {
+      "title": "HLA-peptidome of human beta cells exposed to interferon-alpha (T1D)",
+      "modality": "HLA-I immunopeptidome (.mgf spectra + .mzid.gz identifications)",
+      "cell_context": "ECN90 human beta-cell line (T1D)",
+      "HLA_background": "1 (ECN90)",
+      "KO_perturbation": "IFN-alpha vs basal (+ proteasome-processing arms)",
+      "same_flask_paired": false,
+      "s3_content": "29 files (1.6 GB): Basal vs INFa mgf + mzid identifications",
+      "usable": true,
+      "note": "IFN-alpha perturbation, 1 line. Confirmed = the ECN90/IFN-a T1D set (resolves the manifest do-not-double-count flag)."
+    },
+    "PXD054491": {
+      "title": "ERAP1 as regulator of immunopeptidome/proteome. A375 Immunopeptidome Part I.",
+      "modality": "HLA-I immunopeptidome (Spectronaut result + peptide list) [ERAP1 arm]",
+      "cell_context": "A375 melanoma",
+      "HLA_background": "1 (A375)",
+      "KO_perturbation": "ERAP1 genetic silencing + allosteric ERAP1 inhibitor vs control",
+      "same_flask_paired": false,
+      "s3_content": "2 files (81 MB): Peptide_List_PartI.txt + spectronaut_Result_PartI.sne",
+      "usable": true,
+      "note": "Held ERAP1 anchor (A375). Part II = PXD054494 (now FETCHED). Proteome arm = PXD060575/060572 (now FETCHED)."
+    },
+    "PXD055205": {
+      "title": "Immunopeptidome changes in HCT116 after hypoxia",
+      "modality": "HLA-I immunopeptidome (.mgf spectra + .mzid.gz)",
+      "cell_context": "HCT116 (+ HT29) colorectal carcinoma",
+      "HLA_background": "2 (HCT116, HT29)",
+      "KO_perturbation": "hypoxia vs normoxia (24 h)",
+      "same_flask_paired": false,
+      "s3_content": "8 files (514 MB): HCT116 normoxia/hypoxia + HT29 hypoxia mgf + mzid",
+      "usable": true,
+      "note": "W7 listed HCT116/HT29 -> 2 lines; hypoxia perturbation."
+    },
+    "PXD056426": {
+      "title": "Deleterious knock-outs in HLA-I APM induce distinct immunopeptidome changes (HAP1 panel)",
+      "modality": "HLA-I immunopeptidome + proteome (co-deposited search results)",
+      "cell_context": "HAP1 isogenic clones",
+      "HLA_background": "1 (HAP1)",
+      "KO_perturbation": "11-gene single-gene KO panel: B2M, TAP1, TAP2, TAPBP, IRF2, PDIA3, ERAP2, GANAB, SPPL3, CANX, CALR vs WT (12 conditions)",
+      "same_flask_paired": true,
+      "s3_content": "2 zips (328 MB): Search.zip + NonCanonical_search.zip (peptide + protein IDs)",
+      "usable": true,
+      "note": "THE H4 kill-test PASS set (B2M-KO->2% presentation). Same-flask P+L. 11 KO conditions on 1 HLA background."
+    },
+    "PXD060684": {
+      "title": "Abemaciclib differentially reshapes the immunopeptidome of breast cancer subtypes",
+      "modality": "HLA-I immunopeptidome (.mgf + .mzid)",
+      "cell_context": "CAMA1 (HR+) breast cancer (+ TNBC models per paper)",
+      "HLA_background": "1+ (CAMA1 shown; paper covers HR+ and TNBC)",
+      "KO_perturbation": "Abemaciclib (CDK4/6 inhibitor) vs DMSO",
+      "same_flask_paired": false,
+      "s3_content": "39 files (4.4 GB): CAMA1 ABEMA vs DMSO mgf + CAMA_peptides mzid",
+      "usable": true,
+      "note": "CDK4/6i drug perturbation."
+    },
+    "PXD063219": {
+      "title": "TAPBPR promotes editing of HLA-B*44 peptide repertoire",
+      "modality": "HLA-I immunopeptidome (.msf processed + .raw)",
+      "cell_context": "HeLaM HLA-ABC-KO reconstituted with HLA-B*44:02 or B*44:05",
+      "HLA_background": "2 controlled allotypes (B*44:02, B*44:05)",
+      "KO_perturbation": "TAPBPR (TAPBPL) knockdown +/- (peptide-editor perturbation), WT vs KD",
+      "same_flask_paired": false,
+      "s3_content": "40 files (15.5 GB): B4402 KD/WT + DDA .raw/.msf replicates",
+      "usable": true,
+      "note": "Allele-controlled peptide-editor perturbation across 2 HLA-B44 allotypes. Standalone TAPBPR-KO = PXD078020 (now FETCHED)."
+    },
+    "PXD068488": {
+      "title": "Autoreactive T cells recognize MBP peptides presented by EBV-infected B cells + MS brain tissue",
+      "modality": "HLA-II (HLA-DR15) immunopeptidome (.msf)",
+      "cell_context": "RRMS patient B cells, EBV-infected B cells, thymus tissue (multiple MS patients)",
+      "HLA_background": "HLA-DR15 (multiple MS donors) - class-II",
+      "KO_perturbation": "EBV infection reprogramming (RRMS vs primary vs EBV-B vs thymus)",
+      "same_flask_paired": false,
+      "s3_content": "57 files (13.7 GB): RRMS/thymus/EBV-B cell DR2a/DR2b coprocessed .msf, multiple donors",
+      "usable": true,
+      "note": "MISSED BY W7 as multi-context. Class-II DR15 across multiple MS donors + EBV perturbation."
+    },
+    "PXD070471": {
+      "title": "Immunopeptidome of Coxsackievirus B3 infection models (enterocyte + APC lines)",
+      "modality": "HLA-I immunopeptidome (combined_peptide.tsv processed)",
+      "cell_context": "CaCo2 (enterocyte, IVA12) + THP1 (APC, L243)",
+      "HLA_background": "2 (CaCo2, THP1)",
+      "KO_perturbation": "CVB3 infection (T1D-trigger virus)",
+      "same_flask_paired": false,
+      "s3_content": "2 tsv (12.6 MB): combined_peptide_CaCo2_IVA12.tsv + combined_peptide_THP1_L243.tsv",
+      "usable": true,
+      "note": "MISSED BY W7. 2 lines, viral perturbation."
+    },
+    "PXD070607": {
+      "title": "Lymphodepleting chemotherapy potentiates neoantigen-directed T-cell therapy",
+      "modality": "HLA-I immunopeptidome (combined_peptide.tsv) + proteome keyword",
+      "cell_context": "MIAPACA2 (pancreatic) among colon/lung/pancreatic models (KRAS G12V/G12C)",
+      "HLA_background": "1+ (MIAPACA2 held table)",
+      "KO_perturbation": "chemotherapy (lymphodepleting) upregulating immunoproteasome/presentation",
+      "same_flask_paired": false,
+      "s3_content": "1 tsv (3.6 MB): combined_peptide_MIAPACA2.tsv",
+      "usable": true,
+      "note": "MISSED BY W7. Chemo-induced presentation, held table = MIAPACA2."
+    },
+    "PXD070941": {
+      "title": "Molecularly-targeted-therapy-induced immunopeptidome in Diffuse Midline Glioma",
+      "modality": "HLA-I immunopeptidome (psm .tsv processed)",
+      "cell_context": "U87 glioma (DMG/GBM H3K27M xenografts)",
+      "HLA_background": "1 (U87)",
+      "KO_perturbation": "MTX-241F (selective EGFR/PI3K inhibitor) vs vehicle",
+      "same_flask_paired": false,
+      "s3_content": "2 tsv (8.6 MB): psm_U87_vehicle.tsv + psm_U87_vehicle_M142depl.tsv",
+      "usable": true,
+      "note": "MISSED BY W7. Targeted-kinase-inhibitor perturbation."
+    },
+    "PXD071022": {
+      "title": "Proteogenomic analysis identifies immune targets in MSS/MSI colorectal cancers",
+      "modality": "HLA-I immunopeptidome (.mzid identifications)",
+      "cell_context": "26 primary CRC tumors (MSS + MSI)",
+      "HLA_background": "61 HLA alleles across 26 primary tumors (very high diversity)",
+      "KO_perturbation": "none (MSS vs MSI genotype comparison)",
+      "same_flask_paired": false,
+      "s3_content": "2 .mzid (485 MB): 111209A1_peptides + 1284636F_peptides",
+      "usable": true,
+      "note": "MISSED BY W7. Largest HLA-diversity contributor: 61 alleles / 26 primary tumors."
+    },
+    "PXD072525": {
+      "title": "Identification of targetable T-cell antigens in multiple myeloma",
+      "modality": "HLA-I immunopeptidome + proteogenomic (Results.zip)",
+      "cell_context": "Primary multiple myeloma samples + MM cell lines",
+      "HLA_background": "multiple (primary MM patients + MM lines)",
+      "KO_perturbation": "none (TAA/neoantigen discovery)",
+      "same_flask_paired": false,
+      "s3_content": "1 file (6.4 GB): references/pride/PXD072525/Results.zip (proteogenomic peptide results)",
+      "usable": true,
+      "note": "MISSED BY W7. Multi-patient + multi-line MM HLA backgrounds."
+    },
+    "PXD074155": {
+      "title": "HLA-DR MAPPs assay in moDCs from 8 donors loaded with infliximab",
+      "modality": "HLA-II (HLA-DR) MAPPs immunopeptidome (peptides.csv)",
+      "cell_context": "Monocyte-derived dendritic cells, 8 donors",
+      "HLA_background": "8 primary donor HLA-DR genotypes - class-II",
+      "KO_perturbation": "infliximab loading (biologic-derived epitope presentation)",
+      "same_flask_paired": false,
+      "s3_content": "1 csv (7.4 MB): references/pride/PXD074155/Chapter_Infliximab.db.peptides.csv",
+      "usable": true,
+      "note": "MISSED BY W7. 8-donor class-II DR panel."
+    },
+    "PXD076608": {
+      "title": "Kinase inhibition rewires the HLA-I immunopeptidome in Chronic Myeloid Leukemia",
+      "modality": "HLA-I immunopeptidome + phospho + proteome (Report.tsv + report.parquet)",
+      "cell_context": "CML cell lines",
+      "HLA_background": "multiple CML lines",
+      "KO_perturbation": "kinase inhibitors (TKI) vs baseline",
+      "same_flask_paired": true,
+      "s3_content": "3 files (697 MB): phospho_HLA_Report.tsv + PhosphoproteomeCelllines_Report.tsv + report.parquet",
+      "usable": true,
+      "note": "MISSED BY W7. Immunopeptidome + (phospho)proteome co-reported -> qualifies as same-flask P+L. TKI perturbation."
+    },
+    "PXD077352": {
+      "title": "Expanding the repertoire of chemically induced covalent neoantigens",
+      "modality": "HLA-I immunopeptidome (covalent/hapten neoantigens)",
+      "cell_context": "cell line(s) (covalent-modifier platform)",
+      "HLA_background": "unclear (SEARCH.txt stub only held)",
+      "KO_perturbation": "covalent small-molecule modification -> hapten neoantigens",
+      "same_flask_paired": false,
+      "s3_content": "1 file (2.2 KB): references/pride/PXD077352/SEARCH.txt - SEARCH PARAM STUB ONLY, no peptide data held",
+      "usable": false,
+      "note": "Cataloged; S3 holds only a search-parameter stub."
+    }
+  },
+
+  "FETCHED": {
+    "MSV000091285": {
+      "status": "SKIPPED - transport blocked",
+      "reason": "MassIVE serves bulk data only over FTP (ftp://massive.ucsd.edu/v05/MSV000091285). FTP (curl + python ftplib, sandbox-disabled) times out / is firewalled in this environment. No HTTPS file mirror exists (ProteoSAFe FileServlet returns 403; OmicsDI links back to FTP). PROXI API confirms deposit: 'Quantitative Measurement of the Requirement of Diverse Protein Degradation Pathways in MHC Class I Peptide Presentation' (Mamrosh 2023, PMID 37352349), Orbitrap Eclipse/Fusion, MHC-I immunopeptidome, 55 files. ONX-0914 immunoproteasome-inhibitor arm is paper-sourced.",
+      "action": "Re-fetch from an FTP-capable host: ftp://massive.ucsd.edu/v05/MSV000091285/ ; land under acquisitions/immunopeptidome/MSV000091285/",
+      "modality": "HLA-I immunopeptidome; KO/perturb = proteasome/immunoproteasome inhibition (ONX-0914 + carfilzomib) vs vehicle"
+    },
+    "PXD024109": {
+      "status": "FETCHED",
+      "modality": "HLA-I immunopeptidome (Percolator PeptideGroups, SILAC quant)",
+      "cell_context": "Patient EBV-LCL (birdshot uveitis), HLA-A*29:02+",
+      "HLA_background": "HLA-A29",
+      "KO_perturbation": "ERAP2 CRISPR-Cas9 KO vs WT (isogenic, SILAC)",
+      "same_flask_paired": false,
+      "files": 4,
+      "bytes": 161364060,
+      "s3": "acquisitions/immunopeptidome/PXD024109/ (4x Percolator_PeptideGroups.txt: HLA-A29 + W6/32 pan-classI, sets 1&2)"
+    },
+    "PXD013064": {
+      "status": "FETCHED",
+      "modality": "HLA-I immunopeptidome (mzid + mztab identifications)",
+      "cell_context": "HeLa.ABC-KO reconstituted with HLA-B*51:01 (Behcet's-associated)",
+      "HLA_background": "HLA-B*51:01",
+      "KO_perturbation": "ERAP1 lentiviral shRNA silencing vs control (orthogonal method to PXD054491)",
+      "same_flask_paired": false,
+      "files": 3,
+      "bytes": 4913391,
+      "s3": "acquisitions/immunopeptidome/PXD013064/ (peptides_1_1_0.mzid.gz + .pride.mztab.gz + sdrf). Bulky .mgf spectra intentionally skipped."
+    },
+    "PXD060575": {
+      "status": "FETCHED",
+      "modality": "HLA-I immunopeptidome / proteome DIA (DIA-NN report)",
+      "cell_context": "A375 melanoma (ERAP1 study)",
+      "HLA_background": "A375",
+      "KO_perturbation": "ERAP1 KO + inhibitor vs WT",
+      "same_flask_paired": true,
+      "files": 5,
+      "bytes": 601548047,
+      "s3": "acquisitions/immunopeptidome/PXD060575/ (report.tsv + pr/pg/unique_genes matrices + KEY). Raw + xic.parquet skipped."
+    },
+    "PXD060572": {
+      "status": "FETCHED",
+      "modality": "HLA-I immunopeptidome / proteome DIA (DIA-NN report matrices)",
+      "cell_context": "A375 melanoma / THP-1 (ERAP1 study, Stratikos)",
+      "HLA_background": "A375 / THP-1",
+      "KO_perturbation": "ERAP1 KO + inhibitor vs WT",
+      "same_flask_paired": true,
+      "files": 4,
+      "bytes": 46034712,
+      "s3": "acquisitions/immunopeptidome/PXD060572/ (pr/pg/unique_genes matrices + KEY). Raw + xic.parquet skipped."
+    },
+    "PXD054494": {
+      "status": "FETCHED",
+      "modality": "HLA-I immunopeptidome (Spectronaut result)",
+      "cell_context": "A375 melanoma (ERAP1 study, Part II)",
+      "HLA_background": "A375",
+      "KO_perturbation": "ERAP1 silencing/inhibition vs control (companion to held PXD054491 Part I)",
+      "same_flask_paired": false,
+      "files": 2,
+      "bytes": 79833241,
+      "s3": "acquisitions/immunopeptidome/PXD054494/ (spectronaut_Result_PartII.sne + Peptide_List_PartII.txt)"
+    },
+    "PXD014804": {
+      "status": "SKIPPED - raw-only + huge",
+      "modality": "HLA-I immunopeptidome",
+      "cell_context": "C1R-B*40:02",
+      "HLA_background": "HLA-B*40:02",
+      "KO_perturbation": "ERAP2 CRISPR KO vs WT (ankylosing spondylitis relevance)",
+      "reason": "Deposit is .raw-dominated (14.8 GB raw). The only non-raw processed artifact is a single 51.7 GB zip (59181-59195-B40-ERAP2-15-11-18.zip) > 2 GB threshold -> skipped per policy. Total deposit 66.4 GB.",
+      "action": "If needed, pull the 51.7 GB processed zip from an FTP/high-bandwidth host and re-search."
+    },
+    "PXD065279": {
+      "status": "FETCHED",
+      "modality": "HLA-I immunopeptidome + proteome (MHC1-TIP; DIA-NN + FragPipe combined_peptide)",
+      "cell_context": "A375 melanoma, JY, tumour fragments, PDO, TGFb/IFNg conditions",
+      "HLA_background": "A375 / JY (+ primary tumour fragments)",
+      "KO_perturbation": "B2M KO vs WT (standalone, beyond HAP1 panel) + IFNg + TGFb arms",
+      "same_flask_paired": true,
+      "files": 10,
+      "bytes": 277536193,
+      "s3": "acquisitions/immunopeptidome/PXD065279/ (combined_peptide tsvs incl A375_WT_and_B2M-KO, spectral library, DIA-NN proteome reports/parquet). ~396 GB raw skipped."
+    },
+    "PXD078020": {
+      "status": "FETCHED (core pair; 2 QE-replicate msf in-flight/optional)",
+      "modality": "HLA-I immunopeptidome (Proteome Discoverer .msf search results)",
+      "cell_context": "HeLa (HBV-expressing)",
+      "HLA_background": "HeLa (+ allele-specific A2/B35/B8/Cw6 subsets in deposit, not all pulled)",
+      "KO_perturbation": "TAPBPR (TBP) KO vs WT (peptide-editor, beyond held PXD063219)",
+      "same_flask_paired": false,
+      "files": 2,
+      "bytes": 3605790720,
+      "s3": "acquisitions/immunopeptidome/PXD078020/ (211004 WT + TBP_KO W6-32 CoProcessed_5Reps .msf - the essential WT/KO leave-KO-out pair, ~1.7-1.9 GB each, each <2GB). Two 211029 QE-replicate .msf (~1.4-1.5GB each) queued in background; ~24.8 GB raw + allele-specific subsets skipped."
+    },
+    "PXD013649": {
+      "status": "FETCHED",
+      "modality": "non-canonical HLA-I peptides in cancer (multi-layer proteogenomic search results)",
+      "cell_context": "Melanoma/tumor lines: 0D5P, 0MM745, T1185B, 0NVC, C3N02671, C3N02289, Me275, Me290, T1015A",
+      "HLA_background": "9 distinct tumor-line HLA genotypes",
+      "KO_perturbation": "none (non-canonical/cryptic-peptide discovery; the '4-layer set')",
+      "same_flask_paired": "partial (paper_data.zip contains multi-layer tables; per-line search_*.zip = ligandome search results)",
+      "files": 11,
+      "bytes": 1258831204,
+      "s3": "acquisitions/immunopeptidome/PXD013649/ (paper_data.zip + 9 per-line search_*.zip + README). Raw .mgf skipped. NB: ribo-seq layer at file level not confirmed present in fetched artifacts."
+    }
+  }
+}

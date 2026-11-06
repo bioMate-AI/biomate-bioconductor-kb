@@ -1,0 +1,106 @@
+{
+  "name": "proteomics_search",
+  "kind": "real_execution_capability",
+  "note": "Unlike the prediction-item tasks, this is scored by RUNNING the search pipeline on real data and measuring two axes on the same runs. No predictions.jsonl / no LLM judge.",
+  "inputs": {
+    "spectra_accession": "PXD010595",
+    "spectra_scans": 65521,
+    "target_proteins": 20431,
+    "entrapment_sequences": 20431,
+    "decoy_sequences": 40862,
+    "total_searched_sequences": 81724,
+    "entrapment_source": "shuffled_target",
+    "entrapment_ratio": 1.0,
+    "search_settings": {
+      "enzyme": "trypsin",
+      "missed_cleavages": 2,
+      "precursor_tolerance_ppm": 10,
+      "fragment_tolerance_da": 0.02,
+      "fixed_mods": ["Carbamidomethyl (C)"],
+      "variable_mods": ["Oxidation (M)"]
+    }
+  },
+  "ground_truth": "entrapment_database",
+  "metric": {
+    "speed": ["wall_clock_s", "spectra_per_s"],
+    "recall": ["psms_at_1pct_fdr", "peptides_at_1pct_fdr", "proteins_at_1pct_fdr"],
+    "calibration": "entrapment_fmr_at_1pct"
+  },
+  "targets": {
+    "speed": ">= 5x faster end-to-end than the brute-force (Comet) baseline",
+    "recall": ">= baseline #peptides@1%FDR (no regression); report the gain",
+    "calibration": "measured entrapment FMR <= 1.3% at claimed 1% FDR"
+  },
+  "baseline": {
+    "arm": "Comet (brute-force XCorr)",
+    "wall_clock_s": 153.1,
+    "spectra_per_s": 428,
+    "psms_at_1pct_fdr": 260,
+    "peptides_at_1pct_fdr": 73,
+    "proteins_at_1pct_fdr": 71,
+    "entrapment_fmr_at_1pct": 0.0
+  },
+  "measured": {
+    "sage": {
+      "wall_clock_s_end_to_end": 29,
+      "spectra_per_s": 4955,
+      "psms_at_1pct_fdr": 552,
+      "peptides_at_1pct_fdr": 137,
+      "proteins_at_1pct_fdr": 130,
+      "entrapment_fmr_at_1pct": 0.54,
+      "speedup_vs_baseline_end_to_end": 5.3
+    },
+    "sage_mokapot": {
+      "wall_clock_s_end_to_end": 42,
+      "psms_at_1pct_fdr": 836,
+      "peptides_at_1pct_fdr": 191,
+      "proteins_at_1pct_fdr": 174,
+      "entrapment_fmr_at_1pct": 0.24,
+      "psms_gain_vs_baseline_pct": 222,
+      "peptides_gain_vs_baseline_pct": 162,
+      "proteins_gain_vs_baseline_pct": 145
+    }
+  },
+  "phase1_breadth": {
+    "note": "Same 3-arm head-to-head (Comet vs Sage vs Sage+Mokapot), identical FASTA-build / tolerances / mods / uniform 1% FDR scorer, re-run on additional real PXD datasets. Every figure traces to a real scored run at s3://biomate-nextflow-work/proteomics_breadth_20261001/<dsid>/results/scored/metrics.json plus per-arm *.time.txt wall-clocks.",
+    "datasets_scored": ["ProteomeTools (PXD010595, baseline)", "HeLa (PXD014415, deep tryptic DDA)", "HLA immunopeptidome (PXD004894, no-enzyme)", "species-mix (PXD028735, E. coli sample vs human+E.coli DB, tryptic)"],
+    "per_dataset_peptides_at_1pct_fdr": {
+      "ProteomeTools": {"comet": 73, "sage": 137, "sage_mokapot": 191},
+      "HeLa": {"comet": 16276, "sage": 25412, "sage_mokapot": 25508},
+      "HLA": {"comet": 948, "sage": 3855, "sage_mokapot": 4352},
+      "species_mix": {"comet": 4889, "sage": 7724, "sage_mokapot": 7890}
+    },
+    "generalized_ranges": {
+      "speed_tryptic_sage_vs_comet_end_to_end": "2.7x (species-mix) to 5.3x (ProteomeTools) faster across the three tryptic datasets",
+      "recall_sage_mokapot_vs_comet_peptides_pct": "+57% (HeLa) to +359% (HLA); species-mix +61%",
+      "calibration": "every arm on every dataset entrapment-clean (measured FMR <= nominal at 1% operating point)"
+    },
+    "honest_variation": "The no-enzyme HLA search is where rescoring gains are largest (+359% peptides, Mokapot lever +12.9%) but where Sage's speed edge inverts (844.5s vs Comet 217.4s, due to the 376M-fragment no-enzyme index). The Mokapot lever is small on clean tryptic runs (HeLa +0.4%, species-mix +2.1%) and large on hard/ambiguous spaces.",
+    "species_mix_PXD028735": {
+      "regime": "2-species specificity: pure E. coli sample searched against a human+E.coli combined target DB (24,962 target -> 99,848 searched seqs)",
+      "peptides_at_1pct_fdr": {"comet": 4889, "sage": 7724, "sage_mokapot": 7890},
+      "proteins_at_1pct_fdr": {"comet": 1106, "sage": 1419, "sage_mokapot": 1443},
+      "wall_clock_s": {"comet": 142.5, "sage": 53.4, "sage_mokapot_rescore_add": 14.3},
+      "speed_sage_vs_comet_end_to_end": "2.7x faster",
+      "recall_sage_mokapot_vs_comet_peptides_pct": 61,
+      "entrapment_fmr_at_1pct_pct": {"comet": 0.53, "sage": 0.44, "sage_mokapot": 0.43},
+      "species_specificity_at_1pct": "97.3% of accepted peptides (7,679/7,890) attributed to E. coli, 2.67% (211) to human -- correct localization, no human-protein inflation",
+      "instance": "retry spot box i-0778444945e110045 (us-west-2a), self-terminated",
+      "source": "s3://biomate-nextflow-work/proteomics_breadth_20261001/speciesmix/results/scored/metrics.json + *.time.txt + foreign_id.txt"
+    }
+  },
+  "harness": "evaluation/datasets/proteomics_search_benchmark/ (cases.yaml, main.nf, prepare_search_db.py, normalize_psms.py, normalize_idxml.py)",
+  "scorer": "scripts/score_proteomics_search_benchmark.py",
+  "report": "docs/20261001_PROTEOMICS_SEARCH_BENCHMARK_REPORT.md",
+  "session_log": "docs/20260929_PROTEOMICS_SEARCH_SPEED_RECALL.md",
+  "live_production_run": "fb3440ec-6ef0-43f4-be39-5e249e7bc1b6",
+  "tools_attribution": "Sage (Lazear, JPR 2023, MIT); Mokapot (Fondrie & Noble, Apache-2.0); OpenMS/Comet (Apache/BSD). BioMate composes/runs/benchmarks; it did not author these tools.",
+  "caveats": [
+    "Phase-1 breadth now scored on 3 real datasets (ProteomeTools + HeLa + HLA); gains are strong but vary honestly by regime (see phase1_breadth).",
+    "The headline 3-arm table above is the ProteomeTools baseline; HeLa/HLA relative gains are in phase1_breadth and report §3.2.",
+    "Speed is not uniform: Sage is 2.7-5.3x faster on tryptic searches but slower than Comet on the no-enzyme HLA immunopeptidome (large-index trade for a big recall gain).",
+    "Absolute counts track data scale (deep HeLa ~25k peptides; synthetic ProteomeTools hundreds); relative gains between arms are the load-bearing result.",
+    "RAM measured the docker wrapper, not the tool."
+  ],
+  "license": "CC-BY-4.0"
+}

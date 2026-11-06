@@ -54,7 +54,7 @@ with open("check_drug_combination_safety_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("check_drug_combination_safety_output.txt", "w") as f:
-    f.write("Biomni: Check Drug Combination Safety Results" + NL)
+    f.write("BioMate: Check Drug Combination Safety Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

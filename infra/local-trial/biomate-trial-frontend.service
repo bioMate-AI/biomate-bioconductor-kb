@@ -1,0 +1,12 @@
+[Unit]
+Description=Isolated BioMate trial frontend
+After=postgresql.service
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/biomate-trial
+ExecStart=/usr/bin/python3 /opt/biomate-trial/start-worker-frontend.py
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=10
+[Install]
+WantedBy=multi-user.target

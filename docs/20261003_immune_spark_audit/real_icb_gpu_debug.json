@@ -1,0 +1,13 @@
+{
+  "scope": "real-cohort optimization and checkpoint roundtrip only; no held-out claims",
+  "cohort": "Melanoma-GSE78220",
+  "samples": 28,
+  "survival_valid": 27,
+  "events": 12,
+  "gpu": "NVIDIA GB10",
+  "steps": 30,
+  "first_loss": 3.459097385406494,
+  "last_loss": 0.041714102029800415,
+  "checkpoint_roundtrip": "exact",
+  "status": "PASS"
+}

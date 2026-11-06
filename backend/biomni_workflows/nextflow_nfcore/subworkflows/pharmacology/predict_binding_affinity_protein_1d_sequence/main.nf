@@ -90,6 +90,15 @@ def predict_binding_affinity_protein_1d_sequence(smiles_list, amino_acid_sequenc
     try:
         from DeepPurpose import DTI, utils
     except ImportError:
+        # Install CPU torch FIRST so DeepPurpose does not drag in the multi-GB CUDA stack
+        # (cuda-toolkit/nvidia-cu13), which OOM-killed the task on a CPU Batch node. The durable
+        # fix is DeepPurpose baked into the biomni-tools ECR image (see backend/docker/biomni-tools/
+        # Dockerfile); this fallback only fires if the image lacks it.
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--target", target_dir, "--no-cache-dir",
+             "torch", "--index-url", "https://download.pytorch.org/whl/cpu"],
+            check=True,
+        )
         subprocess.run(
             [sys.executable, "-m", "pip", "install", "--target", target_dir, "--no-cache-dir", "DeepPurpose"],
             check=True,
@@ -173,7 +182,7 @@ with open("predict_binding_affinity_protein_1d_sequence_results.json", "w") as f
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("predict_binding_affinity_protein_1d_sequence_output.txt", "w") as f:
-    f.write("Biomni: Predict Binding Affinity Protein 1D Sequence" + NL)
+    f.write("BioMate: Predict Binding Affinity Protein 1D Sequence" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

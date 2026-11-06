@@ -1,0 +1,8 @@
+{
+  "source_sample_rows": 98,
+  "unique_patients": 56,
+  "pretreatment_rows": 49,
+  "on_treatment_rows": 49,
+  "unmatched": 0,
+  "policy": "Prospective response/survival training uses Pre only; On remains available for separately defined longitudinal tasks."
+}

@@ -1,0 +1,4 @@
+compound_id,assay_type,value,unit,assay_date,operator_note
+7QGV,Kd,12,nM,2026-10-03,SIMULATED integration only
+7TPT,Kd,800,nM,2026-10-03,SIMULATED integration only
+3WNG,Kd,100000,nM,2026-10-03,SIMULATED integration only

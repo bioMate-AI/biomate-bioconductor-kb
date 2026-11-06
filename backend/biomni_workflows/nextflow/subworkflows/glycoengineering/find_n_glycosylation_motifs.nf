@@ -50,7 +50,7 @@ with open("find_n_glycosylation_motifs_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("find_n_glycosylation_motifs_output.txt", "w") as f:
-    f.write("Biomni: Find N Glycosylation Motifs Results" + NL)
+    f.write("BioMate: Find N Glycosylation Motifs Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

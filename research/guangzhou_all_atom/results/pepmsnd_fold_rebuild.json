@@ -1,0 +1,108 @@
+{
+  "source_csv": "data/raw/peptideclm2_pepmsnd/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_clustered_data.csv",
+  "source_rows": 640,
+  "unparseable_smiles": 0,
+  "unique_structures": 605,
+  "original_clusters": 10,
+  "cluster_merge_components": 1,
+  "cluster_merge_verdict": "unusable",
+  "cluster_merge_note": "Merging clusters that share an identical structure collapses all 10 original clusters into 1 component(s); with <2 components there is no held-out fold, so the supplied clusters cannot serve as leak-free CV folds. Fresh stratified folds are used instead.",
+  "rebuilt_folds": 10,
+  "fold_strategy": "label-stratified 10-fold over unique structures",
+  "fold_sizes": {
+    "1": 61,
+    "2": 61,
+    "3": 61,
+    "4": 61,
+    "5": 61,
+    "6": 60,
+    "7": 60,
+    "8": 60,
+    "9": 60,
+    "10": 60
+  },
+  "fold_label_balance": {
+    "1": {
+      "0": 34,
+      "1": 27
+    },
+    "2": {
+      "0": 34,
+      "1": 27
+    },
+    "3": {
+      "0": 34,
+      "1": 27
+    },
+    "4": {
+      "0": 34,
+      "1": 27
+    },
+    "5": {
+      "0": 34,
+      "1": 27
+    },
+    "6": {
+      "0": 34,
+      "1": 26
+    },
+    "7": {
+      "0": 34,
+      "1": 26
+    },
+    "8": {
+      "0": 34,
+      "1": 26
+    },
+    "9": {
+      "0": 34,
+      "1": 26
+    },
+    "10": {
+      "0": 34,
+      "1": 26
+    }
+  },
+  "structures_crossing_folds": 0,
+  "ids_crossing_folds": {},
+  "label_conflict_structures": 3,
+  "label_conflicts": [
+    {
+      "canonical_smiles": "CC(C)C[C@H](NC(=O)[C@H](CC(C)C)NC(=O)[C@H](Cc1ccc(O)cc1)NC(=O)[C@H](CO)NC(=O)[C@H](Cc1c[nH]c2ccccc12)NC(=O)[C@H](Cc1c[nH]cn1)NC(=O)[C@@H]1CCCN1)C(=O)N[C@@H](CCCNC(=N)N)C(=O)O",
+      "votes": {
+        "1": 1,
+        "0": 1
+      },
+      "source_ids": [
+        "100",
+        "506"
+      ],
+      "fold": 8
+    },
+    {
+      "canonical_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CCSC)NC(=O)[C@H](CCCCN)NC(=O)[C@H]([C@@H](C)O)NC(=O)CNC(=O)[C@H](C)NC(=O)[C@H](C(C)C)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+      "votes": {
+        "1": 1,
+        "0": 1
+      },
+      "source_ids": [
+        "285",
+        "500"
+      ],
+      "fold": 4
+    },
+    {
+      "canonical_smiles": "N=C(N)NCCC[C@H](N)C(=O)N1CCC[C@H]1C(=O)N1CCC[C@H]1C(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)O",
+      "votes": {
+        "1": 1,
+        "0": 1
+      },
+      "source_ids": [
+        "49",
+        "581"
+      ],
+      "fold": 1
+    }
+  ],
+  "note": "Folds are the paper's chemical clusters merged wherever an identical structure spanned clusters. Disjointness of identical structures is guaranteed; deeper scaffold separation is only as strong as the original clustering."
+}

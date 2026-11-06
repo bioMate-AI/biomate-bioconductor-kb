@@ -1,0 +1,80 @@
+{
+  "models": {
+    "openai": "openai/gpt-6.1-sol-pro",
+    "anthropic": "anthropic/claude-opus-5.5",
+    "google": "google/gemini-3.1-pro-preview-customtools"
+  },
+  "n_candidates": 18,
+  "reviews": {
+    "openai": {
+      "model": "openai/gpt-6.1-sol-pro",
+      "verdict": {
+        "pharmacophore_check": "\u03b1v\u03b26: confirm sequence-level pharmacophore in K-01\u2013K-10: RGDL plus D-Pro/N-methyl locks; productive geometry remains unproven. PD-L1: challenge K-01\u2013K-08 PASS claims; aromatic/polar macrocycles are plausible, but the required IgV-cleft chemotype cannot be confirmed from sequences alone.",
+        "function_selectivity_concerns": [
+          "All \u03b1v\u03b26 candidates require functional testing and \u03b1v\u03b23/\u03b1v\u03b25/\u03b1v\u03b28 counterscreens; RGDL and cyclization do not establish selectivity.",
+          "All PD-L1 candidates require PD-1/PD-L1 blockade assays; binding alone does not establish checkpoint antagonism.",
+          "AVB6-K-04/K-10 charge edits may reduce cationic renal-retention risk, but do not establish lower kidney dose; assess the final labeled conjugate.",
+          "AVB6-K-09 flank diversification and PD-L1 tail/Met edits can cause activity cliffs; PASS, LEAD and extended-affinity labels are not experimental evidence.",
+          "Trp oxidation remains in AVB6-K-01/K-02/K-04/K-08/K-09/K-10 and every PD-L1 candidate; Met removal does not eliminate oxidation liability.",
+          "Hydrophobic clustering warrants solubility/aggregation testing, especially AVB6-K-05/K-08 and PDL1-K-07/K-08; one polarity edit does not establish rescue.",
+          "PDL1-K-08 has no free Cys if its disulfide is intact, but reduction/exchange can release thiols and disrupt conformation.",
+          "PDL1-K-02 specifies NMeLeu in HELM but Nle in the production note: resolve molecular identity before synthesis.",
+          "No N-G/N-S or D-G/D-S hotspots appear, including cyclic junctions; absence does not establish chemical stability."
+        ],
+        "no_go_before_wetlab": [
+          {
+            "id": "PDL1-K-02",
+            "reason": "Resolve NMeLeu-versus-Nle identity discrepancy before synthesis/testing."
+          }
+        ],
+        "top_picks": [
+          "AVB6-K-06",
+          "AVB6-K-07",
+          "AVB6-K-03"
+        ],
+        "overall": "HOLD: resolve the identity discrepancy and unverified PD-L1 structural gate; \u03b1v\u03b26 picks are provisional, lower-liability choices for functional/selectivity testing, not validated leads."
+      }
+    },
+    "anthropic": {
+      "model": "anthropic/claude-opus-5.5",
+      "verdict": {
+        "raw": null
+      }
+    },
+    "google": {
+      "model": "google/gemini-3.1-pro-preview-customtools",
+      "verdict": {
+        "pharmacophore_check": "Confirmed. All AVB6 candidates possess the required RGDL selectivity motif + D-Pro/N-methyl lock. All PD-L1 candidates possess the cyclic amphipathic IgV-cleft chemotype.",
+        "function_selectivity_concerns": [
+          "AVB6 selectivity relies strictly on the 'L' and the conformational lock; drastic changes like charge reversals (AVB6-K-04) or multi-residue FTO-dodging (AVB6-K-09) risk distorting the 3D presentation, reverting them to pan-integrin (\u03b1v\u03b23/5/8) bare-RGD binders.",
+          "PD-L1 binding is highly structure-gated; sequence swaps (PDL1-K-03, PDL1-K-04) or core polarity shifts (PDL1-K-08) to fix liabilities risk complete loss of function (activity cliffs).",
+          "Trp (W) oxidation remains a widespread liability across most candidates (e.g., AVB6-K-08 LEAD, and all PD-L1s)."
+        ],
+        "no_go_before_wetlab": [
+          {
+            "id": "AVB6-K-09",
+            "reason": "Four simultaneous flank mutations (F->W, A->T, F->H, +NMeGlu) to dodge FTO is a severe activity cliff risk that likely breaks the conformational lock and selectivity."
+          },
+          {
+            "id": "PDL1-K-03",
+            "reason": "Swapping D-S to S-D alters the primary sequence and side-chain vectors; high risk of destroying the structure-gated PD-L1 interaction."
+          },
+          {
+            "id": "PDL1-K-04",
+            "reason": "Reordering the tail K-D-G to K-G-D alters the local backbone conformation; high activity cliff risk."
+          },
+          {
+            "id": "PDL1-K-08",
+            "reason": "Mutating a core hydrophobic Leu to a polar Thr (L->T) to reduce aggregation likely destroys the essential amphipathic IgV-cleft binding."
+          }
+        ],
+        "top_picks": [
+          "AVB6-K-05 (Maintains RGDL pharmacophore, lacks Trp/Met oxidation liabilities, net charge 0, clean developability)",
+          "AVB6-K-07 (Clean developability profile, no Trp/Met, maintains pharmacophore and neutral charge)",
+          "PDL1-K-02 (Conservative Met->Leu substitution fixes oxidation while preserving the hydrophobic isostere for cleft binding)"
+        ],
+        "overall": "HOLD pending wet-lab validation of sequence-altered candidates, but GO with top picks AVB6-K-05 and PDL1-K-02 which safely optimize developability without risking activity cliffs."
+      }
+    }
+  }
+}

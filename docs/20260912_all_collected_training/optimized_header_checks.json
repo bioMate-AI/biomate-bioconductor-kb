@@ -1,0 +1,32 @@
+[
+  {
+    "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/base_corpus/01209dce-3575-4bed-b1df-129f57fbc031.h5ad",
+    "schema_version": "7.0.0",
+    "source_cells": 51876,
+    "primary_cells": 51876,
+    "n_features": 53792,
+    "status": "header_eligible_counts_unvalidated",
+    "errors": [],
+    "seconds": 11.904689000017243
+  },
+  {
+    "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/base_corpus/0129dbd9-a7d3-4f6b-96b9-1da155a93748.h5ad",
+    "schema_version": "7.0.0",
+    "source_cells": 244474,
+    "primary_cells": 244474,
+    "n_features": 30172,
+    "status": "header_eligible_counts_unvalidated",
+    "errors": [],
+    "seconds": 9.987131208996288
+  },
+  {
+    "source_uri": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/base_corpus/015c230d-650c-4527-870d-8a805849a382.h5ad",
+    "schema_version": "7.0.0",
+    "source_cells": 148374,
+    "primary_cells": 0,
+    "n_features": 30192,
+    "status": "excluded_nonprimary",
+    "errors": [],
+    "seconds": 9.5822331669915
+  }
+]

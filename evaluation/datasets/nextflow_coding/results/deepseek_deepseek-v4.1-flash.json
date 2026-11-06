@@ -1,0 +1,258 @@
+{
+  "aggregate": {
+    "benchmark": "nextflow_coding",
+    "n_tasks": 12,
+    "tierA_pass_rate": 1.0,
+    "tierB_pass_rate": 1.0,
+    "tierC_pass_rate": 1.0,
+    "tierC_eligible": 12,
+    "mean_score": 1.0,
+    "by_kind": {
+      "convert": 1.0,
+      "fix": 1.0,
+      "write": 1.0
+    },
+    "tokens": {
+      "prompt": 2962,
+      "completion": 5298,
+      "note": "from run_bench.py OpenRouter usage; 2 tasks re-generated after transient network timeouts"
+    },
+    "approx_cost_usd": "<0.01 (deepseek flash tier; ~8.3k tokens total)",
+    "note": "clean generations score 1.0/1.0 \u2014 these 12 smoke tasks are within a strong model's ability; the two initial Tier-A fails were EMPTY generations from network timeouts (grader correctly scored them 0), not model errors. Discrimination headroom is for weaker/local models e.g. the 9B."
+  },
+  "results": [
+    {
+      "id": "convert_bash_greeting",
+      "kind": "convert",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "greeting.txt",
+          "contains": [
+            "Hello, BioMate!"
+          ],
+          "found": "work/1f/8b0da31d33137919a777558ecd7f95/greeting.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_bash_wordcount",
+      "kind": "convert",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "wordcount.txt",
+          "contains": [
+            "4"
+          ],
+          "found": "work/a9/f393b60729c9af16c8185cfb09a938/wordcount.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_python_sort",
+      "kind": "convert",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "sorted.txt",
+          "contains": [
+            "apple",
+            "banana",
+            "cherry"
+          ],
+          "found": "work/92/73832bc80ce69346e738580e3d676b/sorted.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_snakemake_chain",
+      "kind": "convert",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "upper.txt",
+          "contains": [
+            "HELLO"
+          ],
+          "found": "work/a2/6923560cc85670df6486bf6e1269c0/upper.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "fix_dsl1_dsl2_mix",
+      "kind": "fix",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "g.txt",
+          "contains": [
+            "ready"
+          ],
+          "found": "work/2e/011f3afe9f14e85e6ca496059acdc7/g.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "fix_missing_output_emit",
+      "kind": "fix",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "upper.txt",
+          "contains": [
+            "HELLO"
+          ],
+          "found": "work/12/f8b99499c049e460845937d2a131a4/upper.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "fix_channel_cardinality",
+      "kind": "fix",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "pair.txt",
+          "contains": [
+            "left right"
+          ],
+          "found": "work/bd/a3eb67c2a6a06fbb94881172b23fee/pair.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "fix_bad_process_invocation",
+      "kind": "fix",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "hi.txt",
+          "contains": [
+            "hi there"
+          ],
+          "found": "work/11/9eb3875162c64e44ae130916051edc/hi.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "write_status_pipeline",
+      "kind": "write",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "status.txt",
+          "contains": [
+            "pipeline-ok"
+          ],
+          "found": "work/0e/e7157b9a813736e93f5fab45269ba2/status.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "write_two_step_count",
+      "kind": "write",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "count.txt",
+          "contains": [
+            "5"
+          ],
+          "found": "work/4b/d31943f2310cf141e4877aaa8d9240/count.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "write_fanout_collect",
+      "kind": "write",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "all.txt",
+          "contains": [
+            "tag:a",
+            "tag:b",
+            "tag:c"
+          ],
+          "found": "work/fa/da97f4555f60f6b1d66738faa6c6ad/all.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "write_param_default",
+      "kind": "write",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "msg.txt",
+          "contains": [
+            "hi, world"
+          ],
+          "found": "work/7d/73c46f1e292074a3a32ac28fff8a27/msg.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    }
+  ],
+  "model": "deepseek/deepseek-v4.1-flash"
+}

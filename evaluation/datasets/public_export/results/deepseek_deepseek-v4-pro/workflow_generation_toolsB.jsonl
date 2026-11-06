@@ -1,0 +1,20 @@
+{"id": "wg_B01", "prediction": ["cutadapt", "FastQC", "STAR", "samtools", "featureCounts", "ribotricer", "xtail"], "recall": 0.8, "hit": true}
+{"id": "wg_B02", "prediction": ["bowtie2", "samtools", "bedtools", "macs2", "seacr", "idr", "deeptools", "picard"], "recall": 1.0, "hit": true}
+{"id": "wg_B03", "prediction": ["m6anet", "nanopolish", "minimap2", "samtools", "bedtools", "EpiNano", "xPore", "DRACH", "MEME", "DSS"], "recall": 0.75, "hit": true}
+{"id": "wg_B04", "prediction": ["DELLY", "Manta", "Sniffles2", "SURVIVOR"], "recall": 0.667, "hit": true}
+{"id": "wg_B05", "prediction": ["TEtranscripts", "STAR", "samtools", "bedtools", "R", "DESeq2"], "recall": 1.0, "hit": true}
+{"id": "wg_B06", "prediction": ["SLAM-DUNK", "GRAND-SLAM", "STAR", "samtools", "cutadapt", "Trim Galore", "FastQC", "MultiQC", "R", "DESeq2", "ggplot2", "pheatmap", "data.table", "dplyr", "Bioconductor"], "recall": 0.75, "hit": true}
+{"id": "wg_B07", "prediction": ["XCMS", "LipidBlast"], "recall": 0.5, "hit": true}
+{"id": "wg_B08", "prediction": ["WhatsHap", "WASP", "samtools", "bcftools", "STAR", "GATK", "picard", "R", "DESeq2"], "recall": 1.0, "hit": true}
+{"id": "wg_B09", "prediction": ["BWA", "samtools", "Picard", "bedtools", "ichorCNA", "cfDNAPro", "FastQC", "MultiQC"], "recall": 0.5, "hit": true}
+{"id": "wg_B10", "prediction": ["NucleATAC", "danpos", "samtools", "bedtools", "bowtie2", "deepTools", "MACS2", "R", "Python"], "recall": 0.8, "hit": true}
+{"id": "wg_B11", "prediction": ["STAR", "StringTie", "GATK", "bcftools", "samtools", "bedtools", "gffread", "TransDecoder", "customProDB", "MaxQuant", "MSFragger", "Comet", "X!Tandem", "PeptideProphet"], "recall": 1.0, "hit": true}
+{"id": "wg_B12", "prediction": ["CRISPResso2"], "recall": 0.333, "hit": false}
+{"id": "wg_B13", "prediction": ["Bowtie2", "samtools", "Picard", "MACS2", "TOBIAS", "bedtools", "deepTools"], "recall": 1.0, "hit": true}
+{"id": "wg_B14", "prediction": ["cutadapt", "fastqc", "STAR", "samtools", "bedtools", "umi_tools", "CIMS", "GATK", "Picard", "R", "ggplot2", "ggrepel", "dplyr", "tidyr", "HOMER", "MEME", "DRACH", "TopHat", "Bowtie", "samtools", "bedtools", "CITS", "miCLIP2", "m6AViewer", "IGV"], "recall": 0.4, "hit": false}
+{"id": "wg_B15", "prediction": ["ArchR", "scVelo", "Seurat", "Signac", "Harmony", "Scanpy", "anndata", "velocyto", "samtools", "bedtools", "MACS2", "chromVAR", "motifmatchr", "BSgenome", "GenomicRanges", "rtracklayer", "Matrix", "dplyr", "ggplot2"], "recall": 0.75, "hit": true}
+{"id": "wg_B16", "prediction": ["HiC-Pro", "FitHiC", "TopDom", "HOMER", "MACS2"], "recall": 0.2, "hit": false}
+{"id": "wg_B17", "prediction": ["Trim Galore!", "Bismark", "samtools", "SNPsplit", "SHAPEIT", "bcftools"], "recall": 0.5, "hit": true}
+{"id": "wg_B18", "prediction": ["NanoPlot", "pycoQC", "Minimap2", "samtools", "BCFtools", "Longshot", "Clair3", "bedtools", "seqkit", "DeepVariant", "WhatsHap"], "recall": 0.4, "hit": false}
+{"id": "wg_B19", "prediction": ["Cell Ranger", "Seurat", "Scanpy", "scRepertoire", "immunarch", "MiXCR", "scirpy", "CITE-seq-Count"], "recall": 0.6, "hit": true}
+{"id": "wg_B20", "prediction": ["MCMICRO", "Cellpose", "DeepCell", "ilastik", "FlowSOM", "PhenoGraph", "scimap", "QuPath", "Fiji", "histoCAT", "Seurat", "Squidpy"], "recall": 0.5, "hit": true}

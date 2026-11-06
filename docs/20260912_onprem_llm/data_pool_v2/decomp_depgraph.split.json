@@ -1,0 +1,21 @@
+{
+  "method": "md5(name)%100<20 -> BENCH else TRAIN (deterministic, stable)",
+  "bench_pool_workflows": 628,
+  "train_pool_workflows": 2513,
+  "bench_workflows_used": 139,
+  "train_workflows_used": 1305,
+  "workflow_name_overlap": 0,
+  "overlap_examples": [],
+  "bench_rows": 165,
+  "train_rows": 4300,
+  "bench_balance": {
+    "parallel": 55,
+    "mixed": 55,
+    "sequential": 55
+  },
+  "train_balance": {
+    "mixed": 1700,
+    "sequential": 900,
+    "parallel": 1700
+  }
+}

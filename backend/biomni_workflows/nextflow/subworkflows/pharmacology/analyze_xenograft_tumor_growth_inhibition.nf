@@ -58,7 +58,7 @@ with open("analyze_xenograft_tumor_growth_inhibition_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_xenograft_tumor_growth_inhibition_output.txt", "w") as f:
-    f.write("Biomni: Analyze Xenograft Tumor Growth Inhibition Results" + NL)
+    f.write("BioMate: Analyze Xenograft Tumor Growth Inhibition Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

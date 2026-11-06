@@ -1,0 +1,9 @@
+{
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+  "before_fix_tests": 40,
+  "after_fix_tests": 49,
+  "failures": 0,
+  "command": "/opt/homebrew/bin/python3 -m unittest test_audit_contracts test_h1_pilot test_donor_pilot test_shared_omic_pilot test_shared_omic_context test_mapkg_smoke test_paired_anchor_io test_hvg_library",
+  "cwd": "/Users/kky/biomate-audit-fix/research/immune_llm_baseline",
+  "cli_cases": 8
+}

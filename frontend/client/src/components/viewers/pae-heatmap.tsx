@@ -102,7 +102,7 @@ export function PaeHeatmap({ pae, reliableThreshold = 8, className }: PaeHeatmap
               <span className="font-mono font-semibold">{cell.v} Å</span>
               <span
                 className="text-[10px]"
-                style={{ color: reliable ? "#22c55e" : "#ef4444" }}
+                style={{ color: reliable ? "var(--ok)" : "var(--err)" }}
               >
                 {reliable
                   ? "relative placement reliable (<8 Å)"

@@ -14,18 +14,23 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+ARG BUILD_COMMIT=unknown
 # On-prem mode: pass VITE_ONPREM=true at build time to enable Chinese UI + license gate
 ARG VITE_ONPREM=false
 ENV VITE_ONPREM=$VITE_ONPREM
 RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build
+# Served alongside the UI so deployment identity can be checked independently.
+RUN node -e 'require("fs").writeFileSync("dist/public/build-info.json", JSON.stringify({commit: process.env.BUILD_COMMIT || "unknown"}) + "\n")'
 
 # ─── Production stage ─────────────────────────────────────────────────────────
 FROM node:18-bookworm-slim
 
 # Docker CLI only — the daemon stays on the host. Socket mount required at run
 # time: `-v /var/run/docker.sock:/var/run/docker.sock`.
+# pandoc: on-prem report rendering — Markdown → PPTX / DOCX (report export +
+# the Methods DOCX). A self-contained local binary; no external service.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    docker.io ca-certificates \
+    docker.io ca-certificates pandoc \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

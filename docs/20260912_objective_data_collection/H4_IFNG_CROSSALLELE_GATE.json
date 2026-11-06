@@ -1,0 +1,212 @@
+{
+  "gate": "H4_IFNG_CROSSALLELE_GATE",
+  "training_eligible": false,
+  "dataset": "PXD014017 (Cancer Res Commun 2023, IFNg remodeling of CRC PDO immunopeptidome)",
+  "perturbation": "IFN-gamma machinery-state INDUCTION (immunoproteasome PSMB8/9/10 + TAP + ERAP up); NOT genetic KO-collapse",
+  "per_pdo": {
+    "CRC-01": {
+      "n_total_peptides": 18282,
+      "n_genuine_ligands": 16298,
+      "n_gained": 2101,
+      "n_lost": 1054,
+      "n_both_present_cont": 13143,
+      "gained_over_lost_ratio": 1.993,
+      "alleles": [
+        "A*31:01",
+        "A*32:01",
+        "B*27:05",
+        "B*14:01",
+        "C*08:02",
+        "C*02:02"
+      ]
+    },
+    "CRC-04": {
+      "n_total_peptides": 12607,
+      "n_genuine_ligands": 11508,
+      "n_gained": 1798,
+      "n_lost": 1501,
+      "n_both_present_cont": 8209,
+      "gained_over_lost_ratio": 1.198,
+      "alleles": [
+        "A*03:01",
+        "A*24:02",
+        "B*35:08",
+        "B*18:01",
+        "C*05:01",
+        "C*04:01"
+      ]
+    },
+    "CRC-05": {
+      "n_total_peptides": 5420,
+      "n_genuine_ligands": 4938,
+      "n_gained": 913,
+      "n_lost": 220,
+      "n_both_present_cont": 3805,
+      "gained_over_lost_ratio": 4.15,
+      "alleles": [
+        "A*32:01",
+        "B*40:01",
+        "C*03:04"
+      ]
+    }
+  },
+  "ligand_stratification": {
+    "method": "length 8-12 AND NetMHCpan BAminRank<=2.0 (rank%) vs the PDO's OWN BAmostlikely allele",
+    "rank_threshold": 2.0
+  },
+  "processing_feature": "immunoproteasome C-terminal + P1' cleavage-context preference (HLA-agnostic residue chemistry; identical function in every background)",
+  "remodeling_label": "binary gained(IFNg-only)=1 vs lost(UT-only)=0 among genuine ligands; continuous log2(Peptidomics_FC) for both-present robustness",
+  "leave_organoid_out": {
+    "PRIMARY_metric": "data-driven C-terminal gained-fraction table; MEAN of per-fold AUROC (base-rate-free) across the 3 A*02-negative disjoint backgrounds",
+    "primary_mean_perfold_auroc": 0.5443,
+    "primary_folds": [
+      {
+        "held_out": "CRC-01",
+        "fold_auroc": 0.5756,
+        "n_gained": 2101,
+        "n_lost": 1054
+      },
+      {
+        "held_out": "CRC-04",
+        "fold_auroc": 0.5195,
+        "n_gained": 1798,
+        "n_lost": 1501
+      },
+      {
+        "held_out": "CRC-05",
+        "fold_auroc": 0.5379,
+        "n_gained": 913,
+        "n_lost": 220
+      }
+    ],
+    "primary_permutation_null": {
+      "n": 2000,
+      "null_mean": 0.5001,
+      "p05": 0.4597,
+      "p50": 0.5004,
+      "p95": 0.54,
+      "real_mean_perfold_auroc": 0.5443,
+      "perm_p_one_sided": 0.021
+    },
+    "secondary_fixed_immunoproteasome_prior": {
+      "note": "hand-coded immunoproteasome C-term chemistry prior (biased); pooled AUROC + continuous log2FC rho",
+      "pooled_auroc": 0.4051,
+      "permutation_null": {
+        "n": 1000,
+        "null_mean": 0.4018,
+        "p05": 0.3894,
+        "p50": 0.4011,
+        "p95": 0.4127,
+        "real_pooled_auroc": 0.4051,
+        "perm_p_one_sided": 0.3197
+      },
+      "robustness_continuous_log2FC": {
+        "pooled_transfer_spearman": -0.3124,
+        "permutation_null": {
+          "n": 1000,
+          "null_mean": -0.286,
+          "real_pooled_rho": -0.3124,
+          "perm_p_one_sided": 0.7383
+        }
+      }
+    }
+  },
+  "strict_disjoint_sensitivity": {
+    "note": "held-out PDO re-scored EXCLUDING peptides on an allele it shares with a training PDO (CRC-01 & CRC-05 share A*32:01) -> removes shared-allele leakage. This is the TRUE cross-DISJOINT-allele transfer.",
+    "folds": [
+      {
+        "held_out": "CRC-01",
+        "shared_alleles": [
+          "A3201"
+        ],
+        "fully_disjoint": false,
+        "disjoint_only_auroc": 0.5895,
+        "n": 2569
+      },
+      {
+        "held_out": "CRC-04",
+        "shared_alleles": [],
+        "fully_disjoint": true,
+        "disjoint_only_auroc": 0.5195,
+        "n": 3299
+      },
+      {
+        "held_out": "CRC-05",
+        "shared_alleles": [
+          "A3201"
+        ],
+        "fully_disjoint": false,
+        "disjoint_only_auroc": 0.5029,
+        "n": 922
+      }
+    ],
+    "mean_perfold_auroc_strict_disjoint": 0.5373
+  },
+  "disjoint_allele_check": {
+    "pairs": [
+      {
+        "pair": [
+          "CRC-01",
+          "CRC-04"
+        ],
+        "shared": [],
+        "n_shared": 0
+      },
+      {
+        "pair": [
+          "CRC-01",
+          "CRC-05"
+        ],
+        "shared": [
+          "A*32:01"
+        ],
+        "n_shared": 1
+      },
+      {
+        "pair": [
+          "CRC-04",
+          "CRC-05"
+        ],
+        "shared": [],
+        "n_shared": 0
+      }
+    ],
+    "any_A02": false,
+    "all_A02_negative": true,
+    "any_shared_allele": true
+  },
+  "leakage_note": "Transfer feature is a fixed HLA-agnostic residue-chemistry function; the fit never sees held-out peptides. CRC-01 & CRC-05 share ONE allele (A*32:01); CRC-04 is fully disjoint. All three are A*02-negative -> disjoint from the KO-cluster. The single shared A*32:01 (CRC-01/CRC-05) is a minor optimism source; CRC-04 fold is fully clean.",
+  "GATE": {
+    "verdict": "WEAK_partial_crossallele_machinery_induction_transfer_significant_but_tiny",
+    "primary_mean_perfold_auroc": 0.5443,
+    "perm_p": 0.021,
+    "n_folds_auroc_ge_0p5": 3,
+    "all_A02_negative": true
+  },
+  "_meta": {
+    "generated": "2026-09-14",
+    "purpose": "REFRAMED cross-allele H4 gate: does IFN-gamma machinery-INDUCTION immunopeptidome remodeling transfer across 3 A*02-negative, allele-disjoint CRC PDO backgrounds (PXD014017)? Reframes the KO-collapse gate, which is structurally untestable cross-allele on public data (all hard-essential-KO immunopeptidome is A*02).",
+    "data_provenance": "PXD014017 / Cancer Res Commun 2023 'Multifactorial Remodeling of the Cancer Immunopeptidome by IFNgamma' (PMID 37991387, PMC10655636). Per-PDO supplementary Excel s01/s02/s03 (RNA+protein+PROCESSED immunopeptide tables, +IFNg vs untreated). Fetched via EuropePMC supplementaryFiles (7.8/5.8/2.9 MB); NO 640/345 MB PRIDE MaxQuant zip pulled, NO raw reprocessing. Intermediates deleted.",
+    "why_this_is_a_valid_reframe": "IFN-gamma is a genuine antigen-processing MACHINERY perturbation (induces immunoproteasome PSMB8/9/10 + TAP + ERAP). The 3 PDOs are A*02-NEGATIVE and allele-diverse, so they supply the disjoint-allele test the KO axis structurally cannot.",
+    "training_eligible": false
+  },
+  "HONEST_scope_statement": {
+    "what_this_PROVES": "On 3 A*02-negative, allele-diverse CRC PDOs, an HLA-agnostic C-terminal machinery-processing signal transfers cross-organoid at a STATISTICALLY-SIGNIFICANT but TINY level (mean-per-fold AUROC 0.544, permutation p=0.021). i.e. there IS a shared, machinery-linked component to which peptides IFN-gamma turns on/off, detectable across disjoint alleles.",
+    "what_this_does_NOT_prove": [
+      "It is NOT a KO-collapse test. IFN-gamma INDUCES/diversifies presentation (gain-of-machinery); B2M/TAP/TAPBP KO ABLATES it (loss-of-machinery). The sign, magnitude, and mechanism differ. This gate cannot substitute for the hard-essential presentation-COLLAPSE readout the CRO targets.",
+      "The transfer is FAR too weak to carry a cross-allele generalization claim. AUROC 0.544 is ~4pp above chance; a claim strong enough to replace a wet experiment needs >=0.65.",
+      "The IFN-gamma remodeling DIRECTION is dominated by each PDO's OWN HLA anchor preference, not a shared immunoproteasome signature: the fixed immunoproteasome-chemistry prior FAILS (pooled AUROC 0.405; continuous log2FC rho -0.31, p=0.74). Hydrophobic/aromatic C-termini are gained in CRC-01 & CRC-05 (whose alleles favour them) but NOT in CRC-04 (A*03/A*24/B*35/B*18 favour basic K/R; W is gained LEAST there). The 'machinery signal' does not cleanly separate from allele-motif remodeling.",
+      "Part of the small positive signal is shared-allele leakage: CRC-01 & CRC-05 share A*32:01. On STRICT-disjoint scoring (excluding shared-allele peptides) the mean falls to 0.537 and the two fully-disjoint-scored folds collapse to chance (CRC-04 0.520, CRC-05-disjoint 0.503)."
+    ],
+    "bottom_line": "A weak, partly-leakage-driven, machinery-induction remodeling signal transfers cross-allele; genuine cross-DISJOINT-allele transfer is essentially at chance. This does NOT establish that machinery state controls presentation cross-allele strongly enough to size down the hard-essential-KO decision."
+  },
+  "CRO_implication": {
+    "does_public_data_reduce_or_eliminate_the_CRO": "NO \u2014 the reframed public-data test does NOT reduce or eliminate the KO-collapse CRO for the hard-essential claim.",
+    "reasoning": [
+      "The specific claim the CRO underwrites is HARD-ESSENTIAL presentation COLLAPSE (B2M/TAP/TAPBP KO -> presentation ablated) generalizing across disjoint alleles. IFN-gamma induction is the opposite perturbation direction and cannot test collapse.",
+      "Even as a machinery-STATE proxy, the cross-allele transfer here is significant-but-tiny (0.544) and mostly evaporates on strict-disjoint scoring (0.537, fully-disjoint folds ~0.50). It does not demonstrate a strong, allele-independent machinery->presentation map.",
+      "So the H4_GATE_CORRECTED_VERDICT conclusion stands: the CRO is still required to supply hard-essential KO on >=3 disjoint-allele backgrounds with a consistent IP method + matched proteome + verified-complete KO + absolute quant."
+    ],
+    "what_the_public_data_DID_buy": "It cheaply RULED OUT the optimistic hope that free IFN-gamma organoid data could substitute for the KO-collapse CRO. It also produced a useful negative mechanistic finding: IFN-gamma repertoire remodeling is allele-motif-dominated, not a portable immunoproteasome C-term signature -> reinforces that presentation-machinery effects must be measured PER allele background, exactly the CRO's disjoint-allele design requirement."
+  }
+}

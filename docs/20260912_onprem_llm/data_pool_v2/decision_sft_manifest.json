@@ -1,0 +1,96 @@
+{
+  "n_tasks": 30,
+  "gold_verified": 30,
+  "split_mode": "stratified",
+  "split_type": "stratified_in_distribution_holdout (directional; shares dataset template)",
+  "n_train": 22,
+  "n_eval": 8,
+  "train_learn_decision": 20,
+  "train_route_not_compute": 2,
+  "leak_guard": {
+    "task_id_overlap": [],
+    "exact_dup": [],
+    "max_eval_to_train_jaccard": 0.597,
+    "per_eval_nearest": [
+      {
+        "eval": "LEADOPT-03",
+        "nearest_train": "LEADOPT-01",
+        "jaccard": 0.377
+      },
+      {
+        "eval": "DOSE-003",
+        "nearest_train": "DOSE-001",
+        "jaccard": 0.597
+      },
+      {
+        "eval": "TISSUE-03",
+        "nearest_train": "TISSUE-02",
+        "jaccard": 0.182
+      },
+      {
+        "eval": "POP-04",
+        "nearest_train": "POP-01",
+        "jaccard": 0.464
+      },
+      {
+        "eval": "PROC-06",
+        "nearest_train": "PROC-02",
+        "jaccard": 0.353
+      },
+      {
+        "eval": "CHAIN-wgs",
+        "nearest_train": "CHAIN-rnaseq",
+        "jaccard": 0.357
+      },
+      {
+        "eval": "DOSEPROJ-03",
+        "nearest_train": "DOSEPROJ-02",
+        "jaccard": 0.226
+      },
+      {
+        "eval": "SCHED-03",
+        "nearest_train": "SCHED-01",
+        "jaccard": 0.155
+      }
+    ]
+  },
+  "CAVEAT": "Train/eval are ITEM-disjoint. In 'stratified' mode the held-out item shares its archetype TEMPLATE with train siblings, so it is an IN-DISTRIBUTION holdout (directional only) \u2014 do NOT cite it as clean generalization. For a clean OOD eval, author new vignettes or use --mode leave_archetype_out. reward==scorer is intended (verifiable-reward RL); the fixed defect was training on the evaluated items. n is a seed.",
+  "sft_file": "docs/20260912_onprem_llm/data_pool_v2/decision_sft.jsonl",
+  "grpo_file": "docs/20260912_onprem_llm/data_pool_v2/decision_grpo.jsonl",
+  "eval_file": "docs/20260912_onprem_llm/data_pool_v2/decision_eval.jsonl",
+  "reward_module": "evaluation/local_trial/decision_reward.py",
+  "train_task_ids": [
+    "CHAIN-admet-remediation",
+    "CHAIN-rnaseq",
+    "DOSE-001",
+    "DOSE-002",
+    "DOSEPROJ-01",
+    "DOSEPROJ-02",
+    "FEP-SEL-cmet",
+    "FEP-SEL-shp2",
+    "LEADOPT-01",
+    "LEADOPT-02",
+    "POP-01",
+    "POP-02",
+    "POP-03",
+    "PROC-01",
+    "PROC-02",
+    "PROC-03",
+    "PROC-04",
+    "PROC-05",
+    "SCHED-01",
+    "SCHED-02",
+    "TISSUE-01",
+    "TISSUE-02"
+  ],
+  "eval_task_ids": [
+    "CHAIN-wgs",
+    "DOSE-003",
+    "DOSEPROJ-03",
+    "LEADOPT-03",
+    "POP-04",
+    "PROC-06",
+    "SCHED-03",
+    "TISSUE-03"
+  ]
+}

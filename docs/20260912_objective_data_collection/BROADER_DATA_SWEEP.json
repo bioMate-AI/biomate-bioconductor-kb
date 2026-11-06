@@ -1,0 +1,183 @@
+{
+  "doc": "BROADER_DATA_SWEEP",
+  "date": "2026-09-14",
+  "role": "SEARCH/metadata only — training_eligible=false; identifies NEW fetchable data + recovers blocked data across ALL immune-FM objectives, not just H4",
+  "scope": "Four targets: (1) under-searched proteomics repos, (2) H3 transcriptome+proteome pairs, (3) blocked vaccine transcriptomes, (4) controlled-access multimodal cohorts. Cross-checked against DATASET_MASTER_REGISTRY.md and the 20260912 prior work (W1/W2/H2/H4).",
+  "method": "PROXI/ProteomeXchange federated API, GEO acc.cgi, ENA portal API, GDC/PDC APIs, cptac package inspection, EGA/dbGaP/GSA-Human policy pages. Only small metadata pulled; df-checked (4.1GB free) — no bulk files.",
+
+  "target1_under_searched_repos": {
+    "verdict": "NEW immunopeptidome/proteome exists beyond the ~28 held deposits, but the big under-searched pools (iProX native, jPOST native) were partly UNREACHABLE from this host (403/robots). The federated ProteomeXchange/PROXI index alone surfaced 212 NEW human-immune deposits not in the held set.",
+    "federated_proxi_new_immune_deposits": {
+      "total_new_not_in_held_set": 212,
+      "of_which_2024_or_newer": 128,
+      "by_repository_all_new": {"PRIDE": 178, "MassIVE": 27, "iProX": 3, "jPOST": 3, "PanoramaPublic": 1},
+      "note": "PRIDE dominates the FEDERATED index (178/212); iProX/jPOST are under-represented federally because most of their native IPX/JPST deposits do NOT cross-register to ProteomeXchange. The true iProX/jPOST immunopeptidome pool is larger than the 3+3 shown here but requires NATIVE repo search (blocked this run)."
+    },
+    "zenodo_new_processed_datasets": {
+      "relevant_records": 36,
+      "genuinely_new_processed_peptide_datasets": "~10 (rest are pipelines/software)",
+      "highlights": [
+        {"doi": "10.5281/zenodo.18611575", "year": 2026, "desc": "epiVIP: PAIRED immunopeptidome + transcriptome processed datasets", "relevance": "HIGH — same-context P/L + RNA, not visible in any MS repo"},
+        {"doi": "10.5281/zenodo.22284845", "year": 2026, "desc": "Atlas9921 HLA-I peptide assignment + motif-compatibility tables", "relevance": "HIGH — HLA-I motif reference"},
+        {"doi": "10.5281/zenodo.21969704", "year": 2026, "desc": "MYB/MYBL1 fusion-junction HLA-matched peptides", "relevance": "MED — fusion neoantigens"},
+        {"doi": "10.5281/zenodo.17985996", "year": 2026, "desc": "PTM immunopeptidomics dataset", "relevance": "MED — post-translationally modified ligands"},
+        {"doi": "10.5281/zenodo.18248786", "desc": "CARMEN immunopeptidomics pipeline + associated dataset", "relevance": "MED"}
+      ],
+      "note": "Zenodo HTTPS-downloadable per DOI. Earlier API path returned 0; the working query (size<=25 unauth, raise to 100 with token) surfaced these. These processed-peptide datasets are NOT visible in PRIDE/MassIVE/iProX/jPOST."
+    },
+    "unreachable_repos_reobtain_route": {
+      "iProX_native": "BIGGEST BLIND SPOT. https://www.iprox.cn/proxi/ 403s from this host; the iProX PROXI /datasets endpoint IGNORES the keywords filter (returns liver proteomes for 'immunopeptidome'), /proxi/aggregate returns 403, and resultType=full times out (>60s, China-hosted). Native IPX-accession datasets (never federated to ProteomeXchange) could NOT be enumerated. Re-pull with a browser-driven or slow paginated resultType=compact client from an unblocked egress. Single richest untapped seam.",
+      "Zenodo": "size capped at 25 unauthenticated; raise to 100 with an API token for fuller coverage. (36 relevant records were still recovered — see zenodo_new_processed_datasets.)",
+      "MassIVE_files": "MassIVE metadata is HTTPS/PROXI-reachable but bulk raw files are frequently FTP-only (ftp://massive.ucsd.edu/) — same transport blocker that stopped MSV000091285 in H4. PXD-accession MassIVE deposits also have HTTPS PRIDE/MassIVE mirrors for processed tables. jPOST file URIs are FTP-only (ftp.jpostdb.org)."
+    },
+    "top_new_non_PRIDE_accessions": [
+      {"acc": "PXD077293", "repo": "iProX", "date": "2026-04-17", "type": "immunopeptidome HLA-I", "title": "MiREC-Based Low-Input HLA-I Immunopeptidomics Dataset", "relevance": "HIGH — native iProX HLA-I, low-input method"},
+      {"acc": "PXD047311", "repo": "iProX", "date": "2023-11-28", "type": "proteogenomic immunopeptidome", "title": "Proteogenomic analysis uncovers neoantigens and bacterial peptides", "relevance": "HIGH — neoantigen + microbial peptide presentation"},
+      {"acc": "PXD024248", "repo": "jPOST", "date": "2022-11-14", "type": "immunopeptidome HLA-I", "title": "HLA class I ligandome of HCT15/b2m", "relevance": "HIGH — B2M-context HLA-I ligandome (machinery-relevant, complements held B2M-KO set)"},
+      {"acc": "PXD040385", "repo": "jPOST", "date": "2024-03-17", "type": "immunopeptidome", "title": "Thunder-DDA-PASEF high-coverage immunopeptidomics", "relevance": "MED-HIGH — deep-coverage method dataset"},
+      {"acc": "PXD052175", "repo": "MassIVE", "date": "2024-11-12", "type": "immunopeptidome + perturbation", "title": "Targeting ERAP enhances anti-tumor immunity by disrupting the immunopeptidome", "relevance": "HIGH — ERAP-perturbation presentation, directly extends held ERAP1/2-KO axis"},
+      {"acc": "PXD059832", "repo": "MassIVE", "date": "2025-01-23", "type": "immunopeptidome cryptic", "title": "Cancer-restricted cryptic antigens are targets for T cell recognition", "relevance": "HIGH — cryptic/non-canonical antigens (extends PXD013649 axis)"},
+      {"acc": "PXD057858", "repo": "MassIVE", "date": "2025-02-19", "type": "immunopeptidome + translation", "title": "HIF Regulates Multiple Translated Endogenous Retroviruses (hypoxia/ERV)", "relevance": "HIGH — hypoxia+ERV translation→presentation, spans H2/H4"},
+      {"acc": "PXD025501", "repo": "MassIVE", "date": "2022-06-29", "type": "immunopeptidome + perturbation", "title": "Systematic evaluation and modulation of HLA class I downregulation", "relevance": "HIGH — HLA-I downregulation modulation (machinery-state)"},
+      {"acc": "PXD033106", "repo": "MassIVE", "date": "2023-04-28", "type": "immunopeptidome HLA-II", "title": "HLA-II immunopeptidome profiling + deep learning", "relevance": "MED-HIGH — class-II axis"},
+      {"acc": "PXD040740", "repo": "MassIVE", "date": "2023-05-25", "type": "immunopeptidome HLA-I+II", "title": "Sensitive high-throughput single-shot HLA-I and HLA-II immunopeptidomics", "relevance": "MED-HIGH — paired I+II method set"},
+      {"acc": "PXD044215", "repo": "MassIVE", "date": "2023-12-05", "type": "plasma HLA peptidome", "title": "Plasma HLA peptides in diagnostic and therapy", "relevance": "MED — soluble/plasma HLA axis (new context)"},
+      {"acc": "PXD045855", "repo": "MassIVE", "date": "2023-10-02", "type": "immunopeptidome+proteome", "title": "Integrated Immunopeptidomic and Proteomic Analysis of COVID-19", "relevance": "MED-HIGH — same-sample P+L (proteome+immunopeptidome), infection context"},
+      {"acc": "PXD037779", "repo": "MassIVE", "date": "2023-07-14", "type": "immunopeptidome infection", "title": "MHC immunopeptidome of human coronavirus OC43-infected cells", "relevance": "MED — infection-perturbed presentation"},
+      {"acc": "PXD042231", "repo": "MassIVE", "date": "2024-01-11", "type": "immunopeptidome HLA-II", "title": "HLA-II immunopeptidome of SARS-CoV-2", "relevance": "MED — infection HLA-II"},
+      {"acc": "PXD053374", "repo": "MassIVE", "date": "2025-03-11", "type": "immunopeptidome HLA-I quant", "title": "diaPASEF for HLA-I peptide quantification", "relevance": "MED — quantitative HLA-I (DIA)"},
+      {"acc": "PXD058389", "repo": "MassIVE", "date": "2025-11-21", "type": "immunopeptidome cancer antigen", "title": "Sensitive direct detection of cancer antigens", "relevance": "MED"},
+      {"acc": "PXD044450", "repo": "MassIVE", "date": "2024-05-31", "type": "neoantigen", "title": "Using FAIMS to improve tumor neoantigen detection", "relevance": "MED"},
+      {"acc": "PXD022951", "repo": "MassIVE", "date": "2021-07-27", "type": "immunopeptidome HLA-I", "title": "Immunopeptidome of HLA-A*11:01 K562", "relevance": "MED — single-allele K562 (allele-controlled)"},
+      {"acc": "PXD027680", "repo": "MassIVE", "date": "2021-08-02", "type": "immunopeptidome", "title": "Immunopeptidome of HCT116 cell line", "relevance": "MED — line panel add"},
+      {"acc": "PXD014293", "repo": "MassIVE", "date": "2019-09-12", "type": "immunopeptidome HLA-II", "title": "Defining HLA-II ligand processing and binding rules", "relevance": "MED — processing-rules class-II"},
+      {"acc": "PXD050766", "repo": "MassIVE", "date": "2026-07-06", "type": "T-cell target", "title": "Molecular signatures of T cells targeting multiple myeloma", "relevance": "MED — MM antigen targets"},
+      {"acc": "PXD081724", "repo": "MassIVE", "date": "2026-08-24", "type": "immunopeptidome HLA-DR", "title": "Allele-skewed HLA-DR immunopeptidomes (B. pertussis)", "relevance": "MED — allele-controlled DR"},
+      {"acc": "PXD066040", "repo": "MassIVE", "date": "2025-12-14", "type": "immunopeptidome HLA-I+II", "title": "HLA-C*06:02 immunopeptidome, transgenic psoriasis model", "relevance": "HIGH — allele-controlled psoriasis (autoimmune, on-mission)"},
+      {"acc": "PXD044851", "repo": "MassIVE", "date": "2023-09-15", "type": "MAPPs HLA-II drug-immunogenicity", "title": "MAPPs assay HLA-II (adalimumab/ATR-107 immunogenicity)", "relevance": "HIGH — drug-context HLA-II presentation (biologics immunogenicity)"},
+      {"acc": "PXD074373", "repo": "PanoramaPublic", "date": "2026-08-27", "type": "targeted PRM immunopeptidome", "title": "Targeted PRM HPV16 immunopeptidomics", "relevance": "MED — viral antigen PRM"}
+    ],
+    "access_note": "All accessions listed are ProteomeXchange-federated, so each has an HTTPS-reachable PRIDE mirror even when the native repo (iProX/jPOST/MassIVE) is FTP-only or bot-blocked — pull processed peptide lists via the PRIDE FTP/HTTPS file API, preferring processed over .raw (same policy as H4).",
+    "bottom_line": "At least 212 NEW human-immune proteomics deposits (128 from 2024+) exist beyond the ~28 held — a ~7x expansion of the addressable immunopeptidome corpus, dominated by MassIVE+PRIDE with a directly-usable machinery/drug-perturbed cluster (ERAP PXD052175, HLA-I downregulation PXD025501, cryptic/ERV PXD059832/PXD057858, biologics-immunogenicity MAPPs PXD044851, psoriasis HLA-C PXD066040) and same-sample P+L infection sets (PXD045855). Of these, ~30 are the NON-PRIDE (MassIVE/iProX/jPOST/Panorama) deposits the program actually under-searched. Zenodo adds ~10 genuinely-new processed-peptide datasets not visible in any MS repo (incl. epiVIP paired immunopeptidome+transcriptome, Atlas9921 HLA-I motif tables). The iProX/jPOST NATIVE pool (IPX/JPST accessions that never federate to ProteomeXchange) is additional and was NOT enumerable this run (iProX 403/keyword-filter-broken/timeout) — it is the single largest untapped repo target and should be re-swept from an unblocked host with a paginated compact client."
+  },
+
+  "target2_H3_transcriptome_proteome_pairs": {
+    "verdict": "~2,300+ OPEN-access same-sample RNA+protein pairs are fetchable; the H3 head's '~0 same-flask held' gap is closable immediately with pre-harmonized matrices — no DAC needed.",
+    "sources": [
+      {
+        "name": "CPTAC (pan-cancer tumor)",
+        "pairs_open": "~1,000-1,100 same-tumor RNA+protein across 10 cohorts (BRCA, CCRCC, COAD, GBM, HNSCC, LSCC, LUAD, OV, PDAC, UCEC)",
+        "fastest_route": "`pip install cptac` (PayneLab) — returns RNA + protein pandas matrices keyed to the SAME sample IDs, already aligned. 10 cohorts confirmed from package source. Lowest friction, zero gating.",
+        "raw_routes": {
+          "proteome_PDC": "https://pdc.cancer.gov/graphql — 109 proteome studies, OPEN processed abundance reports (DUA-ack for some raw MS).",
+          "RNA_GDC": "https://api.gdc.cancer.gov — project CPTAC-3 = 1,866 cases (self-verified: 11,436 Transcriptome Profiling files; agent counted 2,968 OPEN STAR-Counts Gene-Expression-Quantification files). STAR counts OPEN; raw BAM/WXS controlled (not needed)."
+        },
+        "access": "OPEN"
+      },
+      {
+        "name": "ProCan-DepMapSanger (cell lines)",
+        "pairs_open": "~900+ cell lines with matched RNA+protein",
+        "route": "SWATH-DIA proteome: 949 lines / 8,498 proteins (Goncalves Cancer Cell 2022). Files: PRIDE/ProteomeXchange PXD030304 + GitHub EmanuelGoncalves/cancer_proteomics matrix + Cell Model Passports (cellmodelpassports.sanger.ac.uk) / depmap.sanger.ac.uk. Matched RNA via Sanger/Broad RNA-seq (DepMap join).",
+        "access": "OPEN"
+      },
+      {
+        "name": "Gygi/CCLE proteome + DepMap RNA (cell lines)",
+        "pairs_open": "~375 cell lines",
+        "route": "Proteome: Nusinow Cell 2020, 375 lines TMT, table at gygi.med.harvard.edu/publications/ccle + depmap.org. Matched RNA: DepMap OmicsExpressionAllGenesTPMLogp1Profile / CCLE_expression (depmap.org portal, Figshare, AWS Open Data). Join on cell-line ID.",
+        "access": "OPEN"
+      }
+    ],
+    "dedup_note": "ProCan (~949) and Gygi (~375) overlap on Broad/Sanger lines; unique cell-line pairs ~1,000-1,200. Plus ~1,000 CPTAC tumor pairs.",
+    "ranking_value_per_effort": [
+      "1. CPTAC via `cptac` pip package (~1,000+ pairs, pre-aligned, one pip install) — FASTEST WIN for H3",
+      "2. ProCan-DepMapSanger (~900+ lines, one matrix + DepMap join)",
+      "3. Gygi/CCLE + DepMap (~375 lines, two matrices join on line)"
+    ],
+    "bottom_line": "H3's same-flask paired-N goes from ~0 held to ~2,300+ fetchable OPEN pairs. Start with the `cptac` Python package (10 cancer cohorts, ~1,000+ same-tumor RNA+protein pairs, IDs pre-matched, no dbGaP/DUA). This is the single highest value-per-effort item across all four targets — it closes the H3 modality gap outright with no controlled access."
+  },
+
+  "target3_blocked_vaccine_transcriptomes": {
+    "verdict": "W2's 923/2,125 ceiling is PARTLY recoverable: ~201 subjects are cleanly SRA/GEO-recoverable, +44 via an ArrayExpress fetcher — BUT the dominant SDY1538 (686 subj, 32% of target) is genuinely BLOCKED (RNA-seq not public on GEO/SRA; only EPIC methylation is public + ImmPort-restricted).",
+    "recoverable_verified": [
+      {"sdy": "SDY2770", "N": 80, "geo": "GSE199750", "modality": "bulk RNA-seq (COVID vaccine)", "route": "ENA PRJNA821445 (260 RNA-Seq runs, verified) OR per-GSM featureCounts.txt.gz in GSE199750_RAW.tar (~864MB)", "effort": "MED (nf-core/rnaseq quant, or counts from RAW.tar)", "value": "HIGH"},
+      {"sdy": "SDY1393", "N": 61, "geo": "GSE178158", "modality": "bulk RNA-seq (platelet, flu)", "route": "Ready-made DESeq object GSE178158_ddsHTSeq_with_metadata_Final.Rds.gz in GEO suppl (fastest); OR ENA SRP216466 (246 paired FASTQ runs, verified)", "effort": "LOW (pre-computed counts object)", "value": "HIGH (best value-per-effort)"},
+      {"sdy": "SDY400", "N": 31, "geo": "GSE95584", "modality": "Illumina microarray", "route": "GSE95584_non-normalized.txt.gz in GEO suppl — same scale as the 923 already assembled; just skipped in W2 pass, NOT blocked", "effort": "TRIVIAL", "value": "HIGH value-per-effort"},
+      {"sdy": "SDY212", "N": 14, "geo": "GSE41080", "modality": "Illumina microarray (NOT RNA-seq as W2 assumed)", "route": "GSE41080_RAW.tar per-sample intensities -> gene collapse", "effort": "LOW", "value": "MED"},
+      {"sdy": "SDY224", "N": 5, "geo": "GSE45764", "modality": "RNA-seq", "route": "ENA PRJNA196230 (110 RNA-Seq runs, verified)", "effort": "MED", "value": "LOW (N=5)"},
+      {"sdy": "SDY675", "N": 10, "geo": "SRP-only", "modality": "RNA-seq raw", "route": "SRA/ENA fastq -> quant", "effort": "MED", "value": "LOW"}
+    ],
+    "recoverable_needs_new_fetcher": [
+      {"sdy": "SDY1439", "N": 44, "acc": "ArrayExpress E-MTAB (not GEO)", "route": "ArrayExpress/BioStudies FTP — needs an AE fetcher the GEO-only W2 pipeline lacked", "value": "MED"}
+    ],
+    "recoverable_modality_mismatch": [
+      {"sdy": "SDY2189", "N": 32, "geo": "GSE171964", "modality": "scRNA-seq (BNT162b2) — NOT bulk", "route": "GEO suppl mtx/barcodes/feats (public); would need pseudobulk to match bulk validator", "value": "MED (better as sc-corpus add)"}
+    ],
+    "blocked_not_public": [
+      {"sdy": "SDY1538", "N": 686, "pct_of_target": 32.3, "geo_cited": "GSE254348/GSE272438 do NOT resolve on GEO/GDS (private/embargoed); GSE272800 is EPIC 850k METHYLATION array, not RNA", "finding": "EPIC-002 Gambia/PNG newborn HBV (EPICHIPC). Data released 'through ImmPort SDY1538/SDY2584' but the RNA-seq TRANSCRIPTOME is NOT on GEO or SRA. Only methylation is public.", "route": "ImmPort SDY1538 restricted download (if expression attached) OR direct request to EPIC/HIPC consortium (Precision Vaccines Program / Levy-Ozonoff). NOT a public raw-read pull.", "value": "HIGH N, BLOCKED"},
+      {"sdy": "SDY2584", "N": 90, "geo_cited": "GSE270978 = EPIC methylation; GSE272438 unresolved", "finding": "Same EPICHIPC newborn-HBV program as SDY1538; RNA-seq not on GEO/SRA.", "route": "Same as SDY1538.", "value": "MED N, BLOCKED"}
+    ],
+    "no_accession_manual_triage": [
+      {"sdy": "SDY622", "N": 54, "note": "blank accession in ImmPort bridge — manual landing-page inspection needed"},
+      {"sdy": "SDY301", "N": 38, "note": "'Not available yet'"},
+      {"sdy": "SDY296", "N": 13, "note": "'TBD'"}
+    ],
+    "tally": {
+      "cleanly_recoverable_matching_or_convertible_modality": 201,
+      "recoverable_via_arrayexpress_fetcher": 44,
+      "recoverable_but_scRNA_mismatch": 32,
+      "blocked_not_public": 776,
+      "no_accession_manual": 105
+    },
+    "pipeline_scale": "For the two big bulk-RNA-seq wins (SDY2770 260 runs + SDY1393 246 runs + SDY224 110 + SDY675): nf-core/rnaseq quant of ~600-700 FASTQ run-files (~40-64M reads each) -> gene counts -> per-subject baseline collapse -> quantile-align to the microarray matrix scale (or keep as a separate RNA-seq validation block). SDY1393 and (partly) SDY2770 have PRE-COMPUTED count objects, cutting the quant step. The 2 microarray adds (SDY400+SDY212) need only the existing gene-collapse pipeline, no SRA. DO NOT RUN — scale/route only.",
+    "bottom_line": "Realistic recovery raises W2 from 923 -> ~1,120-1,165 assembled (43% -> ~53-55% of the 2,125 target): SDY2770 (COVID, 80) + SDY1393 (flu, 61) are the two biggest fully-open wins, plus two trivial microarray adds (SDY400+SDY212=45) that were merely skipped. The 686-subject SDY1538 is the hard ceiling — its transcriptome is not in any public raw-read repo, so W2's 32% shortfall on that study is real and only recoverable via ImmPort-restricted access or an EPICHIPC consortium request."
+  },
+
+  "target4_controlled_access_cohorts": {
+    "verdict": "4 cohorts add genotype-anchored eQTL + paired scRNA/scATAC/multiome + SLE disease labels. TenK10K (best payload) and Perez SLE (lowest friction) are the priority pair; CIMA is highest-friction (China HGR regime).",
+    "cohorts": [
+      {
+        "name": "TenK10K (Phase 1)", "accession": "EGAS50000001653 (+ EGAS50000001654 WGS sibling)", "repo": "EGA", "N_donors": 1925,
+        "modalities": ["WGS ~30x (VCF+CRAM, all 1,925)", "scRNA-seq 10x 3' HT (>5M cells, 28 immune types, 1,925)", "snATAC-seq (952 donors)", "Multiome paired ATAC+RNA (~90-98 donors)"],
+        "adds": "Flagship multimodal slot: population-scale genotype-anchored eQTL PRIOR + paired scRNA+scATAC+multiome in the SAME donors. Fills genotype, RNA, ATAC, multiome slots at once. No protein/TCR.",
+        "dac_route": "DAC EGAC50000000931 (policy EGAP50000000872). 1) EGA account. 2) DAR via EGA portal + email DAC (joseph.powell@unsw.edu.au / Garvan). 3) Sign TenK10K Data Access Agreement (Appendix II: accessions, <=500-word abstract, personnel list). 4) Institutional Signing Official signs. 5) Garvan DAC authorizes.",
+        "value_per_effort_rank": 1
+      },
+      {
+        "name": "Perez SLE", "accession": "phs002812 (v2.p1)", "repo": "dbGaP", "N_donors": 258,
+        "modalities": ["Multiplexed scRNA-seq mux-seq (>1.2M PBMCs)", "dense genotyping array (cell-type cis-eQTL)"],
+        "adds": "Genotype-anchored CELL-TYPE-SPECIFIC cis-eQTLs WITH SLE disease-state labels (160 SLE + 98 control, ISG-driven states). Fills 'genotype<->expression eQTL + disease label' slot. No ATAC/protein/TCR.",
+        "dac_route": "1) PI active eRA Commons (PI role). 2) dbGaP Authorized Access -> DAR select phs002812.v2.p1 + consent group. 3) Research Use Statement matching DUL. 4) Institutional Signing Official co-signs. 5) Data Use Certification (electronic). 6) IRB if DS- consent code. 7) NIAMS DAC review, ~2-8 wk. Verify GRU vs DS- consent code before drafting RUS.",
+        "value_per_effort_rank": 2
+      },
+      {
+        "name": "EGA SLE (Panousis/FORTH-BRFAA)", "accession": "EGAS00001003662", "repo": "EGA", "N_donors": 200,
+        "modalities": ["Bulk RNA-seq (n=200, GRCh37)", "array genotyping HumanCoreExome imputed to 1000G (n=197)", "prebuilt eQTL + sQTL summary stats (n=142)", "clinical phenotypes"],
+        "adds": "Disease-state genotype<->expression eQTL/sQTL anchor in SLE (142 SLE + 58 HC) with ready-made summary stats. Bulk blood only — value is genetics prior + SLE labels, not a multiome slot.",
+        "dac_route": "DAC EGAC00001001213 (policy EGAP00001001192, DUO managed access). 1) EGA account. 2) 'Request Access' on datasets EGAD00001005037-5042 + email gbertsias@uoc.gr. 3) Sign FORTH-BRFAA DAA (Appendix II project + personnel). 4) Institutional Signing Official. 5) Small Greek academic DAC review (PI-responsiveness-dependent).",
+        "value_per_effort_rank": 3
+      },
+      {
+        "name": "CIMA (Chinese Immune Multi-omics Atlas)", "accession": "HRA009968", "repo": "GSA-Human (NGDC/CNCB/BGI)", "N_donors": 428,
+        "modalities": ["scRNA-seq (~15k cells/donor)", "scATAC-seq (~9.6k cells/donor)", "WGS/genotype (cis-eQTL + caQTL)"],
+        "adds": "Paired scRNA+scATAC+WGS in an EAST-ASIAN/Chinese-ancestry population — the main non-European ancestry axis for the genetics prior (eQTL+caQTL). Modality-redundant with TenK10K, ancestry-complementary.",
+        "dac_route": "DAC HDAC005178 (contact liuchuanyu@genomics.cn, BGI). 1) BIG SSO account tied to real PI (+ public PI homepage URL, common rejection reason). 2) DAR: title -> research use -> HRA009968 -> sign DAA. 3) System Review -> CIMA DAC -> FTP download. NON-CHINA FRICTION (decisive): international users cannot request unless dataset is registered in the MOST Human Genetic Resource platform; typically needs a Chinese collaborating PI + advance HGRAC approval + possible cross-border security review.",
+        "value_per_effort_rank": 4
+      }
+    ],
+    "cross_cutting_note": "Only TenK10K + CIMA supply ATAC/multiome; both SLE cohorts are RNA+genotype only. NONE of the four provide protein (CyTOF/Olink) or dedicated TCR-seq — those remain gaps across all four and need a separate cohort search.",
+    "practical_sequencing": "Start Perez SLE (fastest clean US-portal win) and TenK10K (highest payload) in parallel now; queue EGA SLE as a cheap add-on; treat CIMA as a long-lead partnership track needing a Chinese collaborator.",
+    "bottom_line": "These 4 cohorts are the multimodal/genotype-prior fill: ~2,600 donors of genotype+scRNA (+scATAC/multiome in ~2,350) and SLE disease labels. Value-per-effort order: TenK10K > Perez SLE > EGA SLE > CIMA. All require DAC turnaround (weeks to months); none are quick pulls, so start the two priority DARs immediately."
+  },
+
+  "overall_bottom_line": {
+    "how_much_more_usable_data": "Substantial across ALL objectives, not just H4:",
+    "ranked_by_value_per_effort": [
+      "1. H3 pairs via `cptac` pip package (~1,000+ same-tumor RNA+protein, pre-aligned, OPEN, one pip install) + ProCan/Gygi (~1,200 cell-line pairs) => ~2,300+ OPEN same-sample transcriptome+proteome pairs, closing the H3 '~0 held' gap OUTRIGHT with zero DAC. THE single biggest quick win.",
+      "2. Target-1 immunopeptidome: >=212 NEW human-immune proteomics deposits (128 from 2024+) beyond the ~28 held (~7x the addressable corpus), all ProteomeXchange-federated => HTTPS-pullable; ~30 are the non-PRIDE (MassIVE/iProX/jPOST/Panorama) ones actually under-searched. Directly-usable perturbation cluster: ERAP (PXD052175), HLA-I downregulation (PXD025501), cryptic/ERV (PXD059832/PXD057858), MAPPs biologics-immunogenicity (PXD044851), same-sample P+L COVID (PXD045855). Plus ~10 new Zenodo processed-peptide datasets (epiVIP paired immunopeptidome+transcriptome, Atlas9921). The iProX/jPOST NATIVE pool (IPX/JPST accessions, 403/timeout-blocked this run) is the largest untapped repo target.",
+      "3. Vaccine (T3) recovery: ~201 subjects cleanly recoverable (SDY2770 COVID + SDY1393 flu the big wins; 2 trivial microarray adds) + 44 via ArrayExpress => W2 923->~1,120-1,165 (43%->~54%). Bounded by the genuinely-blocked SDY1538 (686, not public).",
+      "4. Controlled-access cohorts (T4): ~2,600 donors of genotype+scRNA(+ATAC/multiome) + SLE labels; start TenK10K + Perez SLE DARs now (weeks-months turnaround)."
+    ],
+    "single_fastest_win": "The `cptac` Python package for H3 — one pip install yields ~1,000+ pre-aligned same-sample RNA+protein pairs across 10 cancer cohorts, fully OPEN, closing the H3 modality gap the program currently scores at ~0 held.",
+    "blocked_data_confirmed_unrecoverable_publicly": "SDY1538/SDY2584 vaccine RNA-seq (776 subj, EPICHIPC — ImmPort-restricted/consortium only) and MSV000091285 (H4 immunoproteasome ONX-0914 — MassIVE FTP-only, needs FTP-capable host, same transport blocker as many MassIVE files here)."
+  }
+}

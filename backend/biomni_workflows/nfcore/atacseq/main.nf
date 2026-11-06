@@ -1,3 +1,7 @@
+// ⚠️ NON-EXECUTABLE PARAMETER-SURFACE STUB (flagged 2026-10-01): invented aligner flag
+// `--fragment-size` (no such flag), no input:/channel wiring, 0 real outputs. DB id 12673
+// set executable=0. For real ATAC-seq use the validated bioconductor subworkflows
+// (nextflow_nfcore/subworkflows/bioconductor/atacseqqc/*, atacseqtfea/*). Do NOT run this.
 // nf-core/atacseq — user-facing parameter stub
 // ATAC-seq: FASTQ → trimming → alignment → peak calling → annotation → QC
 

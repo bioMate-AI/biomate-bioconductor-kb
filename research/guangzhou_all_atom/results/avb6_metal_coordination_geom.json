@@ -1,0 +1,38 @@
+{
+  "CTRL-TRIVEHEXIN": {
+    "lig_chain": "P",
+    "min_ligO_Mn": 0.81,
+    "res": "ASP",
+    "atom": "OD2",
+    "rec_O_Mn": 1.4,
+    "n_mn": 3,
+    "lig_atoms": 76
+  },
+  "CTRL-AVEBEHEXIN": {
+    "lig_chain": "P",
+    "min_ligO_Mn": 1.91,
+    "res": "ASP",
+    "atom": "OD1",
+    "rec_O_Mn": 2.08,
+    "n_mn": 3,
+    "lig_atoms": 74
+  },
+  "AVB6-SH-M7-01": {
+    "lig_chain": "P",
+    "min_ligO_Mn": 1.96,
+    "res": "ASP",
+    "atom": "OD1",
+    "rec_O_Mn": 1.96,
+    "n_mn": 3,
+    "lig_atoms": 58
+  },
+  "AVB6-SH-M11-01": {
+    "lig_chain": "P",
+    "min_ligO_Mn": 2.34,
+    "res": "ASP",
+    "atom": "OD1",
+    "rec_O_Mn": 1.98,
+    "n_mn": 3,
+    "lig_atoms": 77
+  }
+}

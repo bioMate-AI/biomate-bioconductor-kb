@@ -1,0 +1,83 @@
+shuffle None 2013_CHUGAI n_train 6082 53 s
+shuffle None 2015_Ahlbach n_train 6929 77 s
+shuffle None 2015_Wang n_train 6899 95 s
+shuffle None 2016_Furukawa n_train 6298 114 s
+shuffle None 2017_Pye n_train 6939 143 s
+shuffle None 2018_Naylor n_train 6896 181 s
+shuffle None 2020_Barlow n_train 6934 195 s
+shuffle None 2020_Furukawa n_train 6924 205 s
+shuffle None 2020_Le Roux n_train 6913 221 s
+shuffle None 2020_Townsend n_train 4079 237 s
+shuffle None 2021_Comeau n_train 6918 252 s
+shuffle None 2021_Golosov n_train 6937 267 s
+shuffle None 2021_Kelly n_train 5442 282 s
+shuffle None 2021_Wang n_train 6936 301 s
+shuffle None 2022_Bhardwaj n_train 6826 322 s
+shuffle None 2022_Taechalertpaisarn n_train 6910 339 s
+shuffle None 2023_Ghosh n_train 6927 357 s
+shuffle None 2024_Faris n_train 6753 379 s
+shuffle None 2024_Koch n_train 6918 396 s
+shuffle None 2024_Ly n_train 6940 412 s
+wrote real 2509
+shuffle 0 2013_CHUGAI n_train 6082 431 s
+shuffle 0 2015_Ahlbach n_train 6929 442 s
+shuffle 0 2015_Wang n_train 6899 453 s
+shuffle 0 2016_Furukawa n_train 6298 463 s
+shuffle 0 2017_Pye n_train 6939 474 s
+shuffle 0 2018_Naylor n_train 6896 483 s
+shuffle 0 2020_Barlow n_train 6934 492 s
+shuffle 0 2020_Furukawa n_train 6924 498 s
+shuffle 0 2020_Le Roux n_train 6913 503 s
+shuffle 0 2020_Townsend n_train 4079 510 s
+shuffle 0 2021_Comeau n_train 6918 518 s
+shuffle 0 2021_Golosov n_train 6937 527 s
+shuffle 0 2021_Kelly n_train 5442 534 s
+shuffle 0 2021_Wang n_train 6936 541 s
+shuffle 0 2022_Bhardwaj n_train 6826 549 s
+shuffle 0 2022_Taechalertpaisarn n_train 6910 556 s
+shuffle 0 2023_Ghosh n_train 6927 562 s
+shuffle 0 2024_Faris n_train 6753 569 s
+shuffle 0 2024_Koch n_train 6918 576 s
+shuffle 0 2024_Ly n_train 6940 590 s
+shuffle 1 2013_CHUGAI n_train 6082 606 s
+shuffle 1 2015_Ahlbach n_train 6929 615 s
+shuffle 1 2015_Wang n_train 6899 625 s
+shuffle 1 2016_Furukawa n_train 6298 634 s
+shuffle 1 2017_Pye n_train 6939 640 s
+shuffle 1 2018_Naylor n_train 6896 647 s
+shuffle 1 2020_Barlow n_train 6934 656 s
+shuffle 1 2020_Furukawa n_train 6924 663 s
+shuffle 1 2020_Le Roux n_train 6913 669 s
+shuffle 1 2020_Townsend n_train 4079 678 s
+shuffle 1 2021_Comeau n_train 6918 685 s
+shuffle 1 2021_Golosov n_train 6937 691 s
+shuffle 1 2021_Kelly n_train 5442 702 s
+shuffle 1 2021_Wang n_train 6936 710 s
+shuffle 1 2022_Bhardwaj n_train 6826 718 s
+shuffle 1 2022_Taechalertpaisarn n_train 6910 729 s
+shuffle 1 2023_Ghosh n_train 6927 741 s
+shuffle 1 2024_Faris n_train 6753 751 s
+shuffle 1 2024_Koch n_train 6918 765 s
+shuffle 1 2024_Ly n_train 6940 780 s
+shuffle 2 2013_CHUGAI n_train 6082 809 s
+shuffle 2 2015_Ahlbach n_train 6929 831 s
+shuffle 2 2015_Wang n_train 6899 862 s
+shuffle 2 2016_Furukawa n_train 6298 875 s
+shuffle 2 2017_Pye n_train 6939 899 s
+shuffle 2 2018_Naylor n_train 6896 939 s
+shuffle 2 2020_Barlow n_train 6934 991 s
+shuffle 2 2020_Furukawa n_train 6924 1030 s
+shuffle 2 2020_Le Roux n_train 6913 1048 s
+shuffle 2 2020_Townsend n_train 4079 1061 s
+shuffle 2 2021_Comeau n_train 6918 1071 s
+shuffle 2 2021_Golosov n_train 6937 1080 s
+shuffle 2 2021_Kelly n_train 5442 1090 s
+shuffle 2 2021_Wang n_train 6936 1101 s
+shuffle 2 2022_Bhardwaj n_train 6826 1115 s
+shuffle 2 2022_Taechalertpaisarn n_train 6910 1125 s
+shuffle 2 2023_Ghosh n_train 6927 1131 s
+shuffle 2 2024_Faris n_train 6753 1137 s
+shuffle 2 2024_Koch n_train 6918 1142 s
+shuffle 2 2024_Ly n_train 6940 1148 s
+wrote shuffle 7527
+permb rc=0
