@@ -8155,7 +8155,14 @@ def download_local_output(run_id: str, rel_path: str) -> Any:
     if not str(target).startswith(str(base)):
         raise HTTPException(status_code=403, detail="Path escapes run output directory.")
     if not target.is_file():
-        raise HTTPException(status_code=404, detail=f"File not found: {rel_path}")
+        # Bare-filename fallback: search recursively within outdir.
+        # Handles publishDir that writes to a subdirectory (e.g. "run/filename.csv").
+        name_only = Path(rel_path).name
+        matches = [m for m in base.rglob(name_only) if m.is_file() and str(m.resolve()).startswith(str(base))]
+        if matches:
+            target = matches[0]
+        else:
+            raise HTTPException(status_code=404, detail=f"File not found: {rel_path}")
 
     return FileResponse(str(target), filename=target.name)
 
