@@ -13096,9 +13096,12 @@ Rules:
       // On-prem: all Nextflow work dirs are under NEXTFLOW_WORK_DIR (/app/nf-work by default).
       // For cached runs the DB-stored work_dir can be absent — include the global root so the
       // allowedRoots check doesn't spuriously 403 on valid on-prem file paths.
-      const onPremWorkRoot = process.env.S3_ENDPOINT_URL
-        ? resolve(process.env.NEXTFLOW_WORK_DIR || '/app/nf-work')
-        : null;
+      // Include whenever NEXTFLOW_WORK_DIR is set, NOT gated on S3_ENDPOINT_URL — the ECS
+      // local-executor deployment has NEXTFLOW_WORK_DIR but no S3_ENDPOINT_URL in the
+      // frontend container, which previously caused spurious 403s.
+      const onPremWorkRoot = process.env.NEXTFLOW_WORK_DIR
+        ? resolve(process.env.NEXTFLOW_WORK_DIR)
+        : (process.env.S3_ENDPOINT_URL ? resolve('/app/nf-work') : null);
       const allowedRoots = [
         nfStatus?.work_dir,
         nfStatus?.outdir,
