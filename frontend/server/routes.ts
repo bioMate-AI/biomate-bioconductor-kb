@@ -1343,7 +1343,32 @@ async function reconcileStaleRuns(): Promise<void> {
       const ownerId = (r as any).userId;
       try {
         const owner = ownerId ? await authService.getUserById(ownerId) : null;
-        if (!owner) { failed.push(`${id}:no-owner`); continue; }
+        if (!owner) {
+          // The owner account is gone, so the user-scoped status route can't be called. Ask
+          // Galaxy directly; a run it no longer knows a day after start is closed as lost (same
+          // rule as the status route).
+          const ex = (r as any).execution || {};
+          const nfId = ex.nextflowRunId || ex.galaxyInvocationId;
+          const startedMs = new Date(ex.startedAt || (r as any).createdAt || 0).getTime();
+          if (nfId && startedMs > 0 && now - startedMs > 24 * 60 * 60 * 1000) {
+            try {
+              await galaxyAPIProxy.getNextflowStatus(nfId);
+            } catch (e: any) {
+              if (isNextflowRunNotFound(e)) {
+                await storage.updateExecutionRun(id, {
+                  execution: {
+                    ...ex, status: 'failed', completedAt: new Date(),
+                    errorMessage: 'The run record was lost on the execution backend (a server rebuild), so its final state is unknown. Please run it again.',
+                  },
+                }).catch(() => undefined);
+                ok += 1;
+                continue;
+              }
+            }
+          }
+          failed.push(`${id}:no-owner`);
+          continue;
+        }
         const resp = await fetch(`http://127.0.0.1:${port}/api/workflows/runs/${id}/status`, {
           headers: { Authorization: `Bearer ${authService.generateToken(owner as any)}` },
           signal: AbortSignal.timeout(12000),

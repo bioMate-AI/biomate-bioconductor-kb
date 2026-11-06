@@ -45,3 +45,12 @@ describe("status route closes runs Galaxy has lost", () => {
     expect(block).toContain("status: 'failed'");
   });
 });
+
+describe("run-reaper closes lost runs whose owner account is gone", () => {
+  const src = readFileSync(join(__dirname, "routes.ts"), "utf8");
+  const body = src.slice(src.indexOf("async function reconcileStaleRuns"), src.indexOf("setInterval(() => { void reconcileStaleRuns(); }"));
+  it("asks Galaxy directly and applies the not-found rule", () => {
+    expect(body).toContain("await galaxyAPIProxy.getNextflowStatus(nfId)");
+    expect(body).toContain("if (isNextflowRunNotFound(e))");
+  });
+});
