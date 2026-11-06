@@ -1079,6 +1079,32 @@ _NF_SKIP_PARAMS = {
 _NF_PARSE_CACHE: Dict[str, Any] = {}
 
 
+def _reconcile_required_levels(nf_filename: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
+    """Set each param's level from the executed pipeline's schema (galaxy.ai.executed_schema).
+
+    A stub param is "required" only if the pipeline that runs requires it; schema-required
+    params the stub lacks are added. Unchanged when no executed schema is found.
+    """
+    from galaxy.ai.executed_schema import executed_schema_required  # noqa: PLC0415
+    got = executed_schema_required(nf_filename)
+    if got is None:
+        return parsed
+    req_names, props = got
+    meta = {k: dict(v) for k, v in (parsed.get("parameter_metadata") or {}).items()}
+    params = dict(parsed.get("parameters") or {})
+    for name, m in meta.items():
+        if name in req_names:
+            m["level"] = "required"
+        elif m.get("level") == "required":
+            m["level"] = "optional"
+    for name in sorted(req_names - set(meta)):
+        d = props.get(name, {})
+        meta[name] = {"type": "file" if d.get("format") in ("file-path", "path") else (d.get("type") or "string"),
+                      "label": name.replace("_", " ").title(), "level": "required"}
+        params.setdefault(name, d.get("default"))
+    return {**parsed, "parameters": params, "parameter_metadata": meta}
+
+
 def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
     """Cached wrapper over :func:`_parse_nextflow_params_impl`.
 
@@ -1094,7 +1120,7 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
     _cached = _NF_PARSE_CACHE.get(nf_filename)
     if _cached is not None:
         return _cached
-    _res = _parse_nextflow_params_impl(nf_filename)
+    _res = _reconcile_required_levels(nf_filename, _parse_nextflow_params_impl(nf_filename))
     if len(_NF_PARSE_CACHE) < 4096:
         _NF_PARSE_CACHE[nf_filename] = _res
     return _res

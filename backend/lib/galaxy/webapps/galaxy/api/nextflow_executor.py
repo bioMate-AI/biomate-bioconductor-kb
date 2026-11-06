@@ -1444,6 +1444,62 @@ def _trigger_auto_reroute_on_failure(
         log.warning("[auto_reroute] trigger failed for run %s: %s", run_id, exc)
 
 
+def _nextflow_error_summary(log_text: str, limit: int = 600) -> str:
+    """One-paragraph cause of a failed run, from the Nextflow console log (<run>/nextflow.log).
+
+    The run record used to keep only the LAST log line — "-[nf-core/x] Pipeline completed
+    with errors-" or nothing — so a failed run never said which process failed or why.
+    Picks, in order: the first failed process (name + cause + the last lines of its
+    command error, where the exception sits); a launch-time `ERROR ~` message (+ the
+    script/line Nextflow points at); `No such file:` input errors. "" when none match.
+    """
+    if not log_text:
+        return ""
+    lines = log_text.splitlines()
+    out = ""
+    for i, line in enumerate(lines):
+        # 22.10/25.10 print the bare line; 26.04 prefixes it with "ERROR ~ ".
+        m = re.match(r"\s*(?:ERROR ~ )?Error executing process > '([^']+)'", line)
+        if not m:
+            continue
+        cause, cmd_err = "", []
+        j = i + 1
+        while j < len(lines) and not re.match(r"\s*(?:ERROR ~ )?Error executing process > ", lines[j]):
+            if lines[j].strip() == "Caused by:" and j + 1 < len(lines):
+                cause = lines[j + 1].strip()
+            if lines[j].strip() == "Command error:":
+                k = j + 1
+                while k < len(lines) and (lines[k].startswith("  ") or not lines[k].strip()):
+                    if lines[k].strip():
+                        cmd_err.append(lines[k].strip())
+                    k += 1
+                break
+            j += 1
+        # DSL2 names are fully qualified (NFCORE_X:X:SUBWF:PROC (tag)); keep the process + tag.
+        out = f"Process {m.group(1).split(':')[-1]} failed" + (f": {cause}" if cause else "")
+        if cmd_err:
+            out += " — " + " | ".join(cmd_err[-2:])
+        break
+    if not out:
+        for i, line in enumerate(lines):
+            if line.startswith("ERROR ~ "):
+                out = line[len("ERROR ~ "):].strip()
+                for nxt in lines[i + 1:i + 4]:
+                    sm = re.search(r"Check script '([^']+)' at line: (\d+)", nxt)
+                    if sm:
+                        out += f" (script {Path(sm.group(1)).name}, line {sm.group(2)})"
+                        break
+                    if nxt.strip():
+                        out += f" — {nxt.strip()}"
+                        break
+                break
+    if not out:
+        missing = sorted({l.split("No such file:", 1)[1].strip() for l in lines if "No such file:" in l})
+        if missing:
+            out = "Input not found: " + ", ".join(missing[:3]) + (f" (+{len(missing) - 3} more)" if len(missing) > 3 else "")
+    return out[:limit]
+
+
 def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
     """Single chokepoint before a status payload leaves for the browser: attach a
     classified `failure` verdict on failed runs and redact backend internals from
@@ -1468,9 +1524,19 @@ def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
         resp["failure"] = _classify_failure(
             status, raw_tail, resp.get("returncode"), resp.get("duration_s"),
             task_stderr=task_stderr)
+        run_id = str(resp.get("run_id") or "")
+        if run_id and "/" not in run_id and ".." not in run_id:
+            try:
+                _nf_log = (Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+                           / run_id / "nextflow.log").read_text(errors="replace")
+                _summary = _nextflow_error_summary(_nf_log)
+                if _summary:
+                    resp["error_summary"] = _summary
+            except OSError:
+                pass
     if "log_tail" in resp:
         resp["log_tail"] = _sanitize_log_tail(raw_tail)
-    for _k in ("error", "errorMessage", "error_message", "message"):
+    for _k in ("error", "errorMessage", "error_message", "message", "error_summary"):
         if isinstance(resp.get(_k), str):
             resp[_k] = _redact_internal(resp[_k])
     return resp

@@ -2875,7 +2875,38 @@ Respond with a single JSON object — no other text:
         schema_params = self._parse_nextflow_schema(filename)
         if schema_params is not None:
             return schema_params
-        return self._parse_nextflow_params(filename)
+        return self._reconcile_required_with_executed_schema(
+            filename, self._parse_nextflow_params(filename)
+        )
+
+    def _reconcile_required_with_executed_schema(self, filename: str, params: dict) -> dict:
+        """Take required-ness from the pipeline that actually runs (see galaxy.ai.executed_schema).
+
+        The stub's curated entries are kept for display, demoted to optional when the
+        executed pipeline's schema does not require them; schema-required params the stub
+        lacks are added from the schema.
+        """
+        from galaxy.ai.executed_schema import executed_schema_required  # noqa: PLC0415
+        got = executed_schema_required(filename)
+        if got is None:
+            return params
+        req_names, props = got
+        required, optional = [], []
+        for p in list(params.get('required', [])) + list(params.get('optional', [])):
+            entry = dict(p, required=p.get('name') in req_names)
+            (required if entry['required'] else optional).append(entry)
+        have = {p.get('name') for p in required}
+        for name in sorted(req_names - have):
+            d = props.get(name, {})
+            required.append({
+                'name': name,
+                'label': name.replace('_', ' ').title(),
+                'description': d.get('description') or d.get('help_text') or '',
+                'type': self._schema_type_to_param_type(name, d),
+                'default': d.get('default'),
+                'required': True,
+            })
+        return {'required': required, 'optional': optional}
 
     _SRA_ACCESSION_RE = re.compile(r'\b([SED]RR\d{6,9}|GSE\d{4,9}|GSM\d{4,9}|E-MTAB-\d{4,9}|PXD\d{4,9})\b', re.IGNORECASE)
     _GENOME_BUILD_RE = re.compile(

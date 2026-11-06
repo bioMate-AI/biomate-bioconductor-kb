@@ -12488,7 +12488,8 @@ ${paramLines || '(none recorded)'}`;
                   status: mappedStatus,
                   errorMessage: nfState === 'succeeded'
                     ? undefined
-                    : (nextflowStatus?.log_tail?.slice?.(-1)?.[0]
+                    : (nextflowStatus?.error_summary
+                        || nextflowStatus?.log_tail?.slice?.(-1)?.[0]
                         || run.execution?.errorMessage || 'Nextflow run failed'),
                   completedAt: new Date(),
                   nextflowStatus,
@@ -12757,7 +12758,7 @@ ${paramLines || '(none recorded)'}`;
             const terminalMessage = orphanInterrupt
               ? 'The run was interrupted by a backend restart before it finished — please re-run.'
               : (nfState === 'failed'
-                ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
+                ? (nextflowStatus?.error_summary || nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
                 : undefined);
 
             run = await storage.updateExecutionRun(run.id, {

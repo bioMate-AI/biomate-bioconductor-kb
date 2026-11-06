@@ -39,6 +39,13 @@ TEST_PARAMS = {
                         "fasta": TD + "atacseq/reference/genome.fa", "gtf": TD + "atacseq/reference/genes.gtf"},
     "nf-core/atacseq": {"input": TD + "atacseq/samplesheet/v2.0/samplesheet_test.csv", "read_length": 50,
                         "fasta": TD + "atacseq/reference/genome.fa", "gtf": TD + "atacseq/reference/genes.gtf"},
+    "nf-core/scrnaseq": {"input": "https://github.com/nf-core/test-datasets/raw/scrnaseq/samplesheet-2-0.csv",
+                         "fasta": "https://github.com/nf-core/test-datasets/raw/scrnaseq/reference/GRCm38.p6.genome.chr19.fa",
+                         "gtf": "https://github.com/nf-core/test-datasets/raw/scrnaseq/reference/gencode.vM19.annotation.chr19.gtf",
+                         "aligner": "star", "protocol": "10XV2"},
+    "nf-core/mag": {"input": TD + "mag/samplesheets/samplesheet.multirun.v4.csv"},
+    "nf-core/ampliseq": {"input": TD + "ampliseq/samplesheets/Samplesheet.tsv", "metadata": TD + "ampliseq/samplesheets/Metadata.tsv"},
+    "nf-core/scdownstream": {"input": TD.rstrip("/") + "/4d8b9974c14cf11280d29bfe16f94e284793e499/samplesheet.csv"},
 }
 
 
@@ -66,7 +73,7 @@ def run_one(jwt, name, max_wait_s=5400):
     ex = (last or {}).get("execution") or {}
     return {"name": name, "runId": run_id, "status": ex.get("status"), "exit_code": ex.get("exit_code", ex.get("rc")),
             "output_files": len(ex.get("output_files") or last.get("output_files") or []),
-            "error": (ex.get("error") or "")[:400], "minutes": round((time.time() - t0) / 60, 1)}
+            "error": (ex.get("errorMessage") or ex.get("error") or "")[:400], "minutes": round((time.time() - t0) / 60, 1)}
 
 
 def main():
