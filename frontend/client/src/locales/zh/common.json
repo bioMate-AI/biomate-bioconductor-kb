@@ -336,7 +336,11 @@
     "open_as_dataset_title": "在「文件」中打开该数据集对象（预览、版本与血缘）",
     "used_by_runs": "{{n}} 个运行使用",
     "content_hash": "内容哈希",
-    "dedup_note": "相同内容的文件会合并为同一条目"
+    "dedup_note": "相同内容的文件会合并为同一条目",
+    "open_in": "在 {{tool}} 中打开",
+    "open_in_title": "将该文件加载到 Galaxy 历史并在 {{tool}} 中打开",
+    "open_in_launching": "正在启动…",
+    "open_in_failed": "无法打开交互工具"
   },
   "data_hub": {
     "choose_project": "选择一个项目",

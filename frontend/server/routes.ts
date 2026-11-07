@@ -11012,6 +11012,56 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Launch interactive tool
+  // ─── POST /api/projects/:id/files/:fileId/open-in ─────────────────────
+  // Open a PROJECT FILE in a Galaxy interactive tool (design spec 04 §4.3.1).
+  // Galaxy's Jupyter/RStudio ITs already exist and launch (see
+  // /api/interactive-tools/launch); a project file simply isn't a Galaxy HDA, so
+  // we stage it into the user's history (the uploadFromUrl pattern that
+  // /api/datasets/import-url uses) and launch the IT against the staged HDA.
+  // Tool by file type (R/rds → RStudio, else Jupyter) or an explicit body.tool.
+  // NOTE: the HDA is staged async by Galaxy; the IT job queues until its input is
+  // ready, so we launch immediately (polling-to-ok is a documented refinement).
+  app.post("/api/projects/:id/files/:fileId/open-in", authenticateToken, async (req, res) => {
+    try {
+      const uid = (req.user as any)?.id;
+      if (!uid) return res.status(401).json({ error: "Unauthorized" });
+      const { id, fileId } = req.params;
+      if (!(await _isOwnerOrMember(id, String(uid)))) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      const row = await pool.query(
+        `SELECT name, s3_key FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!row.rows[0]) return res.status(404).json({ error: "File not found" });
+      const { name, s3_key } = row.rows[0] as { name: string; s3_key: string };
+      const ext = (name.split(".").pop() || "").toLowerCase();
+      const reqTool = String(req.body?.tool || "").toLowerCase();
+      const toolId = (reqTool === "rstudio" || (!reqTool && /^(r|rds|rdata|rda)$/.test(ext)))
+        ? "interactive_tool_rstudio"
+        : "interactive_tool_jupyter_notebook";
+      const fileUrl = await s3Service.generatePresignedDownloadUrl(s3_key, 900);
+      let targetHistoryId = (req.session as any)?.galaxyHistoryId as string | undefined;
+      if (!targetHistoryId) {
+        const hs = await userProxy(req).getHistories().catch(() => [] as any[]);
+        targetHistoryId = (hs && hs[0]?.id) || await userProxy(req).createHistory("BioMate Interactive Session");
+        if (req.session) (req.session as any).galaxyHistoryId = targetHistoryId;
+      }
+      const hdaId = await userProxy(req).uploadFromUrl(fileUrl, targetHistoryId!, name);
+      const result = await galaxyAPIProxy.launchInteractiveTool(toolId, targetHistoryId!, {
+        input: { src: "hda", id: hdaId },
+      });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const entryPointUrl = rewriteInteractiveToolUrl(
+        result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`
+      );
+      res.json({ success: true, url: entryPointUrl, jobId: result.job_id, tool: toolId });
+    } catch (error: any) {
+      console.error("[open-in] project file → interactive tool failed:", error?.message ?? error);
+      res.status(500).json({ success: false, error: error?.message || "Open-in failed" });
+    }
+  });
+
   app.post("/api/interactive-tools/launch", optionalAuth, async (req, res) => {
     try {
       const { toolId, datasetIds, historyId } = req.body;

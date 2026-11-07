@@ -330,7 +330,11 @@
     "open_as_dataset_title": "Open the dataset object — preview, versions and lineage — in Files",
     "used_by_runs": "used by {{n}} runs",
     "content_hash": "Content hash",
-    "dedup_note": "same bytes link to one entry"
+    "dedup_note": "same bytes link to one entry",
+    "open_in": "Open in {{tool}}",
+    "open_in_title": "Stage this file into a Galaxy history and open it in {{tool}}",
+    "open_in_launching": "Launching…",
+    "open_in_failed": "Could not open the interactive tool"
   },
   "data_hub": {
     "choose_project": "Choose a project",

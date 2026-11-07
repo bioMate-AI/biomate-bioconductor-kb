@@ -118,6 +118,30 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(within(q).getByText("Data QC")).toBeInTheDocument()
   })
 
+  it("Open-in — a data file stages + launches an interactive tool (§4.3.1)", async () => {
+    const openSpy = vi.fn()
+    vi.stubGlobal("open", openSpy)
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: any) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url.includes("/open-in")) {
+        expect(init?.method).toBe("POST")
+        return ({ ok: true, status: 200, json: async () => ({ success: true, url: "https://dev/interactivetool/jobs/abc" }), text: async () => "" }) as unknown as Response
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={RUN} projectId="proj-rna" onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    const btn = await screen.findByTestId("dataset-object-open-in")  // de_results.tsv → table → shown
+    fireEvent.click(btn)
+    await waitFor(() => expect(openSpy).toHaveBeenCalledWith("https://dev/interactivetool/jobs/abc", "_blank", "noopener"))
+    vi.unstubAllGlobals()
+  })
+
   it("surfaces the content hash + dedup note in the origin (§4.5.1)", async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     render(

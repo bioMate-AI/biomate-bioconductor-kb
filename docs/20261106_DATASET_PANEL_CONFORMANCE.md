@@ -82,10 +82,15 @@ stubs shipped, per CLAUDE.md):
   folder), so true `results/<run>` sub-grouping needs a recursive renderer.
 
 ## Backend follow-ups (precise specs for the remaining gaps)
-1. **Open-in Jupyter/RStudio/Plot by file type (§4.3.1):** add a dataset→history staging endpoint —
-   `POST /api/projects/:id/files/:fid/stage-to-history` → copies the project file into the user's
-   Galaxy history as an HDA and returns the HDA id, so `InteractiveToolLauncher` (exists) can mount it.
-   Then the dataset-object header offers the file-type-appropriate tool (reuse `pickInteractiveTool`).
+1. **Open-in Jupyter/RStudio by file type (§4.3.1):** ✅ **SHIPPED** —
+   `POST /api/projects/:id/files/:fileId/open-in` (authed, project-membership gated) stages the file
+   into the user's Galaxy history via `uploadFromUrl` (presigned S3 URL → HDA — the pattern
+   `import-url` uses) and launches the IT (`galaxyAPIProxy.launchInteractiveTool`, tool by file type:
+   R/rds → `interactive_tool_rstudio`, else `interactive_tool_jupyter_notebook`) against the staged
+   HDA, returning the entry URL. The dataset-object header now shows an "Open in Jupyter/RStudio"
+   button for data files. REFINEMENT (follow-up): the HDA is staged async, so poll it to `ok` before
+   launch for a cleaner UX (Galaxy currently queues the IT until its input is ready); a VCF-specific
+   bcftools+terminal IT is a future addition if Galaxy exposes one.
 2. **In-hub ingest (§4.6):** ✅ **paste-URL SHIPPED** — `POST /api/projects/:id/files/import-url`
    (SSRF-validated, owner/editor-gated, 512 MiB-capped streaming fetch → project S3 prefix → a
    `project_files` row `source='url'`); the tree's ＋Add row now has a "URL" button that imports and

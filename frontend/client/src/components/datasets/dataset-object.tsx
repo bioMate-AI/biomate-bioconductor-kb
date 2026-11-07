@@ -40,6 +40,7 @@ import {
   Table as TableIcon,
   Columns3,
   BarChart3,
+  SquareTerminal,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
 import { t } from "@/lib/i18n"
@@ -166,6 +167,36 @@ export function DatasetObject({
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
 
+  // Open-in an interactive tool (design §4.3.1). Galaxy's Jupyter/RStudio ITs
+  // already launch; the backend stages this project file into the user's history
+  // and launches the tool against it. Tool by file type: R → RStudio, else Jupyter.
+  const [openingIn, setOpeningIn] = useState(false)
+  const [openInError, setOpenInError] = useState<string | null>(null)
+  const fileExt = (dataset.name.split(".").pop() || "").toLowerCase()
+  const openTool = /^(r|rds|rdata|rda)$/.test(fileExt) ? "rstudio" : "jupyter"
+  // Offer it for data files (a figure/pdf/html doesn't open in a kernel).
+  const canOpenIn = Boolean(projectId) &&
+    ["table", "sequence", "vcf", "annotation", "structure", "r-object", "singlecell", "text"].includes(resolveViewer(fileExt))
+  const handleOpenIn = async () => {
+    if (!projectId) return
+    setOpeningIn(true); setOpenInError(null)
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/open-in`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool: openTool }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || !j?.url) throw new Error(j?.error || `Open-in failed (${r.status})`)
+      window.open(j.url, "_blank", "noopener")
+    } catch (e: any) {
+      setOpenInError(e?.message ?? t('dataset_obj.open_in_failed'))
+    } finally {
+      setOpeningIn(false)
+    }
+  }
+
   // Lineage "what came out" (spec 04 §4.5.3): beneath each run that read this
   // file, the datasets that run produced — each openable as its own object. Run
   // outputs are registered into project_files (source='run_output'); resolve
@@ -271,12 +302,24 @@ export function DatasetObject({
           )}
 
           <div className="ml-auto flex items-center gap-2">
-            {/* Open in — Jupyter / RStudio / Plot viewer (design §4.3.1).
-                FUTURE: launching an interactive tool on a data-hub dataset needs a
-                dataset→history staging endpoint (presign → import-url → launch);
-                interactive tools can't bind an arbitrary project file today. Wire
-                these here once that endpoint exists. For now, "Ask in chat" is the
-                supported path to work on a file interactively. */}
+            {/* Open in — Jupyter / RStudio by file type (design §4.3.1). Stages the
+                project file into the user's Galaxy history and launches the IT. */}
+            {canOpenIn && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-sm px-3 gap-1.5"
+                onClick={handleOpenIn}
+                disabled={openingIn}
+                data-testid="dataset-object-open-in"
+                title={t('dataset_obj.open_in_title', { tool: openTool === "rstudio" ? "RStudio" : "Jupyter" })}
+              >
+                <SquareTerminal className="h-3.5 w-3.5" />
+                {openingIn
+                  ? t('dataset_obj.open_in_launching')
+                  : t('dataset_obj.open_in', { tool: openTool === "rstudio" ? "RStudio" : "Jupyter" })}
+              </Button>
+            )}
             {onAnalyze && (
               <Button
                 size="sm"
@@ -303,6 +346,9 @@ export function DatasetObject({
             )}
           </div>
         </div>
+        {openInError && (
+          <p className="text-xs text-destructive mt-1" data-testid="dataset-open-in-error">{openInError}</p>
+        )}
       </CardHeader>
 
       <CardContent>
