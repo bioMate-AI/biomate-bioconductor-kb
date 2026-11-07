@@ -3594,6 +3594,9 @@ process {{
         # MinIO config for local executor
         minio_key    = os.environ.get("AWS_ACCESS_KEY_ID",     os.environ.get("MINIO_ROOT_USER", "biomate"))
         minio_secret = os.environ.get("AWS_SECRET_ACCESS_KEY", os.environ.get("MINIO_ROOT_PASSWORD", ""))
+        # OSS uses virtual-hosted style (forcePathStyle=false); MinIO uses path style (true).
+        force_path_style_str = os.environ.get("S3_FORCE_PATH_STYLE", "true").lower()
+        s3_path_style_access = force_path_style_str not in ("false", "0", "no")
         # Docker network for task containers: must match the compose network so
         # task containers can resolve "minio" hostname for S3 file staging.
         # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
@@ -3644,7 +3647,7 @@ process {{
 aws {{
   client {{
     endpoint = '{s3_endpoint}'
-    s3PathStyleAccess = true
+    s3PathStyleAccess = {str(s3_path_style_access).lower()}
     connectionTimeout = 60000
     maxConnections    = 4
   }}

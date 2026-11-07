@@ -102,6 +102,10 @@ import toolsManifest from "./tools_manifest.json";
 import { registerConnectorAdapters } from "./connector-adapters";
 import { registerBenchmarkOrchestrator } from "./benchmark-orchestrator";
 
+// S3 path style: MinIO requires true (path-style), OSS/S3 uses false (virtual-hosted).
+// Set S3_FORCE_PATH_STYLE=false in .env when using Aliyun OSS or standard AWS S3.
+const S3_FORCE_PATH_STYLE = process.env.S3_FORCE_PATH_STYLE !== 'false';
+
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -1141,7 +1145,7 @@ async function _s3ClientForBucket(s3Bucket: string): Promise<any> {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
       },
-      forcePathStyle: true,
+      forcePathStyle: S3_FORCE_PATH_STYLE,
     });
   }
   const base = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1';
@@ -1385,7 +1389,7 @@ async function stageLocalFilesForBatch(
         accessKeyId:     process.env.AWS_ACCESS_KEY_ID || process.env.MINIO_ROOT_USER || 'biomate',
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.MINIO_ROOT_PASSWORD || '',
       },
-      forcePathStyle: true,
+      forcePathStyle: S3_FORCE_PATH_STYLE,
     });
   }
 
@@ -3050,7 +3054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const minioClient = new S3Client({
             endpoint: process.env.S3_ENDPOINT_URL,
             region: 'us-east-1',
-            forcePathStyle: true,
+            forcePathStyle: S3_FORCE_PATH_STYLE,
             credentials: {
               accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
               secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -3196,7 +3200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const minioClient = new S3Client({
         endpoint: endpointUrl,
         region: 'us-east-1',
-        forcePathStyle: true,
+        forcePathStyle: S3_FORCE_PATH_STYLE,
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -3261,7 +3265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const minioClient = new S3Client({
         endpoint: endpointUrl,
         region: 'us-east-1',
-        forcePathStyle: true,
+        forcePathStyle: S3_FORCE_PATH_STYLE,
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -3364,7 +3368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const minioClient = new S3Client({
         endpoint: endpointUrl,
         region: 'us-east-1',
-        forcePathStyle: true,
+        forcePathStyle: S3_FORCE_PATH_STYLE,
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -5914,7 +5918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             region: 'us-east-1',
             ...(s3EndpointUrl ? {
               endpoint: s3EndpointUrl,
-              forcePathStyle: true,
+              forcePathStyle: S3_FORCE_PATH_STYLE,
             } : {}),
             credentials: {
               accessKeyId: nfAccessKey || process.env.AWS_ACCESS_KEY_ID || '',
@@ -9353,7 +9357,7 @@ ${paramLines || '(none recorded)'}`;
       const s3 = new S3Client({
         endpoint: endpointUrl,
         region: 'us-east-1',
-        forcePathStyle: true,
+        forcePathStyle: S3_FORCE_PATH_STYLE,
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -10319,7 +10323,7 @@ ${paramLines || '(none recorded)'}`;
                       followRegionRedirects: !_s3Ep, // not applicable for MinIO
                       ...(_s3Ep ? {
                         endpoint: _s3Ep,
-                        forcePathStyle: true,
+                        forcePathStyle: S3_FORCE_PATH_STYLE,
                         credentials: {
                           accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
                           secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -10835,7 +10839,7 @@ ${paramLines || '(none recorded)'}`;
             followRegionRedirects: true,
             ...(_s3Endpoint ? {
               endpoint: _s3Endpoint,
-              forcePathStyle: true,
+              forcePathStyle: S3_FORCE_PATH_STYLE,
               credentials: {
                 accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
                 secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -13938,7 +13942,7 @@ Rules:
               followRegionRedirects: !_s3Ep,
               ...(_s3Ep ? {
                 endpoint: _s3Ep,
-                forcePathStyle: true,
+                forcePathStyle: S3_FORCE_PATH_STYLE,
                 credentials: {
                   accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
                   secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -14014,7 +14018,7 @@ Rules:
               const s3 = new AWS.S3Client(_wdS3Ep ? {
                 endpoint: _wdS3Ep,
                 region: 'us-east-1',
-                forcePathStyle: true,
+                forcePathStyle: S3_FORCE_PATH_STYLE,
                 credentials: {
                   accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
                   secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -14442,7 +14446,7 @@ Rules:
                 // Stream the object through Node.js instead of 302-redirecting.
                 endpoint: endpointUrl,
                 region: 'us-east-1',
-                forcePathStyle: true,
+                forcePathStyle: S3_FORCE_PATH_STYLE,
                 credentials: {
                   accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
                   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -14624,7 +14628,7 @@ Rules:
         const s3 = new S3Client(_stepS3Ep ? {
           endpoint: _stepS3Ep,
           region: 'us-east-1',
-          forcePathStyle: true,
+          forcePathStyle: S3_FORCE_PATH_STYLE,
           credentials: {
             accessKeyId: nfKey || process.env.AWS_ACCESS_KEY_ID || '',
             secretAccessKey: nfSecret || process.env.AWS_SECRET_ACCESS_KEY || '',
