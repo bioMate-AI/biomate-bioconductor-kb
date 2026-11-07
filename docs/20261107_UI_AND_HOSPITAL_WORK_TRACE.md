@@ -55,3 +55,13 @@ Root integration: restored Settings imports/connectors entry and removed More to
 All are LOCAL changes until commit/push/deployment evidence is appended. No complete hospital-demo readiness claim. Still open: full Models training/registry linkage, duplicate lifecycle screenshot provenance, after-run hierarchy visual reconciliation, true Jupyter launch and scroll interaction checks, dedicated case/project preparation and deployed EN/ZH verification.
 
 Integrated validation: 212 suites / 2,315 tests passed, 3 suites / 42 tests skipped; TypeScript and production build passed. Sync staging, 2 health tests, Bash syntax and diff whitespace passed. Commit/push/deployment status is recorded separately.
+
+## Models training integration follow up
+
+The production Nextflow CLI calls run_training_job without the central registry; passing a worker-local SQLite registry would not repair central persistence. The existing registry remains the basis for a later owner-scoped completion import. Catalog version hardcoding and global legacy campaign scoping remain open.
+
+The first visibility repair replaces the Train read with an authenticated owned-execution bridge: recent 500 workflow records are considered, exact ml_training domain/path and training-type adaptation records are included, project access is checked, and owner identity is filtered again. Real status/timestamps and original-chat links are retained. Registered scorer objects remain in Registry; no model identity, version, gate result or quality metric is invented. This does not finish central registration, promotion or general model-version browsing.
+
+First repair batch committed and pushed as db15bc0dd to PR 328. No dev deployment has been performed.
+
+Training bridge integration validation: full suite 213 passed / 2,326 tests passed; 3 suites / 42 tests skipped. TypeScript and production build passed. Final focused model tests, type check and build repeat after EN/ZH label additions; logs retained under /tmp/biomate-hospital-audit. Direct API-only training runs without chat IDs display their actual record but do not receive fabricated chat links. The current Train read considers the 500 most recent owned workflow records; full-history pagination remains open.

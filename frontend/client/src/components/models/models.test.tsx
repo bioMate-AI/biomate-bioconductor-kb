@@ -644,3 +644,12 @@ describe("Models activity failures", () => {
     expect(screen.queryByTestId("train-run-open-job")).toBeNull()
   })
 })
+
+describe("Training workflow records", () => {
+  it("links an owned workflow training record to its original chat without relaunching it", () => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    render(<ModelsPanel trainData={{runs:[{ runId:"run-1", chatSessionId:"chat/1", name:"Subtype predictor", family:"training", when:"today", status:"completed", gate:"Not available", metric:"Not available", dataset:"Recorded run" }]}} />, { wrapper: wrapper() })
+    expect(screen.getByTestId("train-run-chat-run-1").getAttribute("href")).toBe("/?session=chat%2F1")
+    expect(screen.queryByTestId("train-run-open-Subtype predictor")).toBeNull()
+  })
+})

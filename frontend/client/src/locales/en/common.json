@@ -640,7 +640,11 @@
     "open_model": "Open model →",
     "activity_loading": "Loading model activity…",
     "activity_error": "Could not load model activity. Your saved work has not been changed.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "account_scope": "All projects",
+    "open_training_chat": "Open original chat →",
+    "not_recorded": "Not recorded",
+    "training_workflow": "Training workflow"
   },
   "instructions_formats": {
     "edit_title": "Edit output format",

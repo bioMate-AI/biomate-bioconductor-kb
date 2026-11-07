@@ -1137,7 +1137,11 @@
     "open_model": "打开模型 →",
     "activity_loading": "正在加载模型活动…",
     "activity_error": "无法加载模型活动。已保存的工作未被更改。",
-    "retry": "重试"
+    "retry": "重试",
+    "account_scope": "所有项目",
+    "open_training_chat": "打开原始对话 →",
+    "not_recorded": "未记录",
+    "training_workflow": "模型训练工作流"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",

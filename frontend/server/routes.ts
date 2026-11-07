@@ -1,3 +1,4 @@
+import { readModelTrainingActivity } from "./model-training-activity";
 import { authorizeDatasetReference } from "./dataset-reference-access";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
 import { isRunFilePathAllowed } from "./step-file-access";
@@ -5627,6 +5628,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // prefix so they don't fall under the greedy /api/models/:id detail route.
   // The retrain POST is registered FIRST (more specific) so it can register a
   // first-class run; everything else falls through to the shared proxy.
+  // Training is execution activity, not a list of globally registered campaign scorers.
+  // Keep real user/run identity so successful workflow training cannot disappear from Models.
+  app.get("/api/model-tracks/train", authenticateToken, async (req, res) => {
+    const result = await readModelTrainingActivity({ userId: req.user?.id, project: req.query.project }, {
+      getUserProjects: uid => memoryService.projects.getUserProjects(uid),
+      getExecutionRuns: (uid, project) => storage.getExecutionRuns(uid, project, undefined, 500),
+    });
+    res.status(result.status).json(result.body);
+  });
   app.post("/api/model-tracks/adapt/retrain", optionalAuth, _adaptRetrainHandler);
   app.all("/api/model-tracks/*", optionalAuth, _dlProxyHandler);
   app.all("/api/inference/*", optionalAuth, _dlProxyHandler);

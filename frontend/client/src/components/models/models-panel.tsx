@@ -341,6 +341,9 @@ function OptimiseTrack({
  * endpoint for training runs in this wave).
  */
 export interface TrainRun {
+  runId?: string
+  chatSessionId?: string
+  createdAt?: string | null
   name: string
   family: string
   when: string
@@ -429,13 +432,13 @@ function TrainTrack({
           {runs.length ? (
             runs.map((r) => (
               <div
-                key={r.name}
+                key={r.runId || r.name}
                 className="rounded border px-2 py-1.5 text-xs space-y-1"
                 data-testid={`train-run-${r.name}`}
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold">{r.name}</span>
-                  <Badge variant="outline" className="text-[10px]">{r.family}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{r.family === "ml_training" ? t("models.training_workflow") : r.family}</Badge>
                   <span className="text-[10px] text-muted-foreground ml-auto">{r.when}</span>
                   <Badge
                     variant="outline"
@@ -451,7 +454,7 @@ function TrainTrack({
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className="text-[10px]">{r.metric}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{r.metric === "Not recorded" ? t("models.not_recorded") : r.metric}</Badge>
                   <Badge
                     variant="outline"
                     className="text-[10px] gap-1"
@@ -461,9 +464,10 @@ function TrainTrack({
                       className="inline-block h-1.5 w-1.5 rounded-full"
                       style={{ background: trainStatusColor(r.status) }}
                     />
-                    {r.gate}
+                    {r.gate === "Not recorded" ? t("models.not_recorded") : r.gate}
                   </Badge>
-                  <span className="font-mono text-[10px] text-muted-foreground truncate">{r.dataset}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground truncate">{r.dataset === "Not recorded" ? t("models.not_recorded") : r.dataset}</span>
+                  {r.chatSessionId && <a className="ml-auto text-primary hover:underline" href={`/?session=${encodeURIComponent(r.chatSessionId)}`} data-testid={`train-run-chat-${r.runId || r.name}`}>{t("models.open_training_chat")}</a>}
                   {r.modelId && (
                     <button
                       type="button"
@@ -774,7 +778,7 @@ export function ModelsPanel({
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{project}</span>
+            <span>{project === "Project" ? t("models.account_scope") : project}</span>
             <span>/</span>
             <span>Models</span>
           </div>
