@@ -151,6 +151,22 @@ export function serveStaticDirectory(app: Express, distPath: string, indexPath =
         message: `API route ${req.path} not found`,
       });
     }
+    // On-prem / China deployment: strip Google CDN links that hang behind GFW.
+    // Triggered by DISABLE_GOOGLE_FONTS=true or VITE_ONPREM=true in .env.
+    if (process.env.DISABLE_GOOGLE_FONTS === "true" || process.env.VITE_ONPREM === "true") {
+      try {
+        let html = fs.readFileSync(indexPath, "utf-8");
+        // Remove Google Fonts preconnect + stylesheet links
+        html = html.replace(/<link[^>]*fonts\.googleapis\.com[^>]*>/g, "");
+        html = html.replace(/<link[^>]*fonts\.gstatic\.com[^>]*>/g, "");
+        // Remove Google Analytics / Tag Manager script tags
+        html = html.replace(/<script[^>]*googletagmanager\.com[^>]*><\/script>/g, "");
+        html = html.replace(/<script[^>]*>\s*window\.dataLayer[\s\S]*?<\/script>/g, "");
+        return res.set("Content-Type", "text/html").send(html);
+      } catch {
+        // Fall through to sendFile if read fails
+      }
+    }
     res.sendFile(indexPath);
   });
 }
