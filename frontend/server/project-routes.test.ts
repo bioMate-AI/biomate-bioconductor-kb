@@ -29,6 +29,17 @@ describe("project-routes — contract", () => {
     expect(SRC.match(/app\.get\("\/api\/projects\/:id\/sessions"/)?.length).toBe(1);
   });
 
+  it("project-scoped URL import — authed, SSRF-validated, owner/editor, size-capped, records source='url'", () => {
+    // Paste-a-URL ingest (spec 04 §4.6): fetches into the project's S3 prefix and
+    // inserts a project_files row so it shows in the hub tree (unlike the
+    // Galaxy-session /api/datasets/import-url).
+    expect(SRC.match(/app\.post\("\/api\/projects\/:id\/files\/import-url",\s*authenticateToken/)?.length).toBe(1);
+    expect(SRC.includes("validateRemoteFileUrl")).toBe(true);            // SSRF-safe URL check
+    expect(/import-url[\s\S]{0,1200}_isOwnerOrEditor/.test(SRC)).toBe(true); // owner/editor gate
+    expect(SRC.includes("512 * 1024 * 1024")).toBe(true);               // 512 MiB cap
+    expect(/VALUES\s*\([^)]*'url'\s*\)/.test(SRC)).toBe(true);           // inserts source='url'
+  });
+
   it("every endpoint goes through authenticateToken", () => {
     // The regex only matches handlers whose path is immediately followed by
     // authenticateToken, so this count IS the authed-endpoint count. It must
@@ -36,7 +47,7 @@ describe("project-routes — contract", () => {
     const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
     const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
     expect(authed.length).toBe(total.length);
-    expect(authed.length).toBe(26); // grows as endpoints are added (plans list, notes-list GET/POST, owner-transfer, activity ledger, …)
+    expect(authed.length).toBe(27); // grows as endpoints are added (…, files/import-url)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {

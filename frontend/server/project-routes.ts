@@ -23,6 +23,7 @@ import { pool } from "./db";
 import { canonicalTier, canCollaborate, FREE_PROJECT_LIMIT, tierEnforcementEnabled } from "./tier";
 import { s3Service } from "./s3-client";
 import { checkTabularCompatibility, parseHeaderColumns, formatFromName, isTabularFormat } from "./input-compatibility";
+import { validateRemoteFileUrl } from "./remote-source-validation";
 import multer from "multer";
 import { randomUUID, randomBytes } from "crypto";
 import path from "path";
@@ -649,6 +650,73 @@ export function registerProjectRoutes(app: Express): void {
       }
     }
   );
+
+  // ─── POST /api/projects/:id/files/import-url ──────────────────────────
+  // Paste-a-URL ingest (design spec 04 §4.6): fetch a remote file into the
+  // project's S3 prefix and record it in project_files (source='url'), so it
+  // appears in the hub tree exactly like an upload — unlike the Galaxy-session
+  // /api/datasets/import-url, which never reaches the project. Size-capped
+  // (512 MiB); larger files should use upload or a storage connector (a
+  // streaming multipart import is a documented follow-up). SSRF-safe via
+  // validateRemoteFileUrl (blocks credentials, private hosts, bad protocols).
+  app.post("/api/projects/:id/files/import-url", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.params.id;
+    const validated = validateRemoteFileUrl(req.body?.url);
+    if (!validated.ok) return res.status(400).json({ error: validated.error });
+    const proto = validated.url.protocol;
+    if (proto !== "http:" && proto !== "https:") {
+      return res.status(400).json({ error: "Only HTTP(S) URLs can be imported into a project. Use a storage connector for S3/FTP sources." });
+    }
+    try {
+      const existing = await memoryService.projects.getProject(id);
+      if (!existing || !(await _isOwnerOrEditor(id, uid))) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      const CAP = 512 * 1024 * 1024; // 512 MiB
+      const resp = await fetch(validated.url.toString(), { signal: AbortSignal.timeout(120_000), redirect: "follow" });
+      if (!resp.ok || !resp.body) return res.status(502).json({ error: `Could not fetch the URL (HTTP ${resp.status}).` });
+      const declaredLen = Number(resp.headers.get("content-length") || 0);
+      if (declaredLen && declaredLen > CAP) {
+        return res.status(413).json({ error: "File exceeds the 512 MiB URL-import limit. Upload it directly or connect a storage source." });
+      }
+      // Stream with a hard byte cap so a mis-declared Content-Length can't OOM us.
+      const reader = (resp.body as any).getReader();
+      const chunks: Buffer[] = [];
+      let total = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.length;
+        if (total > CAP) {
+          try { await reader.cancel(); } catch { /* ignore */ }
+          return res.status(413).json({ error: "File exceeds the 512 MiB URL-import limit. Upload it directly or connect a storage source." });
+        }
+        chunks.push(Buffer.from(value));
+      }
+      const buf = Buffer.concat(chunks);
+      const rawName = String(req.body?.filename || validated.filename || "download");
+      const safeExt = path.extname(rawName).toLowerCase().replace(/[^a-z0-9.]/g, "");
+      const safeBase = path.basename(rawName, path.extname(rawName)).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 200) || "download";
+      const filename = `${safeBase}${safeExt}`;
+      const key = `projects/${id}/inputs/${filename}`;
+      const contentType = (resp.headers.get("content-type") || "").split(";")[0].trim() || "application/octet-stream";
+      await s3Service.putObject(key, buf, contentType, uid);
+      const ins = await pool.query(
+        `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source)
+         VALUES ($1, $2, $3, $4, $5, $6, 'url')
+         RETURNING id, name, s3_key, size, content_type, source, run_id, created_at`,
+        [id, uid, filename, key, buf.length, contentType]
+      );
+      await recordProjectActivity(id, uid, "file_added", { fileId: ins.rows[0].id, name: filename, source: "url" });
+      res.status(201).json({ file: ins.rows[0] });
+    } catch (e: any) {
+      const msg = e?.name === "TimeoutError" ? "The URL took too long to fetch (120s limit)." : (e?.message ?? "Import failed");
+      console.error("[project_files] url import failed:", msg);
+      res.status(500).json({ error: msg });
+    }
+  });
 
   // ─── DELETE /api/projects/:id/files/:fileId ───────────────────────────
   app.delete("/api/projects/:id/files/:fileId", authenticateToken, async (req: Request, res: Response) => {

@@ -237,7 +237,12 @@
     "search_datasets": "Search datasets...",
     "add": "Add",
     "scope_hint": "Uploads and run outputs in this project.",
-    "search_files": "Search files"
+    "search_files": "Search files",
+    "add_url": "URL",
+    "import": "Import",
+    "import_url_title": "Import a file from a URL into this project",
+    "import_url_placeholder": "Paste a file URL (https://…)",
+    "err_import_url": "Could not import from that URL"
   },
   "dataset_obj": {
     "quality_good": "Good",

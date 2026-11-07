@@ -86,10 +86,13 @@ stubs shipped, per CLAUDE.md):
    `POST /api/projects/:id/files/:fid/stage-to-history` → copies the project file into the user's
    Galaxy history as an HDA and returns the HDA id, so `InteractiveToolLauncher` (exists) can mount it.
    Then the dataset-object header offers the file-type-appropriate tool (reuse `pickInteractiveTool`).
-2. **In-hub ingest (§4.6):** a project-scoped import — `POST /api/projects/:id/files/import-url`
-   (fetch the URL, store to the project S3 prefix, insert a `project_files` row, source='url') and a
-   connector→project attach that writes a `project_files` row. Then ＋Add becomes a menu
-   (upload/paste-URL/connector) whose results appear in the tree.
+2. **In-hub ingest (§4.6):** ✅ **paste-URL SHIPPED** — `POST /api/projects/:id/files/import-url`
+   (SSRF-validated, owner/editor-gated, 512 MiB-capped streaming fetch → project S3 prefix → a
+   `project_files` row `source='url'`); the tree's ＋Add row now has a "URL" button that imports and
+   the file shows in the tree (buildTree now groups any non-run_output source as an input). STILL
+   TODO: connector→project attach writing a `project_files` row (connector flow currently registers a
+   session ref), an at-ingest quality card, column-mapping correction, and a streaming/multipart path
+   for files >512 MiB.
 3. **Versioning writes (§4.4):** enable S3 object-versioning (or a versions prefix) for project files;
    `POST /api/datasets/:ref/versions` writes a new byte-version (edit-save), `GET …/versions/:v/diff`
    returns a cell/column diff vs current, `POST …/versions/:v/restore` writes the old bytes as a new

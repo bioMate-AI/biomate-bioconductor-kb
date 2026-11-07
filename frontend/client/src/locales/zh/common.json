@@ -243,7 +243,12 @@
     "search_datasets": "搜索数据集...",
     "add": "添加",
     "scope_hint": "本项目中的上传文件与运行产物。",
-    "search_files": "搜索文件"
+    "search_files": "搜索文件",
+    "add_url": "网址",
+    "import": "导入",
+    "import_url_title": "从网址导入文件到本项目",
+    "import_url_placeholder": "粘贴文件网址（https://…）",
+    "err_import_url": "无法从该网址导入"
   },
   "dataset_obj": {
     "quality_good": "良好",
