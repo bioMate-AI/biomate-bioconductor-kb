@@ -594,20 +594,28 @@ jobs:
         # Browsers hang waiting for these resources, causing a white blank page.
         # Patch the built index.html in-place; Express reads from disk per request
         # so no container restart needed.
+        # if: always() so this runs even when build_frontend hot-deploy is skipped.
+        if: always()
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
           sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
             -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
             root@${{ env.ECS_IP }} \
-            'docker exec biomate-frontend sh -c "
-              sed -i \"/fonts.googleapis.com/d; /fonts.gstatic.com/d; /googletagmanager.com/d\" \
-                /app/dist/public/index.html && \
-              echo \"Patched index.html — removed Google CDN lines\" && \
-              grep -c \"googleapis\|googletagmanager\" /app/dist/public/index.html || echo \"0 Google CDN lines remaining\"
-            "'
+            'for i in $(seq 1 24); do
+               STATUS=$(docker inspect biomate-frontend --format "{{.State.Status}}" 2>/dev/null || echo "missing")
+               if [ "$STATUS" = "running" ]; then break; fi
+               echo "[$i/24] frontend $STATUS — waiting..."; sleep 5
+             done
+             docker exec biomate-frontend sh -c "
+               sed -i \"/fonts.googleapis.com/d; /fonts.gstatic.com/d; /googletagmanager.com/d\" \
+                 /app/dist/public/index.html && \
+               echo \"Patched index.html — removed Google CDN lines\" && \
+               grep -c \"googleapis\|googletagmanager\" /app/dist/public/index.html || echo \"0 Google CDN lines remaining\"
+             "' || echo "WARNING: Patch index.html failed (non-fatal)"
 
       - name: Wait for galaxy-backend to start (up to 3 min)
+        if: always()
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
