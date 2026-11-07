@@ -114,7 +114,9 @@ def run_one(jwt, name, max_wait_s=5400):
     # overrides the test profile (proteomicslfq: add_decoys=true on its target-decoy database).
     # NFCORE_EXTRA_PARAMS='{"nf-core/x": {"param": value}}' adds diagnostic params (e.g. a debug level).
     extra = json.loads(os.environ.get("NFCORE_EXTRA_PARAMS", "{}")).get(name, {})
-    params = {**TEST_PARAMS.get(name, {}), **extra, "profile": "test,aws"}
+    params = {**TEST_PARAMS.get(name, {}), **extra}
+    if name.startswith("nf-core/"):   # BioMate's own workflows have no `test` profile
+        params["profile"] = "test,aws"
     wf = {**wf, "parameters": params}
     st, e = call("POST", "/api/workflows/execute", jwt, {"workflowDefinition": wf, "params": params}, timeout=300)
     if st == 400 and "missing_required_params" in str(e) and TEST_CONFIG_DIR:
