@@ -3,7 +3,7 @@ import { prepareColdStartExample, INTERNAL_EXAMPLES, PREPARED_EXAMPLES, ensureIn
 import { toast } from "@/hooks/use-toast"
 import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { t } from "@/lib/i18n"
+import { t, locale } from "@/lib/i18n"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
@@ -867,6 +867,7 @@ export function ChatInterface({
           stream: true,
           context: {
             previousMessages,
+            uiLanguage: locale,
             // Include session ID for memory integration AND server-side
             // assistant-message persistence (see docs/20260529_CHAT_STREAM_PERSISTENCE_GAP.md).
             // The server UPSERTs by assistantMessageId so client + server writes

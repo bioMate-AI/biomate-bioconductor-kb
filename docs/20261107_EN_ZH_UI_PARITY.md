@@ -25,3 +25,11 @@ Detection order remains: explicit saved choice, browser language, then fallback.
 ## Limits / release state
 
 Not deployed by this change. The branch must be integrated and deployed from the same source revision for both locales. Older hard-coded English explanatory text still exists in some panels; locale feature/layout parity does not assert complete translation of every legacy sentence. Connector content, scientific names, user-authored text, and saved run data are preserved rather than translated or replaced.
+
+## AI reply language restoration
+
+The earlier Chinese UI implementation included `f844ee79e` (UI-language → reply prompt). That hint was absent from both the deployed lineage and next-phase client/server paths inspected during this audit. Restored the hint in the actual chat-stream POST body, normalized it at the server boundary, and applied one shared narrative-language directive to the OpenRouter and main reply prompts (the latter is shared by local and hosted providers). English and Chinese defaults are supported; explicit user requests for another reply language take precedence. Missing/unsupported hints retain existing model behavior. This is prompt guidance for newly generated chat replies, not automatic translation of historical replies, file contents, or exported report templates.
+
+Regression coverage inspects the real chat request body and mocked provider requests from the actual local tool loop and OpenRouter chat method. It checks that scientific input is passed verbatim, local tool calls still work, the language directive reaches the provider, and invalid hints cannot become prompt instructions. No paid live inference or scientific execution was run.
+
+Final reply-language validation: TypeScript and production client/server build passed. Full frontend suite: 206 suites / 2,269 tests passed; 3 suites / 42 tests skipped. Focused language/provider/request tests: 13 passed. Logs: `/tmp/biomate-ai-language-{tsc,build,full-tests,tests}.log`.

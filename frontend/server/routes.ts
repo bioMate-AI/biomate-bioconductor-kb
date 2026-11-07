@@ -1,3 +1,4 @@
+import { normalizeUiLanguage } from "./response-language";
 import { normalizeQcEvents } from "../shared/qc-assessment";
 import { matchDescriptor } from "../shared/findings-descriptors";
 import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } from "../shared/findings-extract";
@@ -7097,6 +7098,7 @@ ${paramLines || '(none recorded)'}`;
         userAnthropicApiKey: _userAnthropicApiKey,
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
+        uiLanguage: normalizeUiLanguage((context as any)?.uiLanguage),
         openaiBaseUrl: _openaiBaseUrl,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
