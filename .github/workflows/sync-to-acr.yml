@@ -559,6 +559,27 @@ jobs:
              docker inspect biomate-frontend --format "Mount nf-work: {{range .Mounts}}{{if eq .Destination \"/app/nf-work\"}}PRESENT{{end}}{{end}}" && \
              docker exec biomate-frontend env | grep NEXTFLOW_WORK_DIR || echo "NEXTFLOW_WORK_DIR not set in frontend"'
 
+      - name: Sync missing npm packages into frontend container
+        # The Docker image may have been built from an older codebase.  If new npm
+        # packages were added since the image was built (e.g. undici, csrf-sync),
+        # they won't be in /app/node_modules inside the container, causing the
+        # hot-deployed bundle to crash on startup with ERR_MODULE_NOT_FOUND.
+        # This step copies the current package.json into the container and runs
+        # `npm install --omit=dev` to add any missing packages.
+        if: ${{ inputs.build_frontend == true }}
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          cat frontend/package.json | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+              root@${{ env.ECS_IP }} \
+              'cat > /tmp/frontend_package.json && \
+               docker cp /tmp/frontend_package.json biomate-frontend:/app/package.json && \
+               echo "Installing missing npm deps in container (--prefer-offline --no-audit)..." && \
+               docker exec biomate-frontend sh -c "cd /app && npm install --omit=dev --prefer-offline --no-audit 2>&1 | tail -5" && \
+               echo "npm install done"'
+
       - name: Hot-deploy server bundle into running frontend container
         # MUST run AFTER Restart stack + galaxy restart — compose down/up recreates
         # containers from the image, so docker-cp must happen on the already-running
