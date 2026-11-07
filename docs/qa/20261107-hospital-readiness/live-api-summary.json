@@ -1,0 +1,360 @@
+{
+  "target": "https://dev-public.biomate.ai",
+  "deployedCommit": "20f159a1cb794b8222ad2f923ae192270d9ee64c",
+  "syntheticProjectId": "067a17c4-c14a-49d8-a8c8-c41ae49f6807",
+  "passed": 51,
+  "failed": 3,
+  "checks": [
+    {
+      "name": "shared fixture login",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.91
+    },
+    {
+      "name": "GET /build-info.json",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.12,
+      "commit": "20f159a1cb794b8222ad2f923ae192270d9ee64c"
+    },
+    {
+      "name": "GET /healthz",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.11
+    },
+    {
+      "name": "GET /api/biomate/health",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.1
+    },
+    {
+      "name": "GET /api/auth/me",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.11,
+      "fixtureTier": "professional"
+    },
+    {
+      "name": "GET /api/projects",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.19
+    },
+    {
+      "name": "GET /api/sessions",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.1
+    },
+    {
+      "name": "GET /api/workflows/runs/overview?scope=all_chats&limit=10",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.54
+    },
+    {
+      "name": "GET /api/skills",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.11
+    },
+    {
+      "name": "GET /api/databases/connections",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.13
+    },
+    {
+      "name": "GET /api/mcp/servers",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.14
+    },
+    {
+      "name": "GET /api/interactive/available",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.13
+    },
+    {
+      "name": "GET /api/interactive/sessions",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.11
+    },
+    {
+      "name": "GET /api/qc/profiles",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.23
+    },
+    {
+      "name": "saved run reproducibility",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.74,
+      "outputs": 197
+    },
+    {
+      "name": "saved run reproducibility",
+      "pass": true,
+      "http": 200,
+      "seconds": 0.26,
+      "outputs": 77
+    },
+    {
+      "name": "create Chinese-named QA project",
+      "pass": true,
+      "http": 201,
+      "seconds": 0.11
+    },
+    {
+      "name": "upload qa_counts.csv",
+      "pass": true,
+      "http": 201,
+      "seconds": 0.37
+    },
+    {
+      "name": "resolve exact file qa_counts.csv",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "download exact content qa_counts.csv",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "versions qa_counts.csv",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "deduplicate qa_counts.csv",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "anonymous file access denied qa_counts.csv",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "upload qa_metadata.json",
+      "pass": true,
+      "http": 201,
+      "seconds": 0.56
+    },
+    {
+      "name": "resolve exact file qa_metadata.json",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "download exact content qa_metadata.json",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "versions qa_metadata.json",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "deduplicate qa_metadata.json",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "anonymous file access denied qa_metadata.json",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "upload qa_protocol.yml",
+      "pass": true,
+      "http": 201,
+      "seconds": 0.23
+    },
+    {
+      "name": "resolve exact file qa_protocol.yml",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "download exact content qa_protocol.yml",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "versions qa_protocol.yml",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "deduplicate qa_protocol.yml",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "anonymous file access denied qa_protocol.yml",
+      "pass": true,
+      "http": 401
+    },
+    {
+      "name": "audit completed",
+      "pass": true
+    },
+    {
+      "name": "saved conversation messages survive reopen",
+      "pass": true,
+      "http": 200,
+      "messages": 1
+    },
+    {
+      "name": "saved conversation messages survive reopen",
+      "pass": true,
+      "http": 200,
+      "messages": 1
+    },
+    {
+      "name": "Chinese project settings save",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "Chinese project settings persist",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "file quality profile",
+      "pass": true,
+      "file": "qa_protocol.yml",
+      "http": 200,
+      "seconds": 0.81,
+      "quality": "watch",
+      "shape": {
+        "rows": 0,
+        "cols": 0
+      },
+      "structured": {
+        "format": "YAML",
+        "root": "object",
+        "nodes": 5,
+        "keys": 2,
+        "nulls": 0,
+        "depth": 2
+      }
+    },
+    {
+      "name": "anonymous step-file access to private synthetic file denied",
+      "pass": false,
+      "file": "qa_protocol.yml",
+      "http": 200,
+      "bytes": 50
+    },
+    {
+      "name": "file quality profile",
+      "pass": true,
+      "file": "qa_metadata.json",
+      "http": 200,
+      "seconds": 0.69,
+      "quality": "watch",
+      "shape": {
+        "rows": 0,
+        "cols": 0
+      },
+      "structured": {
+        "format": "JSON",
+        "root": "object",
+        "nodes": 7,
+        "keys": 2,
+        "nulls": 0,
+        "depth": 2
+      }
+    },
+    {
+      "name": "anonymous step-file access to private synthetic file denied",
+      "pass": false,
+      "file": "qa_metadata.json",
+      "http": 200,
+      "bytes": 83
+    },
+    {
+      "name": "file quality profile",
+      "pass": true,
+      "file": "qa_counts.csv",
+      "http": 200,
+      "seconds": 0.56,
+      "quality": "good",
+      "shape": {
+        "rows": 3,
+        "cols": 5
+      },
+      "structured": null
+    },
+    {
+      "name": "anonymous step-file access to private synthetic file denied",
+      "pass": false,
+      "file": "qa_counts.csv",
+      "http": 200,
+      "bytes": 110
+    },
+    {
+      "name": "changed upload preserves file identity and creates v2",
+      "pass": true,
+      "http": 200,
+      "harnessCorrection": "Existing-file updates return HTTP 200. Subsequent append-only restore returned v3 and history retained v1/v2/v3."
+    },
+    {
+      "name": "restore original file appends v3",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "version history retains all three versions",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "create project-linked Chinese chat",
+      "pass": true,
+      "http": 201
+    },
+    {
+      "name": "live Chinese text reply completes",
+      "pass": true,
+      "http": 200,
+      "seconds": 13.13,
+      "eventTypes": [
+        "delta",
+        "done",
+        "progress",
+        "ready"
+      ],
+      "answerChars": 153,
+      "cjkCharacters": 102,
+      "harnessCorrection": "Current protocol terminates with event: done, not event: final; persisted reply verified independently."
+    },
+    {
+      "name": "new assistant reply persisted for reopen",
+      "pass": true,
+      "http": 200,
+      "messages": 2
+    },
+    {
+      "name": "chat remains project-linked",
+      "pass": true,
+      "http": 200
+    },
+    {
+      "name": "project chat hierarchy includes new conversation",
+      "pass": true,
+      "http": 200
+    }
+  ]
+}

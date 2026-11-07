@@ -50,6 +50,7 @@ export interface IStorage {
   createExecutionRun(request: CreateExecutionRunRequest, userId?: string, projectId?: string): Promise<ExecutionRun>;
   getExecutionRun(id: string): Promise<ExecutionRun | undefined>;
   getExecutionRunByGalaxyId(galaxyInvocationId: string): Promise<ExecutionRun | undefined>;
+  getExecutionRunByNextflowId(nextflowRunId: string): Promise<ExecutionRun | undefined>;
   getExecutionRuns(
     userId?: string,
     projectId?: string,
@@ -495,6 +496,21 @@ export class MemStorage implements IStorage {
       return run;
     } catch (e: any) {
       console.warn('[Storage] DB getExecutionRun failed:', e.message);
+      return undefined;
+    }
+  }
+
+  async getExecutionRunByNextflowId(nextflowRunId: string): Promise<ExecutionRun | undefined> {
+    const cached = Array.from(this.executionRuns.values()).find(run => run.execution.nextflowRunId === nextflowRunId);
+    if (cached) return cached;
+    try {
+      const rows = await db.select().from(executionRunsTable).where(eq(executionRunsTable.nextflowRunId, nextflowRunId)).limit(1);
+      if (!rows.length) return undefined;
+      const run = this._dbRowToExecutionRun(rows[0]);
+      this.executionRuns.set(run.id, run);
+      return run;
+    } catch (error) {
+      console.warn('[Storage] Nextflow run lookup failed:', error instanceof Error ? error.message : error);
       return undefined;
     }
   }

@@ -10,17 +10,10 @@
  *   Where it came — Origin + Quality-at-ingest (the perception profile) +
  *                   what used it, with Export for deposit (RO-Crate).
  *
- * Everything rendered is backed by a real endpoint. Parts of the design that
- * have NO backend yet are commented out with a FUTURE marker rather than faked:
- *   - Open in Jupyter / RStudio / Plot viewer  (needs a dataset→history staging
- *     endpoint; interactive tools can't bind an arbitrary project file today)
- *   - Preview → Columns per-column stats, Preview → Plot distributions
- *     (the perception profiler returns column names + a sample only)
- *   - Edit → new version + "Ask BioMate to edit this" (no content-versioning /
- *     edit-save endpoint — POST versions appends a NOTE only)
- *   - Versions → Compare / Restore (no diff/restore endpoint)
- *   - Origin → content hash + dedup, visibility control; Produced outputs list
- * These are tracked as backend work in the audit doc.
+ * Project files use permission-checked content previews and append-only byte
+ * versions. Column summaries and plots are explicitly sample-derived. Interactive
+ * opening stages a file into the user's Galaxy history; launch failures remain
+ * scoped to that action and never replace the preview/provenance content.
  */
 
 import { useState, useEffect, type ReactNode } from "react"
@@ -54,6 +47,7 @@ import {
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 import { DatasetColumnsView } from "./dataset-columns-view"
 import { resolveViewer } from "../viewers/inline-content-viewers"
+import { datasetContentType, datasetShape, openInErrorMessage } from "./dataset-presentation"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
 export interface DatasetRef {
@@ -172,6 +166,7 @@ export function DatasetObject({
   // and launches the tool against it. Tool by file type: R → RStudio, else Jupyter.
   const [openingIn, setOpeningIn] = useState(false)
   const [openInError, setOpenInError] = useState<string | null>(null)
+  useEffect(() => { setOpenInError(null) }, [dataset.id])
   const fileExt = (dataset.name.split(".").pop() || "").toLowerCase()
   const openTool = /^(r|rds|rdata|rda)$/.test(fileExt) ? "rstudio" : "jupyter"
   // Offer it for data files (a figure/pdf/html doesn't open in a kernel).
@@ -188,7 +183,7 @@ export function DatasetObject({
         body: JSON.stringify({ tool: openTool }),
       })
       const j = await r.json().catch(() => ({}))
-      if (!r.ok || !j?.url) throw new Error(j?.error || `Open-in failed (${r.status})`)
+      if (!r.ok || !j?.url) throw new Error(openInErrorMessage(j, openTool === "rstudio" ? "RStudio" : "Jupyter", r.status))
       window.open(j.url, "_blank", "noopener")
     } catch (e: any) {
       setOpenInError(e?.message ?? t('dataset_obj.open_in_failed'))
@@ -291,11 +286,10 @@ export function DatasetObject({
     }
   }
 
-  const shapeRows = profile?.shape?.rows
-  const shapeCols = profile?.shape?.cols
+  const { rows: shapeRows, cols: shapeCols } = datasetShape(profile)
 
   return (
-    <Card className={className} data-testid="dataset-object">
+    <Card className={`min-w-0 max-w-full ${className ?? ""}`} data-testid="dataset-object">
       <CardHeader className="pb-2 space-y-2">
         {/* Breadcrumb — project crumb is shown by the page; here: Files / kind / name */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -341,7 +335,7 @@ export function DatasetObject({
             </span>
           )}
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* Open in — Jupyter / RStudio by file type (design §4.3.1). Stages the
                 project file into the user's Galaxy history and launches the IT. */}
             {canOpenIn && (
@@ -387,7 +381,7 @@ export function DatasetObject({
           </div>
         </div>
         {openInError && (
-          <p className="text-xs text-destructive mt-1" data-testid="dataset-open-in-error">{openInError}</p>
+          <p role="alert" className="text-xs text-destructive mt-1 break-words" data-testid="dataset-open-in-error">{openInError}</p>
         )}
       </CardHeader>
 
@@ -425,9 +419,8 @@ export function DatasetObject({
 
           {/* ── Preview: Table / Columns / Plot + stat grid ── */}
           {tab === "preview" && (<div className="space-y-3 text-sm" data-testid="dataset-preview">
-            {/* View toggle (design §4.3). Table is backed today; Columns + Plot
-                show the honest "open in Jupyter / ask in chat" fallback until the
-                profiler returns per-column stats + distributions. */}
+            {/* Columns and plots use the fetched sample, with a clear fallback
+                for non-tabular content that has no numeric columns. */}
             <div className="flex items-center gap-1.5">
               {([
                 ["table", TableIcon, t('dataset_obj.view_table')],
@@ -589,7 +582,7 @@ export function DatasetObject({
               <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />
               <StatCard k={t('dataset_obj.stat_columns')} v={shapeCols != null ? String(shapeCols) : "—"} />
               <StatCard k={t('dataset_obj.stat_size')} v={formatBytes(dataset.size)} />
-              <StatCard k={t('dataset_obj.stat_type')} v={dataset.contentType || "—"} />
+              <StatCard k={t('dataset_obj.stat_type')} v={datasetContentType(dataset.name, dataset.contentType)} />
             </div>
 
             {/* FUTURE: "Ask BioMate to edit this" — a conversational edit that writes
@@ -867,9 +860,9 @@ export function DatasetObject({
 
 function StatCard({ k, v }: { k: string; v: string }) {
   return (
-    <div className="rounded border px-2.5 py-2">
+    <div className="min-w-0 rounded border px-2.5 py-2">
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</div>
-      <div className="text-lg font-mono font-semibold text-foreground">{v}</div>
+      <div className="text-sm font-mono font-semibold text-foreground [overflow-wrap:anywhere]" title={v}>{v}</div>
     </div>
   )
 }

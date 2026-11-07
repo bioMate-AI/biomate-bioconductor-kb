@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind } from "./nextflow-workflow-viewer";
+import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel } from "./nextflow-workflow-viewer";
 
 vi.mock("./chat-output-attachments", () => ({
   ChatOutputAttachments: () => <div data-testid="mock-chat-output-attachments" />,
@@ -564,6 +564,9 @@ describe("NextflowWorkflowViewer — real-time SSE status transitions (live disp
         "failed"
       );
     });
+    fireEvent.click(screen.getByTestId('panel-tab-phases'));
+    expect(screen.getByTestId('phase-card-s1')).toHaveAttribute('data-status', 'pending');
+    expect(screen.getByText(/Not started/)).toBeInTheDocument();
     // No cached-failure metadata → not resumable → footer CTA reads "Restart".
     const cta = screen.getByTestId("button-run-workflow-panel");
     expect(cta).toHaveTextContent("Restart");
@@ -604,4 +607,22 @@ describe("deriveRunKind — run card kind by domain / mode (Spec 13 §13.4)", ()
     expect(deriveRunKind({ domain: "drug_discovery", run_kind: "design" })).toBe("Design run");
     expect(deriveRunKind({ domain: "transcriptomics", kind: "sandbox" })).toBe("Ad-hoc · sandbox");
   });
+});
+
+
+describe('failure recovery advice', () => {
+  it('only promises resume when cached completed work exists', () => {
+    expect(failureRecoveryAdvice('resume', false)).toContain('restart');
+    expect(failureRecoveryAdvice('resume', false)).not.toContain('Resume from last step');
+    expect(failureRecoveryAdvice('resume', true)).toContain('Resume from last step');
+  });
+  it('does not speculate about unknown failures', () => {
+    expect(failureRecoveryAdvice(undefined, false)).toBeNull();
+  });
+});
+
+it('renders a backend phase prefix once', () => {
+  expect(phaseGroupLabel('a', 'Phase A — Input Download')).toBe('Phase A — Input Download');
+  expect(phaseGroupLabel('b', 'Normalisation')).toBe('Phase B — Normalisation');
+  expect(phaseGroupLabel('c', '')).toBe('Phase C');
 });

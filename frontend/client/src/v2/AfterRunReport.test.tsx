@@ -662,6 +662,24 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     { step: "", name: ".nextflow.log", path: "logs/.nextflow.log", ext: "log" },
   ];
 
+  it.each(['completed', 'failed'])("keeps run metadata visible when a %s run has no scientific outputs", async status => {
+    render(<AfterRunReport {...baseProps} executionStatus={status as any} outputs={mixedOutputs.slice(1) as any} />);
+    fireEvent.click(await screen.findByTestId('after-tab-outputs'));
+    const section = await screen.findByTestId('run-metadata-section');
+    expect(within(section).getByText('dag.html')).toBeInTheDocument();
+    expect(screen.queryByText(/Download all \(3\)/)).toBeNull();
+  });
+
+  it("does not advertise generated findings for a failed run with only diagnostic files", async () => {
+    render(<AfterRunReport {...baseProps} executionStatus="failed" outputs={mixedOutputs.slice(1) as any} />);
+    const summary = await screen.findByTestId('after-summary-tab');
+    expect(summary).not.toHaveTextContent('generated from outputs');
+    expect(summary).not.toHaveTextContent('Download findings');
+    expect(screen.getByTestId('afterrun-no-report')).toBeInTheDocument();
+    expect(vi.mocked(fetch).mock.calls.some(([url, init]) =>
+      String(url) === '/api/jobs' && String(init?.body).includes('findings_analysis'))).toBe(false);
+  });
+
   it("Download-all count excludes pipeline_info/metadata files", async () => {
     render(
       <AfterRunReport

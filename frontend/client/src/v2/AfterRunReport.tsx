@@ -221,6 +221,8 @@ export function AfterRunReport({
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
   const outputs = outputsProp ?? [];
+  // Diagnostic files are evidence of failure, not scientific findings.
+  const canShowFindings = !isFailed || outputs.some(output => !isRunMetadataFile(output));
   // Methods + QC events keyed off invocationId (the backend Nextflow id), falling back to runId.
   const idForBackend = invocationId || runId;
   const methods = useFetchMethods(idForBackend);
@@ -233,7 +235,7 @@ export function AfterRunReport({
   const citations = useFetchCitations(workflowName);
   // Findings fetched here too (alongside FindingsCard's own fetch) so the
   // comprehensive download report can inline real findings prose (PM must-fix #2).
-  const findings = useFetchFindings(runId);
+  const findings = useFetchFindings(canShowFindings ? runId : "");
 
   // The in-panel Report document (§2.2) — the same comprehensive report the
   // Download menu produces, rendered as a scrolling 8-section doc in the Report tab.
@@ -486,12 +488,12 @@ export function AfterRunReport({
                   shows the full per-compound Key Results table, so it's always
                   clear which entity a number belongs to (see findings-card.tsx
                   `multiEntity`). */}
-              <FindingsCard
+              {canShowFindings && <FindingsCard
                 runId={runId}
                 onContinueAnalysis={onContinueAnalysis}
                 executionStatus={executionStatus}
                 onOpenOutput={handleOpenOutput}
-              />
+              />}
               {/* audit S2#5: surface non-pass QC — including the degraded sentinels the backend
                   deliberately writes (unavailable/unknown/not_evaluated). Showing only fail/advisory
                   made a run whose QC could NOT be evaluated render as all-clear, erasing the signal. */}
@@ -1364,18 +1366,6 @@ function OutputsTab({
       setTimeout(() => setSaveState("idle"), 3000);
     }
   };
-
-  if (totalCount === 0) {
-    return (
-      <div style={styles.tabContent}>
-        <p style={styles.empty}>
-          {executionStatus === 'failed'
-            ? 'No outputs — run did not complete successfully.'
-            : 'No output files registered yet.'}
-        </p>
-      </div>
-    );
-  }
 
   const fileUrl = (f: OutputFile, download = false) => {
     // Prefer download_url (Galaxy proxy / presigned URL) when available.

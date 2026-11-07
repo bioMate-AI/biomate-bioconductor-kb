@@ -347,9 +347,10 @@ function useS3Credentials(open: boolean) {
 interface SettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onImportWorkflow?: () => void
 }
 
-export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: SettingsDialogProps) {
   const { logout } = useAuth()
   const [, setLocation] = useLocation()
   const [settings, setSettings] = useState<UserSettings>(userSettingsService.getSettings())
@@ -424,7 +425,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             stale stub tabs stay gated (enabling them would ship broken forms). */}
         <div className="flex flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1" orientation="vertical">
-            <div className="hidden sm:block w-48 border-r bg-muted/50 p-4">
+            <div className="w-36 sm:w-48 shrink-0 border-r bg-muted/50 p-2 sm:p-4">
               <TabsList className="grid w-full grid-cols-1 h-auto gap-1 bg-transparent">
                 <TabsTrigger value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
                   <Key className="w-4 h-4" />
@@ -434,6 +435,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <Palette className="w-4 h-4" />
                   {tOr('settings.appearance', 'Appearance')}
                 </TabsTrigger>
+                <TabsTrigger value="connections" className="justify-start gap-2 p-3" data-testid="tab-settings-connectors">{t('nav.connectors')}</TabsTrigger>
+                {onImportWorkflow && <TabsTrigger value="imports" className="justify-start gap-2 p-3" data-testid="tab-settings-imports">{t('nav.import_workflow')}</TabsTrigger>}
                 {/* Stale stub tabs (profile/general/chat/data/notifications/privacy/
                     security/advanced) remain gated below until rebuilt. */}
               </TabsList>
@@ -874,6 +877,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
               {/* Appearance Tab (active) — theme selector; makes Settings a real
                   tabbed panel alongside API Keys without enabling the stub tabs. */}
+              <TabsContent value="connections" className="space-y-4 m-0">
+                <Button data-testid="button-connectors-settings" onClick={() => { onOpenChange(false); setLocation('/settings/connections'); }}>{t('nav.connectors')}</Button>
+              </TabsContent>
+              <TabsContent value="imports" className="space-y-4 m-0">
+                <Button data-testid="button-import-workflow-settings" onClick={onImportWorkflow}>{t('nav.import_workflow')}</Button>
+              </TabsContent>
               <TabsContent value="appearance" className="space-y-6 m-0" data-testid="tab-content-appearance">
                 <div>
                   <h3 className="text-lg font-semibold mb-4">{tOr('settings.appearance', 'Appearance')}</h3>

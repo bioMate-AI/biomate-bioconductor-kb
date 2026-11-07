@@ -1,8 +1,9 @@
+import { t } from '@/lib/i18n';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { normalizeSkillPack, type SkillPack } from './skills-selector';
-import { parseOutputFormats, EXAMPLE_OUTPUT_FORMATS, type OutputFormat } from '@/lib/output-requirements';
+import { parseOutputFormats, EXAMPLE_OUTPUT_FORMATS, appendMissingOutputFormats, type OutputFormat, type OutputFormatKind } from '@/lib/output-requirements';
 
 /* ── Stream 4: project Instructions page (Rules · Output formats · Skills & experts · Memory) ──
    Appearance matches the data-centric prototype (claude_code_core/dataui/ProjectSetup.jsx):
@@ -40,6 +41,9 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
   const [draft, setDraft] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
   const [formats, setFormats] = useState<OutputFormat[]>([]);
+  const [formatEditor, setFormatEditor] = useState<{ index: number | null; value: OutputFormat } | null>(null);
+  const [preview, setPreview] = useState<OutputFormat | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [skills, setSkills] = useState<SkillPack[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [memory, setMemory] = useState<MemoryItem[]>([]);
@@ -80,12 +84,15 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save rules.'); }
   }
   async function saveSettings(ids: string[], fmts: OutputFormat[]) {
-    setSelected(ids); setFormats(fmts);
+    setSavingSettings(true); setError('');
     try {
       const r = await fetch(`/api/projects/${projectId}/instruction-settings`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ skillPackIds: ids, outputRequirements: JSON.stringify(fmts) }) });
-      if (!r.ok) throw new Error('Could not save settings.');
+      if (!r.ok) throw new Error(t("instructions_formats.save_error"));
+      setSelected(ids); setFormats(fmts);
       window.dispatchEvent(new Event('biomate:projects-updated'));
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save settings.'); }
+      return true;
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save settings.'); return false; }
+    finally { setSavingSettings(false); }
   }
 
   const addRule = () => { const v = draft.trim(); if (!v) return; saveRules([...rules, v]); setDraft(''); };
@@ -139,14 +146,15 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
         <div>
           {formats.map((f, i) => (
             <div key={i} style={{ ...S.qline, alignItems: 'center' }}>
-              <Switch on={f.on} disabled={!canEdit} onClick={() => saveSettings(selected, formats.map((x, j) => j === i ? { ...x, on: !x.on } : x))} />
+              <Switch on={f.on} disabled={!canEdit || savingSettings || formatEditor !== null} title={t("instructions_formats.enable", { name: f.name })} onClick={() => saveSettings(selected, formats.map((x, j) => j === i ? { ...x, on: !x.on } : x))} />
               <span className="chip">{f.kind}</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>{f.name}</span>
                 {f.detail && <span style={S.hint}>{f.detail}</span>}
               </div>
-              <button className="btn sm ghost" onClick={() => setError(`Preview builds from your last run · ${f.name}`)}>Preview</button>
-              {canEdit && <button className="linkish" title="Remove" onClick={() => saveSettings(selected, formats.filter((_, j) => j !== i))}>Remove</button>}
+              <button className="btn sm ghost" onClick={() => setPreview(f)}>Preview</button>
+              {canEdit && <button className="btn sm ghost" disabled={savingSettings || formatEditor !== null} onClick={() => setFormatEditor({ index: i, value: { ...f } })}>{t("instructions_formats.edit")}</button>}
+              {canEdit && <button className="linkish" title="Remove" disabled={savingSettings || formatEditor !== null} onClick={() => saveSettings(selected, formats.filter((_, j) => j !== i))}>Remove</button>}
             </div>
           ))}
           {formats.length === 0 && <span style={{ ...S.hint, display: 'block', padding: '6px 0' }}>No formats yet — add one, or start from an example below.</span>}
@@ -164,14 +172,33 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
                   <span style={{ fontSize: 12.5, fontWeight: 600 }}>{ex.name}</span>
                   <span style={S.hint}>{ex.detail}</span>
                 </div>
-                <button className="btn sm ghost" title={`Add "${ex.name}" to your formats (added switched off — turn it on when ready)`} onClick={() => saveSettings(selected, [...formats, { ...ex }])}>Use</button>
+                <button className="btn sm ghost" title={`Add "${ex.name}" to your formats (added switched off — turn it on when ready)`} disabled={savingSettings || formatEditor !== null || appendMissingOutputFormats(formats, [ex]).length === formats.length} onClick={() => saveSettings(selected, appendMissingOutputFormats(formats, [ex]))}>Use</button>
               </div>
             ))}
-            <button className="btn sm" style={{ alignSelf: 'flex-start', marginTop: 2 }} data-testid="formats-seed-examples" onClick={() => saveSettings(selected, [...formats, ...EXAMPLE_OUTPUT_FORMATS.map(e => ({ ...e }))])}>Start from these examples</button>
+            <button className="btn sm" style={{ alignSelf: 'flex-start', marginTop: 2 }} data-testid="formats-seed-examples" disabled={savingSettings || formatEditor !== null || appendMissingOutputFormats(formats, EXAMPLE_OUTPUT_FORMATS).length === formats.length} onClick={() => saveSettings(selected, appendMissingOutputFormats(formats, EXAMPLE_OUTPUT_FORMATS))}>Start from these examples</button>
           </div>
         )}
-        {canEdit && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => saveSettings(selected, [...formats, { kind: 'report', name: 'New format', detail: 'e.g. Findings first (≤200 words), then methods, then QC; figures at 300 dpi', on: true }])}>+ Add a format</button>}
+        {canEdit && <button className="btn sm" style={{ alignSelf: 'flex-start' }} disabled={savingSettings || formatEditor !== null} onClick={() => setFormatEditor({ index: null, value: { kind: 'report', name: '', detail: '', on: false } })}>+ Add a format</button>}
       </section>
+
+      {formatEditor && <section role="dialog" aria-label={t("instructions_formats.edit_title")} style={S.card}>
+        <h3 style={{ margin: 0 }}>{t("instructions_formats.edit_title")}</h3>
+        <label>{t("instructions_formats.name")}<input style={{ ...S.input, display: 'block', width: '100%' }} value={formatEditor.value.name} onChange={e => setFormatEditor({ ...formatEditor, value: { ...formatEditor.value, name: e.target.value } })} /></label>
+        <label>{t("instructions_formats.kind")}<select style={{ ...S.input, display: 'block', width: '100%' }} value={formatEditor.value.kind} onChange={e => setFormatEditor({ ...formatEditor, value: { ...formatEditor.value, kind: e.target.value as OutputFormatKind } })}>{['report', 'figure', 'table', 'naming'].map(kind => <option key={kind} value={kind}>{kind}</option>)}</select></label>
+        <label>{t("instructions_formats.requirements")}<Textarea value={formatEditor.value.detail} onChange={e => setFormatEditor({ ...formatEditor, value: { ...formatEditor.value, detail: e.target.value } })} /></label>
+        <div style={S.row}><button className="btn sm" disabled={savingSettings || !formatEditor.value.name.trim()} onClick={async () => {
+          const value = { ...formatEditor.value, name: formatEditor.value.name.trim(), detail: formatEditor.value.detail.trim() };
+          const next = formatEditor.index === null ? [...formats, value] : formats.map((f, i) => i === formatEditor.index ? value : f);
+          if (await saveSettings(selected, next)) setFormatEditor(null);
+        }}>{savingSettings ? t("instructions_formats.saving") : t("instructions_formats.save")}</button><button className="btn sm ghost" disabled={savingSettings} onClick={() => setFormatEditor(null)}>{t("instructions_formats.cancel")}</button></div>
+      </section>}
+      {preview && <section role="dialog" aria-label={t("instructions_formats.preview_title")} style={S.card}>
+        <div style={S.row}><h3 style={{ margin: 0 }}>{preview.name}</h3><span className="chip">{preview.kind}</span></div>
+        <p style={S.hint}>{t("instructions_formats.preview_note")}</p>
+        <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{preview.detail || t("instructions_formats.no_requirements")}</p>
+        <span style={S.hint}>{preview.on ? t("instructions_formats.enabled") : t("instructions_formats.disabled")}</span>
+        <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setPreview(null)}>{t("instructions_formats.close_preview")}</button>
+      </section>}
 
       {/* SKILLS & EXPERTS */}
       <section style={S.card} data-testid="instructions-skills">
@@ -187,7 +214,7 @@ export function ProjectInstructionsPage({ projectId, projectName, canEdit, instr
               const on = selected.includes(skill.id);
               return (
                 <button key={skill.id} className="chip" aria-pressed={on} title={skill.description}
-                  disabled={!canEdit}
+                  disabled={!canEdit || savingSettings}
                   style={{ cursor: canEdit ? 'pointer' : 'default', border: on ? '1px solid transparent' : '1px dashed var(--border-strong)', ...(on ? accChip : {}) }}
                   onClick={() => canEdit && saveSettings(on ? selected.filter(id => id !== skill.id) : [...selected, skill.id], formats)}>
                   {skill.label}

@@ -1,3 +1,6 @@
+import { authorizeDatasetReference } from "./dataset-reference-access";
+import { setFilePreviewSecurityHeaders } from "./file-preview-security";
+import { isRunFilePathAllowed } from "./step-file-access";
 import { normalizeUiLanguage } from "./response-language";
 import { normalizeQcEvents } from "../shared/qc-assessment";
 import { matchDescriptor } from "../shared/findings-descriptors";
@@ -1661,6 +1664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const resolveAuthorizedRun = async (req: any, res: any, anyRunId: string): Promise<any | null> => {
     let run = await storage.getExecutionRun(anyRunId);
     if (!run) run = await storage.getExecutionRunByGalaxyId(anyRunId);
+    if (!run && storage.getExecutionRunByNextflowId) run = await storage.getExecutionRunByNextflowId(anyRunId);
     if (!run) {
       res.status(404).json({ error: "Run not found" });
       return null;
@@ -3428,7 +3432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!projectId) return res.status(403).json({ error: 'Access denied' });
         const membership = await pool.query(
           `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2
-           UNION SELECT 1 FROM projects WHERE id = $1 AND owner_id = $2
+           UNION SELECT 1 FROM projects WHERE id = $1 AND user_id::text = $2
            LIMIT 1`,
           [projectId, userId]
         );
@@ -5632,7 +5636,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   POST /api/perception/profile  { datasetRef }  -> DataProfile (+ planImpact)
   // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
   // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
-  app.all("/api/perception/*", optionalAuth, _dlProxyHandler);
+  const requireDatasetAccess = (refFromPath = false) => async (req: any, res: any, next: any) => {
+    try {
+      const pathname = new URL(req.originalUrl, 'http://internal').pathname;
+      const ref = refFromPath
+        ? decodeURIComponent(pathname.slice('/api/datasets/'.length, pathname.lastIndexOf('/')))
+        : req.body?.datasetRef;
+      const decision = await authorizeDatasetReference(ref, req.user?.id, s3Service.getBucketName(), async (key, uid) => {
+        const rows = await pool.query(`SELECT 1 FROM project_files f JOIN projects p ON p.id = f.project_id
+          WHERE f.s3_key = $1 AND (p.user_id::text = $2 OR EXISTS (
+            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2
+          )) LIMIT 1`, [key, uid]);
+        return rows.rows.length > 0;
+      });
+      if (!decision.allowed) return res.status(decision.status).json({ error: 'Dataset is not accessible to this user' });
+      next();
+    } catch (error) {
+      console.error('[dataset access]', error instanceof Error ? error.message : error);
+      res.status(403).json({ error: 'Dataset access could not be verified' });
+    }
+  };
+  app.post("/api/perception/profile", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
+  app.all("/api/perception/*", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
   // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
   //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step
   //   GET  /api/datasets/:ref/consumers  -> runs that read it as input
@@ -5648,7 +5673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // versions-POST + ro-crate-GET routes, no extra registration needed.
   // Same proxy as /api/models. :ref is URL-encoded by the client (S3 keys /
   // paths contain "/"); the backend catch-all + urldecode handles it.
-  app.all("/api/datasets/*", optionalAuth, _dlProxyHandler);
+  app.all("/api/datasets/*", authenticateToken, requireDatasetAccess(true), _dlProxyHandler);
 
   // Server-side lane arbiter — the composer's LanePreview calls this on a
   // debounce so its advisory Instant/Cloud verdict matches how the query will
@@ -11054,13 +11079,22 @@ ${paramLines || '(none recorded)'}`;
         if (req.session) (req.session as any).galaxyHistoryId = targetHistoryId;
       }
       const hdaId = await userProxy(req).uploadFromUrl(fileUrl, targetHistoryId!, name);
-      const result = await galaxyAPIProxy.launchInteractiveTool(toolId, targetHistoryId!, {
+      const result = await userProxy(req).launchInteractiveTool(toolId, targetHistoryId!, {
         input: { src: "hda", id: hdaId },
       });
-      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      const entryPointUrl = rewriteInteractiveToolUrl(
-        result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`
-      );
+      // A Galaxy job id is not an interactive access URL. Resolve only the
+      // entry point belonging to this user's launched job, as /interactive/launch does.
+      let entryPointUrl: string | null = result.entry_point_url
+        ? rewriteInteractiveToolUrl(result.entry_point_url) : null;
+      for (let attempt = 0; attempt < 30 && !entryPointUrl && result.job_id; attempt++) {
+        const ep = tokenForJob(result.job_id);
+        if (ep?.token) { entryPointUrl = `/interactive/${ep.token}/${ep.entry_url}`; break; }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      if (!entryPointUrl) return res.status(503).json({
+        success: false, jobId: result.job_id,
+        error: "The file was staged, but the notebook session has not provided an access URL yet. The session may still be starting.",
+      });
       res.json({ success: true, url: entryPointUrl, jobId: result.job_id, tool: toolId });
     } catch (error: any) {
       console.error("[open-in] project file → interactive tool failed:", error?.message ?? error);
@@ -14267,12 +14301,16 @@ Rules:
   app.get("/api/galaxy-proxy/api/nextflow/outputs/download", authenticateToken, async (req: any, res) => {
     try {
       const runId = req.query.run_id as string | undefined;
-      if (runId) {
-        const execRun = await storage.getExecutionRun(runId).catch(() => null);
-        if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
-          return res.status(403).json({ error: 'Forbidden' });
-        }
+      if (!runId) return res.status(400).json({ error: 'run_id is required' });
+      const run = await resolveAuthorizedRun(req, res, runId);
+      if (!run) return;
+      const uri = typeof req.query.s3_uri === 'string' ? req.query.s3_uri : '';
+      let fileAllowed = isRunFilePathAllowed(uri, run);
+      if (!fileAllowed && uri.startsWith('s3://')) {
+        const { runsOutputsService } = await import('./services/runs-outputs-service');
+        fileAllowed = isRunFilePathAllowed(uri, run, await runsOutputsService.list(run.id));
       }
+      if (!fileAllowed) return res.status(403).json({ error: 'File does not belong to this run' });
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const qs = new URLSearchParams(req.query as Record<string, string>).toString();
       const upstream = await fetch(`${galaxyUrl}/api/nextflow/outputs/download?${qs}`, {
@@ -14285,6 +14323,7 @@ Rules:
       const ct = upstream.headers.get('content-type') || 'application/octet-stream';
       const cd = upstream.headers.get('content-disposition');
       res.setHeader('Content-Type', ct);
+      setFilePreviewSecurityHeaders(res, ct);
       if (cd) res.setHeader('Content-Disposition', cd);
       const buf = await upstream.arrayBuffer();
       res.send(Buffer.from(buf));
@@ -14302,11 +14341,12 @@ Rules:
     try {
       // Ownership check: the run must belong to the authenticated user.
       const runId = req.query.run_id as string | undefined;
-      if (runId) {
-        const execRun = await storage.getExecutionRun(runId).catch(() => null);
-        if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
-          return res.status(403).json({ error: 'Forbidden' });
-        }
+      if (!runId) return res.status(400).json({ error: 'run_id is required' });
+      const run = await resolveAuthorizedRun(req, res, runId);
+      if (!run) return;
+      const relPath = typeof req.query.rel_path === 'string' ? req.query.rel_path : '';
+      if (!relPath || relPath.startsWith('/') || relPath.includes('\\') || relPath.split('/').includes('..')) {
+        return res.status(400).json({ error: 'Invalid relative output path' });
       }
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const qs = new URLSearchParams(req.query as Record<string, string>).toString();
@@ -14319,6 +14359,7 @@ Rules:
       const ct = upstream.headers.get('content-type') || 'application/octet-stream';
       const cd = upstream.headers.get('content-disposition');
       res.setHeader('Content-Type', ct);
+      setFilePreviewSecurityHeaders(res, ct);
       if (cd) res.setHeader('Content-Disposition', cd);
       const buf = await upstream.arrayBuffer();
       res.send(Buffer.from(buf));
@@ -14653,18 +14694,15 @@ Rules:
   });
 
   // Serve a single step output file for inline preview
-  app.get("/api/workflows/runs/:id/step-file", async (req, res) => {
+  app.get("/api/workflows/runs/:id/step-file", authenticateToken, async (req, res) => {
     try {
       let filePath = (req.query.path as string) || '';
       const fileName = req.query.name as string || '';
 
       if (!filePath) return res.status(400).json({ error: 'path query param required' });
 
-      // For S3 paths, bucket validation is the security boundary — run lookup is optional.
-      // For local paths, we still require a valid run to restrict filesystem access.
-      // `run` is hoisted so the local-path block below can use its
-      // nextflowStatus.work_dir / outdir for the allowed-roots check.
-      const run = await storage.getExecutionRun(req.params.id);
+      const run = await resolveAuthorizedRun(req, res, req.params.id);
+      if (!run) return;
 
       // Infer Content-Type (shared for both S3 and local paths)
       const ext = (fileName || filePath).split('.').pop()?.toLowerCase() ?? '';
@@ -14689,6 +14727,7 @@ Rules:
         res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
       }
       res.setHeader('Content-Type', ct);
+      setFilePreviewSecurityHeaders(res, ct);
 
       // If the path is just a bare filename (no directory separator, no s3://),
       // look it up in the run's s3_output_files so we get the full S3 URI instead
@@ -14704,6 +14743,15 @@ Rules:
           filePath = match.s3_uri;
         }
       }
+
+      // An owned run does not grant access to arbitrary objects in the same bucket.
+      let pathAllowed = isRunFilePathAllowed(filePath, run);
+      if (!pathAllowed && filePath.startsWith('s3://')) {
+        const { runsOutputsService } = await import('./services/runs-outputs-service');
+        const outputs = await runsOutputsService.list(run.id);
+        pathAllowed = isRunFilePathAllowed(filePath, run, outputs);
+      }
+      if (!pathAllowed) return res.status(403).json({ error: 'File does not belong to this run' });
 
       // After bare-filename lookup, filePath may now be an s3:// URI.
       const isS3Path = filePath.startsWith('s3://');
@@ -14846,6 +14894,7 @@ Rules:
           if (upstream && upstream.ok) {
             const ct = upstream.headers.get('content-type') || 'application/octet-stream';
             res.setHeader('Content-Type', ct);
+            setFilePreviewSecurityHeaders(res, ct);
             const buf = await upstream.arrayBuffer();
             res.send(Buffer.from(buf));
             return;

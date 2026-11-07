@@ -32,4 +32,14 @@ describe("open-in (project file → interactive tool) — contract", () => {
     ).toBe(true);
     expect(/launchInteractiveTool\([^)]*\{\s*\n?\s*input:\s*\{\s*src:\s*"hda"/.test(SRC)).toBe(true);
   });
+  it("launches with the same user identity as staging and never fabricates a job access URL", () => {
+    const route = SRC.slice(SRC.indexOf('app.post("/api/projects/:id/files/:fileId/open-in"'), SRC.indexOf('app.post("/api/interactive-tools/launch"'));
+    expect(route).toContain('userProxy(req).uploadFromUrl');
+    expect(route).toContain('userProxy(req).launchInteractiveTool');
+    expect(route).not.toContain('galaxyAPIProxy.launchInteractiveTool');
+    expect(route).not.toContain('/interactivetool/jobs/');
+    expect(route).toContain('tokenForJob(result.job_id)');
+    expect(route).toContain('if (!entryPointUrl) return res.status(503)');
+  });
+
 });

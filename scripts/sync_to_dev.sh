@@ -776,7 +776,7 @@ deploy_backend_python() {
     # docker exec mkdir + docker cp for every file: ~2m47s for 632 files (sync of 2026-11-04).
     LAYOUT=/tmp/backend_py_layout
     rm -rf "$LAYOUT" && mkdir -p "$LAYOUT/app"
-    find /tmp/backend_py_extract/backend -name "*.py" ! -name "._*" | while read src; do
+    find /tmp/backend_py_extract/backend -type f ! -name "._*" \( -name "*.py" -o -path "/tmp/backend_py_extract/backend/lib/galaxy/ai/skills/*.md" \) | while IFS= read -r src; do
       rel="${src#/tmp/backend_py_extract/backend/}"
       # experiments/ is a top-level package at /app/experiments (importable as `experiments`);
       # everything else lands under /app/lib/galaxy/.
@@ -791,6 +791,18 @@ deploy_backend_python() {
     # set -e: a failed copy aborts the sync instead of leaving a half-updated container.
     docker cp "$LAYOUT/app/." "$GC:/app/"
     echo "[backend] copied $staged python files into $GC:/app in one docker cp"
+    # Verify Markdown skills too: a successful Python copy does not prove these shipped.
+    if [[ -d "$LAYOUT/app/lib/galaxy/ai/skills" ]]; then
+      find "$LAYOUT/app/lib/galaxy/ai/skills" -type f -name "*.md" | while IFS= read -r src; do
+        dest="${src#"$LAYOUT"}"
+        expected=$(sha256sum "$src" | cut -d " " -f 1)
+        actual=$(docker exec "$GC" sha256sum "$dest" | cut -d " " -f 1)
+        if [[ "$expected" != "$actual" ]]; then
+          echo "[backend] FATAL: deployed skill hash mismatch: $dest" >&2
+          exit 1
+        fi
+      done
+    fi
 
     # Also sync the biomni_workflows .nf files
     echo "[backend] Done Python sync"

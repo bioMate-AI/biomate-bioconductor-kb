@@ -13,12 +13,12 @@
  * "Run a model" track submits inference and renders the result with
  * the wave-1 viewers by evidence class.
  *
- * Train / House style / Rounds are project-scoped surfaces with no WS1 read
- * endpoint in this wave; they render descriptive track content (no fabricated
- * data). Any live data they receive arrives via props.
+ * Train / House style / Rounds fetch their track endpoints. Loading and failures
+ * are distinct from a successful empty result; explicit data props override reads.
  */
 
 import { useState } from "react"
+import { t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -464,14 +464,14 @@ function TrainTrack({
                     {r.gate}
                   </Badge>
                   <span className="font-mono text-[10px] text-muted-foreground truncate">{r.dataset}</span>
-                  {(r.modelId || r.status === "running") && (
+                  {r.modelId && (
                     <button
                       type="button"
                       className="ml-auto text-primary hover:underline"
                       onClick={() => r.modelId && onOpenModel(r.modelId)}
                       data-testid={`train-run-open-${r.name}`}
                     >
-                      {r.status === "running" ? "watch live →" : "open experiment →"}
+                      {t("models.open_model")}
                     </button>
                   )}
                 </div>
@@ -662,6 +662,21 @@ function AdaptTrack({
   )
 }
 
+function TrackRequestState({ query, overridden, children }: {
+  query: { isPending: boolean; isError: boolean; refetch: () => unknown }
+  overridden: boolean
+  children: React.ReactNode
+}) {
+  if (!overridden && query.isPending) return <p role="status">{t("models.activity_loading")}</p>
+  if (!overridden && query.isError) return (
+    <div role="alert" className="rounded-lg border border-destructive/30 p-4 space-y-2">
+      <p>{t("models.activity_error")}</p>
+      <Button variant="outline" size="sm" onClick={() => query.refetch()}>{t("models.retry")}</Button>
+    </div>
+  )
+  return <>{children}</>
+}
+
 // ── Panel ────────────────────────────────────────────────────────────────────
 export interface ModelsPanelProps {
   /** Project name shown in the crumb. */
@@ -722,12 +737,15 @@ export function ModelsPanel({
   // Self-fetch the project-scoped track data so the panel works standalone; an
   // explicit prop always overrides the fetched default (parent stays in control).
   const projectArg = project === "Project" ? undefined : project
-  const { data: fetchedTrain } = useTrainTrack(projectArg)
-  const { data: fetchedAdapt } = useAdaptTrack(projectArg)
-  const { data: fetchedOptimise } = useOptimiseTrack(projectArg)
+  const trainQuery = useTrainTrack(projectArg)
+  const fetchedTrain = trainQuery.data
+  const adaptQuery = useAdaptTrack(projectArg)
+  const fetchedAdapt = adaptQuery.data
+  const optimiseQuery = useOptimiseTrack(projectArg)
+  const fetchedOptimise = optimiseQuery.data
   const effectiveTrainData = trainData ?? fetchedTrain
   const effectiveAdaptData = adaptData ?? fetchedAdapt
-  const effectiveOptimiseData = optimiseData ?? fetchedOptimise
+  const effectiveOptimiseData = optimiseData ?? fetchedOptimise ?? undefined
 
   // Adapt mutations: persist a learned-pair toggle / queue a retrain. A parent
   // callback still wins; otherwise these fire the persisted server mutations.
@@ -794,19 +812,28 @@ export function ModelsPanel({
             </TabsList>
 
             <TabsContent value="0">
+              <TrackRequestState query={trainQuery} overridden={trainData !== undefined}>
+
               <TrainTrack data={effectiveTrainData} onOpenModel={setOpenModelId} />
+              </TrackRequestState>
             </TabsContent>
 
             <TabsContent value="1">
+              <TrackRequestState query={adaptQuery} overridden={adaptData !== undefined}>
+
               <AdaptTrack
                 data={effectiveAdaptData}
                 onToggleLearned={effectiveAdaptToggle}
                 onRetrain={effectiveAdaptRetrain}
               />
+              </TrackRequestState>
             </TabsContent>
 
             <TabsContent value="2">
+              <TrackRequestState query={optimiseQuery} overridden={optimiseData !== undefined}>
+
               <OptimiseTrack data={effectiveOptimiseData} onOpenModel={setOpenModelId} />
+              </TrackRequestState>
             </TabsContent>
 
             <TabsContent value="3">

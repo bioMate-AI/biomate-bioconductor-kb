@@ -337,7 +337,8 @@
     "open_in_failed": "Could not open the interactive tool",
     "restore": "Restore",
     "restoring": "Restoring…",
-    "restore_failed": "Could not restore this version"
+    "restore_failed": "Could not restore this version",
+    "open_in_retry": "{{tool}} could not open this file ({{status}}). The file was not opened; try again or contact your workspace administrator if this continues."
   },
   "data_hub": {
     "choose_project": "Choose a project",
@@ -561,6 +562,9 @@
       "start_over_tip": "Discards cached work and re-runs the whole pipeline from the beginning",
       "reset_defaults": "Reset to defaults",
       "reset_defaults_tip": "Showing params from your last run. Click to reset to workflow defaults."
+    },
+    "phase": {
+      "not_started": "Not started"
     }
   },
   "preview": {
@@ -631,5 +635,29 @@
     "structural_biology": "Structural biology",
     "immunology": "Immunology",
     "clinical": "Clinical"
+  },
+  "models": {
+    "open_model": "Open model →",
+    "activity_loading": "Loading model activity…",
+    "activity_error": "Could not load model activity. Your saved work has not been changed.",
+    "retry": "Retry"
+  },
+  "instructions_formats": {
+    "edit_title": "Edit output format",
+    "name": "Name",
+    "kind": "Kind",
+    "requirements": "Requirements",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "close_preview": "Close preview",
+    "preview_title": "Output format preview",
+    "preview_note": "Template requirements · this is not a generated run report.",
+    "no_requirements": "No requirements specified.",
+    "enabled": "Enabled for future work in this project.",
+    "disabled": "Disabled — not included in new requests.",
+    "save_error": "Could not save settings. Your changes have not been saved.",
+    "enable": "Enable {{name}}",
+    "edit": "Edit"
   }
 }

@@ -230,3 +230,31 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(produced.textContent).not.toContain("counts.tsv")
   })
 })
+
+describe("DatasetObject — unavailable metadata and action error scope", () => {
+  it("shows unknown dimensions and readable JSON MIME for non-tabular generic-storage objects", async () => {
+    global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ shape: { rows: 0, cols: 0 }, quality: "watch", notes: [] }) })) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(<QueryClientProvider client={qc}><DatasetObject dataset={{ ...RUN, name: "report.json", contentType: "application/octet-stream" }} /></QueryClientProvider>)
+    await screen.findByTestId("dataset-header-quality")
+    const grid = screen.getByTestId("dataset-stat-grid")
+    expect(grid).toHaveTextContent("application/json")
+    expect(within(grid).getAllByText("—")).toHaveLength(2)
+  })
+
+  it("shows a useful launch failure and clears it when another file opens", async () => {
+    routeFetch()
+    const original = global.fetch
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/open-in")) return { ok: false, status: 503, json: async () => ({ error: "InteractiveLaunchError", message: "The session is still starting. Check active sessions." }) } as Response
+      return original(input, init)
+    }) as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const props = { dataset: RUN, projectId: "proj-rna" }
+    const { rerender } = render(<QueryClientProvider client={qc}><DatasetObject {...props} /></QueryClientProvider>)
+    fireEvent.click(screen.getByTestId("dataset-object-open-in"))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Jupyter: The session is still starting")
+    rerender(<QueryClientProvider client={qc}><DatasetObject {...props} dataset={{ ...RUN, id: "another-file" }} /></QueryClientProvider>)
+    await waitFor(() => expect(screen.queryByTestId("dataset-open-in-error")).toBeNull())
+  })
+})

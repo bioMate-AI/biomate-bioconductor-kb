@@ -55,3 +55,15 @@ export const EXAMPLE_OUTPUT_FORMATS: OutputFormat[] = [
   { kind: 'table',   name: 'Supplementary table',     detail: 'One sheet per contrast, gene id in column A, effect size before p-value.', on: false },
   { kind: 'naming',  name: 'File naming convention',   detail: '<project>_<assay>_<contrast>_<yyyymmdd> — applied at ingest and to every output.', on: false },
 ];
+
+/** Insert missing templates by semantic content, preserving user variants and enabled states.
+ * Existing duplicates are deliberately retained: removing persisted entries requires user intent. */
+export function appendMissingOutputFormats(existing: OutputFormat[], additions: OutputFormat[]): OutputFormat[] {
+  const key = (f: OutputFormat) => JSON.stringify([f.kind, f.name.trim(), f.detail.trim()]);
+  const seen = new Set(existing.map(key));
+  const next = [...existing];
+  for (const format of additions) {
+    if (!seen.has(key(format))) { next.push({ ...format }); seen.add(key(format)); }
+  }
+  return next;
+}

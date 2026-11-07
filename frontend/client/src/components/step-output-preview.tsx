@@ -631,6 +631,10 @@ function FetchingPreview({
           const text = await res.text();
           if (cancelled) return;
           setContent({ url: stepFileUrl, contentType: ct, text });
+        } else if (viewer === 'html') {
+          // Keep the server's CSP sandbox on navigation. A new blob URL would
+          // discard those headers and execute the report with the app's origin.
+          if (!cancelled) setContent({ url: stepFileUrl, contentType: ct });
         } else {
           let blob = await res.blob();
           if (cancelled) return;

@@ -64,3 +64,12 @@ it("renders a BED annotation as a feature table", async () => {
   expect(view).toHaveTextContent("chrom")
   expect(view).toHaveTextContent("featA")
 })
+
+it("renders YAML config as readable inert text", async () => {
+  mockFile('sample: tumor\nreplicates: 3\nnote: "<script>alert(1)</script>"')
+  const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="protocol.yml" />)
+  const preview = await screen.findByTestId("dataset-text-preview")
+  expect(preview).toHaveTextContent("sample: tumor")
+  expect(preview).toHaveTextContent("replicates: 3")
+  expect(container.querySelector("script")).toBeNull()
+})

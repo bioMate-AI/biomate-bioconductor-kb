@@ -343,7 +343,8 @@
     "open_in_failed": "无法打开交互工具",
     "restore": "恢复",
     "restoring": "正在恢复…",
-    "restore_failed": "无法恢复该版本"
+    "restore_failed": "无法恢复该版本",
+    "open_in_retry": "{{tool}} 无法打开此文件（{{status}}）。文件尚未打开，请重试；如果问题持续，请联系工作区管理员。"
   },
   "data_hub": {
     "choose_project": "选择一个项目",
@@ -724,7 +725,8 @@
       "run_all_tip": "运行{{phase}}的所有步骤",
       "run_disabled_tip": "请先启动工作流，以启用按阶段执行",
       "steps_count": "{{n}} 步",
-      "all_steps": "全部步骤"
+      "all_steps": "全部步骤",
+      "not_started": "尚未开始"
     },
     "phase_hint": "点击某个阶段即可展开其步骤和参数。工作流启动后，每个阶段都可单独运行。",
     "phases_label": "阶段 · {{n}}",
@@ -1130,5 +1132,29 @@
     "score_footnote": "*score 是一个排序键（各分目标归一化得分的均值），并非流水线所优化的综合指标——上方各目标是被一同优化的。",
     "mov_help_verdict": "每个目标",
     "verdict_tip": "评定仅反映安全门控与成药性，并不涵盖每一项分目标。候选物即使在左侧某一分目标上尚未达标，仍可能被接受。"
+  },
+  "models": {
+    "open_model": "打开模型 →",
+    "activity_loading": "正在加载模型活动…",
+    "activity_error": "无法加载模型活动。已保存的工作未被更改。",
+    "retry": "重试"
+  },
+  "instructions_formats": {
+    "edit_title": "编辑输出格式",
+    "name": "名称",
+    "kind": "类型",
+    "requirements": "要求",
+    "save": "保存",
+    "saving": "正在保存…",
+    "cancel": "取消",
+    "close_preview": "关闭预览",
+    "preview_title": "输出格式预览",
+    "preview_note": "模板要求 · 此处不是运行生成的报告。",
+    "no_requirements": "尚未指定要求。",
+    "enabled": "已启用，将应用于此项目后续的工作。",
+    "disabled": "已停用，不会应用于新请求。",
+    "save_error": "无法保存设置。您的更改尚未保存。",
+    "enable": "启用 {{name}}",
+    "edit": "编辑"
   }
 }

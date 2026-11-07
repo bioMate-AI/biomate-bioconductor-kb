@@ -677,8 +677,8 @@ function Router({
           activeChatId={currentChatSession?.id}
           chatSessions={chatSessions}
         >
-          <div className="max-w-5xl mx-auto p-4">
-            <ModelsPanel />
+          <div className="flex-1 min-h-0 overflow-y-auto" data-testid="models-scroll-region">
+            <div className="max-w-5xl mx-auto p-4"><ModelsPanel /></div>
           </div>
         </PlatformLayout>
       </Route>

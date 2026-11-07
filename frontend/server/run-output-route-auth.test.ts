@@ -10,6 +10,9 @@ import { describe, expect, it } from "vitest";
 const routes = fs.readFileSync(path.join(__dirname, "routes.ts"), "utf8");
 
 const protectedRoutes = [
+  "/api/galaxy-proxy/api/nextflow/outputs/download",
+  "/api/galaxy-proxy/api/nextflow/outputs/local-download",
+  "/api/workflows/runs/:id/step-file",
   "/api/runs/:anyId/outputs",
   "/api/runs/:anyId/meta",
   "/api/workflows/runs/:id/output_files",
@@ -40,5 +43,9 @@ describe("run output/findings route authentication wiring", () => {
     const section = routes.slice(start, end);
     expect(section).toContain('return res.status(404).json({ error: "Run not found" });');
     expect(section).not.toContain("chain_unregistered");
+  });
+  it('requires authentication and registry ownership for private profiling and dataset metadata', () => {
+    expect(routes).toContain('app.post("/api/perception/profile", authenticateToken, requireDatasetAccess(), _dlProxyHandler)');
+    expect(routes).toContain('app.all("/api/datasets/*", authenticateToken, requireDatasetAccess(true), _dlProxyHandler)');
   });
 });

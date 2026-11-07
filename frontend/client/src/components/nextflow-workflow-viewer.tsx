@@ -129,6 +129,26 @@ type ViewerParameter = {
   rationale?: string;
 };
 
+/** Backend labels may already include their phase prefix. Render it once. */
+export function phaseGroupLabel(key: string, semantic: string): string {
+  const prefix = `Phase ${key.toUpperCase()}`;
+  if (!semantic.trim()) return prefix;
+  if (semantic.trim().toLowerCase() === prefix.toLowerCase()
+      || semantic.trim().toLowerCase().startsWith(`${prefix.toLowerCase()} —`)) return semantic.trim();
+  return `${prefix} — ${semantic.trim()}`;
+}
+
+/** Recovery advice must describe the same action the footer can actually perform. */
+export function failureRecoveryAdvice(action: string | undefined, canResume: boolean): string | null {
+  if (action === 'resume' || action === 'resume_more_resources') {
+    return canResume ? 'Resume from last step to reuse completed work.'
+      : 'No completed step is available to resume. Review the error and restart after correcting the cause.';
+  }
+  if (action === 'fix_and_resume') return 'Adjust your parameters or input files, then run again with edits.';
+  if (action === 'check_input') return 'Check your input files for format issues, then retry.';
+  return null;
+}
+
 type ViewerPhaseStatus = 'pending' | 'running' | 'completed' | 'failed' | 'paused';
 
 type ViewerPhase = {
@@ -698,7 +718,7 @@ function PhaseGroupSection({
         {phaseStatus === 'completed' && <span className="chip ok">{tOr('panel.chip.done', 'DONE')}</span>}
         {phaseStatus === 'failed'    && <span className="chip err">{tOr('panel.chip.failed', 'FAILED')}</span>}
         {phaseStatus === 'pending' && (
-          <span className="progress-chip">{tOr('panel.phase.steps_count', '{{n}} step{{s}}', { n: steps.length, s: steps.length !== 1 ? 's' : '' })}</span>
+          <span className="progress-chip"><span>{tOr('panel.phase.not_started', 'Not started')} · </span>{tOr('panel.phase.steps_count', '{{n}} step{{s}}', { n: steps.length, s: steps.length !== 1 ? 's' : '' })}</span>
         )}
         {(phaseStatus === 'running' || phaseStatus === 'completed') && (
           <span className="progress-chip">{completedCount}/{steps.length}</span>
@@ -1786,10 +1806,8 @@ export function NextflowWorkflowViewer({
       let label: string;
       if (key === 'other') {
         label = 'Other Steps';
-      } else if (semantic && semantic.toLowerCase() !== `phase ${key}`.toLowerCase()) {
-        label = `Phase ${key.toUpperCase()} — ${semantic}`;
       } else {
-        label = `Phase ${key.toUpperCase()}`;
+        label = phaseGroupLabel(key, semantic);
       }
       if (!groupMap.has(key)) groupMap.set(key, { steps: [], label, phaseParams: [] });
       const group = groupMap.get(key)!;
@@ -3160,19 +3178,9 @@ export function NextflowWorkflowViewer({
                 <p style={{ fontSize: 13, color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
                   {diag.user_message}
                 </p>
-                {diag.suggested_action === 'resume' && (
-                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                    💡 This failure looks transient — use <strong>Resume from last step</strong> below.
-                  </p>
-                )}
-                {diag.suggested_action === 'fix_and_resume' && (
-                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                    💡 Adjust your parameters or input files, then use <strong>Run again with edits</strong>.
-                  </p>
-                )}
-                {diag.suggested_action === 'check_input' && (
-                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                    💡 Check your input files for format issues, then retry.
+                {failureRecoveryAdvice(diag.suggested_action, canResumeFailed) && (
+                  <p data-testid="failure-recovery-advice" style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                    {failureRecoveryAdvice(diag.suggested_action, canResumeFailed)}
                   </p>
                 )}
                 {snippet && (

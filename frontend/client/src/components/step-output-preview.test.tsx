@@ -150,11 +150,12 @@ describe("StepOutputPreview — viewer routing by extension", () => {
       <StepOutputPreview runId={runId} file={{ name: "report.html", path: "/pipeline_info/report.html", extension: "html" }} onClose={onClose} />,
     );
     const link = await screen.findByRole("link", { name: /Open full report in a new tab/i });
-    // Opens the fetched report in an isolated top-level tab — never weakens the
-    // iframe sandbox (blob: URL would inherit the app origin → stored-XSS risk).
+    // Navigate through the authenticated endpoint so its CSP sandbox survives.
+    // A same-origin blob would discard those headers, even with noopener.
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    expect(link).toHaveAttribute("href", "blob:mock-url");
+    expect(link.getAttribute('href')).toContain(`/api/workflows/runs/${runId}/step-file?`);
+    expect(link.getAttribute('href')).not.toMatch(/^blob:/);
     // The blank 256px sandboxed iframe must be gone.
     expect(container.querySelector("iframe")).toBeNull();
   });
