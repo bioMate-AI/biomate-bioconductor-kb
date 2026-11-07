@@ -701,8 +701,14 @@ deploy_backend_python() {
   git ls-files -- 'backend/experiments/**/*.py' 'backend/experiments/*.py' 2>/dev/null >> "$tmp_list" || true
   git ls-files --others --exclude-standard -- 'backend/experiments/**/*.py' 2>/dev/null >> "$tmp_list" || true
 
-  local count=$(sort -u "$tmp_list" | grep -c "\.py$" || true)
-  log "[backend] $count Python files to sync"
+  # Built-in SKILLS are Markdown (YAML frontmatter + body), not .py. Include them so a new or updated
+  # skill under backend/lib/galaxy/ai/skills/ actually deploys — the py-only tar filter below silently
+  # dropped them otherwise (caught 2026-11-06: biomate-universe.md never reached dev despite "Sync OK").
+  git ls-files -- 'backend/lib/galaxy/ai/skills/*.md' 2>/dev/null >> "$tmp_list" || true
+  git ls-files --others --exclude-standard -- 'backend/lib/galaxy/ai/skills/*.md' 2>/dev/null >> "$tmp_list" || true
+
+  local count=$(sort -u "$tmp_list" | grep -cE "\.(py|md)$" || true)
+  log "[backend] $count backend files to sync (Python + skill .md)"
 
   # Build tar of backend Python files using `git show HEAD:` instead of the
   # working tree. This prevents concurrent parallel sessions from deploying
@@ -711,7 +717,9 @@ deploy_backend_python() {
   local tmp_tar_dir="/tmp/biomate_backend_py_staging"
   rm -rf "$tmp_tar_dir" && mkdir -p "$tmp_tar_dir"
   while IFS= read -r rel_path; do
-    [[ "$rel_path" == *.py ]] || continue
+    # .py anywhere in the backend tree, plus built-in skill .md files (scoped to the skills dir so
+    # this never pulls in unrelated Markdown like docs).
+    [[ "$rel_path" == *.py || "$rel_path" == backend/lib/galaxy/ai/skills/*.md ]] || continue
     mkdir -p "$tmp_tar_dir/$(dirname "$rel_path")"
     # Export committed version; fall back to working tree for untracked files
     git show "HEAD:$rel_path" > "$tmp_tar_dir/$rel_path" 2>/dev/null \
