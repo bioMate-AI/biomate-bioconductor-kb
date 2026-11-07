@@ -109,3 +109,62 @@ channel: `{ name, fired: bool, bytes, scope, truncated, failureSignalled }`. The
 a conversation/project/runs and asserts the manifest (e.g. "A7 fired, scoped to user, 5 lines" or
 "cross-conversation search returned an explicit empty note"). Today none of A1–A11 is assertable as a
 unit because the assembly is emergent string work inside the two request handlers.
+
+---
+
+## Part 4 — What a harness ALSO does (beyond the 9 base dimensions)
+
+Dimensions 1–9 (Part 1) are the view-scope mechanics. A mature harness also owns these — most are
+NOT in BioMate today and are candidates, not commitments:
+
+10. **Global-budget eviction priority.** When the sum of channels exceeds the model's real limit,
+    WHICH channels shed first (e.g. keep attached files + recent history; drop old episodes). Today
+    each channel self-caps; there is no cross-channel priority — the prompt can overflow unmanaged.
+11. **Relevance ranking within a channel.** Which items of a channel to include, by relevance to the
+    question — not just recency/token-overlap. Today A7–A10 are lexical/recency only.
+12. **Cross-channel dedup.** The same fact must not appear in two channels (we already hit this:
+    research_goal was injected as both project context and composer instructions — fixed `502b83e6`).
+13. **Provenance / attribution.** Tag each context item with its source so the model can attribute
+    claims and the UI/audit can cite them. Today context is anonymous text.
+14. **Token-accurate accounting.** Budget by real model tokens, not bytes (current budgets are byte/
+    char approximations).
+15. **Multi-turn entity persistence.** Carry resolved entities (an attached file, a chosen run) across
+    turns so "now filter that file" works. Today chips clear after send (`chat-input.tsx:389`).
+16. **Tool-result folding.** How a tool's output (read_file, a search) re-enters context on the next
+    step of the agentic loop, under budget — the loop's own context management, not just turn 1.
+17. **Instruction precedence / conflict resolution.** When composer instructions, project standing
+    rules, and a stored correction conflict, which wins and in what order they're stated.
+18. **Redaction / safety / instruction-source boundary.** Strip secrets/PII before text enters the
+    prompt, and mark retrieved content as DATA (not instructions) so a file/search result can't
+    hijack the agent.
+19. **Determinism / replay.** Same inputs → same assembled context, so turns can be replayed for eval.
+
+## Part 5 — Prioritized plan (build order; not all now)
+
+**P0 — Foundation (build now, zero live risk).** The inspectable manifest core
+(`server/chat-context-harness.ts` + tests — DONE) and then wire it as a SHADOW alongside the existing
+assembly so we can log the real per-turn manifest (which channels fired, sizes, scope) without
+changing behavior. Rationale: you cannot improve a scope you cannot measure; every item below is
+easier once the manifest is observable. (dimensions 1,2,3,9)
+
+**P1 — Highest user value (anchored on the three worries + trust).**
+- **P1a. `run_code`/`read_file` reach into project-file OUTPUTS.** Unlocks "analyze/summarize my run
+  output file" — the single biggest functional gap (run outputs live in project files; today only a
+  ≤500-line preview). (tool reach, dimension 6)
+- **P1b. Honest failure signalling.** Replace the silent `''` on a memory/search miss with an explicit
+  "searched, found nothing" channel (the harness's `failureSignalled`). Cheap, high trust — stops the
+  model answering from nothing. (dimension 8)
+
+**P2 — Cross-history search tool.** A `search_chat_history` / findings search over
+`chat_sessions.messages` + run findings, user/project-scoped, with an explicit empty result. Answers
+"what did we conclude about hERG last week?". (channels + tool reach)
+
+**P3 — Chat → report edit.** `edit_report(runId, instruction)` → propose diff → on accept call the
+existing `reportVersionStore.append` (v0-fork protection already there) + a ChatEdit accept UI.
+
+**P4 — Defer until P0 data says they're worth it.** Semantic retrieval (11), global-budget eviction
+(10), multi-turn entity persistence (15), provenance (13), token-accurate budgeting (14).
+
+**Recommendation:** P0 now (it's mostly done), then P1a + P1b together (they're the highest
+value-to-effort and directly address the "refer to a file / act" and trust gaps). Decide P2/P3 after
+the P0 shadow shows how the real context actually looks on live turns.
