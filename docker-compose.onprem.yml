@@ -499,6 +499,9 @@ services:
       ENABLE_HSTS:   ${ENABLE_HSTS:-0}
       CORS_ORIGINS:  ${CORS_ORIGINS:-}
       FRONTEND_URL:  ${FRONTEND_URL:-}
+      # On-prem / China: strip Google Fonts CDN links at runtime (prevents white screen behind GFW).
+      # vite.ts serveStatic() reads this env var and removes the links before serving index.html.
+      DISABLE_GOOGLE_FONTS: "true"
 
       # ── Workflow notifications ─────────────────────────────────────────────
       # Send email when a workflow finishes. Requires SMTP config above.
