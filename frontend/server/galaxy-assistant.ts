@@ -1,4 +1,5 @@
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
+import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient } from './local-llm.js';
 import { cardWorkflowName } from './workflow-display-name';
 import { stagedInputPath } from './code-runner';
@@ -4598,6 +4599,26 @@ Rules:
         // non-fatal: skip all injections on error
       }
     }
+
+    // SHADOW (chat context harness, P0 — observability only, NO behavior change). `context` is now
+    // final (project context, LTM/memory, history, session datasets all resolved). Build the
+    // inspectable manifest from the top-level blocks and log one line, so we can SEE the real
+    // per-turn view scope on live traffic before migrating the assembly onto the harness. The blocks
+    // are already merged at this provider-independent point (ltm = A7–A10+session; project_context =
+    // A3–A5+skills), so sizes are per-block; channel-level detail comes when assembly is migrated in.
+    // See docs/20261106_CHAT_CONTEXT_HARNESS_SCOPE.md.
+    try {
+      const _prev = context.previousMessages ?? [];
+      const _histContent = _prev.map(m => m.content || '').join('\n');
+      const _sd = context.sessionDatasets ?? [];
+      const _mf = new ChatContextBuilder()
+        .add({ name: 'project_context', scope: 'project', content: context.projectContext || '' })
+        .add({ name: 'cross_session', scope: 'user', content: context.ltmContextBlock || '', wrap: { open: '<long_term_memory>', close: '</long_term_memory>' } })
+        .add({ name: 'session_datasets', scope: 'conversation', content: _sd.length ? _sd.map((d: any) => d.name).join(', ') : '' })
+        .add({ name: 'history', scope: 'conversation', content: _histContent })
+        .build();
+      log(`${manifestSummary(_mf)} msgs=${_prev.length} firstMsg=${isFirstMessage}`);
+    } catch { /* shadow must never affect a turn */ }
 
     // Step 1: Analyze user intent with NLU (supports all formats: single, multi, sequential)
     // The LLM recognizes bullet lists, numbered steps, prose pipelines, and all other formats.
