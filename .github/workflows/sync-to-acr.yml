@@ -666,6 +666,9 @@ jobs:
              echo "=== biomni-tools image ===" && \
              docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}} Size={{.Size}}" 2>/dev/null || echo "biomate/biomni-tools:latest NOT found — workflows will fail" && \
              echo "" && \
+             echo "=== frontend logs (last 100 lines) ===" && \
+             docker logs biomate-frontend --tail 100 2>&1 || echo "(no frontend logs)" && \
+             echo "" && \
              echo "=== galaxy logs (last 60 min, non-tool-loading) ===" && \
              docker logs biomate-galaxy --since 60m 2>&1 | grep -v "Loaded tool id" | grep -v "Skipping tool panel" | tail -80 || echo "(no logs)" && \
              echo "" && \
