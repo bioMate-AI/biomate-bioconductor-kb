@@ -9,15 +9,14 @@ describe("explicit UI language switch", () => {
     const control = screen.getByRole("combobox", { name: "Language / 语言" });
     expect(control).toHaveValue("english");
     expect(screen.getByRole("option", { name: "简体中文" })).toBeEnabled();
-    for (const name of ['日本語', 'Español', 'Français', 'Deutsch']) {
-      expect(screen.getByRole('option', { name: new RegExp(name + ' — Pending') })).toBeDisabled();
-    }
+    expect(screen.getByRole('option', { name: 'Others — Pending translation / 其他语言 — 待翻译' })).toBeDisabled();
+    expect(screen.getAllByRole('option')).toHaveLength(3);
     fireEvent.change(control, { target: { value: "chinese" } });
     expect(setLanguagePreference).toHaveBeenCalledWith("chinese");
     fireEvent.change(control, { target: { value: "english" } });
     expect(setLanguagePreference).toHaveBeenCalledWith("english");
     vi.mocked(setLanguagePreference).mockClear();
-    fireEvent.change(control, { target: { value: "japanese" } });
+    fireEvent.change(control, { target: { value: "others" } });
     expect(setLanguagePreference).not.toHaveBeenCalled();
   });
 });
