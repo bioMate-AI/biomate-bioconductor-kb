@@ -11220,7 +11220,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       });
       return {
         userId,
-        note: 'For a failed run, report its recorded `error`. When it says no error was recorded, say so and point the user to the run\'s task log (workflow panel → failed step → log); do not guess causes.',
+        // Honest empty-result signal (P1b): when nothing matched, say so explicitly AND state the
+        // tool's real limits, so the model reports "no matching runs" instead of guessing — and does
+        // not imply it searched by finding/parameter value (it only matches a workflow-name substring
+        // over the 50 most recent runs).
+        note: formatted.length === 0
+          ? `No runs matched${wfFilter ? ` workflow_filter="${wfFilter}"` : ''}${statusFilter ? ` status_filter="${statusFilter}"` : ''}. list_history only matches a workflow-NAME substring over the 50 most recent runs — it cannot find a run by parameter value or by findings/output content. Tell the user plainly that nothing matched (do not invent a run); if they described a run by its data, ask for the workflow name or an approximate date.`
+          : 'For a failed run, report its recorded `error`. When it says no error was recorded, say so and point the user to the run\'s task log (workflow panel → failed step → log); do not guess causes.',
         count: formatted.length,
         filter: { workflow_filter: wfFilter || null, status_filter: statusFilter || null },
         runs: formatted,
