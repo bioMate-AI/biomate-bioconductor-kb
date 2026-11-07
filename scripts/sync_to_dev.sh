@@ -511,6 +511,12 @@ NFCORE_PIPELINES_HOST_DIR="/opt/biomate/galaxy_build/nf-core-workflows"
 NFCORE_MODULES_HOST_DIR="/opt/biomate/galaxy_build/nf-core-modules"
 ensure_nfcore_pipelines() {
   log "[nfcore] Checking real nf-core pipelines in the Galaxy container..."
+  # BioMate patches to pinned nf-core releases (infra/nfcore-patches/<pipeline>/<version>.patch):
+  # shipped to the host and applied to the host source below, so the container copy carries them.
+  local patch_tgz="/tmp/biomate_nfcore_patches.tar.gz"
+  tar -czf "$patch_tgz" -C "$REPO_ROOT/infra" nfcore-patches 2>/dev/null \
+    && ec2_scp "$patch_tgz" "${EC2_USER}@${EC2_HOST}:/tmp/nfcore_patches.tar.gz" \
+    || log "[nfcore] ⚠ could not ship infra/nfcore-patches — pipelines run unpatched"
   ec2_ssh "NFCORE_SRC=${NFCORE_PIPELINES_HOST_DIR} bash -s" <<'REMOTE'
 set -e
 GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
@@ -570,6 +576,25 @@ for d in "$NFCORE_SRC"/*/; do
 done
 [ "$refetched" -gt 0 ] && echo "[nfcore] fetched $refetched host pipelines at their pinned versions from github.com/nf-core (container Nextflow ${NF_HAVE:-?})"
 [ -n "$refetch_failed" ] && echo "[nfcore] WARNING: not fetched (kept as is):$refetch_failed"
+# 1b) apply BioMate patches for the pinned version. .biomate_patches in the pipeline dir lists the
+#     sha256 of each applied patch; a fresh re-fetch has none, so its patches are re-applied.
+#     Patches are applied by `patch -p1 -N` to the host source only (the container is replaced below).
+PD=/tmp/nfcore_patches; rm -rf "$PD"; mkdir -p "$PD"
+[ -f /tmp/nfcore_patches.tar.gz ] && tar -xzf /tmp/nfcore_patches.tar.gz -C "$PD" 2>/dev/null
+for pf in "$PD"/nfcore-patches/*/*.patch; do
+  [ -f "$pf" ] || continue
+  n=$(basename "$(dirname "$pf")"); ver=$(basename "$pf" .patch); d="$NFCORE_SRC/$n"
+  [ -f "$d/main.nf" ] || continue
+  [ "$(mver "$d")" = "$ver" ] || { echo "[nfcore] patch $n/$ver.patch skipped: host has $(mver "$d")"; continue; }
+  sha=$(sha256sum "$pf" | cut -c1-16)
+  grep -q "^$sha " "$d/.biomate_patches" 2>/dev/null && continue
+  if patch -p1 -N -s -d "$d" < "$pf"; then
+    echo "$sha $n/$ver.patch" >> "$d/.biomate_patches"; echo "[nfcore] applied patch $n/$ver.patch"
+  else
+    echo "[nfcore] WARNING: patch $n/$ver.patch did not apply cleanly — left unpatched"
+  fi
+done
+pstate() { cat "$1/.biomate_patches" 2>/dev/null | cut -c1-16 | sort | tr -d '\n'; }
 host_n=$(ls "$NFCORE_SRC"/*/main.nf 2>/dev/null | grep -vcE "\.incomplete_|/\.fetch_")
 # 2) restore into the container every pipeline that is missing there OR incomplete there
 # complete container copies as "name@version" (an incomplete copy is not listed, so it is replaced). Versions are
@@ -577,7 +602,8 @@ host_n=$(ls "$NFCORE_SRC"/*/main.nf 2>/dev/null | grep -vcE "\.incomplete_|/\.fe
 container_state=""
 for n in $(docker exec "$GC" sh -c 'for d in /app/nf-core-workflows/*/; do [ -f "$d/main.nf" ] || continue; if grep -qE "includeConfig +.conf/base.config" "$d/nextflow.config" 2>/dev/null && [ ! -f "$d/conf/base.config" ]; then continue; fi; basename "$d"; done'); do
   cv=$(docker exec "$GC" cat "/app/nf-core-workflows/$n/nextflow.config" 2>/dev/null | { t=$(mktemp -d); cat > "$t/nextflow.config"; mver "$t"; rm -rf "$t"; })
-  container_state="$container_state $n@$cv"
+  cp_=$(docker exec "$GC" cat "/app/nf-core-workflows/$n/.biomate_patches" 2>/dev/null | cut -c1-16 | sort | tr -d '\n')
+  container_state="$container_state $n@$cv+$cp_"
 done
 present=" $container_state "   # complete pipelines, with their versions
 missing=""
@@ -585,7 +611,7 @@ for d in "$NFCORE_SRC"/*/; do
   n=$(basename "$d"); [ "$n" = modules ] && continue; [ -f "$d/main.nf" ] || continue
   case "$n" in *.incomplete_*|.fetch_*) continue ;; esac
   incomplete "$d" && continue   # do not copy a source that is still incomplete
-  case "$present" in *" $n@$(mver "$d") "*) ;; *) missing="$missing $n" ;; esac   # missing, incomplete or other version
+  case "$present" in *" $n@$(mver "$d")+$(pstate "$d") "*) ;; *) missing="$missing $n" ;; esac   # missing, incomplete, other version or other patches
 done
 if [ -z "$missing" ]; then echo "[nfcore] all $host_n real pipelines present in $GC"; exit 0; fi
 ST=/tmp/nfcore_pipelines_stage
@@ -675,8 +701,14 @@ deploy_backend_python() {
   git ls-files -- 'backend/experiments/**/*.py' 'backend/experiments/*.py' 2>/dev/null >> "$tmp_list" || true
   git ls-files --others --exclude-standard -- 'backend/experiments/**/*.py' 2>/dev/null >> "$tmp_list" || true
 
-  local count=$(sort -u "$tmp_list" | grep -c "\.py$" || true)
-  log "[backend] $count Python files to sync"
+  # Built-in SKILLS are Markdown (YAML frontmatter + body), not .py. Include them so a new or updated
+  # skill under backend/lib/galaxy/ai/skills/ actually deploys — the py-only tar filter below silently
+  # dropped them otherwise (caught 2026-11-06: biomate-universe.md never reached dev despite "Sync OK").
+  git ls-files -- 'backend/lib/galaxy/ai/skills/*.md' 2>/dev/null >> "$tmp_list" || true
+  git ls-files --others --exclude-standard -- 'backend/lib/galaxy/ai/skills/*.md' 2>/dev/null >> "$tmp_list" || true
+
+  local count=$(sort -u "$tmp_list" | grep -cE "\.(py|md)$" || true)
+  log "[backend] $count backend files to sync (Python + skill .md)"
 
   # Build tar of backend Python files using `git show HEAD:` instead of the
   # working tree. This prevents concurrent parallel sessions from deploying
@@ -685,7 +717,9 @@ deploy_backend_python() {
   local tmp_tar_dir="/tmp/biomate_backend_py_staging"
   rm -rf "$tmp_tar_dir" && mkdir -p "$tmp_tar_dir"
   while IFS= read -r rel_path; do
-    [[ "$rel_path" == *.py ]] || continue
+    # .py anywhere in the backend tree, plus built-in skill .md files (scoped to the skills dir so
+    # this never pulls in unrelated Markdown like docs).
+    [[ "$rel_path" == *.py || "$rel_path" == backend/lib/galaxy/ai/skills/*.md ]] || continue
     mkdir -p "$tmp_tar_dir/$(dirname "$rel_path")"
     # Export committed version; fall back to working tree for untracked files
     git show "HEAD:$rel_path" > "$tmp_tar_dir/$rel_path" 2>/dev/null \

@@ -120,10 +120,10 @@ CHROM_SIZES = {
 }
 
 # Parse region string: chrom:start-end
-m = re.match(r'^(chr[0-9XYMa-z]+):([0-9,]+)-([0-9,]+)$', region_str.replace(' ',''))
+m = re.match(r'^(chr[0-9XYMa-z]+):([0-9,]+)-([0-9,]+)\$', region_str.replace(' ',''))
 if not m:
     # Try without 'chr' prefix
-    m = re.match(r'^([0-9XYMa-z]+):([0-9,]+)-([0-9,]+)$', region_str.replace(' ',''))
+    m = re.match(r'^([0-9XYMa-z]+):([0-9,]+)-([0-9,]+)\$', region_str.replace(' ',''))
     if m:
         chrom = 'chr' + m.group(1)
     else:
@@ -403,7 +403,7 @@ print(f"[PREDICT] Track catalog: {len(ENFORMER_TRACK_CATALOG)} tracks defined", 
 
 # ── Prediction engine ─────────────────────────────────────────────────────
 def try_alphagenome_api(seq, track_catalog, api_key):
-    """Call AlphaGenome Cloud API (Google DeepMind 2025)."""
+    '''Call AlphaGenome Cloud API (Google DeepMind 2025).'''
     import urllib.request
     payload_dict = {
         "sequence": seq[:1_048_576],  # cap at 1Mb
@@ -422,7 +422,7 @@ def try_alphagenome_api(seq, track_catalog, api_key):
         return _json.loads(r.read())
 
 def try_enformer_hf(seq):
-    """Use open-source Enformer from HuggingFace."""
+    '''Use open-source Enformer from HuggingFace.'''
     import torch
     from transformers import AutoTokenizer, AutoModel
     # Enformer expects a (1, L) int tensor of tokenized DNA
@@ -440,7 +440,7 @@ def try_enformer_hf(seq):
     return human_tracks
 
 def compute_structured_predictions(seq, track_catalog):
-    """
+    '''
     Structured prediction using biologically-grounded sequence features.
 
     This implements a mechanistic approximation of genomic track signals
@@ -453,7 +453,7 @@ def compute_structured_predictions(seq, track_catalog):
 
     NOT equivalent to Enformer/AlphaGenome — returns mechanistic signal
     approximations useful for pipeline testing and structure verification.
-    """
+    '''
     import re as _re
 
     BIN_SIZE = 128
@@ -467,7 +467,7 @@ def compute_structured_predictions(seq, track_catalog):
         return (s.count('G') + s.count('C')) / max(1, len(s))
 
     def motif_score(s, motif_regex):
-        """Count overlapping motif matches in s."""
+        '''Count overlapping motif matches in s.'''
         return len(_re.findall(motif_regex, s, _re.IGNORECASE)) / max(1, len(s)) * 1000
 
     # CTCF motif consensus: CCGCGNGGNGGCAG (simplified)
@@ -930,7 +930,7 @@ model_note = pred_info.get('model_note', '')
 rows_html = ""
 for ts in top_tracks:
     bar_width = min(100, int(ts['max_signal'] / max(1, top_tracks[0]['max_signal']) * 100))
-    rows_html += f"""
+    rows_html += f'''
     <tr>
         <td>{ts['track_id']}</td>
         <td>{ts['cell_type']}</td>
@@ -940,13 +940,13 @@ for ts in top_tracks:
         <td>{ts['snr']:.2f}</td>
         <td>{ts['peak_position']:,}</td>
         <td><div class="bar" style="width:{bar_width}%"></div></td>
-    </tr>"""
+    </tr>'''
 
 ism_rows = ""
 for v in ism_variants[:20]:
     td = v.get('track_deltas', {})
     td_str = " | ".join(f"{k}={vv:+.3f}" for k, vv in td.items())
-    ism_rows += f"""
+    ism_rows += f'''
     <tr>
         <td>{v['variant_id']}</td>
         <td>{v['chrom']}:{v['pos']:,}</td>
@@ -954,12 +954,22 @@ for v in ism_variants[:20]:
         <td>{v['impact_score']:.3f}</td>
         <td>{v['most_affected_track']}</td>
         <td style="font-size:0.8em">{td_str}</td>
-    </tr>"""
+    </tr>'''
 
 track_breakdown = summary.get('track_type_breakdown', {})
 breakdown_html = " | ".join(f"<strong>{k}</strong>: {v}" for k, v in track_breakdown.items())
 
-html = f"""<!DOCTYPE html>
+variant_html = (f'''<h2>Variant Effect Scores (ISM — In-Silico Mutagenesis)</h2>
+<p>{len(ism_variants)} variants scored by comparing predicted tracks for ref vs alt sequences.</p>
+<table>
+  <thead>
+    <tr><th>Variant ID</th><th>Location</th><th>Change</th>
+        <th>Impact Score</th><th>Top Affected Track</th><th>Track Deltas</th></tr>
+  </thead>
+  <tbody>{ism_rows}</tbody>
+</table>''' if has_variants else '')
+
+html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1032,15 +1042,7 @@ html = f"""<!DOCTYPE html>
   <tbody>{rows_html}</tbody>
 </table>
 
-{f'''<h2>Variant Effect Scores (ISM — In-Silico Mutagenesis)</h2>
-<p>{len(ism_variants)} variants scored by comparing predicted tracks for ref vs alt sequences.</p>
-<table>
-  <thead>
-    <tr><th>Variant ID</th><th>Location</th><th>Change</th>
-        <th>Impact Score</th><th>Top Affected Track</th><th>Track Deltas</th></tr>
-  </thead>
-  <tbody>{ism_rows}</tbody>
-</table>''' if has_variants else ''}
+{variant_html}
 
 <div class="citation">
   <strong>References:</strong><br>
@@ -1051,7 +1053,7 @@ html = f"""<!DOCTYPE html>
 </div>
 
 </body>
-</html>"""
+</html>'''
 
 with open("report.html", 'w') as f:
     f.write(html)

@@ -1,4 +1,5 @@
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
+import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient } from './local-llm.js';
 import { cardWorkflowName } from './workflow-display-name';
 import { stagedInputPath } from './code-runner';
@@ -4598,6 +4599,26 @@ Rules:
         // non-fatal: skip all injections on error
       }
     }
+
+    // SHADOW (chat context harness, P0 — observability only, NO behavior change). `context` is now
+    // final (project context, LTM/memory, history, session datasets all resolved). Build the
+    // inspectable manifest from the top-level blocks and log one line, so we can SEE the real
+    // per-turn view scope on live traffic before migrating the assembly onto the harness. The blocks
+    // are already merged at this provider-independent point (ltm = A7–A10+session; project_context =
+    // A3–A5+skills), so sizes are per-block; channel-level detail comes when assembly is migrated in.
+    // See docs/20261106_CHAT_CONTEXT_HARNESS_SCOPE.md.
+    try {
+      const _prev = context.previousMessages ?? [];
+      const _histContent = _prev.map(m => m.content || '').join('\n');
+      const _sd = context.sessionDatasets ?? [];
+      const _mf = new ChatContextBuilder()
+        .add({ name: 'project_context', scope: 'project', content: context.projectContext || '' })
+        .add({ name: 'cross_session', scope: 'user', content: context.ltmContextBlock || '', wrap: { open: '<long_term_memory>', close: '</long_term_memory>' } })
+        .add({ name: 'session_datasets', scope: 'conversation', content: _sd.length ? _sd.map((d: any) => d.name).join(', ') : '' })
+        .add({ name: 'history', scope: 'conversation', content: _histContent })
+        .build();
+      log(`${manifestSummary(_mf)} msgs=${_prev.length} firstMsg=${isFirstMessage}`);
+    } catch { /* shadow must never affect a turn */ }
 
     // Step 1: Analyze user intent with NLU (supports all formats: single, multi, sequential)
     // The LLM recognizes bullet lists, numbered steps, prose pipelines, and all other formats.
@@ -9406,7 +9427,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       if (recoveredRows) {
         body += `Datasets from earlier sessions in this project (recovered after refresh — the user did NOT attach them this turn; ask once if you're unsure which they meant):\n${recoveredRows}\n\n`;
       }
-      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. For a selected project file, use its id only with read_file to preview it and use its s3_uri for Nextflow workflow parameters; do NOT pass a project-file id to run_code. If a selected project file has no s3_uri, its Batch staging failed: it may be previewed, but do NOT launch a workflow with it; report the staging failure plainly. For conversation datasets, use the id for read_file and run_code's input_datasets. For Nextflow workflow parameters from conversation datasets: use s3_uri when present; if absent, use the dataset id — BioMate will stage the local file to S3 at execute time. NEVER omit a file param just because s3_uri is absent. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
+      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. For a selected project file, use its id with read_file to preview it, OR with run_code's input_datasets to load the FULL file for computation (it is staged into the sandbox like any input; a file over the sandbox cap will not be staged and run_code will report that — run a workflow on very large files). Use its s3_uri for Nextflow workflow parameters. If a selected project file has no s3_uri, its Batch staging failed: it may be previewed or read in run_code, but do NOT launch a workflow with it; report the staging failure plainly. For conversation datasets, use the id for read_file and run_code's input_datasets. For Nextflow workflow parameters from conversation datasets: use s3_uri when present; if absent, use the dataset id — BioMate will stage the local file to S3 at execute time. NEVER omit a file param just because s3_uri is absent. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
       return body;
     })();
 
@@ -10563,7 +10584,34 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     const localIdFor = new Map<string, string>();
     for (const a of attached) if (a.galaxyId && a.datasetId) localIdFor.set(a.galaxyId, a.datasetId);
 
-    const downloadDataset = (id: string) => this._openDataset(id, galaxyKey, localIdFor.get(id));
+    // P1a — run_code can now compute on a SELECTED project file (a run output), not just preview it.
+    // Authorized keys come ONLY from this turn's server-resolved sessionDatasets (same rule as
+    // read_file); a bucket/key is never accepted from a tool argument. A 100 MB cap bounds what is
+    // pulled into the sandbox — a larger output must go through a workflow, not run_code.
+    const RUN_CODE_PROJECT_FILE_MAX_BYTES = 100 * 1024 * 1024;
+    const projectFileById = new Map<string, { s3_key: string; name: string }>();
+    for (const d of context?.sessionDatasets ?? []) {
+      if (d.projectFileId && d.projectFileId === d.id && d.s3_key) {
+        projectFileById.set(d.id, { s3_key: d.s3_key, name: d.name });
+      }
+    }
+
+    const downloadDataset = async (id: string): Promise<AsyncIterable<Buffer>> => {
+      const pf = projectFileById.get(id);
+      if (pf) {
+        const { s3Service } = await import('./s3-client');
+        const size = await s3Service.getFileSize(pf.s3_key).catch(() => 0);
+        if (size > RUN_CODE_PROJECT_FILE_MAX_BYTES) {
+          throw new Error(
+            `Project file "${pf.name}" is ${(size / 1_048_576).toFixed(0)} MB — over the ` +
+            `${RUN_CODE_PROJECT_FILE_MAX_BYTES / 1_048_576} MB run_code sandbox cap. Run a workflow on it instead of loading it into run_code.`,
+          );
+        }
+        const buf = await s3Service.readBuffer(pf.s3_key, RUN_CODE_PROJECT_FILE_MAX_BYTES);
+        return (async function* () { yield buf; })();
+      }
+      return this._openDataset(id, galaxyKey, localIdFor.get(id));
+    };
 
     const rawIds: string[] = input.input_datasets ?? [];
     const autoStaged = rawIds.length === 0 && attached.length > 0;
@@ -10572,6 +10620,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       ? attached.map(a => ({ id: stagingIdFor(a), filename: a.name }))
       // Resolve filenames: check local registry first, then Galaxy metadata
       : await Promise.all(rawIds.map(async (id: string) => {
+        // Project file selected this turn (authorized above) — use its real name for staging.
+        const pf = projectFileById.get(id);
+        if (pf) return { id, filename: pf.name };
+
         // Local registry always has the original filename
         const local = getUploadedFile(id);
         if (local?.name) return { id, filename: local.name };
@@ -11199,7 +11251,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       });
       return {
         userId,
-        note: 'For a failed run, report its recorded `error`. When it says no error was recorded, say so and point the user to the run\'s task log (workflow panel → failed step → log); do not guess causes.',
+        // Honest empty-result signal (P1b): when nothing matched, say so explicitly AND state the
+        // tool's real limits, so the model reports "no matching runs" instead of guessing — and does
+        // not imply it searched by finding/parameter value (it only matches a workflow-name substring
+        // over the 50 most recent runs).
+        note: formatted.length === 0
+          ? `No runs matched${wfFilter ? ` workflow_filter="${wfFilter}"` : ''}${statusFilter ? ` status_filter="${statusFilter}"` : ''}. list_history only matches a workflow-NAME substring over the 50 most recent runs — it cannot find a run by parameter value or by findings/output content. Tell the user plainly that nothing matched (do not invent a run); if they described a run by its data, ask for the workflow name or an approximate date.`
+          : 'For a failed run, report its recorded `error`. When it says no error was recorded, say so and point the user to the run\'s task log (workflow panel → failed step → log); do not guess causes.',
         count: formatted.length,
         filter: { workflow_filter: wfFilter || null, status_filter: statusFilter || null },
         runs: formatted,

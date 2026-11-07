@@ -60,6 +60,7 @@ import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
 import { createHash, randomBytes } from "crypto";
 import { authService } from "./auth-service";
+import { isNextflowRunNotFound } from "./nextflow-run-lost";
 import { emailService } from "./email-service";
 import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
 import { decideRunAccess } from "./run-access";
@@ -1295,10 +1296,36 @@ fs.mkdir(uploadDir, { recursive: true }).then(() => {
 // each sweep is capped so a backlog can't hammer Galaxy.
 async function reconcileStaleRuns(): Promise<void> {
   try {
-    const runs = await storage.getExecutionRuns(undefined, undefined, undefined, 200);
+    const runs = await storage.getNonTerminalExecutionRuns(500);
     const now = Date.now();
     const GRACE_MS = 15 * 60 * 1000;
-    const stale = runs.filter((r) => {
+    // A run still 'configuring'/'queued' with no Galaxy/Nextflow id never launched: the Node
+    // process died between creating the record and the launch call (a deploy restart — e.g.
+    // nf-core/scdownstream at the 502 of 2026-11-06 02:50). Nothing in Galaxy can reconcile it,
+    // so after a generous window (staging large inputs can be slow) close it out as failed.
+    const NEVER_LAUNCHED_MS = 6 * 60 * 60 * 1000;
+    const neverLaunched = runs.filter((r) => {
+      const ex = (r as any).execution || {};
+      if (!['configuring', 'queued'].includes(ex.status)) return false;
+      if (ex.nextflowRunId || ex.galaxyInvocationId) return false;
+      const t = new Date((r as any).createdAt || 0).getTime();
+      return t > 0 && now - t > NEVER_LAUNCHED_MS;
+    });
+    for (const r of neverLaunched) {
+      await storage.updateExecutionRun((r as any).id, {
+        execution: {
+          ...(r as any).execution,
+          status: 'failed',
+          completedAt: new Date(),
+          errorMessage: 'The launch was interrupted before the workflow started (server restart). Please run it again.',
+        },
+      }).catch(() => undefined);
+    }
+    if (neverLaunched.length) {
+      console.log(`[run-reaper] closed ${neverLaunched.length} never-launched run(s) as failed`);
+    }
+    const closed = new Set(neverLaunched.map((r) => (r as any).id));
+    const stale = runs.filter((r) => !closed.has((r as any).id)).filter((r) => {
       const st = (r as any).execution?.status;
       if (!['running', 'configuring', 'queued'].includes(st)) return false;
       const started = (r as any).execution?.startedAt || (r as any).createdAt;
@@ -1308,12 +1335,57 @@ async function reconcileStaleRuns(): Promise<void> {
     if (stale.length === 0) return;
     const port = parseInt(process.env.PORT || '5000', 10);
     const batch = stale.slice(0, 25);
+    // The status route requires auth. The reaper used to call it with no credentials, got
+    // 401 on every run and still logged "reconciled" — so a finished run nobody had open
+    // stayed 'running' (nf-core/cageseq: Galaxy done 16:01, record flipped 17:22, 2026-11-06).
+    // Call it AS the run's owner (the route's ownership checks still apply) and count real
+    // outcomes.
+    let ok = 0;
+    const failed: string[] = [];
     for (const r of batch) {
-      await fetch(`http://127.0.0.1:${port}/api/workflows/runs/${(r as any).id}/status`, {
-        signal: AbortSignal.timeout(12000),
-      }).catch(() => undefined);
+      const id = (r as any).id;
+      const ownerId = (r as any).userId;
+      try {
+        const owner = ownerId ? await authService.getUserById(ownerId) : null;
+        if (!owner) {
+          // The owner account is gone, so the user-scoped status route can't be called. Ask
+          // Galaxy directly; a run it no longer knows a day after start is closed as lost (same
+          // rule as the status route).
+          const ex = (r as any).execution || {};
+          const nfId = ex.nextflowRunId || ex.galaxyInvocationId;
+          const startedMs = new Date(ex.startedAt || (r as any).createdAt || 0).getTime();
+          if (nfId && startedMs > 0 && now - startedMs > 24 * 60 * 60 * 1000) {
+            try {
+              await galaxyAPIProxy.getNextflowStatus(nfId);
+            } catch (e: any) {
+              if (isNextflowRunNotFound(e)) {
+                await storage.updateExecutionRun(id, {
+                  execution: {
+                    ...ex, status: 'failed', completedAt: new Date(),
+                    errorMessage: 'The run record was lost on the execution backend (a server rebuild), so its final state is unknown. Please run it again.',
+                  },
+                }).catch(() => undefined);
+                ok += 1;
+                continue;
+              }
+            }
+          }
+          failed.push(`${id}:no-owner`);
+          continue;
+        }
+        const resp = await fetch(`http://127.0.0.1:${port}/api/workflows/runs/${id}/status`, {
+          headers: { Authorization: `Bearer ${authService.generateToken(owner as any)}` },
+          signal: AbortSignal.timeout(12000),
+        });
+        if (resp.ok) ok += 1; else failed.push(`${id}:${resp.status}`);
+      } catch (e: any) {
+        failed.push(`${id}:${e?.name || 'error'}`);
+      }
     }
-    console.log(`[run-reaper] reconciled ${batch.length}/${stale.length} stale non-terminal run(s)`);
+    console.log(
+      `[run-reaper] checked ${ok}/${batch.length} of ${stale.length} stale non-terminal run(s)` +
+        (failed.length ? `; failed: ${failed.slice(0, 10).join(', ')}` : ''),
+    );
   } catch (e: any) {
     console.warn('[run-reaper] sweep failed:', e?.message ?? e);
   }
@@ -10944,6 +11016,56 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Launch interactive tool
+  // ─── POST /api/projects/:id/files/:fileId/open-in ─────────────────────
+  // Open a PROJECT FILE in a Galaxy interactive tool (design spec 04 §4.3.1).
+  // Galaxy's Jupyter/RStudio ITs already exist and launch (see
+  // /api/interactive-tools/launch); a project file simply isn't a Galaxy HDA, so
+  // we stage it into the user's history (the uploadFromUrl pattern that
+  // /api/datasets/import-url uses) and launch the IT against the staged HDA.
+  // Tool by file type (R/rds → RStudio, else Jupyter) or an explicit body.tool.
+  // NOTE: the HDA is staged async by Galaxy; the IT job queues until its input is
+  // ready, so we launch immediately (polling-to-ok is a documented refinement).
+  app.post("/api/projects/:id/files/:fileId/open-in", authenticateToken, async (req, res) => {
+    try {
+      const uid = (req.user as any)?.id;
+      if (!uid) return res.status(401).json({ error: "Unauthorized" });
+      const { id, fileId } = req.params;
+      if (!(await _isOwnerOrMember(id, String(uid)))) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      const row = await pool.query(
+        `SELECT name, s3_key FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!row.rows[0]) return res.status(404).json({ error: "File not found" });
+      const { name, s3_key } = row.rows[0] as { name: string; s3_key: string };
+      const ext = (name.split(".").pop() || "").toLowerCase();
+      const reqTool = String(req.body?.tool || "").toLowerCase();
+      const toolId = (reqTool === "rstudio" || (!reqTool && /^(r|rds|rdata|rda)$/.test(ext)))
+        ? "interactive_tool_rstudio"
+        : "interactive_tool_jupyter_notebook";
+      const fileUrl = await s3Service.generatePresignedDownloadUrl(s3_key, 900);
+      let targetHistoryId = (req.session as any)?.galaxyHistoryId as string | undefined;
+      if (!targetHistoryId) {
+        const hs = await userProxy(req).getHistories().catch(() => [] as any[]);
+        targetHistoryId = (hs && hs[0]?.id) || await userProxy(req).createHistory("BioMate Interactive Session");
+        if (req.session) (req.session as any).galaxyHistoryId = targetHistoryId;
+      }
+      const hdaId = await userProxy(req).uploadFromUrl(fileUrl, targetHistoryId!, name);
+      const result = await galaxyAPIProxy.launchInteractiveTool(toolId, targetHistoryId!, {
+        input: { src: "hda", id: hdaId },
+      });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const entryPointUrl = rewriteInteractiveToolUrl(
+        result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`
+      );
+      res.json({ success: true, url: entryPointUrl, jobId: result.job_id, tool: toolId });
+    } catch (error: any) {
+      console.error("[open-in] project file → interactive tool failed:", error?.message ?? error);
+      res.status(500).json({ success: false, error: error?.message || "Open-in failed" });
+    }
+  });
+
   app.post("/api/interactive-tools/launch", optionalAuth, async (req, res) => {
     try {
       const { toolId, datasetIds, historyId } = req.body;
@@ -12889,6 +13011,27 @@ ${paramLines || '(none recorded)'}`;
           }
         } catch (statusError: any) {
           console.warn("[ExecutionRun] Failed to fetch Nextflow status:", statusError?.message || statusError);
+          // Galaxy keeps run state in its container (/tmp/nextflow_runs) and the run-state store;
+          // a container rebuild loses both. Galaxy then answers 404 "Run not found" forever and
+          // the run stayed 'running' for weeks (dev 2026-11-06: 51 such runs from Sept 28 - Oct 14).
+          // A live run is always known to Galaxy, so a 404 a day after start means the state is
+          // gone: close it as failed with an honest message.
+          const lostState =
+            isNextflowRunNotFound(statusError) &&
+            ['running', 'configuring', 'queued'].includes(String(run.execution?.status));
+          const startedMs = new Date(run.execution?.startedAt || (run as any).createdAt || 0).getTime();
+          if (lostState && startedMs > 0 && Date.now() - startedMs > 24 * 60 * 60 * 1000) {
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                status: 'failed',
+                completedAt: new Date(),
+                errorMessage:
+                  'The run record was lost on the execution backend (a server rebuild), so its final state is unknown. Please run it again.',
+              },
+            }) || run;
+            console.warn(`[ExecutionRun] lost-state → failed: ${run.id} — Galaxy has no record of Nextflow run ${run.execution?.nextflowRunId}`);
+          }
         }
       }
 

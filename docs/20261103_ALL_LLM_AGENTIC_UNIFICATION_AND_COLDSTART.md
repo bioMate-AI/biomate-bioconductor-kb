@@ -644,15 +644,51 @@ Validation results are therefore judged from each run's `workflow-trace.txt` plu
 | createpanelrefs | 26.04.6 | **pass** | completed successfully |
 | rnaseq (regression check) | 25.10.5 | analysis pass | 208/209 tasks; only MultiQC failed: `CannotPullContainerError … no space left on device` |
 | diaproteomics | 22.10.8 -dsl1 | infra | passed in run 4 (18 tasks); run 6 failed at `dia_spectral_library_search` with `[Errno 28] No space left on device` |
-| proteomicslfq | 22.10.8 -dsl1 | pipeline-internal | 44/45 tasks; the final ProteomicsLFQ (OpenMS) step exits 8 = INCOMPATIBLE_INPUT_DATA on its own test data, with only the test-profile params set. Raw-proteomics support is planned via nf-core/quantms. |
-| moleculardynamics | 25.10.5 | not runnable as released | dev snapshot: DSL1 `into` inside a DSL2 module (`pre_pos_clean_pdb.nf:27`) |
-| dualrnaseq | 22.10.8 -dsl1 | not runnable on Batch | calls `$baseDir/bin/*.sh` by absolute path, absent on the Batch host |
-| imcyto | 22.10.8 -dsl1 | not runnable on Batch | the CellProfiler image's ENTRYPOINT runs `cellprofiler` instead of the task script ("You must specify a pipeline filename") |
-| diseasemodulediscovery | 26.04.6 | pipeline-internal | BIOPAX_VALIDATOR: "cannot execute: required file not found" |
-| scdownstream | 26.04.6 | pipeline-internal | SoupX "No plausible marker genes" on its test data (dev snapshot) |
-| cageseq | 22.10.8 -dsl1 | upstream data | test data removed from nf-core/test-datasets (404) |
+| proteomicslfq | 22.10.8 -dsl1 | **pass** (run 15: 47/47) | Earlier failure reproduced in its container: "No proteins left after FDR filtering". BioMate had sent the pipeline's general defaults (comet, FDR 0.05), which override the test profile (msgf, FDR 1.0); fixed by `6da61ae01`. Old note: | 44/45 tasks; the final ProteomicsLFQ (OpenMS) step exits 8 = INCOMPATIBLE_INPUT_DATA on its own test data, with only the test-profile params set. Raw-proteomics support is planned via nf-core/quantms. |
+| moleculardynamics | 25.10.5 | not runnable as released (kept executable=0) | dev snapshot: DSL1 `into` inside a DSL2 module (`pre_pos_clean_pdb.nf:27`) |
+| dualrnaseq | 22.10.8 -dsl1 | **pass** (run 14: 59/59) after patch `infra/nfcore-patches/dualrnaseq/1.0.0.patch` | Was: | calls `$baseDir/bin/*.sh` by absolute path, absent on the Batch host |
+| imcyto | 22.10.8 -dsl1 | **pass** (run 12: 7/7) on compat image `cellprofiler-3.1.9-noentry` | Was: | the CellProfiler image's ENTRYPOINT runs `cellprofiler` instead of the task script ("You must specify a pipeline filename") |
+| diseasemodulediscovery | 26.04.6 | **pass** (run 13: 70/70, BIOPAX_VALIDATOR ok) on compat image `biopax-validator-6.0.0-SNAPSHOT-glibc` | Was: | BIOPAX_VALIDATOR: "cannot execute: required file not found" |
+| scdownstream | 26.04.6 | **pass** (run 17: 148/148) with `ambient_correction=decontx`, as nf-core's own CI (tests/default.nf.test) runs it | Was: | SoupX "No plausible marker genes" on its test data (dev snapshot) |
+| cageseq | 22.10.8 -dsl1 | **pass** | 26/26 tasks. Its test data moved upstream into `reference/v1/` and `testdata/v1/` (the old paths 404); the validator supplies the new URLs. |
 
-**Batch disk** is now the most frequent infrastructure failure: four runs (rnaseq MultiQC, diaproteomics, slamseq run 4, eager run 3) hit `no space left on device`. The launch template boots a 30 GB root volume, which every container image pull and task scratch shares. The owner chose to keep 30 GB; validation runs are therefore bounded to 2 concurrent pipelines.
+**Batch disk (fixed, `3ab18e793`, applied 2026-11-06 by the owner).** Batch autoscaling adds instances, never disk. Every host booted with the AMI's 30 GB root, shared by every pulled image and all task scratch, and stopped-task containers were kept ~3 h. `scripts/batch_lt_storage.sh` created launch template `lt-099eb24c4fe1b477e` **v17**: a 200 GB gp3 encrypted root, plus ECS cleanup (stopped tasks after 15 min, image pruning every 10 min). ce-v2, hpc-v1 and ce-spot are pinned to v17. New hosts were verified with 200 GB gp3 encrypted volumes.
+
+Run 8 re-ran the four disk-failed pipelines on v17, one at a time; all passed with zero failed tasks:
+
+| Pipeline | Tasks | Time |
+|---|---|---|
+| rnaseq | 209/209 | 27 min |
+| diaproteomics | 33/33 | 11 min |
+| slamseq | 67/67 | 13 min |
+| eager | 26/26 | 8 min |
+
+Open design question from the owner: "we should not run multiple workflows in one machine". Batch packs jobs by resources, not by workflow. The options (per-run compute environment, single VM per run, per-tenant compute environment) are pending the owner's reason (disk vs data isolation).
+
+### 16.6b Run-record state: stuck, lost and never-launched runs (2026-11-06)
+Validating cageseq exposed that BioMate's run record lags or never reaches a terminal state. Galaxy finished cageseq at 16:01; the record flipped at 17:22.
+
+| Commit | Defect | Fix |
+|---|---|---|
+| `6da61ae01` / `133a1f10d` / `4cad9185f` | Params that equal a pipeline default were re-sent and tripped the input-path check (cageseq `input='data/*R1.fastq.gz'` → 422). The moved filter then referenced `run_id` before it was assigned (UnboundLocalError on every nf-core launch that dropped a param). The filter also dropped `params.input_paths`, which cageseq's code reads. | Params are sent only when they differ from the pipeline's default, and the filter runs before the input check. Logs are labelled by pipeline. "Known" params include every `params.X` the pipeline's code or configs read. |
+| `49e071207` | The stale-run reaper self-called the auth-protected status route with no credentials. Every call got a 401, yet the log said "reconciled N/N". | It calls the route as the run's owner and counts real outcomes. |
+| `075b900df` | The reaper saw only the newest 200 runs (dev: 52 running + 16 configuring in the DB; it saw 7–9). Never-launched runs (the Node process died mid-launch at a deploy) could never resolve. | It queries non-terminal runs directly. Runs still configuring/queued with no Galaxy id 6 h after creation are closed as failed. |
+| `bcd4144d0` → `291580abd` | Galaxy answers 404 "Run not found" forever for runs lost in container rebuilds. The first check read `err.response.status`, but the proxy rethrows `{status_code, detail}`, so nothing closed. | A tested helper, `isNextflowRunNotFound`, matches both error shapes. A run Galaxy no longer knows, more than 24 h after start, is closed as failed with an honest message. |
+| `d94fc53b9` | 3 lost runs had no owner account, so the user-scoped route couldn't be called for them. | The reaper asks Galaxy directly and applies the same rule. |
+
+Result on dev: 16 never-launched runs and 51 lost runs (Sept 28 – Oct 14) were closed; **0 non-terminal runs remain**. Run 11, after all param fixes: mnaseseq 81/81 and rnaseq 209/209, "completed successfully". The validator now polls the UI's status route (`9a350a884`).
+
+### 16.6c Making the remaining pipelines run (2026-11-06)
+Two BioMate mechanisms were added. Both are reproducible, versioned, and cite their evidence; neither edits a pipeline by hand.
+
+- **Compat images** (`fba08bf57`). `galaxy/ai/nfcore_compat_images.py` lists the source image, the fix, the ECR tag, the processes that use it, and the evidence. `scripts/build_nfcore_compat_images.sh` builds and pushes them on the deploy-test host. The executor emits `withName` overrides for matching nf-core pipelines.
+  - *alpine-glibc*: Alpine/musl images cannot run Batch's host-mounted glibc AWS CLI ("cannot execute: required file not found"). gcompat is not enough (it lacks `dladdr1`). glibc 2.35 plus a glibc libz under `/usr/glibc-compat` runs the CLI while the image's musl programs keep working. These processes get `containerOptions=''`: the default host-libz `LD_LIBRARY_PATH` made musl Java load glibc libz and fail relocation.
+  - *clear-entrypoint*: images whose ENTRYPOINT is a tool (cellprofiler `["/init","cellprofiler"]`) run that tool instead of the task script.
+- **Pipeline patches** (`176dac7a5`). `infra/nfcore-patches/<pipeline>/<version>.patch` is applied by sync to the host source when the pinned version matches. `.biomate_patches` records the applied patch hashes, and the container copy is replaced when its patch set differs. First patch: dualrnaseq calls its bin scripts by name, not by `$workflow.projectDir/bin/` (absent on Batch). It is a mechanical rule covering 91 lines.
+- **Validator test-harness fixes**: cageseq's test data moved to `v1/` upstream; scdownstream uses `decontx` like nf-core's CI.
+- **Build host**: deploy-test was at 100% disk. With owner approval, `docker image prune -a` reclaimed 34 GB, removing only images no container used.
+
+**Result:** all test profiles pass except moleculardynamics (unreleased dev code, kept executable=0).
 
 ### 16.7 Open
 - **Batch root volume:** raise it (new launch-template version; the CE audit in sync pins CEs to the latest version), then re-run validation for the disk-failed set. This needs owner approval because it changes shared AWS infra and EBS cost.

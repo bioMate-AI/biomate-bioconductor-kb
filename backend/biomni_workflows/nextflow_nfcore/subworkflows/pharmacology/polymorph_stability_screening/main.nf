@@ -146,9 +146,9 @@ def smiles_heuristic_props(smi):
     aromatic_rings = n_arom
     # Functional groups
     has_carbonyl = '=O' in smi
-    has_amide = bool(_re.search(r'C\(=O\)N|NC\(=O\)', smi))
-    has_lactam = bool(_re.search(r'C1[^)]*C\(=O\)N[^)]*1', smi))
-    has_acid = bool(_re.search(r'C\(=O\)O|OC\(=O\)', smi))
+    has_amide = bool(_re.search(r'C\\(=O\\)N|NC\\(=O\\)', smi))
+    has_lactam = bool(_re.search(r'C1[^)]*C\\(=O\\)N[^)]*1', smi))
+    has_acid = bool(_re.search(r'C\\(=O\\)O|OC\\(=O\\)', smi))
     n_chiral_centers = smi.count('@')
     tpsa = hbd * 20 + hba * 10
     flex_index = rot / max(1.0, mw / 100.0)

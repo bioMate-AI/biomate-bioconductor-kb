@@ -18,10 +18,11 @@ import { normalizeQcEvents, qcActionTaken, qcResultLabel, type QcAssessment } fr
  * placeholders read as "this product is unfinished".
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, FileJson, FileText, FileCode, FileSpreadsheet, Image as ImageIcon, Dna, Database, File as FileIcon } from "lucide-react";
+import { ArrowDownToLine, FileJson, FileText, FileCode, FileSpreadsheet, Image as ImageIcon, Dna, Database, File as FileIcon, ExternalLink } from "lucide-react";
 import { tOr } from "@/lib/i18n";
 import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
+import { resolveViewer } from "@/components/viewers/inline-content-viewers";
 import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
 import { TrajectoryView, type TrajectoryRow, type TrajectoryKind } from "@/components/trajectory-view";
 import ReactMarkdown from "react-markdown";
@@ -59,6 +60,14 @@ export function isRunMetadataFile(f: { path?: string; name?: string }): boolean 
   if (/^(dag|report|timeline|trace)\.(html|htm|txt)$/.test(n)) return true;
   return false;
 }
+
+// Viewer kinds that represent a DATASET (data you'd open as an object with
+// versions/lineage/quality), vs a figure/log/report. Drives the "Open as
+// dataset" affordance on run outputs (spec 04 §4.5.3 — "outputs that are
+// themselves datasets open as dataset objects").
+const DATASET_VIEWER_KINDS = new Set([
+  "table", "vcf", "annotation", "sequence", "structure", "r-object", "singlecell", "density",
+]);
 
 // Inline text preview: fetch the file body and render in a <pre>. Truncates
 // very large files so the modal stays responsive (a Download link is always
@@ -1290,6 +1299,33 @@ function OutputsTab({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [savedProjectName, setSavedProjectName] = useState<string>("");
 
+  // Spec 04 §4.5.3/§4.7 — an output that is a dataset "opens as a dataset object"
+  // (into Files), rather than showing a second, separate dataset panel here. Run
+  // outputs are registered into project_files (source='run_output'); resolve each
+  // output's name → its project-file id so the card can deep-link to the ONE Files
+  // dataset object (/files?file=<id>). Keyed on the project the run is saved to.
+  const [datasetIdByName, setDatasetIdByName] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!savedProjectId || !runId) { setDatasetIdByName({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/projects/${encodeURIComponent(savedProjectId)}/files`, { credentials: "include" });
+        if (!r.ok || cancelled) return;
+        const j = await r.json();
+        const files = (Array.isArray(j) ? j : (j?.files || [])) as Array<{ id?: string; name?: string; source?: string; run_id?: string | null }>;
+        const map: Record<string, string> = {};
+        for (const f of files) {
+          if (!f?.id || !f?.name) continue;
+          // Prefer this run's own outputs; fall back to any run_output of the same name.
+          if (f.source === "run_output" && (f.run_id === runId || !map[f.name])) map[f.name] = f.id;
+        }
+        if (!cancelled) setDatasetIdByName(map);
+      } catch { /* best-effort — the link just won't show */ }
+    })();
+    return () => { cancelled = true; };
+  }, [savedProjectId, runId]);
+
   // Fetch project list lazily when the picker is opened.
   useEffect(() => {
     if (!showProjectPicker || projects.length > 0) return;
@@ -1575,6 +1611,10 @@ function OutputsTab({
           const collapsed = collapsedCards.has(key);
           const sizeLabel = humanSize(f.size);
           const fStepLabel = stepLabel(f.step);
+          // Dataset-typed output that is registered as a project file → offer to
+          // open the ONE Files dataset object (not a second panel here).
+          const datasetId = datasetIdByName[f.name];
+          const isDatasetOutput = !!datasetId && DATASET_VIEWER_KINDS.has(resolveViewer(f.ext || ""));
           // §3.1 — group outputs under a per-producing-step header (sorted by step
           // so same-step files are contiguous; header shown on each step change).
           const showStepHeader = i === 0 || String(stepLabel(arr[i - 1].step) || '') !== String(fStepLabel || '');
@@ -1615,6 +1655,14 @@ function OutputsTab({
                   aria-label={tOr('afterrun.download', 'Download')}
                   style={{ color: 'var(--accent, oklch(0.55 0.18 260))', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none', fontSize: 11 }}
                 ><ArrowDownToLine size={12} />{tOr('afterrun.dl', 'dl')}</a>
+                {isDatasetOutput && (
+                  <a
+                    href={`/files?file=${encodeURIComponent(datasetId)}`}
+                    data-testid="output-open-as-dataset"
+                    title={tOr('afterrun.open_as_dataset_title', 'Open the dataset object — preview, versions and lineage — in Files')}
+                    style={{ color: 'var(--accent, oklch(0.55 0.18 260))', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none', fontSize: 11 }}
+                  >{tOr('afterrun.open_as_dataset', 'Open as dataset')} <ExternalLink size={11} /></a>
+                )}
               </div>
 
               {/* Inline preview (lazy-mounted) ONLY for light previewable files.

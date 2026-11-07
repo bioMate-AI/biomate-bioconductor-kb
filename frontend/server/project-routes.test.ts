@@ -29,6 +29,42 @@ describe("project-routes — contract", () => {
     expect(SRC.match(/app\.get\("\/api\/projects\/:id\/sessions"/)?.length).toBe(1);
   });
 
+  it("project-scoped URL import — authed, SSRF-validated, owner/editor, size-capped, records source='url'", () => {
+    // Paste-a-URL ingest (spec 04 §4.6): fetches into the project's S3 prefix and
+    // inserts a project_files row so it shows in the hub tree (unlike the
+    // Galaxy-session /api/datasets/import-url).
+    expect(SRC.match(/app\.post\("\/api\/projects\/:id\/files\/import-url",\s*authenticateToken/)?.length).toBe(1);
+    expect(SRC.includes("validateRemoteFileUrl")).toBe(true);            // SSRF-safe URL check
+    expect(/import-url[\s\S]{0,1200}_isOwnerOrEditor/.test(SRC)).toBe(true); // owner/editor gate
+    expect(SRC.includes("512 * 1024 * 1024")).toBe(true);               // 512 MiB cap
+    expect(/VALUES\s*\([^)]*'url'[^)]*\)/.test(SRC)).toBe(true);         // inserts source='url'
+  });
+
+  it("content-hash dedup (§4.5.1) — column added idempotently, computed + checked at ingest", () => {
+    expect(SRC.includes("ADD COLUMN IF NOT EXISTS content_hash")).toBe(true);     // idempotent migration
+    expect(SRC.includes('createHash("sha256")')).toBe(true);                       // hash at ingest
+    expect((SRC.match(/_findProjectFileByHash\(/g) ?? []).length).toBeGreaterThanOrEqual(2); // upload + url ingest
+    expect(SRC.includes("deduplicated: true")).toBe(true);                          // dup → link, don't re-insert
+    expect(/INSERT INTO project_files[\s\S]{0,160}content_hash/.test(SRC)).toBe(true); // stored on insert
+    expect(SRC.includes("input_context, content_hash, created_at")).toBe(true);     // returned by GET /files
+  });
+
+  it("app-level content versioning (§4.4) — table, version-on-reupload, list + restore endpoints", () => {
+    // No S3 bucket-versioning: each version is its own object + a project_file_versions row.
+    expect(SRC.includes("CREATE TABLE IF NOT EXISTS project_file_versions")).toBe(true);
+    expect(SRC.includes("ADD COLUMN IF NOT EXISTS version_no")).toBe(true);
+    // re-upload same name + different content → new version (append-only), never overwrite
+    expect(/_findProjectFileByName[\s\S]{0,900}_archiveCurrentAsVersion[\s\S]{0,400}version_no = version_no \+ 1/.test(SRC)).toBe(true);
+    expect(SRC.includes("versioned: true")).toBe(true);
+    // list + restore endpoints, authed
+    expect(/app\.get\("\/api\/projects\/:id\/files\/:fileId\/versions",\s*authenticateToken/.test(SRC)).toBe(true);
+    expect(/app\.post\("\/api\/projects\/:id\/files\/:fileId\/versions\/:versionNo\/restore",\s*authenticateToken/.test(SRC)).toBe(true);
+    // append-only in BOTH paths (reupload + restore): archive current, then bump version_no.
+    expect((SRC.match(/_archiveCurrentAsVersion\(/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect((SRC.match(/version_no = version_no \+ 1/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect(/restore[\s\S]{0,900}project_file_versions WHERE file_id/.test(SRC)).toBe(true); // reads the target version's bytes
+  });
+
   it("every endpoint goes through authenticateToken", () => {
     // The regex only matches handlers whose path is immediately followed by
     // authenticateToken, so this count IS the authed-endpoint count. It must
@@ -36,7 +72,7 @@ describe("project-routes — contract", () => {
     const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
     const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
     expect(authed.length).toBe(total.length);
-    expect(authed.length).toBe(26); // grows as endpoints are added (plans list, notes-list GET/POST, owner-transfer, activity ledger, …)
+    expect(authed.length).toBe(29); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {

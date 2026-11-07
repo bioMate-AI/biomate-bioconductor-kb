@@ -1,0 +1,818 @@
+nf-core/dualrnaseq 1.0.0 — call bin/ scripts by name.
+
+AWS Batch has no shared filesystem: `$workflow.projectDir/bin/x.sh` points at the Galaxy
+container's path, absent on the Batch host ("replace_attribute_gff.sh: No such file or directory",
+test profile 2026-11-06). Nextflow uploads bin/ with the run and puts it on each task's PATH, so
+the scripts are called by name; `python|Rscript|bash <path>` becomes a direct call (every bin script
+is executable with a shebang). Mechanical rule over main.nf — all three forms
+($workflow.projectDir/bin/, ${…}/bin/, !{…}/bin/); applied by scripts/sync_to_dev.sh.
+
+--- a/main.nf
++++ b/main.nf
+@@ -771,7 +771,7 @@
+ 
+ 	    shell:
+ 	    '''
+-	    python !{workflow.projectDir}/bin/check_replicates.py -s !{sample_name} 2>&1
++	    check_replicates.py -s !{sample_name} 2>&1
+ 	    '''
+ 	}
+ }
+@@ -1156,7 +1156,7 @@
+ 	    script:
+ 	    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_quant_feature.gff3")
+ 	    """
+-	    $workflow.projectDir/bin/replace_feature_gff.sh $gff ${outfile_name} $features
++	    replace_feature_gff.sh $gff ${outfile_name} $features
+ 	    """
+ 	}
+ 
+@@ -1182,7 +1182,7 @@
+ 	    script:
+ 	    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_quant_feature.gff3")
+ 	    """
+-	    $workflow.projectDir/bin/replace_feature_gff.sh $gff ${outfile_name} $features
++	    replace_feature_gff.sh $gff ${outfile_name} $features
+ 	    """
+ 	}
+ 
+@@ -1210,7 +1210,7 @@
+ 	    script:
+ 	    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_new_attribute.gff3")
+ 	    """
+-	    $workflow.projectDir/bin/replace_attribute_gff.sh $gff ${outfile_name} $host_attribute $pathogen_attribute
++	    replace_attribute_gff.sh $gff ${outfile_name} $host_attribute $pathogen_attribute
+ 	    """
+ 	}
+ 
+@@ -1264,7 +1264,7 @@
+ 	    script:
+ 	    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"")
+ 	    """
+-	    python $workflow.projectDir/bin/extract_annotations_from_gff.py -gff $gff -f $features -a $pathogen_attribute -org pathogen -q_tool htseq -o ${outfile_name}
++	    extract_annotations_from_gff.py -gff $gff -f $features -a $pathogen_attribute -org pathogen -q_tool htseq -o ${outfile_name}
+ 	    """
+ 	}
+ 
+@@ -1293,7 +1293,7 @@
+ 	    script:
+ 	    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"")
+ 	    """
+-	    python $workflow.projectDir/bin/extract_annotations_from_gff.py -gff $gff -f $features -a $host_attribute -org host -q_tool htseq -o ${outfile_name}
++	    extract_annotations_from_gff.py -gff $gff -f $features -a $host_attribute -org host -q_tool htseq -o ${outfile_name}
+ 	    """
+ 	}
+ }
+@@ -1325,7 +1325,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/extract_reference_names_from_fasta_files.sh reference_host_names.txt $host_fa
++		    extract_reference_names_from_fasta_files.sh reference_host_names.txt $host_fa
+ 		    """
+ 		}
+ 
+@@ -1352,7 +1352,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/extract_reference_names_from_fasta_files.sh reference_pathogen_names.txt $pathogen_fa
++		    extract_reference_names_from_fasta_files.sh reference_pathogen_names.txt $pathogen_fa
+ 		    """
+ 		}
+ 	}
+@@ -1384,7 +1384,7 @@
+ 	    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_parent_attribute.gff3")
+ 
+ 	    """
+-	    $workflow.projectDir/bin/replace_attribute_gff.sh $gff ${outfile_name} parent Parent
++	    replace_attribute_gff.sh $gff ${outfile_name} parent Parent
+ 	    """
+ 	}
+ 
+@@ -1414,7 +1414,7 @@
+ 		    script:
+ 		    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_parent_attribute.gff3")
+ 		    """
+-		    $workflow.projectDir/bin/replace_attribute_gff.sh $gff ${outfile_name} parent $host_attribute
++		    replace_attribute_gff.sh $gff ${outfile_name} parent $host_attribute
+ 		    """
+ 		}
+ 
+@@ -1469,7 +1469,7 @@
+ 	    script:
+ 	    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_quant_feature_salmon_alignment.gff3")
+ 	    """
+-	    $workflow.projectDir/bin/replace_feature_gff.sh $gff ${outfile_name} $features
++	    replace_feature_gff.sh $gff ${outfile_name} $features
+ 	    """
+ 	}
+ 
+@@ -1497,7 +1497,7 @@
+ 	    script:
+ 	    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_parent_attribute.gff3")
+ 	    """
+-	    $workflow.projectDir/bin/replace_attribute_gff.sh $gff ${outfile_name} parent $pathogen_attribute
++	    replace_attribute_gff.sh $gff ${outfile_name} parent $pathogen_attribute
+ 	    """
+ 	}
+ 
+@@ -1526,7 +1526,7 @@
+ 	    script:
+ 	    outfile_name = "pathogen_gff_annotations"
+ 	    """
+-	    python $workflow.projectDir/bin/extract_annotations_from_gff.py -gff $gff -f $features -a parent -org pathogen -q_tool salmon -o ${outfile_name}
++	    extract_annotations_from_gff.py -gff $gff -f $features -a parent -org pathogen -q_tool salmon -o ${outfile_name}
+ 	    """
+ 	}
+ 
+@@ -1560,7 +1560,7 @@
+ 	    script:
+ 	    outfile_name = "host_gff_annotations"
+ 	    """
+-	    python $workflow.projectDir/bin/extract_annotations_from_gff.py -gff $gff -f quant -a parent -org host -q_tool salmon -o ${outfile_name}
++	    extract_annotations_from_gff.py -gff $gff -f quant -a parent -org host -q_tool salmon -o ${outfile_name}
+ 	    """
+ 	}
+ 
+@@ -1625,7 +1625,7 @@
+ 			    script:
+ 			    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_transcriptome.fasta")
+ 			    """
+-			    python $workflow.projectDir/bin/gff_to_fasta_transcriptome.py -fasta $host_fa -gff $gff  -f $features -a $attribute -o $outfile_name
++			    gff_to_fasta_transcriptome.py -fasta $host_fa -gff $gff  -f $features -a $attribute -o $outfile_name
+ 			    """
+ 			}
+ 			
+@@ -1700,7 +1700,7 @@
+ 		    script:
+ 		    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_transcriptome.fasta")
+ 		    """
+-		    python $workflow.projectDir/bin/gff_to_fasta_transcriptome.py -fasta $pathogen_fa -gff $gff -f $features -a $attribute  -o $outfile_name
++		    gff_to_fasta_transcriptome.py -fasta $pathogen_fa -gff $gff -f $features -a $attribute  -o $outfile_name
+ 		    """
+ 		}
+ 	}
+@@ -1758,7 +1758,7 @@
+ 	    script:
+ 	    outfile_name = gff[0].toString().replaceAll(/.gff3|.gff/,"_quant_feature_salmon_alignment.gff3")
+ 	    """
+-	    $workflow.projectDir/bin/replace_feature_gff.sh $gff ${outfile_name} $features
++	    replace_feature_gff.sh $gff ${outfile_name} $features
+ 	    """
+ 	}
+ 
+@@ -1997,7 +1997,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/count_total_reads.sh $fastq >> total_raw_reads_fastq.tsv
++	    count_total_reads.sh $fastq >> total_raw_reads_fastq.tsv
+ 	    """
+ 	}
+ 
+@@ -2023,7 +2023,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/collect_total_raw_read_pairs.py -i $tsv
++		    collect_total_raw_read_pairs.py -i $tsv
+ 		    """
+ 		}
+ 	}else{
+@@ -2169,7 +2169,7 @@
+ 
+             script:
+             """
+-            $workflow.projectDir/bin/split_quant_tables_salmon.sh $transcriptome_pathogen $transcriptome_host  salmon/*/quant.sf "quant.sf"
++            split_quant_tables_salmon.sh $transcriptome_pathogen $transcriptome_host  salmon/*/quant.sf "quant.sf"
+             """
+         }
+ 
+@@ -2201,7 +2201,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/salmon_extract_ambig_uniq_transcripts_genes.R salmon/*/quant.sf salmon/*/aux_info/ambig_info.tsv $sample_name $annotations
++		    salmon_extract_ambig_uniq_transcripts_genes.R salmon/*/quant.sf salmon/*/aux_info/ambig_info.tsv $sample_name $annotations
+ 		    """
+ 		}
+ 
+@@ -2223,7 +2223,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/salmon_host_comb_ambig_uniq.R salmon/*/aux_info/*_host_quant_ambig_uniq.sf
++		    salmon_host_comb_ambig_uniq.R salmon/*/aux_info/*_host_quant_ambig_uniq.sf
+ 		    """
+ 		}
+ 
+@@ -2245,7 +2245,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/salmon_pathogen_comb_ambig_uniq.R salmon/*/aux_info/*_pathogen_quant_ambig_uniq.sf
++		    salmon_pathogen_comb_ambig_uniq.R salmon/*/aux_info/*_pathogen_quant_ambig_uniq.sf
+ 		    """
+ 		}
+ 	}
+@@ -2272,7 +2272,7 @@
+ 
+ 	    script:
+ 	    """
+-	    python $workflow.projectDir/bin/collect_quantification_data.py -i $input_quantification -q salmon -a $gene_attribute -org both
++	    collect_quantification_data.py -i $input_quantification -q salmon -a $gene_attribute -org both
+ 	    """
+ 	}
+ 
+@@ -2308,7 +2308,7 @@
+ 
+             script:
+             """
+-            $workflow.projectDir/bin/split_quant_tables_salmon.sh $transcriptome_pathogen $transcriptome_host $quant_table "quant_salmon.tsv"
++            split_quant_tables_salmon.sh $transcriptome_pathogen $transcriptome_host $quant_table "quant_salmon.tsv"
+             pathonen_tab=\$(if [ \$(cat pathogen_quant_salmon.tsv | wc -l) -gt 1  ]; then echo "true"; else echo "false"; fi)
+             host_tab=\$(if [ \$(cat host_quant_salmon.tsv | wc -l) -gt 1  ]; then echo "true"; else echo "false"; fi)
+             """
+@@ -2336,7 +2336,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org pathogen
++	    combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org pathogen
+ 	    """
+ 	}
+ 
+@@ -2362,7 +2362,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org host
++	    combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org host
+ 	    """
+ 	}
+ 
+@@ -2388,7 +2388,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/tximport.R salmon $annotations $sample_name
++	    tximport.R salmon $annotations $sample_name
+ 	    """
+ 	}
+ 
+@@ -2412,7 +2412,7 @@
+ 
+ 	    script:
+ 	    """
+-	    python $workflow.projectDir/bin/collect_quantification_data.py -i $input_quantification -q salmon -a gene_id -org host_gene_level
++	    collect_quantification_data.py -i $input_quantification -q salmon -a gene_id -org host_gene_level
+ 	    """
+ 	}
+ 
+@@ -2437,7 +2437,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/combine_annotations_salmon_gene_level.py -q $quantification_table -annotations $annotation_table -a gene_id -org host
++	    combine_annotations_salmon_gene_level.py -q $quantification_table -annotations $annotation_table -a gene_id -org host
+ 	    """
+ 	}
+ 
+@@ -2471,7 +2471,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/scatter_plots.py -q $quant_table -a $attribute -org pathogen 
++		    scatter_plots.py -q $quant_table -a $attribute -org pathogen 
+ 		    """
+ 		}
+ 
+@@ -2502,7 +2502,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/scatter_plots.py -q $quant_table -a $attribute -org host
++		    scatter_plots.py -q $quant_table -a $attribute -org host
+ 		    """
+ 		}
+ 
+@@ -2526,7 +2526,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/extract_processed_reads.sh salmon/*/aux_info/meta_info.json $sample_name salmon
++		    extract_processed_reads.sh salmon/*/aux_info/meta_info.json $sample_name salmon
+ 		    """
+ 		}
+ 
+@@ -2578,7 +2578,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/mapping_stats.py -q_p $quant_table_pathogen -q_h $quant_table_host -total_processed $total_processed_reads -total_raw $total_raw_reads -a $attribute -t salmon -o salmon_host_pathogen_total_reads.tsv
++		    mapping_stats.py -q_p $quant_table_pathogen -q_h $quant_table_host -total_processed $total_processed_reads -total_raw $total_raw_reads -a $attribute -t salmon -o salmon_host_pathogen_total_reads.tsv
+ 		    """
+ 		}
+ 
+@@ -2602,7 +2602,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_mapping_statistics_salmon.py -i $stats
++		    plot_mapping_statistics_salmon.py -i $stats
+ 		    """
+ 		}
+ 
+@@ -2633,7 +2633,7 @@
+ 
+ 		    shell:
+ 		    '''
+-		    python !{workflow.projectDir}/bin/RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -q_tool salmon -org pathogen 2>&1
++		    RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -q_tool salmon -org pathogen 2>&1
+ 		    '''
+ 		}
+ 
+@@ -2664,7 +2664,7 @@
+ 
+ 		    shell:
+ 		    '''
+-		    python !{workflow.projectDir}/bin/RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -rna !{rna_classes_to_replace} -q_tool salmon -org host 2>&1
++		    RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -rna !{rna_classes_to_replace} -q_tool salmon -org host 2>&1
+ 		    '''
+ 		}
+ 
+@@ -2692,7 +2692,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_each.py -i $stats_table
++		    plot_RNA_class_stats_each.py -i $stats_table
+ 		    """
+ 		}
+ 
+@@ -2720,7 +2720,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_combined.py -i $stats_table -org pathogen
++		    plot_RNA_class_stats_combined.py -i $stats_table -org pathogen
+ 		    """
+ 		}
+ 
+@@ -2747,7 +2747,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_each.py -i $stats_table
++		    plot_RNA_class_stats_each.py -i $stats_table
+ 		    """
+ 		}
+ 
+@@ -2774,7 +2774,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_combined.py -i $stats_table -org host
++		    plot_RNA_class_stats_combined.py -i $stats_table -org host
+ 		    """
+ 		}
+ 	}
+@@ -2928,7 +2928,7 @@
+ 
+             script:
+             """
+-            $workflow.projectDir/bin/split_quant_tables_salmon.sh $transcriptome_pathogen $transcriptome_host salmon/*/quant.sf "quant.sf"
++            split_quant_tables_salmon.sh $transcriptome_pathogen $transcriptome_host salmon/*/quant.sf "quant.sf"
+             """
+ 	}
+ 
+@@ -2961,7 +2961,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/salmon_extract_ambig_uniq_transcripts_genes.R salmon/*/quant.sf salmon/*/aux_info/ambig_info.tsv $sample_name $annotations
++		    salmon_extract_ambig_uniq_transcripts_genes.R salmon/*/quant.sf salmon/*/aux_info/ambig_info.tsv $sample_name $annotations
+ 		    """
+ 		}
+ 
+@@ -2983,7 +2983,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/salmon_host_comb_ambig_uniq.R salmon/*/aux_info/*_host_quant_ambig_uniq.sf
++		    salmon_host_comb_ambig_uniq.R salmon/*/aux_info/*_host_quant_ambig_uniq.sf
+ 		    """
+ 		}
+ 
+@@ -3005,7 +3005,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/salmon_pathogen_comb_ambig_uniq.R salmon/*/aux_info/*_pathogen_quant_ambig_uniq.sf
++		    salmon_pathogen_comb_ambig_uniq.R salmon/*/aux_info/*_pathogen_quant_ambig_uniq.sf
+ 		    """
+ 		}
+ 	    }
+@@ -3031,7 +3031,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/tximport.R salmon $annotations $sample_name
++	    tximport.R salmon $annotations $sample_name
+ 	    """
+ 	}
+ 
+@@ -3055,7 +3055,7 @@
+ 
+ 	    script:
+ 	    """
+-	    python $workflow.projectDir/bin/collect_quantification_data.py -i $input_quantification -q salmon -a gene_id -org host_gene_level
++	    collect_quantification_data.py -i $input_quantification -q salmon -a gene_id -org host_gene_level
+ 	    """
+ 	}
+ 
+@@ -3080,7 +3080,7 @@
+ 
+ 	    script:
+ 	    """
+-	    python $workflow.projectDir/bin/collect_quantification_data.py -i $input_quantification -q salmon -a $gene_attribute -org both
++	    collect_quantification_data.py -i $input_quantification -q salmon -a $gene_attribute -org both
+ 	    """
+ 	}
+ 
+@@ -3115,7 +3115,7 @@
+ 
+             script:
+             """
+-            $workflow.projectDir/bin/split_quant_tables_salmon.sh $transcriptome_pathogen $transcriptome_host $quant_table "quant_salmon.tsv"
++            split_quant_tables_salmon.sh $transcriptome_pathogen $transcriptome_host $quant_table "quant_salmon.tsv"
+             pathonen_tab=\$(if [ \$(cat pathogen_quant_salmon.tsv | wc -l) -gt 1  ]; then echo "true"; else echo "false"; fi)
+             host_tab=\$(if [ \$(cat host_quant_salmon.tsv | wc -l) -gt 1  ]; then echo "true"; else echo "false"; fi)
+             """
+@@ -3143,7 +3143,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org pathogen
++	    combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org pathogen
+ 	    """
+ 	}
+ 
+@@ -3168,7 +3168,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org host
++	    combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org host
+ 	    """
+ 	}
+ 
+@@ -3192,7 +3192,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/combine_annotations_salmon_gene_level.py -q $quantification_table -annotations $annotation_table -a gene_id -org host
++	    combine_annotations_salmon_gene_level.py -q $quantification_table -annotations $annotation_table -a gene_id -org host
+ 	    """
+ 	}
+ 
+@@ -3218,7 +3218,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/extract_processed_reads.sh $Log_final_out $sample_name star
++		    extract_processed_reads.sh $Log_final_out $sample_name star
+ 		    """
+ 		}
+ 
+@@ -3272,7 +3272,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/scatter_plots.py -q $quant_table -a $attribute -org pathogen
++		    scatter_plots.py -q $quant_table -a $attribute -org pathogen
+ 		    """
+ 		}
+ 
+@@ -3303,7 +3303,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/scatter_plots.py -q $quant_table -a $attribute -org host 
++		    scatter_plots.py -q $quant_table -a $attribute -org host 
+ 		    """
+ 		}
+ 
+@@ -3327,7 +3327,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/extract_processed_reads.sh salmon_alignment_mode/*/aux_info/meta_info.json $sample_name salmon_alignment
++		    extract_processed_reads.sh salmon_alignment_mode/*/aux_info/meta_info.json $sample_name salmon_alignment
+ 		    """
+ 		}
+ 
+@@ -3379,7 +3379,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/mapping_stats.py -q_p $quant_table_pathogen -q_h $quant_table_host -total_processed $total_processed_reads -total_raw $total_raw_reads -a $attribute --star_processed $total_processed_reads_star -t salmon_alignment -o salmon_alignment_host_pathogen_total_reads.tsv
++		    mapping_stats.py -q_p $quant_table_pathogen -q_h $quant_table_host -total_processed $total_processed_reads -total_raw $total_raw_reads -a $attribute --star_processed $total_processed_reads_star -t salmon_alignment -o salmon_alignment_host_pathogen_total_reads.tsv
+ 		    """
+ 		}
+ 
+@@ -3405,7 +3405,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_mapping_statistics_salmon_alignment.py -i $stats
++		    plot_mapping_statistics_salmon_alignment.py -i $stats
+ 		    """
+ 		}
+ 
+@@ -3434,7 +3434,7 @@
+ 
+ 		    shell:
+ 		    '''
+-		    python !{workflow.projectDir}/bin/RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -q_tool salmon -org pathogen 2>&1
++		    RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -q_tool salmon -org pathogen 2>&1
+ 		    '''
+ 		}
+ 
+@@ -3464,7 +3464,7 @@
+ 
+ 		    shell:
+ 		    '''
+-		    python !{workflow.projectDir}/bin/RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -rna !{rna_classes_to_replace} -q_tool salmon -org host 2>&1
++		    RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -rna !{rna_classes_to_replace} -q_tool salmon -org host 2>&1
+ 		    '''
+ 		}
+ 
+@@ -3492,7 +3492,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_each.py -i $stats_table
++		    plot_RNA_class_stats_each.py -i $stats_table
+ 		    """
+ 		}
+ 
+@@ -3519,7 +3519,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_each.py -i $stats_table
++		    plot_RNA_class_stats_each.py -i $stats_table
+ 		    """
+ 		}
+ 
+@@ -3547,7 +3547,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_combined.py -i $stats_table -org pathogen
++		    plot_RNA_class_stats_combined.py -i $stats_table -org pathogen
+ 		    """
+ 		}
+ 
+@@ -3574,7 +3574,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_combined.py -i $stats_table -org host
++		    plot_RNA_class_stats_combined.py -i $stats_table -org host
+ 		    """
+ 		}
+ 	}
+@@ -3706,11 +3706,11 @@
+ 		    
+ 		    if (params.single_end){
+ 		    	"""
+-		    	$workflow.projectDir/bin/remove_crossmapped_reads_BAM.sh $alignment $workflow.projectDir/bin $host_reference $pathogen_reference $cross_mapped_reads $bam_file_without_crossmapped
++		    	remove_crossmapped_reads_BAM.sh $alignment $workflow.projectDir/bin $host_reference $pathogen_reference $cross_mapped_reads $bam_file_without_crossmapped
+ 		    	"""
+ 		    } else {
+ 		    	"""
+-		    	$workflow.projectDir/bin/remove_crossmapped_read_pairs_BAM.sh $alignment $workflow.projectDir/bin $host_reference $pathogen_reference $cross_mapped_reads $bam_file_without_crossmapped
++		    	remove_crossmapped_read_pairs_BAM.sh $alignment $workflow.projectDir/bin $host_reference $pathogen_reference $cross_mapped_reads $bam_file_without_crossmapped
+ 		    	"""
+ 		    }
+ 		}
+@@ -3735,7 +3735,7 @@
+ 
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/extract_processed_reads.sh $Log_final_out $sample_name star
++		    extract_processed_reads.sh $Log_final_out $sample_name star
+ 		    """
+ 		}
+ 
+@@ -3788,11 +3788,11 @@
+ 		    name = sample_name + '_uniquely_mapped.txt'
+ 		    if (params.single_end){
+ 		    '''
+-		    !{workflow.projectDir}/bin/count_uniquely_mapped_reads.sh !{alignment} !{host_reference_names} !{pathogen_reference_names} !{sample_name} !{name}
++		    count_uniquely_mapped_reads.sh !{alignment} !{host_reference_names} !{pathogen_reference_names} !{sample_name} !{name}
+ 		    '''
+ 		    } else {
+ 		    '''
+-		    !{workflow.projectDir}/bin/count_uniquely_mapped_read_pairs.sh !{alignment} !{host_reference_names} !{pathogen_reference_names} !{sample_name} !{name}
++		    count_uniquely_mapped_read_pairs.sh !{alignment} !{host_reference_names} !{pathogen_reference_names} !{sample_name} !{name}
+ 		    '''
+ 		    }
+ 		}
+@@ -3816,7 +3816,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/combine_tables.py -i $stats -o uniquely_mapped_reads_star.tsv -s uniquely_mapped_reads
++		    combine_tables.py -i $stats -o uniquely_mapped_reads_star.tsv -s uniquely_mapped_reads
+ 		    """
+ 		}
+ 
+@@ -3840,7 +3840,7 @@
+ 		    
+ 		    script:
+ 		    """
+-		    $workflow.projectDir/bin/count_cross_mapped_reads.sh $cross_mapped_reads
++		    count_cross_mapped_reads.sh $cross_mapped_reads
+ 		    """
+ 		}
+ 
+@@ -3868,11 +3868,11 @@
+ 		    name = sample_name + '_multi_mapped.txt'
+ 		    if (params.single_end){
+ 		    '''
+-		    !{workflow.projectDir}/bin/count_multi_mapped_reads.sh !{alignment} !{host_reference_names} !{pathogen_reference_names} !{sample_name} !{name}
++		    count_multi_mapped_reads.sh !{alignment} !{host_reference_names} !{pathogen_reference_names} !{sample_name} !{name}
+ 		    '''
+ 		    } else {
+ 		    '''
+-		    !{workflow.projectDir}/bin/count_multi_mapped_read_pairs.sh !{alignment} !{host_reference_names} !{pathogen_reference_names} !{sample_name} !{name}
++		    count_multi_mapped_read_pairs.sh !{alignment} !{host_reference_names} !{pathogen_reference_names} !{sample_name} !{name}
+ 		    '''
+ 		    }
+ 		}
+@@ -3897,7 +3897,7 @@
+ 
+ 			    script:
+ 			    """
+-			    python $workflow.projectDir/bin/combine_tables.py -i $stats -o multi_mapped_reads_star.tsv -s multi_mapped_reads
++			    combine_tables.py -i $stats -o multi_mapped_reads_star.tsv -s multi_mapped_reads
+ 			    """
+ 			}
+ 
+@@ -3926,7 +3926,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/mapping_stats.py -total_raw $total_raw_reads -total_processed $total_processed_reads -m_u $uniquely_mapped_reads -m_m $multi_mapped_reads -c_m $cross_mapped_reads -t star -o star_mapping_stats.tsv
++		    mapping_stats.py -total_raw $total_raw_reads -total_processed $total_processed_reads -m_u $uniquely_mapped_reads -m_m $multi_mapped_reads -c_m $cross_mapped_reads -t star -o star_mapping_stats.tsv
+ 		    """
+ 		}
+ 
+@@ -3950,7 +3950,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_mapping_stats_star.py -i $stats
++		    plot_mapping_stats_star.py -i $stats
+ 		    """
+ 		}
+ 	}
+@@ -4027,7 +4027,7 @@
+ 
+ 	    script:
+ 	    """
+-	    python $workflow.projectDir/bin/collect_quantification_data.py -i $input_quantification -q htseq -a $host_attribute 
++	    collect_quantification_data.py -i $input_quantification -q htseq -a $host_attribute 
+ 	    """
+ 	}
+ 
+@@ -4055,7 +4055,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/calculate_TPM_HTSeq.R $input_quantification $host_attribute $gff_pathogen $gff_host
++	    calculate_TPM_HTSeq.R $input_quantification $host_attribute $gff_pathogen $gff_host
+ 	    """
+ 	}
+ 
+@@ -4092,7 +4092,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/split_quant_tables.sh $quant_table $host_annotations $pathogen_annotations quantification_uniquely_mapped_htseq.tsv
++	    split_quant_tables.sh $quant_table $host_annotations $pathogen_annotations quantification_uniquely_mapped_htseq.tsv
+             pathonen_tab=\$(if [ \$(cat pathogen_quantification_uniquely_mapped_htseq.tsv | wc -l) -gt 1  ]; then echo "true"; else echo "false"; fi)
+             host_tab=\$(if [ \$(cat host_quantification_uniquely_mapped_htseq.tsv | wc -l) -gt 1  ]; then echo "true"; else echo "false"; fi)
+ 	    """
+@@ -4120,7 +4120,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org pathogen
++	    combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org pathogen
+ 	    """
+ 	}
+ 
+@@ -4146,7 +4146,7 @@
+ 
+ 	    script:
+ 	    """
+-	    $workflow.projectDir/bin/combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org host
++	    combine_quant_annotations.py -q $quantification_table -annotations $annotation_table -a $attribute -org host
+ 	    """
+ 	}
+ 
+@@ -4179,7 +4179,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/scatter_plots.py -q $quant_table -a $attribute -org pathogen
++		    scatter_plots.py -q $quant_table -a $attribute -org pathogen
+ 		    """
+ 		}
+ 
+@@ -4211,7 +4211,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/scatter_plots.py -q $quant_table -a $attribute -org host 
++		    scatter_plots.py -q $quant_table -a $attribute -org host 
+ 		    """
+ 		}
+ 
+@@ -4239,7 +4239,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/mapping_stats.py -q_p $quant_table_pathogen -q_h $quant_table_host -a $attribute  -star $star_stats -t htseq -o htseq_uniquely_mapped_reads_stats.tsv
++		    mapping_stats.py -q_p $quant_table_pathogen -q_h $quant_table_host -a $attribute  -star $star_stats -t htseq -o htseq_uniquely_mapped_reads_stats.tsv
+ 		    """
+ 		}
+ 
+@@ -4264,7 +4264,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_mapping_stats_htseq.py -i $stats
++		    plot_mapping_stats_htseq.py -i $stats
+ 		    """
+ 		}
+ 
+@@ -4294,7 +4294,7 @@
+ 
+ 		    shell:
+ 		    '''
+-		    python !{workflow.projectDir}/bin/RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -q_tool htseq -org pathogen 2>&1
++		    RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -q_tool htseq -org pathogen 2>&1
+ 		    '''
+ 		}
+ 
+@@ -4325,7 +4325,7 @@
+ 
+ 		    shell:
+ 		    '''
+-		    python !{workflow.projectDir}/bin/RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -rna !{rna_classes_to_replace} -q_tool htseq -org host 2>&1
++		    RNA_class_content.py -q !{quant_table} -a !{attribute} -annotations !{gene_annotations} -rna !{rna_classes_to_replace} -q_tool htseq -org host 2>&1
+ 		    '''
+ 		}
+ 
+@@ -4353,7 +4353,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_each.py -i $stats_table
++		    plot_RNA_class_stats_each.py -i $stats_table
+ 		    """
+ 		}
+ 
+@@ -4381,7 +4381,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_each.py -i $stats_table
++		    plot_RNA_class_stats_each.py -i $stats_table
+ 		    """
+ 		}
+ 
+@@ -4409,7 +4409,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_combined.py -i $stats_table -org pathogen
++		    plot_RNA_class_stats_combined.py -i $stats_table -org pathogen
+ 		    """
+ 		}
+ 
+@@ -4436,7 +4436,7 @@
+ 
+ 		    script:
+ 		    """
+-		    python $workflow.projectDir/bin/plot_RNA_class_stats_combined.py -i $stats_table -org host
++		    plot_RNA_class_stats_combined.py -i $stats_table -org host
+ 		    """
+ 		}
+ 

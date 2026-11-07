@@ -357,6 +357,27 @@ export class S3Service {
   }
 
   /**
+   * Read up to `maxBytes` of an object as raw bytes — for staging a project file into the code
+   * sandbox (run_code). The Range cap bounds a huge run output so it can never flood memory or the
+   * sandbox; the caller checks getFileSize() first and refuses oversized files with a clear message.
+   */
+  async readBuffer(key: string, maxBytes: number): Promise<Buffer> {
+    if (!key) throw new Error('S3 object key is required');
+    const end = Math.max(0, Math.floor(maxBytes) - 1);
+    const response = await this.s3Client.send(new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Range: `bytes=0-${end}`,
+    }));
+    const body: any = response.Body;
+    if (!body) return Buffer.alloc(0);
+    if (typeof body.transformToByteArray === 'function') return Buffer.from(await body.transformToByteArray());
+    const chunks: Buffer[] = [];
+    for await (const chunk of body) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    return Buffer.concat(chunks);
+  }
+
+  /**
    * Delete a file from S3
    */
   async deleteFile(key: string): Promise<boolean> {

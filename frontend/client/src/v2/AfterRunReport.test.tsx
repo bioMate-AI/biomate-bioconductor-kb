@@ -694,6 +694,31 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     expect(within(section).getByText("dag.html")).toBeInTheDocument();
   });
 
+  it("offers 'Open as dataset' on a dataset-typed output, deep-linking the one Files object", async () => {
+    // Run outputs register into project_files; the card resolves name→id and links
+    // into /files?file=<id> (spec 04 §4.5.3/§4.7) — no second dataset panel here.
+    vi.spyOn(global, "fetch").mockImplementation(async (input: any) => {
+      const url = String(input);
+      if (url.includes("/api/projects/proj-x/files")) {
+        return { ok: true, status: 200, json: async () => ([
+          { id: "ds-1", name: "results.tsv", source: "run_output", run_id: "r" },
+        ]), text: async () => "" } as Response;
+      }
+      return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
+    });
+    render(
+      <AfterRunReport
+        {...baseProps}
+        executionStatus={"completed" as any}
+        outputs={[{ step: "deseq2", name: "results.tsv", path: "deseq2/results.tsv", ext: "tsv" }] as any}
+        projectId={"proj-x" as any}
+      />,
+    );
+    fireEvent.click(await screen.findByTestId("after-tab-outputs"));
+    const link = await screen.findByTestId("output-open-as-dataset");
+    expect(link).toHaveAttribute("href", "/files?file=ds-1");
+  });
+
   it("shows a 'No report' note instead of the Download-report button on a failed run", async () => {
     render(
       <AfterRunReport
