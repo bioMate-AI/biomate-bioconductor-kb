@@ -21,7 +21,7 @@ process BIOC_MLINTERFACES_MULTI_CLASSIFIER_EVALUATION {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-general:3.20-slim"
+    container "quay.io/biocontainers/bioconductor-mlinterfaces:1.90.0--r45ha27e39d_0"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')

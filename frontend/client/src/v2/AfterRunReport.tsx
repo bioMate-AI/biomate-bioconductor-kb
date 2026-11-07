@@ -1228,7 +1228,7 @@ function OutputsTab({
         if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
         setFetched(
           arr.map((f) => {
-            const filePath = String(f?.s3_uri || f?.path || f?.s3_key || f?.name || "");
+            const filePath = String(f?.s3_uri || f?.local_path || f?.path || f?.s3_key || f?.name || "");
             const name = String(f?.name || f?.filename || filePath.split("/").pop() || "");
             const ext = String(
               f?.extension ||
@@ -1243,7 +1243,7 @@ function OutputsTab({
             // Real byte size is in the fetched output_files payload — thread it
             // so the card shows the actual size (humanSize) instead of nothing.
             const size = typeof (f as any).size === "number" ? (f as any).size : undefined;
-            return { step, name, path: filePath, ext, size };
+            return { step, name, path: filePath, ext, size, download_url: f?.download_url };
           }),
         );
       } catch { /* silent — empty state still useful */ }
@@ -1329,8 +1329,27 @@ function OutputsTab({
     }
   };
 
-  const fileUrl = (f: OutputFile, download = false) =>
-    `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;
+  if (totalCount === 0) {
+    return (
+      <div style={styles.tabContent}>
+        <p style={styles.empty}>
+          {executionStatus === 'failed'
+            ? 'No outputs — run did not complete successfully.'
+            : 'No output files registered yet.'}
+        </p>
+      </div>
+    );
+  }
+
+  const fileUrl = (f: OutputFile, download = false) => {
+    // Prefer download_url (Galaxy proxy / presigned URL) when available.
+    // This avoids routing through the Node.js step-file endpoint, which requires
+    // the file to be reachable from the Node.js container. On on-prem MinIO
+    // deployments, Galaxy is in the same Docker network as MinIO and can serve
+    // the file reliably even when the Node.js container cannot.
+    if ((f as any).download_url) return (f as any).download_url;
+    return `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;
+  };
 
   // Monochrome lucide glyphs at --text-muted (design spec 14 uses restrained
   // neutral line icons, not color emoji — emoji clash with the palette and

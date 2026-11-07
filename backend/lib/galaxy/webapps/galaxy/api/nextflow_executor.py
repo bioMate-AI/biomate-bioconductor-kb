@@ -3555,14 +3555,48 @@ def _generate_executor_config(
     executor = compute.get("executor", "local")
     s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
 
-    # For local executor with MinIO: generate a minimal config so Nextflow can
-    # stage s3:// input files from MinIO rather than AWS S3.
+    # For local executor: generate a config so Nextflow uses proper Docker settings.
+    # Without a -c override config, Nextflow reads only the pipeline's own nextflow.config
+    # which may contain wrong Docker runOptions (e.g. bind mounts to paths that don't exist
+    # on this host) or no Docker settings at all, causing task container failures.
     if executor not in ("awsbatch", "slurm", "k8s"):
         if not s3_endpoint:
-            return None
+            # On-prem local executor without MinIO: generate a minimal config with Docker
+            # runOptions so Nextflow uses --pull missing, correct entrypoint/user, and the
+            # right network. This overrides the pipeline's own nextflow.config Docker settings
+            # via the -c flag (Nextflow applies -c configs AFTER pipeline nextflow.config).
+            docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
+            import platform as _nf_platform
+            _is_arm64 = _nf_platform.machine().lower() in ("aarch64", "arm64")
+            _arm64_env_block = 'env { DOCKER_DEFAULT_PLATFORM = "linux/arm64" }' if _is_arm64 else ""
+            import multiprocessing as _mp
+            host_cpus = _mp.cpu_count()
+            onprem_local_config = f"""docker {{
+  enabled = true
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull missing'
+}}
+{_arm64_env_block}
+executor {{
+  name   = 'local'
+  cpus   = {max(host_cpus, 4)}
+  memory = '16 GB'
+}}
+
+process {{
+  cpus   = 1
+  memory = '4 GB'
+}}
+"""
+            config_path = config_dir / "biomate_executor_override.config"
+            config_path.write_text(onprem_local_config)
+            log.info(f"[Nextflow] Generated on-prem local config (no MinIO): {config_path}")
+            return config_path
         # MinIO config for local executor
         minio_key    = os.environ.get("AWS_ACCESS_KEY_ID",     os.environ.get("MINIO_ROOT_USER", "biomate"))
         minio_secret = os.environ.get("AWS_SECRET_ACCESS_KEY", os.environ.get("MINIO_ROOT_PASSWORD", ""))
+        # OSS uses virtual-hosted style (forcePathStyle=false); MinIO uses path style (true).
+        force_path_style_str = os.environ.get("S3_FORCE_PATH_STYLE", "true").lower()
+        s3_path_style_access = force_path_style_str not in ("false", "0", "no")
         # Docker network for task containers: must match the compose network so
         # task containers can resolve "minio" hostname for S3 file staging.
         # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
@@ -3598,7 +3632,7 @@ process {{
         if admet_container:
             admet_container_override = f"""
 process {{
-  withName: ~/.*ADMET.*/ {{
+  withName: '/.*ADMET.*/' {{
     container = '{admet_container}'
   }}
 }}
@@ -3613,7 +3647,7 @@ process {{
 aws {{
   client {{
     endpoint = '{s3_endpoint}'
-    s3PathStyleAccess = true
+    s3PathStyleAccess = {str(s3_path_style_access).lower()}
     connectionTimeout = 60000
     maxConnections    = 4
   }}
@@ -3626,9 +3660,10 @@ docker {{
 {docker_executable_line}
   // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
   // --user root: task containers need write access to the nf-work bind-mount.
-  // --pull never: use locally-loaded images only; skip registry check so Docker registry
-  //   mirrors (e.g. DaoCloud on Alibaba Cloud ECS) don't block pre-loaded on-prem images.
-  runOptions = '--entrypoint "" --user root --network {docker_network} --pull never'
+  // --pull missing: pull from registry only when image is not in local cache.
+  //   Pre-pulled images (e.g. via GHA sync workflow) are used directly; registry is only
+  //   contacted for images not yet cached (e.g. quay.io bioconductor containers on first run).
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull missing'
 }}
 {_arm64_env_block}
 
@@ -4476,7 +4511,11 @@ _TRACE_SKIP_FILES = frozenset({
 
 
 def _scan_task_work_dir(work_dir: str) -> List[str]:
-    """List output files in a Nextflow task work directory, skipping internal files."""
+    """List output files in a Nextflow task work directory, skipping internal files.
+
+    Returns full absolute paths so the step-file API can serve them directly
+    without resolving relative to CWD (which causes 403 on the allowed-roots check).
+    """
     p = Path(work_dir)
     if not p.is_dir():
         return []
@@ -4487,7 +4526,7 @@ def _scan_task_work_dir(work_dir: str) -> List[str]:
                 continue
             if entry.name in _TRACE_SKIP_FILES:
                 continue
-            files.append(entry.name)
+            files.append(str(entry))
     except PermissionError:
         pass
     return sorted(files)
@@ -9542,7 +9581,14 @@ def download_local_output(run_id: str, rel_path: str) -> Any:
     if not str(target).startswith(str(base)):
         raise HTTPException(status_code=403, detail="Path escapes run output directory.")
     if not target.is_file():
-        raise HTTPException(status_code=404, detail=f"File not found: {rel_path}")
+        # Bare-filename fallback: search recursively within outdir.
+        # Handles publishDir that writes to a subdirectory (e.g. "run/filename.csv").
+        name_only = Path(rel_path).name
+        matches = [m for m in base.rglob(name_only) if m.is_file() and str(m.resolve()).startswith(str(base))]
+        if matches:
+            target = matches[0]
+        else:
+            raise HTTPException(status_code=404, detail=f"File not found: {rel_path}")
 
     return FileResponse(str(target), filename=target.name)
 

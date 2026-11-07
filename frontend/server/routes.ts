@@ -102,6 +102,10 @@ import toolsManifest from "./tools_manifest.json";
 import { registerConnectorAdapters } from "./connector-adapters";
 import { registerBenchmarkOrchestrator } from "./benchmark-orchestrator";
 
+// S3 path style: MinIO requires true (path-style), OSS/S3 uses false (virtual-hosted).
+// Set S3_FORCE_PATH_STYLE=false in .env when using Aliyun OSS or standard AWS S3.
+const S3_FORCE_PATH_STYLE = process.env.S3_FORCE_PATH_STYLE !== 'false';
+
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -1141,7 +1145,7 @@ async function _s3ClientForBucket(s3Bucket: string): Promise<any> {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
       },
-      forcePathStyle: true,
+      forcePathStyle: S3_FORCE_PATH_STYLE,
     });
   }
   const base = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1';
@@ -1385,7 +1389,7 @@ async function stageLocalFilesForBatch(
         accessKeyId:     process.env.AWS_ACCESS_KEY_ID || process.env.MINIO_ROOT_USER || 'biomate',
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.MINIO_ROOT_PASSWORD || '',
       },
-      forcePathStyle: true,
+      forcePathStyle: S3_FORCE_PATH_STYLE,
     });
   }
 
@@ -3050,7 +3054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const minioClient = new S3Client({
             endpoint: process.env.S3_ENDPOINT_URL,
             region: 'us-east-1',
-            forcePathStyle: true,
+            forcePathStyle: S3_FORCE_PATH_STYLE,
             credentials: {
               accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
               secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -3196,7 +3200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const minioClient = new S3Client({
         endpoint: endpointUrl,
         region: 'us-east-1',
-        forcePathStyle: true,
+        forcePathStyle: S3_FORCE_PATH_STYLE,
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -3261,7 +3265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const minioClient = new S3Client({
         endpoint: endpointUrl,
         region: 'us-east-1',
-        forcePathStyle: true,
+        forcePathStyle: S3_FORCE_PATH_STYLE,
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -3364,7 +3368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const minioClient = new S3Client({
         endpoint: endpointUrl,
         region: 'us-east-1',
-        forcePathStyle: true,
+        forcePathStyle: S3_FORCE_PATH_STYLE,
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -5914,7 +5918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             region: 'us-east-1',
             ...(s3EndpointUrl ? {
               endpoint: s3EndpointUrl,
-              forcePathStyle: true,
+              forcePathStyle: S3_FORCE_PATH_STYLE,
             } : {}),
             credentials: {
               accessKeyId: nfAccessKey || process.env.AWS_ACCESS_KEY_ID || '',
@@ -9353,7 +9357,7 @@ ${paramLines || '(none recorded)'}`;
       const s3 = new S3Client({
         endpoint: endpointUrl,
         region: 'us-east-1',
-        forcePathStyle: true,
+        forcePathStyle: S3_FORCE_PATH_STYLE,
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -10319,7 +10323,7 @@ ${paramLines || '(none recorded)'}`;
                       followRegionRedirects: !_s3Ep, // not applicable for MinIO
                       ...(_s3Ep ? {
                         endpoint: _s3Ep,
-                        forcePathStyle: true,
+                        forcePathStyle: S3_FORCE_PATH_STYLE,
                         credentials: {
                           accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
                           secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -10835,7 +10839,7 @@ ${paramLines || '(none recorded)'}`;
             followRegionRedirects: true,
             ...(_s3Endpoint ? {
               endpoint: _s3Endpoint,
-              forcePathStyle: true,
+              forcePathStyle: S3_FORCE_PATH_STYLE,
               credentials: {
                 accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
                 secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -13938,7 +13942,7 @@ Rules:
               followRegionRedirects: !_s3Ep,
               ...(_s3Ep ? {
                 endpoint: _s3Ep,
-                forcePathStyle: true,
+                forcePathStyle: S3_FORCE_PATH_STYLE,
                 credentials: {
                   accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
                   secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -14014,7 +14018,7 @@ Rules:
               const s3 = new AWS.S3Client(_wdS3Ep ? {
                 endpoint: _wdS3Ep,
                 region: 'us-east-1',
-                forcePathStyle: true,
+                forcePathStyle: S3_FORCE_PATH_STYLE,
                 credentials: {
                   accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
                   secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -14106,6 +14110,41 @@ Rules:
     } catch (error: any) {
       console.error('[output_files] Error:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // On-prem MinIO S3 output file download proxy.
+  // Galaxy's /api/nextflow/outputs/download serves files directly from MinIO
+  // (same Docker network). Browsers can't reach port 8081; this route
+  // forwards authenticated requests through the main app port.
+  // Galaxy wraps output file download_url as: /api/nextflow/outputs/download?s3_uri=...
+  // which becomes /api/galaxy-proxy/api/nextflow/outputs/download?s3_uri=... here.
+  app.get("/api/galaxy-proxy/api/nextflow/outputs/download", authenticateToken, async (req: any, res) => {
+    try {
+      const runId = req.query.run_id as string | undefined;
+      if (runId) {
+        const execRun = await storage.getExecutionRun(runId).catch(() => null);
+        if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      }
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const qs = new URLSearchParams(req.query as Record<string, string>).toString();
+      const upstream = await fetch(`${galaxyUrl}/api/nextflow/outputs/download?${qs}`, {
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (!upstream.ok) {
+        // Galaxy 404/403 after restart (run not in _runs): fall through to step-file
+        return res.status(upstream.status).json({ error: 'Galaxy backend error' });
+      }
+      const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+      const cd = upstream.headers.get('content-disposition');
+      res.setHeader('Content-Type', ct);
+      if (cd) res.setHeader('Content-Disposition', cd);
+      const buf = await upstream.arrayBuffer();
+      res.send(Buffer.from(buf));
+    } catch (e: any) {
+      res.status(500).json({ error: (e as Error).message });
     }
   });
 
@@ -14407,7 +14446,7 @@ Rules:
                 // Stream the object through Node.js instead of 302-redirecting.
                 endpoint: endpointUrl,
                 region: 'us-east-1',
-                forcePathStyle: true,
+                forcePathStyle: S3_FORCE_PATH_STYLE,
                 credentials: {
                   accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
                   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -14471,7 +14510,7 @@ Rules:
   // Serve a single step output file for inline preview
   app.get("/api/workflows/runs/:id/step-file", async (req, res) => {
     try {
-      const filePath = req.query.path as string;
+      let filePath = (req.query.path as string) || '';
       const fileName = req.query.name as string || '';
 
       if (!filePath) return res.status(400).json({ error: 'path query param required' });
@@ -14480,11 +14519,7 @@ Rules:
       // For local paths, we still require a valid run to restrict filesystem access.
       // `run` is hoisted so the local-path block below can use its
       // nextflowStatus.work_dir / outdir for the allowed-roots check.
-      const isS3Path = filePath.startsWith('s3://');
       const run = await storage.getExecutionRun(req.params.id);
-      if (!isS3Path && !run) {
-        return res.status(404).json({ error: 'Run not found' });
-      }
 
       // Infer Content-Type (shared for both S3 and local paths)
       const ext = (fileName || filePath).split('.').pop()?.toLowerCase() ?? '';
@@ -14510,22 +14545,80 @@ Rules:
       }
       res.setHeader('Content-Type', ct);
 
+      // If the path is just a bare filename (no directory separator, no s3://),
+      // look it up in the run's s3_output_files so we get the full S3 URI instead
+      // of resolving relative to CWD (which would fail the allowedRoots check).
+      if (!filePath.includes('/') && !filePath.startsWith('s3://') && run) {
+        const s3Files = (run?.execution?.nextflowStatus as any)?.s3_output_files || [];
+        const match = s3Files.find((f: any) =>
+          (f.name || f.filename || '').toLowerCase() === filePath.toLowerCase() ||
+          (f.s3_uri || '').toLowerCase().endsWith('/' + filePath.toLowerCase())
+        );
+        if (match?.s3_uri) {
+          console.log(`[step-file] Resolved bare filename "${filePath}" → ${match.s3_uri}`);
+          filePath = match.s3_uri;
+        }
+      }
+
+      // After bare-filename lookup, filePath may now be an s3:// URI.
+      const isS3Path = filePath.startsWith('s3://');
+      if (!isS3Path && !run) {
+        return res.status(404).json({ error: 'Run not found' });
+      }
+
+      // On-prem local executor: if filePath is still a bare filename (no path separator),
+      // redirect to Galaxy's local-download proxy which resolves rel_path under the run's outdir.
+      // Triggers when NEXTFLOW_WORK_DIR is set OR when S3_ENDPOINT_URL is set (MinIO mode —
+      // outputs live on the Galaxy host's local filesystem, not in AWS S3).
+      if (!isS3Path && !filePath.includes('/') && run && (process.env.NEXTFLOW_WORK_DIR || process.env.S3_ENDPOINT_URL)) {
+        const nfRunId = run?.execution?.nextflowRunId || '';
+        if (nfRunId) {
+          // Look up the actual rel_path from Galaxy's output file list (files may live under
+          // a subdirectory like "run/" — the bare filename alone would 404 at Galaxy).
+          let relPath = filePath;
+          try {
+            const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+            const listResp = await fetch(
+              `${galaxyUrl}/api/nextflow/runs/${nfRunId}/output_files`,
+              { signal: AbortSignal.timeout(5000) },
+            );
+            if (listResp.ok) {
+              const listData: any = await listResp.json();
+              const match = (listData.files || []).find((f: any) =>
+                (f.name || f.filename || '').toLowerCase() === filePath.toLowerCase()
+              );
+              if (match?.rel_path) relPath = match.rel_path;
+            }
+          } catch (_e) { /* fall through — use bare filename */ }
+          console.log(`[step-file] on-prem bare filename "${filePath}" → rel_path "${relPath}"`);
+          return res.redirect(
+            `/api/galaxy-proxy/api/nextflow/outputs/local-download` +
+            `?run_id=${encodeURIComponent(nfRunId)}&rel_path=${encodeURIComponent(relPath)}`
+          );
+        }
+      }
+
       // --- S3 path: proxy via AWS SDK ---
       if (filePath.startsWith('s3://')) {
         const s3Match = filePath.match(/^s3:\/\/([^/]+)\/(.+)$/);
         if (!s3Match) return res.status(400).json({ error: 'Invalid S3 path format' });
         const [, bucket, key] = s3Match;
 
-        // Security: only allow our known buckets
-        const ALLOWED_BUCKETS = new Set([
-          process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
-          process.env.S3_BUCKET_NAME || 'biomate-data',
-          'biomate-nextflow-work',
-          'biomate-outputs',
-          'biomate-data',
-        ]);
-        if (!ALLOWED_BUCKETS.has(bucket)) {
-          return res.status(403).json({ error: 'S3 bucket not allowed' });
+        // On-prem MinIO: all s3:// paths go through our own MinIO — trust any bucket.
+        // SaaS: restrict to known AWS buckets.
+        const _isMinioMode = !!process.env.S3_ENDPOINT_URL;
+        if (!_isMinioMode) {
+          const ALLOWED_BUCKETS = new Set([
+            process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
+            process.env.S3_BUCKET_NAME || 'biomate-data',
+            'biomate-nextflow-work',
+            'biomate-outputs',
+            'biomate-data',
+          ]);
+          if (!ALLOWED_BUCKETS.has(bucket)) {
+            console.error(`[step-file] S3 bucket not allowed: ${bucket}`);
+            return res.status(403).json({ error: 'S3 bucket not allowed' });
+          }
         }
 
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
@@ -14535,7 +14628,7 @@ Rules:
         const s3 = new S3Client(_stepS3Ep ? {
           endpoint: _stepS3Ep,
           region: 'us-east-1',
-          forcePathStyle: true,
+          forcePathStyle: S3_FORCE_PATH_STYLE,
           credentials: {
             accessKeyId: nfKey || process.env.AWS_ACCESS_KEY_ID || '',
             secretAccessKey: nfSecret || process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -14563,19 +14656,59 @@ Rules:
 
       // Only allow paths within known run directories (work_dir or outdir)
       const nfStatus = run?.execution?.nextflowStatus as any;
+      // On-prem: all Nextflow work dirs are under NEXTFLOW_WORK_DIR (/app/nf-work by default).
+      // For cached runs the DB-stored work_dir can be absent — include the global root so the
+      // allowedRoots check doesn't spuriously 403 on valid on-prem file paths.
+      // Include whenever NEXTFLOW_WORK_DIR is set, NOT gated on S3_ENDPOINT_URL — the ECS
+      // local-executor deployment has NEXTFLOW_WORK_DIR but no S3_ENDPOINT_URL in the
+      // frontend container, which previously caused spurious 403s.
+      const onPremWorkRoot = process.env.NEXTFLOW_WORK_DIR
+        ? resolve(process.env.NEXTFLOW_WORK_DIR)
+        : (process.env.S3_ENDPOINT_URL ? resolve('/app/nf-work') : null);
       const allowedRoots = [
         nfStatus?.work_dir,
         nfStatus?.outdir,
         '/tmp/nextflow_runs',
+        onPremWorkRoot,
       ].filter(Boolean).map((r: string) => resolve(r));
 
       const isAllowed = allowedRoots.some(root => resolved.startsWith(root));
       if (!isAllowed && !resolved.startsWith('/tmp/')) {
+        console.error(`[step-file] 403 allowedRoots: resolved=${resolved} roots=${JSON.stringify(allowedRoots)}`);
         return res.status(403).json({ error: 'File outside allowed directories' });
       }
 
       const { createReadStream, existsSync } = await import('fs');
-      if (!existsSync(resolved)) return res.status(404).json({ error: 'File not found' });
+      if (!existsSync(resolved)) {
+        // On-prem: the Galaxy backend container has /app/nf-work mounted but the
+        // frontend container does not. Proxy the file through Galaxy's local-download API.
+        // Galaxy's endpoint expects rel_path (relative to the run's outdir).
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const nfRunId = run?.execution?.nextflowRunId || (run as any)?.nextflowRunId || '';
+        const nfOutdir = String(nfStatus?.outdir || '');
+        if (nfRunId && onPremWorkRoot && resolved.startsWith(onPremWorkRoot)) {
+          // Compute rel_path: prefer relative to outdir, fall back to relative to onPremWorkRoot
+          let relPath = resolved;
+          if (nfOutdir && !nfOutdir.startsWith('s3://') && resolved.startsWith(nfOutdir)) {
+            relPath = resolved.slice(nfOutdir.length).replace(/^\//, '');
+          } else {
+            relPath = resolved.slice(onPremWorkRoot.length).replace(/^\//, '');
+          }
+          const qs = new URLSearchParams({ run_id: nfRunId, rel_path: relPath }).toString();
+          const upstream = await fetch(`${galaxyUrl}/api/nextflow/outputs/local-download?${qs}`, {
+            signal: AbortSignal.timeout(30_000),
+          }).catch(() => null);
+          if (upstream && upstream.ok) {
+            const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+            res.setHeader('Content-Type', ct);
+            const buf = await upstream.arrayBuffer();
+            res.send(Buffer.from(buf));
+            return;
+          }
+          console.error(`[step-file] Galaxy proxy failed for ${relPath} (run ${nfRunId})`);
+        }
+        return res.status(404).json({ error: 'File not found' });
+      }
       createReadStream(resolved).pipe(res);
     } catch (error: any) {
       console.error('[step-file] Error:', error);
