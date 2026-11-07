@@ -23,4 +23,10 @@ describe("shared English/Chinese UI", () => {
     vi.stubGlobal("navigator", { language: "zh-CN" });
     expect((await import("./i18n")).detectLocale()).toBe("zh");
   });
+  it("falls back to English for an untranslated browser language", async () => {
+    vi.stubGlobal("navigator", { language: "ja-JP" });
+    const i18n = await import("./i18n");
+    expect(i18n.detectLocale()).toBe("en");
+    expect(i18n.t("nav.projects")).toBe("Projects");
+  });
 });

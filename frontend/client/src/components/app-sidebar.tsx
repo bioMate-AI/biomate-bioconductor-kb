@@ -1,4 +1,3 @@
-import { LanguageSelector } from "./language-selector";
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -420,7 +419,6 @@ export function AppSidebar({
         )}
 
         <details className="text-xs text-muted-foreground px-2 py-2"><summary className="cursor-pointer">{t('nav.more_tools')}</summary><div className="flex flex-col items-start gap-2 pt-3"><button onClick={() => setLocation('/files')}>{t('nav.data')}</button><button onClick={() => setLocation('/design')}>{t('nav.design_generate')}</button><button onClick={() => setShowRecentToolsDialog(true)}>{t('nav.recent_tools')}</button><button data-testid="button-import-workflow-settings" onClick={() => { setHistoryInitialTab('upload'); setShowHistoryDialog(true); }}>{t('nav.import_workflow')}</button></div></details>
-        <LanguageSelector />
         {/* Settings — a single click opens the tabbed Settings panel (API Keys is a
             tab inside it). Connectors moved up to the Workspace nav; Import workflow
             moved into "more tools" — so Settings is one clean entry, no sub-items. */}

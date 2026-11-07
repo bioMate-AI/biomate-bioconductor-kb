@@ -1,3 +1,4 @@
+import { LanguageSelector } from "./language-selector";
 import { useState, useEffect, useCallback } from "react"
 import { MfaSettings } from "./mfa-settings"
 import { RetrainAdapterCard } from "./RetrainAdapterCard"
@@ -415,6 +416,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <Settings className="w-5 h-5" />
             {t('settings.title')}
           </DialogTitle>
+          <LanguageSelector />
         </DialogHeader>
 
         {/* Settings panel — tabbed. API Keys is one tab inside Settings (not a

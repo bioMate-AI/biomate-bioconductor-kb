@@ -11,7 +11,7 @@
 
 Merged the deployed dev lineage into `codex/zh-en-ui-parity`, based on refreshed next-phase. Kept next-phase's on-premises changes, including `local_path` and Galaxy-proxied `download_url` handling in AfterRunReport. The merge also brings supporting server endpoints alongside the client features; copying just JSX would leave new controls disconnected.
 
-Added a visible `Language / 语言` selector immediately above Settings in the shared sidebar, also reachable from the mobile navigation. Choices are English and 简体中文. It uses the existing language preference mechanism: save `biomate-user-settings.language`, then reload the current URL. It preserves other saved settings. No backend records or connector configuration are changed. Set the document language to match the active locale for accessibility.
+Added a visible `Language / 语言` selector inside the Settings dialog header, visible across Settings tabs on desktop and mobile. Selectable choices are English and 简体中文. Japanese, Spanish, French and German appear under Pending translation / 待翻译 as disabled options; they cannot save an unsupported locale. It uses the existing language preference mechanism: save `biomate-user-settings.language`, then reload the current URL. It preserves other saved settings. No backend records or connector configuration are changed. Set the document language to match the active locale for accessibility.
 
 Detection order remains: explicit saved choice, browser language, then fallback. Preference is per browser. Both choices load the same UI implementation. Existing English phrase fallback and Chinese-only translation entries remain intact.
 
@@ -19,7 +19,7 @@ Detection order remains: explicit saved choice, browser language, then fallback.
 
 - TypeScript: passed.
 - Browser with fixture API responses: English → Chinese → English passed; persisted choice checked; desktop and 390px mobile checked; no horizontal document overflow. Screenshots `/tmp/biomate-parity-english.png`, `/tmp/biomate-parity-chinese.png`, `/tmp/biomate-parity-chinese-390.png`. This is a UI check, not a live scientific workflow or on-premises integration test.
-- Locale regression tests cover explicit preferences overriding browser language, browser fallback, all English bundle keys having Chinese translations, and selector choices invoking the existing persistence function.
+- Locale regression tests cover explicit preferences overriding browser language, browser fallback, all English bundle keys having Chinese translations, and selector choices invoking the existing persistence function. The selector belongs inside Settings; no separate sidebar language entry is rendered.
 - Full frontend suite/build results are recorded in the final review response and `/tmp/biomate-zh-parity-*.log`.
 
 ## Limits / release state
