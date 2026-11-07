@@ -156,7 +156,9 @@ export function DatasetObject({
     dataset.name,
   )
   const lineageQ = useDatasetLineage(wherefromOpened ? dataset.ref : null)
-  const consumersQ = useDatasetConsumers(wherefromOpened ? dataset.ref : null)
+  // Consumers power both the Where-it-came-from lineage AND the Versions tab's
+  // "used by N runs" on the current version (spec §4.4), so fetch for either.
+  const consumersQ = useDatasetConsumers((wherefromOpened || versionsOpened) ? dataset.ref : null)
   const versionsQ = useDatasetVersions(versionsOpened ? dataset.ref : null)
 
   const [exporting, setExporting] = useState(false)
@@ -524,6 +526,11 @@ export function DatasetObject({
                     <span className="font-mono font-semibold">{v.label}</span>
                     {v.current && (
                       <Badge variant="outline" className="text-xs">{t('dataset_obj.current')}</Badge>
+                    )}
+                    {v.current && consumers.length > 0 && (
+                      <span className="text-xs text-muted-foreground" data-testid="dataset-version-usedby">
+                        {t('dataset_obj.used_by_runs', { n: consumers.length })}
+                      </span>
                     )}
                     {v.createdAt && (
                       <span className="ml-auto text-xs text-muted-foreground">

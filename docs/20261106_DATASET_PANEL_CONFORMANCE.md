@@ -62,7 +62,45 @@ PRODUCED — evidence-typed (`resolveViewer`) chips that each open as their own 
 `DatasetObject` gained a `projectId` prop; produced outputs resolve from `project_files`
 (`source='run_output'`, grouped by `run_id`). Frontend-only, lazy, uploads excluded. +1 test.
 
-## Remaining gaps (prioritized, not yet built — each needs real backend work)
+### Increment 5 (partial) — "used by N runs" on the current version (`pending`)
+Versions tab now shows **used by N runs** on the current version row (spec §4.4), N = the consumers
+count already fetched (`useDatasetConsumers`, now enabled for the Versions tab too). Small, honest,
+from existing data. +1 test.
+
+## Feasibility finding (2026-11-06) — why the rest is backend work
+Investigated all four remaining gaps for a frontend-only path; each is genuinely backend-blocked (no
+stubs shipped, per CLAUDE.md):
+- **ProjectFile has no `content_hash` or `scope`/`visibility` column** (shape: id/name/s3_key/size/
+  content_type/source/run_id/workflow_name/step_name/input_context/created_at). So scope promotion +
+  content-hash dedup are a DB-schema change, not a UI wiring.
+- **URL/connector ingest does NOT target `project_files`.** `POST /api/datasets/import-url` imports
+  into the Galaxy history + `req.session.uploadedDatasets`; `POST /api/connectors/directory/attach`
+  registers a session path-ref. Neither appears in the hub tree (which reads `/api/projects/:id/files`).
+- **No byte-versioning.** `POST /api/datasets/:ref/versions` appends a NOTE only; there is no stored
+  second byte-version to diff or restore.
+- **The tree renderer is one level deep** (`project-file-tree.tsx` renders folder→file, not folder→
+  folder), so true `results/<run>` sub-grouping needs a recursive renderer.
+
+## Backend follow-ups (precise specs for the remaining gaps)
+1. **Open-in Jupyter/RStudio/Plot by file type (§4.3.1):** add a dataset→history staging endpoint —
+   `POST /api/projects/:id/files/:fid/stage-to-history` → copies the project file into the user's
+   Galaxy history as an HDA and returns the HDA id, so `InteractiveToolLauncher` (exists) can mount it.
+   Then the dataset-object header offers the file-type-appropriate tool (reuse `pickInteractiveTool`).
+2. **In-hub ingest (§4.6):** a project-scoped import — `POST /api/projects/:id/files/import-url`
+   (fetch the URL, store to the project S3 prefix, insert a `project_files` row, source='url') and a
+   connector→project attach that writes a `project_files` row. Then ＋Add becomes a menu
+   (upload/paste-URL/connector) whose results appear in the tree.
+3. **Versioning writes (§4.4):** enable S3 object-versioning (or a versions prefix) for project files;
+   `POST /api/datasets/:ref/versions` writes a new byte-version (edit-save), `GET …/versions/:v/diff`
+   returns a cell/column diff vs current, `POST …/versions/:v/restore` writes the old bytes as a new
+   version (append-only). Then wire Edit/Compare/Restore + a version tag on tree rows.
+4. **Scope + content-hash dedup (§4.2.3/§4.5.1):** add `content_hash` (sha256) + `scope`
+   ('project'|'account') columns to the files table; compute the hash at ingest (dedup: same hash →
+   link one row); `POST /api/projects/:id/files/:fid/scope {scope}` promote/demote with a cross-project
+   read of account-scope files. Then surface the hash + a visibility 2-button control + a `shared/`
+   folder + the recursive `results/<run>` renderer.
+
+## Remaining gaps (summary — all need the backend work specified above)
 1. **"Open in" Jupyter/RStudio/Plot by file type** — needs a dataset→history staging endpoint
    (`InteractiveToolLauncher` exists).
 2. **In-hub ingest** — paste-URL (backend `import-url` exists) + connector pull from ＋Add + at-ingest

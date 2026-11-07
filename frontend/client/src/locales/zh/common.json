@@ -328,7 +328,8 @@
     "columns_sample_note": "基于前 {{n}} 行样本统计；缺失比例与不同值均针对样本，而非整个文件。",
     "columns_not_tabular": "该文件不是表格，没有可分析的列。可在 Jupyter 中打开，或在对话中询问以查看。",
     "produced": "产出",
-    "open_as_dataset_title": "在「文件」中打开该数据集对象（预览、版本与血缘）"
+    "open_as_dataset_title": "在「文件」中打开该数据集对象（预览、版本与血缘）",
+    "used_by_runs": "{{n}} 个运行使用"
   },
   "data_hub": {
     "choose_project": "选择一个项目",

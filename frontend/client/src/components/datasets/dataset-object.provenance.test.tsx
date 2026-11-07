@@ -118,6 +118,21 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(within(q).getByText("Data QC")).toBeInTheDocument()
   })
 
+  it("Versions tab shows 'used by N runs' on the current version (from consumers)", async () => {
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url.includes("/versions")) return ({ ok: true, status: 200, json: async () => ({
+        versions: [{ version: "1", label: "v1", current: true, ref: RUN.ref, createdAt: null, note: null, author: null }],
+      }), text: async () => "" }) as unknown as Response
+      return base(input)  // consumers → the 2-run list from routeFetch
+    }) as unknown as typeof fetch
+    renderObj()
+    fireEvent.click(screen.getByTestId("dataset-tab-versions"))
+    const usedby = await screen.findByTestId("dataset-version-usedby", {}, { timeout: 4000 })
+    expect(usedby.textContent).toMatch(/2/)  // two consumer runs in routeFetch
+  })
+
   it("lineage 'what came out' — a consumer run's produced dataset opens as its own object", async () => {
     // Extend the route mock with the project's files so the lineage section can
     // resolve each consumer run's produced datasets (spec 04 §4.5.3).
