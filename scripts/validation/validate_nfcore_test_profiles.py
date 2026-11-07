@@ -50,7 +50,10 @@ TEST_PARAMS = {
     "nf-core/cageseq": {"fasta": TD + "cageseq/reference/v1/chr_sub.fasta", "gtf": TD + "cageseq/reference/v1/chr_sub.gtf",
                         "input_paths": [["cage 1", TD + "cageseq/testdata/v1/cage1.fastq.gz"],
                                         ["cage 2", TD + "cageseq/testdata/v1/cage2.fastq.gz"]]},
-    "nf-core/scdownstream": {"input": TD.rstrip("/") + "/4d8b9974c14cf11280d29bfe16f94e284793e499/samplesheet.csv"},
+    # nf-core's own CI (tests/default.nf.test) runs `-profile test` with ambient_correction='decontx': SoupX's
+    # autoEstCont finds no marker genes on the 384-cell test data ("No plausible marker genes found").
+    "nf-core/scdownstream": {"input": TD.rstrip("/") + "/4d8b9974c14cf11280d29bfe16f94e284793e499/samplesheet.csv",
+                             "ambient_correction": "decontx"},
 }
 
 
