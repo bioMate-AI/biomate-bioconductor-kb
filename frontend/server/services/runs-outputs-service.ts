@@ -396,6 +396,64 @@ export class RunsOutputsService {
           return seeded;
         }
       }
+
+      // Local executor fallback (on-prem MinIO deployments): when S3 listing and
+      // s3_output_files both returned nothing, ask Galaxy for the local filesystem
+      // file listing. Galaxy's /api/nextflow/runs/{id}/output_files scans the run's
+      // output dir and returns {name, rel_path, local_path, size, download_url}.
+      // We proxy the download_url through /api/galaxy-proxy/... so the browser
+      // never touches Galaxy directly. Triggers when: (a) S3_ENDPOINT_URL is set
+      // (MinIO mode — the outdir is local, not s3://) OR (b) the stored outdir
+      // is a local path.
+      const _nfOutdir: string = (runForManifest as any)?.execution?.nextflowStatus?.outdir || "";
+      const _isLocalExecutor = !!process.env.S3_ENDPOINT_URL || (!_nfOutdir.startsWith("s3://") && _nfOutdir.startsWith("/"));
+      const nfRunId2 = meta.nextflowRunId || meta.galaxyInvocationId || meta.runId;
+      if (_isLocalExecutor && nfRunId2) {
+        try {
+          const galaxyUrl2 = process.env.GALAXY_URL || "http://localhost:8081";
+          const localResp: any = await fetch(
+            `${galaxyUrl2}/api/nextflow/runs/${nfRunId2}/output_files`,
+            { signal: AbortSignal.timeout(8000) },
+          );
+          if (localResp.ok) {
+            const localData: any = await localResp.json();
+            if (Array.isArray(localData.files) && localData.files.length > 0) {
+              const localOutputs: CanonicalOutput[] = localData.files.map((f: any) => {
+                const name: string = f.name || f.filename || "";
+                const relPath: string = f.rel_path || name;
+                const extension = (name.includes(".") ? name.split(".").pop() || "" : "")
+                  .toLowerCase()
+                  .replace(/^\./, "");
+                // Route downloads through the galaxy-proxy so the browser hits Node,
+                // not the Galaxy container host directly.
+                const downloadUrl = `/api/galaxy-proxy/api/nextflow/outputs/local-download` +
+                  `?run_id=${encodeURIComponent(nfRunId2)}&rel_path=${encodeURIComponent(relPath)}`;
+                // Use a synthetic s3Uri so the manifest can store these without breaking
+                // the manifest schema (bucket/key remain unused for local files).
+                const syntheticUri = `local://${nfRunId2}/${relPath}`;
+                return {
+                  id: `${meta.runId}:${relPath}`,
+                  name,
+                  extension,
+                  size: f.size || 0,
+                  fileType: classifyFileType(extension),
+                  downloadUrl,
+                  s3Uri: syntheticUri,
+                  s3Bucket: "",
+                  s3Key: relPath,
+                  step: deriveStep(relPath),
+                  previewable: VISUALIZABLE_EXTS.has(extension),
+                  metadata: { s3Uri: syntheticUri },
+                } satisfies CanonicalOutput;
+              });
+              console.info(`[runs-outputs] local executor recovery: ${localOutputs.length} files for run ${meta.runId}`);
+              return localOutputs;
+            }
+          }
+        } catch (e: any) {
+          console.warn(`[runs-outputs] local executor recovery failed: ${e?.message || e}`);
+        }
+      }
     }
 
     // Presign + normalize in parallel. (items is only populated from the prefix

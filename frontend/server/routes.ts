@@ -14564,15 +14564,32 @@ Rules:
 
       // On-prem local executor: if filePath is still a bare filename (no path separator),
       // redirect to Galaxy's local-download proxy which resolves rel_path under the run's outdir.
-      // This handles the case where AfterRunReport sends only f.name (bare filename) instead of
-      // f.local_path (full absolute path), because the React client bundle predates the fix.
-      if (!isS3Path && !filePath.includes('/') && run && process.env.NEXTFLOW_WORK_DIR) {
+      // Triggers when NEXTFLOW_WORK_DIR is set OR when S3_ENDPOINT_URL is set (MinIO mode —
+      // outputs live on the Galaxy host's local filesystem, not in AWS S3).
+      if (!isS3Path && !filePath.includes('/') && run && (process.env.NEXTFLOW_WORK_DIR || process.env.S3_ENDPOINT_URL)) {
         const nfRunId = run?.execution?.nextflowRunId || '';
         if (nfRunId) {
-          console.log(`[step-file] bare filename "${filePath}" on on-prem → Galaxy local-download proxy`);
+          // Look up the actual rel_path from Galaxy's output file list (files may live under
+          // a subdirectory like "run/" — the bare filename alone would 404 at Galaxy).
+          let relPath = filePath;
+          try {
+            const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+            const listResp = await fetch(
+              `${galaxyUrl}/api/nextflow/runs/${nfRunId}/output_files`,
+              { signal: AbortSignal.timeout(5000) },
+            );
+            if (listResp.ok) {
+              const listData: any = await listResp.json();
+              const match = (listData.files || []).find((f: any) =>
+                (f.name || f.filename || '').toLowerCase() === filePath.toLowerCase()
+              );
+              if (match?.rel_path) relPath = match.rel_path;
+            }
+          } catch (_e) { /* fall through — use bare filename */ }
+          console.log(`[step-file] on-prem bare filename "${filePath}" → rel_path "${relPath}"`);
           return res.redirect(
             `/api/galaxy-proxy/api/nextflow/outputs/local-download` +
-            `?run_id=${encodeURIComponent(nfRunId)}&rel_path=${encodeURIComponent(filePath)}`
+            `?run_id=${encodeURIComponent(nfRunId)}&rel_path=${encodeURIComponent(relPath)}`
           );
         }
       }
