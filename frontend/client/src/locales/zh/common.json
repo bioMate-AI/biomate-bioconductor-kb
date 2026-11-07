@@ -334,7 +334,9 @@
     "columns_not_tabular": "该文件不是表格，没有可分析的列。可在 Jupyter 中打开，或在对话中询问以查看。",
     "produced": "产出",
     "open_as_dataset_title": "在「文件」中打开该数据集对象（预览、版本与血缘）",
-    "used_by_runs": "{{n}} 个运行使用"
+    "used_by_runs": "{{n}} 个运行使用",
+    "content_hash": "内容哈希",
+    "dedup_note": "相同内容的文件会合并为同一条目"
   },
   "data_hub": {
     "choose_project": "选择一个项目",

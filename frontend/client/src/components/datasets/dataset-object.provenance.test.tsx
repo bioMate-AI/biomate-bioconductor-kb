@@ -118,6 +118,19 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(within(q).getByText("Data QC")).toBeInTheDocument()
   })
 
+  it("surfaces the content hash + dedup note in the origin (§4.5.1)", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={{ ...RUN, contentHash: "abcdef0123456789deadbeef" }} onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(screen.getByTestId("dataset-tab-wherefrom"))
+    const hash = await screen.findByTestId("dataset-content-hash", {}, { timeout: 4000 })
+    expect(hash.textContent).toContain("abcdef012345")       // abbreviated
+    expect(hash).toHaveAttribute("title", "sha256:abcdef0123456789deadbeef")
+  })
+
   it("Versions tab shows 'used by N runs' on the current version (from consumers)", async () => {
     const base = global.fetch as any
     global.fetch = vi.fn(async (input: RequestInfo | URL) => {

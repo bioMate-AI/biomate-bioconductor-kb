@@ -37,7 +37,16 @@ describe("project-routes — contract", () => {
     expect(SRC.includes("validateRemoteFileUrl")).toBe(true);            // SSRF-safe URL check
     expect(/import-url[\s\S]{0,1200}_isOwnerOrEditor/.test(SRC)).toBe(true); // owner/editor gate
     expect(SRC.includes("512 * 1024 * 1024")).toBe(true);               // 512 MiB cap
-    expect(/VALUES\s*\([^)]*'url'\s*\)/.test(SRC)).toBe(true);           // inserts source='url'
+    expect(/VALUES\s*\([^)]*'url'[^)]*\)/.test(SRC)).toBe(true);         // inserts source='url'
+  });
+
+  it("content-hash dedup (§4.5.1) — column added idempotently, computed + checked at ingest", () => {
+    expect(SRC.includes("ADD COLUMN IF NOT EXISTS content_hash")).toBe(true);     // idempotent migration
+    expect(SRC.includes('createHash("sha256")')).toBe(true);                       // hash at ingest
+    expect((SRC.match(/_findProjectFileByHash\(/g) ?? []).length).toBeGreaterThanOrEqual(2); // upload + url ingest
+    expect(SRC.includes("deduplicated: true")).toBe(true);                          // dup → link, don't re-insert
+    expect(/INSERT INTO project_files[\s\S]{0,160}content_hash/.test(SRC)).toBe(true); // stored on insert
+    expect(SRC.includes("input_context, content_hash, created_at")).toBe(true);     // returned by GET /files
   });
 
   it("every endpoint goes through authenticateToken", () => {

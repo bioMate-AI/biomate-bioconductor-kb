@@ -57,6 +57,7 @@ function toDatasetRef(f: ProjectFile): DatasetRef {
     workflowName: f.workflow_name,
     stepName: f.step_name,
     createdAt: f.created_at,
+    contentHash: f.content_hash ?? null,
   }
 }
 

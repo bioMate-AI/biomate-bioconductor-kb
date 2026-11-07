@@ -49,6 +49,7 @@ export interface ProjectFile {
   workflow_name: string | null;
   step_name: string | null;
   input_context: Record<string, unknown> | null;
+  content_hash?: string | null;
   created_at: string;
 }
 

@@ -25,7 +25,7 @@ import { s3Service } from "./s3-client";
 import { checkTabularCompatibility, parseHeaderColumns, formatFromName, isTabularFormat } from "./input-compatibility";
 import { validateRemoteFileUrl } from "./remote-source-validation";
 import multer from "multer";
-import { randomUUID, randomBytes } from "crypto";
+import { randomUUID, randomBytes, createHash } from "crypto";
 import path from "path";
 import fs from "fs";
 
@@ -141,9 +141,26 @@ async function ensureProjectFilesTable(): Promise<void> {
   await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS workflow_name TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS step_name TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS input_context JSONB`).catch(() => {});
+  // Content hash for dedup (design §4.5.1 — the same file added twice links to one
+  // entry rather than creating two). sha256 hex, computed at ingest.
+  await pool.query(`ALTER TABLE project_files ADD COLUMN IF NOT EXISTS content_hash TEXT`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS project_files_hash_idx ON project_files(project_id, content_hash)`).catch(() => {});
 }
 // Run once on startup — idempotent
 ensureProjectFilesTable().catch(e => console.error("[project_files] table init failed:", e?.message ?? e));
+
+/** Content-hash dedup lookup (§4.5.1): the existing project file with these exact
+ *  bytes, or null. Returns the same column shape the ingest endpoints respond with. */
+async function _findProjectFileByHash(projectId: string, hash: string): Promise<any | null> {
+  try {
+    const r = await pool.query(
+      `SELECT id, name, s3_key, size, content_type, source, run_id, content_hash, created_at
+       FROM project_files WHERE project_id = $1 AND content_hash = $2 LIMIT 1`,
+      [projectId, hash]
+    );
+    return r.rows[0] || null;
+  } catch { return null; }  // never let a dedup lookup break ingest
+}
 
 function userId(req: Request): string | null {
   const u = (req as any).user;
@@ -448,7 +465,7 @@ export function registerProjectRoutes(app: Express): void {
         return res.status(404).json({ error: "Project not found" });
       }
       const result = await pool.query(
-        `SELECT id, name, s3_key, size, content_type, source, run_id, workflow_name, step_name, input_context, created_at
+        `SELECT id, name, s3_key, size, content_type, source, run_id, workflow_name, step_name, input_context, content_hash, created_at
          FROM project_files WHERE project_id = $1 ORDER BY created_at DESC`,
         [id]
       );
@@ -630,12 +647,17 @@ export function registerProjectRoutes(app: Express): void {
         const key = `projects/${id}/inputs/${safeName}${safeExt}`;
         const buf = fs.readFileSync(req.file.path);
         fs.unlink(req.file.path, () => {});
+        // Content-hash dedup (§4.5.1): the same bytes already in this project link
+        // to the one entry rather than creating two.
+        const contentHash = createHash("sha256").update(buf).digest("hex");
+        const dup = await _findProjectFileByHash(id, contentHash);
+        if (dup) return res.status(200).json({ file: dup, deduplicated: true });
         await s3Service.putObject(key, buf, req.file.mimetype || "application/octet-stream", uid);
         const ins = await pool.query(
-          `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source)
-           VALUES ($1, $2, $3, $4, $5, $6, 'upload')
-           RETURNING id, name, s3_key, size, content_type, source, run_id, created_at`,
-          [id, uid, originalName, key, req.file.size, req.file.mimetype || "application/octet-stream"]
+          `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
+           VALUES ($1, $2, $3, $4, $5, $6, 'upload', $7)
+           RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
+          [id, uid, originalName, key, req.file.size, req.file.mimetype || "application/octet-stream", contentHash]
         );
         await recordProjectActivity(id, uid, "file_added", {
           fileId: ins.rows[0].id,
@@ -696,6 +718,9 @@ export function registerProjectRoutes(app: Express): void {
         chunks.push(Buffer.from(value));
       }
       const buf = Buffer.concat(chunks);
+      const contentHash = createHash("sha256").update(buf).digest("hex");
+      const dup = await _findProjectFileByHash(id, contentHash);
+      if (dup) return res.status(200).json({ file: dup, deduplicated: true });
       const rawName = String(req.body?.filename || validated.filename || "download");
       const safeExt = path.extname(rawName).toLowerCase().replace(/[^a-z0-9.]/g, "");
       const safeBase = path.basename(rawName, path.extname(rawName)).replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 200) || "download";
@@ -704,10 +729,10 @@ export function registerProjectRoutes(app: Express): void {
       const contentType = (resp.headers.get("content-type") || "").split(";")[0].trim() || "application/octet-stream";
       await s3Service.putObject(key, buf, contentType, uid);
       const ins = await pool.query(
-        `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source)
-         VALUES ($1, $2, $3, $4, $5, $6, 'url')
-         RETURNING id, name, s3_key, size, content_type, source, run_id, created_at`,
-        [id, uid, filename, key, buf.length, contentType]
+        `INSERT INTO project_files (project_id, user_id, name, s3_key, size, content_type, source, content_hash)
+         VALUES ($1, $2, $3, $4, $5, $6, 'url', $7)
+         RETURNING id, name, s3_key, size, content_type, source, run_id, content_hash, created_at`,
+        [id, uid, filename, key, buf.length, contentType, contentHash]
       );
       await recordProjectActivity(id, uid, "file_added", { fileId: ins.rows[0].id, name: filename, source: "url" });
       res.status(201).json({ file: ins.rows[0] });

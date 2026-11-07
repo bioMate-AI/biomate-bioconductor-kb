@@ -97,11 +97,18 @@ stubs shipped, per CLAUDE.md):
    `POST /api/datasets/:ref/versions` writes a new byte-version (edit-save), `GET …/versions/:v/diff`
    returns a cell/column diff vs current, `POST …/versions/:v/restore` writes the old bytes as a new
    version (append-only). Then wire Edit/Compare/Restore + a version tag on tree rows.
-4. **Scope + content-hash dedup (§4.2.3/§4.5.1):** add `content_hash` (sha256) + `scope`
-   ('project'|'account') columns to the files table; compute the hash at ingest (dedup: same hash →
-   link one row); `POST /api/projects/:id/files/:fid/scope {scope}` promote/demote with a cross-project
-   read of account-scope files. Then surface the hash + a visibility 2-button control + a `shared/`
-   folder + the recursive `results/<run>` renderer.
+4. **Content-hash dedup (§4.5.1):** ✅ **SHIPPED** — `content_hash` (sha256) column added idempotently
+   (`ADD COLUMN IF NOT EXISTS`), computed at ingest for both upload + URL import, dedup check before
+   insert (same bytes in the project → return the existing row, `deduplicated:true`, no second S3
+   object/row), returned by GET `/files`, and surfaced in the dataset object's origin (abbreviated hash
+   + "same bytes link to one entry", full value on hover). STILL TODO — **scope (project/account)**:
+   needs a `scope` column + `POST …/files/:fid/scope` promote/demote + a cross-project read of
+   account-scope files + a `shared/` folder + a visibility 2-button control (a half-wired toggle would
+   be theater, so deferred).
+5. **Byte-versioning (infra):** Compare/Restore need S3 object-versioning (or a versions prefix)
+   enabled on the bucket — infrastructure, not code. Deferred until that's provisioned.
+6. **Recursive `results/<run>` folders:** the tree renderer is one level deep; nested run sub-folders
+   under a `results/` parent need a recursive `TreeNodeView`.
 
 ## Remaining gaps (summary — all need the backend work specified above)
 1. **"Open in" Jupyter/RStudio/Plot by file type** — needs a dataset→history staging endpoint

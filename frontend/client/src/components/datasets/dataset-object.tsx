@@ -84,6 +84,8 @@ export interface DatasetRef {
   consumers?: string[]
   /** Prior versions of this dataset (empty when unknown). */
   versions?: string[]
+  /** sha256 content hash (dedup key), when known. */
+  contentHash?: string | null
 }
 
 function formatBytes(n: number | null | undefined): string {
@@ -620,12 +622,24 @@ export function DatasetObject({
               <Row
                 k={t('dataset_obj.added')}
                 v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
-                last
               />
+              {/* Content hash (design §4.5.1) — the dedup identity. Same bytes added
+                  twice link to one entry. Shown abbreviated; full value on hover. */}
+              {dataset.contentHash && (
+                <Row
+                  k={t('dataset_obj.content_hash')}
+                  v={
+                    <span title={`sha256:${dataset.contentHash}`} data-testid="dataset-content-hash">
+                      <span className="font-mono">{dataset.contentHash.slice(0, 12)}…</span>
+                      <span className="text-muted-foreground"> · {t('dataset_obj.dedup_note')}</span>
+                    </span>
+                  }
+                  last
+                />
+              )}
               {/* The internal storage ref (S3 key) is plumbing, not provenance —
-                  intentionally not surfaced. FUTURE: content hash + dedup note and
-                  a this-project / whole-account visibility control, once the
-                  backend exposes them. */}
+                  intentionally not surfaced. The project/account visibility control
+                  needs a backend `scope` column (documented follow-up). */}
             </div>
 
             {/* Quality, at ingest (design §4.5.2) — the perception profile lives here. */}
@@ -772,7 +786,7 @@ function Row({
   testid,
 }: {
   k: string
-  v: string
+  v: ReactNode
   mono?: boolean
   last?: boolean
   onClick?: () => void

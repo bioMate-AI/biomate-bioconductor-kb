@@ -328,7 +328,9 @@
     "columns_not_tabular": "This file isn't a table, so there are no columns to profile. Open it in Jupyter or ask in chat to inspect it.",
     "produced": "Produced",
     "open_as_dataset_title": "Open the dataset object — preview, versions and lineage — in Files",
-    "used_by_runs": "used by {{n}} runs"
+    "used_by_runs": "used by {{n}} runs",
+    "content_hash": "Content hash",
+    "dedup_note": "same bytes link to one entry"
   },
   "data_hub": {
     "choose_project": "Choose a project",
