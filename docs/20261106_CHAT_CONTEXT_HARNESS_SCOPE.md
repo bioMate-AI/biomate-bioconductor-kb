@@ -141,11 +141,13 @@ NOT in BioMate today and are candidates, not commitments:
 
 ## Part 5 — Prioritized plan (build order; not all now)
 
-**P0 — Foundation (build now, zero live risk).** The inspectable manifest core
-(`server/chat-context-harness.ts` + tests — DONE) and then wire it as a SHADOW alongside the existing
-assembly so we can log the real per-turn manifest (which channels fired, sizes, scope) without
-changing behavior. Rationale: you cannot improve a scope you cannot measure; every item below is
-easier once the manifest is observable. (dimensions 1,2,3,9)
+**P0 — Foundation — ✅ DONE + live-verified.** The inspectable manifest core
+(`server/chat-context-harness.ts` + 10 tests) AND the SHADOW wiring (`galaxy-assistant.ts`, logs one
+`manifestSummary` line per turn at the provider-independent assembly point). Live on dev: a projectless
+first-message turn logged `[ctx] cross_session(user,1.2KB) total=1.2KB msgs=0 firstMsg=true` — the
+manifest is observable on real traffic, zero behavior change. Known P0 imprecision: blocks are merged
+at the shadow point (the LTM aggregate A7–A10 is logged under `cross_session`); per-channel attribution
+arrives when the live assembly is migrated onto the builder. (dimensions 1,2,3,9)
 
 **P1 — Highest user value (anchored on the three worries + trust).**
 - **P1a. `run_code`/`read_file` reach into project-file OUTPUTS.** Unlocks "analyze/summarize my run
