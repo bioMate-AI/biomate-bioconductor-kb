@@ -49,6 +49,22 @@ describe("project-routes — contract", () => {
     expect(SRC.includes("input_context, content_hash, created_at")).toBe(true);     // returned by GET /files
   });
 
+  it("app-level content versioning (§4.4) — table, version-on-reupload, list + restore endpoints", () => {
+    // No S3 bucket-versioning: each version is its own object + a project_file_versions row.
+    expect(SRC.includes("CREATE TABLE IF NOT EXISTS project_file_versions")).toBe(true);
+    expect(SRC.includes("ADD COLUMN IF NOT EXISTS version_no")).toBe(true);
+    // re-upload same name + different content → new version (append-only), never overwrite
+    expect(/_findProjectFileByName[\s\S]{0,900}_archiveCurrentAsVersion[\s\S]{0,400}version_no = version_no \+ 1/.test(SRC)).toBe(true);
+    expect(SRC.includes("versioned: true")).toBe(true);
+    // list + restore endpoints, authed
+    expect(/app\.get\("\/api\/projects\/:id\/files\/:fileId\/versions",\s*authenticateToken/.test(SRC)).toBe(true);
+    expect(/app\.post\("\/api\/projects\/:id\/files\/:fileId\/versions\/:versionNo\/restore",\s*authenticateToken/.test(SRC)).toBe(true);
+    // append-only in BOTH paths (reupload + restore): archive current, then bump version_no.
+    expect((SRC.match(/_archiveCurrentAsVersion\(/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect((SRC.match(/version_no = version_no \+ 1/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect(/restore[\s\S]{0,900}project_file_versions WHERE file_id/.test(SRC)).toBe(true); // reads the target version's bytes
+  });
+
   it("every endpoint goes through authenticateToken", () => {
     // The regex only matches handlers whose path is immediately followed by
     // authenticateToken, so this count IS the authed-endpoint count. It must
@@ -56,7 +72,7 @@ describe("project-routes — contract", () => {
     const authed = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects[^"]*",\s*authenticateToken/g) ?? [];
     const total = SRC.match(/app\.(get|post|patch|delete)\("\/api\/projects/g) ?? [];
     expect(authed.length).toBe(total.length);
-    expect(authed.length).toBe(27); // grows as endpoints are added (…, files/import-url)
+    expect(authed.length).toBe(29); // grows as endpoints are added (…, files/import-url, files/:fileId/versions GET + restore POST)
   });
 
   it("404 on cross-user access (does not leak existence)", () => {

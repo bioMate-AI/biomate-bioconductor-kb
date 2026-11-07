@@ -230,11 +230,51 @@ export function DatasetObject({
   const propVersions = dataset.versions ?? []
   const isRunOutput = dataset.source === "run_output"
 
+  // App-level content versions for a PROJECT FILE (design §4.4) come from the Node
+  // project_file_versions store (real byte-versions), not the Galaxy note-log — fetch
+  // them and offer Restore. Only for user-ingested files in a project (not run outputs).
+  const versionable = Boolean(projectId) && !isRunOutput
+  const [projectVersions, setProjectVersions] = useState<typeof versions | null>(null)
+  const [restoringVersion, setRestoringVersion] = useState<string | null>(null)
+  const [versionError, setVersionError] = useState<string | null>(null)
+  const loadProjectVersions = async () => {
+    if (!projectId) return
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions`, { credentials: "include" })
+      if (!r.ok) return
+      const j = await r.json()
+      setProjectVersions((j?.versions ?? []) as typeof versions)
+    } catch { /* best-effort — falls back to the note-log list */ }
+  }
+  useEffect(() => {
+    if (!versionsOpened || !versionable) return
+    let cancelled = false
+    ;(async () => { if (!cancelled) await loadProjectVersions() })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versionsOpened, projectId, dataset.id, versionable])
+  const handleRestore = async (versionNo: string) => {
+    if (!projectId) return
+    setRestoringVersion(versionNo); setVersionError(null)
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions/${encodeURIComponent(versionNo)}/restore`, {
+        method: "POST", credentials: "include",
+      })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `Restore failed (${r.status})`)
+      await loadProjectVersions()
+    } catch (e: any) {
+      setVersionError(e?.message ?? t('dataset_obj.restore_failed'))
+    } finally {
+      setRestoringVersion(null)
+    }
+  }
+  const effectiveVersions = versionable ? (projectVersions ?? []) : versions
+
   // Current version label for the header chip + stat grid. Falls back to the
   // caller's list, else v1 (every file has at least an implicit v1).
   const currentVersionLabel =
-    versions.find((v) => v.current)?.label ||
-    versions[0]?.label ||
+    effectiveVersions.find((v) => v.current)?.label ||
+    effectiveVersions[0]?.label ||
     propVersions[0] ||
     "v1"
 
@@ -563,8 +603,10 @@ export function DatasetObject({
               <div className="space-y-2" data-testid="dataset-versions-loading">
                 <Skeleton className="h-8 w-full" />
               </div>
-            ) : versions.length ? (
-              versions.map((v) => (
+            ) : effectiveVersions.length ? (
+              <>
+              {versionError && <p className="text-xs text-destructive" data-testid="dataset-version-error">{versionError}</p>}
+              {effectiveVersions.map((v) => (
                 <div
                   key={v.version}
                   className={`rounded border px-2 py-1.5 text-xs ${v.current ? "bg-primary/5 border-primary/40" : ""}`}
@@ -580,6 +622,15 @@ export function DatasetObject({
                         {t('dataset_obj.used_by_runs', { n: consumers.length })}
                       </span>
                     )}
+                    {/* Restore a past version (append-only — writes a new version). */}
+                    {versionable && !v.current && (
+                      <button
+                        className="text-xs text-primary hover:underline disabled:opacity-50"
+                        data-testid={`dataset-version-restore-${v.version}`}
+                        disabled={restoringVersion === v.version}
+                        onClick={() => handleRestore(v.version)}
+                      >{restoringVersion === v.version ? t('dataset_obj.restoring') : t('dataset_obj.restore')}</button>
+                    )}
                     {v.createdAt && (
                       <span className="ml-auto text-xs text-muted-foreground">
                         {new Date(
@@ -594,9 +645,9 @@ export function DatasetObject({
                       {v.author && <span className="text-muted-foreground"> — {v.author}</span>}
                     </p>
                   )}
-                  {/* FUTURE: Compare / Restore — no diff/restore endpoint yet. */}
                 </div>
-              ))
+              ))}
+              </>
             ) : propVersions.length ? (
               propVersions.map((v) => (
                 <div key={v} className="rounded border px-2 py-1 text-xs" data-testid={`dataset-version-${v}`}>

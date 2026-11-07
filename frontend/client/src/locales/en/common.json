@@ -334,7 +334,10 @@
     "open_in": "Open in {{tool}}",
     "open_in_title": "Stage this file into a Galaxy history and open it in {{tool}}",
     "open_in_launching": "Launching…",
-    "open_in_failed": "Could not open the interactive tool"
+    "open_in_failed": "Could not open the interactive tool",
+    "restore": "Restore",
+    "restoring": "Restoring…",
+    "restore_failed": "Could not restore this version"
   },
   "data_hub": {
     "choose_project": "Choose a project",

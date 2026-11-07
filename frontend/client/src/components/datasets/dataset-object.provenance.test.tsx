@@ -170,6 +170,34 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     expect(usedby.textContent).toMatch(/2/)  // two consumer runs in routeFetch
   })
 
+  it("Versions tab — app-level versions from the Node store, with append-only Restore (§4.4)", async () => {
+    let restored = false
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: any) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (/\/api\/projects\/[^/]+\/files\/[^/]+\/versions\/[^/]+\/restore$/.test(url)) {
+        restored = true
+        return ({ ok: true, status: 200, json: async () => ({ file: {}, restoredFrom: 1 }), text: async () => "" }) as unknown as Response
+      }
+      if (/\/api\/projects\/[^/]+\/files\/[^/]+\/versions$/.test(url)) {
+        return ({ ok: true, status: 200, json: async () => ({ versions: restored
+          ? [{ version: "3", label: "v3", current: true }, { version: "2", label: "v2", current: false }, { version: "1", label: "v1", current: false }]
+          : [{ version: "2", label: "v2", current: true }, { version: "1", label: "v1", current: false, note: "original upload" }] }), text: async () => "" }) as unknown as Response
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={{ ...RUN, source: "upload" }} projectId="proj-rna" onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(screen.getByTestId("dataset-tab-versions"))
+    const restoreBtn = await screen.findByTestId("dataset-version-restore-1", {}, { timeout: 4000 })
+    fireEvent.click(restoreBtn)
+    await waitFor(() => expect(restored).toBe(true))
+  })
+
   it("lineage 'what came out' — a consumer run's produced dataset opens as its own object", async () => {
     // Extend the route mock with the project's files so the lineage section can
     // resolve each consumer run's produced datasets (spec 04 §4.5.3).

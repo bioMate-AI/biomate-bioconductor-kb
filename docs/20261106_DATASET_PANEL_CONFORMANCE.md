@@ -110,8 +110,16 @@ stubs shipped, per CLAUDE.md):
    needs a `scope` column + `POST …/files/:fid/scope` promote/demote + a cross-project read of
    account-scope files + a `shared/` folder + a visibility 2-button control (a half-wired toggle would
    be theater, so deferred).
-5. **Byte-versioning (infra):** Compare/Restore need S3 object-versioning (or a versions prefix)
-   enabled on the bucket — infrastructure, not code. Deferred until that's provisioned.
+5. **Content versioning (§4.4):** ✅ **SHIPPED app-level** (CORRECTION — this does NOT need S3
+   bucket-versioning; each version is its own S3 object + a `project_file_versions` row). A
+   `version_no` on project_files (current) + a `project_file_versions` table (history, idempotent
+   migration). Re-uploading the same name with different content writes a NEW version (append-only —
+   old bytes retained at their key, archived as a version; never overwrites). `GET
+   …/files/:fileId/versions` lists them; `POST …/versions/:v/restore` is append-only (archives
+   current, points at the chosen version's retained bytes as a new version). The dataset object's
+   Versions tab reads this Node store for project files (not the Galaxy note-log) and offers Restore.
+   REMAINING refinements: cell/column **Compare/diff** between versions, and **edit-in-place** of the
+   tabular preview as a version-creating action (both build on this store).
 6. **Recursive `results/<run>` folders:** the tree renderer is one level deep; nested run sub-folders
    under a `results/` parent need a recursive `TreeNodeView`.
 
