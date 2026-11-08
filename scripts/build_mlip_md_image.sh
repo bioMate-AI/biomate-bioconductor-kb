@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build & push biomate/mlip-md:x86 (infra/docker/mlip-md/Dockerfile) for the MLIP MD workflow
+# Build & push biomate/mlip-md:cuda12.4-x86 (infra/docker/mlip-md/Dockerfile) for the MLIP MD workflow
 # (nextflow_nfcore/subworkflows/molecular_dynamics/mlip_md_simulation). The workflow referenced
 # this ECR image but it was never built, so every run failed CannotPullImageManifestError.
 #
@@ -19,7 +19,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REGION=us-west-2
 REGISTRY=399683337364.dkr.ecr.us-west-2.amazonaws.com
 REPO_NAME=biomate/mlip-md
-TAG=x86
+TAG="${MLIP_TAG:-cuda12.4-x86}"   # the workflow pins this tag; bump both together when the CUDA build changes
 INSTANCE_ID="${BUILD_INSTANCE_ID:-i-0482a6fa98c6f301a}"; AZ="${BUILD_AZ:-us-west-2a}"; EC2_USER="${BUILD_USER:-ubuntu}"
 KEY=/tmp/biomate_ec2_key_sync
 _SSM="aws ssm start-session --target ${INSTANCE_ID} --document-name AWS-StartSSHSession --parameters portNumber=%p --region ${REGION}"
@@ -50,7 +50,12 @@ if [ "${BUILD_MODE:-spot}" = spot ]; then
     base64 < "$REPO_ROOT/infra/docker/mlip-md/Dockerfile"
     echo 'B64'
     echo "aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REGISTRY"
-    echo "docker build -t $REGISTRY/$REPO_NAME:$TAG . && docker push $REGISTRY/$REPO_NAME:$TAG && echo BUILD_PUSH_OK"
+    # The unique build-<instance-id> tag is this build's receipt: the poller accepts :$TAG only when
+    # it carries the same digest (the serial console is not a reliable channel for the log).
+    echo "TOKEN=\$(curl -s -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 300')"
+    echo "BT=build-\$(curl -s -H \"X-aws-ec2-metadata-token: \$TOKEN\" http://169.254.169.254/latest/meta-data/instance-id)"
+    echo "docker build -t $REGISTRY/$REPO_NAME:$TAG . && docker tag $REGISTRY/$REPO_NAME:$TAG $REGISTRY/$REPO_NAME:\$BT \\"
+    echo "  && docker push $REGISTRY/$REPO_NAME:\$BT && docker push $REGISTRY/$REPO_NAME:$TAG && echo BUILD_PUSH_OK"
   } > "$UD"
   BUILDER=$(aws ec2 run-instances --region "$REGION" --image-id "$AMI" --instance-type c6i.2xlarge \
     --subnet-id "${BUILD_SUBNET:-subnet-09e4dce46682a6c60}" --security-group-ids "${BUILD_SG:-sg-0a70bb26e47332c55}" \
@@ -79,15 +84,17 @@ for i in $(seq 1 125); do   # spot builder self-terminates at 120 min
   if [ "${BUILD_MODE:-spot}" != spot ] && [ "$now" != "none" ] && [ "$now" != "$before" ]; then
     echo "[mlip] pushed $REPO_NAME:$TAG $now"; exit 0; fi
   if builder_gone; then
-    # Spot mode judges by the builder's own log, not the ECR digest alone: another build pushing the
-    # same tag (e.g. a host-mode run still going) must not read as this build's success.
-    sleep 60
-    tail_=$(aws ec2 get-console-output --region "$REGION" --instance-id "$BUILDER" --latest --query Output --output text | grep MLIPLOG: | cut -c1-220 || true)
-    if echo "$tail_" | grep -q "MLIPLOG:BUILD_PUSH_OK"; then
-      echo "[mlip] pushed $REPO_NAME:$TAG $(aws ecr describe-images --region "$REGION" --repository-name "$REPO_NAME" \
-        --image-ids imageTag="$TAG" --query 'imageDetails[0].[imageDigest,imagePushedAt]' --output text)"; exit 0
+    # Spot mode judges by this build's receipt tag, not the ECR digest alone: another build pushing
+    # the same tag (e.g. a host-mode run still going) must not read as this build's success.
+    receipt=$(aws ecr describe-images --region "$REGION" --repository-name "$REPO_NAME" --image-ids imageTag="build-$BUILDER" \
+      --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo none)
+    if [ "$receipt" != none ] && [ "$receipt" = "$now" ]; then
+      echo "[mlip] pushed $REPO_NAME:$TAG $now (receipt tag build-$BUILDER)"; exit 0
     fi
-    echo "[mlip] builder terminated without pushing; log tail:"; echo "$tail_"; exit 1
+    echo "[mlip] builder terminated without pushing $REPO_NAME:$TAG (receipt=$receipt, $TAG=$now); console tail:"
+    aws ec2 get-console-output --region "$REGION" --instance-id "$BUILDER" --latest --query Output --output text \
+      | grep MLIPLOG: | cut -c1-220 || true
+    exit 1
   fi
   if [ "${BUILD_MODE:-spot}" != spot ] && [ $((i % 5)) -eq 0 ]; then
     tail_=$(ssh_ "tail -3 /tmp/mlip-md/build.log" 2>/dev/null || true)
