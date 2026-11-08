@@ -30,5 +30,7 @@ describe('simple sequence property execution', () => {
     expect(source).toContain('|| isSimpleSequencePropertyRequest(message)');
     expect(source).toContain('if (isSimpleSequencePropertyRequest(message))');
     expect(source).toContain('molecular_weight and isoelectric_point');
+    expect(source).toContain('below 40 predicted stable and above 40 potentially unstable');
+    expect(source).toContain('not a measured half-life or a validated stability threshold for this short peptide');
   });
 });

@@ -9690,7 +9690,7 @@ ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(g
     systemPrompt += responseLanguageDirective(context.uiLanguage);
 
     if (isSimpleSequencePropertyRequest(message)) {
-      systemPrompt += '\nThis is a basic property calculation on the supplied sequence, not folding or antibody design. Execute it with run_code using Bio.SeqUtils.ProtParam.ProteinAnalysis. Print a JSON object with sequence, molecular_weight and isoelectric_point from the actual library methods. Only report values returned by the successful tool. State that these are theoretical properties of an unmodified linear sequence; do not infer cyclic chemistry, structure, affinity, efficacy or safety.';
+      systemPrompt += '\nThis is a basic property calculation on the supplied sequence, not folding or antibody design. Execute it with run_code using Bio.SeqUtils.ProtParam.ProteinAnalysis. Print a JSON object with sequence, molecular_weight and isoelectric_point from the actual library methods. Only report values returned by the successful tool. State that these are theoretical properties of an unmodified linear sequence; do not infer cyclic chemistry, structure, affinity, efficacy or safety. If reporting the computed instability index, the ProtParam convention is below 40 predicted stable and above 40 potentially unstable; 40 is a boundary, not a measured half-life or a validated stability threshold for this short peptide. Do not invent a different threshold or assert experimentally established peptide instability. Prefer the requested molecular weight and pI over unsolicited biological interpretations.';
     }
 
     // Build research/benchmark context sections.

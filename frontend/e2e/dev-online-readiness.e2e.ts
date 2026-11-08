@@ -132,6 +132,11 @@ test('online readiness: drug-development requests and isolation', async ({ page,
           responseExcerpt: parsed.response.slice(0, 700),
           clarification: parsed.clarification,
         });
+        if (item.name === 'peptide properties') {
+          record('peptide interpretation: no observed invented threshold',
+            !/instability index\s*\(\s*>\s*64\s*\)/i.test(parsed.response),
+            { response: parsed.response, scope: 'Regression for the observed invented threshold; not a comprehensive scientific-language validator' });
+        }
       } catch (error) {
         record(item.name, false, { error: error instanceof Error ? error.message : String(error) });
       }

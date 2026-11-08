@@ -104,9 +104,10 @@ test('scientific properties: real ethanol artifacts and invalid-input rejection'
     expect(Number(values['Molecular Weight'])).toBeCloseTo(46.07, 2);
     expect(Number(values['Heavy Atoms'])).toBe(3);
     expect(Number(values['H-Bond Donors'])).toBe(1);
+    expect(Number(values['H-Bond Acceptors'])).toBe(1);
+    expect(Number(values.TPSA)).toBeCloseTo(20.23, 2);
     expect(Number(values['Molar Refractivity'])).toBeCloseTo(12.76, 2);
-    expect(Number(values.QED)).toBeGreaterThan(0);
-    expect(Number(values.QED)).toBeLessThan(1);
+    expect(Number(values.QED)).toBeCloseTo(0.4068, 4);
     expect(values).not.toHaveProperty('Estimated logD7.4');
     expect(values).not.toHaveProperty('Drug-likeness Score');
     const result = JSON.parse(await download(json, 'ethanol-result.json'));
