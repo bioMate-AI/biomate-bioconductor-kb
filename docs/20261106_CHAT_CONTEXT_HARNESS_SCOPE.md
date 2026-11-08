@@ -157,12 +157,17 @@ arrives when the live assembly is migrated onto the builder. (dimensions 1,2,3,9
   "searched, found nothing" channel (the harness's `failureSignalled`). Cheap, high trust — stops the
   model answering from nothing. (dimension 8)
 
-**P2 — Cross-history search tool.** A `search_chat_history` / findings search over
-`chat_sessions.messages` + run findings, user/project-scoped, with an explicit empty result. Answers
-"what did we conclude about hERG last week?". (channels + tool reach)
+**P2 — Cross-history search tool — ✅ DONE (PR #338).** `search_chat_history` tool over
+`chat_sessions.messages`, scoped to the authenticated user, EXCLUDING the current session, AND-matched
+case-insensitive `ILIKE`, `ORDER BY last_activity DESC` (indexed), `LIMIT 8`, returning `{session_id,
+title, status, last_activity, snippet}` per hit. An empty result is returned honestly ("nothing found
+— do not invent a recollection"). Pure `extractChatSnippet()` helper is unit-tested (6 tests). The
+`biomate-universe` skill's "you cannot search past conversations" boundary was flipped to describe the
+new scoped keyword search and its real limits (own chats only, literal word match, no semantic recall).
+Findings-text search was NOT added (findings live per-run in `_findingsCache`/outputs, not a single
+searchable column) — `list_history` + `search_my_data` already cover run lookup. (channels + tool reach)
 
-**P3 — Chat → report edit.** `edit_report(runId, instruction)` → propose diff → on accept call the
-existing `reportVersionStore.append` (v0-fork protection already there) + a ChatEdit accept UI.
+**P3 — Chat → report edit — ✅ backend DONE; one frontend wire-up remaining.** `edit_report` tool (PR TBD) edits the DURABLE versioned report through chat: three-step + never-silent — (1) `{run_id}` returns the current base text, (2) `{run_id, new_content}` returns a diff preview, (3) `{run_id, new_content, confirm:true}` appends a new version via `reportVersionStore.append` (v0 run original preserved). Base text comes from the client-shown markdown or the latest saved version — never a server-reconstructed approximation; when a run has no stored/opened report it returns `no_report_text` instead of fabricating one. Pure `summarizeReportEdit()` line-diff is unit-tested (6 tests). `ChatContext.openReportMarkdown`/`openReportRunId` is the integration point; the one remaining piece is the CHAT FRONTEND passing the open report's `buildFullReportMarkdown` into the turn so a freshly-viewed (never-saved) report can be edited without the user pasting it — that wire-up is small but needs UI verification on deploy. The `biomate-universe` skill's report-edit boundary was updated to describe the new capability and its limits.
 
 **P4 — Defer until P0 data says they're worth it.** Semantic retrieval (11), global-budget eviction
 (10), multi-turn entity persistence (15), provenance (13), token-accurate budgeting (14).
