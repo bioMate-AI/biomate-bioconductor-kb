@@ -1,3 +1,5 @@
+import { awaitsWorkflowInput } from "@/lib/workflow-response-state"
+import { type WorkflowProgressEvent, workflowProgressMessageId, hasWorkflowProgressEvent } from "@/lib/workflow-progress-event"
 // chat-with-artifacts: main chat UI component
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
@@ -1091,12 +1093,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // Receives chat_progress SSE events from the panel NextflowWorkflowViewer and
   // appends them to the current chat session so speaker pills render in the chat.
   // Mirrors handleWorkflowProgress in chat-interface.tsx.
-  const handlePanelWorkflowProgress = useCallback((event: { kind: string; friendly_message: string; ts?: number; technical?: any; invocationId?: string }) => {
+  const handlePanelWorkflowProgress = useCallback((event: WorkflowProgressEvent) => {
     if (!currentChatSession?.id) return
     const session = chatHistoryService.getSession(currentChatSession.id)
     if (!session) return
-    const eventId = `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`
-    if (session.messages.some(message => message.id === eventId)) return
+    const eventId = workflowProgressMessageId(event)
+    if (hasWorkflowProgressEvent(session.messages, event, eventId)) return
     const progressMsg: Message = {
       id: eventId,
       role: 'assistant',
@@ -1108,6 +1110,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         ...(event.invocationId && [currentRun?.id, currentRun?.execution?.galaxyInvocationId].includes(event.invocationId)
           ? { runId: currentRun?.id } : {}),
         kind: event.kind,
+        eventId: event.eventId,
         ts: event.ts,
         technical: event.technical,
       } as any,
@@ -1863,8 +1866,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     // the chat (not leak into the panel's progress/status). Suppress the auto-open
     // (and close an open panel) until the user answers; a later message without
     // the question flag opens the panel normally. (User reports 2026-11-01/02.)
-    const wfType = (wf.metadata.workflow as any)?.workflow_type
-    const awaitingUser = wfType === 'disambiguation' || !!(wf.metadata as any)?.needsUserFeedback
+    const awaitingUser = awaitsWorkflowInput(wf.metadata.workflow, wf.metadata)
     if (awaitingUser) {
       const sig = `${lastWorkflowMsgId}|awaiting-user`
       if (sig !== autoOpenedWorkflowSignatureRef.current) {
@@ -2621,7 +2623,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       executionMetrics={runMatchesPanel ? currentRun?.metrics : undefined}
                       onWorkflowProgress={(ev) => handlePanelWorkflowProgress({
                         ...ev,
-                        invocationId: currentRun?.execution?.galaxyInvocationId || currentRun?.id,
+                        invocationId: ev.invocationId || currentRun?.execution?.galaxyInvocationId || currentRun?.id,
                       })}
                       onRerunStarted={async (runId) => {
                         // After a successful /rerun call, restart polling immediately.

@@ -11,6 +11,19 @@ describe('workflow response', () => {
     metadata: { type: 'workflow', workflow: { name: 'ADMET screen' } },
   }
 
+  it('retains calendar context and timezone for historical chat messages', () => {
+    render(<ChatMessage message={{ id: 'old-user', role: 'user', content: 'GSE12345', timestamp: new Date('2025-01-15T12:00:00Z') }} />)
+    expect(screen.getByText(/You.*2025/)).toBeVisible()
+    expect(screen.getByText(/You.*2025/).getAttribute('title')).toMatch(/2025/)
+  })
+
+  it('keeps a pending confirmation as prose without a runnable workflow chip', () => {
+    render(<ChatMessage message={{ ...message, content: 'Please confirm the input first.', metadata: { ...message.metadata, needsUserFeedback: true } }} isInPanel />)
+    expect(screen.getByText('Please confirm the input first.')).toBeVisible()
+    expect(screen.queryByTestId('wf-chip-in-panel')).toBeNull()
+    expect(screen.queryByRole('log')).toBeNull()
+  })
+
   it('shows intent and unfolded updates within the same assistant response', () => {
     const { container } = render(<ChatMessage message={message} isInPanel progressMessages={[
       { id: 'progress', role: 'assistant', content: 'Input structures resolved.', timestamp: new Date() },

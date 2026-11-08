@@ -1,3 +1,4 @@
+import { tOr } from "@/lib/i18n"
 import {
   Sheet,
   SheetContent,
@@ -17,6 +18,7 @@ import type { Citation } from "@shared/schema"
 // rather than editing the shared schema. Absent fields simply do not render —
 // no fabrication.
 export type EvidenceCitation = Citation & {
+  excerpt?: string | null
   locus?: string | null
   retrieval_date?: string | null
   corpus_version?: string | null
@@ -33,9 +35,11 @@ interface SourceReaderPaneProps {
 
 /** Resolve the best external URL for a source (DOI preferred, then PubMed). */
 export function sourceUrl(c: EvidenceCitation): string | null {
-  if (c.doi) return `https://doi.org/${c.doi}`
-  if (c.pmid) return `https://pubmed.ncbi.nlm.nih.gov/${c.pmid}`
-  if (c.url && /^https?:\/\//i.test(c.url)) return c.url
+  const doi = c.doi?.trim().replace(/^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:\s*)/i, '');
+  if (doi) return `https://doi.org/${doi}`
+  const pmid = c.pmid?.trim();
+  if (pmid && /^\d+$/.test(pmid)) return `https://pubmed.ncbi.nlm.nih.gov/${pmid}`
+  if (c.url && /^https?:\/\//i.test(c.url.trim())) return c.url.trim()
   return null
 }
 
@@ -83,12 +87,13 @@ export function SourceReaderPane({
     >
       <SheetContent
         side="right"
+        aria-describedby={undefined}
         className={cn("w-full sm:max-w-md flex flex-col", className)}
         data-testid="source-reader-pane"
       >
         {source && (
           <>
-            <SheetHeader className="space-y-2 text-left">
+            <SheetHeader className="space-y-2 text-left shrink-0">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <BookOpen className="h-3.5 w-3.5" />
                 <span>
@@ -98,6 +103,9 @@ export function SourceReaderPane({
               <SheetTitle className="text-base leading-snug">
                 {source.title || source.tool_name || "Untitled source"}
               </SheetTitle>
+              {source.authors?.filter(author => author.trim()).length > 0 && (
+                <p className="text-xs text-muted-foreground" data-testid="reader-authors">{source.authors.filter(author => author.trim()).join(', ')}</p>
+              )}
               {venueYear && (
                 <SheetDescription className="text-xs">
                   {venueYear}
@@ -129,8 +137,10 @@ export function SourceReaderPane({
               )}
             </SheetHeader>
 
-            <div className="min-h-0 mt-4 overflow-y-auto space-y-4 text-sm leading-relaxed">
+            <div className="flex-1 min-h-0 mt-4 overflow-y-auto space-y-4 text-sm leading-relaxed break-words">
               {source.abstract?.trim() && <section data-testid="reader-abstract"><h3 className="font-medium mb-2">Abstract</h3><p className="whitespace-pre-wrap">{source.abstract}</p></section>}
+              {source.excerpt?.trim() && <section data-testid="reader-excerpt"><h3 className="font-medium mb-2">{tOr('citation_reader.retrieved_excerpt', 'Retrieved excerpt')}</h3><blockquote className="border-l-2 pl-3 whitespace-pre-wrap">{source.excerpt}</blockquote></section>}
+              {!source.abstract?.trim() && !source.excerpt?.trim() && <p className="text-xs text-muted-foreground" data-testid="reader-no-content">{tOr('citation_reader.no_abstract_excerpt', 'No abstract or excerpt was supplied for this source.')}</p>}
               <p className="text-xs text-muted-foreground">
                 Full text is not available in the reader for this source. Open it
                 at the publisher to read
@@ -146,12 +156,12 @@ export function SourceReaderPane({
                 </a>
               ) : (
                 <p className="text-xs text-muted-foreground italic">
-                  No DOI or PubMed link available for this source.
+                  {tOr('citation_reader.no_source_link', 'No source link was supplied.')}
                 </p>
               )}
             </div>
 
-            <div className="mt-4 flex items-center justify-between border-t pt-3">
+            <div className="mt-4 shrink-0 flex items-center justify-between border-t pt-3">
               <Button
                 size="sm"
                 variant="ghost"

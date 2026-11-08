@@ -148,7 +148,9 @@
     "mod_design_name": "Molecule design & generate",
     "mod_design_desc": "Propose candidates — molecules, peptides, proteins — then optimise and rank them",
     "mod_models_name": "Models",
-    "mod_models_desc": "Train, adapt or optimise a model on your data"
+    "mod_models_desc": "Train, adapt or optimise a model on your data",
+    "hospital_integration": "Try hospital demo: synthetic multi-omics integration",
+    "hospital_prediction": "Try hospital demo: synthetic subtype prediction"
   },
   "chat_msg": {
     "figure": "Figure",
@@ -644,7 +646,47 @@
     "account_scope": "All projects",
     "open_training_chat": "Open original chat →",
     "not_recorded": "Not recorded",
-    "training_workflow": "Training workflow"
+    "training_workflow": "Training workflow",
+    "setup_files_error": "Could not load project datasets.",
+    "setup_rounds": "Configure a design round",
+    "setup_train": "Configure training",
+    "setup_review": "Continue to chat to review the request and confirm the workflow. Nothing starts here.",
+    "setup_project": "Project",
+    "setup_choose_project": "Choose a project",
+    "setup_dataset": "Dataset",
+    "setup_loading": "Loading datasets…",
+    "setup_choose_dataset": "Choose a project file",
+    "setup_no_files": "Add a dataset to this project in Files first.",
+    "setup_objective": "Design objective and target",
+    "setup_target": "Target / label column",
+    "setup_candidates": "Candidate library",
+    "setup_budget": "Assay proposal budget",
+    "setup_type": "Model type",
+    "setup_metric": "Validation metric",
+    "setup_gate": "Minimum acceptable metric",
+    "setup_continue": "Review in chat",
+    "registration_failed": "Could not read or register this training result.",
+    "registration_refresh_failed": "Registration returned, but versions could not be refreshed. Check versions before retrying.",
+    "register_result": "Register training result",
+    "check_versions": "Check registered versions",
+    "registration_pending": "Checking training artifacts…",
+    "no_registered_versions": "No registered version for this run. Older runs may lack the launch snapshot needed for registration.",
+    "registration_not_serving": "Registered artifact versions are not automatically deployed for inference.",
+    "setup_tabular": "Tabular classifier / regressor (scikit-learn)",
+    "setup_molecular": "Molecular property predictor (Chemprop)",
+    "setup_accuracy": "Accuracy",
+    "setup_spearman": "Spearman correlation",
+    "setup_name": "Model name",
+    "setup_task": "Task type",
+    "setup_classification": "Classification",
+    "setup_regression": "Regression",
+    "registered_artifacts": "Registered training artifacts",
+    "registry_refresh": "Refresh versions",
+    "registry_loading": "Loading registered versions…",
+    "registry_load_error": "Could not load registered training artifacts.",
+    "registry_source_run": "Source run",
+    "registry_threshold": "Threshold",
+    "registry_empty": "No training artifacts have been registered in this scope."
   },
   "instructions_formats": {
     "edit_title": "Edit output format",
@@ -663,5 +705,19 @@
     "save_error": "Could not save settings. Your changes have not been saved.",
     "enable": "Enable {{name}}",
     "edit": "Edit"
+  },
+  "connectors": {
+    "cancel_add": "Cancel adding",
+    "add": "Add a connector",
+    "import_skill": "Import a skill file (.md)",
+    "skill_markdown": "Choose a Markdown (.md) skill file.",
+    "skill_import_failed": "Could not import this skill. Check its frontmatter and your access.",
+    "skill_importing": "Importing skill…",
+    "skill_imported": "Skill imported. It is available in Skills & experts."
+  },
+  "citation_reader": {
+    "retrieved_excerpt": "Retrieved excerpt",
+    "no_abstract_excerpt": "No abstract or excerpt was supplied for this source.",
+    "no_source_link": "No source link was supplied."
   }
 }

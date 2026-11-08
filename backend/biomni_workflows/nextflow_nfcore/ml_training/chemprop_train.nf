@@ -20,6 +20,7 @@ params.dataset           = null            // s3://…/data.csv | tdc:hERG | fix
 params.smiles_col        = 'smiles'
 params.target_col        = 'y'
 params.split             = 'scaffold'
+params.cv_folds          = 5
 params.val_frac          = 0.1
 params.test_frac         = 0.1
 params.model_name        = 'molecular-model'
@@ -76,6 +77,7 @@ process TRAIN {
         --smiles-col '${params.smiles_col}' \
         --target-col '${params.target_col}' \
         --split '${params.split}' \
+        --cv-folds ${params.cv_folds} \
         --val-frac ${params.val_frac} \
         --test-frac ${params.test_frac} \
         --model-name '${params.model_name}' \

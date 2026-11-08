@@ -1,3 +1,4 @@
+import { OwnedTrainingRegistry } from "./owned-training-registry"
 /**
  * ModelsPanel — the 5-track Models surface:
  *
@@ -17,6 +18,8 @@
  * are distinct from a successful empty result; explicit data props override reads.
  */
 
+import { ModelSetup } from "./model-setup"
+import { TrainingRegistration } from "./training-registration"
 import { useState } from "react"
 import { t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -342,6 +345,7 @@ function OptimiseTrack({
  */
 export interface TrainRun {
   runId?: string
+  registrationEligible?: boolean
   chatSessionId?: string
   createdAt?: string | null
   name: string
@@ -468,6 +472,7 @@ function TrainTrack({
                   </Badge>
                   <span className="font-mono text-[10px] text-muted-foreground truncate">{r.dataset === "Not recorded" ? t("models.not_recorded") : r.dataset}</span>
                   {r.chatSessionId && <a className="ml-auto text-primary hover:underline" href={`/?session=${encodeURIComponent(r.chatSessionId)}`} data-testid={`train-run-chat-${r.runId || r.name}`}>{t("models.open_training_chat")}</a>}
+                  {r.runId && /^(completed|complete|success|succeeded)$/i.test(r.status) && <TrainingRegistration runId={r.runId} eligible={r.registrationEligible} />}
                   {r.modelId && (
                     <button
                       type="button"
@@ -816,6 +821,7 @@ export function ModelsPanel({
             </TabsList>
 
             <TabsContent value="0">
+              <ModelSetup />
               <TrackRequestState query={trainQuery} overridden={trainData !== undefined}>
 
               <TrainTrack data={effectiveTrainData} onOpenModel={setOpenModelId} />
@@ -834,6 +840,7 @@ export function ModelsPanel({
             </TabsContent>
 
             <TabsContent value="2">
+              <ModelSetup rounds />
               <TrackRequestState query={optimiseQuery} overridden={optimiseData !== undefined}>
 
               <OptimiseTrack data={effectiveOptimiseData} onOpenModel={setOpenModelId} />
@@ -845,6 +852,7 @@ export function ModelsPanel({
             </TabsContent>
 
             <TabsContent value="4">
+              <OwnedTrainingRegistry project={projectArg} />
               <RegistryTrack onOpenModel={setOpenModelId} />
             </TabsContent>
           </Tabs>

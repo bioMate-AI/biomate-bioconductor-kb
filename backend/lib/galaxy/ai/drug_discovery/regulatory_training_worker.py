@@ -24,7 +24,8 @@ Picks up `queued` jobs and dispatches on adaptation_mode:
                    Speculative Deploys".
 """
 from __future__ import annotations
-import json, logging, os, time
+import json, logging, os, time, tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -40,6 +41,18 @@ MODELS_ROOT = REPO / "models"
 ORG_RULES_DIR = REPO / "data" / "regulatory_training" / "org_rules"
 ORG_FEWSHOT_DIR = REPO / "data" / "regulatory_training" / "org_fewshot"
 HARNESS_WITNESS = MODELS_ROOT / "regulatory_llm_eval_witness.json"
+
+
+@contextmanager
+def _owned_pair_file(job: rj.TrainingJob):
+    """Feed compilers an isolated owner/project input; never the shared JSONL."""
+    with tempfile.TemporaryDirectory(prefix='owned-adaptation-') as directory:
+        path = Path(directory) / 'pairs.jsonl'
+        rows = rj.read_owned_edit_pairs(job.user_id, job.org_id)
+        if not rows:
+            raise ValueError('No active owner-bound feedback pairs are available for this project')
+        path.write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
+        yield path
 
 
 # ─── per-mode handlers ─────────────────────────────────────────────────────
@@ -58,7 +71,8 @@ def _do_prompt_rules(job: rj.TrainingJob) -> rj.TrainingJob:
     from galaxy.ai.drug_discovery.org_rule_compiler import compile_and_write
     ORG_RULES_DIR.mkdir(parents=True, exist_ok=True)
     out_path = ORG_RULES_DIR / f"{job.org_id}.yaml"
-    n_pairs = compile_and_write(rj.DPO_PAIRS_PATH, out_path, job.org_id)
+    with _owned_pair_file(job) as pairs_path:
+        n_pairs = compile_and_write(pairs_path, out_path, job.org_id)
     return rj.mark_status(
         job.job_id,
         "succeeded",
@@ -82,7 +96,8 @@ def _do_few_shot_index(job: rj.TrainingJob) -> rj.TrainingJob:
     from galaxy.ai.drug_discovery.org_fewshot_index import build_and_write
     ORG_FEWSHOT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = ORG_FEWSHOT_DIR / f"{job.org_id}.jsonl"
-    n_rows = build_and_write(rj.DPO_PAIRS_PATH, out_path, job.org_id)
+    with _owned_pair_file(job) as pairs_path:
+        n_rows = build_and_write(pairs_path, out_path, job.org_id)
     return rj.mark_status(
         job.job_id,
         "succeeded",

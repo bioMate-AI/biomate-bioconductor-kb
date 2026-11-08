@@ -78,6 +78,14 @@ describe("NextflowWorkflowViewer — per-step execution controls (current afford
   });
   afterEach(() => { vi.clearAllMocks(); });
 
+  it("forwards the durable SSE event identity even when timestamp is absent", async () => {
+    const onWorkflowProgress = vi.fn();
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" onWorkflowProgress={onWorkflowProgress} />);
+    await waitFor(() => expect(typeof esHandlers['chat_progress']).toBe('function'));
+    dispatchSSE('chat_progress', { kind: 'workflow.failed', friendly_message: 'Workflow hit an error.', event_id: 'attempt-a-event-9', invocation_id: 'producer-run-a' });
+    expect(onWorkflowProgress).toHaveBeenCalledWith(expect.objectContaining({ eventId: 'attempt-a-event-9', invocationId: 'producer-run-a', ts: undefined }));
+  });
+
   it("shows step details while pending, without allowing a rerun", async () => {
     render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
     // Phases tab auto-selected for running; s2 starts genuinely pending.

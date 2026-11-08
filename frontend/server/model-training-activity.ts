@@ -1,7 +1,7 @@
 /** Read owned training activity without inferring registration or reading global campaigns. */
 export interface TrainingActivityRun {
  id: string; userId?: string; projectId?: string; chatSessionId?: string; workflowName: string;
- workflowDefinition?: unknown; execution: { status: string };
+ workflowDefinition?: unknown; execution: { status: string; trainingLaunchParameters?: Record<string, unknown> };
  inputBindings?: Array<{ name?: string; datasetId: string }>;
  createdAt: Date | string; updatedAt: Date | string;
 }
@@ -10,14 +10,15 @@ export interface ModelTrainingActivityDependencies {
  getExecutionRuns(userId: string, projectId?: string): Promise<TrainingActivityRun[]>;
 }
 export interface ModelTrainingActivityRow {
- runId: string; chatSessionId?: string; projectId?: string; name: string; family: 'ml_training';
+ runId: string; chatSessionId?: string; projectId?: string; name: string; family: 'ml_training' | 'adaptation';
  when: string; createdAt: string | null; updatedAt: string | null; status: string;
- gate: string; metric: string; dataset: string;
+ gate: string; metric: string; dataset: string; registrationEligible: boolean;
 }
 export function isModelTrainingRun(run: TrainingActivityRun): boolean {
  const wf = run.workflowDefinition as Record<string, unknown> | undefined;
  if (!wf || typeof wf !== 'object' || Array.isArray(wf)) return false;
- if (wf.domain === 'ml_training' || wf.workflow_domain === 'ml_training' || wf.workflow_type === 'training') return true;
+ if (wf.workflow_type === 'training') return true;
+ if (wf.domain === 'ml_training' || wf.workflow_domain === 'ml_training') return true;
  return typeof wf.nextflow_path === 'string' && !/[?#\0]/.test(wf.nextflow_path) && /(?:^|\/)ml_training\/[^/]+\.nf$/.test(wf.nextflow_path);
 }
 function iso(value: Date | string): string | null {
@@ -27,10 +28,11 @@ function iso(value: Date | string): string | null {
 export function toModelTrainingActivityRow(run: TrainingActivityRun): ModelTrainingActivityRow {
  const createdAt = iso(run.createdAt);
  return { runId: run.id, ...(run.chatSessionId ? { chatSessionId: run.chatSessionId } : {}),
-  ...(run.projectId ? { projectId: run.projectId } : {}), name: run.workflowName, family: 'ml_training',
+  ...(run.projectId ? { projectId: run.projectId } : {}), name: run.workflowName, family: (run.workflowDefinition as any)?.workflow_type === 'training' && (run.workflowDefinition as any)?.domain !== 'ml_training' ? 'adaptation' : 'ml_training',
   when: createdAt ?? 'Not recorded', createdAt, updatedAt: iso(run.updatedAt), status: run.execution.status,
   // Resource/runtime metrics do not establish training quality or registry identity.
   gate: 'Not recorded', metric: 'Not recorded',
+  registrationEligible: !!run.execution.trainingLaunchParameters && ['completed', 'failed'].includes(run.execution.status),
   dataset: run.inputBindings?.map(b => b.name || b.datasetId).join(', ') || 'Not recorded' };
 }
 export async function readModelTrainingActivity(

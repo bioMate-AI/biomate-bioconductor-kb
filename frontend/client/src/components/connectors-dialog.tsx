@@ -11,6 +11,8 @@ import { SettingsDialog } from './settings-dialog';
 import { normalizeSkillPack, type SkillPack } from './skills-selector';
 import { InstrumentsSection } from './instruments-section';
 import { McpServerForm } from './mcp-server-form';
+import { tOr } from '@/lib/i18n';
+import { ImportSkillForm } from './import-skill-form';
 import { AddSkillForm } from './add-skill-form';
 
 const ACTIVE_DBS_KEY = 'biomate-active-databases';
@@ -475,11 +477,11 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
   const Container = embedded ? 'section' : DialogContent;
   const content = (
       <Container
-        style={{ maxWidth: embedded ? 'none' : 1040, width: embedded ? '100%' : '96vw', height: embedded ? '100%' : undefined, maxHeight: embedded ? 'none' : '82vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', gap: 0 }}
+        style={{ maxWidth: embedded ? 'none' : 1040, width: embedded ? '100%' : '96vw', height: embedded ? '100%' : '82vh', minHeight: 0, maxHeight: embedded ? '100%' : '82vh', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', gap: 0 }}
         data-testid="connectors-dialog"
       >
         <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
-          {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connectors</p><div className="flex items-center justify-between gap-4"><h1 className="text-xl font-semibold">Connectors</h1><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => setAdding(v => !v)}>{adding ? "Close" : "Add a connector"}</button></div></> : <DialogTitle>Connectors</DialogTitle>}
+          {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connectors</p><div className="flex items-center justify-between gap-4 flex-wrap"><h1 className="text-xl font-semibold">Connectors</h1><div className="flex items-center gap-2"><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => setAdding(v => !v)}>{adding ? tOr('connectors.cancel_add', 'Cancel adding') : tOr('connectors.add', 'Add a connector')}</button><button className="text-sm border border-border rounded-md px-3 py-1.5" data-testid="connectors-close" onClick={() => onOpenChange(false)}>{tOr('actions.close', 'Close')}</button></div></div></> : <DialogTitle>Connectors</DialogTitle>}
           <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '8px 0' }}>Browse public sources or manage your private database, MCP server, and instrument connections.</p>
           {/* Residency legend (§0.9.3): the five values, so a badge is readable at a glance */}
           <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 10.5, color: 'var(--muted-foreground)' }}>
@@ -531,6 +533,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
           ))}
         </div>
 
+        <div data-testid="connectors-scroll" style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain' }}>
         {adding && (
           <div className="p-5 border-b border-border">
             <AddConnectorFlow
@@ -542,12 +545,12 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
             />
           </div>
         )}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', display: 'flex', flexDirection: 'column' }}>
           {activeTab === 'databases' && <><div className="flex flex-wrap gap-2 px-5 py-3 border-b border-border">{(['public', 'private', 'instruments'] as const).map(view => <button key={view} className={sourceView === view ? 'text-xs rounded-md px-3 py-1.5 bg-muted font-semibold' : 'text-xs rounded-md px-3 py-1.5 text-muted-foreground'} onClick={() => setSourceView(view)}>{view === 'public' ? 'Public databases' : view === 'private' ? 'Private databases' : 'Instruments'}</button>)}</div>{sourceView === 'public' ? <DatabasesTab compact={embedded} selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} /> : sourceView === 'private' ? <div className="p-5"><PrivateDbConnectionForm /></div> : <InstrumentsSection />}</>}
           {activeTab === 'ai' && <><div className="p-4"><button className="text-sm underline" onClick={() => setSettingsOpen(true)}>Configure model providers and API keys</button></div><ConnectorTable compact={embedded} rows={AI} scopes={scopes} onScopeChange={setScope} /></>}
           {activeTab === 'yours' && <div className="p-5"><PrivateDbConnectionForm /></div>}
           {activeTab === 'mcp' && <div className="p-5"><McpServerForm /></div>}
           {activeTab === 'skills' && <div className="p-5 space-y-6">
+            <ImportSkillForm onImported={loadPacks} />
             <AddSkillForm onCreated={loadPacks} />
             <div>
               <p className="text-sm text-muted-foreground mb-4">Your experts. Switch them on per request using Skills &amp; experts in the chat composer.</p>

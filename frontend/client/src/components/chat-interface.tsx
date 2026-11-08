@@ -1,5 +1,7 @@
+import { type WorkflowProgressEvent, workflowProgressMessageId, hasWorkflowProgressEvent } from "@/lib/workflow-progress-event"
+import { awaitsWorkflowInput, hasGeneratedWorkflow } from "@/lib/workflow-response-state"
 import { LiveVoicePanel } from "./live-voice-panel"
-import { prepareColdStartExample, INTERNAL_EXAMPLES, PREPARED_EXAMPLES, ensureInternalDemoProject } from "./cold-start-examples"
+import { prepareColdStartSelection } from "./cold-start-examples"
 import { toast } from "@/hooks/use-toast"
 import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
@@ -759,13 +761,13 @@ export function ChatInterface({
   // NextflowWorkflowViewer's SSE listener; we append each one as a short
   // italic message (chat-message.tsx renders metadata.type='workflow_progress'
   // with a 🔹 icon, smaller font, no full card). De-dupe by (invocationId, kind, ts).
-  const handleWorkflowProgress = useCallback((event: { kind: string; friendly_message: string; ts?: number; technical?: any; invocationId?: string }) => {
+  const handleWorkflowProgress = useCallback((event: WorkflowProgressEvent) => {
     if (!chatSession?.id) return
     const session = chatHistoryService.getSession(chatSession.id)
     if (!session) return
     // Exact IDs also reject replayed events that arrive after a newer update.
-    const eventId = `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`
-    if (session.messages.some(message => message.id === eventId)) return
+    const eventId = workflowProgressMessageId(event)
+    if (hasWorkflowProgressEvent(session.messages, event, eventId)) return
     const progressMsg: Message = {
       id: eventId,
       role: 'assistant',
@@ -777,6 +779,7 @@ export function ChatInterface({
         ...(event.invocationId && [currentExecutionRun?.id, currentExecutionRun?.execution?.galaxyInvocationId].includes(event.invocationId)
           ? { runId: currentExecutionRun?.id } : {}),
         kind: event.kind,
+        eventId: event.eventId,
         ts: event.ts,
         technical: event.technical,
       } as any,
@@ -1100,10 +1103,11 @@ export function ChatInterface({
       // Handle /api/chat response format (full hybrid intelligence)
       // Response structure: { response, suggestions, workflow, thinking_content, metadata }
       let workflowData = data.workflow?.workflow_ga || data.workflow;
-      let workflowSuccess = !!data.workflow?.success || (data.workflow && !data.workflow.error);
+      const awaitingWorkflowInput = awaitsWorkflowInput(data.workflow, data.metadata);
+      const workflowSuccess = hasGeneratedWorkflow(data.workflow, data.metadata);
 
       // Check if workflow was generated
-      if (data.workflow && !workflowSuccess) {
+      if (data.workflow && !workflowSuccess && !awaitingWorkflowInput) {
         console.warn('[ChatInterface] Workflow generation returned but failed:', data.workflow.error || data.workflow.message);
         workflowData = null;
       }
@@ -1123,7 +1127,7 @@ export function ChatInterface({
       // question) is not a sufficient signal — it would wrongly show the failure card for every
       // clarification turn with openai_compatible providers (Qianwen, DeepSeek, etc.).
       const shouldRenderCollaborativeFailure =
-        !workflowSuccess && (hasFailureDiagnostics || looksLikeNarrativeFailure);
+        !workflowSuccess && !awaitingWorkflowInput && (hasFailureDiagnostics || looksLikeNarrativeFailure);
 
       // If workflow was generated, append workflow-specific info
       if (workflowSuccess && workflowData) {
@@ -1222,13 +1226,13 @@ export function ChatInterface({
           steps: stepsArray,
           confidence: data.workflow?.confidence || data.metadata?.workflowSuggestion?.confidence,
           source: data.workflow?.source || 'chat',
-          needsUserFeedback: !!data.workflow?.needs_user_feedback,
+          needsUserFeedback: awaitingWorkflowInput,
           feedbackPrompt: data.workflow?.feedback_prompt,
           candidateWorkflows: data.workflow?.candidate_workflows || [],
           selectedTrial: data.workflow?.selected_trial,
           trialCount: data.workflow?.trial_count,
           isDemo: false,
-          generationFailed: data.workflow && !workflowSuccess,
+          generationFailed: data.workflow && !workflowSuccess && !awaitingWorkflowInput,
           failureReason: data.workflow?.error || data.workflow?.message,
           // Thinking mode support from /api/chat
           thinking_content: data.thinking_content,
@@ -2166,13 +2170,10 @@ export function ChatInterface({
                 preparingExampleRef.current = true;
                 setPreparingExample(true);
                 try {
-                  const internal = INTERNAL_EXAMPLES.includes(text);
-                  const example = await prepareColdStartExample(internal ? PREPARED_EXAMPLES[0].label : text);
-                  if (internal) {
-                    const projectId = await ensureInternalDemoProject(example.files);
-                    activeProjectContext?.setActiveProjectId(projectId);
-                    handleFileToProject(projectId);
-                    example.prompt = `${text} Project ID: ${projectId}. Use the project files and attached tutorial inputs. Do not infer prior assay results or completed runs from these input files.`;
+                  const example = await prepareColdStartSelection(text);
+                  if (example.projectId) {
+                    activeProjectContext?.setActiveProjectId(example.projectId);
+                    handleFileToProject(example.projectId);
                   }
                   if (!localSetDraftRef.current || (example.files.length && !localExampleFilesRef.current)) {
                     throw new Error("The composer is still loading. Please try again.");

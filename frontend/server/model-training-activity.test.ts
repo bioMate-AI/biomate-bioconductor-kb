@@ -63,3 +63,11 @@ it('retains owned adaptation retrains recorded as training execution runs', asyn
  const result = await readModelTrainingActivity({ userId: 'owner' }, d);
  expect(result).toMatchObject({ status: 200, body: { runs: [{ runId: 'run-1', name: 'Adaptation retrain' }] } });
 });
+
+it('includes the owned adaptation handler training execution record', async () => {
+ const d = deps([run({ workflowName: 'Adaptation retrain', workflowDefinition: { workflow_type: 'training' } })]);
+ const result = await readModelTrainingActivity({ userId: 'owner' }, d);
+ expect((result.body as any).runs[0].name).toBe('Adaptation retrain');
+ expect((result.body as any).runs[0].family).toBe('adaptation');
+ expect((result.body as any).runs[0]).not.toHaveProperty('modelId');
+});

@@ -123,3 +123,12 @@ describe("Project instructions route", () => {
     expect(screen.getByTestId("instructions-memory")).toBeInTheDocument()
   })
 })
+
+it('normalizes the retired project Runs deep-link to Files without mounting a duplicate workflow viewer', async () => {
+  const fetcher = installFetch({ role: 'owner', members: [OWNER_MEMBER] });
+  render(<ProjectDetailPage projectId={PROJECT.id} initialTab="workflows" onBack={() => {}} />);
+  expect(await screen.findByTestId('mock-file-tree')).toBeInTheDocument();
+  expect(screen.queryByTestId('tab-content-workflows')).toBeNull();
+  expect(screen.queryByTestId('mock-wf-viewer')).toBeNull();
+  expect(fetcher.mock.calls.some(([input]) => String(input).includes('/api/workflows/runs'))).toBe(false);
+});

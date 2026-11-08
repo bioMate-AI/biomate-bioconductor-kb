@@ -75,8 +75,8 @@ log() { echo "[$(date '+%H:%M:%S')] $*"; }
 # notification so a failed dev sync is no longer silent.
 #
 # ROLLBACK: dev sync is in-place file hot-patch + gunicorn HUP, not an image-tag
-# swap. The Galaxy container has NO mounts (verified), so `docker commit` BEFORE
-# the sync captures all hot-patched code/db/workflows/config in one image; the
+# swap. Galaxy persists /app/database via the galaxy_db host bind; `docker commit`
+# captures hot-patched code/workflows/config, while rollback preserves that bind. The
 # frontend keeps its own image tags. A post-sync health gate (snapshot_for_rollback
 # / postsync_health_ok / rollback_sync below) recreates both containers from those
 # snapshots if dev is unhealthy after the sync.
@@ -2315,9 +2315,15 @@ if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
   # docs/20260607_BATCH_AMI_AWSCLI_NOT_SELF_CONTAINED.md.
   log "Ensuring Batch CE Launch-Template versions are current..."
   bash "$REPO_ROOT/scripts/audit_batch_ce_lt_versions.sh" --apply --quiet 2>&1 | sed 's/^/  /'
-  log "Launching post-sync E2E tests in background..."
-  bash "$REPO_ROOT/scripts/run_postsync_tests.sh" "$CURRENT_COMMIT" \
-    >> /tmp/biomate_sync.log 2>&1 &
+  if [[ "${BIOMATE_POSTSYNC_TEST_MODE:-background}" == "manual" ]]; then
+    # A supervised browser/API review can replace the legacy background suites.
+    # Health and generation smoke gates above still run; manual is not a test pass.
+    log "[tests] Supervised post-sync verification pending (BIOMATE_POSTSYNC_TEST_MODE=manual); no background E2E launched"
+  else
+    log "Launching post-sync E2E tests in background..."
+    bash "$REPO_ROOT/scripts/run_postsync_tests.sh" "$CURRENT_COMMIT" \
+      >> /tmp/biomate_sync.log 2>&1 &
+  fi
   # A successful sync IS the dev deploy — fire the IND PI suite against dev.
   trigger_pi_suite
   exit 0

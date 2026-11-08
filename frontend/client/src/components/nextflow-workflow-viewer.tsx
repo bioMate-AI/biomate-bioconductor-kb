@@ -1,3 +1,4 @@
+import type { WorkflowProgressEvent } from "@/lib/workflow-progress-event"
 import { canControlExecutionFromQc } from "@shared/qc-assessment";
 import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
@@ -80,7 +81,7 @@ interface NextflowWorkflowViewerProps {
    * appends them as short italic messages to the current chat session.
    * See backend/lib/galaxy/ai/workflow_ops/workflow_chat_narrator.py
    */
-  onWorkflowProgress?: (event: { kind: string; friendly_message: string; ts?: number; technical?: any }) => void;
+  onWorkflowProgress?: (event: WorkflowProgressEvent) => void;
   executionEngine?: string;
   /** Execution metrics from status API (includes perStepLlmCost). */
   executionMetrics?: {
@@ -2426,6 +2427,9 @@ export function NextflowWorkflowViewer({
         if (data && data.friendly_message && data.kind) {
           onWorkflowProgress({
             kind: String(data.kind),
+            invocationId: typeof data.invocation_id === 'string' ? data.invocation_id : invocationId,
+            eventId: typeof data.event_id === 'string' ? data.event_id
+              : typeof data.eventId === 'string' ? data.eventId : event.lastEventId || undefined,
             friendly_message: String(data.friendly_message),
             ts: typeof data.ts === 'number' ? data.ts : undefined,
             technical: data.technical,
@@ -3203,6 +3207,7 @@ export function NextflowWorkflowViewer({
             );
           })()}
           <AfterRunReport
+            embedded
             runId={runId || invocationId || ''}
             invocationId={invocationId}
             // C2: Stream 2 adds `targetTab?` to AfterRunReportProps; cast-spread

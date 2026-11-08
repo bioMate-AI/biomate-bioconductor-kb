@@ -1,3 +1,7 @@
+import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
+import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
+import { isModelTrainingRun } from "./model-training-activity";
+import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
 import { readModelTrainingActivity } from "./model-training-activity";
 import { authorizeDatasetReference } from "./dataset-reference-access";
 import { setFilePreviewSecurityHeaders } from "./file-preview-security";
@@ -5543,6 +5547,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   GET  /api/generate/:runId              (poll generation run)
   // A single shared handler keeps behavior identical across all six.
   const _dlProxyHandler = backendPassthrough("DL surface");
+  const _modelsOwnerProxy = async (req: any, res: any) => {
+    try {
+      await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
+      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const response = await fetchOwnedModelSurface(req.user?.id, `${req.path}${query}`, {
+        method: req.method,
+        ...(!['GET', 'HEAD'].includes(req.method) ? { body: JSON.stringify(req.body || {}) } : {}),
+      });
+      return res.status(response.status).json(await response.json().catch(() => ({ error: 'Invalid Models service response' })));
+    } catch (error) {
+      return res.status(error instanceof ModelSurfaceAccessError ? error.status : 502).json({ error: error instanceof ModelSurfaceAccessError ? error.message : 'Models service unavailable' });
+    }
+  };
 
   // Dedicated handler for the Adapt-track retrain: proxy to Galaxy (the job runs
   // synchronously there — queued → running → succeeded via the worker tick),
@@ -5555,10 +5572,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let galaxyJson: any = {};
     let galaxyStatus = 200;
     try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
       const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const fullPath = `${req.path}${queryStr}`;
-      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, {
+      const resp = await fetchOwnedModelSurface(req.user?.id, fullPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
@@ -5566,8 +5583,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       galaxyStatus = resp.status;
       galaxyJson = await resp.json().catch(() => ({}));
+      if (galaxyStatus >= 400) return res.status(galaxyStatus).json(galaxyJson);
+      if (!isTrackedAdaptJob(galaxyStatus, galaxyJson)) return res.status(502).json({ error: 'Models service did not return a valid tracked training job.' });
     } catch (err: any) {
-      const status = err.response?.status || 502;
+      const status = err instanceof ModelSurfaceAccessError ? err.status : err.response?.status || 502;
       return res.status(status).json({ error: 'DL surface proxy error', detail: err.message });
     }
 
@@ -5622,14 +5641,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Bare-path matchers (Express "/*" wildcards require a following segment, so
   // the collection roots are registered explicitly) plus their sub-paths.
-  app.all("/api/models", optionalAuth, _dlProxyHandler);
-  app.all("/api/models/*", optionalAuth, _dlProxyHandler);
+  app.all("/api/models", authenticateToken, _modelsOwnerProxy);
+  app.all("/api/models/*", authenticateToken, _modelsOwnerProxy);
   // Project-scoped Models track reads (Train / Adapt / Optimise). Distinct
   // prefix so they don't fall under the greedy /api/models/:id detail route.
   // The retrain POST is registered FIRST (more specific) so it can register a
   // first-class run; everything else falls through to the shared proxy.
   // Training is execution activity, not a list of globally registered campaign scorers.
   // Keep real user/run identity so successful workflow training cannot disappear from Models.
+  // Model registration is owner-scoped and uses only canonical outputs and the
+  // recorded launch snapshot. Browser requests never supply paths/owners/metrics.
+  const modelRegistrationDependencies = {
+    listOutputs: async (runId: string) => {
+      const { runsOutputsService } = await import("./services/runs-outputs-service");
+      return runsOutputsService.list(runId);
+    },
+    internalRequest: requestInternalModelRegistry,
+  };
+  const modelRegistrationFailure = (res: any, error: any) => res.status(error instanceof TrainingRegistrationError ? error.status : 502).json({ error: error instanceof TrainingRegistrationError ? error.message : 'Central model registry is unavailable. Please retry.' });
+  app.post("/api/model-training-activity/:runId/register", authenticateToken, async (req: any, res) => {
+    if (req.body && Object.keys(req.body).length) return res.status(400).json({ error: 'Model registration accepts no client-supplied settings.' });
+    const run = await resolveAuthorizedRun(req, res, req.params.runId);
+    if (!run) return;
+    try {
+      const result = await registerOwnedTrainingRun(req.user?.id, run, modelRegistrationDependencies);
+      return res.status(result.status).json(result.body);
+    } catch (error) { return modelRegistrationFailure(res, error); }
+  });
+  app.get("/api/model-training-activity/:runId/versions", authenticateToken, async (req: any, res) => {
+    const run = await resolveAuthorizedRun(req, res, req.params.runId);
+    if (!run) return;
+    try {
+      const result = await readOwnedTrainingVersions(req.user?.id, run, modelRegistrationDependencies);
+      return res.status(result.status).json(result.body);
+    } catch (error) { return modelRegistrationFailure(res, error); }
+  });
+  app.get("/api/model-training-versions", authenticateToken, async (req: any, res) => {
+    try {
+      const projects = await memoryService.projects.getUserProjects(req.user.id);
+      const project = req.query.project;
+      if (project !== undefined && (typeof project !== 'string' || !projects.some((item: any) => item.id === project))) return res.status(403).json({ error: 'Project access denied' });
+      const scopes: Array<string | undefined> = project ? [project] : [undefined, ...projects.map((item: any) => item.id)];
+      const versions: any[] = [];
+      for (const scope of new Set(scopes)) {
+        const query = new URLSearchParams({ owner_id: req.user.id });
+        if (scope) query.set('project_id', scope);
+        const result = await requestInternalModelRegistry(`/api/internal/model-training/versions?${query}`);
+        if (result.status !== 200) return res.status(result.status).json(result.body);
+        versions.push(...(result.body.versions || []));
+      }
+      return res.json({ versions });
+    } catch (error) { return modelRegistrationFailure(res, error); }
+  });
   app.get("/api/model-tracks/train", authenticateToken, async (req, res) => {
     const result = await readModelTrainingActivity({ userId: req.user?.id, project: req.query.project }, {
       getUserProjects: uid => memoryService.projects.getUserProjects(uid),
@@ -5637,9 +5700,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     res.status(result.status).json(result.body);
   });
-  app.post("/api/model-tracks/adapt/retrain", optionalAuth, _adaptRetrainHandler);
-  app.all("/api/model-tracks/*", optionalAuth, _dlProxyHandler);
-  app.all("/api/inference/*", optionalAuth, _dlProxyHandler);
+  app.post("/api/model-tracks/adapt/retrain", authenticateToken, _adaptRetrainHandler);
+  app.all("/api/model-tracks/*", authenticateToken, _modelsOwnerProxy);
+  app.all("/api/inference/*", authenticateToken, _modelsOwnerProxy);
   app.all("/api/generate", optionalAuth, _dlProxyHandler);
   app.all("/api/generate/*", optionalAuth, _dlProxyHandler);
   // Tier-1 data surface — perception-at-ingest profiler.
@@ -11276,6 +11339,15 @@ ${paramLines || '(none recorded)'}`;
       // generation failed. A generatedWorkflow carrying an error / success:false
       // is not runnable — report the failure instead of dispatching a Batch job
       // that would fail at launch.
+      if (hasPendingWorkflowClarification(request.workflowDefinition, request) ||
+          hasPendingWorkflowClarification(request.workflowDefinition, request.workflowDefinition) ||
+          hasPendingWorkflowClarification(request.workflowDefinition, request.metadata)) {
+        return res.status(400).json({
+          error: "workflow_input_required",
+          message: "Resolve the requested clarification before starting this workflow.",
+        });
+      }
+
       const genFailure = detectGenerationFailure(request.workflowDefinition);
       if (genFailure.failed) {
         return res.status(400).json({
@@ -12224,6 +12296,16 @@ ${paramLines || '(none recorded)'}`;
               [request.workflowDefinition.personal_workflow_id, String(req.user?.id)]
             );
             personalFileContent = pwRes.rows[0]?.file_content;
+          }
+
+          // Preserve exactly what will be submitted, after staging and overrides.
+          // Registry validation must never reconstruct historical settings by guessing.
+          if (isModelTrainingRun(executionRun)) {
+            executionRun.execution = {
+              ...executionRun.execution,
+              trainingLaunchParameters: JSON.parse(JSON.stringify(stagedParamsClean)),
+            };
+            await storage.updateExecutionRun(executionRun.id, { execution: executionRun.execution });
           }
 
           const _nfBody = JSON.stringify({

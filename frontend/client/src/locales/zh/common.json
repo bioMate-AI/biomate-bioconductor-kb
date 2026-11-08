@@ -183,7 +183,9 @@
     "mod_design_name": "分子设计与生成",
     "mod_design_desc": "设计候选物 — 小分子、多肽、蛋白质 — 并进行优化与排序",
     "mod_models_name": "模型",
-    "mod_models_desc": "在您的数据上训练、适配或优化模型"
+    "mod_models_desc": "在您的数据上训练、适配或优化模型",
+    "hospital_integration": "试用医院示例：合成多组学整合",
+    "hospital_prediction": "试用医院示例：合成亚型预测"
   },
   "chat_msg": {
     "figure": "图",
@@ -1141,7 +1143,47 @@
     "account_scope": "所有项目",
     "open_training_chat": "打开原始对话 →",
     "not_recorded": "未记录",
-    "training_workflow": "模型训练工作流"
+    "training_workflow": "模型训练工作流",
+    "setup_files_error": "无法加载项目数据集。",
+    "setup_rounds": "配置设计轮次",
+    "setup_train": "配置模型训练",
+    "setup_review": "继续到聊天中检查请求并确认工作流。此处不会启动任务。",
+    "setup_project": "项目",
+    "setup_choose_project": "选择项目",
+    "setup_dataset": "数据集",
+    "setup_loading": "正在加载数据集…",
+    "setup_choose_dataset": "选择项目文件",
+    "setup_no_files": "请先在“文件”中为此项目添加数据集。",
+    "setup_objective": "设计目标与靶标",
+    "setup_target": "目标／标签列",
+    "setup_candidates": "候选库",
+    "setup_budget": "候选实验数量预算",
+    "setup_type": "模型类型",
+    "setup_metric": "验证指标",
+    "setup_gate": "最低可接受指标值",
+    "setup_continue": "在聊天中检查",
+    "registration_failed": "无法读取或注册此训练结果。",
+    "registration_refresh_failed": "注册已返回，但无法刷新版本。重试前请检查已注册版本。",
+    "register_result": "注册训练结果",
+    "check_versions": "查看已注册版本",
+    "registration_pending": "正在检查训练产物…",
+    "no_registered_versions": "此运行没有已注册版本。旧运行可能缺少注册所需的启动参数快照。",
+    "registration_not_serving": "注册的产物版本不会自动部署用于推理。",
+    "setup_tabular": "表格分类／回归模型（scikit-learn）",
+    "setup_molecular": "分子性质预测模型（Chemprop）",
+    "setup_accuracy": "准确率",
+    "setup_spearman": "Spearman 相关系数",
+    "setup_name": "模型名称",
+    "setup_task": "任务类型",
+    "setup_classification": "分类",
+    "setup_regression": "回归",
+    "registered_artifacts": "已注册的训练产物",
+    "registry_refresh": "刷新版本",
+    "registry_loading": "正在加载已注册版本…",
+    "registry_load_error": "无法加载已注册的训练产物。",
+    "registry_source_run": "来源运行",
+    "registry_threshold": "阈值",
+    "registry_empty": "此范围内尚未注册训练产物。"
   },
   "instructions_formats": {
     "edit_title": "编辑输出格式",
@@ -1160,5 +1202,19 @@
     "save_error": "无法保存设置。您的更改尚未保存。",
     "enable": "启用 {{name}}",
     "edit": "编辑"
+  },
+  "connectors": {
+    "cancel_add": "取消添加",
+    "add": "添加连接器",
+    "import_skill": "导入技能文件（.md）",
+    "skill_markdown": "请选择 Markdown（.md）技能文件。",
+    "skill_import_failed": "无法导入此技能。请检查文件头部元数据和访问权限。",
+    "skill_importing": "正在导入技能…",
+    "skill_imported": "技能已导入，可在“技能与专家”中使用。"
+  },
+  "citation_reader": {
+    "retrieved_excerpt": "检索摘录",
+    "no_abstract_excerpt": "此来源未提供摘要或摘录。",
+    "no_source_link": "此来源未提供链接。"
   }
 }

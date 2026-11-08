@@ -55,6 +55,14 @@ describe("<CitationPanel> — Spec 09 retrieval transparency", () => {
     expect(screen.getByTestId("retrieval-source-bioRxiv")).toBeInTheDocument()
   })
 
+  it("keeps retrieval details folded and avoids a redundant tab bar for a source-only panel", () => {
+    render(<CitationPanel citations={[makeCitation()]} retrieval={RETRIEVAL} isCollapsed={false} />)
+    expect(screen.getByTestId('retrieval-transparency')).not.toHaveAttribute('open')
+    expect(screen.queryByRole('tab', { name: 'Tool Citations' })).toBeNull()
+    expect(screen.queryByRole('tab', { name: 'Methods Section' })).toBeNull()
+    expect(screen.getAllByText('Citations')).toHaveLength(1)
+  })
+
   it("shows per-source found · kept counts", () => {
     render(
       <CitationPanel citations={[makeCitation()]} retrieval={RETRIEVAL} isCollapsed={false} />,

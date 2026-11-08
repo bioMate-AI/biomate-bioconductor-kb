@@ -1,3 +1,5 @@
+import { awaitsWorkflowInput } from "@/lib/workflow-response-state"
+import type { WorkflowProgressEvent } from "@/lib/workflow-progress-event"
 import { ProgressStreamBox } from "./chat-progress-fold"
 import { ReadAloud } from "./voice-controls"
 import { useState, useRef } from "react"
@@ -6,7 +8,7 @@ import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { CodeExecutionBlock, type ToolBlock } from "./code-execution-block"
 import { FindingsCard } from "./findings-card"
-import { t } from "@/lib/i18n"
+import { t, locale } from "@/lib/i18n"
 
 /**
  * Pre-processes assistant markdown to:
@@ -217,7 +219,7 @@ interface ChatMessageProps {
   onSuggestionClick?: (suggestion: string, message: Message) => void
   onAdjustViaChat?: (message?: string) => void
   /** Bubbled up from NextflowWorkflowViewer when the backend narrator emits a chat_progress SSE event. */
-  onWorkflowProgress?: (event: { kind: string; friendly_message: string; ts?: number; technical?: any; invocationId?: string }) => void
+  onWorkflowProgress?: (event: WorkflowProgressEvent) => void
   isWorkflowRunning?: boolean
   workflowProgress?: number
   currentExecutionRun?: ExecutionRun | null
@@ -274,7 +276,8 @@ export function ChatMessage({
 }: ChatMessageProps) {
   const isUser = message.role === "user"
 
-  const isWorkflowMessage = !isUser && message.metadata?.type === "workflow" && !!message.metadata?.workflow
+  const awaitingWorkflowInput = awaitsWorkflowInput(message.metadata?.workflow, message.metadata)
+  const isWorkflowMessage = !isUser && !awaitingWorkflowInput && message.metadata?.type === "workflow" && !!message.metadata?.workflow
   // Keep workflow intent readable throughout execution. Research streaming uses its existing disclosure.
   const foldResponse = !isUser && isStreaming && !isWorkflowMessage
   const ResponseContainer = foldResponse ? "details" : "div"
@@ -357,9 +360,18 @@ export function ChatMessage({
   }
 
   // Format timestamp like reference: "YOU · 3:40 PM"
-  const timeLabel = message.timestamp
-    ? new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  const messageDate = message.timestamp ? new Date(message.timestamp) : null;
+  const validMessageDate = messageDate && Number.isFinite(messageDate.getTime()) ? messageDate : null;
+  const timeLabel = validMessageDate
+    ? validMessageDate.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
+        ...(validMessageDate.toDateString() !== new Date().toDateString()
+          ? { year: 'numeric' as const, month: 'short' as const, day: 'numeric' as const } : {}),
+        hour: 'numeric', minute: '2-digit',
+      })
     : null;
+  const fullTimestamp = validMessageDate?.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
+    year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+  });
 
   // Early return for workflow-progress messages: render as a compact italic
   // status line, not the full assistant card. Keeps the chat from filling up
@@ -556,7 +568,7 @@ export function ChatMessage({
       style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: isUser ? 'flex-end' : 'flex-start', maxWidth: '100%' }}
     >
       {/* Who label — "YOU · 3:40 PM" or "BIOMATE + speaker pill" */}
-      {!continuation && <div className="who" style={{
+      {!continuation && <div className="who" title={fullTimestamp} style={{
         fontSize: 9.5, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
         letterSpacing: '0.13em', fontWeight: 600,
         fontFamily: 'var(--bm-font-mono)',
@@ -702,7 +714,7 @@ export function ChatMessage({
           )}
 
           {/* Research Response - Shows answer with citations and evidence */}
-          {!isUser && message.metadata?.type === 'research_response' && message.metadata?.research_response && (
+          {!isUser && !awaitingWorkflowInput && message.metadata?.type === 'research_response' && message.metadata?.research_response && (
             <ResearchResponseDisplay
               response={message.metadata.research_response}
               onFollowUpClick={(question) => console.log('Follow-up:', question)}
@@ -1016,7 +1028,7 @@ export function ChatMessage({
                     onAdjustViaChat={onAdjustViaChat}
                     onWorkflowProgress={
                       onWorkflowProgress
-                        ? (ev) => onWorkflowProgress({ ...ev, invocationId })
+                        ? (ev) => onWorkflowProgress({ ...ev, invocationId: ev.invocationId || invocationId })
                         : undefined
                     }
                     onExecute={(params) => {

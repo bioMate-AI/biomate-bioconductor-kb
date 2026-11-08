@@ -121,6 +121,8 @@ import { JobButton } from "@/components/job-button";
 import { InteractiveLauncher } from "@/components/interactive-launcher";
 
 interface AfterRunReportProps {
+  /** Parent workflow tab already names this region. */
+  embedded?: boolean;
   runId: string;
   invocationId?: string;       // backend Galaxy/Nextflow invocation id (for /qc-events)
   workflowName?: string;
@@ -193,6 +195,7 @@ export function AfterRunReport({
   onContinueAnalysis,
   projectId,
   targetTab,
+  embedded = false,
 }: AfterRunReportProps) {
   // nextflowOutputDir is forwarded by the parent for future Outputs-tab
   // directory toolbar work; intentionally unread in v0.
@@ -371,7 +374,7 @@ export function AfterRunReport({
   return (
     <div className="after-run-report" style={styles.root}>
       <div style={styles.head}>
-        <span style={styles.kicker}>{tOr('afterrun.kicker', 'After run')}</span>
+        {!embedded && <span style={styles.kicker}>{tOr('afterrun.kicker', 'After run')}</span>}
         <span style={{ flex: 1 }} />
         {downloadToast && (
           <span style={styles.toast} role="status">{downloadToast}</span>
@@ -2881,7 +2884,7 @@ function qcStatusColor(status: string | undefined): string {
 
 const styles: Record<string, React.CSSProperties> = {
   root: { display: "flex", flexDirection: "column", gap: 8, padding: 12 },
-  head: { display: "flex", alignItems: "center", gap: 8 },
+  head: { display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, minWidth: 0 },
   kicker: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.07em", color: "oklch(0.48 0.012 260)", fontWeight: 600 },
   linkish: { fontSize: 11.5, color: "oklch(0.55 0.14 245)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 },
   tabBar: { display: "flex", gap: 4, borderBottom: "1px solid oklch(0.92 0.005 240)" },

@@ -92,8 +92,12 @@ function ProjectsRouter({ onNewChat }: { onNewChat: () => void }) {
   useEffect(() => {
     if (!projectId) return;
     setActiveProjectId(projectId);
-    if (initialTab === "chat") onNewChat();
-    else if (initialTab !== "instructions" && initialTab !== "workflows") setLocation("/files");
+    if (initialTab === "workflows") {
+      // Retired duplicate project Runs view: keep project context and open Files.
+      // Do not create a chat or reconstruct a workflow as a new run.
+      setLocation(`/files?project=${encodeURIComponent(projectId)}`, { replace: true });
+    } else if (initialTab === "chat") onNewChat();
+    else if (initialTab !== "instructions") setLocation("/files");
   }, [projectId, initialTab]);
 
   const handleProjectSelect = (id: string) => {
@@ -176,7 +180,7 @@ function RootRoute({
       params.delete('draft')
       const rest = params.toString()
       window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
-      return decodeURIComponent(urlDraft)
+      return urlDraft // URLSearchParams already decoded it; preserve literal % in requests.
     }
     return undefined
   })
@@ -542,6 +546,15 @@ function Router({
   onNewProject,
   chatSessions
 }: RouterProps) {
+  const [route, navigate] = useLocation();
+  const connectorReturnTo = useRef('/');
+  useEffect(() => {
+    // Preserve project/session query context, but never return to auth or loop
+    // back into Connectors. Direct links get a safe workspace fallback.
+    if (route !== '/settings/connections' && !/^\/(login|register|mfa-challenge|reset-password)/.test(route)) {
+      connectorReturnTo.current = `${route}${window.location.search}${window.location.hash}`;
+    }
+  }, [route]);
   return (
     <Switch>
       {/* Auth pages */}
@@ -718,7 +731,7 @@ function Router({
           activeChatId={currentChatSession?.id}
           chatSessions={chatSessions}
         >
-          <ConnectorsDialog embedded open onOpenChange={() => {}} />
+          <ConnectorsDialog embedded open onOpenChange={open => { if (!open) navigate(connectorReturnTo.current); }} />
         </PlatformLayout>
       </Route>
 

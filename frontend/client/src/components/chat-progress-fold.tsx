@@ -201,7 +201,7 @@ export function ProgressStreamBox({ messages, inline = false, plan }: { messages
       }}
     >
       <div ref={contentRef}>
-        {plan && <div data-testid="response-plan">{plan}</div>}
+        {plan && <div data-testid="response-plan" style={{ fontFamily: 'var(--bm-font-ui, system-ui, sans-serif)', fontSize: 13, lineHeight: 1.6, minWidth: 0, overflowWrap: 'anywhere' }}>{plan}</div>}
       {lines.map((l) => (
         <div key={l.id} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
           {l.text || '…'}

@@ -293,6 +293,11 @@ class TrainingConfig:
         renderer (file/select/number/string types), so a training job shows up
         as an ordinary workflow card. See §4.2 of the design doc.
         """
+        common = [
+            {"name": "model_name", "type": "string", "label": "Model name", "value": self.name},
+            {"name": "metric", "type": "string", "label": "Evaluation metric", "value": self.metric},
+            {"name": "gate_threshold", "type": "number", "label": "Quality gate threshold", "value": self.gate_threshold},
+        ]
         if self.model_type in LLM_MODEL_TYPES:
             llm = self.llm or LLMSpec()
             is_dpo = self.model_type == "trl_dpo"
@@ -308,6 +313,8 @@ class TrainingConfig:
                  "value": llm.base_model, "required": True},
             ]
             optional = [
+                {"name": "task_type", "type": "select", "label": "Task",
+                 "allowed_values": list(TASK_TYPES), "value": self.task_type},
                 {"name": "model_type", "type": "select", "label": "Training method",
                  "allowed_values": list(MODEL_TYPES), "value": self.model_type, "default": "ludwig_llm"},
                 {"name": "adapter", "type": "select", "label": "Adapter",
@@ -336,7 +343,7 @@ class TrainingConfig:
                     {"name": "output_col", "type": "string", "label": "Output column",
                      "value": llm.output_col, "default": "output"},
                 ]
-            return {"required_params": required, "optional_params": optional}
+            return {"required_params": required, "optional_params": common + optional}
 
         required = [
             {"name": "dataset", "type": "file",
@@ -358,11 +365,12 @@ class TrainingConfig:
             {"name": "ensemble_size", "type": "number", "label": "Ensemble size",
              "value": self.hyperparams.ensemble_size, "default": 1},
         ]
-        return {"required_params": required, "optional_params": optional}
+        return {"required_params": required, "optional_params": common + optional}
 
     def to_workflow_ga(self, nextflow_path: str = "ml_training/chemprop_train.nf") -> dict[str, Any]:
         """Full workflow_ga stub for routing/rendering a training job."""
         params = self.to_workflow_ga_params()
+        from .executor_payload import training_launch_parameters
         return {
             "name": self.name,
             "domain": "ml_training",
@@ -370,5 +378,6 @@ class TrainingConfig:
             "nextflow_path": nextflow_path,
             "description": f"Train a {self.model_type} {self.task_type} model: {self.name}",
             "execution_engine": "awsbatch",
+            "parameters": training_launch_parameters(self, allow_unresolved_dataset=True),
             **params,
         }

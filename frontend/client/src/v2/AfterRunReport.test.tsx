@@ -670,6 +670,13 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     expect(screen.queryByText(/Download all \(3\)/)).toBeNull();
   });
 
+  it("does not repeat the parent After run heading when embedded", async () => {
+    render(<AfterRunReport {...baseProps} embedded executionStatus="failed" outputs={[]} />);
+    expect(await screen.findByTestId('after-tab-summary')).toBeInTheDocument();
+    expect(screen.queryByText('After run')).toBeNull();
+    expect(screen.getByTestId('afterrun-no-report')).toBeInTheDocument();
+  });
+
   it("does not advertise generated findings for a failed run with only diagnostic files", async () => {
     render(<AfterRunReport {...baseProps} executionStatus="failed" outputs={mixedOutputs.slice(1) as any} />);
     const summary = await screen.findByTestId('after-summary-tab');
