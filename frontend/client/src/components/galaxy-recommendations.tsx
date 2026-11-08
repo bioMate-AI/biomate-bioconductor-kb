@@ -115,7 +115,7 @@ export function GalaxyRecommendations({
               Recommended Tools ({tools.length})
               <Badge variant="outline" className="text-xs">
                 <Sparkles className="h-3 w-3 mr-1" />
-                Galaxy
+                BioMate
               </Badge>
             </CardTitle>
           </CardHeader>

@@ -1168,9 +1168,19 @@ def _classify_failure(
     # claim a restart when the log actually shows orphan/log-stream/worker-recycle
     # evidence. (Root-cause of the 2026-10-05 mis-diagnosis.)
     if any(k in low for k in ("worker recycle", "log-stream", "orphan")):
-        return verdict("infra_transient",
-                       "The run was interrupted by a backend restart. "
-                       "It can resume from where it left off.", True, "resume")
+        # Build a non-internal snippet so the user sees any real Nextflow errors
+        # that happened before the restart. Filter out pure-internal lines but keep
+        # actual error/exception lines from the orchestrator log.
+        _nf_error_lines = [
+            l for l in raw.splitlines()
+            if l.strip() and not _INTERNAL_LINE_RE.search(l)
+            and any(k in l.lower() for k in ("error", "exception", "failed", "exit status", "command error"))
+        ][-10:]
+        _restart_snippet = _redact_internal("\n".join(_nf_error_lines))[:1500] if _nf_error_lines else task_error_snippet
+        return {**verdict("infra_transient",
+                          "The run was interrupted by a backend restart. "
+                          "It can resume from where it left off.", True, "resume"),
+                "task_error_snippet": _restart_snippet}
     # ── out of memory (deterministic: needs more memory) ──
     if ("outofmemory" in low or "out of memory" in low or rc == 137
             or "exit status : 137" in low or "oomkilled" in low):
@@ -1423,6 +1433,30 @@ def _trigger_auto_reroute_on_failure(
                     name=f"nf-reroute-{new_run_id[:8]}",
                 ).start()
                 return  # Layer-1 handled; skip Layer-2.
+
+        # ── Layer 1b: auto-resume for transient infrastructure failures ──────
+        # For backend-restart / spot-reclaim failures, the fix is simply to
+        # re-launch with -resume so Nextflow reuses its cached work directory.
+        # We emit auto_resuming immediately (30 s countdown so the user can
+        # cancel) and also emit ai_diagnosis so the card is ready if the
+        # resume itself fails. The frontend drives the actual API call after
+        # the countdown so the backend has time to stabilise.
+        if category == "infra_transient" and not run_meta.get("auto_resume_attempted"):
+            # Mark so a resumed run that also fails doesn't loop back here.
+            with _runs_lock:
+                if run_id in _runs:
+                    _runs[run_id]["auto_resume_attempted"] = True
+            try:
+                get_run_state_store().update_run(run_id, {"auto_resume_attempted": True})
+            except Exception:
+                pass
+            _post_sse_direct(inv_id, "auto_resuming", {
+                "run_id": run_id,
+                "delay_s": 30,
+                "reason": failure_verdict.get("user_message", ""),
+            })
+            log.info("[auto_reroute] Layer-1b auto-resume scheduled for run=%s (delay=30s)", run_id)
+            # Fall through to also emit ai_diagnosis as backup (shown if resume fails).
 
         # ── Layer 2: AI diagnosis card ────────────────────────────────────
         # Emit a structured diagnosis so the frontend can surface it as a

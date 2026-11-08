@@ -214,12 +214,12 @@ services:
     networks:
       - biomate-network
 
-  # ── Galaxy AI Backend ───────────────────────────────────────────────────────
-  galaxy-backend:
+  # ── BioMate AI Engine ────────────────────────────────────────────────────────
+  biomate-engine:
     image: ${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}
     # ghcr.io/biomate-ai/biomate-backend:latest is a multi-arch manifest (amd64 + arm64).
     # Docker auto-selects the host architecture — no platform override needed.
-    container_name: biomate-galaxy
+    container_name: biomate-engine
     # Use /bin/sh -c as entrypoint so the command runs as a shell string.
     # This lets us add a safety-net before gunicorn: if galaxy.yml is missing from
     # the bind-mounted config dir (fresh checkout, no install.sh), copy from template
@@ -450,7 +450,7 @@ services:
     environment:
       NODE_ENV:    production
       PORT:        "3000"
-      GALAXY_URL:  http://galaxy-backend:8080
+      GALAXY_URL:  http://biomate-engine:8080
       GALAXY_API_KEY: ${GALAXY_API_KEY:-}
 
       DATABASE_URL: postgresql://${POSTGRES_USER:-biomate}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-biomate}
@@ -490,7 +490,7 @@ services:
       # On-prem 使用 docker profile (biomate/biomni-tools 容器本地运行).
       # false → routes.ts 选择 'docker' profile; true → 'aws' (Batch).
       NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
-      # Must match NEXTFLOW_WORK_DIR in galaxy-backend so the step-file allowed-roots
+      # Must match NEXTFLOW_WORK_DIR in biomate-engine so the step-file allowed-roots
       # check passes for per-task work dir files served from the nf-work volume above.
       NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
 
@@ -499,6 +499,9 @@ services:
       ENABLE_HSTS:   ${ENABLE_HSTS:-0}
       CORS_ORIGINS:  ${CORS_ORIGINS:-}
       FRONTEND_URL:  ${FRONTEND_URL:-}
+      # On-prem / China: strip Google Fonts CDN links at runtime (prevents white screen behind GFW).
+      # vite.ts serveStatic() reads this env var and removes the links before serving index.html.
+      DISABLE_GOOGLE_FONTS: "true"
 
       # ── Workflow notifications ─────────────────────────────────────────────
       # Send email when a workflow finishes. Requires SMTP config above.
@@ -539,8 +542,8 @@ services:
 
     volumes:
       # Nextflow task work dirs — read-only mount so the step-file API can serve per-step
-      # output files directly without proxying through Galaxy.  Galaxy writes here;
-      # the frontend only reads.  Same host path as the galaxy-backend volume above.
+      # output files directly without proxying through the engine.  The engine writes here;
+      # the frontend only reads.  Same host path as the biomate-engine volume above.
       - /app/nf-work:/app/nf-work:ro
       # Uncomment when enabling sandbox-launcher (run_code support):
       # - /tmp/biomate_code:/tmp/biomate_code
@@ -548,11 +551,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      galaxy-backend:
-        # service_started (not service_healthy): galaxy takes 15-20 min under QEMU.
+      biomate-engine:
+        # service_started (not service_healthy): the engine takes 15-20 min under QEMU.
         # The frontend /api/health endpoint returns "degraded" (not an error) when
-        # galaxy is unreachable, so it is safe to start the frontend before galaxy
-        # is fully ready.  Blocking on service_healthy would stall `docker compose up`
+        # the engine is unreachable, so it is safe to start the frontend before the
+        # engine is fully ready.  Blocking on service_healthy would stall `docker compose up`
         # for the entire QEMU cold-start window.
         condition: service_started
       # sandbox-launcher:

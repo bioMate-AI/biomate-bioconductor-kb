@@ -46,12 +46,20 @@ export function getSecurityConfig(): SecurityConfig {
   const forceHTTPS = process.env.FORCE_HTTPS === '0' ? false : isProd;
   const enableHSTS = process.env.ENABLE_HSTS === '0' ? false : isProd;
 
+  // Build allowed CORS origins: env override > default list.
+  // Always include APP_URL (on-prem / custom domain deployments).
+  let corsOrigins = process.env.CORS_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || defaultOrigins;
+  if (process.env.APP_URL) {
+    const appUrl = process.env.APP_URL.replace(/\/$/, '');
+    if (!corsOrigins.includes(appUrl)) corsOrigins = [appUrl, ...corsOrigins];
+  }
+
   return {
     env,
     enableHSTS,
     enableCSP: true,
     enableCSRF: isProd,
-    corsOrigins: process.env.CORS_ORIGINS?.split(',') || defaultOrigins,
+    corsOrigins,
     forceHTTPS,
     sessionTimeout: 15, // HIPAA requirement: 15-minute inactivity timeout
   };
