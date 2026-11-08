@@ -19,7 +19,7 @@ process CALCULATE_PHYSICOCHEMICAL_PROPERTIES {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -27,6 +27,7 @@ process CALCULATE_PHYSICOCHEMICAL_PROPERTIES {
     output:
     tuple val(meta), path("calculate_physicochemical_properties_results.json"), emit: results
     tuple val(meta), path("calculate_physicochemical_properties_output.txt"), emit: output
+    tuple val(meta), path("physicochemical_properties.csv"), emit: properties
     path "versions.yml", emit: versions
 
     script:
@@ -89,8 +90,7 @@ def calculate_physicochemical_properties(smiles_string):
     import os
 
     from rdkit import Chem
-    from rdkit.Chem import Crippen, Descriptors, Lipinski
-    from rdkit.Chem.MolStandardize import rdMolStandardize
+    from rdkit.Chem import Crippen, Descriptors, Lipinski, QED
 
     # Create RDKit molecule from SMILES
     try:
@@ -113,25 +113,11 @@ def calculate_physicochemical_properties(smiles_string):
         "Ring Count": Descriptors.RingCount(mol),
     }
 
-    # Estimate pKa (simplified approach - in practice would use specialized tools)
-    # This is a simplification as accurate pKa prediction requires specialized tools
-    uncharger = rdMolStandardize.Uncharger()
-    uncharger.uncharge(mol)
-    acidic_groups = sum(
-        1
-        for atom in mol.GetAtoms()
-        if atom.GetSymbol() == "O"
-        and any(neigh.GetSymbol() == "C" and neigh.GetDegree() == 3 for neigh in atom.GetNeighbors())
-    )
-    basic_groups = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == "N" and atom.GetDegree() < 4)
-    properties["Estimated Acidic Groups"] = acidic_groups
-    properties["Estimated Basic Groups"] = basic_groups
-
-    # Calculate drug-likeness score (using Crippen approach)
-    properties["Drug-likeness Score"] = round(Crippen.MolMR(mol), 2)
-
-    # Calculate logD (simplified as logP - pKa adjustment would need specialized tools)
-    properties["Estimated logD7.4"] = properties["cLogP"]
+    # Molar refractivity is not a drug-likeness score. QED is the named,
+    # dimensionless descriptor (0..1), not activity or clinical suitability.
+    properties["Molar Refractivity"] = round(Crippen.MolMR(mol), 2)
+    properties["QED"] = round(QED.qed(mol), 4)
+    # logD at pH 7.4 requires ionization/pKa modeling; cLogP is not a substitute.
 
     # Save results to CSV
     csv_filename = "physicochemical_properties.csv"
@@ -153,9 +139,11 @@ Key properties:
 - H-Bond Donors: {properties["H-Bond Donors"]}
 - H-Bond Acceptors: {properties["H-Bond Acceptors"]}
 - Rotatable Bonds: {properties["Rotatable Bonds"]}
-- Estimated logD (at pH 7.4): {properties["Estimated logD7.4"]}
-- Estimated Acidic Groups: {properties["Estimated Acidic Groups"]}
-- Estimated Basic Groups: {properties["Estimated Basic Groups"]}
+- Molar Refractivity: {properties["Molar Refractivity"]}
+- QED (dimensionless, 0-1): {properties["QED"]}
+
+Ionization-dependent logD and pKa were not calculated. QED is a descriptive
+drug-likeness metric, not evidence of efficacy or safety.
 
 Complete results saved to: {os.path.abspath(csv_filename)}
 '''
@@ -167,6 +155,8 @@ try:
     result = calculate_physicochemical_properties(
         smiles_string=auto_convert(os.environ.get("PARAM_SMILES_STRING", "")),
     )
+    if isinstance(result, str) and result.startswith("ERROR:"):
+        raise ValueError(result)
     success = True
     error_msg = None
 except Exception as e:
@@ -230,6 +220,7 @@ workflow CALCULATE_PHYSICOCHEMICAL_PROPERTIES_WORKFLOW {
     emit:
     results = CALCULATE_PHYSICOCHEMICAL_PROPERTIES.out.results
     output = CALCULATE_PHYSICOCHEMICAL_PROPERTIES.out.output
+    properties = CALCULATE_PHYSICOCHEMICAL_PROPERTIES.out.properties
     versions = CALCULATE_PHYSICOCHEMICAL_PROPERTIES.out.versions
 }
 

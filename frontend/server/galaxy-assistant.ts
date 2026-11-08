@@ -368,6 +368,10 @@ supporting/none/vetoed. Never describe harmonic-sum per_channel_z values as stat
           type: 'string',
           description: 'Optional verified EFO/MONDO disease id — enables the OpenTargets disease-association channel. Omit if unknown; never guess the identifier.',
         },
+        disease: {
+          type: 'string',
+          description: 'The full disease name from the user, e.g. non-small-cell lung carcinoma. Supply this for disease-specific requests: the backend verifies the name against Open Targets. Prefer this over recalling an ontology id; never guess an id.',
+        },
         candidate_targets: {
           type: 'array',
           items: { type: 'string' },

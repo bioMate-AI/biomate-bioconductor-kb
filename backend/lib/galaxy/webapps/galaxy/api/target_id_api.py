@@ -82,6 +82,22 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
     from galaxy.ai.target_id import HarmonicSumArbiter, TargetIDOrchestrator, default_channels
     from galaxy.ai.target_id.analysis_outputs import specs_from_run_outputs
     from galaxy.ai.target_id.table_policy import safe_table_specs
+    from galaxy.ai.target_id.data_channels import offline_mode, resolve_disease_name
+
+    disease_id = request.disease_id
+    disease_resolution = None
+    if request.disease and not (offline_mode() and disease_id):
+        try:
+            disease_resolution = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: resolve_disease_name(request.disease))
+            disease_id = disease_resolution['disease_id']
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        except Exception:
+            log.exception('target-id: disease-name verification failed')
+            raise HTTPException(status_code=502, detail='Could not verify the disease name with Open Targets. Retry or supply a verified disease_id.')
+        if request.disease_id and request.disease_id != disease_id:
+            raise HTTPException(status_code=400, detail='The disease name and disease_id disagree. Verify them or retry with the full disease name only; do not guess an identifier.')
 
     llm = None
     if request.use_llm:
@@ -96,7 +112,7 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
     try:
         tables = safe_table_specs(request.tables)
         client_tables = list(request.client_tables or []) + specs_from_run_outputs(request.run_outputs)
-        channels = default_channels(disease_id=request.disease_id, tables=tables, llm_client=llm,
+        channels = default_channels(disease_id=disease_id, tables=tables, llm_client=llm,
                                     client_tables=client_tables, include_network=request.include_network)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -106,7 +122,7 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
             detail="no evidence channels available — provide disease_id, client_tables, or use_llm=true",
         )
 
-    ctx: Dict[str, Any] = {"query": request.query, "disease_id": request.disease_id, "disease": request.disease}
+    ctx: Dict[str, Any] = {"query": request.query, "disease_id": disease_id, "disease": request.disease}
     if request.candidate_targets:
         ctx["candidate_targets"] = [str(g).upper() for g in request.candidate_targets]
 
@@ -130,6 +146,8 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail="identify failed: %s" % exc)
 
     out = result.to_dict()
+    if disease_resolution:
+        out['disease_resolution'] = disease_resolution
     out["targets"] = out["targets"][: int(request.top_k)]
     out["n_targets_total"] = len(result.targets)
     if request.validate:
