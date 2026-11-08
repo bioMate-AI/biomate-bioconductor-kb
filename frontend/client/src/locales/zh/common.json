@@ -842,7 +842,9 @@
     "artifact_unmodified": "工件本身，未经修改",
     "loading_raw": "正在加载原始字节…",
     "raw_unreadable": "无法将原始字节读取为文本 ({{error}})。",
-    "origin_not_reported": "运行未报告来源 — 如实标注，而不是凭空猜测"
+    "origin_not_reported": "运行未报告来源 — 如实标注，而不是凭空猜测",
+    "job_id": "任务 ID",
+    "work_directory": "工作目录"
   },
   "domains": {
     "drug_discovery": "药物发现",

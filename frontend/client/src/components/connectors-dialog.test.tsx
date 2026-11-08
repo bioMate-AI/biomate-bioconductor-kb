@@ -209,10 +209,15 @@ describe('connector setup navigation', () => {
     render(<ConnectorsDialog open embedded onOpenChange={close} />);
     fireEvent.click(screen.getByTestId('connector-tab-ai'));
     fireEvent.click(screen.getByRole('button', {name: 'Add a connector'}));
+    expect(screen.queryByTestId('connector-row-Ollama')).not.toBeInTheDocument();
+    expect(screen.queryByText('Configure model providers and API keys')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('add-kind-setup-database'));
     expect(screen.getByTestId('connector-setup-back')).toBeInTheDocument();
+    expect(screen.getByTestId('private-db-section')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('connector-setup-back'));
     expect(screen.getByTestId('add-connector-flow')).toBeInTheDocument();
+    expect(screen.queryByTestId('private-db-section')).not.toBeInTheDocument();
+    expect(screen.queryByText('Configure model providers and API keys')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: 'Cancel adding'}));
     expect(screen.queryByTestId('add-connector-flow')).not.toBeInTheDocument();
     expect(screen.getByTestId('connector-row-Ollama')).toBeInTheDocument();

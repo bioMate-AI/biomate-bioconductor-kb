@@ -263,6 +263,16 @@ function prettifyParamLabel(raw: string): string {
  *   - outputs: mapped straight from outputFiles (the same {name,path,extension}
  *     the inline preview and download links already use).
  */
+export function reportedStepDetails(process: any): { workDir?: string; jobId?: string; errorMessage?: string } {
+  const text = (...values: unknown[]) => values.find(value => typeof value === 'string' && value.trim()) as string | undefined;
+  const details = {
+    workDir: text(process?.workDir, process?.work_dir, process?.workdir),
+    jobId: text(process?.jobId, process?.job_id) ?? (typeof process?.job_id === 'number' && Number.isFinite(process.job_id) ? String(process.job_id) : undefined),
+    errorMessage: text(process?.errorMessage, process?.error_message, process?.error),
+  };
+  return Object.fromEntries(Object.entries(details).filter(([, value]) => value !== undefined));
+}
+
 export function buildStepDetailStep(step: any): StepDetailStep {
   const rawParams = (step?.parameters && typeof step.parameters === "object")
     ? (step.parameters as Record<string, unknown>)
@@ -292,6 +302,7 @@ export function buildStepDetailStep(step: any): StepDetailStep {
     name: String(step?.name ?? step?.processName ?? "step"),
     processName: step?.processName ? String(step.processName) : undefined,
     status: step?.status ? String(step.status) : undefined,
+    ...reportedStepDetails(step),
     // tool / toolVersion / duration / inputs are not reported per step by the
     // viewer's data model — intentionally omitted (honest empty state).
     parameters: parameters && Object.keys(parameters).length > 0 ? parameters : undefined,
@@ -1767,19 +1778,20 @@ export function NextflowWorkflowViewer({
 
     const stepExecution = stepExecutionById[phase.id];
     if (!stepExecution) {
-      return { ...phase, status: derivedStatus, outputFiles };
+      return { ...phase, ...reportedStepDetails(nfProc), status: derivedStatus, outputFiles };
     }
 
     return {
       ...phase,
+      ...reportedStepDetails(nfProc),
       status: stepExecution.phaseStatus,
       backendState: stepExecution.backendState,
-      jobId: stepExecution.jobId,
+      jobId: stepExecution.jobId ?? reportedStepDetails(nfProc).jobId,
       startedAt: stepExecution.startedAt,
       lastRunAt: stepExecution.lastRunAt,
       runCount: stepExecution.runCount,
       outputsCount: stepExecution.outputsCount,
-      errorMessage: stepExecution.errorMessage,
+      errorMessage: stepExecution.errorMessage ?? reportedStepDetails(nfProc).errorMessage,
       isExecuting: stepExecution.isExecuting,
       outputFiles,
     };
@@ -1924,7 +1936,7 @@ export function NextflowWorkflowViewer({
   // to resume from, and reusing the same work dir would just fail again. In that case
   // the footer shows "Restart", not "Resume from last step".
   const anyStepCompleted = updatedPhases.some((p: any) => String(p?.status).toLowerCase() === 'completed');
-  const canResumeFailed = status === 'failed' && !!activeRunId && !!_failure
+  const canResumeFailed = status === 'failed' && !wasCancelled && !!activeRunId && !!_failure
     && ['resume', 'resume_more_resources', 'fix_and_resume'].includes(_failure.suggested_action || '')
     && anyStepCompleted;
   const handleResumeFromFailed = async () => {
@@ -1934,12 +1946,13 @@ export function NextflowWorkflowViewer({
     setActiveTab('phases');
     setTabAutoDefault(false);
     try {
-      // No body — same as phase-level Run button. -resume reuses original params
-      // from the Nextflow work directory; sending new params can confuse Galaxy.
+      // The Node rerun contract forwards params as ResumeRunRequest.parameters.
+      // Nextflow reuses task caches only when the current inputs/parameters match.
       const resp = await fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/rerun`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({ params }),
       });
       const data = await resp.json().catch(() => ({}));
       const newRunId: string | undefined = data?.run_id ?? data?.runId;
@@ -2263,7 +2276,9 @@ export function NextflowWorkflowViewer({
 
   // D4: Auto-fetch error explanation when workflow fails
   useEffect(() => {
-    if (status === 'failed' && !errorExplanation && !errorExplaining) {
+    let abandoned = false;
+    if (wasCancelled) { setErrorExplanation(null); setErrorExplaining(false); return; }
+    if (status === 'failed' && !wasCancelled && !errorExplanation && !errorExplaining) {
       const rawLog = logs.slice(-50).join('\n') + (errorMessage ? `\n${errorMessage}` : '');
       if (!rawLog.trim()) return;
       const failedSteps = updatedPhases
@@ -2284,8 +2299,9 @@ export function NextflowWorkflowViewer({
         }),
       })
         .then(r => r.json())
-        .then(data => setErrorExplanation(data))
+        .then(data => { if (!abandoned) setErrorExplanation(data); })
         .catch(() => {
+          if (abandoned) return;
           // Show a minimal fallback so the user isn't left staring at "Analyzing…"
           setErrorExplanation({
             human_summary: 'Error analysis timed out. Check the log output above for details.',
@@ -2295,13 +2311,14 @@ export function NextflowWorkflowViewer({
             llm_used: false,
           });
         })
-        .finally(() => { clearTimeout(explainTimeout); setErrorExplaining(false); });
+        .finally(() => { clearTimeout(explainTimeout); if (!abandoned) setErrorExplaining(false); });
+      return () => { abandoned = true; abortController.abort(); clearTimeout(explainTimeout); };
     }
-  }, [status]);
+  }, [status, wasCancelled]);
 
   useEffect(() => {
     setLastUpdateAt(new Date());
-  }, [status, progress, errorMessage, nextflowStatus, stepExecutionById]);
+  }, [status, wasCancelled, progress, errorMessage, nextflowStatus, stepExecutionById]);
 
   useEffect(() => {
     // Merge incoming defaults/initialParams WITHOUT overwriting keys the user has already edited.
@@ -3160,7 +3177,7 @@ export function NextflowWorkflowViewer({
             // Prefer SSE-pushed diagnosis (has task_error_snippet); fall back to API-polled failure.
             const diag = aiDiagnosis ?? (_failure?.user_message ? _failure : null);
             const snippet = (aiDiagnosis?.task_error_snippet ?? _failure?.task_error_snippet ?? "").trim();
-            if (!diag?.user_message || status !== 'failed') return null;
+            if (!diag?.user_message || status !== 'failed' || wasCancelled) return null;
             const isArchCompat = (diag as any).category === 'arch_compat' || _failure?.category === 'arch_compat';
             return (
               <div style={{
@@ -3217,13 +3234,17 @@ export function NextflowWorkflowViewer({
             projectId={projectId || undefined}
             parameters={params as Record<string, unknown>}
             executionStatus={
-              status === 'completed' ? 'completed'
+              wasCancelled ? 'cancelled'
+              : status === 'completed' ? 'completed'
               : status === 'failed' ? 'failed'
               : status === 'running' ? 'running'
               : status === 'paused' ? 'paused'
               : undefined
             }
             errorMessage={errorMessage}
+            failedSteps={wasCancelled ? undefined : updatedPhases.filter(phase => phase.status === 'failed').map(phase => phase.name)}
+            logTail={Array.isArray(nextflowStatus?.log_tail) ? nextflowStatus.log_tail.filter((line: unknown) => typeof line === 'string') : undefined}
+            autofix={wasCancelled ? undefined : autofix}
             // P0 fix (2026-06-16 after-run audit): the viewer never forwarded
             // outputs, so the Outputs tab always showed "No output files
             // registered yet" even after a successful AWS Batch run. Build
@@ -4264,7 +4285,7 @@ export function NextflowWorkflowViewer({
               )}
 
           {/* ── Error recovery card ───────────────────────────────────────────── */}
-          {status === 'failed' && (
+          {status === 'failed' && !wasCancelled && (
             <div className="alert err" data-testid="execution-triage-panel" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8, margin: '8px 18px' }}>
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <XCircle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />

@@ -628,7 +628,9 @@
     "artifact_unmodified": "the artifact itself, unmodified",
     "loading_raw": "Loading raw bytes…",
     "raw_unreadable": "Raw bytes could not be read as text ({{error}}).",
-    "origin_not_reported": "origin not reported by the run — shown honestly rather than guessed"
+    "origin_not_reported": "origin not reported by the run — shown honestly rather than guessed",
+    "job_id": "Job ID",
+    "work_directory": "Work directory"
   },
   "domains": {
     "drug_discovery": "Drug discovery",

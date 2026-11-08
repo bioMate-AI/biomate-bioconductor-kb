@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel } from "./nextflow-workflow-viewer";
+import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel, reportedStepDetails } from "./nextflow-workflow-viewer";
 
 vi.mock("./chat-output-attachments", () => ({
   ChatOutputAttachments: () => <div data-testid="mock-chat-output-attachments" />,
@@ -143,7 +143,7 @@ describe("NextflowWorkflowViewer — per-step execution controls (current afford
 // Stub the v2 AfterRunReport so the test doesn't need real /api/jobs etc.
 vi.mock("@/v2/AfterRunReport", () => ({
   AfterRunReport: (props: any) => (
-    <div data-testid="mock-after-run-report" data-run-id={props.runId} data-status={props.executionStatus} />
+    <div data-testid="mock-after-run-report" data-run-id={props.runId} data-status={props.executionStatus} data-failed-steps={JSON.stringify(props.failedSteps)} data-log-tail={JSON.stringify(props.logTail)} data-autofix={JSON.stringify(props.autofix)} />
   ),
 }));
 
@@ -233,6 +233,38 @@ describe("NextflowWorkflowViewer — horizontal tabs MVP", () => {
       expect(arr).toHaveAttribute("data-run-id", "run-tabs-1");
       expect(arr).toHaveAttribute("data-status", "completed");
     });
+  });
+
+  it("preserves cancellation in the mounted report and suppresses failure diagnosis", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="failed" wasCancelled errorMessage="Cancelled by user" nextflowStatus={{ failure: { user_message: 'Failure diagnosis must not appear' } }} />);
+    const report = await screen.findByTestId('mock-after-run-report');
+    expect(report).toHaveAttribute('data-status', 'cancelled');
+    expect(screen.queryByText('Failure diagnosis must not appear')).toBeNull();
+    fireEvent.click(screen.getByTestId('panel-tab-phases'));
+    expect(screen.queryByTestId('execution-triage-panel')).toBeNull();
+  });
+
+  it("forwards recorded failed step names, logs and autofix into the mounted report", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="failed" autofix={{ state: 'failed', totalAttempts: 2 }} nextflowStatus={{ processes: [{ name: 's1', status: 'failed', error_message: 'Actual task exit', work_dir: '/work/task' }], log_tail: ['actual task stderr'] }} />);
+    const report = await screen.findByTestId('mock-after-run-report');
+    expect(report.getAttribute('data-failed-steps')).toBe('["Step 1"]');
+    expect(report).toHaveAttribute('data-log-tail', '["actual task stderr"]');
+    expect(report.getAttribute('data-autofix')).toContain('"totalAttempts":2');
+  });
+
+  it("resumes with edited effective parameters and keeps the draft after API failure", async () => {
+    const request = vi.spyOn(global, 'fetch').mockImplementation(async (url: any) => ({ ok: !String(url).endsWith('/rerun'), status: String(url).endsWith('/rerun') ? 503 : 200, json: async () => String(url).endsWith('/rerun') ? { error: 'Unavailable' } : {}, text: async () => '' } as Response));
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="failed" initialParams={{ threads: 4 }} nextflowStatus={{ processes: [{ name: 's1', status: 'completed' }], failure: { suggested_action: 'fix_and_resume' } }} />);
+    fireEvent.click(screen.getByTestId('panel-tab-settings'));
+    fireEvent.click(screen.getByText('Optional parameters'));
+    fireEvent.change(await screen.findByRole('spinbutton'), { target: { value: '8' } });
+    fireEvent.click(screen.getByTestId('button-run-workflow-panel'));
+    await waitFor(() => expect(request.mock.calls.some(([url]) => String(url).endsWith('/rerun'))).toBe(true));
+    const call = request.mock.calls.find(([url]) => String(url).endsWith('/rerun'))!;
+    expect(JSON.parse(String(call[1]?.body)).params.threads).toBe(8);
+    await waitFor(() => expect(screen.getByTestId('button-run-workflow-panel')).not.toBeDisabled());
+    fireEvent.click(screen.getByTestId('panel-tab-settings'));
+    expect(screen.getByRole('spinbutton')).toHaveValue(8);
   });
 
   it("panel-foot shows Run-again button on completed (action-bar not rendered for terminal states)", async () => {
@@ -633,4 +665,14 @@ it('renders a backend phase prefix once', () => {
   expect(phaseGroupLabel('a', 'Phase A — Input Download')).toBe('Phase A — Input Download');
   expect(phaseGroupLabel('b', 'Normalisation')).toBe('Phase B — Normalisation');
   expect(phaseGroupLabel('c', '')).toBe('Phase C');
+});
+
+describe('recorded step detail propagation', () => {
+ it('retains actual process failure fields through the full-step adapter without inventing missing values', () => {
+  const details = reportedStepDetails({ work_dir: '/work/real-task', job_id: 'job-7', error_message: 'Container exited 127' });
+  expect(buildStepDetailStep({ id: 's', name: 'Failed task', status: 'failed', ...details })).toEqual(expect.objectContaining({ workDir: '/work/real-task', jobId: 'job-7', errorMessage: 'Container exited 127' }));
+  expect(buildStepDetailStep({ id: 'empty', name: 'Unstarted' }).workDir).toBeUndefined();
+  expect(buildStepDetailStep({ id: 'phase-only', name: 'Failed', workDir: '/phase/record', jobId: 'phase-job', ...reportedStepDetails(undefined) })).toEqual(expect.objectContaining({ workDir: '/phase/record', jobId: 'phase-job' }));
+  expect(reportedStepDetails({ job_id: 42 }).jobId).toBe('42');
+ });
 });

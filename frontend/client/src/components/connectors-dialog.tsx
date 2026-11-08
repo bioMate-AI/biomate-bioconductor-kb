@@ -549,6 +549,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
             />
           </div>
         )}
+          {!adding && <>
           {activeTab === 'databases' && <><div className="flex flex-wrap gap-2 px-5 py-3 border-b border-border">{(['public', 'private', 'instruments'] as const).map(view => <button key={view} className={sourceView === view ? 'text-xs rounded-md px-3 py-1.5 bg-muted font-semibold' : 'text-xs rounded-md px-3 py-1.5 text-muted-foreground'} onClick={() => setSourceView(view)}>{view === 'public' ? 'Public databases' : view === 'private' ? 'Private databases' : 'Instruments'}</button>)}</div>{sourceView === 'public' ? <DatabasesTab compact={embedded} selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} /> : sourceView === 'private' ? <div className="p-5"><PrivateDbConnectionForm /></div> : <InstrumentsSection />}</>}
           {activeTab === 'ai' && <><div className="p-4"><button className="text-sm underline" onClick={() => setSettingsOpen(true)}>Configure model providers and API keys</button></div><ConnectorTable compact={embedded} rows={AI} scopes={scopes} onScopeChange={setScope} /></>}
           {activeTab === 'yours' && <div className="p-5"><PrivateDbConnectionForm /></div>}
@@ -562,13 +563,15 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
             </div>
           </div>}
           {activeTab === 'instruments' && <InstrumentsSection />}
+          </>}
         </div>
 
-        <div style={{ flexShrink: 0, padding: '6px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--muted-foreground)' }}>
+        {!adding && <div style={{ flexShrink: 0, padding: '6px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--muted-foreground)' }}>
           {activeTab === 'databases' && sourceView === 'public' && (embedded ? 'Public sources are queried automatically when relevant to your request.' : dbFooter)}
           {activeTab === 'ai'        && `${AI.length} AI models and platform surfaces BioMate exposes — reference only. This panel does not configure them; set up messaging bots / IDE (MCP) / GPT-action access from their own tools or the BioMate MCP install flow.`}
           {activeTab === 'yours'     && 'Your own private database and MCP server — the one writable surface here. Connections you add are used by BioMate chat; DB queries are read-only and credentials are encrypted at rest.'}
-        </div>
+        </div>}
+
       </Container>
   );
   return <>{embedded ? content : <Dialog open={open} onOpenChange={onOpenChange}>{content}</Dialog>}{settingsOpen && <SettingsDialog open onOpenChange={setSettingsOpen} />}</>;
