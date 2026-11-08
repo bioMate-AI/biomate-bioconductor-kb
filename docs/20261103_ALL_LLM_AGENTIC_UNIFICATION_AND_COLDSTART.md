@@ -742,3 +742,9 @@ Residual risk: the stale CPU build on deploy-test can push `biomate/mlip-md:x86`
 - AMBER engine decision (§17.3).
 - Fixture password committed in three tracked e2e/recording files (pre-existing). Move it to `E2E_FIXTURE_PASSWORD` and rotate it.
 
+### 17.6 Deploying the MD fixes: two sync defects (2026-11-08)
+
+- **The ancestry guard worked as designed.** Dev was serving `40b2599de5` (another session's `feat/chat-edit-report-p3`), which was not an ancestor of this branch, so the sync refused to deploy. The branch was merged (clean, 6 files), re-checked (tsc 0, vitest 2,550 passed / 0 failed, all 19 changed Galaxy modules importing inside dev's own Galaxy image), and pushed.
+- **Silent layer skip** (`4760622523`). The layer tests were `echo "$changed_paths" | grep -q X && do_backend=true`. Under `pipefail`, `grep -q` exits at its first match, `echo` dies of SIGPIPE on a long list, and the test reads as "no match". The 2,300-file diff logged `backend=false workflows=false` and deployed frontend + DB only. The commit was still recorded as deployed, so the next run's diff base already held it and shipped nothing. Reproduction: a 300k-line list gives old MISSED, new detected. All 17 `echo "$V" | grep -q` tests in the script now read here-strings. Dev was brought level once with the documented `BIOMATE_SYNC_FORCE=backend,workflows`, then checked on the container: `nf_param_requirement.py` present, the MM-GBSA window code present, MLIP `process_gpu` + `cuda12.4-x86`.
+- **Process note.** Bash reads a running script by byte offset, so editing `sync_to_dev.sh` while a sync runs can execute shifted fragments. The original bytes were restored for the run in flight and the fix was checked out afterwards.
+
