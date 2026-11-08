@@ -58,6 +58,7 @@ def test_aws_batch_queue_and_gate_ride_through():
                                 user_id="u1", aws_batch_queue="gpu-queue")
     assert req["compute_config"]["aws_batch_queue"] == "gpu-queue"
     assert req["qc_overrides"]["ml_gate"] == {"metric": "auc", "threshold": 0.7}
+    assert req["parameters"]["gate_threshold"] == 0.7  # CLI evaluates the same gate as executor QC
 
 
 def test_container_env_override(monkeypatch):
@@ -69,7 +70,42 @@ def test_container_env_override(monkeypatch):
 def test_no_gate_means_no_qc_overrides_key():
     req = build_execute_request(_cfg(gate_threshold=None), user_id="u1")
     assert "qc_overrides" not in req
+    assert req["parameters"]["gate_threshold"] is None
 
 
 def test_is_pilot_flag_propagates():
     assert build_execute_request(_cfg(), user_id="u1", is_pilot=True)["is_pilot"] is True
+
+
+def test_card_and_direct_executor_preserve_selected_identity_gate_split_and_hyperparameters():
+    cfg = _cfg(gate_threshold=0.72, metric="auc", name="Hospital tumor classifier",
+               model_type="sklearn_tabular", featurizer="none")
+    cfg.dataset.split = "kfold"
+    cfg.dataset.cv_folds = 3
+    cfg.hyperparams.seed = 91
+    cfg.hyperparams.batch_size = 7
+    card = cfg.to_workflow_ga()
+    direct = build_execute_request(cfg, user_id="owner")
+    assert card["parameters"] == direct["parameters"]
+    assert card["parameters"]["model_name"] == cfg.name
+    assert card["parameters"]["metric"] == cfg.metric
+    assert card["parameters"]["gate_threshold"] == 0.72
+    assert card["parameters"]["cv_folds"] == 3
+    assert card["parameters"]["seed"] == 91
+    assert card["parameters"]["batch_size"] == 7
+    row_values = {row["name"]: row.get("value") for row in card["optional_params"]}
+    assert row_values["model_name"] == cfg.name
+    assert row_values["metric"] == cfg.metric
+    assert row_values["gate_threshold"] == 0.72
+
+
+def test_llm_card_contains_actual_task_and_model_identity():
+    from galaxy.ai.ml_training.config import LLMSpec
+    cfg = _cfg(name="Hospital language model", model_type="ludwig_llm", task_type="text_generation",
+               llm=LLMSpec(), metric="loss")
+    card = cfg.to_workflow_ga()
+    rows = {row["name"]: row.get("value") for row in card["optional_params"]}
+    assert rows["task_type"] == "text_generation"
+    assert card["parameters"]["task_type"] == "text_generation"
+    assert card["parameters"]["model_name"] == cfg.name
+    assert card["parameters"]["metric"] == "loss"

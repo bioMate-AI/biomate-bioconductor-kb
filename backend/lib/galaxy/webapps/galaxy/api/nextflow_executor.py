@@ -1478,6 +1478,20 @@ def _trigger_auto_reroute_on_failure(
         log.warning("[auto_reroute] trigger failed for run %s: %s", run_id, exc)
 
 
+def _same_param_value(value: Any, default: Any) -> bool:
+    """True when a caller's param value is the pipeline's default (UI strings vs config literals)."""
+    if value is None or default is None:
+        return value is None and default is None
+    if isinstance(default, bool) or str(value).strip().lower() in ("true", "false"):
+        return str(value).strip().lower() == str(default).strip().lower()
+    if isinstance(default, (int, float)) and not isinstance(default, bool):
+        try:
+            return float(value) == float(default)
+        except (TypeError, ValueError):
+            return False
+    return str(value).strip() == str(default).strip()
+
+
 def _nextflow_error_summary(log_text: str, limit: int = 600) -> str:
     """One-paragraph cause of a failed run, from the Nextflow console log (<run>/nextflow.log).
 
@@ -2137,6 +2151,32 @@ _NFAMAZON_FOR_NXF_VER = {"22.10.8": "1.11.5", "26.04.6": "3.9.2"}
 
 def _ver_tuple(v: str) -> Tuple[int, ...]:
     return tuple(int(p) for p in re.findall(r"\d+", v)[:3])
+
+
+def _nfcore_compat_process_lines(nf_path: Union[str, Path, None]) -> List[str]:
+    """`process { withName: … }` lines substituting rebuilt compat images for this nf-core pipeline.
+
+    alpine-glibc images also get `containerOptions = ''`: the default options mount the host libz
+    and set LD_LIBRARY_PATH for glibc images, which makes an Alpine image's own musl programs load
+    glibc libz and fail; those images carry their own glibc libz under /usr/glibc-compat instead.
+    """
+    s = str(nf_path or "")
+    if "/nf-core-workflows/" not in s or "/nf-core-workflows/modules/" in s:
+        return []
+    pipeline = Path(s).parent.name
+    try:
+        from galaxy.ai.nfcore_compat_images import IMAGES, REPOSITORY  # noqa: PLC0415
+    except ImportError:
+        return []
+    out: List[str] = []
+    for img in IMAGES:
+        ref = f"{REPOSITORY}:{img.get('tag')}"
+        for use in img.get("uses") or []:
+            if use.get("pipeline") != pipeline or not use.get("process"):
+                continue
+            extra = "; containerOptions = ''" if img.get("fix") == "alpine-glibc" else ""
+            out.append(f"    withName: '{use['process']}' {{ container = '{ref}'{extra} }}")
+    return ["process {", *out, "}"] if out else []
 
 
 def _pipeline_nextflow_version(nf_path: Union[str, Path]) -> Tuple[str, bool]:
@@ -4011,6 +4051,10 @@ process {{
             _container_opts = f"-e LD_LIBRARY_PATH={_ld_aws_host}"
         lines.append(f"    containerOptions = '{_container_opts}'")
         lines.append("}")
+        # Published task images that cannot run on these Batch hosts as-is (Alpine/musl vs the
+        # host-mounted glibc AWS CLI; a tool ENTRYPOINT that replaces the task script) are swapped
+        # per process for rebuilt ones — see galaxy/ai/nfcore_compat_images.py.
+        lines += _nfcore_compat_process_lines(nf_path)
         # Per-label GPU queue routing: processes labeled 'process_gpu' go to the GPU queue.
         # Avoids a single monolithic queue for all workflows.
         # IMPORTANT — a sensible default is required. Without it, every GPU-labelled
@@ -7572,6 +7616,42 @@ def _execute_nextflow_impl(
     # sequence coercion above. No-op for non-docking workflows.
     _normalize_docking_params(params)
 
+    # (Before the input-path check: a pipeline-default relative glob must not be validated.)
+    # Real nf-core pipelines read list/map params as Groovy collections (e.g. proteomicslfq 1.0.0
+    # `input = [a.mzML, b.mzML]`); the JSON-string encoding below exists for BioMate's own .nf, whose
+    # auto_convert() json.loads them. A JSON string reached proteomicslfq as one non-file value
+    # ("EITHER spectra data OR an SDRF needs to be provided", 2026-11-06). For nf-core pipelines,
+    # collections go through -params-file as native JSON, which Nextflow loads as lists/maps.
+    _native_collections = (
+        "/nf-core-workflows/" in str(nf_path) and "/nf-core-workflows/modules/" not in str(nf_path)
+    )
+    _native_params: dict = {}
+    # A param the real nf-core pipeline does not declare never helps: Nextflow ignores it or the
+    # pipeline's schema validation rejects it. Display stubs carried such names (proteomicslfq's
+    # enable_umi). Drop them here so API / MCP callers are covered too, not only the catalog path.
+    if _native_collections:
+        try:
+            from galaxy.ai.executed_schema import executed_pipeline_params  # noqa: PLC0415
+            _declared = executed_pipeline_params(str(request.nextflow_path or nf_path))
+        except Exception:
+            _declared = None
+        if _declared:
+            _undeclared = [k for k in params if k not in _declared["known"] and k != "outdir"]
+            for _k in _undeclared:
+                params.pop(_k, None)
+            if _undeclared:
+                log.info(f"[Nextflow {Path(str(nf_path)).parent.name}] dropped params the pipeline does not declare: {_undeclared}")
+            # A value equal to the pipeline's own default adds nothing on the command line, and
+            # can only hurt: it overrides the -profile (test configs set inputs/caps) and trips the
+            # input-path check for relative-glob defaults (cageseq input='data/*R1.fastq.gz', which
+            # the param panel now shows as its default and callers send back). Send deltas only.
+            _defaults = _declared.get("defaults") or {}
+            _as_default = [k for k, v in params.items()
+                           if k in _defaults and k != "outdir" and _same_param_value(v, _defaults[k])]
+            for _k in _as_default:
+                params.pop(_k, None)
+            if _as_default:
+                log.info(f"[Nextflow {Path(str(nf_path)).parent.name}] not passing params equal to the pipeline default: {_as_default}")
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
     _validate_epitope_netmhc_params(nf_path, params)
@@ -7804,30 +7884,6 @@ def _execute_nextflow_impl(
             cmd.append("-resume")
             log.info(f"[Nextflow run {run_id}] Resuming from {request.resume_from_run_id}, work_dir={prev_work}")
 
-    # Real nf-core pipelines read list/map params as Groovy collections (e.g. proteomicslfq 1.0.0
-    # `input = [a.mzML, b.mzML]`); the JSON-string encoding below exists for BioMate's own .nf, whose
-    # auto_convert() json.loads them. A JSON string reached proteomicslfq as one non-file value
-    # ("EITHER spectra data OR an SDRF needs to be provided", 2026-11-06). For nf-core pipelines,
-    # collections go through -params-file as native JSON, which Nextflow loads as lists/maps.
-    _native_collections = (
-        "/nf-core-workflows/" in str(nf_path) and "/nf-core-workflows/modules/" not in str(nf_path)
-    )
-    _native_params: dict = {}
-    # A param the real nf-core pipeline does not declare never helps: Nextflow ignores it or the
-    # pipeline's schema validation rejects it. Display stubs carried such names (proteomicslfq's
-    # enable_umi). Drop them here so API / MCP callers are covered too, not only the catalog path.
-    if _native_collections:
-        try:
-            from galaxy.ai.executed_schema import executed_pipeline_params  # noqa: PLC0415
-            _declared = executed_pipeline_params(str(request.nextflow_path or nf_path))
-        except Exception:
-            _declared = None
-        if _declared:
-            _undeclared = [k for k in params if k not in _declared["known"] and k != "outdir"]
-            for _k in _undeclared:
-                params.pop(_k, None)
-            if _undeclared:
-                log.info(f"[Nextflow run {run_id}] dropped params the pipeline does not declare: {_undeclared}")
     if _has_multiline:
         # One or more params contain embedded newlines (inline CSV/SMILES/FASTA).
         # Nextflow 25.x --params-file silently drops multi-line string values

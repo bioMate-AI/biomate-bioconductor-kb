@@ -19,6 +19,9 @@ export function scientificToolRequest(input: unknown, kind: 'targets' | 'review'
   if (input.disease_id != null && (typeof input.disease_id !== 'string' || !/^(?:EFO|MONDO)_\d+$/.test(input.disease_id.trim()))) {
     throw new Error('disease_id must be an EFO/MONDO identifier; omit it if unknown');
   }
+  if (input.disease != null && (typeof input.disease !== 'string' || !input.disease.trim() || input.disease.trim().length > 300)) {
+    throw new Error('disease must be a non-empty name of at most 300 characters');
+  }
   if (input.candidate_targets != null && (!Array.isArray(input.candidate_targets) || input.candidate_targets.some((v: unknown) => typeof v !== 'string' || !v.trim()))) {
     throw new Error('candidate_targets must contain non-empty gene symbols');
   }
@@ -31,6 +34,7 @@ export function scientificToolRequest(input: unknown, kind: 'targets' | 'review'
   }
   return {
     query, disease_id: input.disease_id?.trim() || null, candidate_targets: candidates?.length ? candidates : null, top_k: topK,
+    ...(input.disease ? { disease: input.disease.trim() } : {}),
     ...(input.ranking_mode ? {ranking_mode: input.ranking_mode} : {}),
     ...(input.validate === true ? {validate: true} : {}),
     ...(input.suggest_modality === true ? {suggest_modality: true} : {}),
@@ -41,6 +45,9 @@ export function scientificToolResult(data: unknown, kind: 'targets' | 'review', 
   if (!object(data)) return {error: 'Scientific backend returned an invalid response', query};
   if (data.success === false || data.error) return {error: data.error || 'Scientific backend reported failure', query};
   if (kind === 'targets') {
+    if (/disease .* did not resolve/i.test(String(data.channel_errors?.genetics_ot || ''))) {
+      return { error: 'The disease identifier did not resolve in Open Targets. Retry identify_targets with the full disease name in disease; do not guess another identifier.', query };
+    }
     if (!Array.isArray(data.targets) || data.targets.some((t: unknown) => !object(t) || typeof t.target !== 'string' || !t.target.trim() || !Number.isFinite(t.score) || !Number.isInteger(t.rank) || t.rank < 1 || typeof t.tier !== 'string')) {
       return {error: 'Target backend returned an invalid ranked-target list', query};
     }
@@ -54,6 +61,7 @@ export function scientificToolResult(data: unknown, kind: 'targets' | 'review', 
     return {
       query, status: data.targets.length ? 'ok' : 'no_evidence',
       arbiter: data.arbiter, ranking, channels_run: data.channels_run,
+      ...(data.disease_resolution ? { disease_resolution: data.disease_resolution } : {}),
       channel_errors: data.channel_errors, channel_provenance: provenance,
       n_targets_total: data.n_targets_total ?? data.targets.length,
       targets: data.targets,
@@ -102,8 +110,18 @@ export function targetEvidenceReply(result: any): string {
   const rows = result.targets.map((t: any) => `| ${text(t.rank)} | ${text(t.target)} | ${text(t.score)} | ${text(t.tier)} | ${t.conflict ? 'Yes' : 'No'} |`);
   const primary = result.ranking?.mode === 'primary_channel' ? result.ranking.primary_channel : null;
   const errors = Object.keys(result.channel_errors || {});
+  const channels = Array.isArray(result.channels_run) ? result.channels_run : [];
+  const available = channels.filter((name: string) => !errors.includes(name));
+  const reasoningOnly = available.length > 0 && available.every((name: string) => name === 'llm_reasoned');
+  const headline = reasoningOnly
+    ? 'Target hypotheses generated from AI reasoning only. External evidence was not verified.'
+    : !available.length
+      ? 'Target ranking returned without verified channel provenance.'
+      : errors.length
+        ? 'Target ranking completed with incomplete evidence.'
+        : 'Target identification completed successfully.';
   const channel = (value: string) => ({genetics_ot:'Open Targets disease-association evidence',llm_reasoned:'AI-generated reasoning'}[value] || text(value));
-  return `Target identification completed successfully.\n\n| Rank | Target | Score | Evidence tier | Channel conflict |\n| --- | --- | --- | --- | --- |\n${rows.join('\n')}\n\nRanking: ${primary ? `ordered by ${channel(primary)}` : 'combined available channels; Open Targets-primary ordering was not established'}. Successful channels: ${(result.channels_run || []).map(channel).join(', ') || 'none reported'}. Failed channels: ${errors.map(channel).join(', ') || 'none reported'}.\n\nScores are associations, not clinical probabilities. Evidence tiers describe channel agreement, not independent experimental validation; AI-generated reasoning is not a retrieved publication. A conflict means the channels disagree. No improvement over Open Targets alone has been established.`;
+  return `${headline}\n\n| Rank | Target | Score | Evidence tier | Channel conflict |\n| --- | --- | --- | --- | --- |\n${rows.join('\n')}\n\nRanking: ${primary && available.includes(primary) ? `ordered by ${channel(primary)}` : 'combined available channels; Open Targets-primary ordering was not established'}. Successful channels: ${available.map(channel).join(', ') || 'none reported'}. Failed channels: ${errors.map(channel).join(', ') || 'none reported'}.\n\nScores are associations, not clinical probabilities. Evidence tiers describe channel agreement, not independent experimental validation; AI-generated reasoning is not a retrieved publication. A conflict means the channels disagree. No improvement over Open Targets alone has been established.${errors.length || !available.length || reasoningOnly ? '\n\nRetrieve or retry the missing source evidence before using this ranking as evidence-backed prioritization.' : ''}`;
 }
 
 const DB_ENTITY_TYPES = ['gene', 'protein', 'compound', 'variant', 'pathway', 'structure', 'disease', 'literature'];

@@ -25,7 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { StepOutputPreview } from "@/components/step-output-preview";
-import { t } from "@/lib/i18n";
+import { t, tOr } from "@/lib/i18n";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,6 +61,9 @@ export interface StepDetailStep {
   name: string;
   processName?: string;
   status?: string;
+  workDir?: string;
+  jobId?: string;
+  errorMessage?: string;
   /** Tool that ran this step (e.g. "STAR", "salmon"). Optional — honest if absent. */
   tool?: string;
   /** Tool version. Optional — honest if absent. */
@@ -360,11 +363,16 @@ export function StepDetail({
 
       {/* Body */}
       <div className="min-h-0 overflow-auto px-4 py-3 space-y-4">
+        {(step.errorMessage || step.workDir || step.jobId) && <section data-testid="step-recorded-details" className="space-y-2 text-xs">
+          {step.errorMessage && <pre className="whitespace-pre-wrap break-words rounded border border-destructive/30 p-3 text-destructive">{stripAnsi(step.errorMessage)}</pre>}
+          {step.jobId && <p className="break-all">{tOr('step_view.job_id', 'Job ID')}: {step.jobId}</p>}
+          {step.workDir && <p className="break-all">{tOr('step_view.work_directory', 'Work directory')}: {step.workDir}</p>}
+        </section>}
         {/* Outputs — tabs + rendered/raw switch */}
         <div>
           <div className="flex items-center gap-1.5 flex-wrap mb-2">
             {outputs.length === 0 && (
-              <p className="text-xs text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.outputs_running') : t('step_view.outputs_none')}</p>
+              <p className="text-xs text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.outputs_running') : tOr('step_view.output_links_unavailable', 'No output-file links were recorded for this task. Check Outputs for any run-level files.')}</p>
             )}
             {outputs.map(o => (
               <button

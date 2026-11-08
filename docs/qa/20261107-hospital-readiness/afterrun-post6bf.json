@@ -1,0 +1,271 @@
+{
+  "target": "https://dev-public.biomate.ai",
+  "scope": "authenticated read-only saved-run contracts; no UI/execution claim",
+  "totals": {
+    "PASS": 48,
+    "FAIL": 0,
+    "SKIP": 4
+  },
+  "checks": [
+    {
+      "name": "Existing fixture authentication",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "Deployed build identity is readable JSON",
+      "status": "PASS",
+      "detail": "HTTP 200; commit=6bf15d7912226e172247b54b9afce60ee67be11b"
+    },
+    {
+      "name": "Authenticated Run Manager inventory",
+      "status": "PASS",
+      "detail": "HTTP 200; records=100"
+    },
+    {
+      "name": "Completed fixture state available",
+      "status": "PASS",
+      "detail": "27 records; absence is a coverage gap, not proof of a UI defect"
+    },
+    {
+      "name": "completed sample 1 reopens saved run",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "completed sample 1 reproducibility record reachable",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "completed sample 1 identity/status retained",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 1 parameters/input bindings retain structured shape",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 1 export output count matches output list",
+      "status": "PASS",
+      "detail": "outputs=77"
+    },
+    {
+      "name": "completed sample 1 output export metadata has names and valid optional checksums",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 1 export does not expose raw storage URIs",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 1 reproducibility survives reopening",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 1 reproducibility rejects anonymous access",
+      "status": "PASS",
+      "detail": "HTTP 401"
+    },
+    {
+      "name": "completed sample 1 canonical outputs are readable with consistent count",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "completed sample 1 original chat coverage",
+      "status": "SKIP",
+      "detail": "No chatSessionId recorded; direct executor history does not establish chat restoration"
+    },
+    {
+      "name": "completed sample 2 reopens saved run",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "completed sample 2 reproducibility record reachable",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "completed sample 2 identity/status retained",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 2 parameters/input bindings retain structured shape",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 2 export output count matches output list",
+      "status": "PASS",
+      "detail": "outputs=197"
+    },
+    {
+      "name": "completed sample 2 output export metadata has names and valid optional checksums",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 2 export does not expose raw storage URIs",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 2 reproducibility survives reopening",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "completed sample 2 reproducibility rejects anonymous access",
+      "status": "PASS",
+      "detail": "HTTP 401"
+    },
+    {
+      "name": "completed sample 2 canonical outputs are readable with consistent count",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "completed sample 2 original chat coverage",
+      "status": "SKIP",
+      "detail": "No chatSessionId recorded; direct executor history does not establish chat restoration"
+    },
+    {
+      "name": "Failed fixture state available",
+      "status": "PASS",
+      "detail": "69 records; absence is a coverage gap, not proof of a UI defect"
+    },
+    {
+      "name": "failed sample 1 reopens saved run",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "failed sample 1 reproducibility record reachable",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "failed sample 1 identity/status retained",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 1 parameters/input bindings retain structured shape",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 1 export output count matches output list",
+      "status": "PASS",
+      "detail": "outputs=2"
+    },
+    {
+      "name": "failed sample 1 output export metadata has names and valid optional checksums",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 1 export does not expose raw storage URIs",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 1 reproducibility survives reopening",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 1 reproducibility rejects anonymous access",
+      "status": "PASS",
+      "detail": "HTTP 401"
+    },
+    {
+      "name": "failed sample 1 canonical outputs are readable with consistent count",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "failed sample 1 original chat coverage",
+      "status": "SKIP",
+      "detail": "No chatSessionId recorded; direct executor history does not establish chat restoration"
+    },
+    {
+      "name": "failed sample 1 stored failure includes diagnostic evidence",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 2 reopens saved run",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "failed sample 2 reproducibility record reachable",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "failed sample 2 identity/status retained",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 2 parameters/input bindings retain structured shape",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 2 export output count matches output list",
+      "status": "PASS",
+      "detail": "outputs=0"
+    },
+    {
+      "name": "failed sample 2 output export metadata has names and valid optional checksums",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 2 export does not expose raw storage URIs",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 2 reproducibility survives reopening",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "failed sample 2 reproducibility rejects anonymous access",
+      "status": "PASS",
+      "detail": "HTTP 401"
+    },
+    {
+      "name": "failed sample 2 canonical outputs are readable with consistent count",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "failed sample 2 original chat coverage",
+      "status": "SKIP",
+      "detail": "No chatSessionId recorded; direct executor history does not establish chat restoration"
+    },
+    {
+      "name": "failed sample 2 stored failure includes diagnostic evidence",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Sample includes actual exported output metadata",
+      "status": "PASS",
+      "detail": "3 sampled records with outputs"
+    }
+  ]
+}

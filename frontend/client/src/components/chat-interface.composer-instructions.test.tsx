@@ -1,3 +1,8 @@
+const uiLocale = vi.hoisted(() => ({ language: 'en' }));
+vi.mock('@/lib/i18n', async importOriginal => ({
+  ...await importOriginal<typeof import('@/lib/i18n')>(),
+  get locale() { return uiLocale.language; },
+}));
 /**
  * Behavioral regression: composer instructions must survive the real submit
  * path and be serialized into the request made by ChatInterface.  Testing
@@ -41,6 +46,7 @@ function jsonResponse(value: unknown) {
 }
 
 beforeEach(() => {
+  uiLocale.language = 'en'
   localStorage.clear()
   // Avoid the onboarding surface covering the composer in this focused test.
   localStorage.setItem("biomate_onboarding_done", "1")
@@ -94,6 +100,7 @@ describe("ChatInterface composer instructions request contract", () => {
       stream: true,
       context: {
         composerInstructions: "Use GRCh38 and FDR < 0.05.",
+        uiLanguage: "en",
       },
     })
     // The session is created by the same submit path; do not pin its random ID,
@@ -120,4 +127,15 @@ describe("ChatInterface composer instructions request contract", () => {
       { id: "result-b-v2", name: "result-B.csv" },
     ])
   })
+  it("sends the Chinese UI hint without translating the user's scientific query", async () => {
+    uiLocale.language = 'zh';
+    render(<ChatInterface />, { wrapper: wrapper() });
+    const message = 'Explain hERG for CC(=O)O in English';
+    fireEvent.input(screen.getByTestId('chat-input'), { target: { value: message } });
+    fireEvent.click(screen.getByTestId('chat-send-button'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/chat/stream', expect.objectContaining({ method: 'POST' })));
+    const [, request] = fetchMock.mock.calls.find(([url]) => url === '/api/chat/stream')!;
+    expect(JSON.parse(request.body)).toMatchObject({ message, context: { uiLanguage: 'zh' } });
+  });
+
 })

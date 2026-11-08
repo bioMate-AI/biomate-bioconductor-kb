@@ -56,3 +56,31 @@ def test_structure_requests_keep_the_fast_path(intent):
 ])
 def test_nucleotide_only_strings_are_not_proteins(intent):
     assert _assistant()._try_fast_path_protein_structure(intent) is None
+
+
+@pytest.mark.parametrize('intent', [
+    'Calculate the physicochemical properties, molecular weight and isoelectric point '
+    'of peptide sequence ACDEFGHIKLMNPQRSTVWY.',
+    f'Calculate the molecular weight and pI of {SEQ}',
+    f'Annotate motifs in this protein: {SEQ}',
+    f'Align these peptide sequences: {SEQ}',
+    f'Estimate immunogenicity for this peptide: {SEQ}',
+    f'Calculate fold change for expression of peptide {SEQ}',
+    f'计算肽序列的分子量和等电点：{SEQ}',
+    f'Calculate peptide properties.\n\nPrevious context: structure prediction {SEQ}',
+])
+def test_nonstructural_sequence_tasks_do_not_query_folding_catalogue(intent):
+    a = _assistant()
+    def wrong_lookup(_pattern):
+        raise AssertionError('Nonstructural task must not query the folding catalogue')
+    a.workflow_search.get_workflow_by_filename_pattern = wrong_lookup
+    assert a._try_fast_path_protein_structure(intent) is None
+
+
+@pytest.mark.parametrize('intent', [
+    f'Protein structure prediction for {SEQ}',
+    f'Use ESMFold on this sequence: {SEQ}',
+    f'预测这个蛋白质的三维结构：{SEQ}',
+])
+def test_explicit_structure_aliases_keep_the_fast_path(intent):
+    assert _assistant()._try_fast_path_protein_structure(intent) is not None

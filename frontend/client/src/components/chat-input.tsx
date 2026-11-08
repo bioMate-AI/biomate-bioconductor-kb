@@ -188,6 +188,14 @@ export function ChatInput({
   const activeProject = activeProjectId
     ? projects.find((p) => p.id === activeProjectId) ?? null
     : null
+  // Spec 06 §6.1 instructions chip: "A count of standing project instructions in context. Present
+  // only inside a project that has them." Count the project's standing rules (one per non-empty line
+  // of its instructions, matching how the Instructions page splits them) from the fresh project prop.
+  const standingRuleCount = (activeProject?.instructions ?? "")
+    .split("\n").map((s) => s.trim()).filter(Boolean).length
+  // Mirrors MAX_COMPOSER_INSTRUCTIONS_LENGTH in server/chat-context.ts. Enforce it in the UI so a
+  // long paste can't be SILENTLY truncated server-side with no signal to the user.
+  const COMPOSER_INSTRUCTIONS_MAX = 24_000
   const [instructions, setInstructions] = useState<string>(activeProject?.instructions ?? "")
   const [instructionsOpen, setInstructionsOpen] = useState(false)
   // Expert/skill packs toggled on for THIS composer (spec 06 §6.5). The ids
@@ -212,11 +220,15 @@ export function ChatInput({
   // If the chat becomes filed into a project that carries standing
   // instructions and the user hasn't typed their own, adopt the project's.
   const seededProjectIdRef = useRef<string | null>(null)
+  // The exact text last seeded from the project, so the send path can tell an untouched project
+  // seed (which the server already injects — do NOT re-send) from chat-specific text the user typed.
+  const seededInstructionsRef = useRef<string>("")
   useEffect(() => {
     const seed = activeProject?.instructions ?? ""
-    if (!activeProject && seededProjectIdRef.current) { seededProjectIdRef.current = null; setInstructions("") }
+    if (!activeProject && seededProjectIdRef.current) { seededProjectIdRef.current = null; seededInstructionsRef.current = ""; setInstructions("") }
     if (activeProject && seededProjectIdRef.current !== activeProject.id) {
       seededProjectIdRef.current = activeProject.id
+      seededInstructionsRef.current = seed
       setInstructions(seed)
     }
   }, [activeProject])
@@ -236,20 +248,23 @@ export function ChatInput({
   const [datasetLinkError, setDatasetLinkError] = useState("")
   useEffect(() => {
     const query = new URLSearchParams(window.location.search)
-    const fileId = query.get("attachFile")
-    if (!fileId || !activeProjectId || query.get("project") !== activeProjectId) return
+    const fileIds = [...new Set(query.getAll("attachFile"))].filter(Boolean)
+    if (!fileIds.length || !activeProjectId || query.get("project") !== activeProjectId) return
     let cancelled = false
     const abort = new AbortController()
     setLinkingDataset(true)
     setDatasetLinkError("")
-    fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/files/${encodeURIComponent(fileId)}/url`, {
-      credentials: "include", signal: abort.signal,
-    }).then(async response => {
+    Promise.all(fileIds.map(async fileId => {
+      const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/files/${encodeURIComponent(fileId)}/url`, {
+        credentials: "include", signal: abort.signal,
+      })
       if (!response.ok) throw new Error(`Cannot link this project file (${response.status}).`)
       const file = await response.json()
       if (typeof file.name !== "string") throw new Error("The project file is unavailable.")
+      return { id: fileId, value: fileId, name: file.name }
+    })).then(files => {
       if (cancelled) return
-      setSelectedDatasets(previous => [...previous.filter(d => d.value !== fileId), { id: fileId, value: fileId, name: file.name }])
+      setSelectedDatasets(previous => [...previous.filter(d => !fileIds.includes(d.value)), ...files])
       query.delete("attachFile")
       window.history.replaceState(null, "", `${window.location.pathname}?${query.toString()}`)
       textareaRef.current?.focus()
@@ -339,9 +354,15 @@ export function ChatInput({
       // context path as every other override. They ride as
       // `composerInstructions` so the backend can apply them as a reading
       // lens; empty instructions add nothing (honest-empty).
+      // Composer instructions are REQUEST-scoped. In a project the standing instructions are already
+      // injected server-side (routes.ts "Research goal" / "Background instructions"), so re-sending
+      // the composer's seeded copy duplicated them in the prompt. Send `instructions` only when they
+      // are chat-specific — i.e. the user changed them from the project seed, or there is no project.
+      const isUntouchedProjectSeed = !!activeProjectId && instructions.trim() === seededInstructionsRef.current.trim()
+      const chatSpecificInstructions = isUntouchedProjectSeed ? "" : instructions.trim()
       // Render output requirements through the shared helper: ONLY formats the user left switched
       // ON are sent, as prose (never the raw JSON store, which also carried the disabled ones).
-      const trimmedInstructions = [instructions.trim(), outputRequirementsToPrompt(projectOutputRequirements)].filter(Boolean).join("\n\n")
+      const trimmedInstructions = [chatSpecificInstructions, outputRequirementsToPrompt(projectOutputRequirements)].filter(Boolean).join("\n\n")
       const datasetReferences: ComposerDatasetReference[] = selectedDatasets.map((dataset) => ({
         id: dataset.value,
         name: dataset.name,
@@ -870,11 +891,18 @@ export function ChatInput({
             and apply to every request. Outside a project there is no panel to
             open, so a lightweight inline field remains for projectless chats. */}
         {activeProjectId ? (
+          // Design-conformant (Spec 06 §6.1 / ChatView.jsx:72): show the chip ONLY when the project
+          // has standing instructions, and show their COUNT (so a user learns their run was shaped by
+          // a rule they wrote weeks ago) — not an always-visible label with a dot that lit for any of
+          // instructions/outputs/skills. Opening the Instructions panel is still a click away here,
+          // and also from the sidebar's per-project "Instructions" link, so a 0-rule project is not
+          // stranded by hiding the chip.
+          standingRuleCount > 0 ? (
           <button
             type="button"
             data-testid="composer-instructions-toggle"
             onClick={() => setLocation(`/projects?project=${activeProjectId}&tab=instructions`)}
-            title={t('composer.instructions_open_panel')}
+            title={`${standingRuleCount} standing instruction${standingRuleCount === 1 ? "" : "s"} from ${activeProject?.name ?? "this project"} ${standingRuleCount === 1 ? "is" : "are"} in context`}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               border: "none", background: "transparent", cursor: "pointer",
@@ -884,14 +912,20 @@ export function ChatInput({
           >
             <SlidersHorizontal className="w-3 h-3" />
             <span>{t('composer.instructions')}</span>
-            {(instructions.trim() || projectOutputRequirements.trim() || selectedSkillIds.length > 0) && (
-              <span
-                data-testid="composer-instructions-on"
-                aria-hidden
-                style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
-              />
-            )}
+            <span
+              data-testid="composer-instructions-count"
+              style={{
+                minWidth: 16, height: 16, padding: "0 5px", borderRadius: 999,
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10.5, fontWeight: 600, lineHeight: 1,
+                background: "var(--bm-accent-soft, oklch(0.93 0.03 245))",
+                color: "var(--bm-accent, oklch(0.45 0.14 245))",
+              }}
+            >
+              {standingRuleCount}
+            </span>
           </button>
+          ) : null
         ) : (
           <div style={{ minWidth: 0, flex: instructionsOpen ? "1 1 100%" : undefined }}>
             <button
@@ -923,6 +957,7 @@ export function ChatInput({
                 onChange={(e) => setInstructions(e.target.value)}
                 placeholder={t('composer.instructions_placeholder')}
                 rows={2}
+                maxLength={COMPOSER_INSTRUCTIONS_MAX}
                 style={{
                   width: "100%", marginTop: 6, resize: "vertical",
                   minHeight: 44, maxHeight: 160,
@@ -934,6 +969,11 @@ export function ChatInput({
                   outline: "none",
                 }}
               />
+            )}
+            {instructionsOpen && instructions.length > COMPOSER_INSTRUCTIONS_MAX * 0.9 && (
+              <div data-testid="composer-instructions-limit" style={{ marginTop: 2, fontSize: 11, textAlign: "right", color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>
+                {instructions.length.toLocaleString()} / {COMPOSER_INSTRUCTIONS_MAX.toLocaleString()} — longer input is trimmed before it reaches the model
+              </div>
             )}
           </div>
         )}

@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind } from "./nextflow-workflow-viewer";
+import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind, failureRecoveryAdvice, phaseGroupLabel, reportedStepDetails, recordedProcessPhases, qcWorkflowDomain } from "./nextflow-workflow-viewer";
 
 vi.mock("./chat-output-attachments", () => ({
   ChatOutputAttachments: () => <div data-testid="mock-chat-output-attachments" />,
@@ -78,6 +78,14 @@ describe("NextflowWorkflowViewer — per-step execution controls (current afford
   });
   afterEach(() => { vi.clearAllMocks(); });
 
+  it("forwards the durable SSE event identity even when timestamp is absent", async () => {
+    const onWorkflowProgress = vi.fn();
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" onWorkflowProgress={onWorkflowProgress} />);
+    await waitFor(() => expect(typeof esHandlers['chat_progress']).toBe('function'));
+    dispatchSSE('chat_progress', { kind: 'workflow.failed', friendly_message: 'Workflow hit an error.', event_id: 'attempt-a-event-9', invocation_id: 'producer-run-a' });
+    expect(onWorkflowProgress).toHaveBeenCalledWith(expect.objectContaining({ eventId: 'attempt-a-event-9', invocationId: 'producer-run-a', ts: undefined }));
+  });
+
   it("shows step details while pending, without allowing a rerun", async () => {
     render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
     // Phases tab auto-selected for running; s2 starts genuinely pending.
@@ -135,7 +143,7 @@ describe("NextflowWorkflowViewer — per-step execution controls (current afford
 // Stub the v2 AfterRunReport so the test doesn't need real /api/jobs etc.
 vi.mock("@/v2/AfterRunReport", () => ({
   AfterRunReport: (props: any) => (
-    <div data-testid="mock-after-run-report" data-run-id={props.runId} data-status={props.executionStatus} />
+    <div data-testid="mock-after-run-report" data-run-id={props.runId} data-status={props.executionStatus} data-failed-steps={JSON.stringify(props.failedSteps)} data-log-tail={JSON.stringify(props.logTail)} data-autofix={JSON.stringify(props.autofix)} />
   ),
 }));
 
@@ -225,6 +233,38 @@ describe("NextflowWorkflowViewer — horizontal tabs MVP", () => {
       expect(arr).toHaveAttribute("data-run-id", "run-tabs-1");
       expect(arr).toHaveAttribute("data-status", "completed");
     });
+  });
+
+  it("preserves cancellation in the mounted report and suppresses failure diagnosis", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="failed" wasCancelled errorMessage="Cancelled by user" nextflowStatus={{ failure: { user_message: 'Failure diagnosis must not appear' } }} />);
+    const report = await screen.findByTestId('mock-after-run-report');
+    expect(report).toHaveAttribute('data-status', 'cancelled');
+    expect(screen.queryByText('Failure diagnosis must not appear')).toBeNull();
+    fireEvent.click(screen.getByTestId('panel-tab-phases'));
+    expect(screen.queryByTestId('execution-triage-panel')).toBeNull();
+  });
+
+  it("forwards recorded failed step names, logs and autofix into the mounted report", async () => {
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="failed" autofix={{ state: 'failed', totalAttempts: 2 }} nextflowStatus={{ processes: [{ name: 's1', status: 'failed', error_message: 'Actual task exit', work_dir: '/work/task' }], log_tail: ['actual task stderr'] }} />);
+    const report = await screen.findByTestId('mock-after-run-report');
+    expect(report.getAttribute('data-failed-steps')).toBe('["s1"]');
+    expect(report).toHaveAttribute('data-log-tail', '["actual task stderr"]');
+    expect(report.getAttribute('data-autofix')).toContain('"totalAttempts":2');
+  });
+
+  it("resumes with edited effective parameters and keeps the draft after API failure", async () => {
+    const request = vi.spyOn(global, 'fetch').mockImplementation(async (url: any) => ({ ok: !String(url).endsWith('/rerun'), status: String(url).endsWith('/rerun') ? 503 : 200, json: async () => String(url).endsWith('/rerun') ? { error: 'Unavailable' } : {}, text: async () => '' } as Response));
+    render(<NextflowWorkflowViewer {...(baseProps as any)} status="failed" initialParams={{ threads: 4 }} nextflowStatus={{ processes: [{ name: 's1', status: 'completed' }], failure: { suggested_action: 'fix_and_resume' } }} />);
+    fireEvent.click(screen.getByTestId('panel-tab-settings'));
+    fireEvent.click(screen.getByText('Optional parameters'));
+    fireEvent.change(await screen.findByRole('spinbutton'), { target: { value: '8' } });
+    fireEvent.click(screen.getByTestId('button-run-workflow-panel'));
+    await waitFor(() => expect(request.mock.calls.some(([url]) => String(url).endsWith('/rerun'))).toBe(true));
+    const call = request.mock.calls.find(([url]) => String(url).endsWith('/rerun'))!;
+    expect(JSON.parse(String(call[1]?.body)).params.threads).toBe(8);
+    await waitFor(() => expect(screen.getByTestId('button-run-workflow-panel')).not.toBeDisabled());
+    fireEvent.click(screen.getByTestId('panel-tab-settings'));
+    expect(screen.getByRole('spinbutton')).toHaveValue(8);
   });
 
   it("panel-foot shows Run-again button on completed (action-bar not rendered for terminal states)", async () => {
@@ -564,6 +604,9 @@ describe("NextflowWorkflowViewer — real-time SSE status transitions (live disp
         "failed"
       );
     });
+    fireEvent.click(screen.getByTestId('panel-tab-phases'));
+    expect(screen.getByTestId('phase-card-s1')).toHaveAttribute('data-status', 'pending');
+    expect(screen.getByText(/Not started/)).toBeInTheDocument();
     // No cached-failure metadata → not resumable → footer CTA reads "Restart".
     const cta = screen.getByTestId("button-run-workflow-panel");
     expect(cta).toHaveTextContent("Restart");
@@ -604,4 +647,66 @@ describe("deriveRunKind — run card kind by domain / mode (Spec 13 §13.4)", ()
     expect(deriveRunKind({ domain: "drug_discovery", run_kind: "design" })).toBe("Design run");
     expect(deriveRunKind({ domain: "transcriptomics", kind: "sandbox" })).toBe("Ad-hoc · sandbox");
   });
+});
+
+
+describe('failure recovery advice', () => {
+  it('only promises resume when cached completed work exists', () => {
+    expect(failureRecoveryAdvice('resume', false)).toContain('restart');
+    expect(failureRecoveryAdvice('resume', false)).not.toContain('Resume from last step');
+    expect(failureRecoveryAdvice('resume', true)).toContain('Resume from last step');
+  });
+  it('does not speculate about unknown failures', () => {
+    expect(failureRecoveryAdvice(undefined, false)).toBeNull();
+  });
+});
+
+it('renders a backend phase prefix once', () => {
+  expect(phaseGroupLabel('a', 'Phase A — Input Download')).toBe('Phase A — Input Download');
+  expect(phaseGroupLabel('b', 'Normalisation')).toBe('Phase B — Normalisation');
+  expect(phaseGroupLabel('c', '')).toBe('Phase C');
+});
+
+describe('recorded step detail propagation', () => {
+ it('retains actual process failure fields through the full-step adapter without inventing missing values', () => {
+  const details = reportedStepDetails({ work_dir: '/work/real-task', job_id: 'job-7', error_message: 'Container exited 127' });
+  expect(buildStepDetailStep({ id: 's', name: 'Failed task', status: 'failed', ...details })).toEqual(expect.objectContaining({ workDir: '/work/real-task', jobId: 'job-7', errorMessage: 'Container exited 127' }));
+  expect(buildStepDetailStep({ id: 'empty', name: 'Unstarted' }).workDir).toBeUndefined();
+  expect(buildStepDetailStep({ id: 'phase-only', name: 'Failed', workDir: '/phase/record', jobId: 'phase-job', ...reportedStepDetails(undefined) })).toEqual(expect.objectContaining({ workDir: '/phase/record', jobId: 'phase-job' }));
+  expect(reportedStepDetails({ job_id: 42 }).jobId).toBe('42');
+ });
+});
+
+describe('saved task records and workflow-specific QC', () => {
+ it('restores each measured task identity/state without inventing tool, parameters or run-file attribution', () => {
+  const rows = recordedProcessPhases([
+   { id: '2', name: 'NFCORE_SCDOWNSTREAM:SCDOWNSTREAM:LOAD_H5AD:ADATA_READRDS (SRR28679757)', process: 'adata_readrds (srr28679757)', status: 'COMPLETED', task_files: [], outputs: [] },
+   { id: '8', name: 'NFCORE_SCDOWNSTREAM:SCDOWNSTREAM:SOUPX (sample)', status: 'FAILED', error_message: 'Recorded SOUPX error' },
+  ]);
+  expect(rows).toHaveLength(2); expect(rows[0].name).toContain('SRR28679757'); expect(rows[0].status).toBe('completed');
+  expect(rows[1].status).toBe('failed'); expect(rows[1].errorMessage).toBe('Recorded SOUPX error');
+  expect(buildStepDetailStep(rows[0]).tool).toBeUndefined(); expect(buildStepDetailStep(rows[0]).parameters).toBeUndefined(); expect(rows[0].outputFiles).toEqual([]);
+ });
+ it('uses an actual saved failed task instead of a static pending Step 1', async () => {
+  vi.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 404, json: async () => ({}) } as Response);
+  (global as any).EventSource = class { addEventListener() {} removeEventListener() {} close() {} };
+  render(<NextflowWorkflowViewer workflowDefinition={{ name: 'nf-core/scdownstream', steps: { generic: { name: 'Step 1' } } }} status="failed" runId="saved" nextflowStatus={{ processes: [{ id: 'task-soupx', name: 'NFCORE_SCDOWNSTREAM:SOUPX (sample)', status: 'FAILED' }] }} />);
+  fireEvent.click(screen.getByTestId('panel-tab-phases'));
+  const card = await screen.findByTestId('phase-card-task-soupx');
+  expect(card).toHaveAttribute('data-status', 'failed'); expect(card).toHaveTextContent('SOUPX'); expect(screen.queryByTestId('phase-card-generic')).toBeNull();
+ });
+ it('recognizes recorded single-cell workflow identity and never treats an unknown workflow as cryo-EM', () => {
+  expect(qcWorkflowDomain({ name: 'nf-core/scdownstream' })).toBe('scrna_seq');
+  expect(qcWorkflowDomain({})).toBe('');
+  expect(qcWorkflowDomain({ domain: 'transcriptomics' })).toBe('rnaseq');
+ });
+});
+
+it('shows sequencing QC thresholds for saved scdownstream without leaking CTF defaults', async () => {
+ vi.spyOn(global, 'fetch').mockImplementation(async input => String(input) === '/api/qc/profiles' ? ({ ok: true, json: async () => ({ profiles: [], defaults: { fit_quality: { bound: .5, direction: 'min', domains: ['cryo_em'] }, reads_surviving_pct: { bound: 50, direction: 'min', domains: ['scrna_seq'] } } }) } as Response) : ({ ok: false, json: async () => ({}) } as Response));
+ (global as any).EventSource = class { addEventListener() {} removeEventListener() {} close() {} };
+ const view = render(<NextflowWorkflowViewer workflowDefinition={{ name: 'nf-core/scdownstream', steps: {} }} status="failed" runId="qc-recorded" nextflowStatus={{ processes: [{ id: 'real-task', name: 'SOUPX', status: 'FAILED' }] }} />);
+ fireEvent.click(screen.getByTestId('panel-tab-phases'));
+ await waitFor(() => expect(view.container.querySelector('[data-qc-key="reads_surviving_pct"]')).toBeTruthy());
+ expect(view.container.querySelector('[data-qc-key="fit_quality"]')).toBeNull();
 });

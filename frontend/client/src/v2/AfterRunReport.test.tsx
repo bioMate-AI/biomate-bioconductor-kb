@@ -78,7 +78,7 @@ async function openQcTab() {
 describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // Mock the findings job pipeline: enqueue → state-ready → artifact returns FindingsData
+    // The report and card share the authenticated cached findings endpoint.
     const findingsArtifact = {
       status: "ok",
       summary: "DESeq2 found 2,841 differentially expressed genes.",
@@ -100,7 +100,7 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
           json: async () => ({ jobId: "job-1", state: "ready" }),
           text: async () => "" } as Response;
       }
-      if (url === "/api/jobs/job-1/artifact") {
+      if (url.endsWith("/findings")) {
         return { ok: true, status: 200,
           json: async () => findingsArtifact, text: async () => "" } as Response;
       }
@@ -150,7 +150,7 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
         return { ok: true, status: 200,
           json: async () => ({ jobId: "j2", state: "ready" }), text: async () => "" } as Response;
       }
-      if (url === "/api/jobs/j2/artifact") {
+      if (url.endsWith("/findings")) {
         // No `figures` key → panel should not mount
         return { ok: true, status: 200,
           json: async () => ({ status: "ok", summary: "no figures here" }),
@@ -226,7 +226,7 @@ describe.skip("v2/AfterRunReport — MethodsTab editable report (Spec 12 increme
         return { ok: true, status: 200, json: async () => ({ state: "ready" }),
           text: async () => "" } as Response;
       }
-      if (url === "/api/jobs/fjob-1/artifact") {
+      if (url.endsWith("/findings")) {
         return { ok: true, status: 200,
           json: async () => ({ status: "ok", summary: "" }), text: async () => "" } as Response;
       }
@@ -662,6 +662,61 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     { step: "", name: ".nextflow.log", path: "logs/.nextflow.log", ext: "log" },
   ];
 
+  it("labels directory-derived groups once instead of repeating a supposed step on each file", async () => {
+    render(<AfterRunReport {...baseProps} outputs={[
+      { step: 'custom_thresholds', name: 'sample-a.bin', path: '02_quality_control/custom_thresholds/sample-a.bin', ext: 'bin' },
+      { step: 'custom_thresholds', name: 'sample-b.bin', path: '02_quality_control/custom_thresholds/sample-b.bin', ext: 'bin' },
+    ]} />);
+    fireEvent.click(await screen.findByTestId('after-tab-outputs'));
+    expect(screen.getAllByTestId('output-step-group')).toHaveLength(1);
+    expect(screen.getByTestId('output-step-group')).toHaveTextContent('Output group: Quality control · custom thresholds');
+    for (const card of screen.getAllByTestId('output-card')) {
+      expect(card).not.toHaveTextContent('custom_thresholds');
+    }
+  });
+
+  it("opens a single-identity view without download controls and closes with Escape", async () => {
+    render(<AfterRunReport {...baseProps} outputs={[
+      { step: 'custom_thresholds', name: 'quality.png', path: 'custom_thresholds/quality.png', ext: 'png' },
+    ]} />);
+    fireEvent.click(await screen.findByTestId('after-tab-outputs'));
+    const card = screen.getByTestId('output-card');
+    expect(within(card).getAllByText('quality.png')).toHaveLength(1);
+    expect(within(card).getAllByRole('link', { name: 'Download quality.png' })).toHaveLength(1);
+    fireEvent.click(within(card).getByRole('button', { name: 'view' }));
+    const dialog = screen.getByRole('dialog', { name: 'quality.png' });
+    expect(within(dialog).getAllByText('quality.png')).toHaveLength(1);
+    expect(within(dialog).queryByRole('link', { name: /Download/ })).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it.each(['completed', 'failed'])("keeps run metadata visible when a %s run has no scientific outputs", async status => {
+    render(<AfterRunReport {...baseProps} executionStatus={status as any} outputs={mixedOutputs.slice(1) as any} />);
+    fireEvent.click(await screen.findByTestId('after-tab-outputs'));
+    const section = await screen.findByTestId('run-metadata-section');
+    expect(within(section).getByText('dag.html')).toBeInTheDocument();
+    expect(screen.queryByText(/Download output files \(3\)/)).toBeNull();
+  });
+
+  it("does not repeat the parent After run heading when embedded", async () => {
+    render(<AfterRunReport {...baseProps} embedded executionStatus="failed" outputs={[]} />);
+    expect(await screen.findByTestId('after-tab-summary')).toBeInTheDocument();
+    expect(screen.queryByText('After run')).toBeNull();
+    expect(screen.getByTestId('afterrun-no-report')).toBeInTheDocument();
+  });
+
+  it("does not advertise generated findings for a failed run with only diagnostic files", async () => {
+    render(<AfterRunReport {...baseProps} executionStatus="failed" outputs={mixedOutputs.slice(1) as any} />);
+    const summary = await screen.findByTestId('after-summary-tab');
+    expect(summary).not.toHaveTextContent('generated from outputs');
+    expect(summary).not.toHaveTextContent('Download findings');
+    expect(screen.getByTestId('afterrun-no-report')).toBeInTheDocument();
+    expect(vi.mocked(fetch).mock.calls.some(([url, init]) =>
+      String(url) === '/api/jobs' && String(init?.body).includes('findings_analysis'))).toBe(false);
+  });
+
   it("Download-all count excludes pipeline_info/metadata files", async () => {
     render(
       <AfterRunReport
@@ -673,8 +728,8 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     // Outputs live under the Outputs tab (component lands on Summary).
     fireEvent.click(await screen.findByTestId("after-tab-outputs"));
     // 1 scientific output of 4 total → "Download all (1)", never (4).
-    expect(await screen.findByText(/Download all \(1\) as ZIP/)).toBeInTheDocument();
-    expect(screen.queryByText(/Download all \(4\)/)).toBeNull();
+    expect(await screen.findByText(/Download output files \(1\) · ZIP/)).toBeInTheDocument();
+    expect(screen.queryByText(/Download output files \(4\)/)).toBeNull();
   });
 
   it("groups Nextflow bookkeeping under a 'Run metadata' section (not Outputs)", async () => {
@@ -694,7 +749,32 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     expect(within(section).getByText("dag.html")).toBeInTheDocument();
   });
 
-  it("shows a 'No report' note instead of the Download-report button on a failed run", async () => {
+  it("offers 'Open as dataset' on a dataset-typed output, deep-linking the one Files object", async () => {
+    // Run outputs register into project_files; the card resolves name→id and links
+    // into /files?file=<id> (spec 04 §4.5.3/§4.7) — no second dataset panel here.
+    vi.spyOn(global, "fetch").mockImplementation(async (input: any) => {
+      const url = String(input);
+      if (url.includes("/api/projects/proj-x/files")) {
+        return { ok: true, status: 200, json: async () => ([
+          { id: "ds-1", name: "results.tsv", source: "run_output", run_id: "r" },
+        ]), text: async () => "" } as Response;
+      }
+      return { ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response;
+    });
+    render(
+      <AfterRunReport
+        {...baseProps}
+        executionStatus={"completed" as any}
+        outputs={[{ step: "deseq2", name: "results.tsv", path: "deseq2/results.tsv", ext: "tsv" }] as any}
+        projectId={"proj-x" as any}
+      />,
+    );
+    fireEvent.click(await screen.findByTestId("after-tab-outputs"));
+    const link = await screen.findByTestId("output-open-as-dataset");
+    expect(link).toHaveAttribute("href", "/files?file=ds-1");
+  });
+
+  it("explains that partial outputs and run record remain available on a failed run", async () => {
     render(
       <AfterRunReport
         {...baseProps}
@@ -703,7 +783,7 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
       />,
     );
     expect(await screen.findByTestId("afterrun-no-report")).toHaveTextContent(
-      /No report — the run did not complete/,
+      /Run incomplete — partial outputs and the run record remain available/,
     );
     expect(screen.queryByTestId("afterrun-download-report")).toBeNull();
   });
@@ -715,5 +795,36 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     render(<AfterRunReport {...baseProps} executionStatus={"completed" as any} />);
     expect(await screen.findByTestId("afterrun-download-toggle")).toBeInTheDocument();
     expect(screen.queryByTestId("afterrun-no-report")).toBeNull();
+  });
+});
+
+describe('Report reads the same authenticated saved findings as Summary', () => {
+  it('includes cached findings in the Report without enqueuing findings analysis', async () => {
+    const fetcher = vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      if (String(input).endsWith('/findings')) return { ok: true, status: 200, json: async () => ({ status: 'ready', summary: 'Three samples retained 1102 cells.', key_results: [{ metric: 'Silhouette', value: 0.5944 }] }) } as Response;
+      return { ok: false, status: 404, json: async () => ({}) } as Response;
+    });
+    render(<AfterRunReport {...baseProps} />);
+    fireEvent.click(screen.getByTestId('after-tab-report'));
+    await waitFor(() => expect(screen.getByTestId('after-report-tab')).toHaveTextContent('Three samples retained 1102 cells.'));
+    expect(screen.getByTestId('after-report-tab')).toHaveTextContent('0.5944');
+    const direct = fetcher.mock.calls.filter(([url]) => String(url).endsWith('/findings'));
+    expect(direct.length).toBeGreaterThan(0);
+    expect(direct.every(([, options]) => options?.credentials === 'include')).toBe(true);
+    expect(fetcher.mock.calls.some(([url, options]) => String(url) === '/api/jobs' && String(options?.body).includes('findings_analysis'))).toBe(false);
+  });
+  it('reports a 401 retrieval failure honestly instead of calling it pending', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => ({ ok: false, status: String(input).endsWith('/findings') ? 401 : 404, json: async () => ({}) } as Response));
+    render(<AfterRunReport {...baseProps} />);
+    fireEvent.click(screen.getByTestId('after-tab-report'));
+    await waitFor(() => expect(screen.getByTestId('after-report-tab')).toHaveTextContent('Findings could not be loaded.'));
+    expect(screen.getByTestId('after-report-tab')).not.toHaveTextContent('still pending');
+  });
+  it('keeps actual pending distinct from a failed retrieval', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => String(input).endsWith('/findings') ? ({ ok: true, status: 200, json: async () => ({ status: 'pending' }) } as Response) : ({ ok: false, status: 404, json: async () => ({}) } as Response));
+    render(<AfterRunReport {...baseProps} />);
+    fireEvent.click(screen.getByTestId('after-tab-report'));
+    await waitFor(() => expect(screen.getByTestId('after-report-tab')).toHaveTextContent('Findings analysis is still pending.'));
+    expect(screen.getByTestId('after-report-tab')).not.toHaveTextContent('could not be loaded');
   });
 });

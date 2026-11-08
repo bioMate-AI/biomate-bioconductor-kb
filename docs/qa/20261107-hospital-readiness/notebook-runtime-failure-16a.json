@@ -1,0 +1,11 @@
+{
+  "tool_id": "interactive_tool_jupyter_notebook",
+  "tool_version": "0.3",
+  "state": "error",
+  "exit_code": 127,
+  "destination_id": "docker_local",
+  "error": "docker: command not found",
+  "repeatedMissingDockerMessages": 133,
+  "containerAssociationRecorded": true,
+  "workingNotebookEstablished": false
+}

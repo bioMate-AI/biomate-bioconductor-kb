@@ -45,7 +45,15 @@ TEST_PARAMS = {
                          "aligner": "star", "protocol": "10XV2"},
     "nf-core/mag": {"input": TD + "mag/samplesheets/samplesheet.multirun.v4.csv"},
     "nf-core/ampliseq": {"input": TD + "ampliseq/samplesheets/Samplesheet.tsv", "metadata": TD + "ampliseq/samplesheets/Metadata.tsv"},
-    "nf-core/scdownstream": {"input": TD.rstrip("/") + "/4d8b9974c14cf11280d29bfe16f94e284793e499/samplesheet.csv"},
+    # cageseq 1.0.x's conf/test.config still points at test-datasets/cageseq/{reference,testdata}/…; upstream moved
+    # the same files into versioned v1/ folders (old paths 404, new ones 200, checked 2026-11-06).
+    "nf-core/cageseq": {"fasta": TD + "cageseq/reference/v1/chr_sub.fasta", "gtf": TD + "cageseq/reference/v1/chr_sub.gtf",
+                        "input_paths": [["cage 1", TD + "cageseq/testdata/v1/cage1.fastq.gz"],
+                                        ["cage 2", TD + "cageseq/testdata/v1/cage2.fastq.gz"]]},
+    # nf-core's own CI (tests/default.nf.test) runs `-profile test` with ambient_correction='decontx': SoupX's
+    # autoEstCont finds no marker genes on the 384-cell test data ("No plausible marker genes found").
+    "nf-core/scdownstream": {"input": TD.rstrip("/") + "/4d8b9974c14cf11280d29bfe16f94e284793e499/samplesheet.csv",
+                             "ambient_correction": "decontx"},
 }
 
 
@@ -104,7 +112,11 @@ def run_one(jwt, name, max_wait_s=5400):
         return {"name": name, "status": "not_found", "search_http": st, "search_keys": list(s)[:8] if isinstance(s, dict) else None}
     # Only the profile and the gate-required values: any other value sent on the command line
     # overrides the test profile (proteomicslfq: add_decoys=true on its target-decoy database).
-    params = {**TEST_PARAMS.get(name, {}), "profile": "test,aws"}
+    # NFCORE_EXTRA_PARAMS='{"nf-core/x": {"param": value}}' adds diagnostic params (e.g. a debug level).
+    extra = json.loads(os.environ.get("NFCORE_EXTRA_PARAMS", "{}")).get(name, {})
+    params = {**TEST_PARAMS.get(name, {}), **extra}
+    if name.startswith("nf-core/"):   # BioMate's own workflows have no `test` profile
+        params["profile"] = "test,aws"
     wf = {**wf, "parameters": params}
     st, e = call("POST", "/api/workflows/execute", jwt, {"workflowDefinition": wf, "params": params}, timeout=300)
     if st == 400 and "missing_required_params" in str(e) and TEST_CONFIG_DIR:
@@ -123,10 +135,13 @@ def run_one(jwt, name, max_wait_s=5400):
     t0 = time.time(); last = {}
     while time.time() - t0 < max_wait_s:
         time.sleep(60)
-        st, last = call("GET", f"/api/workflows/runs/{run_id}", jwt)
-        ex = (last or {}).get("execution") or {}
-        if str(ex.get("status", "")).lower() in ("completed", "succeeded", "success", "failed", "error", "cancelled", "interrupted"):
+        # Poll the status route the UI polls: it reconciles the run against Galaxy's Nextflow state.
+        # The bare run record only changes when something reads that route (the reaper was a no-op
+        # until 49e071207, so a finished run read as 'running' for 80+ min).
+        st, stat = call("GET", f"/api/workflows/runs/{run_id}/status", jwt)
+        if str((stat or {}).get("status", "")).lower() in ("completed", "succeeded", "success", "failed", "error", "cancelled", "interrupted"):
             break
+    st, last = call("GET", f"/api/workflows/runs/{run_id}", jwt)
     ex = (last or {}).get("execution") or {}
     return {"name": name, "runId": run_id, "status": ex.get("status"), "exit_code": ex.get("exit_code", ex.get("rc")),
             "output_files": len(ex.get("output_files") or last.get("output_files") or []),

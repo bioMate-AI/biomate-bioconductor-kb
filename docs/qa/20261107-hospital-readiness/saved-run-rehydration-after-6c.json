@@ -1,0 +1,59 @@
+{
+  "target": "https://dev-public.biomate.ai",
+  "scope": "Existing owned fixture records and dedicated synthetic QA chat only; no workflow launch or record edits",
+  "checks": [
+    {
+      "name": "Synthetic saved Chinese chat reopens unchanged",
+      "pass": true,
+      "http": 200,
+      "messageCount": 2,
+      "assistantMessageCount": 1,
+      "hasProjectLink": true
+    }
+  ],
+  "runs": [
+    {
+      "runId": "cb7a1b63-28a0-41ea-9074-9a3f33fd64f2",
+      "runHttp": 200,
+      "runStatus": "completed",
+      "hasWorkflowDefinition": true,
+      "linkedChatRecorded": false,
+      "reproHttp": 200,
+      "reproStatus": "completed",
+      "outputCount": 197,
+      "recordRunMatches": true,
+      "parameterCount": 2,
+      "inputBindingCount": 0,
+      "pass": true,
+      "baselineOutputCount": 197,
+      "baselineOutputCountPreserved": true,
+      "chatLimitation": "No chatSessionId recorded for this historical run; API cannot reconstruct an original conversation from this run alone.",
+      "anonymousCanonicalReproHttp": 401,
+      "anonymousCanonicalReproDenied": true,
+      "anonymousLegacyExportHttp": 200,
+      "anonymousLegacyExportHasPayload": true
+    },
+    {
+      "runId": "ab2b753e-7279-44e9-a780-3558928f4abc",
+      "runHttp": 200,
+      "runStatus": "completed",
+      "hasWorkflowDefinition": true,
+      "linkedChatRecorded": false,
+      "reproHttp": 200,
+      "reproStatus": "completed",
+      "outputCount": 77,
+      "recordRunMatches": true,
+      "parameterCount": 2,
+      "inputBindingCount": 0,
+      "pass": true,
+      "baselineOutputCount": 77,
+      "baselineOutputCountPreserved": true,
+      "chatLimitation": "No chatSessionId recorded for this historical run; API cannot reconstruct an original conversation from this run alone.",
+      "anonymousCanonicalReproHttp": 401,
+      "anonymousCanonicalReproDenied": true,
+      "anonymousLegacyExportHttp": 200,
+      "anonymousLegacyExportHasPayload": true
+    }
+  ],
+  "allRunRehydrationChecksPass": true
+}

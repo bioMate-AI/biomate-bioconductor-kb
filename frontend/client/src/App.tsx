@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -82,18 +83,22 @@ interface ToolItem {
   icon: any
 }
 
-function ProjectsRouter({ onNewChat }: { onNewChat: () => void }) {
+export function ProjectsRouter() {
   const { setActiveProjectId } = useActiveProject();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const projectId = searchParams.get('project');
-  const initialTab = searchParams.get('tab') ?? undefined;
+  const initialTab = searchParams.get('tab') ?? 'chat';
   useEffect(() => {
     if (!projectId) return;
     setActiveProjectId(projectId);
-    if (initialTab === "chat") onNewChat();
-    else if (initialTab !== "instructions" && initialTab !== "workflows") setLocation("/files");
+    if (initialTab === "workflows") {
+      // Retired duplicate project Runs view: keep project context and open Files.
+      // Do not create a chat or reconstruct a workflow as a new run.
+      setLocation(`/files?project=${encodeURIComponent(projectId)}`, { replace: true });
+    } else if (initialTab === "files") setLocation("/files");
+    // Opening project Chats only reads saved sessions. New Chat remains an explicit action.
   }, [projectId, initialTab]);
 
   const handleProjectSelect = (id: string) => {
@@ -176,7 +181,7 @@ function RootRoute({
       params.delete('draft')
       const rest = params.toString()
       window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
-      return decodeURIComponent(urlDraft)
+      return urlDraft // URLSearchParams already decoded it; preserve literal % in requests.
     }
     return undefined
   })
@@ -321,7 +326,7 @@ function ActiveProjectBanner() {
       data-testid="active-project-banner"
     >
       <FolderOpen style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />
-      <span style={{ color: 'var(--bm-text-muted)', userSelect: 'none' }}>Project:</span>
+      <span style={{ color: 'var(--bm-text-muted)', userSelect: 'none' }}>{t('active_project.label')}</span>
       <button
         style={{ fontWeight: 600, color: 'var(--bm-text)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'inherit', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         onClick={() => navigate(`/projects?project=${activeProject.id}`)}
@@ -335,12 +340,12 @@ function ActiveProjectBanner() {
         onClick={() => navigate(`/projects?project=${activeProject.id}`)}
         data-testid="active-project-banner-goto"
       >
-        Go to project
+        {t('panel.go_to_project')}
       </button>
       <button
         style={{ display: 'flex', alignItems: 'center', color: 'var(--bm-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 4, opacity: 0.7 }}
         onClick={() => setActiveProjectId(null)}
-        aria-label="Clear active project"
+        aria-label={t('active_project.clear')}
         data-testid="active-project-banner-clear"
       >
         <X style={{ width: 13, height: 13 }} />
@@ -542,6 +547,15 @@ function Router({
   onNewProject,
   chatSessions
 }: RouterProps) {
+  const [route, navigate] = useLocation();
+  const connectorReturnTo = useRef('/');
+  useEffect(() => {
+    // Preserve project/session query context, but never return to auth or loop
+    // back into Connectors. Direct links get a safe workspace fallback.
+    if (route !== '/settings/connections' && !/^\/(login|register|mfa-challenge|reset-password)/.test(route)) {
+      connectorReturnTo.current = `${route}${window.location.search}${window.location.hash}`;
+    }
+  }, [route]);
   return (
     <Switch>
       {/* Auth pages */}
@@ -677,8 +691,8 @@ function Router({
           activeChatId={currentChatSession?.id}
           chatSessions={chatSessions}
         >
-          <div className="max-w-5xl mx-auto p-4">
-            <ModelsPanel />
+          <div className="flex-1 min-h-0 overflow-y-auto" data-testid="models-scroll-region">
+            <div className="max-w-5xl mx-auto p-4"><ModelsPanel /></div>
           </div>
         </PlatformLayout>
       </Route>
@@ -718,7 +732,7 @@ function Router({
           activeChatId={currentChatSession?.id}
           chatSessions={chatSessions}
         >
-          <ConnectorsDialog embedded open onOpenChange={() => {}} />
+          <ConnectorsDialog embedded open onOpenChange={open => { if (!open) navigate(connectorReturnTo.current); }} />
         </PlatformLayout>
       </Route>
 
@@ -786,7 +800,7 @@ function Router({
           activeChatId={currentChatSession?.id}
           chatSessions={chatSessions}
         >
-          <ProjectsRouter onNewChat={onNewChat} />
+          <ProjectsRouter />
         </PlatformLayout>
       </Route>
 

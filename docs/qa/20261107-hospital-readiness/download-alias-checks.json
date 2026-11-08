@@ -1,0 +1,12 @@
+[
+  {
+    "route": "/api/nextflow/outputs/download",
+    "http": 404,
+    "denied": true
+  },
+  {
+    "route": "/api/galaxy-proxy/api/nextflow/outputs/download",
+    "http": 404,
+    "denied": true
+  }
+]

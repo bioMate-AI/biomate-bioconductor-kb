@@ -1,3 +1,4 @@
+import type { WorkflowProgressEvent } from "@/lib/workflow-progress-event"
 import { canControlExecutionFromQc } from "@shared/qc-assessment";
 import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
@@ -13,7 +14,7 @@ import { StepAdjustModal } from "./step-adjust-modal";
 import { StepDetail, type StepDetailStep } from "./steps/step-detail";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, FolderOpen, Database, Maximize2, Minimize2, Ban } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, ShieldCheck, Activity, Clock, SkipForward, FolderOpen, Database, Maximize2, Minimize2, Ban } from "lucide-react";
 import { useLocation } from 'wouter';
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
@@ -80,7 +81,7 @@ interface NextflowWorkflowViewerProps {
    * appends them as short italic messages to the current chat session.
    * See backend/lib/galaxy/ai/workflow_ops/workflow_chat_narrator.py
    */
-  onWorkflowProgress?: (event: { kind: string; friendly_message: string; ts?: number; technical?: any }) => void;
+  onWorkflowProgress?: (event: WorkflowProgressEvent) => void;
   executionEngine?: string;
   /** Execution metrics from status API (includes perStepLlmCost). */
   executionMetrics?: {
@@ -129,6 +130,33 @@ type ViewerParameter = {
   rationale?: string;
 };
 
+/** Backend labels may already include their phase prefix. Render it once. */
+export function phaseGroupLabel(key: string, semantic: string): string {
+  const prefix = `Phase ${key.toUpperCase()}`;
+  if (!semantic.trim()) return prefix;
+  if (semantic.trim().toLowerCase() === prefix.toLowerCase()
+      || semantic.trim().toLowerCase().startsWith(`${prefix.toLowerCase()} —`)) return semantic.trim();
+  return `${prefix} — ${semantic.trim()}`;
+}
+
+/** Recovery advice must describe the same action the footer can actually perform. */
+export function failureRecoveryAdvice(action: string | undefined, canResume: boolean): string | null {
+  if (action === 'resume' || action === 'resume_more_resources') {
+    return canResume ? 'Resume from last step to reuse completed work.'
+      : 'No completed step is available to resume. Review the error and restart after correcting the cause.';
+  }
+  if (action === 'fix_and_resume') return 'Adjust your parameters or input files, then run again with edits.';
+  if (action === 'check_input') return 'Check your input files for format issues, then retry.';
+  return null;
+}
+
+/** Server diagnosis cannot promise a checkpoint the recorded run does not have. */
+export function failureDiagnosisMessage(message: string, canResume: boolean): string {
+  if (canResume) return message;
+  return message.replace(/\s*(?:You|It|The run) (?:can|may) resume[^.!?]*(?:[.!?]|$)/gi, '').trim()
+    || tOr('panel.run_stopped', 'The run stopped before completing.');
+}
+
 type ViewerPhaseStatus = 'pending' | 'running' | 'completed' | 'failed' | 'paused';
 
 type ViewerPhase = {
@@ -137,6 +165,13 @@ type ViewerPhase = {
   description?: string;
   status: ViewerPhaseStatus;
   toolId?: string;
+  processName?: string;
+  tool?: string;
+  toolVersion?: string;
+  duration?: string;
+  workDir?: string;
+  jobId?: string;
+  errorMessage?: string;
   parameters?: Record<string, unknown>;
   inputs?: Record<string, unknown>;
   outputFiles?: Array<{ name: string; path: string; extension: string }>;
@@ -242,6 +277,47 @@ function prettifyParamLabel(raw: string): string {
  *   - outputs: mapped straight from outputFiles (the same {name,path,extension}
  *     the inline preview and download links already use).
  */
+export function recordedProcessPhases(processes: unknown): ViewerPhase[] {
+  if (!Array.isArray(processes)) return [];
+  return processes.filter(process => process && typeof process === 'object' && (process.name || process.process)).map((process, index) => {
+    const name = String(process.name || process.process);
+    const raw = String(process.status || process.state || '').toLowerCase();
+    const state: ViewerPhaseStatus = /fail|error|cancel/.test(raw) ? 'failed'
+      : ['completed', 'succeeded', 'ok', 'cached'].includes(raw) ? 'completed'
+      : ['running', 'submitted'].includes(raw) ? 'running' : 'pending';
+    return {
+      id: String(process.id ?? process.task_id ?? `recorded-task-${index}`), name,
+      processName: String(process.process || name), status: state,
+      ...reportedStepDetails(process),
+      parameters: process.parameters && typeof process.parameters === 'object' ? process.parameters : {},
+      toolId: typeof process.tool_id === 'string' ? process.tool_id : undefined,
+      tool: typeof process.tool === 'string' ? process.tool : undefined,
+      toolVersion: typeof process.tool_version === 'string' ? process.tool_version : undefined,
+      duration: typeof process.duration === 'string' ? process.duration : undefined,
+      outputFiles: [],
+    };
+  });
+}
+
+export function qcWorkflowDomain(definition: any, profile?: { domain_hint?: string } | null): string {
+  if (profile?.domain_hint) return profile.domain_hint.toLowerCase();
+  const explicit = String(definition?.domain || '').toLowerCase();
+  const aliases: Record<string, string> = { transcriptomics: 'rnaseq', single_cell: 'scrna_seq', genomics: 'wgs', cryoem: 'cryo_em' };
+  const identity = `${definition?.name || ''} ${definition?.nextflow_path || ''}`.toLowerCase();
+  if (/scdownstream|scrnaseq|scrna|single.cell|cellranger/.test(identity)) return 'scrna_seq';
+  return aliases[explicit] || explicit;
+}
+
+export function reportedStepDetails(process: any): { workDir?: string; jobId?: string; errorMessage?: string } {
+  const text = (...values: unknown[]) => values.find(value => typeof value === 'string' && value.trim()) as string | undefined;
+  const details = {
+    workDir: text(process?.workDir, process?.work_dir, process?.workdir),
+    jobId: text(process?.jobId, process?.job_id) ?? (typeof process?.job_id === 'number' && Number.isFinite(process.job_id) ? String(process.job_id) : undefined),
+    errorMessage: text(process?.errorMessage, process?.error_message, process?.error),
+  };
+  return Object.fromEntries(Object.entries(details).filter(([, value]) => value !== undefined));
+}
+
 export function buildStepDetailStep(step: any): StepDetailStep {
   const rawParams = (step?.parameters && typeof step.parameters === "object")
     ? (step.parameters as Record<string, unknown>)
@@ -271,8 +347,10 @@ export function buildStepDetailStep(step: any): StepDetailStep {
     name: String(step?.name ?? step?.processName ?? "step"),
     processName: step?.processName ? String(step.processName) : undefined,
     status: step?.status ? String(step.status) : undefined,
-    // tool / toolVersion / duration / inputs are not reported per step by the
-    // viewer's data model — intentionally omitted (honest empty state).
+    ...reportedStepDetails(step),
+    tool: typeof step?.tool === "string" ? step.tool : undefined,
+    toolVersion: typeof step?.toolVersion === "string" ? step.toolVersion : undefined,
+    duration: typeof step?.duration === "string" ? step.duration : undefined,
     parameters: parameters && Object.keys(parameters).length > 0 ? parameters : undefined,
     outputs,
   };
@@ -698,7 +776,7 @@ function PhaseGroupSection({
         {phaseStatus === 'completed' && <span className="chip ok">{tOr('panel.chip.done', 'DONE')}</span>}
         {phaseStatus === 'failed'    && <span className="chip err">{tOr('panel.chip.failed', 'FAILED')}</span>}
         {phaseStatus === 'pending' && (
-          <span className="progress-chip">{tOr('panel.phase.steps_count', '{{n}} step{{s}}', { n: steps.length, s: steps.length !== 1 ? 's' : '' })}</span>
+          <span className="progress-chip"><span>{tOr('panel.phase.not_started', 'Not started')} · </span>{tOr('panel.phase.steps_count', '{{n}} step{{s}}', { n: steps.length, s: steps.length !== 1 ? 's' : '' })}</span>
         )}
         {(phaseStatus === 'running' || phaseStatus === 'completed') && (
           <span className="progress-chip">{completedCount}/{steps.length}</span>
@@ -1234,8 +1312,6 @@ export function NextflowWorkflowViewer({
   // Manual switches override the auto-default for the rest of the session.
   const [activeTab, setActiveTab] = useState<'settings' | 'phases' | 'after-run'>('phases');
   const [tabAutoDefault, setTabAutoDefault] = useState<boolean>(true);
-  // Global parameters collapsible — collapsed by default (phases shown first per design spec)
-  const [globalParamsOpen, setGlobalParamsOpen] = useState<boolean>(false);
 
   // C1 — a chat answer deep-link ("Full table in Summary", "Files in Outputs")
   // sets targetAfterRunTab; jump to the After-run tab (the sub-tab is selected
@@ -1257,14 +1333,6 @@ export function NextflowWorkflowViewer({
       : 'phases';
     setActiveTab(next);
   }, [status, tabAutoDefault]);
-
-  // Auto-open settings strip for user-imported workflows — they uploaded their own .nf and
-  // want to configure it immediately, not hunt for a collapsed strip.
-  useEffect(() => {
-    if ((workflowDefinition?.domain as string) === 'user_import' && status === 'idle') {
-      setGlobalParamsOpen(true);
-    }
-  }, [workflowDefinition?.domain, (workflowDefinition as any)?.id]);
 
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
   // The step that owns the currently-previewed file (if known), so the inline
@@ -1304,7 +1372,7 @@ export function NextflowWorkflowViewer({
     const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath;
     const existingSteps = workflowDefinition?.steps;
     const hasSteps = existingSteps && typeof existingSteps === 'object' && Object.keys(existingSteps).length > 0;
-    if (!hasSteps && nfPath) {
+    if (!hasSteps && nfPath && !recordedProcessPhases(nextflowStatus?.processes).length) {
       setLazyStepsFetching(true);
       fetch(`/api/nextflow/steps?nextflow_path=${encodeURIComponent(nfPath)}`)
         .then(r => r.ok ? r.json() : null)
@@ -1312,7 +1380,7 @@ export function NextflowWorkflowViewer({
         .catch(() => { setLazySteps({}); })
         .finally(() => setLazyStepsFetching(false));
     }
-  }, [workflowDefinition]);
+  }, [workflowDefinition, nextflowStatus?.processes]);
 
   // Per-phase declared-skip + DAG-dependency analysis (spec 02 §2.5.1). Feeds the
   // SkipDependency panel with real skippable/param/blocks/warn state derived from
@@ -1453,6 +1521,9 @@ export function NextflowWorkflowViewer({
   }, []);
 
   const phases = React.useMemo<ViewerPhase[]>(() => {
+    // Saved execution records take precedence over static pipeline/parser placeholders.
+    const recorded = recordedProcessPhases(nextflowStatus?.processes);
+    if (recorded.length) return recorded;
     // Prefer stored steps; fall back to lazily-fetched steps for old sessions
     const stepsSource = (
       workflowDefinition?.steps && typeof workflowDefinition.steps === "object" && Object.keys(workflowDefinition.steps).length > 0
@@ -1479,7 +1550,7 @@ export function NextflowWorkflowViewer({
     }
     // No step data from backend — return empty so the viewer shows a clean idle state
     return [];
-  }, [workflowDefinition, lazySteps]);
+  }, [workflowDefinition, lazySteps, nextflowStatus?.processes]);
 
   useEffect(() => {
     setStepExecutionById((prev) => {
@@ -1721,11 +1792,15 @@ export function NextflowWorkflowViewer({
         ? 'failed'
         : rawProcStatus.includes('run') || rawProcStatus === 'submitted'
           ? 'running'
-          : rawProcStatus.includes('complet') || rawProcStatus === 'succeeded' || rawProcStatus === 'ok'
+          : rawProcStatus.includes('complet') || rawProcStatus === 'succeeded' || rawProcStatus === 'ok' || rawProcStatus === 'cached'
             ? 'completed'
             : null;
     if (procStatus) {
       derivedStatus = procStatus;
+    } else if (nfProcLookup) {
+      // A real task record with an unreported/pending state is not evidence
+      // that it completed merely because the whole run is terminal.
+      derivedStatus = phase.status;
     } else if (status === "completed") {
       derivedStatus = "completed";
     } else if (status === "running") {
@@ -1741,30 +1816,32 @@ export function NextflowWorkflowViewer({
       nfProcessByName[phase.id.toLowerCase()] ||
       nfProcessByName[phase.name.toLowerCase()] ||
       null;
-    const rawFiles = nfProc ? (nfProc.task_files || nfProc.taskFiles || []) : (phase.outputFiles || []);
-    const outputFiles: Array<{ name: string; path: string; extension: string }> = Array.isArray(rawFiles)
-      ? rawFiles.map((f: string) => ({
-          name: (f && typeof f === 'string' ? f.split('/').pop() : null) || String(f),
-          path: String(f),
-          extension: (f && typeof f === 'string' ? f.split('.').pop() : '') || '',
-        }))
-      : [];
+    const rawFiles = nfProc
+      ? [...(Array.isArray(nfProc.task_files) ? nfProc.task_files : Array.isArray(nfProc.taskFiles) ? nfProc.taskFiles : []), ...(Array.isArray(nfProc.outputs) ? nfProc.outputs : [])]
+      : (phase.outputFiles || []);
+    const outputFiles = Array.from(new Map((Array.isArray(rawFiles) ? rawFiles : []).flatMap((file: any) => {
+      const path = typeof file === 'string' ? file : typeof file?.path === 'string' ? file.path : typeof file?.s3_uri === 'string' ? file.s3_uri : null;
+      if (!path) return [];
+      const name = typeof file?.name === 'string' ? file.name : path.split('/').pop() || path;
+      return [[path, { name, path, extension: name.split('.').pop() || '', ...(typeof file?.size === 'number' ? { size: file.size } : {}) }] as const];
+    })).values());
 
     const stepExecution = stepExecutionById[phase.id];
     if (!stepExecution) {
-      return { ...phase, status: derivedStatus, outputFiles };
+      return { ...phase, ...reportedStepDetails(nfProc), status: derivedStatus, outputFiles };
     }
 
     return {
       ...phase,
+      ...reportedStepDetails(nfProc),
       status: stepExecution.phaseStatus,
       backendState: stepExecution.backendState,
-      jobId: stepExecution.jobId,
+      jobId: stepExecution.jobId ?? reportedStepDetails(nfProc).jobId,
       startedAt: stepExecution.startedAt,
       lastRunAt: stepExecution.lastRunAt,
       runCount: stepExecution.runCount,
       outputsCount: stepExecution.outputsCount,
-      errorMessage: stepExecution.errorMessage,
+      errorMessage: stepExecution.errorMessage ?? reportedStepDetails(nfProc).errorMessage,
       isExecuting: stepExecution.isExecuting,
       outputFiles,
     };
@@ -1792,10 +1869,8 @@ export function NextflowWorkflowViewer({
       let label: string;
       if (key === 'other') {
         label = 'Other Steps';
-      } else if (semantic && semantic.toLowerCase() !== `phase ${key}`.toLowerCase()) {
-        label = `Phase ${key.toUpperCase()} — ${semantic}`;
       } else {
-        label = `Phase ${key.toUpperCase()}`;
+        label = phaseGroupLabel(key, semantic);
       }
       if (!groupMap.has(key)) groupMap.set(key, { steps: [], label, phaseParams: [] });
       const group = groupMap.get(key)!;
@@ -1821,11 +1896,11 @@ export function NextflowWorkflowViewer({
   React.useEffect(() => { profileAutoloopDefaultRef.current = profileAutoloopDefault; }, [profileAutoloopDefault]);
   const displayedQcThresholds = React.useMemo(() => {
     const merged: Record<string, { bound: number; direction: string; rationale?: string; source: 'default' | 'profile' | 'user' }> = {};
-    const wfDomain = (workflowDefinition?.domain || '').toLowerCase();
+    const wfDomain = qcWorkflowDomain(workflowDefinition, activeQcProfile);
     Object.entries(qcDefaults).forEach(([k, meta]) => {
       // Skip domain-specific metrics that don't apply to this workflow
       const allowedDomains = (meta as any).domains as string[] | undefined;
-      if (allowedDomains && wfDomain && !allowedDomains.includes(wfDomain)) return;
+      if (allowedDomains && !allowedDomains.includes(wfDomain)) return;
       merged[k] = { bound: meta.bound, direction: meta.direction, rationale: meta.rationale, source: 'default' };
     });
     if (activeQcProfile) {
@@ -1911,7 +1986,7 @@ export function NextflowWorkflowViewer({
   // to resume from, and reusing the same work dir would just fail again. In that case
   // the footer shows "Restart", not "Resume from last step".
   const anyStepCompleted = updatedPhases.some((p: any) => String(p?.status).toLowerCase() === 'completed');
-  const canResumeFailed = status === 'failed' && !!activeRunId && !!_failure
+  const canResumeFailed = status === 'failed' && !wasCancelled && !!activeRunId && !!_failure
     && ['resume', 'resume_more_resources', 'fix_and_resume'].includes(_failure.suggested_action || '')
     && anyStepCompleted;
   const handleResumeFromFailed = async () => {
@@ -1921,12 +1996,13 @@ export function NextflowWorkflowViewer({
     setActiveTab('phases');
     setTabAutoDefault(false);
     try {
-      // No body — same as phase-level Run button. -resume reuses original params
-      // from the Nextflow work directory; sending new params can confuse Galaxy.
+      // The Node rerun contract forwards params as ResumeRunRequest.parameters.
+      // Nextflow reuses task caches only when the current inputs/parameters match.
       const resp = await fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/rerun`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({ params }),
       });
       const data = await resp.json().catch(() => ({}));
       const newRunId: string | undefined = data?.run_id ?? data?.runId;
@@ -2083,17 +2159,6 @@ export function NextflowWorkflowViewer({
     return withHints.map((p: any) =>
       userOverriddenParams.current.has(p.id || p.name) ? { ...p, overridden: true } : p);
   }, [workflowDefinition, params, toolHintMap]);
-
-  // Count params that belong to the Workflow Settings tab (not pinned to any phase).
-  // Used for the tab badge — total count (renderedParameters.length) is misleading because
-  // it includes phase-specific params that are shown inside phase cards, not the settings tab.
-  const settingsParamCount = React.useMemo(() => {
-    const phaseNames = new Set(
-      groupedPhases.filter((g: any) => g.key !== 'all').flatMap((g: any) => g.phaseParams as string[])
-    );
-    return renderedParameters.filter((p: any) => !phaseNames.has(p.id || p.name || '')).length;
-  }, [groupedPhases, renderedParameters]);
-
 
   /**
    * Count global params that are required AND still empty.
@@ -2256,25 +2321,11 @@ export function NextflowWorkflowViewer({
     }
   }, [status]);
 
-  // Auto-expand workflow settings when required params are still empty, or when
-  // file-type params have no value (so the user can see and fill them easily).
-  useEffect(() => {
-    if (hasUnfilledRequired || missingFileInputs.length > 0) setGlobalParamsOpen(true);
-  }, [hasUnfilledRequired, missingFileInputs.length]);
-
-  // Auto-expand when the LLM extracted inline params for the user — they should
-  // see what was prefilled before clicking Run (and so the form is actually in
-  // the DOM for E2E assertions to read).
-  useEffect(() => {
-    const inline = (workflowDefinition as any)?.inline_parameters;
-    if (inline && typeof inline === 'object' && Object.keys(inline).length > 0) {
-      setGlobalParamsOpen(true);
-    }
-  }, [workflowDefinition]);
-
   // D4: Auto-fetch error explanation when workflow fails
   useEffect(() => {
-    if (status === 'failed' && !errorExplanation && !errorExplaining) {
+    let abandoned = false;
+    if (wasCancelled) { setErrorExplanation(null); setErrorExplaining(false); return; }
+    if (status === 'failed' && !wasCancelled && !errorExplanation && !errorExplaining) {
       const rawLog = logs.slice(-50).join('\n') + (errorMessage ? `\n${errorMessage}` : '');
       if (!rawLog.trim()) return;
       const failedSteps = updatedPhases
@@ -2295,8 +2346,9 @@ export function NextflowWorkflowViewer({
         }),
       })
         .then(r => r.json())
-        .then(data => setErrorExplanation(data))
+        .then(data => { if (!abandoned) setErrorExplanation(data); })
         .catch(() => {
+          if (abandoned) return;
           // Show a minimal fallback so the user isn't left staring at "Analyzing…"
           setErrorExplanation({
             human_summary: 'Error analysis timed out. Check the log output above for details.',
@@ -2306,13 +2358,14 @@ export function NextflowWorkflowViewer({
             llm_used: false,
           });
         })
-        .finally(() => { clearTimeout(explainTimeout); setErrorExplaining(false); });
+        .finally(() => { clearTimeout(explainTimeout); if (!abandoned) setErrorExplaining(false); });
+      return () => { abandoned = true; abortController.abort(); clearTimeout(explainTimeout); };
     }
-  }, [status]);
+  }, [status, wasCancelled]);
 
   useEffect(() => {
     setLastUpdateAt(new Date());
-  }, [status, progress, errorMessage, nextflowStatus, stepExecutionById]);
+  }, [status, wasCancelled, progress, errorMessage, nextflowStatus, stepExecutionById]);
 
   useEffect(() => {
     // Merge incoming defaults/initialParams WITHOUT overwriting keys the user has already edited.
@@ -2388,7 +2441,7 @@ export function NextflowWorkflowViewer({
       rnaseq: ['rnaseq', 'rna-seq', 'transcriptom', 'rna_seq'],
       wgs: ['wgs', 'germline', 'gatk', 'variant_calling', 'sarek'],
       wes: ['wes', 'exome'],
-      scrna_seq: ['scrna', 'single_cell', 'scrnaseq', 'cellranger', '10x'],
+      scrna_seq: ['scdownstream', 'scrna', 'single_cell', 'scrnaseq', 'cellranger', '10x'],
       metagenomics: ['metagenom', 'amplicon', 'microbiome'],
       drug_discovery: ['admet', 'docking', 'pocket', 'md simulation', 'molecular dynamics', 'fpocket', 'drug'],
       proteomics: ['proteom', 'mass_spec', 'dia', 'dda'],
@@ -2438,6 +2491,9 @@ export function NextflowWorkflowViewer({
         if (data && data.friendly_message && data.kind) {
           onWorkflowProgress({
             kind: String(data.kind),
+            invocationId: typeof data.invocation_id === 'string' ? data.invocation_id : invocationId,
+            eventId: typeof data.event_id === 'string' ? data.event_id
+              : typeof data.eventId === 'string' ? data.eventId : event.lastEventId || undefined,
             friendly_message: String(data.friendly_message),
             ts: typeof data.ts === 'number' ? data.ts : undefined,
             technical: data.technical,
@@ -3130,7 +3186,7 @@ export function NextflowWorkflowViewer({
             {/* Settings tab: the existing Workflow-settings collapsible strip
                 that today lives at the TOP of panel-body. Same content; just
                 moved into its own tab via CSS-hide (no JSX restructure). */}
-            {tabBtn('settings', t('panel.tabs.settings'), settingsParamCount > 0 ? countBadge(settingsParamCount) : undefined)}
+            {tabBtn('settings', t('panel.tabs.settings'), undefined)}
             {tabBtn('phases', t('panel.tabs.phases'), countBadge(phaseCount))}
             {tabBtn('after-run', t('panel.tabs.after_run'), showAfterRunDot ? dotBadge : null)}
           </div>
@@ -3216,7 +3272,7 @@ export function NextflowWorkflowViewer({
             // Prefer SSE-pushed diagnosis (has task_error_snippet); fall back to API-polled failure.
             const diag = aiDiagnosis ?? (_failure?.user_message ? _failure : null);
             const snippet = (aiDiagnosis?.task_error_snippet ?? _failure?.task_error_snippet ?? "").trim();
-            if (!diag?.user_message || status !== 'failed') return null;
+            if (!diag?.user_message || status !== 'failed' || wasCancelled) return null;
             const isArchCompat = (diag as any).category === 'arch_compat' || _failure?.category === 'arch_compat';
             return (
               <div style={{
@@ -3236,21 +3292,11 @@ export function NextflowWorkflowViewer({
                   </span>
                 </div>
                 <p style={{ fontSize: 13, color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
-                  {diag.user_message}
+                  {failureDiagnosisMessage(diag.user_message, canResumeFailed)}
                 </p>
-                {diag.suggested_action === 'resume' && (
-                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                    💡 This failure looks transient — use <strong>Resume from last step</strong> below.
-                  </p>
-                )}
-                {diag.suggested_action === 'fix_and_resume' && (
-                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                    💡 Adjust your parameters or input files, then use <strong>Run again with edits</strong>.
-                  </p>
-                )}
-                {diag.suggested_action === 'check_input' && (
-                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                    💡 Check your input files for format issues, then retry.
+                {failureRecoveryAdvice(diag.suggested_action, canResumeFailed) && (
+                  <p data-testid="failure-recovery-advice" style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                    {failureRecoveryAdvice(diag.suggested_action, canResumeFailed)}
                   </p>
                 )}
                 {snippet ? (
@@ -3277,6 +3323,7 @@ export function NextflowWorkflowViewer({
             );
           })()}
           <AfterRunReport
+            embedded
             runId={runId || invocationId || ''}
             invocationId={invocationId}
             // C2: Stream 2 adds `targetTab?` to AfterRunReportProps; cast-spread
@@ -3286,13 +3333,17 @@ export function NextflowWorkflowViewer({
             projectId={projectId || undefined}
             parameters={params as Record<string, unknown>}
             executionStatus={
-              status === 'completed' ? 'completed'
+              wasCancelled ? 'cancelled'
+              : status === 'completed' ? 'completed'
               : status === 'failed' ? 'failed'
               : status === 'running' ? 'running'
               : status === 'paused' ? 'paused'
               : undefined
             }
             errorMessage={errorMessage}
+            failedSteps={wasCancelled ? undefined : updatedPhases.filter(phase => phase.status === 'failed').map(phase => phase.name)}
+            logTail={Array.isArray(nextflowStatus?.log_tail) ? nextflowStatus.log_tail.filter((line: unknown) => typeof line === 'string') : undefined}
+            autofix={wasCancelled ? undefined : autofix}
             // P0 fix (2026-06-16 after-run audit): the viewer never forwarded
             // outputs, so the Outputs tab always showed "No output files
             // registered yet" even after a successful AWS Batch run. Build
@@ -3592,7 +3643,9 @@ export function NextflowWorkflowViewer({
                     <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
-                    {tOr('panel.styleA_attach_hint', 'This workflow needs a data file. Attach it with the paperclip (📎) in the message box below — BioMate wires your uploaded file into the workflow automatically.')}
+                    {!styleAInputs.some((p: any) => p.value != null && String(p.value).trim() !== '')
+                      ? tOr('panel.styleA_attach_hint', 'This workflow needs a data file. Attach it with the paperclip (📎) in the message box below — BioMate wires your uploaded file into the workflow automatically.')
+                      : tOr('panel.inputs_linked_review', 'Input references are set. Review the mapping below.')}
                   </div>
                   <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {styleAInputs.map((p: any, i: number) => {
@@ -3713,26 +3766,8 @@ export function NextflowWorkflowViewer({
             );
             return (
               <div>
-                <button
-                  type="button"
-                  data-testid="button-toggle-workflow-settings"
-                  className={`strip${globalParamsOpen ? ' open' : ''}`}
-                  onClick={() => setGlobalParamsOpen(p => !p)}
-                  title={tOr('panel.settings_strip_tip', 'Workflow settings — input paths, infrastructure, output parameters')}
-                >
-                  <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
-                  <span className="label">
-                    <Settings2 className="h-3.5 w-3.5" />
-                    {tOr('panel.parameters', 'Parameters')}
-                    <span className="hint">({globalParams.length} {tOr('panel.params', 'params')})</span>
-                    {requiredUnfilled.length > 0 && (
-                      <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.required', 'Required')}</span>
-                    )}
-                  </span>
-                </button>
-                {globalParamsOpen && (
                   <div className="strip-body">
-                    <div style={{ maxHeight: 480, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {mismatch && (
                         <div className="alert warn" data-testid="format-mismatch-warning">
                           <span>⚠️</span><span>{mismatch.format_mismatch_warning}</span>
@@ -3746,7 +3781,7 @@ export function NextflowWorkflowViewer({
                           parameters={requiredParams}
                           onChange={handleParamChange}
                           onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
-                          defaultOpen={requiredUnfilled.length > 0 || requiredParams.some(p => (p as any).autoFilled)}
+                          defaultOpen={true}
                         />
                       )}
                       {optionalParams.length > 0 && (
@@ -3777,7 +3812,6 @@ export function NextflowWorkflowViewer({
 
                     </div>
                   </div>
-                )}
               </div>
             );
           })()}
@@ -4333,7 +4367,7 @@ export function NextflowWorkflowViewer({
               )}
 
           {/* ── Error recovery card ───────────────────────────────────────────── */}
-          {status === 'failed' && (
+          {status === 'failed' && !wasCancelled && (
             <div className="alert err" data-testid="execution-triage-panel" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8, margin: '8px 18px' }}>
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <XCircle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
@@ -4378,7 +4412,7 @@ export function NextflowWorkflowViewer({
             <div className="findings-card" data-testid="ai-analysis-panel">
               <div className="f-h">
                 <Activity className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
-                {tOr('panel.ai_findings_analysis', 'AI Findings Analysis')}
+                {tOr('panel.ai_findings_analysis', 'Findings analysis')}
                 {analysisState === 'done' && <span style={{ fontWeight: 400, marginLeft: 'auto', fontSize: 10 }}>claude-sonnet-4-6</span>}
               </div>
 
@@ -4557,7 +4591,8 @@ export function NextflowWorkflowViewer({
                   onClick={() => {
                     if (lowConfTimerRef.current) { clearInterval(lowConfTimerRef.current); lowConfTimerRef.current = null; }
                     setLowConfSecondsLeft(null);
-                    setGlobalParamsOpen(true);
+                    setActiveTab('settings');
+                    setTabAutoDefault(false);
                   }}
                 >
                   {tOr('panel.fix_now', 'Fix now')}

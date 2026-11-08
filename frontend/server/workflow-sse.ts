@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 /**
  * Server-Sent Events (SSE) Endpoint for Real-Time Workflow Updates
  * Streams Galaxy workflow execution state to frontend
@@ -60,7 +61,7 @@ async function narrateNodeEvent(invocationId: string, kind: string, technical: R
   if (narrated.has(dedupeKey)) return;
   narrated.add(dedupeKey);
   const friendly = renderFriendly(kind, technical);
-  const payload = { invocation_id: invocationId, event_type: 'chat_progress', data: { kind, invocation_id: invocationId, friendly_message: friendly, ts: Date.now() / 1000, technical } };
+  const payload = { invocation_id: invocationId, event_type: 'chat_progress', data: { event_id: randomUUID(), kind, invocation_id: invocationId, friendly_message: friendly, ts: Date.now() / 1000, technical } };
   try {
     const port = process.env.PORT || '5000';
     await fetch(`http://localhost:${port}/internal/sse-inject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -527,11 +528,18 @@ export class WorkflowSSEManager {
 
     console.log(`[SSE] Injecting ${eventType} to ${clients.length} clients for ${invocationId}`);
 
+    // Assign identity once per emission, before fan-out. Producers retain this
+    // field during replay; never derive identity from friendly wording.
+    const suppliedId = typeof data.event_id === 'string' ? data.event_id : '';
+    const eventId = suppliedId && !/[\r\n\0]/.test(suppliedId) ? suppliedId : randomUUID();
+    const payload = { ...data, event_id: eventId };
+    const serialized = JSON.stringify(payload);
     clients.forEach((client) => {
       if (client.isActive) {
         try {
+          client.response.write(`id: ${eventId}\n`);
           client.response.write(`event: ${eventType}\n`);
-          client.response.write(`data: ${JSON.stringify(data)}\n\n`);
+          client.response.write(`data: ${serialized}\n\n`);
         } catch (err) {
           console.error(`[SSE] Failed to write to client ${client.id}:`, err);
           client.isActive = false;

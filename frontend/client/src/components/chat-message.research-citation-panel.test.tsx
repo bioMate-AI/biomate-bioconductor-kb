@@ -52,6 +52,14 @@ function expandCitations() {
 describe("live research answer → rich CitationPanel (retrieval + conflicts)", () => {
   afterEach(() => { vi.restoreAllMocks() })
 
+  it("does not present retrieved papers as evidence for a turn still requesting clarification", () => {
+    const message = researchMessage(baseResponse)
+    render(<ChatMessage message={{ ...message, content: 'Please identify the scaffold first.', metadata: { ...message.metadata, needsUserFeedback: true } }} />)
+    expect(screen.getByText('Please identify the scaffold first.')).toBeVisible()
+    expect(screen.queryByTestId('source-open-0')).toBeNull()
+    expect(screen.queryByText('Citations')).toBeNull()
+  })
+
   it("renders retrieval transparency + conflicts when the response supplies them", () => {
     render(
       <ChatMessage

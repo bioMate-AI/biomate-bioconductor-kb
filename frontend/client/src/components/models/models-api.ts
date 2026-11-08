@@ -32,8 +32,9 @@ export function useModels(): UseQueryResult<ModelSummary[]> {
     queryFn: async () => {
       const res = await fetch("/api/models", { credentials: "include" })
       if (!res.ok) throw new Error(`${res.status}: failed to load models`)
-      const body = await res.json().catch(() => [])
-      return Array.isArray(body) ? (body as ModelSummary[]) : []
+      const body = await res.json()
+      if (!Array.isArray(body)) throw new Error("Invalid model registry response")
+      return body as ModelSummary[]
     },
   })
 }
@@ -125,8 +126,9 @@ export function useTrainTrack(project?: string): UseQueryResult<TrainData> {
         credentials: "include",
       })
       if (!res.ok) throw new Error(`${res.status}: failed to load train track`)
-      const body = (await res.json().catch(() => ({}))) as Partial<TrainData>
-      return { runs: Array.isArray(body.runs) ? body.runs : [] }
+      const body = await res.json()
+      if (!body || !Array.isArray(body.runs)) throw new Error("Invalid training activity response")
+      return { runs: body.runs }
     },
   })
 }
@@ -141,7 +143,8 @@ export function useAdaptTrack(project?: string): UseQueryResult<AdaptData> {
         credentials: "include",
       })
       if (!res.ok) throw new Error(`${res.status}: failed to load adapt track`)
-      const body = (await res.json().catch(() => ({}))) as Partial<AdaptData>
+      const body = await res.json()
+      if (!body || !Array.isArray(body.pairs)) throw new Error("Invalid adaptation activity response")
       return {
         pendingCount: typeof body.pendingCount === "number" ? body.pendingCount : 0,
         pairs: Array.isArray(body.pairs) ? body.pairs : [],
@@ -155,18 +158,19 @@ export function useAdaptTrack(project?: string): UseQueryResult<AdaptData> {
  * Returns `undefined` (no active loop) rather than an empty object so the panel
  * shows its honest empty state; a running loop returns the full OptimiseData.
  */
-export function useOptimiseTrack(project?: string): UseQueryResult<OptimiseData | undefined> {
+export function useOptimiseTrack(project?: string): UseQueryResult<OptimiseData | null> {
   const qs = project ? `?project=${encodeURIComponent(project)}` : ""
-  return useQuery<OptimiseData | undefined>({
+  return useQuery<OptimiseData | null>({
     queryKey: ["/api/model-tracks/optimise", project ?? null],
     queryFn: async () => {
       const res = await fetch(trackQuery(`/api/model-tracks/optimise${qs}`), {
         credentials: "include",
       })
       if (!res.ok) throw new Error(`${res.status}: failed to load optimise track`)
-      const body = await res.json().catch(() => null)
-      // Backend returns {active: false} when no loop exists → honest empty state.
-      if (!body || body.active === false || !Array.isArray(body.rounds)) return undefined
+      const body = await res.json()
+      // A successful explicit inactive response is the empty state.
+      if (body?.active === false) return null
+      if (!body || !Array.isArray(body.rounds)) throw new Error("Invalid rounds activity response")
       return body as OptimiseData
     },
   })

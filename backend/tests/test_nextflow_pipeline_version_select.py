@@ -104,3 +104,26 @@ def test_nfcore_pipeline_keeps_its_own_label_sizing(tmp_path):
         nf_path=str(p), output_location=None)).read_text()
     assert "cpus = 12; memory = '72.GB'" not in text
     assert "withLabel: 'process_high'" in text  # queue routing kept
+
+
+def test_compat_images_substituted_per_process(tmp_path, monkeypatch):
+    # Rebuilt images replace published ones per process; alpine-glibc ones also drop the
+    # host-libz containerOptions (musl programs would load glibc libz from LD_LIBRARY_PATH).
+    import types
+    fake = types.ModuleType("galaxy.ai.nfcore_compat_images")
+    fake.REPOSITORY = "123.dkr.ecr.us-west-2.amazonaws.com/biomate/nfcore-compat"
+    fake.IMAGES = [
+        {"source": "a:1", "fix": "alpine-glibc", "tag": "a-glibc", "uses": [{"pipeline": "dmd", "process": "BIOPAX_VALIDATOR"}]},
+        {"source": "b:1", "fix": "clear-entrypoint", "tag": "b-noentry", "uses": [{"pipeline": "imcyto", "process": "SEGMENTATION"}]},
+    ]
+    monkeypatch.setitem(sys.modules, "galaxy.ai.nfcore_compat_images", fake)
+    dmd = _pipeline(tmp_path, "dmd", DSL2_MAIN)
+    lines = ne._nfcore_compat_process_lines(str(dmd))
+    assert lines[0] == "process {" and lines[-1] == "}"
+    assert "    withName: 'BIOPAX_VALIDATOR' { container = '123.dkr.ecr.us-west-2.amazonaws.com/biomate/nfcore-compat:a-glibc'; containerOptions = '' }" in lines
+    imcyto = _pipeline(tmp_path, "imcyto", DSL1_MAIN)
+    assert ne._nfcore_compat_process_lines(str(imcyto)) == [
+        "process {", "    withName: 'SEGMENTATION' { container = '123.dkr.ecr.us-west-2.amazonaws.com/biomate/nfcore-compat:b-noentry' }", "}"]
+    other = _pipeline(tmp_path, "rnaseq", DSL2_MAIN)
+    assert ne._nfcore_compat_process_lines(str(other)) == []
+    assert ne._nfcore_compat_process_lines("/app/biomni_workflows/x/main.nf") == []

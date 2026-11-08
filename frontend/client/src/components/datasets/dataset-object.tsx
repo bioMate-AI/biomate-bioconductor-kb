@@ -10,20 +10,13 @@
  *   Where it came — Origin + Quality-at-ingest (the perception profile) +
  *                   what used it, with Export for deposit (RO-Crate).
  *
- * Everything rendered is backed by a real endpoint. Parts of the design that
- * have NO backend yet are commented out with a FUTURE marker rather than faked:
- *   - Open in Jupyter / RStudio / Plot viewer  (needs a dataset→history staging
- *     endpoint; interactive tools can't bind an arbitrary project file today)
- *   - Preview → Columns per-column stats, Preview → Plot distributions
- *     (the perception profiler returns column names + a sample only)
- *   - Edit → new version + "Ask BioMate to edit this" (no content-versioning /
- *     edit-save endpoint — POST versions appends a NOTE only)
- *   - Versions → Compare / Restore (no diff/restore endpoint)
- *   - Origin → content hash + dedup, visibility control; Produced outputs list
- * These are tracked as backend work in the audit doc.
+ * Project files use permission-checked content previews and append-only byte
+ * versions. Column summaries and plots are explicitly sample-derived. Interactive
+ * opening stages a file into the user's Galaxy history; launch failures remain
+ * scoped to that action and never replace the preview/provenance content.
  */
 
-import { useState, type ReactNode } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -40,6 +33,7 @@ import {
   Table as TableIcon,
   Columns3,
   BarChart3,
+  SquareTerminal,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
 import { t } from "@/lib/i18n"
@@ -51,6 +45,9 @@ import {
   downloadDatasetRoCrate,
 } from "./datasets-api"
 import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
+import { DatasetColumnsView } from "./dataset-columns-view"
+import { resolveViewer } from "../viewers/inline-content-viewers"
+import { datasetContentType, datasetShape, openInErrorMessage } from "./dataset-presentation"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
 export interface DatasetRef {
@@ -82,6 +79,8 @@ export interface DatasetRef {
   consumers?: string[]
   /** Prior versions of this dataset (empty when unknown). */
   versions?: string[]
+  /** sha256 content hash (dedup key), when known. */
+  contentHash?: string | null
 }
 
 function formatBytes(n: number | null | undefined): string {
@@ -102,6 +101,10 @@ interface DatasetObjectProps {
   onDownload?: () => void
   /** Open the workflow run that produced (or reads) this dataset. */
   onOpenRun?: (runId: string) => void
+  /** Project the dataset lives in — lets the lineage section resolve each
+   *  consumer run's produced datasets (project_files) so "what came out" chains
+   *  as openable dataset objects (spec 04 §4.5.3). */
+  projectId?: string
   /** Ask in chat FROM this dataset — opens the composer with it attached. */
   onAnalyze?: () => void
   /** Run a full QC workflow ON this dataset through BioMate's engine. */
@@ -129,6 +132,7 @@ export function DatasetObject({
   onRunQC,
   className,
   preview,
+  projectId,
 }: DatasetObjectProps) {
   // "Where it came from" + Versions lazily fetch their backing data on first open.
   const [wherefromOpened, setWherefromOpened] = useState(false)
@@ -149,11 +153,71 @@ export function DatasetObject({
     dataset.name,
   )
   const lineageQ = useDatasetLineage(wherefromOpened ? dataset.ref : null)
-  const consumersQ = useDatasetConsumers(wherefromOpened ? dataset.ref : null)
+  // Consumers power both the Where-it-came-from lineage AND the Versions tab's
+  // "used by N runs" on the current version (spec §4.4), so fetch for either.
+  const consumersQ = useDatasetConsumers((wherefromOpened || versionsOpened) ? dataset.ref : null)
   const versionsQ = useDatasetVersions(versionsOpened ? dataset.ref : null)
 
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+
+  // Open-in an interactive tool (design §4.3.1). Galaxy's Jupyter/RStudio ITs
+  // already launch; the backend stages this project file into the user's history
+  // and launches the tool against it. Tool by file type: R → RStudio, else Jupyter.
+  const [openingIn, setOpeningIn] = useState(false)
+  const [openInError, setOpenInError] = useState<string | null>(null)
+  useEffect(() => { setOpenInError(null) }, [dataset.id])
+  const fileExt = (dataset.name.split(".").pop() || "").toLowerCase()
+  const openTool = /^(r|rds|rdata|rda)$/.test(fileExt) ? "rstudio" : "jupyter"
+  // Offer it for data files (a figure/pdf/html doesn't open in a kernel).
+  const canOpenIn = Boolean(projectId) &&
+    ["table", "sequence", "vcf", "annotation", "structure", "r-object", "singlecell", "text"].includes(resolveViewer(fileExt))
+  const handleOpenIn = async () => {
+    if (!projectId) return
+    setOpeningIn(true); setOpenInError(null)
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/open-in`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool: openTool }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || !j?.url) throw new Error(openInErrorMessage(j, openTool === "rstudio" ? "RStudio" : "Jupyter", r.status))
+      window.open(j.url, "_blank", "noopener")
+    } catch (e: any) {
+      setOpenInError(e?.message ?? t('dataset_obj.open_in_failed'))
+    } finally {
+      setOpeningIn(false)
+    }
+  }
+
+  // Lineage "what came out" (spec 04 §4.5.3): beneath each run that read this
+  // file, the datasets that run produced — each openable as its own object. Run
+  // outputs are registered into project_files (source='run_output'); resolve
+  // them by run_id so a produced counts matrix / DE table chains as an object
+  // rather than needing a separate lineage viewer. Lazy (Where-it-came-from only).
+  const [producedByRun, setProducedByRun] = useState<Record<string, Array<{ id: string; name: string; ext: string }>>>({})
+  useEffect(() => {
+    if (!wherefromOpened || !projectId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files`, { credentials: "include" })
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        const files = (data?.files ?? []) as Array<{ id?: string; name?: string; source?: string; run_id?: string | null }>
+        const byRun: Record<string, Array<{ id: string; name: string; ext: string }>> = {}
+        for (const f of files) {
+          if (!f?.id || !f?.name || f.source !== "run_output" || !f.run_id) continue
+          const ext = (f.name.split(".").pop() || "").toLowerCase()
+          ;(byRun[f.run_id] = byRun[f.run_id] || []).push({ id: f.id, name: f.name, ext })
+        }
+        if (!cancelled) setProducedByRun(byRun)
+      } catch { /* best-effort — the produced list just won't show */ }
+    })()
+    return () => { cancelled = true }
+  }, [wherefromOpened, projectId])
 
   const consumers = consumersQ.data?.consumers ?? []
   const propConsumers = dataset.consumers ?? []
@@ -161,11 +225,51 @@ export function DatasetObject({
   const propVersions = dataset.versions ?? []
   const isRunOutput = dataset.source === "run_output"
 
+  // App-level content versions for a PROJECT FILE (design §4.4) come from the Node
+  // project_file_versions store (real byte-versions), not the Galaxy note-log — fetch
+  // them and offer Restore. Only for user-ingested files in a project (not run outputs).
+  const versionable = Boolean(projectId) && !isRunOutput
+  const [projectVersions, setProjectVersions] = useState<typeof versions | null>(null)
+  const [restoringVersion, setRestoringVersion] = useState<string | null>(null)
+  const [versionError, setVersionError] = useState<string | null>(null)
+  const loadProjectVersions = async () => {
+    if (!projectId) return
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions`, { credentials: "include" })
+      if (!r.ok) return
+      const j = await r.json()
+      setProjectVersions((j?.versions ?? []) as typeof versions)
+    } catch { /* best-effort — falls back to the note-log list */ }
+  }
+  useEffect(() => {
+    if (!versionsOpened || !versionable) return
+    let cancelled = false
+    ;(async () => { if (!cancelled) await loadProjectVersions() })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versionsOpened, projectId, dataset.id, versionable])
+  const handleRestore = async (versionNo: string) => {
+    if (!projectId) return
+    setRestoringVersion(versionNo); setVersionError(null)
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions/${encodeURIComponent(versionNo)}/restore`, {
+        method: "POST", credentials: "include",
+      })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `Restore failed (${r.status})`)
+      await loadProjectVersions()
+    } catch (e: any) {
+      setVersionError(e?.message ?? t('dataset_obj.restore_failed'))
+    } finally {
+      setRestoringVersion(null)
+    }
+  }
+  const effectiveVersions = versionable ? (projectVersions ?? []) : versions
+
   // Current version label for the header chip + stat grid. Falls back to the
   // caller's list, else v1 (every file has at least an implicit v1).
   const currentVersionLabel =
-    versions.find((v) => v.current)?.label ||
-    versions[0]?.label ||
+    effectiveVersions.find((v) => v.current)?.label ||
+    effectiveVersions[0]?.label ||
     propVersions[0] ||
     "v1"
 
@@ -182,11 +286,10 @@ export function DatasetObject({
     }
   }
 
-  const shapeRows = profile?.shape?.rows
-  const shapeCols = profile?.shape?.cols
+  const { rows: shapeRows, cols: shapeCols } = datasetShape(profile)
 
   return (
-    <Card className={className} data-testid="dataset-object">
+    <Card className={`min-w-0 max-w-full ${className ?? ""}`} data-testid="dataset-object">
       <CardHeader className="pb-2 space-y-2">
         {/* Breadcrumb — project crumb is shown by the page; here: Files / kind / name */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -211,7 +314,7 @@ export function DatasetObject({
 
         {/* Identity row: name · v{N} · quality pill · actions */}
         <div className="flex items-center gap-2 flex-wrap">
-          <CardTitle className="text-lg font-mono font-semibold truncate" data-testid="dataset-object-name">
+          <CardTitle className="text-lg font-mono font-semibold min-w-0 max-w-full [overflow-wrap:anywhere]" title={dataset.name} data-testid="dataset-object-name">
             {dataset.name}
           </CardTitle>
           {/* Type + size badges removed from the header (item 6 H6): they
@@ -232,13 +335,25 @@ export function DatasetObject({
             </span>
           )}
 
-          <div className="ml-auto flex items-center gap-2">
-            {/* Open in — Jupyter / RStudio / Plot viewer (design §4.3.1).
-                FUTURE: launching an interactive tool on a data-hub dataset needs a
-                dataset→history staging endpoint (presign → import-url → launch);
-                interactive tools can't bind an arbitrary project file today. Wire
-                these here once that endpoint exists. For now, "Ask in chat" is the
-                supported path to work on a file interactively. */}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {/* Open in — Jupyter / RStudio by file type (design §4.3.1). Stages the
+                project file into the user's Galaxy history and launches the IT. */}
+            {canOpenIn && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-sm px-3 gap-1.5"
+                onClick={handleOpenIn}
+                disabled={openingIn}
+                data-testid="dataset-object-open-in"
+                title={t('dataset_obj.open_in_title', { tool: openTool === "rstudio" ? "RStudio" : "Jupyter" })}
+              >
+                <SquareTerminal className="h-3.5 w-3.5" />
+                {openingIn
+                  ? t('dataset_obj.open_in_launching')
+                  : t('dataset_obj.open_in', { tool: openTool === "rstudio" ? "RStudio" : "Jupyter" })}
+              </Button>
+            )}
             {onAnalyze && (
               <Button
                 size="sm"
@@ -265,12 +380,15 @@ export function DatasetObject({
             )}
           </div>
         </div>
+        {openInError && (
+          <p role="alert" className="text-xs text-destructive mt-1 break-words" data-testid="dataset-open-in-error">{openInError}</p>
+        )}
       </CardHeader>
 
       <CardContent>
         {/* Segmented pill tabs (design i05-2 / t10-1): a gray track with the
             selected tab as a raised white box, not an underline. */}
-        <div className="inline-flex items-center gap-0.5 rounded-lg bg-muted p-0.5 mb-3" role="tablist">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-0.5 rounded-lg bg-muted p-0.5 mb-3" role="tablist">
           {([
             ["preview", Eye, t('file_tree.preview')],
             ["versions", History, t('dataset_obj.versions')],
@@ -301,10 +419,9 @@ export function DatasetObject({
 
           {/* ── Preview: Table / Columns / Plot + stat grid ── */}
           {tab === "preview" && (<div className="space-y-3 text-sm" data-testid="dataset-preview">
-            {/* View toggle (design §4.3). Table is backed today; Columns + Plot
-                show the honest "open in Jupyter / ask in chat" fallback until the
-                profiler returns per-column stats + distributions. */}
-            <div className="flex items-center gap-1.5">
+            {/* Columns and plots use the fetched sample, with a clear fallback
+                for non-tabular content that has no numeric columns. */}
+            <div className="flex flex-wrap items-center gap-1.5">
               {([
                 ["table", TableIcon, t('dataset_obj.view_table')],
                 ["columns", Columns3, t('dataset_obj.view_columns')],
@@ -410,17 +527,32 @@ export function DatasetObject({
             )}
 
             {previewView === "columns" && (
-              // FUTURE: per-column type / % missing / distinct. The profiler returns
-              // column names + a sample only — no per-column stats — so we don't fake
-              // a column profile. Offer the real path to look deeper.
-              <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-columns-future">
-                <p>{t('dataset_obj.columns_future')}</p>
-                {onAnalyze && (
-                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
-                    <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
-                  </Button>
-                )}
-              </div>
+              // Per-column type / % missing / distinct / watch chip (design §4.3) —
+              // derived client-side from the profiler's column headers + sampled rows
+              // + quality notes, labelled as sample-derived (we never present a sample
+              // stat as whole-file truth). Needs a table-like sample to profile.
+              profile?.columns?.length && profile.sampleRows?.length ? (
+                <DatasetColumnsView
+                  columns={profile.columns}
+                  sampleRows={profile.sampleRows}
+                  notes={profile.notes}
+                  totalRows={shapeRows ?? undefined}
+                  t={t}
+                />
+              ) : isLoading ? (
+                <div className="space-y-2" data-testid="dataset-preview-columns-loading">
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : (
+                <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-columns-none">
+                  <p>{t('dataset_obj.columns_not_tabular')}</p>
+                  {onAnalyze && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
+                      <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
+                    </Button>
+                  )}
+                </div>
+              )
             )}
 
             {previewView === "plot" && (
@@ -446,11 +578,11 @@ export function DatasetObject({
             )}
 
             {/* Stat grid (design §4.3): rows · columns · size · current version. */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="dataset-stat-grid">
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))" }} data-testid="dataset-stat-grid">
               <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />
               <StatCard k={t('dataset_obj.stat_columns')} v={shapeCols != null ? String(shapeCols) : "—"} />
               <StatCard k={t('dataset_obj.stat_size')} v={formatBytes(dataset.size)} />
-              <StatCard k={t('dataset_obj.stat_type')} v={dataset.contentType || "—"} />
+              <StatCard k={t('dataset_obj.stat_type')} v={datasetContentType(dataset.name, dataset.contentType)} />
             </div>
 
             {/* FUTURE: "Ask BioMate to edit this" — a conversational edit that writes
@@ -464,8 +596,10 @@ export function DatasetObject({
               <div className="space-y-2" data-testid="dataset-versions-loading">
                 <Skeleton className="h-8 w-full" />
               </div>
-            ) : versions.length ? (
-              versions.map((v) => (
+            ) : effectiveVersions.length ? (
+              <>
+              {versionError && <p className="text-xs text-destructive" data-testid="dataset-version-error">{versionError}</p>}
+              {effectiveVersions.map((v) => (
                 <div
                   key={v.version}
                   className={`rounded border px-2 py-1.5 text-xs ${v.current ? "bg-primary/5 border-primary/40" : ""}`}
@@ -475,6 +609,20 @@ export function DatasetObject({
                     <span className="font-mono font-semibold">{v.label}</span>
                     {v.current && (
                       <Badge variant="outline" className="text-xs">{t('dataset_obj.current')}</Badge>
+                    )}
+                    {v.current && consumers.length > 0 && (
+                      <span className="text-xs text-muted-foreground" data-testid="dataset-version-usedby">
+                        {t('dataset_obj.used_by_runs', { n: consumers.length })}
+                      </span>
+                    )}
+                    {/* Restore a past version (append-only — writes a new version). */}
+                    {versionable && !v.current && (
+                      <button
+                        className="text-xs text-primary hover:underline disabled:opacity-50"
+                        data-testid={`dataset-version-restore-${v.version}`}
+                        disabled={restoringVersion === v.version}
+                        onClick={() => handleRestore(v.version)}
+                      >{restoringVersion === v.version ? t('dataset_obj.restoring') : t('dataset_obj.restore')}</button>
                     )}
                     {v.createdAt && (
                       <span className="ml-auto text-xs text-muted-foreground">
@@ -490,9 +638,9 @@ export function DatasetObject({
                       {v.author && <span className="text-muted-foreground"> — {v.author}</span>}
                     </p>
                   )}
-                  {/* FUTURE: Compare / Restore — no diff/restore endpoint yet. */}
                 </div>
-              ))
+              ))}
+              </>
             ) : propVersions.length ? (
               propVersions.map((v) => (
                 <div key={v} className="rounded border px-2 py-1 text-xs" data-testid={`dataset-version-${v}`}>
@@ -564,12 +712,24 @@ export function DatasetObject({
               <Row
                 k={t('dataset_obj.added')}
                 v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
-                last
               />
+              {/* Content hash (design §4.5.1) — the dedup identity. Same bytes added
+                  twice link to one entry. Shown abbreviated; full value on hover. */}
+              {dataset.contentHash && (
+                <Row
+                  k={t('dataset_obj.content_hash')}
+                  v={
+                    <span title={`sha256:${dataset.contentHash}`} data-testid="dataset-content-hash">
+                      <span className="font-mono">{dataset.contentHash.slice(0, 12)}…</span>
+                      <span className="text-muted-foreground"> · {t('dataset_obj.dedup_note')}</span>
+                    </span>
+                  }
+                  last
+                />
+              )}
               {/* The internal storage ref (S3 key) is plumbing, not provenance —
-                  intentionally not surfaced. FUTURE: content hash + dedup note and
-                  a this-project / whole-account visibility control, once the
-                  backend exposes them. */}
+                  intentionally not surfaced. The project/account visibility control
+                  needs a backend `scope` column (documented follow-up). */}
             </div>
 
             {/* Quality, at ingest (design §4.5.2) — the perception profile lives here. */}
@@ -642,19 +802,43 @@ export function DatasetObject({
                   <Skeleton className="h-8 w-full" />
                 </div>
               ) : consumers.length ? (
-                consumers.map((c) => (
-                  <div
-                    key={c.runId}
-                    role={onOpenRun ? "button" : undefined}
-                    onClick={onOpenRun ? () => onOpenRun(c.runId) : undefined}
-                    className={`flex items-center gap-2 rounded border px-2 py-1 text-xs${onOpenRun ? " cursor-pointer hover:bg-muted/50" : ""}`}
-                    data-testid={`dataset-consumer-${c.runId}`}
-                  >
-                    <Badge variant="outline" className="text-xs">{t('dataset_obj.reads')}</Badge>
-                    <span className="truncate">{c.workflow ?? t('dataset_obj.open_run')}</span>
-                    {c.status && <Badge variant="outline" className="text-xs ml-auto">{c.status}</Badge>}
+                consumers.map((c) => {
+                  const produced = producedByRun[c.runId] ?? []
+                  return (
+                  <div key={c.runId} className="space-y-1">
+                    <div
+                      role={onOpenRun ? "button" : undefined}
+                      onClick={onOpenRun ? () => onOpenRun(c.runId) : undefined}
+                      className={`flex items-center gap-2 rounded border px-2 py-1 text-xs${onOpenRun ? " cursor-pointer hover:bg-muted/50" : ""}`}
+                      data-testid={`dataset-consumer-${c.runId}`}
+                    >
+                      <Badge variant="outline" className="text-xs">{t('dataset_obj.reads')}</Badge>
+                      <span className="truncate">{c.workflow ?? t('dataset_obj.open_run')}</span>
+                      {c.status && <Badge variant="outline" className="text-xs ml-auto">{c.status}</Badge>}
+                    </div>
+                    {/* What came out — datasets this run produced, each openable as
+                        its own object (spec §4.5.3). Typed by evidence class. */}
+                    {produced.length > 0 && (
+                      <div className="ml-4 space-y-1 border-l pl-2" data-testid={`dataset-produced-${c.runId}`}>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('dataset_obj.produced')}</p>
+                        {produced.map((p) => (
+                          <a
+                            key={p.id}
+                            href={`/files?file=${encodeURIComponent(p.id)}`}
+                            className="flex items-center gap-2 rounded border px-2 py-1 text-xs hover:bg-muted/50 no-underline text-inherit"
+                            data-testid="dataset-produced-output"
+                            title={t('dataset_obj.open_as_dataset_title')}
+                          >
+                            <Badge variant="outline" className="text-xs">{resolveViewer(p.ext)}</Badge>
+                            <span className="font-mono truncate">{p.name}</span>
+                            <span className="ml-auto text-muted-foreground" aria-hidden>↗</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))
+                  )
+                })
               ) : propConsumers.length ? (
                 propConsumers.map((c) => (
                   <div key={c} className="flex items-center gap-2 rounded border px-2 py-1 text-xs" data-testid={`dataset-consumer-${c}`}>
@@ -667,8 +851,6 @@ export function DatasetObject({
                   {t('dataset_obj.no_consumers')}
                 </p>
               )}
-              {/* FUTURE: the "Produced" list (typed outputs that open as dataset
-                  objects) — not available from the lineage endpoint yet. */}
             </div>
           </div>)}
       </CardContent>
@@ -678,9 +860,9 @@ export function DatasetObject({
 
 function StatCard({ k, v }: { k: string; v: string }) {
   return (
-    <div className="rounded border px-2.5 py-2">
+    <div className="min-w-0 rounded border px-2.5 py-2">
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</div>
-      <div className="text-lg font-mono font-semibold text-foreground">{v}</div>
+      <div className="text-sm font-mono font-semibold text-foreground [overflow-wrap:anywhere]" title={v}>{v}</div>
     </div>
   )
 }
@@ -694,7 +876,7 @@ function Row({
   testid,
 }: {
   k: string
-  v: string
+  v: ReactNode
   mono?: boolean
   last?: boolean
   onClick?: () => void

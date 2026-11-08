@@ -107,3 +107,17 @@ def test_executed_pipeline_params_defaults_and_known(tmp_path, monkeypatch):
     got = es.executed_pipeline_params("nfcore/proteomicslfq/main.nf")
     assert got["defaults"]["add_decoys"] is False and got["defaults"]["fasta"] == "x.fa"
     assert {"add_decoys", "input", "genome"} <= got["known"] and "enable_umi" not in got["known"]
+
+
+def test_known_includes_params_read_by_pipeline_code(tmp_path, monkeypatch):
+    # cageseq 1.0 reads params.input_paths in main.nf and sets it only in conf/test.config —
+    # neither its schema nor nextflow.config's params block lists it; it must not be dropped.
+    d = tmp_path / "nf-core-workflows" / "cageseq"
+    (d / "conf").mkdir(parents=True)
+    (d / "main.nf").write_text("if (params.input_paths) { Channel.from(params.input_paths) }\n")
+    (d / "conf" / "test.config").write_text("params { input_paths = [] }\n")
+    (d / "nextflow_schema.json").write_text(json.dumps(SCHEMA))
+    (d / "nextflow.config").write_text("params {\n  fasta = false\n}\n")
+    _fake_executor(monkeypatch, d / "main.nf")
+    got = es.executed_pipeline_params("nfcore/cageseq/main.nf")
+    assert "input_paths" in got["known"] and "fasta" in got["known"] and "enable_umi" not in got["known"]

@@ -1,0 +1,47 @@
+{
+  "target": "https://dev-public.biomate.ai",
+  "workflow": "nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf",
+  "runs": [
+    {
+      "runId": "9a559a44-1ef0-40e0-bba7-01d842436f3d",
+      "smiles": "CCO",
+      "launchStatus": "running",
+      "finalStatus": "completed",
+      "nextflowRunId": "074e47dc-3a0d-4682-affc-754c31ddf8be"
+    },
+    {
+      "runId": "d5ff7047-0a85-4cb7-9239-2efd7f5af952",
+      "smiles": "not-a-molecule",
+      "launchStatus": "running",
+      "finalStatus": "failed",
+      "nextflowRunId": "459a1cfd-f2f2-4438-af8d-9afb122e86b4",
+      "error": "Process CALCULATE_PHYSICOCHEMICAL_PROPERTIES (run) failed: Essential container in task exited — [04:35:52] ~~^ | [04:35:52] SMILES Parse Error: Failed parsing SMILES 'not-a-molecule' for input: 'not-a-molecule'"
+    }
+  ],
+  "build": {
+    "commit": "4dde598fd1d78fd77e0833e0da5f0ea4c084f1b9"
+  },
+  "ethanol": {
+    "passed": true,
+    "descriptors": {
+      "SMILES": "CCO",
+      "Molecular Weight": "46.07",
+      "cLogP": "-0.0",
+      "TPSA": "20.23",
+      "H-Bond Donors": "1",
+      "H-Bond Acceptors": "1",
+      "Rotatable Bonds": "0",
+      "Heavy Atoms": "3",
+      "Ring Count": "0",
+      "Molar Refractivity": "12.76",
+      "QED": "0.4068"
+    }
+  },
+  "failure": "GET /api/workflows/runs/d5ff7047-0a85-4cb7-9239-2efd7f5af952/logs: HTTP 500\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+  "projectId": "5d2482dd-919f-434e-9393-2145342f98c2",
+  "projectCleanup": {
+    "status": 200,
+    "passed": true
+  },
+  "finishedAt": "2026-11-08T04:36:02.426Z"
+}

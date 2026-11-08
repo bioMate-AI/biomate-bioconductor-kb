@@ -47,7 +47,7 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Header
 from pydantic import BaseModel
 
 from galaxy.webapps.galaxy.api import Router
@@ -143,7 +143,32 @@ def _campaign_db_dir() -> str:
     )
 
 
-def _iter_custom_registrations() -> List[Dict[str, Any]]:
+def _request_owner(value: Optional[str]) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise HTTPException(status_code=403, detail="Authenticated model owner context is required")
+    return value.strip()
+
+
+def _owned_campaign_ids(owner_id: Optional[str]) -> set:
+    """Read durable campaign ownership; absent/legacy-unowned records fail closed."""
+    import os
+    import sqlite3
+    from pathlib import Path
+    if not owner_id:
+        return set()
+    path = Path(os.environ.get("BIOMATE_CAMPAIGN_REGISTRY_DB",
+        str(Path(_campaign_db_dir()).parent / "campaigns_registry.db")))
+    if not path.is_file():
+        return set()
+    try:
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            return {row[0] for row in conn.execute("SELECT campaign_id FROM campaigns WHERE user_id=? AND user_id<>''", (owner_id,))}
+    except sqlite3.Error as exc:
+        log.warning("Model campaign ownership store unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail="Model ownership store is unavailable")
+
+
+def _iter_custom_registrations(owner_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Read every custom_model_registration across all campaign DBs (read-only).
 
@@ -155,6 +180,9 @@ def _iter_custom_registrations() -> List[Dict[str, Any]]:
     import os
     import sqlite3
 
+    owned = _owned_campaign_ids(owner_id)
+    if not owned:
+        return []
     out: List[Dict[str, Any]] = []
     db_dir = _campaign_db_dir()
     for db_path in glob.glob(os.path.join(db_dir, "*.db")):
@@ -173,9 +201,12 @@ def _iter_custom_registrations() -> List[Dict[str, Any]]:
                 )
                 cols = [d[0] for d in cur.description]
                 for row in cur.fetchall():
-                    out.append(dict(zip(cols, row)))
-        except Exception as exc:  # noqa: BLE001 — best-effort catalog read
-            log.debug("models: skip campaign DB %s: %s", db_path, exc)
+                    record = dict(zip(cols, row))
+                    if record.get("campaign_id") in owned:
+                        out.append(record)
+        except sqlite3.Error as exc:
+            log.warning("Owned model store unavailable: %s", exc)
+            raise HTTPException(status_code=503, detail="Owned model store is unavailable")
     return out
 
 
@@ -223,9 +254,23 @@ def _bionemo_catalog() -> List[Dict[str, Any]]:
     return rows
 
 
-def _custom_catalog() -> List[Dict[str, Any]]:
+def _recorded_active_version(campaign_id: str, model_name: str) -> str:
+    import sqlite3
+    path = _campaign_db(campaign_id)
+    try:
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            if not conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='custom_model_versions'").fetchone():
+                return "Not recorded"
+            from galaxy.ai.drug_discovery.custom_model_registry import CustomModelRegistry
+            version = CustomModelRegistry._active_version(conn, campaign_id, model_name)
+            return str(version) if version is not None else "Not recorded"
+    except sqlite3.Error as exc:
+        raise HTTPException(status_code=503, detail="Model version store is unavailable") from exc
+
+
+def _custom_catalog(owner_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """Catalog rows for registered custom models (usedByCount = campaigns using name)."""
-    regs = _iter_custom_registrations()
+    regs = _iter_custom_registrations(owner_id)
     # usedByCount for a custom model name = number of campaigns that registered it.
     name_use: Dict[str, int] = {}
     for r in regs:
@@ -238,7 +283,7 @@ def _custom_catalog() -> List[Dict[str, Any]]:
                 "id": _custom_model_id(r["campaign_id"], r["model_name"]),
                 "name": r["model_name"],
                 "family": r.get("mode", "custom"),  # python | docker | rest
-                "version": "1",
+                "version": _recorded_active_version(r["campaign_id"], r["model_name"]),
                 "origin": "custom",
                 "usedByCount": name_use.get(r["model_name"], 0),
             }
@@ -246,12 +291,12 @@ def _custom_catalog() -> List[Dict[str, Any]]:
     return rows
 
 
-def _catalog() -> List[Dict[str, Any]]:
-    return _bionemo_catalog() + _custom_catalog()
+def _catalog(owner_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    return _bionemo_catalog() + _custom_catalog(owner_id)
 
 
-def _find_catalog_row(model_id: str) -> Optional[Dict[str, Any]]:
-    for row in _catalog():
+def _find_catalog_row(model_id: str, owner_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    for row in _catalog(owner_id):
         if row["id"] == model_id:
             return row
     return None
@@ -282,13 +327,14 @@ def _store():
     return get_run_state_store()
 
 
-def _new_run(model_id: str, evidence_class: str) -> str:
+def _new_run(model_id: str, evidence_class: str, owner_id: Optional[str] = None) -> str:
     run_id = f"inf-{uuid.uuid4().hex[:12]}"
     _store().set_run(
         run_id,
         {
             "run_id": run_id,
             "model_id": model_id,
+            "owner_id": owner_id,
             "evidence_class": evidence_class,
             "status": "running",
             "result": None,
@@ -361,10 +407,11 @@ for _m in (ModelSummary, InferRequest, InferResponse, TogglePairRequest):
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get(
     "/api/models",
+    require_admin=True,
     summary="List catalog models (BioNeMo self-host + registered custom).",
 )
-def list_models() -> List[Dict[str, Any]]:
-    return _catalog()
+def list_models(owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> List[Dict[str, Any]]:
+    return _catalog(_request_owner(owner_id))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -372,10 +419,12 @@ def list_models() -> List[Dict[str, Any]]:
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get(
     "/api/models/{model_id:path}",
+    require_admin=True,
     summary="Model detail: identity, evidence, lineage, consumers, interface, versions.",
 )
-def get_model(model_id: str) -> Dict[str, Any]:
-    row = _find_catalog_row(model_id)
+def get_model(model_id: str, owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
+    owner_id = _request_owner(owner_id)
+    row = _find_catalog_row(model_id, owner_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Unknown model id: {model_id}")
 
@@ -404,7 +453,7 @@ def get_model(model_id: str) -> Dict[str, Any]:
         campaign_id, model_name = parsed  # type: ignore[misc]
         interface_kind = _custom_interface_kind(row["family"])
         # Consumers = the campaigns that registered a model with this name.
-        consumers = _custom_consumers(model_name)
+        consumers = _custom_consumers(model_name, owner_id)
         evidence = {
             "gate": {"measured": None, "threshold": None, "verdict": "not_evaluated"},
             "calibration": None,
@@ -442,11 +491,11 @@ def _custom_interface_kind(family: str) -> str:
     return "python"
 
 
-def _custom_consumers(model_name: str) -> List[str]:
+def _custom_consumers(model_name: str, owner_id: Optional[str] = None) -> List[str]:
     return sorted(
         {
             r["campaign_id"]
-            for r in _iter_custom_registrations()
+            for r in _iter_custom_registrations(owner_id)
             if r["model_name"] == model_name
         }
     )
@@ -471,19 +520,20 @@ def _custom_consumers(model_name: str) -> List[str]:
 #
 # `project` maps to a campaign id where one applies; when it does not resolve to
 # a real campaign the read is account-scope (all campaigns) or honest-empty.
-def _resolve_campaign_ids(project: Optional[str]) -> List[str]:
+def _resolve_campaign_ids(project: Optional[str], owner_id: Optional[str] = None) -> List[str]:
     """Campaign ids to read. A matching project id first, else all campaigns."""
-    all_ids = sorted({r["campaign_id"] for r in _iter_custom_registrations()})
+    all_ids = sorted({r["campaign_id"] for r in _iter_custom_registrations(owner_id)})
     if project and project in all_ids:
         return [project]
-    return all_ids
+    return [] if project else all_ids
 
 
 @router.get(
     "/api/model-tracks/train",
+    require_admin=True,
     summary="Training-runs list for the Train track (registered scorers per campaign).",
 )
-def train_track(project: Optional[str] = None) -> Dict[str, Any]:
+def train_track(project: Optional[str] = None, owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
     """
     The Train track lists two real training-run sources:
 
@@ -498,11 +548,12 @@ def train_track(project: Optional[str] = None) -> Dict[str, Any]:
     report an em-dash, not a number. Adaptation jobs come first (most recent
     first) so a fresh retrain is at the top.
     """
+    owner_id = _request_owner(owner_id)
     runs: List[Dict[str, Any]] = []
-    runs.extend(_adaptation_training_runs(project))
+    runs.extend(_adaptation_training_runs(project, owner_id))
 
-    regs = _iter_custom_registrations()
-    ids = set(_resolve_campaign_ids(project))
+    regs = _iter_custom_registrations(owner_id)
+    ids = set(_resolve_campaign_ids(project, owner_id))
     for r in regs:
         if r["campaign_id"] not in ids:
             continue
@@ -516,7 +567,7 @@ def train_track(project: Optional[str] = None) -> Dict[str, Any]:
                 "gate": "registered" if enabled else "disabled",
                 "metric": "—",  # no measured metric in this thin layer
                 "dataset": r["campaign_id"],
-                "version": f"→ {r['model_name']} v1",
+                "version": _recorded_active_version(r["campaign_id"], r["model_name"]),
                 "modelId": _custom_model_id(r["campaign_id"], r["model_name"]),
             }
         )
@@ -533,7 +584,7 @@ _JOB_STATUS_MAP = {
 }
 
 
-def _adaptation_training_runs(project: Optional[str]) -> List[Dict[str, Any]]:
+def _adaptation_training_runs(project: Optional[str], owner_id: str) -> List[Dict[str, Any]]:
     """
     Adaptation training jobs from regulatory_training_jobs, most-recent first.
     org_id = project when supplied (the retrain endpoint submits with that org).
@@ -548,8 +599,9 @@ def _adaptation_training_runs(project: Optional[str]) -> List[Dict[str, Any]]:
     try:
         # The store is keyed by user_id; the retrain endpoint uses project (or
         # "models-track") as both user and org. Read that user's jobs.
-        user_id = project or "models-track"
-        jobs = rj.list_for_user(user_id)
+        jobs = rj.list_for_user(owner_id)
+        if project:
+            jobs = [job for job in jobs if getattr(job, "org_id", None) == _safe_project(project)]
     except Exception as exc:  # noqa: BLE001
         log.debug("train: list_for_user failed: %s", exc)
         return []
@@ -575,17 +627,19 @@ def _adaptation_training_runs(project: Optional[str]) -> List[Dict[str, Any]]:
 
 @router.get(
     "/api/model-tracks/adapt",
+    require_admin=True,
     summary="Learned before->after edit pairs for the Adapt track (DPO pair recorder).",
 )
-def adapt_track(project: Optional[str] = None) -> Dict[str, Any]:
+def adapt_track(project: Optional[str] = None, owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
     """
     Reads the customer before->after DPO pairs the pair recorder appends. Each
     row is a switchable learned rule (before = model's original text, after =
     the customer's correction). Best-effort: a missing store is honest-empty.
     """
+    owner_id = _request_owner(owner_id)
     pairs: List[Dict[str, Any]] = []
     try:
-        rows = _read_dpo_pairs(project)
+        rows = _read_dpo_pairs(project, owner_id)
     except Exception as exc:  # noqa: BLE001 — best-effort read
         log.debug("model-tracks/adapt: read failed: %s", exc)
         rows = []
@@ -688,11 +742,15 @@ _disabled_lock = threading.Lock()
 
 @router.post(
     "/api/model-tracks/adapt/{pair_id}/toggle",
+    require_admin=True,
     summary="Persist a learned pair on/off (append-only override; never mutates the DPO store).",
 )
-def toggle_adapt_pair(pair_id: str, body: Optional[TogglePairRequest] = None) -> Dict[str, Any]:
+def toggle_adapt_pair(pair_id: str, body: Optional[TogglePairRequest] = None, owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
+    owner_id = _request_owner(owner_id)
     if not pair_id:
         raise HTTPException(status_code=400, detail="pair_id required")
+    if not any((row.get("meta") or {}).get("row_id") == pair_id for row in _read_dpo_pairs(None, owner_id)):
+        raise HTTPException(status_code=403, detail="Feedback pair ownership is unavailable or access is denied")
     currently_disabled = pair_id in _load_disabled_pairs()
     # Explicit target if provided, else FLIP the current state: an enabled pair
     # (not disabled) toggles off; a disabled pair toggles back on.
@@ -706,9 +764,10 @@ def toggle_adapt_pair(pair_id: str, body: Optional[TogglePairRequest] = None) ->
 
 @router.post(
     "/api/model-tracks/adapt/retrain",
+    require_admin=True,
     summary="Queue a retrain over the active edit pairs as a tracked training job.",
 )
-def retrain_adapt(project: Optional[str] = None) -> Dict[str, Any]:
+def retrain_adapt(project: Optional[str] = None, owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
     """
     Queues a real retrain job through regulatory_training_jobs.submit and advances
     it one worker tick. The default adaptation mode (prompt_rules) is cheap — it
@@ -721,8 +780,13 @@ def retrain_adapt(project: Optional[str] = None) -> Dict[str, Any]:
     GPU modes (post_train_lora) are NOT started here — the worker itself refuses
     them without a harness witness, per CLAUDE.md "Review Code Before Testing".
     """
-    org_id = project or "default"
-    user_id = project or "models-track"  # per-user store; project stands in when no auth ctx
+    owner_id = _request_owner(owner_id)
+    if not project:
+        raise HTTPException(status_code=409, detail="Select an authorized project before retraining")
+    org_id = _safe_project(project)
+    if not _read_dpo_pairs(project, owner_id):
+        raise HTTPException(status_code=409, detail="No owner-bound feedback pairs are available for this project")
+    user_id = owner_id
     try:
         from galaxy.ai.drug_discovery.regulatory_training_jobs import submit
 
@@ -762,16 +826,18 @@ def retrain_adapt(project: Optional[str] = None) -> Dict[str, Any]:
 
 @router.get(
     "/api/model-tracks/optimise",
+    require_admin=True,
     summary="The DMTA loop for the Optimise track (Bayesian-optimizer proposal rounds).",
 )
-def optimise_track(project: Optional[str] = None) -> Dict[str, Any]:
+def optimise_track(project: Optional[str] = None, owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
     """
     Reads the latest optimizer proposal round for a campaign and shapes it as the
     DMTA loop. Returns {active: False} when there is no proposal round, so the
     frontend renders its honest empty state. No score is fabricated — scores and
     confidence come straight from the stored round.
     """
-    campaign_ids = _resolve_campaign_ids(project)
+    owner_id = _request_owner(owner_id)
+    campaign_ids = _resolve_campaign_ids(project, owner_id)
     for campaign_id in campaign_ids:
         try:
             loop = _optimise_for_campaign(campaign_id)
@@ -894,7 +960,7 @@ def _ci_at(cis: Any, smi: str, idx: int) -> Any:
     return None
 
 
-def _read_dpo_pairs(project: Optional[str]) -> List[Dict[str, Any]]:
+def _read_all_dpo_pairs() -> List[Dict[str, Any]]:
     """
     Read the customer before->after DPO pairs from the recorder's JSONL store.
     Filters by org/project when the meta carries a matching org_id. Best-effort:
@@ -923,12 +989,22 @@ def _read_dpo_pairs(project: Optional[str]) -> List[Dict[str, Any]]:
                 row = _json.loads(line)
             except Exception:  # noqa: BLE001 — skip a corrupt line
                 continue
-            if project:
-                org = (row.get("meta", {}) or {}).get("org_id")
-                if org and org != project:
-                    continue
-            out.append(row)
+            if isinstance(row, dict):
+                out.append(row)
     return out
+
+
+def _safe_project(project: str) -> str:
+    import re
+    return re.sub(r"[^A-Za-z0-9_\-]", "", project)[:32]
+
+
+def _read_dpo_pairs(project: Optional[str], owner_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    if not owner_id:
+        return []
+    return [row for row in _read_all_dpo_pairs()
+            if (row.get("meta") or {}).get("user_id") == owner_id
+            and (not project or (row.get("meta") or {}).get("org_id") == _safe_project(project))]
 
 
 def _confidence_from_ci(ci: Any) -> str:
@@ -971,15 +1047,17 @@ def _fmt_ts(ts: Any) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post(
     "/api/models/{model_id:path}/infer",
+    require_admin=True,
     summary="Dispatch a pre-trained inference; returns a run_id to poll.",
 )
-def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
-    row = _find_catalog_row(model_id)
+def infer(model_id: str, body: InferRequest, owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
+    owner_id = _request_owner(owner_id)
+    row = _find_catalog_row(model_id, owner_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Unknown model id: {model_id}")
 
     evidence_class = _evidence_class_for(model_id)
-    run_id = _new_run(model_id, evidence_class)
+    run_id = _new_run(model_id, evidence_class, owner_id)
     inputs = body.inputs or {}
 
     # Synchronous dispatch: each backend call already polls internally
@@ -991,7 +1069,10 @@ def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
             result = _dispatch_bionemo(model_id, evidence_class, inputs)
         else:
             result = _dispatch_custom(model_id, inputs)
-        _finish_run(run_id, result)
+        if result.get("stub"):
+            _fail_run(run_id, result.get("stub_reason") or "Model backend is not available")
+        else:
+            _finish_run(run_id, result)
     except HTTPException:
         # Input-validation errors (missing 'sequence'/'smiles') are real client
         # errors — surface them, don't mask with a stub.
@@ -999,9 +1080,7 @@ def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
         raise
     except Exception as exc:  # noqa: BLE001
         log.warning("models: inference %s failed, returning stub: %s", model_id, exc)
-        stub = _stub_result(evidence_class, reason=f"backend error: {exc}")
-        # A stub is a completed run with clearly-labelled non-real output.
-        _finish_run(run_id, stub)
+        _fail_run(run_id, "Model inference failed. Check the configured model backend.")
 
     return {"run_id": run_id}
 
@@ -1011,10 +1090,14 @@ def infer(model_id: str, body: InferRequest) -> Dict[str, Any]:
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get(
     "/api/inference/{run_id}/result",
+    require_admin=True,
     summary="Inference result, shaped by evidence class.",
 )
-def get_inference_result(run_id: str) -> Dict[str, Any]:
+def get_inference_result(run_id: str, owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
+    owner_id = _request_owner(owner_id)
     rec = _store().get_run(run_id)
+    if rec is not None and rec.get("owner_id") != owner_id:
+        raise HTTPException(status_code=403, detail="Inference ownership is unavailable or access is denied")
     if rec is None:
         raise HTTPException(status_code=404, detail=f"Unknown run_id: {run_id}")
 

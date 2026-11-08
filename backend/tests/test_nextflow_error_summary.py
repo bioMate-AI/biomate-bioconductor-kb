@@ -100,3 +100,21 @@ def test_nextflow_26_prefix_and_qualified_name():
 def test_no_error_is_empty():
     assert summary("") == ""
     assert summary("Completed at: today\nSucceeded   : 12\n") == ""
+
+
+def _load_same():
+    tree = ast.parse(EXECUTOR.read_text())
+    fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "_same_param_value")
+    ns = {"Any": object}
+    exec(compile(ast.Module(body=[fn], type_ignores=[]), str(EXECUTOR), "exec"), ns)
+    return ns["_same_param_value"]
+
+
+def test_same_param_value_matches_ui_strings_to_config_literals():
+    # Params equal to the pipeline's own default are not passed (cageseq input='data/*R1.fastq.gz'
+    # sent back as its default tripped the input-path check; defaults also override -profile).
+    same = _load_same()
+    assert same("data/*R1.fastq.gz", "data/*R1.fastq.gz")
+    assert same("false", False) and same(False, False) and not same("true", False)
+    assert same("16", 16) and same(0.01, 0.01) and not same("8", 16)
+    assert same(None, None) and not same("", None) and not same("x", "y")

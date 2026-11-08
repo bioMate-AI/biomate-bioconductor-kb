@@ -5,7 +5,7 @@
  * are available (no fabricated toggles).
  */
 import { describe, it, expect, vi } from "vitest"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { SkillsSelector, normalizeSkillPack, type SkillPack } from "./skills-selector"
 
 const PACKS: SkillPack[] = [
@@ -81,6 +81,29 @@ describe("<SkillsSelector>", () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 })
+
+describe('SkillsSelector portal interaction', () => {
+  it('opens outside a clipping composer and keeps selection changes open', () => {
+    const changed = vi.fn();
+    const { container } = render(<div style={{ overflow: 'hidden', width: 220 }}><SkillsSelector packs={PACKS} selectedIds={[]} onChange={changed} /></div>);
+    fireEvent.click(screen.getByTestId('composer-experts-toggle'));
+    const content = screen.getByRole('dialog', { name: 'Skills & experts' });
+    expect(container).not.toContainElement(content);
+    expect(document.body).toContainElement(content);
+    fireEvent.click(screen.getByTestId('composer-expert-pack-genomics-expert'));
+    expect(changed).toHaveBeenCalledWith(['genomics-expert']);
+    expect(screen.getByTestId('composer-experts-popover')).toBeVisible();
+  });
+  it('supports keyboard dismissal and returns focus to its trigger', async () => {
+    render(<SkillsSelector packs={PACKS} selectedIds={[]} onChange={() => {}} />);
+    const trigger = screen.getByTestId('composer-experts-toggle');
+    fireEvent.click(trigger);
+    const dialog = screen.getByTestId('composer-experts-popover');
+    fireEvent.keyDown(dialog, { key: 'Escape', code: 'Escape' });
+    await waitFor(() => expect(screen.queryByTestId('composer-experts-popover')).toBeNull());
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+});
 
 describe("normalizeSkillPack", () => {
   it("maps title→label and keeps a real description", () => {

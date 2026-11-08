@@ -1,9 +1,12 @@
+import { stageAnalysisPlanDraft } from "@/lib/analysis-plan-draft"
+import { type WorkflowProgressEvent, workflowProgressMessageId, hasWorkflowProgressEvent } from "@/lib/workflow-progress-event"
+import { awaitsWorkflowInput, hasGeneratedWorkflow } from "@/lib/workflow-response-state"
 import { LiveVoicePanel } from "./live-voice-panel"
-import { prepareColdStartExample, INTERNAL_EXAMPLES, PREPARED_EXAMPLES, ensureInternalDemoProject } from "./cold-start-examples"
+import { prepareColdStartSelection } from "./cold-start-examples"
 import { toast } from "@/hooks/use-toast"
 import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { t } from "@/lib/i18n"
+import { t, locale } from "@/lib/i18n"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
@@ -759,13 +762,13 @@ export function ChatInterface({
   // NextflowWorkflowViewer's SSE listener; we append each one as a short
   // italic message (chat-message.tsx renders metadata.type='workflow_progress'
   // with a 🔹 icon, smaller font, no full card). De-dupe by (invocationId, kind, ts).
-  const handleWorkflowProgress = useCallback((event: { kind: string; friendly_message: string; ts?: number; technical?: any; invocationId?: string }) => {
+  const handleWorkflowProgress = useCallback((event: WorkflowProgressEvent) => {
     if (!chatSession?.id) return
     const session = chatHistoryService.getSession(chatSession.id)
     if (!session) return
     // Exact IDs also reject replayed events that arrive after a newer update.
-    const eventId = `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`
-    if (session.messages.some(message => message.id === eventId)) return
+    const eventId = workflowProgressMessageId(event)
+    if (hasWorkflowProgressEvent(session.messages, event, eventId)) return
     const progressMsg: Message = {
       id: eventId,
       role: 'assistant',
@@ -777,6 +780,7 @@ export function ChatInterface({
         ...(event.invocationId && [currentExecutionRun?.id, currentExecutionRun?.execution?.galaxyInvocationId].includes(event.invocationId)
           ? { runId: currentExecutionRun?.id } : {}),
         kind: event.kind,
+        eventId: event.eventId,
         ts: event.ts,
         technical: event.technical,
       } as any,
@@ -867,6 +871,7 @@ export function ChatInterface({
           stream: true,
           context: {
             previousMessages,
+            uiLanguage: locale,
             // Include session ID for memory integration AND server-side
             // assistant-message persistence (see docs/20260529_CHAT_STREAM_PERSISTENCE_GAP.md).
             // The server UPSERTs by assistantMessageId so client + server writes
@@ -1099,10 +1104,11 @@ export function ChatInterface({
       // Handle /api/chat response format (full hybrid intelligence)
       // Response structure: { response, suggestions, workflow, thinking_content, metadata }
       let workflowData = data.workflow?.workflow_ga || data.workflow;
-      let workflowSuccess = !!data.workflow?.success || (data.workflow && !data.workflow.error);
+      const awaitingWorkflowInput = awaitsWorkflowInput(data.workflow, data.metadata);
+      const workflowSuccess = hasGeneratedWorkflow(data.workflow, data.metadata);
 
       // Check if workflow was generated
-      if (data.workflow && !workflowSuccess) {
+      if (data.workflow && !workflowSuccess && !awaitingWorkflowInput) {
         console.warn('[ChatInterface] Workflow generation returned but failed:', data.workflow.error || data.workflow.message);
         workflowData = null;
       }
@@ -1122,7 +1128,7 @@ export function ChatInterface({
       // question) is not a sufficient signal — it would wrongly show the failure card for every
       // clarification turn with openai_compatible providers (Qianwen, DeepSeek, etc.).
       const shouldRenderCollaborativeFailure =
-        !workflowSuccess && (hasFailureDiagnostics || looksLikeNarrativeFailure);
+        !workflowSuccess && !awaitingWorkflowInput && (hasFailureDiagnostics || looksLikeNarrativeFailure);
 
       // If workflow was generated, append workflow-specific info
       if (workflowSuccess && workflowData) {
@@ -1130,8 +1136,8 @@ export function ChatInterface({
         if (!workflowInfo.toLowerCase().includes('workflow')) {
           workflowInfo += '\n\n✅ I\'ve generated a workflow for you based on your request.';
         }
-        // Append a "Generating workflow…" trailing cue so users know the panel is loading
-        workflowInfo += '\n\n*Generating workflow…*';
+        // Generation already completed. Loading belongs to the transient typing
+        // indicator, not persisted reply text that remains after a run finishes.
         if (data.workflow?.needs_user_feedback) {
           workflowInfo += `\n\n⚠️ ${data.workflow?.feedback_prompt || 'Confidence is not high enough yet. Please review and provide corrections before execution.'}`;
         }
@@ -1221,13 +1227,13 @@ export function ChatInterface({
           steps: stepsArray,
           confidence: data.workflow?.confidence || data.metadata?.workflowSuggestion?.confidence,
           source: data.workflow?.source || 'chat',
-          needsUserFeedback: !!data.workflow?.needs_user_feedback,
+          needsUserFeedback: awaitingWorkflowInput,
           feedbackPrompt: data.workflow?.feedback_prompt,
           candidateWorkflows: data.workflow?.candidate_workflows || [],
           selectedTrial: data.workflow?.selected_trial,
           trialCount: data.workflow?.trial_count,
           isDemo: false,
-          generationFailed: data.workflow && !workflowSuccess,
+          generationFailed: data.workflow && !workflowSuccess && !awaitingWorkflowInput,
           failureReason: data.workflow?.error || data.workflow?.message,
           // Thinking mode support from /api/chat
           thinking_content: data.thinking_content,
@@ -2100,6 +2106,22 @@ export function ChatInterface({
     handleSendMessage(source.content, undefined, { intentOverride: 'workflow_generation' })
   }, [chatSession?.messages, chatSession?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handlePlanAnalysisWithData = useCallback((message: Message) => {
+    const result = stageAnalysisPlanDraft(chatSession?.messages ?? [], message, localSetDraftRef.current, {
+      introduction: tOr('research_plan.introduction', 'Help me plan an analysis using my data.'),
+      questionLabel: tOr('research_plan.question', 'Previous question:'),
+      evidenceLabel: tOr('research_plan.evidence', 'Literature context (not validated against my data):'),
+      requestLabel: tOr('research_plan.request', 'My dataset and analysis question:'),
+    });
+    if (!result) toast({
+      title: tOr('research_plan.unavailable_title', 'Could not prepare the analysis draft'),
+      description: tOr('research_plan.unavailable', 'The composer or original question is unavailable. Reopen this chat and try again.'),
+      variant: 'destructive',
+    });
+    // The registered draft setter focuses the composer. Sending, selecting data
+    // and choosing an analysis remain explicit user actions.
+  }, [chatSession?.messages])
+
   useEffect(() => {
     if (!externalPromptRequest) return
     if (displayTyping) return
@@ -2165,13 +2187,10 @@ export function ChatInterface({
                 preparingExampleRef.current = true;
                 setPreparingExample(true);
                 try {
-                  const internal = INTERNAL_EXAMPLES.includes(text);
-                  const example = await prepareColdStartExample(internal ? PREPARED_EXAMPLES[0].label : text);
-                  if (internal) {
-                    const projectId = await ensureInternalDemoProject(example.files);
-                    activeProjectContext?.setActiveProjectId(projectId);
-                    handleFileToProject(projectId);
-                    example.prompt = `${text} Project ID: ${projectId}. Use the project files and attached tutorial inputs. Do not infer prior assay results or completed runs from these input files.`;
+                  const example = await prepareColdStartSelection(text);
+                  if (example.projectId) {
+                    activeProjectContext?.setActiveProjectId(example.projectId);
+                    handleFileToProject(example.projectId);
                   }
                   if (!localSetDraftRef.current || (example.files.length && !localExampleFilesRef.current)) {
                     throw new Error("The composer is still loading. Please try again.");
@@ -2232,6 +2251,7 @@ export function ChatInterface({
                   onRegenerate={handleRegenerate}
                   onSuggestionClick={handleSuggestionClick}
                   onRedoAsValidatedRun={handleRedoAsValidatedRun}
+                  onPlanAnalysisWithData={handlePlanAnalysisWithData}
                   onWorkflowProgress={handleWorkflowProgress}
                   isWorkflowRunning={isWorkflowRunning}
                   workflowProgress={workflowProgress}

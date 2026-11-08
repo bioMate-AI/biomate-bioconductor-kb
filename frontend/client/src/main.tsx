@@ -1,6 +1,9 @@
 import { createRoot } from "react-dom/client";
 import { Component, type ReactNode } from "react";
 import App from "./App";
+import { locale } from "./lib/i18n";
+
+document.documentElement.lang = locale === "zh" ? "zh-CN" : locale;
 import "./index.css";
 import "./styles/reference-design.css";
 

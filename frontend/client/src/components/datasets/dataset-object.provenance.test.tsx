@@ -117,4 +117,144 @@ describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)"
     const q = await screen.findByTestId("dataset-quality", {}, { timeout: 4000 })
     expect(within(q).getByText("Data QC")).toBeInTheDocument()
   })
+
+  it("Open-in — a data file stages + launches an interactive tool (§4.3.1)", async () => {
+    const openSpy = vi.fn()
+    vi.stubGlobal("open", openSpy)
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: any) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url.includes("/open-in")) {
+        expect(init?.method).toBe("POST")
+        return ({ ok: true, status: 200, json: async () => ({ success: true, url: "https://dev/interactivetool/jobs/abc" }), text: async () => "" }) as unknown as Response
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={RUN} projectId="proj-rna" onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    const btn = await screen.findByTestId("dataset-object-open-in")  // de_results.tsv → table → shown
+    fireEvent.click(btn)
+    await waitFor(() => expect(openSpy).toHaveBeenCalledWith("https://dev/interactivetool/jobs/abc", "_blank", "noopener"))
+    vi.unstubAllGlobals()
+  })
+
+  it("surfaces the content hash + dedup note in the origin (§4.5.1)", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={{ ...RUN, contentHash: "abcdef0123456789deadbeef" }} onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(screen.getByTestId("dataset-tab-wherefrom"))
+    const hash = await screen.findByTestId("dataset-content-hash", {}, { timeout: 4000 })
+    expect(hash.textContent).toContain("abcdef012345")       // abbreviated
+    expect(hash).toHaveAttribute("title", "sha256:abcdef0123456789deadbeef")
+  })
+
+  it("Versions tab shows 'used by N runs' on the current version (from consumers)", async () => {
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url.includes("/versions")) return ({ ok: true, status: 200, json: async () => ({
+        versions: [{ version: "1", label: "v1", current: true, ref: RUN.ref, createdAt: null, note: null, author: null }],
+      }), text: async () => "" }) as unknown as Response
+      return base(input)  // consumers → the 2-run list from routeFetch
+    }) as unknown as typeof fetch
+    renderObj()
+    fireEvent.click(screen.getByTestId("dataset-tab-versions"))
+    const usedby = await screen.findByTestId("dataset-version-usedby", {}, { timeout: 4000 })
+    expect(usedby.textContent).toMatch(/2/)  // two consumer runs in routeFetch
+  })
+
+  it("Versions tab — app-level versions from the Node store, with append-only Restore (§4.4)", async () => {
+    let restored = false
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: any) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (/\/api\/projects\/[^/]+\/files\/[^/]+\/versions\/[^/]+\/restore$/.test(url)) {
+        restored = true
+        return ({ ok: true, status: 200, json: async () => ({ file: {}, restoredFrom: 1 }), text: async () => "" }) as unknown as Response
+      }
+      if (/\/api\/projects\/[^/]+\/files\/[^/]+\/versions$/.test(url)) {
+        return ({ ok: true, status: 200, json: async () => ({ versions: restored
+          ? [{ version: "3", label: "v3", current: true }, { version: "2", label: "v2", current: false }, { version: "1", label: "v1", current: false }]
+          : [{ version: "2", label: "v2", current: true }, { version: "1", label: "v1", current: false, note: "original upload" }] }), text: async () => "" }) as unknown as Response
+      }
+      return base(input, init)
+    }) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={{ ...RUN, source: "upload" }} projectId="proj-rna" onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(screen.getByTestId("dataset-tab-versions"))
+    const restoreBtn = await screen.findByTestId("dataset-version-restore-1", {}, { timeout: 4000 })
+    fireEvent.click(restoreBtn)
+    await waitFor(() => expect(restored).toBe(true))
+  })
+
+  it("lineage 'what came out' — a consumer run's produced dataset opens as its own object", async () => {
+    // Extend the route mock with the project's files so the lineage section can
+    // resolve each consumer run's produced datasets (spec 04 §4.5.3).
+    const base = global.fetch as any
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url.includes("/api/projects/") && url.endsWith("/files")) {
+        return ({ ok: true, status: 200, json: async () => ({
+          files: [
+            { id: "out-de", name: "de_results_v2.tsv", source: "run_output", run_id: "run-def-222" },
+            { id: "up-raw", name: "counts.tsv", source: "upload", run_id: null },
+          ],
+        }), text: async () => "" }) as unknown as Response
+      }
+      return base(input)
+    }) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <DatasetObject dataset={RUN} projectId="proj-rna" onOpenRun={vi.fn()} onDownload={vi.fn()} onAnalyze={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(screen.getByTestId("dataset-tab-wherefrom"))
+    // under the named consumer run, its produced dataset is listed and openable
+    const produced = await screen.findByTestId("dataset-produced-run-def-222", {}, { timeout: 4000 })
+    const link = within(produced).getByTestId("dataset-produced-output")
+    expect(link).toHaveAttribute("href", "/files?file=out-de")
+    expect(link.textContent).toContain("de_results_v2.tsv")
+    // the uploaded (non-run_output) file is NOT listed as "produced"
+    expect(produced.textContent).not.toContain("counts.tsv")
+  })
+})
+
+describe("DatasetObject — unavailable metadata and action error scope", () => {
+  it("shows unknown dimensions and readable JSON MIME for non-tabular generic-storage objects", async () => {
+    global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ shape: { rows: 0, cols: 0 }, quality: "watch", notes: [] }) })) as unknown as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(<QueryClientProvider client={qc}><DatasetObject dataset={{ ...RUN, name: "report.json", contentType: "application/octet-stream" }} /></QueryClientProvider>)
+    await screen.findByTestId("dataset-header-quality")
+    const grid = screen.getByTestId("dataset-stat-grid")
+    expect(grid).toHaveTextContent("application/json")
+    expect(within(grid).getAllByText("—")).toHaveLength(2)
+  })
+
+  it("shows a useful launch failure and clears it when another file opens", async () => {
+    routeFetch()
+    const original = global.fetch
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/open-in")) return { ok: false, status: 503, json: async () => ({ error: "InteractiveLaunchError", message: "The session is still starting. Check active sessions." }) } as Response
+      return original(input, init)
+    }) as typeof fetch
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const props = { dataset: RUN, projectId: "proj-rna" }
+    const { rerender } = render(<QueryClientProvider client={qc}><DatasetObject {...props} /></QueryClientProvider>)
+    fireEvent.click(screen.getByTestId("dataset-object-open-in"))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Jupyter: The session is still starting")
+    rerender(<QueryClientProvider client={qc}><DatasetObject {...props} dataset={{ ...RUN, id: "another-file" }} /></QueryClientProvider>)
+    await waitFor(() => expect(screen.queryByTestId("dataset-open-in-error")).toBeNull())
+  })
 })

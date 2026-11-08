@@ -36,7 +36,11 @@ def test_phase_completed_no_detail():
 def test_phase_failed():
     msg = render_friendly("workflow.phase_failed", {"phase_name": "FQ_LINT", "reason": "exit 127"})
     assert "FQ_LINT failed" in msg
-    assert "exit 127" in msg
+    assert "exit 127" not in msg
+    assert "auto-fixing" not in msg
+    assert "Invalid samplesheet" in render_friendly(
+        "workflow.phase_failed", {"phase_name": "FQ_LINT", "reason": "Invalid samplesheet"}
+    )
 
 
 def test_completed_summary_with_counts():
@@ -142,3 +146,19 @@ def test_emit_logs_engineer_channel(caplog):
     assert "inv-test-4" in record.getMessage()
     assert "workflow.phase_completed" in record.getMessage()
     assert "STAR done — 1.2M reads." in record.getMessage()
+
+
+def test_emit_assigns_distinct_identity_to_each_attempt():
+    first = emit("inv-identity", "workflow.failed")
+    second = emit("inv-identity", "workflow.failed")
+    assert first["friendly_message"] == second["friendly_message"]
+    assert first["event_id"] != second["event_id"]
+
+
+def test_emit_preserves_identity_for_explicit_replay():
+    first = emit("inv-identity", "workflow.running")
+    received = []
+    replay = emit("inv-identity", "workflow.running", event_id=first["event_id"],
+                  sse_callback=lambda kind, payload: received.append(payload))
+    assert replay["event_id"] == first["event_id"]
+    assert received[0]["event_id"] == first["event_id"]

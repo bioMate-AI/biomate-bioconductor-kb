@@ -88,17 +88,13 @@ ssh_refresh() {
 # ── S1: health ──────────────────────────────────────────────────────
 HEAD "S1 — Health"
 S1_LOG="$LOG_DIR/${TS}_s1_health.log"
-{
-  for path in "/" "/galaxy/api/version"; do
-    code="$(curl -sS -o /dev/null -w "%{http_code}" -m 10 "$BIOMATE_URL$path")"
-    printf "%-30s HTTP %s\n" "$path" "$code"
-  done
-} 2>&1 | tee "$S1_LOG"
-if grep -qvE "HTTP 200|HTTP 30[12]" "$S1_LOG"; then
-  FAIL "S1 — at least one endpoint returned a non-2xx/3xx — see $S1_LOG"
+if ! python3 "$REPO/scripts/check_dev_health.py" --base "$BIOMATE_URL" > "$S1_LOG" 2>&1; then
+  cat "$S1_LOG" | tee -a "$RUN_LOG"
+  FAIL "S1 — JSON service health failed — see $S1_LOG"
   exit 2
 fi
-PASS "S1 — frontend + galaxy api both reachable"
+cat "$S1_LOG" | tee -a "$RUN_LOG"
+PASS "S1 — frontend + assistant + Galaxy JSON endpoints are healthy"
 
 # ── S2: project framework audit ─────────────────────────────────────
 if [[ "${SKIP_S2:-0}" = "1" ]]; then

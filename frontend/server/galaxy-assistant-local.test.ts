@@ -31,8 +31,13 @@ it('uses the actual GalaxyAssistant tool loop with local inference', async () =>
   assistant.setModelConfig({ responseModel: 'gemini-should-not-run', enableThinking: true });
   const events: any[] = [];
   const result = await assistant.generateResponse('List my recent workflow run', { type: 'informational' }, [], [],
-    { shouldGenerate: false }, null, { userId: 'trial-user' }, undefined, undefined, () => {}, '', '', [], (e: any) => events.push(e));
+    { shouldGenerate: false }, null, { userId: 'trial-user', uiLanguage: 'zh' }, undefined, undefined, () => {}, '', '', [], (e: any) => events.push(e));
   expect(result.message).toContain('run-test-1');
+  const replyRequests = requests.filter(r => r.tools);
+  expect(replyRequests.length).toBeGreaterThan(0);
+  for (const request of replyRequests) {
+    expect(request.messages.find((m: any) => m.role === 'system').content).toContain('Simplified Chinese (简体中文)');
+  }
   expect(events.map(e => e.type)).toEqual(['tool_call', 'tool_result']);
   expect(requests.some(r => r.messages.some((m: any) => m.role === 'tool' && m.tool_call_id === 'history-call' && m.content.includes('run-test-1')))).toBe(true);
   expect(assistant.gemini).toBeNull();
@@ -60,4 +65,19 @@ it('uses the compact local intent contract and preserves correction context', as
   expect(result.primaryIntent.inlineParameters).toEqual({ genome: 'GRCm39', paired_end: 'true' });
   expect(result.primaryIntent.actions.needsWorkflowModification).toBe(true);
   expect(result.primaryIntent.actions.needsWorkflowGeneration).toBe(false);
+});
+
+it('passes the selected reply language to the OpenRouter chat provider', async () => {
+  const assistant: any = new GalaxyAssistant({ galaxyAPIProxy: {} } as any);
+  const create = vi.fn(async function* (_request: any) {
+    yield { choices: [{ delta: { content: '这是回复。' } }] };
+  });
+  assistant._getOpenRouterClient = () => ({ chat: { completions: { create } } });
+  const input = 'Explain hERG IC50 in English; keep CC(=O)O unchanged';
+  const result = await assistant._generateChatWithOpenRouter(input, { uiLanguage: 'zh' });
+  const request = create.mock.calls[0][0] as any;
+  expect(request.messages[0].content).toContain('Simplified Chinese (简体中文)');
+  expect(request.messages[0].content).toContain('explicitly requests another reply language');
+  expect(request.messages.at(-1).content).toBe(input);
+  expect(result.message).toContain('这是回复。');
 });

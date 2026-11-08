@@ -1,0 +1,7 @@
+# AWS Batch runs an image's ENTRYPOINT with Nextflow's command as its arguments, so an image whose
+# entrypoint is a tool (cellprofiler/cellprofiler: ["/init","cellprofiler"]) runs that tool instead
+# of the task script. Clear it; nothing else changes.
+ARG BASE
+FROM ${BASE}
+ENTRYPOINT []
+CMD ["/bin/bash"]

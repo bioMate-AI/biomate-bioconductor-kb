@@ -75,6 +75,7 @@ beforeEach(() => {
 
 // mock fetch by URL for the panel's react-query calls
 function mockFetchByUrl(map: Record<string, unknown>) {
+  map = { "/api/model-tracks/train": { runs: [] }, "/api/model-tracks/adapt": { pairs: [], pendingCount: 0 }, "/api/model-tracks/optimise": { active: false }, ...map }
   // Longest key first so "/api/models/bionemo:boltz2" wins over "/api/models".
   const keys = Object.keys(map).sort((a, b) => b.length - a.length)
   global.fetch = vi.fn(async (input: RequestInfo | URL) => {
@@ -179,8 +180,8 @@ describe("ModelsPanel — Train track", () => {
 
     await waitFor(() => expect(screen.getByTestId("train-run-potency-gp fit")).toBeTruthy())
     expect(screen.getByTestId("train-run-status-potency-gp fit").textContent).toContain("completed")
-    // Running run offers a live-watch link.
-    expect(screen.getByTestId("train-run-open-herg refit").textContent).toContain("watch live")
+    // A running run without an actual viewer target must not offer a no-op link.
+    expect(screen.queryByTestId("train-run-open-herg refit")).toBeNull()
 
     // Completed run with a modelId opens the model object.
     fireEvent.click(screen.getByTestId("train-run-open-potency-gp fit"))
@@ -614,5 +615,41 @@ describe("RunPretrained — full infer→poll→viewer flow", () => {
     expect(screen.queryByTestId("result-status-running")).toBeNull()
     expect(screen.queryByTestId("result-pending")).toBeNull()
     expect(screen.queryByTestId("hit-grid")).toBeNull()
+  })
+})
+
+describe("Models activity failures", () => {
+  it.each([0, 1, 2])("shows an actionable error instead of empty success for tab %s", async tab => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    const fetcher = global.fetch
+    global.fetch = vi.fn(async (...args: Parameters<typeof fetch>) => {
+      if (String(args[0]).includes("/api/model-tracks/")) return { ok: false, status: 503 } as Response
+      return fetcher(...args)
+    }) as typeof fetch
+    render(<ModelsPanel tab={tab} />, { wrapper: wrapper() })
+    expect((await screen.findByRole("alert")).textContent).toContain("Could not load model activity")
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy()
+    expect(screen.queryByTestId("train-runs-empty")).toBeNull()
+    expect(screen.queryByTestId("adapt-learned-empty")).toBeNull()
+    expect(screen.queryByTestId("optimise-empty")).toBeNull()
+  })
+  it("rejects malformed successful responses instead of hiding saved work", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG, "/api/model-tracks/train": { unexpected: true } })
+    render(<ModelsPanel />, { wrapper: wrapper() })
+    expect(await screen.findByRole("alert")).toBeTruthy()
+  })
+  it("does not offer a no-op watch-live button for a run without a model", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    render(<ModelsPanel trainData={{runs:[{ name:"job", family:"tabular", when:"now", status:"running", gate:"pending", metric:"—", dataset:"counts" }]}} />, { wrapper: wrapper() })
+    expect(screen.queryByTestId("train-run-open-job")).toBeNull()
+  })
+})
+
+describe("Training workflow records", () => {
+  it("links an owned workflow training record to its original chat without relaunching it", () => {
+    mockFetchByUrl({ "/api/models": CATALOG })
+    render(<ModelsPanel trainData={{runs:[{ runId:"run-1", chatSessionId:"chat/1", name:"Subtype predictor", family:"training", when:"today", status:"completed", gate:"Not available", metric:"Not available", dataset:"Recorded run" }]}} />, { wrapper: wrapper() })
+    expect(screen.getByTestId("train-run-chat-run-1").getAttribute("href")).toBe("/?session=chat%2F1")
+    expect(screen.queryByTestId("train-run-open-Subtype predictor")).toBeNull()
   })
 })

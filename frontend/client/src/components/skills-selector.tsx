@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Sparkles, ChevronDown, ChevronRight, Check } from "lucide-react"
 import { t } from "@/lib/i18n"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 
 /**
  * A single expert / skill pack surfaced in the composer (spec 06 §6.5 /
@@ -77,7 +78,6 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
   const [open, setOpen] = useState(false)
   const [fetched, setFetched] = useState<SkillPack[] | null>(null)
   const [loading, setLoading] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
 
   // Fetch packs only when none are injected. Injected packs (tests / a
   // parent that already has the list) short-circuit the network entirely.
@@ -103,16 +103,6 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
     }
   }, [packs])
 
-  // Close the popover on outside click.
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [open])
-
   const resolved: SkillPack[] = packs !== undefined ? packs : fetched ?? []
   // Keep the "N on" count honest — only count selections that map to a
   // real, available pack.
@@ -128,11 +118,11 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
   }
 
   return (
-    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
       <button
         type="button"
         data-testid="composer-experts-toggle"
-        onClick={() => setOpen((o) => !o)}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -164,18 +154,22 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
           style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform .15s" }}
         />
       </button>
+      </PopoverTrigger>
 
-      {open && (
-        <div
+        <PopoverContent
+          side="top"
+          align="start"
+          collisionPadding={16}
+          sideOffset={8}
+          aria-label={t('composer.skills_and_experts')}
           data-testid="composer-experts-popover"
           style={{
-            position: "absolute",
-            bottom: "calc(100% + 4px)",
-            right: 0,
             zIndex: 50,
             width: "min(420px, calc(100vw - 32px))",
-            maxHeight: "min(440px, 60vh)",
+            maxHeight: "min(440px, 60vh, var(--radix-popover-content-available-height))",
             overflowY: "auto",
+            overflowX: "hidden",
+            overscrollBehavior: "contain",
             background: "var(--bm-bg-elev, hsl(var(--background)))",
             border: `1px solid ${BORDER}`,
             borderRadius: "var(--bm-r-md, 8px)",
@@ -215,6 +209,7 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
                     type="button"
                     data-testid={`composer-expert-pack-${pack.id}`}
                     data-active={active}
+                    aria-pressed={active}
                     onClick={() => toggle(pack.id)}
                     style={{
                       width: "100%",
@@ -283,8 +278,7 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
               )}
             </div>
           )}
-        </div>
-      )}
-    </div>
+        </PopoverContent>
+    </Popover>
   )
 }

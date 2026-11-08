@@ -4633,11 +4633,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         user_intent: str,
         uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Route to nf-core/proteinfold when an amino-acid sequence is detected in the query.
+        """Route a structure-prediction request with a sequence to nf-core/proteinfold.
 
-        Triggers purely on sequence content — regardless of whether the user calls it
-        'DNA', 'protein', or anything else — so routing is deterministic and
-        chai1_structure_prediction cannot win the LLM lottery.
+        Sequence content identifies the input, not the requested operation. A bare
+        sequence retains the historical folding default; explicit property,
+        alignment or annotation tasks must continue through task-aware routing.
 
         The detected sequence is injected as the `sequence` param suggestion so the
         frontend renders it pre-filled without the user having to copy-paste again.
@@ -4677,6 +4677,25 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                                'bowtie', 'gatk', 'samtools', 'fastq', 'methylat')
         _low = user_intent.lower()
         if any(kw in _low for kw in _nucleotide_only_kw):
+            return None
+
+        # A peptide-property request was answered with proteinfold on live dev
+        # (2026-11-07), although the prose named an entirely different workflow.
+        # Require positive structure intent rather than adding an ever-growing
+        # blacklist of non-folding assays. Context below the first blank line is
+        # data, not a replacement for the user's requested operation.
+        _task = user_intent.split('\n\n', 1)[0].lower()
+        _structure_intent = _re_prot.search(
+            r'\bfold(?:ing)?\b(?![\s-]*changes?\b)|\b(?:alphafold\d*|esmfold|proteinfold)\b'
+            r'|\b(?:predict|model|determine|infer|calculate)\w*\b.{0,60}\b(?:3d\s+|tertiary\s+|protein\s+)?structure\b'
+            r'|\b(?:3d\s+|tertiary\s+|protein\s+)?structure\s+(?:prediction|model(?:ing|ling)?)\b'
+            r'|(?:预测|建模|计算|推断).{0,15}(?:三维|三级|蛋白质|肽)?结构'
+            r'|(?:结构预测|结构建模|蛋白折叠)',
+            _task,
+        )
+        _bare_sequence = _re_prot.fullmatch(rf'\s*{_AA_CHARS}{{15,}}\s*', user_intent)
+        if not _structure_intent and not _bare_sequence:
+            log.info('[ProteinStructureFastPath] sequence present without folding intent; skipping')
             return None
 
         top = self.workflow_search.get_workflow_by_filename_pattern('%proteinfold%')

@@ -1,3 +1,4 @@
+import { tOr } from "@/lib/i18n";
 /**
  * Benchmark Evidence Component
  *
@@ -424,7 +425,7 @@ interface ResearchResponseDisplayProps {
   response: ResearchResponseData;
   onFollowUpClick?: (question: string) => void;
   onToolClick?: (toolName: string, galaxyToolId?: string) => void;
-  /** "Check against our data" exit — turns the answer into a run on project data.
+  /** Research-to-analysis exit — prepares a composer draft for user review.
    *  Only rendered when supplied, so we never show an exit that does nothing. */
   onCheckAgainstData?: (answer: string) => void;
   className?: string;
@@ -580,9 +581,10 @@ export function ResearchResponseDisplay({
             className="text-xs"
             data-testid="research-answer-check-data"
             onClick={() => onCheckAgainstData(response.answer)}
+            title={tOr('research_plan.hint', 'Prepare a draft with this question and answer. Add your dataset and analysis goal, then send when ready.')}
           >
             <FlaskConical className="h-3.5 w-3.5 mr-1" />
-            Check against our data
+            {tOr('research_plan.action', 'Plan analysis with my data')}
           </Button>
         )}
       </div>

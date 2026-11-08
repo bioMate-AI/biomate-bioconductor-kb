@@ -85,3 +85,11 @@ describe('FindingsCard output-readability state', () => {
     fetchMock.mockRestore()
   })
 })
+
+it('distinguishes a completed workflow from an unavailable findings', async () => {
+ const fetcher = vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ status: 'pending' }) } as Response);
+ render(<FindingsCard runId="completed-run" executionStatus="completed" />);
+ expect(await screen.findByText('Findings are not available yet.')).toBeInTheDocument();
+ expect(screen.queryByText('Analysis in progress…')).toBeNull();
+ fetcher.mockRestore();
+});

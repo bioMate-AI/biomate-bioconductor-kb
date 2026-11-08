@@ -21,7 +21,7 @@ import {
 import { extractInputBindings } from "./workflow-input-gate";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -50,6 +50,7 @@ export interface IStorage {
   createExecutionRun(request: CreateExecutionRunRequest, userId?: string, projectId?: string): Promise<ExecutionRun>;
   getExecutionRun(id: string): Promise<ExecutionRun | undefined>;
   getExecutionRunByGalaxyId(galaxyInvocationId: string): Promise<ExecutionRun | undefined>;
+  getExecutionRunByNextflowId(nextflowRunId: string): Promise<ExecutionRun | undefined>;
   getExecutionRuns(
     userId?: string,
     projectId?: string,
@@ -57,6 +58,7 @@ export interface IStorage {
     limit?: number,
     chatSessionId?: string
   ): Promise<ExecutionRun[]>;
+  getNonTerminalExecutionRuns(limit?: number): Promise<ExecutionRun[]>;
   getExecutionRunsByParent(parentRunId: string): Promise<ExecutionRun[]>;
   updateExecutionRun(id: string, updates: Partial<ExecutionRun>): Promise<ExecutionRun | undefined>;
   updateExecutionRunStatus(id: string, status: ExecutionRunStatus, errorMessage?: string): Promise<ExecutionRun | undefined>;
@@ -498,6 +500,21 @@ export class MemStorage implements IStorage {
     }
   }
 
+  async getExecutionRunByNextflowId(nextflowRunId: string): Promise<ExecutionRun | undefined> {
+    const cached = Array.from(this.executionRuns.values()).find(run => run.execution.nextflowRunId === nextflowRunId);
+    if (cached) return cached;
+    try {
+      const rows = await db.select().from(executionRunsTable).where(eq(executionRunsTable.nextflowRunId, nextflowRunId)).limit(1);
+      if (!rows.length) return undefined;
+      const run = this._dbRowToExecutionRun(rows[0]);
+      this.executionRuns.set(run.id, run);
+      return run;
+    } catch (error) {
+      console.warn('[Storage] Nextflow run lookup failed:', error instanceof Error ? error.message : error);
+      return undefined;
+    }
+  }
+
   async getExecutionRunByGalaxyId(galaxyInvocationId: string): Promise<ExecutionRun | undefined> {
     // Check memory first
     const memResult = Array.from(this.executionRuns.values()).find(
@@ -557,6 +574,25 @@ export class MemStorage implements IStorage {
       if (chatSessionId) runs = runs.filter(run => run.chatSessionId === chatSessionId);
       runs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       return runs.slice(0, limit);
+    }
+  }
+
+  /** Runs still in a non-terminal status, newest first — for the stale-run reaper.
+   *  getExecutionRuns(limit) returns only the newest N runs, so older stuck runs were never
+   *  swept (dev, 2026-11-06: 52 'running' + 16 'configuring' in the DB, the reaper saw 7-9). */
+  async getNonTerminalExecutionRuns(limit: number = 200): Promise<ExecutionRun[]> {
+    const statuses = ['running', 'configuring', 'queued'];
+    try {
+      const rows = await db.select().from(executionRunsTable)
+        .where(inArray(executionRunsTable.status, statuses))
+        .orderBy(desc(executionRunsTable.createdAt))
+        .limit(limit);
+      return rows.map(r => this.executionRuns.get(r.id) || this._dbRowToExecutionRun(r));
+    } catch (e: any) {
+      console.warn('[Storage] DB getNonTerminalExecutionRuns failed, using memory:', e.message);
+      return Array.from(this.executionRuns.values())
+        .filter(r => statuses.includes(String(r.execution?.status)))
+        .slice(0, limit);
     }
   }
 

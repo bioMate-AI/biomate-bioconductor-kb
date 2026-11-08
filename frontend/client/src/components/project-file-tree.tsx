@@ -19,6 +19,7 @@ import {
   FileText,
   Download,
   Trash2,
+  Link2,
   Upload,
   RefreshCw,
   ChevronRight,
@@ -48,6 +49,7 @@ export interface ProjectFile {
   workflow_name: string | null;
   step_name: string | null;
   input_context: Record<string, unknown> | null;
+  content_hash?: string | null;
   created_at: string;
 }
 
@@ -69,7 +71,9 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
   const outputsByRun: Record<string, FileNode[]> = {};
 
   for (const f of files) {
-    if (f.source === "upload") {
+    // Only run outputs are "results"; everything else the user ingested
+    // (upload, pasted URL, connector pull) is an input, regardless of source.
+    if (f.source !== "run_output") {
       inputs.push({ type: "file", name: f.name, file: f });
     } else {
       const run = f.run_id || "unknown";
@@ -397,6 +401,9 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["inputs"]));
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [urlOpen, setUrlOpen] = useState(false);
+  const [urlVal, setUrlVal] = useState("");
+  const [importingUrl, setImportingUrl] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -459,6 +466,31 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       setError(e?.message ?? t('file_tree.err_upload'));
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleImportUrl = async () => {
+    const url = urlVal.trim();
+    if (!url) return;
+    setImportingUrl(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/files/import-url`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as any)?.error || `Import failed (${res.status})`);
+      }
+      setUrlVal("");
+      setUrlOpen(false);
+      await load();
+    } catch (e: any) {
+      setError(e?.message ?? t('file_tree.err_import_url'));
+    } finally {
+      setImportingUrl(false);
     }
   };
 
@@ -572,6 +604,20 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             {t('file_tree.add')}
           </Button>
         ))}
+        {canEdit && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-xs gap-1"
+            onClick={() => setUrlOpen((o) => !o)}
+            disabled={uploading}
+            title={t('file_tree.import_url_title')}
+            data-testid="project-files-url-btn"
+          >
+            <Link2 className="h-3 w-3" />
+            {t('file_tree.add_url')}
+          </Button>
+        )}
         <Button
           size="sm"
           variant="ghost"
@@ -592,6 +638,30 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
           data-testid="project-files-input"
         />
       </div>
+      {/* Paste-a-URL ingest (design §4.6) — fetches into the project and shows in the tree. */}
+      {urlOpen && canEdit && (
+        <div className="flex items-center gap-1 px-1 pb-1" data-testid="project-files-url-row">
+          <input
+            type="url"
+            value={urlVal}
+            onChange={(e) => setUrlVal(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !importingUrl) handleImportUrl(); }}
+            placeholder={t('file_tree.import_url_placeholder')}
+            className="flex-1 rounded border bg-background px-2 py-1 text-xs"
+            data-testid="project-files-url-input"
+            autoFocus
+          />
+          <Button
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={handleImportUrl}
+            disabled={importingUrl || !urlVal.trim()}
+            data-testid="project-files-url-import"
+          >
+            {importingUrl ? <RefreshCw className="h-3 w-3 animate-spin" /> : t('file_tree.import')}
+          </Button>
+        </div>
+      )}
 
       {/* Scope hint + search (design §4.2.2) */}
       <div className="px-3 pt-1.5 pb-1 space-y-1.5 border-b">

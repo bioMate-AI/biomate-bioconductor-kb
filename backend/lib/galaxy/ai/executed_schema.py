@@ -68,11 +68,43 @@ def config_param_defaults(config_text: str) -> Dict[str, Any]:
     return out
 
 
+_REFERENCED_CACHE: Dict[Tuple[str, float], frozenset] = {}
+
+
+def pipeline_referenced_params(pipeline_dir: Path) -> frozenset:
+    """Every `params.<name>` the pipeline's own code or configs read.
+
+    Older pipelines declare params only where they are used or in a profile
+    (cageseq 1.0: `params.input_paths` is read in main.nf and set only in
+    conf/test.config), so the schema plus nextflow.config's params block is not
+    the full set. Cached per directory and its mtime.
+    """
+    try:
+        key = (str(pipeline_dir), pipeline_dir.stat().st_mtime)
+    except OSError:
+        return frozenset()
+    if key in _REFERENCED_CACHE:
+        return _REFERENCED_CACHE[key]
+    names: set = set()
+    pat = re.compile(r"\bparams\.([A-Za-z_]\w*)")
+    files = list(pipeline_dir.rglob("*.nf")) + list(pipeline_dir.glob("conf/*.config"))
+    files.append(pipeline_dir / "nextflow.config")
+    for f in files:
+        try:
+            names.update(pat.findall(f.read_text(errors="replace")))
+        except OSError:
+            continue
+    out = frozenset(names)
+    _REFERENCED_CACHE[key] = out
+    return out
+
+
 def executed_pipeline_params(filename: str) -> Optional[Dict[str, Any]]:
     """What the executed nf-core pipeline itself declares, or None (see executed_schema_required).
 
     {"required": set, "props": {name: schema property}, "known": set of declared param
-    names (schema ∪ nextflow.config params), "defaults": {name: the pipeline's own default}}.
+    names (schema ∪ nextflow.config params ∪ every params.<name> its code/configs read),
+    "defaults": {name: the pipeline's own default}}.
     Config defaults win over schema defaults: the config is what Nextflow applies.
     """
     got = executed_schema_required(filename)
@@ -82,13 +114,16 @@ def executed_pipeline_params(filename: str) -> Optional[Dict[str, Any]]:
     try:
         from galaxy.webapps.galaxy.api.nextflow_executor import _resolve_nextflow_path  # noqa: PLC0415
 
-        cfg_text = (Path(str(_resolve_nextflow_path(filename))).parent / "nextflow.config").read_text(errors="replace")
+        pipeline_dir = Path(str(_resolve_nextflow_path(filename))).parent
+        cfg_text = (pipeline_dir / "nextflow.config").read_text(errors="replace")
     except Exception:
-        cfg_text = ""
+        pipeline_dir, cfg_text = None, ""
     cfg = config_param_defaults(cfg_text)
     defaults = {k: v["default"] for k, v in props.items() if "default" in v}
     defaults.update({k: v for k, v in cfg.items() if v is not _UNSET})
-    return {"required": required, "props": props, "known": set(props) | set(cfg), "defaults": defaults}
+    referenced = pipeline_referenced_params(pipeline_dir) if pipeline_dir else frozenset()
+    return {"required": required, "props": props, "known": set(props) | set(cfg) | set(referenced),
+            "defaults": defaults}
 
 
 def executed_schema_required(filename: str) -> Optional[Tuple[Set[str], Dict[str, dict]]]:

@@ -6,6 +6,7 @@ import os
 import sys
 import types
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 API = Path(__file__).parents[2] / "webapps/galaxy/api/target_id_api.py"
@@ -42,7 +43,7 @@ def _load():
 
 
 def run(coro):
-    return asyncio.new_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 class RouteTests(unittest.TestCase):
@@ -60,6 +61,29 @@ class RouteTests(unittest.TestCase):
 
     def test_routes_are_registered(self):
         self.assertEqual(sorted(self.m.router.routes), ["/api/target-id/identify", "/api/target-id/status"])
+
+    def test_disease_name_is_resolved_before_real_channel_ranking(self):
+        def http(url, payload, **kwargs):
+            if 'search(queryString:' in payload['query']:
+                return {'data':{'search':{'hits':[{'id':'MONDO_0005233','name':'non-small cell lung carcinoma'}]}}}
+            self.assertEqual(payload['variables']['efo'], 'MONDO_0005233')
+            return {'data':{'disease':{'name':'non-small cell lung carcinoma','associatedTargets':{'rows':[
+                {'target':{'id':'ENSG00000146648','approvedSymbol':'EGFR'},'score':0.8884}]}}}}
+        with patch('galaxy.ai.target_id.data_channels.offline_mode', return_value=False), \
+             patch('galaxy.ai.target_id.data_channels._default_http_post', side_effect=http):
+            result = run(self.m.identify_targets(self.req(disease='non-small-cell lung carcinoma',candidate_targets=['EGFR'])))
+        self.assertEqual(result['disease_resolution']['disease_id'], 'MONDO_0005233')
+        self.assertIn('genetics_ot', result['channels_run'])
+        self.assertEqual(result['targets'][0]['target'], 'EGFR')
+
+    def test_name_id_mismatch_stops_before_ranking(self):
+        response={'data':{'search':{'hits':[{'id':'MONDO_0005233','name':'non-small cell lung carcinoma'}]}}}
+        with patch('galaxy.ai.target_id.data_channels.offline_mode', return_value=False), \
+             patch('galaxy.ai.target_id.data_channels._default_http_post', return_value=response):
+            with self.assertRaises(self.HTTPException) as error:
+                run(self.m.identify_targets(self.req(disease='non-small-cell lung carcinoma',disease_id='EFO_0003838')))
+        self.assertEqual(error.exception.status_code, 400)
+        self.assertIn('disagree', error.exception.detail)
 
     def test_status_reports_hosts_and_modes(self):
         os.environ.pop("TARGET_ID_OFFLINE", None); os.environ.pop("BIOMATE_OFFLINE", None)

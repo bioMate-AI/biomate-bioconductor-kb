@@ -10,7 +10,7 @@
  */
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { t } from "@/lib/i18n";
+import { t, tOr } from "@/lib/i18n";
 import { cn, stripAnsi } from "@/lib/utils";
 import { InlineJsonView } from "./json-value-view";
 
@@ -20,7 +20,7 @@ const TABLE_EXTS = new Set(["csv", "tsv", "json", "tabular", "star"]);
 // ---------------------------------------------------------------------------
 // STAR / RELION parser (CryoSPARC / RELION particle tables)
 // ---------------------------------------------------------------------------
-export function parseStar(text: string): { headers: string[]; rows: string[][] } | null {
+export function parseStar(text: string, limit = 200): { headers: string[]; rows: string[][] } | null {
   const lines = text.split("\n");
   const headers: string[] = [];
   let inLoop = false;
@@ -41,7 +41,7 @@ export function parseStar(text: string): { headers: string[]; rows: string[][] }
   if (headers.length === 0 || dataStartIdx < 0) return null;
 
   const rows: string[][] = [];
-  for (let i = dataStartIdx; i < lines.length && rows.length < 200; i++) {
+  for (let i = dataStartIdx; i < lines.length && rows.length < limit; i++) {
     const line = lines[i].trim();
     if (!line || line.startsWith("#") || line.startsWith("data_") || line.startsWith("loop_") || line.startsWith("_")) continue;
     rows.push(line.split(/\s+/));
@@ -65,7 +65,11 @@ export function fmtCell(v: string | undefined): string {
   return String(Number(n.toPrecision(4)));
 }
 
-export function TableGrid({ headers, rows, totalRows, maxHClass = "max-h-64" }: { headers: string[]; rows: string[][]; totalRows: number; maxHClass?: string }) {
+export function TableGrid({ headers, rows, totalRows, maxHClass = "max-h-64", complete = false }: { headers: string[]; rows: string[][]; totalRows: number; maxHClass?: string; complete?: boolean }) {
+  const [page, setPage] = useState(0);
+  const lastPage = Math.max(0, Math.ceil(rows.length / 200) - 1);
+  const currentPage = Math.min(page, lastPage);
+  const shownRows = complete ? rows.slice(currentPage * 200, (currentPage + 1) * 200) : rows;
   return (
     <div className="rounded border text-xs font-mono">
       {/* Shape header — spec 14.2: the header states N rows × M cols. */}
@@ -83,7 +87,7 @@ export function TableGrid({ headers, rows, totalRows, maxHClass = "max-h-64" }: 
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, ri) => (
+            {shownRows.map((row, ri) => (
               <tr key={ri} className="hover:bg-muted/40 border-b last:border-0">
                 {headers.map((_, ci) => (
                   <td key={ci} className="px-2 py-0.5 max-w-[180px] truncate" title={row[ci]}>{fmtCell(row[ci])}</td>
@@ -93,6 +97,11 @@ export function TableGrid({ headers, rows, totalRows, maxHClass = "max-h-64" }: 
           </tbody>
         </table>
       </div>
+      {complete && lastPage > 0 && <div className="flex items-center justify-between gap-2 p-2 border-t font-sans">
+        <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>{tOr('preview.previous_rows', 'Previous rows')}</button>
+        <span>{currentPage * 200 + 1}–{Math.min((currentPage + 1) * 200, rows.length)} / {rows.length}</span>
+        <button type="button" disabled={currentPage === lastPage} onClick={() => setPage(currentPage + 1)}>{tOr('preview.next_rows', 'Next rows')}</button>
+      </div>}
     </div>
   );
 }
@@ -129,18 +138,18 @@ export function InlineTextViewer({ text, maxHClass = "max-h-40" }: { text: strin
 // ---------------------------------------------------------------------------
 // Inline table viewer (CSV / TSV / JSON / STAR)
 // ---------------------------------------------------------------------------
-export function InlineTableViewer({ text, ext, maxHClass }: { text: string; ext: string; maxHClass?: string }) {
+export function InlineTableViewer({ text, ext, maxHClass, complete = false }: { text: string; ext: string; maxHClass?: string; complete?: boolean }) {
   const lines = text.trim().split("\n").filter(Boolean);
   if (lines.length === 0) return <p className="text-xs text-muted-foreground">{t("preview.empty_file")}</p>;
 
   // STAR / RELION format (used by CryoSPARC and RELION for particle tables)
   if (ext === "star" || (text.includes("loop_") && text.includes("_rln"))) {
-    const star = parseStar(text);
+    const star = parseStar(text, complete ? Infinity : 200);
     if (star) {
       return (
         <>
           <p className="text-[10px] text-muted-foreground mb-1">STAR/RELION format · {star.rows.length} particles shown</p>
-          <TableGrid headers={star.headers} rows={star.rows} totalRows={star.rows.length} maxHClass={maxHClass} />
+          <TableGrid headers={star.headers} rows={star.rows} totalRows={star.rows.length} maxHClass={maxHClass} complete={complete} />
         </>
       );
     }
@@ -156,10 +165,10 @@ export function InlineTableViewer({ text, ext, maxHClass }: { text: string; ext:
       if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((r) => r && typeof r === "object" && !Array.isArray(r))) {
         const records = parsed as Record<string, unknown>[];
         const headers = Object.keys(records[0]);
-        const rows = records.slice(0, 200).map((item) =>
+        const rows = (complete ? records : records.slice(0, 200)).map((item) =>
           headers.map((h) => (item[h] != null ? (typeof item[h] === "object" ? JSON.stringify(item[h]) : String(item[h])) : ""))
         );
-        return <TableGrid headers={headers} rows={rows} totalRows={records.length} maxHClass={maxHClass} />;
+        return <TableGrid headers={headers} rows={rows} totalRows={records.length} maxHClass={maxHClass} complete={complete} />;
       }
       return <InlineJsonView value={parsed} renderText={(txt) => <InlineTextViewer text={txt} maxHClass={maxHClass} />} maxHClass={maxHClass} />;
     }
@@ -172,9 +181,9 @@ export function InlineTableViewer({ text, ext, maxHClass }: { text: string; ext:
   const commaCount = (firstLine.match(/,/g) || []).length;
   const delimiter = tabCount >= commaCount ? "\t" : ",";
   const headers = firstLine.split(delimiter).map((h) => h.trim().replace(/^"|"$/g, ""));
-  const rows = lines.slice(1, 201).map((l) => l.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, "")));
+  const rows = lines.slice(1, complete ? undefined : 201).map((l) => l.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, "")));
 
-  return <TableGrid headers={headers} rows={rows} totalRows={lines.length - 1} maxHClass={maxHClass} />;
+  return <TableGrid headers={headers} rows={rows} totalRows={lines.length - 1} maxHClass={maxHClass} complete={complete} />;
 }
 
 /**

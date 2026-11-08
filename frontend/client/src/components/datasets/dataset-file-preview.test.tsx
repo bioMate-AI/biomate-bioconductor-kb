@@ -40,3 +40,36 @@ it("shows permission errors rather than a blank pane", async () => {
   render(<DatasetFilePreview projectId="p" fileId="f" name="private.json" />)
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("403"))
 })
+
+it("renders a VCF as a variant table (dispatched to the shared VCF viewer, not a raw dump)", async () => {
+  mockFile("##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\nchr1\t100\t.\tA\tG\t50\tPASS\t.")
+  render(<DatasetFilePreview projectId="p" fileId="f" name="variants.vcf" />)
+  const view = await screen.findByTestId("dataset-text-preview")
+  expect(view).toHaveTextContent("CHROM")
+  expect(view).toHaveTextContent("chr1")
+})
+
+it("renders a FASTA as sequence cards (dispatched to the shared sequence viewer)", async () => {
+  mockFile(">seq1 first\nACGTACGT\n>seq2 second\nTTTT\n")
+  render(<DatasetFilePreview projectId="p" fileId="f" name="reads.fasta" />)
+  const view = await screen.findByTestId("dataset-text-preview")
+  expect(view).toHaveTextContent("seq1")
+  expect(view).toHaveTextContent("bp")
+})
+
+it("renders a BED annotation as a feature table", async () => {
+  mockFile("chr1\t10\t50\tfeatA\t0\t+\nchr2\t80\t120\tfeatB\t0\t-\n")
+  render(<DatasetFilePreview projectId="p" fileId="f" name="regions.bed" />)
+  const view = await screen.findByTestId("dataset-text-preview")
+  expect(view).toHaveTextContent("chrom")
+  expect(view).toHaveTextContent("featA")
+})
+
+it("renders YAML config as readable inert text", async () => {
+  mockFile('sample: tumor\nreplicates: 3\nnote: "<script>alert(1)</script>"')
+  const { container } = render(<DatasetFilePreview projectId="p" fileId="f" name="protocol.yml" />)
+  const preview = await screen.findByTestId("dataset-text-preview")
+  expect(preview).toHaveTextContent("sample: tumor")
+  expect(preview).toHaveTextContent("replicates: 3")
+  expect(container.querySelector("script")).toBeNull()
+})

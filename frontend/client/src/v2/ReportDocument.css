@@ -1,0 +1,55 @@
+/* Source reference: data_centroid_design_v2/dataui/search-doc.css .docpage/.docsec.
+   Scoped to report prose: tables scroll horizontally; the parent owns vertical scroll. */
+.bmx-report-doc {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 10px);
+  background: var(--bg-elev, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.04));
+  padding: 15px 17px;
+  margin-top: 10px;
+  font-family: var(--font-ui, inherit);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.bmx-report-doc > :first-child { margin-top: 0; }
+.bmx-report-doc > :last-child { margin-bottom: 0; }
+.bmx-report-doc h1 {
+  margin: 0 0 16px;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.bmx-report-doc h2,
+.bmx-report-doc h3,
+.bmx-report-doc h4 {
+  margin: 20px 0 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+.bmx-report-doc h2 { padding-top: 16px; border-top: 1px solid var(--border); }
+.bmx-report-doc p { margin: 0 0 12px; text-wrap: pretty; }
+.bmx-report-doc ul,
+.bmx-report-doc ol { margin: 8px 0 16px; padding-left: 22px; }
+.bmx-report-doc ul { list-style: disc; }
+.bmx-report-doc ol { list-style: decimal; }
+.bmx-report-doc li { margin: 4px 0; }
+.bmx-report-doc li > p { margin-bottom: 4px; }
+.bmx-report-doc a { color: var(--accent-ink, var(--accent)); text-decoration: underline; text-underline-offset: 2px; }
+.bmx-report-doc code { font-family: var(--font-mono, monospace); font-size: 0.92em; }
+.bmx-report-doc :not(pre) > code { padding: 1px 4px; border-radius: 4px; background: var(--surface, #f3f4f6); }
+.bmx-report-doc pre { margin: 12px 0; padding: 12px; max-width: 100%; overflow-x: auto; background: var(--surface, #f3f4f6); border-radius: var(--r-sm, 6px); }
+.bmx-report-doc pre code { white-space: pre; overflow-wrap: normal; }
+.bmx-report-doc blockquote { margin: 12px 0; padding-left: 12px; border-left: 3px solid var(--border); color: var(--text-muted); }
+.bmx-report-doc .bmx-report-table { min-width: 0; max-width: 100%; overflow-x: auto; margin: 12px 0 16px; }
+.bmx-report-doc table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.55; }
+.bmx-report-doc th { text-align: left; font-weight: 600; background: var(--surface, #f3f4f6); }
+.bmx-report-doc th,
+.bmx-report-doc td { padding: 8px 10px; border: 1px solid var(--border); vertical-align: top; }
+.bmx-report-doc hr { margin: 16px 0; border: 0; border-top: 1px solid var(--border); }
+
+.bmx-report-doc img { display: block; max-width: 100%; height: auto; margin: 16px auto 6px; border-radius: var(--r-sm, 6px); background: white; }

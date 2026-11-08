@@ -42,6 +42,16 @@ function makeCitation(over: Partial<EvidenceCitation> = {}): Citation {
 }
 
 describe("<CitationPanel> — Spec 01 answer→project exits", () => {
+  it("omits unsupported formats and invented bibliographic placeholders", async () => {
+    render(<CitationPanel citations={[makeCitation({ authors: [], year: undefined, journal: undefined, formatted_apa: '', formatted_short: '', formatted_bibtex: '  ' })]} isCollapsed={false} kind="literature" />)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'DESeq2' }))
+    expect(screen.queryByRole('button', { name: 'APA' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'BibTeX' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Export BibTeX' })).toBeNull()
+    expect(screen.queryByText(/Unknown.*et al/)).toBeNull()
+    expect(screen.getAllByText('Interferon signalling in disease')).toHaveLength(1)
+  })
+
   it("mounts the source reader at the clicked source with its cited-for locus", async () => {
     const user = userEvent.setup()
     const citations = [

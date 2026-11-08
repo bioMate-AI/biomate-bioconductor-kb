@@ -1,3 +1,16 @@
+import { integrationFindings, integrationFindingsMarkdown } from "./integration-findings";
+import { stepFileDisposition } from "./step-file-disposition";
+import { waitForInteractiveSession } from "./interactive-session-readiness";
+import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
+import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
+import { registerOwnedTrainingRun, readOwnedTrainingVersions, requestInternalModelRegistry, TrainingRegistrationError } from "./model-training-registration";
+import { isModelTrainingRun } from "./model-training-activity";
+import { hasPendingWorkflowClarification } from "../shared/workflow-response-state";
+import { readModelTrainingActivity } from "./model-training-activity";
+import { authorizeDatasetReference } from "./dataset-reference-access";
+import { setFilePreviewSecurityHeaders } from "./file-preview-security";
+import { isRunFilePathAllowed } from "./step-file-access";
+import { normalizeUiLanguage } from "./response-language";
 import { normalizeQcEvents } from "../shared/qc-assessment";
 import { matchDescriptor } from "../shared/findings-descriptors";
 import { buildFindingsDocument, reconcileFindingsDocument, documentToLegacy } from "../shared/findings-extract";
@@ -60,6 +73,7 @@ import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
 import { createHash, randomBytes } from "crypto";
 import { authService } from "./auth-service";
+import { isNextflowRunNotFound } from "./nextflow-run-lost";
 import { emailService } from "./email-service";
 import { authenticateToken, authenticateStaticApiKey, optionalAuth } from "./auth-middleware";
 import { decideRunAccess } from "./run-access";
@@ -1295,10 +1309,36 @@ fs.mkdir(uploadDir, { recursive: true }).then(() => {
 // each sweep is capped so a backlog can't hammer Galaxy.
 async function reconcileStaleRuns(): Promise<void> {
   try {
-    const runs = await storage.getExecutionRuns(undefined, undefined, undefined, 200);
+    const runs = await storage.getNonTerminalExecutionRuns(500);
     const now = Date.now();
     const GRACE_MS = 15 * 60 * 1000;
-    const stale = runs.filter((r) => {
+    // A run still 'configuring'/'queued' with no Galaxy/Nextflow id never launched: the Node
+    // process died between creating the record and the launch call (a deploy restart — e.g.
+    // nf-core/scdownstream at the 502 of 2026-11-06 02:50). Nothing in Galaxy can reconcile it,
+    // so after a generous window (staging large inputs can be slow) close it out as failed.
+    const NEVER_LAUNCHED_MS = 6 * 60 * 60 * 1000;
+    const neverLaunched = runs.filter((r) => {
+      const ex = (r as any).execution || {};
+      if (!['configuring', 'queued'].includes(ex.status)) return false;
+      if (ex.nextflowRunId || ex.galaxyInvocationId) return false;
+      const t = new Date((r as any).createdAt || 0).getTime();
+      return t > 0 && now - t > NEVER_LAUNCHED_MS;
+    });
+    for (const r of neverLaunched) {
+      await storage.updateExecutionRun((r as any).id, {
+        execution: {
+          ...(r as any).execution,
+          status: 'failed',
+          completedAt: new Date(),
+          errorMessage: 'The launch was interrupted before the workflow started (server restart). Please run it again.',
+        },
+      }).catch(() => undefined);
+    }
+    if (neverLaunched.length) {
+      console.log(`[run-reaper] closed ${neverLaunched.length} never-launched run(s) as failed`);
+    }
+    const closed = new Set(neverLaunched.map((r) => (r as any).id));
+    const stale = runs.filter((r) => !closed.has((r as any).id)).filter((r) => {
       const st = (r as any).execution?.status;
       if (!['running', 'configuring', 'queued'].includes(st)) return false;
       const started = (r as any).execution?.startedAt || (r as any).createdAt;
@@ -1308,12 +1348,57 @@ async function reconcileStaleRuns(): Promise<void> {
     if (stale.length === 0) return;
     const port = parseInt(process.env.PORT || '5000', 10);
     const batch = stale.slice(0, 25);
+    // The status route requires auth. The reaper used to call it with no credentials, got
+    // 401 on every run and still logged "reconciled" — so a finished run nobody had open
+    // stayed 'running' (nf-core/cageseq: Galaxy done 16:01, record flipped 17:22, 2026-11-06).
+    // Call it AS the run's owner (the route's ownership checks still apply) and count real
+    // outcomes.
+    let ok = 0;
+    const failed: string[] = [];
     for (const r of batch) {
-      await fetch(`http://127.0.0.1:${port}/api/workflows/runs/${(r as any).id}/status`, {
-        signal: AbortSignal.timeout(12000),
-      }).catch(() => undefined);
+      const id = (r as any).id;
+      const ownerId = (r as any).userId;
+      try {
+        const owner = ownerId ? await authService.getUserById(ownerId) : null;
+        if (!owner) {
+          // The owner account is gone, so the user-scoped status route can't be called. Ask
+          // Galaxy directly; a run it no longer knows a day after start is closed as lost (same
+          // rule as the status route).
+          const ex = (r as any).execution || {};
+          const nfId = ex.nextflowRunId || ex.galaxyInvocationId;
+          const startedMs = new Date(ex.startedAt || (r as any).createdAt || 0).getTime();
+          if (nfId && startedMs > 0 && now - startedMs > 24 * 60 * 60 * 1000) {
+            try {
+              await galaxyAPIProxy.getNextflowStatus(nfId);
+            } catch (e: any) {
+              if (isNextflowRunNotFound(e)) {
+                await storage.updateExecutionRun(id, {
+                  execution: {
+                    ...ex, status: 'failed', completedAt: new Date(),
+                    errorMessage: 'The run record was lost on the execution backend (a server rebuild), so its final state is unknown. Please run it again.',
+                  },
+                }).catch(() => undefined);
+                ok += 1;
+                continue;
+              }
+            }
+          }
+          failed.push(`${id}:no-owner`);
+          continue;
+        }
+        const resp = await fetch(`http://127.0.0.1:${port}/api/workflows/runs/${id}/status`, {
+          headers: { Authorization: `Bearer ${authService.generateToken(owner as any)}` },
+          signal: AbortSignal.timeout(12000),
+        });
+        if (resp.ok) ok += 1; else failed.push(`${id}:${resp.status}`);
+      } catch (e: any) {
+        failed.push(`${id}:${e?.name || 'error'}`);
+      }
     }
-    console.log(`[run-reaper] reconciled ${batch.length}/${stale.length} stale non-terminal run(s)`);
+    console.log(
+      `[run-reaper] checked ${ok}/${batch.length} of ${stale.length} stale non-terminal run(s)` +
+        (failed.length ? `; failed: ${failed.slice(0, 10).join(', ')}` : ''),
+    );
   } catch (e: any) {
     console.warn('[run-reaper] sweep failed:', e?.message ?? e);
   }
@@ -1588,6 +1673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const resolveAuthorizedRun = async (req: any, res: any, anyRunId: string): Promise<any | null> => {
     let run = await storage.getExecutionRun(anyRunId);
     if (!run) run = await storage.getExecutionRunByGalaxyId(anyRunId);
+    if (!run && storage.getExecutionRunByNextflowId) run = await storage.getExecutionRunByNextflowId(anyRunId);
     if (!run) {
       res.status(404).json({ error: "Run not found" });
       return null;
@@ -1595,7 +1681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const decision = await decideRunAccess(
       run,
       req.user?.id ? String(req.user.id) : null,
-      (storage as any).getUserProjects?.bind(storage),
+      (uid: string) => memoryService.projects.getUserProjects(uid),
     );
     if (!decision.allowed) {
       res.status(decision.status).json({ error: decision.error });
@@ -1603,6 +1689,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     return run;
   };
+  const legacyRunAccessDependencies = {
+    resolveRun: async (id: string) => (await storage.getExecutionRun(id)) ||
+      (await storage.getExecutionRunByGalaxyId(id)) ||
+      (storage.getExecutionRunByNextflowId ? await storage.getExecutionRunByNextflowId(id) : undefined),
+    getUserProjects: (uid: string) => memoryService.projects.getUserProjects(uid),
+  };
+  const requireLegacyRunRead = createLegacyRunGuard(legacyRunAccessDependencies, 'read');
+  const requireLegacyRunWrite = createLegacyRunGuard(legacyRunAccessDependencies, 'write');
+  const requireLegacyRunIdWrite = createLegacyRunGuard(legacyRunAccessDependencies, 'write', 'runId');
+
   // Dependency bundle for the output/invocation authorization resolver — the
   // same owner/project-member policy as resolveAuthorizedRun, applied to
   // surfaces addressed by output/invocation id. See output-access.ts.
@@ -1611,7 +1707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     getInvocation: (id: string) => storage.getInvocation(id),
     getRunByGalaxyId: (gid: string) => storage.getExecutionRunByGalaxyId(gid),
     getInvocationByGalaxyId: (gid: string) => storage.getInvocationByGalaxyId(gid),
-    getUserProjects: (storage as any).getUserProjects?.bind(storage),
+    getUserProjects: (uid: string) => memoryService.projects.getUserProjects(uid),
     // Canonical-id path (L1c): resolve a `${runId}:${s3Key}` output at the RUN
     // level (owner persisted on the ExecutionRun → durable across restarts) and
     // serve the matching output from the canonical resolver.
@@ -3355,7 +3451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!projectId) return res.status(403).json({ error: 'Access denied' });
         const membership = await pool.query(
           `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2
-           UNION SELECT 1 FROM projects WHERE id = $1 AND owner_id = $2
+           UNION SELECT 1 FROM projects WHERE id = $1 AND user_id::text = $2
            LIMIT 1`,
           [projectId, userId]
         );
@@ -4604,7 +4700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // The frontend viewer passes its execution run UUID (frontend storage ID).
   // The Python backend's _runs dict is keyed by the Nextflow-assigned run_id.
   // We resolve the translation here before proxying to the Python backend.
-  app.post("/api/workflows/runs/:runId/rerun", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:runId/rerun", authenticateToken, requireLegacyRunIdWrite, async (req, res) => {
     try {
       const { runId } = req.params;
 
@@ -5465,6 +5561,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   GET  /api/generate/:runId              (poll generation run)
   // A single shared handler keeps behavior identical across all six.
   const _dlProxyHandler = backendPassthrough("DL surface");
+  const _modelsOwnerProxy = async (req: any, res: any) => {
+    try {
+      await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
+      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const response = await fetchOwnedModelSurface(req.user?.id, `${req.path}${query}`, {
+        method: req.method,
+        ...(!['GET', 'HEAD'].includes(req.method) ? { body: JSON.stringify(req.body || {}) } : {}),
+      });
+      return res.status(response.status).json(await response.json().catch(() => ({ error: 'Invalid Models service response' })));
+    } catch (error) {
+      return res.status(error instanceof ModelSurfaceAccessError ? error.status : 502).json({ error: error instanceof ModelSurfaceAccessError ? error.message : 'Models service unavailable' });
+    }
+  };
 
   // Dedicated handler for the Adapt-track retrain: proxy to Galaxy (the job runs
   // synchronously there — queued → running → succeeded via the worker tick),
@@ -5477,10 +5586,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let galaxyJson: any = {};
     let galaxyStatus = 200;
     try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      await authorizeModelProject(req.user?.id, req.query.project, uid => memoryService.projects.getUserProjects(uid));
       const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const fullPath = `${req.path}${queryStr}`;
-      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, {
+      const resp = await fetchOwnedModelSurface(req.user?.id, fullPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
@@ -5488,8 +5597,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       galaxyStatus = resp.status;
       galaxyJson = await resp.json().catch(() => ({}));
+      if (galaxyStatus >= 400) return res.status(galaxyStatus).json(galaxyJson);
+      if (!isTrackedAdaptJob(galaxyStatus, galaxyJson)) return res.status(502).json({ error: 'Models service did not return a valid tracked training job.' });
     } catch (err: any) {
-      const status = err.response?.status || 502;
+      const status = err instanceof ModelSurfaceAccessError ? err.status : err.response?.status || 502;
       return res.status(status).json({ error: 'DL surface proxy error', detail: err.message });
     }
 
@@ -5544,22 +5655,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Bare-path matchers (Express "/*" wildcards require a following segment, so
   // the collection roots are registered explicitly) plus their sub-paths.
-  app.all("/api/models", optionalAuth, _dlProxyHandler);
-  app.all("/api/models/*", optionalAuth, _dlProxyHandler);
+  app.all("/api/models", authenticateToken, _modelsOwnerProxy);
+  app.all("/api/models/*", authenticateToken, _modelsOwnerProxy);
   // Project-scoped Models track reads (Train / Adapt / Optimise). Distinct
   // prefix so they don't fall under the greedy /api/models/:id detail route.
   // The retrain POST is registered FIRST (more specific) so it can register a
   // first-class run; everything else falls through to the shared proxy.
-  app.post("/api/model-tracks/adapt/retrain", optionalAuth, _adaptRetrainHandler);
-  app.all("/api/model-tracks/*", optionalAuth, _dlProxyHandler);
-  app.all("/api/inference/*", optionalAuth, _dlProxyHandler);
+  // Training is execution activity, not a list of globally registered campaign scorers.
+  // Keep real user/run identity so successful workflow training cannot disappear from Models.
+  // Model registration is owner-scoped and uses only canonical outputs and the
+  // recorded launch snapshot. Browser requests never supply paths/owners/metrics.
+  const modelRegistrationDependencies = {
+    listOutputs: async (runId: string) => {
+      const { runsOutputsService } = await import("./services/runs-outputs-service");
+      return runsOutputsService.list(runId);
+    },
+    internalRequest: requestInternalModelRegistry,
+  };
+  const modelRegistrationFailure = (res: any, error: any) => res.status(error instanceof TrainingRegistrationError ? error.status : 502).json({ error: error instanceof TrainingRegistrationError ? error.message : 'Central model registry is unavailable. Please retry.' });
+  app.post("/api/model-training-activity/:runId/register", authenticateToken, async (req: any, res) => {
+    if (req.body && Object.keys(req.body).length) return res.status(400).json({ error: 'Model registration accepts no client-supplied settings.' });
+    const run = await resolveAuthorizedRun(req, res, req.params.runId);
+    if (!run) return;
+    try {
+      const result = await registerOwnedTrainingRun(req.user?.id, run, modelRegistrationDependencies);
+      return res.status(result.status).json(result.body);
+    } catch (error) { return modelRegistrationFailure(res, error); }
+  });
+  app.get("/api/model-training-activity/:runId/versions", authenticateToken, async (req: any, res) => {
+    const run = await resolveAuthorizedRun(req, res, req.params.runId);
+    if (!run) return;
+    try {
+      const result = await readOwnedTrainingVersions(req.user?.id, run, modelRegistrationDependencies);
+      return res.status(result.status).json(result.body);
+    } catch (error) { return modelRegistrationFailure(res, error); }
+  });
+  app.get("/api/model-training-versions", authenticateToken, async (req: any, res) => {
+    try {
+      const projects = await memoryService.projects.getUserProjects(req.user.id);
+      const project = req.query.project;
+      if (project !== undefined && (typeof project !== 'string' || !projects.some((item: any) => item.id === project))) return res.status(403).json({ error: 'Project access denied' });
+      const scopes: Array<string | undefined> = project ? [project] : [undefined, ...projects.map((item: any) => item.id)];
+      const versions: any[] = [];
+      for (const scope of new Set(scopes)) {
+        const query = new URLSearchParams({ owner_id: req.user.id });
+        if (scope) query.set('project_id', scope);
+        const result = await requestInternalModelRegistry(`/api/internal/model-training/versions?${query}`);
+        if (result.status !== 200) return res.status(result.status).json(result.body);
+        versions.push(...(result.body.versions || []));
+      }
+      return res.json({ versions });
+    } catch (error) { return modelRegistrationFailure(res, error); }
+  });
+  app.get("/api/model-tracks/train", authenticateToken, async (req, res) => {
+    const result = await readModelTrainingActivity({ userId: req.user?.id, project: req.query.project }, {
+      getUserProjects: uid => memoryService.projects.getUserProjects(uid),
+      getExecutionRuns: (uid, project) => storage.getExecutionRuns(uid, project, undefined, 500),
+    });
+    res.status(result.status).json(result.body);
+  });
+  app.post("/api/model-tracks/adapt/retrain", authenticateToken, _adaptRetrainHandler);
+  app.all("/api/model-tracks/*", authenticateToken, _modelsOwnerProxy);
+  app.all("/api/inference/*", authenticateToken, _modelsOwnerProxy);
   app.all("/api/generate", optionalAuth, _dlProxyHandler);
   app.all("/api/generate/*", optionalAuth, _dlProxyHandler);
   // Tier-1 data surface — perception-at-ingest profiler.
   //   POST /api/perception/profile  { datasetRef }  -> DataProfile (+ planImpact)
   // Backend: backend/lib/galaxy/webapps/galaxy/api/perception.py. Consumed by
   // components/datasets/* (DatasetObject Quality tab). Same proxy as /api/models.
-  app.all("/api/perception/*", optionalAuth, _dlProxyHandler);
+  const requireDatasetAccess = (refFromPath = false) => async (req: any, res: any, next: any) => {
+    try {
+      const pathname = new URL(req.originalUrl, 'http://internal').pathname;
+      const ref = refFromPath
+        ? decodeURIComponent(pathname.slice('/api/datasets/'.length, pathname.lastIndexOf('/')))
+        : req.body?.datasetRef;
+      const decision = await authorizeDatasetReference(ref, req.user?.id, s3Service.getBucketName(), async (key, uid) => {
+        const rows = await pool.query(`SELECT 1 FROM project_files f JOIN projects p ON p.id = f.project_id
+          WHERE f.s3_key = $1 AND (p.user_id::text = $2 OR EXISTS (
+            SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2
+          )) LIMIT 1`, [key, uid]);
+        return rows.rows.length > 0;
+      });
+      if (!decision.allowed) return res.status(decision.status).json({ error: 'Dataset is not accessible to this user' });
+      next();
+    } catch (error) {
+      console.error('[dataset access]', error instanceof Error ? error.message : error);
+      res.status(403).json({ error: 'Dataset access could not be verified' });
+    }
+  };
+  app.post("/api/perception/profile", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
+  app.all("/api/perception/*", authenticateToken, requireDatasetAccess(), _dlProxyHandler);
   // Tier-1 data surface — dataset lineage / consumers / versions / RO-Crate.
   //   GET  /api/datasets/:ref/lineage    -> producing run/workflow/step
   //   GET  /api/datasets/:ref/consumers  -> runs that read it as input
@@ -5575,7 +5760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // versions-POST + ro-crate-GET routes, no extra registration needed.
   // Same proxy as /api/models. :ref is URL-encoded by the client (S3 keys /
   // paths contain "/"); the backend catch-all + urldecode handles it.
-  app.all("/api/datasets/*", optionalAuth, _dlProxyHandler);
+  app.all("/api/datasets/*", authenticateToken, requireDatasetAccess(true), _dlProxyHandler);
 
   // Server-side lane arbiter — the composer's LanePreview calls this on a
   // debounce so its advisory Instant/Cloud verdict matches how the query will
@@ -7025,6 +7210,7 @@ ${paramLines || '(none recorded)'}`;
         userAnthropicApiKey: _userAnthropicApiKey,
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
+        uiLanguage: normalizeUiLanguage((context as any)?.uiLanguage),
         openaiBaseUrl: _openaiBaseUrl,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
@@ -10944,6 +11130,60 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Launch interactive tool
+  // ─── POST /api/projects/:id/files/:fileId/open-in ─────────────────────
+  // Open a PROJECT FILE in a Galaxy interactive tool (design spec 04 §4.3.1).
+  // Galaxy's Jupyter/RStudio ITs already exist and launch (see
+  // /api/interactive-tools/launch); a project file simply isn't a Galaxy HDA, so
+  // we stage it into the user's history (the uploadFromUrl pattern that
+  // /api/datasets/import-url uses) and launch the IT against the staged HDA.
+  // Tool by file type (R/rds → RStudio, else Jupyter) or an explicit body.tool.
+  // NOTE: the HDA is staged async by Galaxy; the IT job queues until its input is
+  // ready, so we launch immediately (polling-to-ok is a documented refinement).
+  app.post("/api/projects/:id/files/:fileId/open-in", authenticateToken, async (req, res) => {
+    try {
+      const uid = (req.user as any)?.id;
+      if (!uid) return res.status(401).json({ error: "Unauthorized" });
+      const { id, fileId } = req.params;
+      if (!(await _isOwnerOrMember(id, String(uid)))) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      const row = await pool.query(
+        `SELECT name, s3_key FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!row.rows[0]) return res.status(404).json({ error: "File not found" });
+      const { name, s3_key } = row.rows[0] as { name: string; s3_key: string };
+      const ext = (name.split(".").pop() || "").toLowerCase();
+      const reqTool = String(req.body?.tool || "").toLowerCase();
+      const toolId = (reqTool === "rstudio" || (!reqTool && /^(r|rds|rdata|rda)$/.test(ext)))
+        ? "interactive_tool_rstudio"
+        : "interactive_tool_jupyter_notebook";
+      const fileUrl = await s3Service.generatePresignedDownloadUrl(s3_key, 900);
+      let targetHistoryId = (req.session as any)?.galaxyHistoryId as string | undefined;
+      if (!targetHistoryId) {
+        const hs = await userProxy(req).getHistories().catch(() => [] as any[]);
+        targetHistoryId = (hs && hs[0]?.id) || await userProxy(req).createHistory("BioMate Interactive Session");
+        if (req.session) (req.session as any).galaxyHistoryId = targetHistoryId;
+      }
+      const hdaId = await userProxy(req).uploadFromUrl(fileUrl, targetHistoryId!, name);
+      const result = await userProxy(req).launchInteractiveTool(toolId, targetHistoryId!, {
+        input: { src: "hda", id: hdaId },
+      });
+      const readiness = await waitForInteractiveSession(result.job_id, {
+        getJob: id => userProxy(req).getJob(id), tokenForJob, targetForToken,
+      });
+      if (!readiness.ready) return res.status(503).json({
+        success: false, jobId: result.job_id,
+        error: readiness.reason === 'failed' ? "The notebook job stopped before the session became available." : "The file was staged, but the notebook session is not ready. This launch may still be active; check its status before launching another session.",
+      });
+      const entryPointUrl = readiness.url;
+      res.json({ success: true, url: entryPointUrl, jobId: result.job_id, tool: toolId });
+    } catch (error: any) {
+      console.error("[open-in] project file → interactive tool failed:", error?.message ?? error);
+      res.status(500).json({ success: false, error: error?.message || "Open-in failed" });
+    }
+  });
+
   app.post("/api/interactive-tools/launch", optionalAuth, async (req, res) => {
     try {
       const { toolId, datasetIds, historyId } = req.body;
@@ -11108,6 +11348,15 @@ ${paramLines || '(none recorded)'}`;
       // generation failed. A generatedWorkflow carrying an error / success:false
       // is not runnable — report the failure instead of dispatching a Batch job
       // that would fail at launch.
+      if (hasPendingWorkflowClarification(request.workflowDefinition, request) ||
+          hasPendingWorkflowClarification(request.workflowDefinition, request.workflowDefinition) ||
+          hasPendingWorkflowClarification(request.workflowDefinition, request.metadata)) {
+        return res.status(400).json({
+          error: "workflow_input_required",
+          message: "Resolve the requested clarification before starting this workflow.",
+        });
+      }
+
       const genFailure = detectGenerationFailure(request.workflowDefinition);
       if (genFailure.failed) {
         return res.status(400).json({
@@ -12058,6 +12307,16 @@ ${paramLines || '(none recorded)'}`;
             personalFileContent = pwRes.rows[0]?.file_content;
           }
 
+          // Preserve exactly what will be submitted, after staging and overrides.
+          // Registry validation must never reconstruct historical settings by guessing.
+          if (isModelTrainingRun(executionRun)) {
+            executionRun.execution = {
+              ...executionRun.execution,
+              trainingLaunchParameters: JSON.parse(JSON.stringify(stagedParamsClean)),
+            };
+            await storage.updateExecutionRun(executionRun.id, { execution: executionRun.execution });
+          }
+
           const _nfBody = JSON.stringify({
               history_id: galaxyHistoryId,
               // When file_content is provided (personal workflow), the Galaxy backend
@@ -12415,7 +12674,7 @@ ${paramLines || '(none recorded)'}`;
   });
 
   // Get a specific execution run by ID
-  app.get("/api/workflows/runs/:id", authenticateToken, async (req, res) => {
+  app.get("/api/workflows/runs/:id", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
       // Fall back to Galaxy invocation ID lookup (session restore may have stored
@@ -12426,12 +12685,6 @@ ${paramLines || '(none recorded)'}`;
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }
-      // Ownership check: return 404 (not 403) so run IDs can't be probed for existence
-      const uid = (req as any).user?.id ? String((req as any).user.id) : null;
-      if (uid && run.userId && run.userId !== uid) {
-        return res.status(404).json({ error: "Execution run not found" });
-      }
-
       // Stuck-running guard: if a run has been status='running' for >12h with
       // no terminal signal, the Nextflow JVM is almost certainly dead
       // (container restart, OOM, gunicorn worker recycle). No drug-dev
@@ -12613,7 +12866,7 @@ ${paramLines || '(none recorded)'}`;
   };
 
   // Get execution run status (lightweight polling endpoint)
-  app.get("/api/workflows/runs/:id/status", authenticateToken, async (req, res) => {
+  app.get("/api/workflows/runs/:id/status", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -12889,6 +13142,27 @@ ${paramLines || '(none recorded)'}`;
           }
         } catch (statusError: any) {
           console.warn("[ExecutionRun] Failed to fetch Nextflow status:", statusError?.message || statusError);
+          // Galaxy keeps run state in its container (/tmp/nextflow_runs) and the run-state store;
+          // a container rebuild loses both. Galaxy then answers 404 "Run not found" forever and
+          // the run stayed 'running' for weeks (dev 2026-11-06: 51 such runs from Sept 28 - Oct 14).
+          // A live run is always known to Galaxy, so a 404 a day after start means the state is
+          // gone: close it as failed with an honest message.
+          const lostState =
+            isNextflowRunNotFound(statusError) &&
+            ['running', 'configuring', 'queued'].includes(String(run.execution?.status));
+          const startedMs = new Date(run.execution?.startedAt || (run as any).createdAt || 0).getTime();
+          if (lostState && startedMs > 0 && Date.now() - startedMs > 24 * 60 * 60 * 1000) {
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                status: 'failed',
+                completedAt: new Date(),
+                errorMessage:
+                  'The run record was lost on the execution backend (a server rebuild), so its final state is unknown. Please run it again.',
+              },
+            }) || run;
+            console.warn(`[ExecutionRun] lost-state → failed: ${run.id} — Galaxy has no record of Nextflow run ${run.execution?.nextflowRunId}`);
+          }
         }
       }
 
@@ -13732,6 +14006,7 @@ Rules:
           return null;
         });
       }
+      if (req.query.download === '1') res.attachment('run-record.json');
       res.json(record);
     } catch (e: any) {
       console.error("[reproducibility-record] error:", e?.message ?? e);
@@ -13798,7 +14073,7 @@ Rules:
       const decision = await decideRunAccess(
         run,
         req.user?.id ? String(req.user.id) : null,
-        (storage as any).getUserProjects?.bind(storage),
+        (uid: string) => memoryService.projects.getUserProjects(uid),
       );
       if (!decision.allowed) return res.status(decision.status).json({ error: decision.error });
 
@@ -14122,12 +14397,16 @@ Rules:
   app.get("/api/galaxy-proxy/api/nextflow/outputs/download", authenticateToken, async (req: any, res) => {
     try {
       const runId = req.query.run_id as string | undefined;
-      if (runId) {
-        const execRun = await storage.getExecutionRun(runId).catch(() => null);
-        if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
-          return res.status(403).json({ error: 'Forbidden' });
-        }
+      if (!runId) return res.status(400).json({ error: 'run_id is required' });
+      const run = await resolveAuthorizedRun(req, res, runId);
+      if (!run) return;
+      const uri = typeof req.query.s3_uri === 'string' ? req.query.s3_uri : '';
+      let fileAllowed = isRunFilePathAllowed(uri, run);
+      if (!fileAllowed && uri.startsWith('s3://')) {
+        const { runsOutputsService } = await import('./services/runs-outputs-service');
+        fileAllowed = isRunFilePathAllowed(uri, run, await runsOutputsService.list(run.id));
       }
+      if (!fileAllowed) return res.status(403).json({ error: 'File does not belong to this run' });
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const qs = new URLSearchParams(req.query as Record<string, string>).toString();
       const upstream = await fetch(`${galaxyUrl}/api/nextflow/outputs/download?${qs}`, {
@@ -14140,6 +14419,7 @@ Rules:
       const ct = upstream.headers.get('content-type') || 'application/octet-stream';
       const cd = upstream.headers.get('content-disposition');
       res.setHeader('Content-Type', ct);
+      setFilePreviewSecurityHeaders(res, ct);
       if (cd) res.setHeader('Content-Disposition', cd);
       const buf = await upstream.arrayBuffer();
       res.send(Buffer.from(buf));
@@ -14157,11 +14437,12 @@ Rules:
     try {
       // Ownership check: the run must belong to the authenticated user.
       const runId = req.query.run_id as string | undefined;
-      if (runId) {
-        const execRun = await storage.getExecutionRun(runId).catch(() => null);
-        if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
-          return res.status(403).json({ error: 'Forbidden' });
-        }
+      if (!runId) return res.status(400).json({ error: 'run_id is required' });
+      const run = await resolveAuthorizedRun(req, res, runId);
+      if (!run) return;
+      const relPath = typeof req.query.rel_path === 'string' ? req.query.rel_path : '';
+      if (!relPath || relPath.startsWith('/') || relPath.includes('\\') || relPath.split('/').includes('..')) {
+        return res.status(400).json({ error: 'Invalid relative output path' });
       }
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const qs = new URLSearchParams(req.query as Record<string, string>).toString();
@@ -14174,6 +14455,7 @@ Rules:
       const ct = upstream.headers.get('content-type') || 'application/octet-stream';
       const cd = upstream.headers.get('content-disposition');
       res.setHeader('Content-Type', ct);
+      setFilePreviewSecurityHeaders(res, ct);
       if (cd) res.setHeader('Content-Disposition', cd);
       const buf = await upstream.arrayBuffer();
       res.send(Buffer.from(buf));
@@ -14322,7 +14604,7 @@ Rules:
       if (!isOwner && runProjectId && userId) {
         try {
           // Project membership: defer to storage helper. If absent, treat as owner-only.
-          const memberOf = await (storage as any).getUserProjects?.(userId);
+          const memberOf = await memoryService.projects.getUserProjects(userId);
           isProjectMember = Array.isArray(memberOf) && memberOf.some((p: any) => p?.id === runProjectId);
         } catch { /* treat as not-a-member on lookup failure */ }
       }
@@ -14508,18 +14790,15 @@ Rules:
   });
 
   // Serve a single step output file for inline preview
-  app.get("/api/workflows/runs/:id/step-file", async (req, res) => {
+  app.get("/api/workflows/runs/:id/step-file", authenticateToken, async (req, res) => {
     try {
       let filePath = (req.query.path as string) || '';
       const fileName = req.query.name as string || '';
 
       if (!filePath) return res.status(400).json({ error: 'path query param required' });
 
-      // For S3 paths, bucket validation is the security boundary — run lookup is optional.
-      // For local paths, we still require a valid run to restrict filesystem access.
-      // `run` is hoisted so the local-path block below can use its
-      // nextflowStatus.work_dir / outdir for the allowed-roots check.
-      const run = await storage.getExecutionRun(req.params.id);
+      const run = await resolveAuthorizedRun(req, res, req.params.id);
+      if (!run) return;
 
       // Infer Content-Type (shared for both S3 and local paths)
       const ext = (fileName || filePath).split('.').pop()?.toLowerCase() ?? '';
@@ -14540,10 +14819,9 @@ Rules:
       };
       const ct = contentTypeMap[ext] || 'application/octet-stream';
 
-      if (fileName) {
-        res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
-      }
+      res.setHeader('Content-Disposition', stepFileDisposition(fileName || filePath, req.query.download));
       res.setHeader('Content-Type', ct);
+      setFilePreviewSecurityHeaders(res, ct);
 
       // If the path is just a bare filename (no directory separator, no s3://),
       // look it up in the run's s3_output_files so we get the full S3 URI instead
@@ -14559,6 +14837,15 @@ Rules:
           filePath = match.s3_uri;
         }
       }
+
+      // An owned run does not grant access to arbitrary objects in the same bucket.
+      let pathAllowed = isRunFilePathAllowed(filePath, run);
+      if (!pathAllowed && filePath.startsWith('s3://')) {
+        const { runsOutputsService } = await import('./services/runs-outputs-service');
+        const outputs = await runsOutputsService.list(run.id);
+        pathAllowed = isRunFilePathAllowed(filePath, run, outputs);
+      }
+      if (!pathAllowed) return res.status(403).json({ error: 'File does not belong to this run' });
 
       // After bare-filename lookup, filePath may now be an s3:// URI.
       const isS3Path = filePath.startsWith('s3://');
@@ -14701,6 +14988,7 @@ Rules:
           if (upstream && upstream.ok) {
             const ct = upstream.headers.get('content-type') || 'application/octet-stream';
             res.setHeader('Content-Type', ct);
+            setFilePreviewSecurityHeaders(res, ct);
             const buf = await upstream.arrayBuffer();
             res.send(Buffer.from(buf));
             return;
@@ -14717,7 +15005,7 @@ Rules:
   });
 
   // Download commands for a run (aws s3 sync commands for final + intermediate outputs)
-  app.get("/api/workflows/runs/:id/download_commands", async (req, res) => {
+  app.get("/api/workflows/runs/:id/download_commands", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -14748,7 +15036,7 @@ Rules:
   });
 
   // Rerun a Nextflow workflow from a specific step with parameter overrides
-  app.post("/api/workflows/runs/:id/rerun-from-step", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/rerun-from-step", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) return res.status(404).json({ error: 'Run not found' });
@@ -14854,10 +15142,12 @@ Rules:
   });
 
   // Get iteration runs (all runs linked to a parent)
-  app.get("/api/workflows/runs/:id/iterations", async (req, res) => {
+  app.get("/api/workflows/runs/:id/iterations", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const runs = await storage.getExecutionRunsByParent(req.params.id);
-      res.json(runs);
+      const uid = String(req.user!.id);
+      const readable = await Promise.all(runs.map(async run => ({ run, decision: await decideRunAccess(run, uid, legacyRunAccessDependencies.getUserProjects) })));
+      res.json(readable.filter(item => item.decision.allowed).map(item => item.run));
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching iterations:", error);
       res.status(500).json({ error: error.message });
@@ -14866,10 +15156,12 @@ Rules:
 
   // Track 3C: GET /api/workflows/runs/:id/reproducibility
   // Proxies to the Galaxy/Nextflow backend to generate a reproducibility export bundle.
-  app.get("/api/workflows/runs/:id/reproducibility", optionalAuth, async (req, res) => {
+  app.get("/api/workflows/runs/:id/reproducibility", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const galaxyBase = process.env.GALAXY_URL || 'http://localhost:8081';
-      const resp = await fetch(`${galaxyBase}/api/nextflow/runs/${req.params.id}/reproducibility`);
+      const run = (req as any).authorizedLegacyRun;
+      const backendRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId || run.id;
+      const resp = await fetch(`${galaxyBase}/api/nextflow/runs/${encodeURIComponent(backendRunId)}/reproducibility`);
       if (!resp.ok) {
         const body = await resp.text().catch(() => resp.statusText);
         return res.status(resp.status).json({ error: `export failed: ${body}` });
@@ -14882,10 +15174,11 @@ Rules:
   });
 
   // Update execution run (for parameter changes, etc.)
-  app.patch("/api/workflows/runs/:id", async (req, res) => {
+  app.patch("/api/workflows/runs/:id", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
-      const updates = req.body;
-      const run = await storage.updateExecutionRun(req.params.id, updates);
+      const parsed = legacyRunUpdateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: 'Only valid parameter and data-scope updates are accepted' });
+      const run = await storage.updateExecutionRun(req.params.id, parsed.data);
 
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
@@ -14999,7 +15292,7 @@ Rules:
   // Reads output files from nextflowStatus.s3_output_files (or triggers a
   // fresh S3 scan via /api/workflows/runs/:id/output_files) and bulk-inserts
   // them into project_files with source='run_output'.
-  app.post("/api/workflows/runs/:id/save-to-project", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/save-to-project", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) return res.status(404).json({ error: "Execution run not found" });
@@ -15007,8 +15300,10 @@ Rules:
       const { projectId } = req.body as { projectId?: string };
       if (!projectId) return res.status(400).json({ error: "projectId required" });
 
-      const uid = (req as any).user?.id ? String((req as any).user.id) : run.userId ?? "system";
-
+      const uid = String(req.user!.id);
+      const destination = await pool.query(`SELECT 1 FROM projects p WHERE p.id = $1 AND
+        (p.user_id::text = $2 OR EXISTS (SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id::text = $2 AND m.role IN ('owner', 'editor'))) LIMIT 1`, [projectId, uid]);
+      if (!destination.rows.length) return res.status(403).json({ error: 'Project is not writable by this user' });
       const result = await saveRunOutputsToProject(run, projectId, uid);
       if ('skipped' in result) {
         return res.status(422).json({ error: "No output files found for this run yet. Try again after the run completes." });
@@ -15027,7 +15322,7 @@ Rules:
   });
 
   // Pause execution run
-  app.post("/api/workflows/runs/:id/pause", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/pause", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const { reason } = req.body;
       const run = await storage.getExecutionRun(req.params.id);
@@ -15089,7 +15384,7 @@ Rules:
   });
 
   // Resume execution run
-  app.post("/api/workflows/runs/:id/resume", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/resume", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
 
@@ -15157,7 +15452,7 @@ Rules:
   });
 
   // Cancel execution run
-  app.post("/api/workflows/runs/:id/cancel", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:id/cancel", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const { reason } = req.body;
       const run = await storage.getExecutionRun(req.params.id);
@@ -15211,7 +15506,7 @@ Rules:
   });
 
   // Record user interaction
-  app.post("/api/workflows/runs/:id/interactions", async (req, res) => {
+  app.post("/api/workflows/runs/:id/interactions", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const interaction = req.body;
       const run = await storage.addExecutionRunInteraction(req.params.id, {
@@ -15233,7 +15528,7 @@ Rules:
   });
 
   // Compare two execution runs
-  app.get("/api/workflows/runs/:id/compare", async (req, res) => {
+  app.get("/api/workflows/runs/:id/compare", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const { with: compareWithId } = req.query;
 
@@ -15241,10 +15536,10 @@ Rules:
         return res.status(400).json({ error: "'with' query parameter is required" });
       }
 
-      const comparison = await storage.compareExecutionRuns(
-        req.params.id,
-        compareWithId as string
-      );
+      if (typeof compareWithId !== 'string') return res.status(400).json({ error: 'Invalid comparison run ID' });
+      const comparisonRun = await resolveAuthorizedRun(req, res, compareWithId);
+      if (!comparisonRun) return;
+      const comparison = await storage.compareExecutionRuns(req.params.id, comparisonRun.id);
 
       if (!comparison) {
         return res.status(404).json({ error: "One or both runs not found" });
@@ -15268,7 +15563,7 @@ Rules:
   // ── AI Results Analysis — Nextflow-native (replaces Galaxy proxy) ─────────
   // Reads output files from completed Nextflow runs, calls Claude to generate
   // a structured findings report with scientific interpretation and citations.
-  app.post("/api/workflows/runs/:id/ai/analyze", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:id/ai/analyze", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     const { question } = req.body as { question?: string };
 
     try {
@@ -15738,6 +16033,54 @@ Rules:
   // fast attempt count that can exhaust before publishDir/Galaxy-status catches up.
   const _findingsFirstAttempt = new Map<string, number>();
 
+  // Integration benchmark tables have typed column identities. Validate those
+  // source bytes before consulting old model-generated sidecars. Shared by the
+  // UI and findings download; existing sidecars remain intact for audit.
+  const verifiedIntegrationCache = new Map<string, { until: number; value: any }>();
+  const verifiedIntegrationInflight = new Map<string, Promise<any>>();
+  async function readVerifiedIntegrationFindings(run: any, runId: string): Promise<any | null> {
+    if (run.execution?.status !== 'completed' || !/scdownstream/i.test(run.workflowName || run.name || '')) return null;
+    const cached = verifiedIntegrationCache.get(runId);
+    if (cached && cached.until > Date.now()) return cached.value;
+    if (verifiedIntegrationInflight.has(runId)) return verifiedIntegrationInflight.get(runId);
+    const work = (async () => {
+      try {
+        const { runsOutputsService } = await import('./services/runs-outputs-service');
+        const outputs = await runsOutputsService.list(runId);
+        const metrics = outputs.filter(o => /_metrics\.tsv$/i.test(o.name) || /^sizes\.tsv$/i.test(o.name));
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const files = await Promise.all(metrics.slice(0, 32).map(async o => {
+          const match = o.s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+          if (!match) return null;
+          try {
+            const client = await _s3ClientForBucket(match[1]);
+            const object = await client.send(new GetObjectCommand({ Bucket: match[1], Key: match[2], Range: 'bytes=0-262144' }), { abortSignal: AbortSignal.timeout(10_000) });
+            const content = await object.Body?.transformToString();
+            if (!content || Buffer.byteLength(content) >= 262144) return null;
+            return { name: o.name, content };
+          } catch { return null; }
+        }));
+        const readable = files.filter((f): f is { name: string; content: string } => !!f);
+        const findings = integrationFindings(readable);
+        if (!findings || readable.length !== metrics.length || metrics.length > 32) {
+          return { status: 'unavailable', runId,
+            message: 'Integration findings are unavailable until the saved metric tables can be read and validated.',
+            caveats: ['Unverified cached scores are withheld. Open the output tables to inspect the source data.'] };
+        }
+        return { ...findings, runId, reportUrl: `/api/workflows/runs/${runId}/findings/report` };
+      } catch {
+        return { status: 'unavailable', runId, message: 'Saved integration metric tables could not be verified. Please retry.' };
+      }
+    })();
+    verifiedIntegrationInflight.set(runId, work);
+    try {
+      const value = await work;
+      if (verifiedIntegrationCache.size >= 128) verifiedIntegrationCache.delete(verifiedIntegrationCache.keys().next().value!);
+      verifiedIntegrationCache.set(runId, { until: Date.now() + (value.status === 'ready' ? 60_000 : 5_000), value });
+      return value;
+    } finally { verifiedIntegrationInflight.delete(runId); }
+  }
+
   // ── Output Intelligence — Findings endpoint ────────────────────────────────
   //
   // GET  /api/workflows/runs/:id/findings
@@ -15758,7 +16101,7 @@ Rules:
       const run = await resolveAuthorizedRun(req, res, runId);
       if (!run) return;
 
-      // Failed runs have no meaningful outputs — return static error immediately
+      // Failed runs may retain partial outputs; do not claim they produced none.
       // so the UI shows a clear message instead of an infinite "Analysis in progress…" spinner.
       // Status is stored at run.execution.status (not run.status — see storage._dbRowToExecutionRun).
       const runStatus: string = (run as any).execution?.status || '';
@@ -15766,12 +16109,15 @@ Rules:
         return res.json({
           status: 'error',
           message: 'Analysis not available — workflow did not complete successfully.',
-          summary: 'The workflow run failed before producing output files. Check the error message in the workflow panel for details.',
+          summary: 'The workflow did not complete. Any recorded partial outputs remain available in Outputs; review the execution error before restarting.',
           key_results: [],
           next_steps: ['Review the error message and fix the workflow parameters, then re-run.'],
           caveats: [],
         });
       }
+
+      const verifiedIntegration = await readVerifiedIntegrationFindings(run, runId);
+      if (verifiedIntegration) return res.json(verifiedIntegration);
 
       // A persisted sidecar / cached object is only trustworthy as findings when
       // it actually carries the findings schema. Some runs have a findings_data.json
@@ -16558,6 +16904,14 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
     try {
       const run = await resolveAuthorizedRun(req, res, runId);
       if (!run) return;
+      const verified = (run as any).execution?.status === 'completed'
+        ? await readVerifiedIntegrationFindings(run, runId) : null;
+      if (verified) {
+        if (verified.status !== 'ready') return res.status(409).json({ error: verified.message });
+        res.type('text/markdown; charset=utf-8');
+        res.attachment('findings.md');
+        return res.send(integrationFindingsMarkdown(verified, (run as any).workflowName || 'Integration'));
+      }
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
       const reportPath = `/tmp/nextflow_runs/${nextflowRunId}/output/findings_report.md`;
       const { readFile } = await import('fs/promises');
@@ -16692,7 +17046,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
    * Trigger AutoFix for failed workflow
    * Proxies to Galaxy backend's autofix endpoint
    */
-  app.post("/api/workflows/runs/:id/ai/autofix", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:id/ai/autofix", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -16748,7 +17102,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
    * Query workflow with natural language
    * Proxies to Galaxy backend's query endpoint
    */
-  app.post("/api/workflows/runs/:id/ai/query", authenticateToken, async (req, res) => {
+  app.post("/api/workflows/runs/:id/ai/query", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -16788,15 +17142,31 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
    * Get real-time workflow logs
    * Proxies to Galaxy backend's log streaming endpoint
    */
-  app.get("/api/workflows/runs/:id/logs", async (req, res) => {
+  app.get("/api/workflows/runs/:id/logs", authenticateToken, requireLegacyRunRead, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }
 
+      // Direct Nextflow runs have no Galaxy workflow ID; preserve the existing
+      // owner/project-member guard and use the actual execution-engine route.
+      if (run.execution?.executionEngine === 'nextflow' || run.execution?.nextflowRunId) {
+        const id = run.execution.nextflowRunId || run.execution.galaxyInvocationId;
+        if (!id) return res.status(400).json({ error: 'No Nextflow execution associated with this run' });
+        const response = await fetch(
+          `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${encodeURIComponent(id)}`,
+          { headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' }, signal: AbortSignal.timeout(15000) },
+        );
+        if (!response.ok) return res.status(response.status).json({ error: 'Nextflow execution diagnostics unavailable' });
+        const data = await response.json() as any;
+        return res.json({ run_id: id, source: 'nextflow', status: data.status,
+          logs: Array.isArray(data.log_tail) ? data.log_tail : [],
+          error: run.execution.errorMessage || (run.execution as any).error || null });
+      }
+
       const galaxyInvocationId = run.execution.galaxyInvocationId;
-      if (!galaxyInvocationId) {
+      if (!galaxyInvocationId || !run.execution.galaxyWorkflowId) {
         return res.status(400).json({ error: "No Galaxy invocation associated with this run" });
       }
 
@@ -16808,6 +17178,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
           headers: {
             'x-api-key': process.env.GALAXY_API_KEY || '',
           },
+          signal: AbortSignal.timeout(15000),
         }
       );
 
@@ -16882,7 +17253,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   });
 
   // Promote sandbox run to production (create new production run with same config)
-  app.post("/api/workflows/runs/:id/promote", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/promote", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const sandboxRun = await storage.getExecutionRun(req.params.id);
 
@@ -16950,7 +17321,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   });
 
   // Delete execution run
-  app.delete("/api/workflows/runs/:id", async (req, res) => {
+  app.delete("/api/workflows/runs/:id", authenticateToken, requireLegacyRunWrite, async (req, res) => {
     try {
       const success = await storage.deleteExecutionRun(req.params.id);
       if (!success) {
@@ -17234,32 +17605,15 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
         launchInputs
       );
 
-      // Resolve the per-session entry-point token for THIS job so the client can
-      // open /interactive/<token>/<entry_url> (routed by the multi-session proxy).
-      // Correlated to the launched job_id (decoded in-container), so it is race-free
-      // under concurrent launches. The entry-point row is written a moment after the
-      // job is created, so poll briefly. Note: we deliberately do NOT wait for the
-      // container to be "active" — in DooD the entry point never flips to configured,
-      // but the raw token + container are usable via the /interactive proxy at once.
-      let entryPointUrl: string | null = result.entry_point_url || null;
-      if (result.job_id) {
-        // Poll up to ~30s: lightweight tools (Jupyter) register their entry point in ~2s, but heavier
-        // ones (CellxGene copies + loads the h5ad; other viewers pull large images) take ~15-25s to
-        // dispatch + register. 12s was too short and returned a null URL for those.
-        for (let i = 0; i < 30 && !entryPointUrl; i++) {
-          const ep = tokenForJob(result.job_id);
-          // entry_url is already normalized (no leading slash); empty for tools that land at root
-          // (RStudio) → /interactive/<token>/ ; 'ipython/lab' for Jupyter.
-          if (ep?.token) { entryPointUrl = `/interactive/${ep.token}/${ep.entry_url}`; break; }
-          await new Promise((r) => setTimeout(r, 1000));
-        }
-      }
-
-      res.json({
-        ...result,
-        entry_point_url: entryPointUrl,
-        message: `Interactive tool launched. ${entryPointUrl ? "Access URL provided." : "Waiting for session."}`
+      const readiness = await waitForInteractiveSession(result.job_id, {
+        getJob: id => userProxy(req).getJob(id), tokenForJob, targetForToken,
       });
+      if (!readiness.ready) return res.status(503).json({
+        success: false, job_id: result.job_id,
+        error: 'InteractiveSessionUnavailable',
+        message: readiness.reason === 'failed' ? 'The interactive job stopped before the session became available.' : 'The interactive session is not ready. This launch may still be active; check its status before launching another session.',
+      });
+      res.json({ ...result, entry_point_url: readiness.url, message: 'Interactive session is ready.' });
     } catch (error: any) {
       console.error("[Interactive] Error launching:", error.message);
       // If Galaxy responded at all (any status code), our server code is working fine —

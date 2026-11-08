@@ -65,24 +65,50 @@ def _safe_org(org_id: str) -> str:
     return re.sub(r"[^A-Za-z0-9_\-]", "", org_id)[:32]
 
 
-def count_edit_pairs(org_id: str) -> int:
-    if not DPO_PAIRS_PATH.exists():
-        return 0
+def read_owned_edit_pairs(user_id: str, org_id: str) -> list:
+    """Only explicit owner/project rows may enter a private adaptation job."""
+    if not user_id or not _safe_org(org_id) or not DPO_PAIRS_PATH.exists():
+        return []
     safe = _safe_org(org_id)
-    if not safe:
-        return 0
-    n = 0
+    disabled = {}
+    overrides = DPO_PAIRS_PATH.parent / 'disabled_pairs.jsonl'
+    if overrides.exists():
+        for line in overrides.read_text(encoding='utf-8').splitlines():
+            try:
+                record = json.loads(line)
+                if record.get('row_id'):
+                    disabled[record['row_id']] = bool(record.get('disabled', True))
+            except (ValueError, TypeError, AttributeError):
+                continue
+    rows = []
     for line in DPO_PAIRS_PATH.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
         try:
             row = json.loads(line)
-        except Exception:
+        except (ValueError, TypeError):
             continue
-        row_org = (row.get("meta") or {}).get("org_id") or row.get("org_id")
-        if not row_org or _safe_org(str(row_org)) == safe:
-            n += 1
-    return n
+        if not isinstance(row, dict) or not isinstance(row.get("meta"), dict):
+            continue
+        meta = row['meta']
+        if meta.get('user_id') == user_id and meta.get('org_id') == safe and not disabled.get(meta.get('row_id'), False):
+            rows.append(row)
+    return rows
+
+
+def count_edit_pairs(org_id: str, user_id: Optional[str] = None) -> int:
+    if user_id is not None:
+        return len(read_owned_edit_pairs(user_id, org_id))
+    if not DPO_PAIRS_PATH.exists() or not _safe_org(org_id):
+        return 0
+    count = 0
+    for line in DPO_PAIRS_PATH.read_text(encoding="utf-8").splitlines():
+        try:
+            row = json.loads(line)
+            meta = row.get('meta') or {}
+            if meta.get('org_id') == _safe_org(org_id):
+                count += 1
+        except (ValueError, TypeError, AttributeError):
+            continue
+    return count
 
 
 def _append_jsonl(job: TrainingJob) -> None:
@@ -141,7 +167,7 @@ def submit(
         status="queued",
         submitted_at=now,
         updated_at=now,
-        edit_pair_count=count_edit_pairs(safe),
+        edit_pair_count=count_edit_pairs(safe, user_id),
         adaptation_mode=adaptation_mode,
     )
     with _lock:
