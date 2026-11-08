@@ -56,7 +56,7 @@ params.mlip_container  = System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '39968333
 
 process MLIP_MD_SIMULATION {
     tag "$meta.id"
-    label 'process_high'                    // GPU: MLIP forces run on CUDA
+    label 'process_gpu'                     // GPU queue (g6 L4 / g4dn T4): MLIP forces run on CUDA; was process_high, which routed to the CPU hpc queue
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     container params.mlip_container

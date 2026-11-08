@@ -1,18 +1,22 @@
 # biomate/mlip-md — OpenMM 8 + openmm-ml machine-learned-potential MD (AIMNet2, MACE-OFF23).
-# Used by nextflow_nfcore/subworkflows/molecular_dynamics/mlip_md_simulation. The workflow's
-# process carries label process_high, which routes to the CPU hpc queue, so PyTorch is the CPU
-# build (a CUDA build adds several GB and would not be used there).
+# Used by nextflow_nfcore/subworkflows/molecular_dynamics/mlip_md_simulation, whose process carries
+# label process_gpu (GPU queue: g6 L4 / g4dn T4 on the ECS NVIDIA AMI, CUDA 12 drivers). PyTorch is
+# the CUDA 12 build; the script falls back to OpenMM's CPU platform when no GPU is visible.
 # Built by scripts/build_mlip_md_image.sh; the final RUN is an import + energy smoke test, so a
 # broken potential install fails the build, not a user run.
 FROM docker.io/condaforge/miniforge3:24.11.3-2
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# The build host has no GPU, so conda sees no __cuda virtual package; declare the target CUDA so the
+# solver picks the CUDA PyTorch build. 12.4 runs on any >=525 driver (CUDA minor-version compatibility).
+ENV CONDA_OVERRIDE_CUDA=12.4
 RUN conda install -y -n base -c conda-forge \
-        python=3.11 "openmm>=8.1" openmm-ml openmm-torch "pytorch=*=cpu*" \
+        python=3.11 "openmm>=8.1" openmm-ml openmm-torch "pytorch=*=cuda*" "cuda-version=12.4" \
         numpy mdtraj rdkit procps-ng \
  && conda clean -afy
 RUN pip install --no-cache-dir mace-torch "git+https://github.com/isayevlab/aimnetcentral.git"
 ENV PATH=/opt/conda/bin:$PATH
-# Smoke: both potentials build an OpenMM System for water and return a finite energy.
+# Smoke (CPU platform — the build host has no GPU): both potentials build an OpenMM System for
+# water and return a finite energy. CUDA is exercised by the workflow's first real GPU run.
 RUN python - <<'PY'
 from openmm.app import Topology, Element
 from openmm import Vec3, VerletIntegrator, Context, Platform
