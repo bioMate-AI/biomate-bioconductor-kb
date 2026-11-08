@@ -1234,10 +1234,12 @@ def _parse_nextflow_params_impl(nf_filename: str) -> Dict[str, Any]:
                 val = raw_val
                 ptype = "string"
 
-            # Level — any param with null value is required (user must supply it)
+            # Level — a null param is required unless the workflow's own code handles its
+            # absence (galaxy.ai.nf_param_requirement; e.g. GROMACS MD box_center `?: ''`).
             _RECOMMENDED_PARAMS = {"spherical_aberration", "total_dose", "symmetry"}
             if val is None:
-                level = "required"
+                from galaxy.ai.nf_param_requirement import null_param_is_required  # noqa: PLC0415
+                level = "required" if null_param_is_required(content, name) else "optional"
             elif name in _RECOMMENDED_PARAMS:
                 level = "recommended"
             else:

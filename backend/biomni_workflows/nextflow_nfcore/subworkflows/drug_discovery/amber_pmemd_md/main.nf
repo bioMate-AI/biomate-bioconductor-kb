@@ -142,6 +142,25 @@ print('SMILES to SDF conversion done')
             exit 1
         fi
 
+        # A ligand taken from a crystal structure usually has no hydrogens; antechamber then fails
+        # ("Weird atomic valence"). Add them with RDKit, keeping the heavy-atom pose coordinates.
+        # Inputs that already carry explicit H are passed through unchanged.
+        if [ "\$input_fmt" = "sdf" ] || [ "\$input_fmt" = "mdl" ]; then
+            python3 - "\$lig_input" <<'ADDHEOF'
+import sys
+from rdkit import Chem
+src = sys.argv[1]
+mol = Chem.MolFromMolFile(src, removeHs=False)
+if mol is None:
+        sys.exit("ERROR: could not read ligand " + src)
+if not any(a.GetAtomicNum() == 1 for a in mol.GetAtoms()):
+        mol = Chem.AddHs(mol, addCoords=True)
+        Chem.MolToMolFile(mol, "ligand_with_h.sdf")
+        print("added %d hydrogens to %s" % (sum(a.GetAtomicNum() == 1 for a in mol.GetAtoms()), src))
+ADDHEOF
+            [ -f ligand_with_h.sdf ] && { lig_input="ligand_with_h.sdf"; input_fmt="sdf"; }
+        fi
+
         antechamber \\
             -i \$lig_input -fi \$input_fmt \\
             -o ligand_gaff2.mol2 -fo mol2 \\
