@@ -51,6 +51,35 @@ class DiseaseResolution(unittest.TestCase):
             with self.assertRaises(TimeoutError):
                 resolve_disease_name('melanoma', http=down)
 
+    def test_accepts_only_source_verified_exact_synonyms(self):
+        for relation, passes in (('hasExactSynonym', True), ('hasRelatedSynonym', False),
+                                 ('hasBroadSynonym', False), ('hasNarrowSynonym', False)):
+            def http(url, payload):
+                if 'search(queryString:' in payload['query']:
+                    return self.response([{'id':'MONDO_0005233','name':'non-small cell lung carcinoma'}])
+                self.assertEqual(payload['variables'], {'d0':'MONDO_0005233'})
+                return {'data':{'d0':{'name':'non-small cell lung carcinoma','synonyms':[
+                    {'relation':relation,'terms':['non-small cell lung cancer']}]}}}
+            with self.subTest(relation=relation), patch('galaxy.ai.target_id.data_channels.offline_mode', return_value=False):
+                if passes:
+                    self.assertEqual(resolve_disease_name('non-small cell lung cancer', http=http)['disease_id'], 'MONDO_0005233')
+                else:
+                    with self.assertRaises(ValueError):
+                        resolve_disease_name('non-small cell lung cancer', http=http)
+
+    def test_ambiguous_synonyms_and_partial_graphql_failure_do_not_pick_first_hit(self):
+        def http(url, payload):
+            if 'search(queryString:' in payload['query']:
+                return self.response([{'id':'MONDO_1','name':'disease one'},{'id':'MONDO_2','name':'disease two'}])
+            return {'data':{key:{'name':'disease '+key,'synonyms':[{'relation':'hasExactSynonym','terms':['ambiguous']}]} for key in ('d0','d1')}}
+        with patch('galaxy.ai.target_id.data_channels.offline_mode', return_value=False):
+            with self.assertRaises(ValueError):
+                resolve_disease_name('ambiguous', http=http)
+            def partial(url, payload):
+                return self.response([{'id':'MONDO_1','name':'other'}]) if 'search(queryString:' in payload['query'] else {'data':{},'errors':[{'message':'unavailable'}]}
+            with self.assertRaises(RuntimeError):
+                resolve_disease_name('ambiguous', http=partial)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -118,8 +118,8 @@ test('scientific properties: real ethanol artifacts and invalid-input rejection'
     const negative = await wait(negativeId);
     expect(negative.execution.status).toBe('failed');
     const logs = await get('/api/workflows/runs/' + negativeId + '/logs');
-    const reason = JSON.stringify(logs);
-    expect(reason, 'failure must be invalid SMILES, not infrastructure or compilation').toMatch(/ValueError: ERROR: Invalid SMILES string provided/);
+    const reason = JSON.stringify({ logs, error: negative.execution.errorMessage || negative.execution.error });
+    expect(reason, 'failure must be invalid SMILES, not infrastructure or compilation').toMatch(/ValueError: ERROR: Invalid SMILES string provided|SMILES Parse Error: Failed parsing SMILES 'not-a-molecule'/);
     evidence.invalidInput = { passed: true, reason: 'Actual workflow rejected invalid SMILES' };
   } catch (error) {
     evidence.failure = error instanceof Error ? error.message : String(error);

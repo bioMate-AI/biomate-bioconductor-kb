@@ -1,5 +1,6 @@
 import { responseLanguageDirective } from "./response-language";
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
+import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient } from './local-llm.js';
 import { cardWorkflowName } from './workflow-display-name';
@@ -4772,7 +4773,7 @@ Rules:
     // The classifier's execution decision (any language) counts too, but only with data present —
     // without it, the July protection (no-workflow → empty reply) stays in force.
     const _directCompute = (intent as any).execution === 'direct_compute' && hasComputableData(message);
-    if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message) || _directCompute)) {
+    if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message) || _directCompute || isSimpleSequencePropertyRequest(message))) {
       if (_directCompute) log('Direct-compute override: classifier execution=direct_compute with data in the conversation');
       log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
       actions.needsWorkflowGeneration = false;
@@ -9687,6 +9688,10 @@ ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(g
 
 
     systemPrompt += responseLanguageDirective(context.uiLanguage);
+
+    if (isSimpleSequencePropertyRequest(message)) {
+      systemPrompt += '\nThis is a basic property calculation on the supplied sequence, not folding or antibody design. Execute it with run_code using Bio.SeqUtils.ProtParam.ProteinAnalysis. Print a JSON object with sequence, molecular_weight and isoelectric_point from the actual library methods. Only report values returned by the successful tool. State that these are theoretical properties of an unmodified linear sequence; do not infer cyclic chemistry, structure, affinity, efficacy or safety.';
+    }
 
     // Build research/benchmark context sections.
     // Prioritise the synthesized `answer` field (which already contains db_facts, tool context,

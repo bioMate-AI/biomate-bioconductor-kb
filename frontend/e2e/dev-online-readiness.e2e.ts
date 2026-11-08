@@ -1,4 +1,4 @@
-/** Live dev preflight only. No workflow execution or safety-gate override. */
+/** Live dev requests and direct scientific tools. No Nextflow dispatch or safety override. */
 import { test, expect } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -82,11 +82,18 @@ test('online readiness: drug-development requests and isolation', async ({ page,
         // evidence, never a keyword match in the answer or an invented card.
         let targetEvidence: any = null;
         let targetRequest: any = null;
-        if (item.name === 'oncology target evidence') {
+        let peptideEvidence: any = null;
+        if (item.name === 'oncology target evidence' || item.name === 'peptide properties') {
           for (const frame of responseBody.toString('utf8').split(/\r?\n\r?\n/)) {
             if (!/^event: tool_event\r?$/m.test(frame)) continue;
             const lines = frame.split(/\r?\n/).filter(line => line.startsWith('data:'));
             const event = JSON.parse(lines.map(line => line.slice(5).replace(/^ /, '')).join('\n'));
+            if (event.type === 'tool_result' && event.name === 'run_code' && !event.error) {
+              const value = typeof event.output === 'string' ? JSON.parse(event.output) : event.output;
+              if (value?.exit_code === 0 && typeof value.stdout === 'string') {
+                try { peptideEvidence = { exitCode: value.exit_code, ...JSON.parse(value.stdout.trim()) }; } catch { /* non-JSON is not the declared scientific output contract */ }
+              }
+            }
             if (event.name === 'identify_targets' && event.input) targetRequest = event.input;
             if (event.type !== 'tool_result' || event.name !== 'identify_targets' || event.error) continue;
             const value = typeof event.output === 'string' ? JSON.parse(event.output) : event.output;
@@ -111,11 +118,17 @@ test('online readiness: drug-development requests and isolation', async ({ page,
         const positiveResult = item.name === 'oncology target evidence'
           ? targetEvidence?.status === 'ok' && targetEvidence.targets?.some((target: any) => target.target === 'EGFR')
             && targetEvidence.channels?.includes('genetics_ot') && !targetEvidence.failedChannels.includes('genetics_ot')
-          : parsed.state === 'workflow_ready' && !!route && matched;
+          : item.name === 'peptide properties'
+            ? peptideEvidence?.exitCode === 0 && peptideEvidence.sequence === 'ACDEFGHIKLMNPQRSTVWY'
+              && Math.abs(Number(peptideEvidence.molecular_weight) - 2395.7134) < 0.02
+              && Math.abs(Number(peptideEvidence.isoelectric_point) - 6.78455) < 0.01
+              && !route
+            : parsed.state === 'workflow_ready' && !!route && matched;
         record(item.name, !!positiveResult && !parsed.run_id, {
           state: parsed.state, route, autoDispatched: !!parsed.run_id,
           ...(targetEvidence ? { targetEvidence } : {}),
           ...(targetRequest ? { targetRequest } : {}),
+          ...(peptideEvidence ? { peptideEvidence } : {}),
           responseExcerpt: parsed.response.slice(0, 700),
           clarification: parsed.clarification,
         });
@@ -125,7 +138,7 @@ test('online readiness: drug-development requests and isolation', async ({ page,
     }
     const runs = await page.request.get(`${BASE_URL}/api/workflows/runs?projectId=${encodeURIComponent(projectId!)}`);
     const runBody = await runs.json();
-    record('draft generation launches no runs', runs.ok() && Array.isArray(runBody) && runBody.length === 0, {
+    record('requests launch no Nextflow runs', runs.ok() && Array.isArray(runBody) && runBody.length === 0, {
       status: runs.status(), runCount: Array.isArray(runBody) ? runBody.length : null,
     });
   } catch (error) {

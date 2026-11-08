@@ -17089,8 +17089,24 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
         return res.status(404).json({ error: "Execution run not found" });
       }
 
+      // Direct Nextflow runs have no Galaxy workflow ID; preserve the existing
+      // owner/project-member guard and use the actual execution-engine route.
+      if (run.execution?.executionEngine === 'nextflow' || run.execution?.nextflowRunId) {
+        const id = run.execution.nextflowRunId || run.execution.galaxyInvocationId;
+        if (!id) return res.status(400).json({ error: 'No Nextflow execution associated with this run' });
+        const response = await fetch(
+          `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${encodeURIComponent(id)}`,
+          { headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' }, signal: AbortSignal.timeout(15000) },
+        );
+        if (!response.ok) return res.status(response.status).json({ error: 'Nextflow execution diagnostics unavailable' });
+        const data = await response.json() as any;
+        return res.json({ run_id: id, source: 'nextflow', status: data.status,
+          logs: Array.isArray(data.log_tail) ? data.log_tail : [],
+          error: run.execution.errorMessage || run.execution.error || null });
+      }
+
       const galaxyInvocationId = run.execution.galaxyInvocationId;
-      if (!galaxyInvocationId) {
+      if (!galaxyInvocationId || !run.execution.galaxyWorkflowId) {
         return res.status(400).json({ error: "No Galaxy invocation associated with this run" });
       }
 
@@ -17102,6 +17118,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
           headers: {
             'x-api-key': process.env.GALAXY_API_KEY || '',
           },
+          signal: AbortSignal.timeout(15000),
         }
       );
 

@@ -95,6 +95,35 @@ def resolve_disease_name(name: str, http: Optional[Callable[..., Any]] = None) -
              and isinstance(hit.get('name'), str) and isinstance(hit.get('id'), str)
              and re.fullmatch(r'(?:EFO|MONDO)_\d+', hit['id'])
              and normalize(hit['name']) == normalize(name)}
+    if not exact:
+        # Search also indexes ontology synonyms. Verify them against the source
+        # and accept ONLY hasExactSynonym, never broad/narrow/related matches.
+        identifiers = sorted({hit['id'] for hit in hits if isinstance(hit, dict)
+                              and isinstance(hit.get('id'), str)
+                              and re.fullmatch(r'(?:EFO|MONDO)_\d+', hit['id'])})[:20]
+        if identifiers:
+            declarations = ','.join('$d%d:String!' % i for i in range(len(identifiers)))
+            fields = ' '.join('d%d:disease(efoId:$d%d){name synonyms{relation terms}}' % (i, i)
+                              for i in range(len(identifiers)))
+            synonyms = (http or _default_http_post)(OPENTARGETS_GQL, {
+                'query': 'query(' + declarations + '){' + fields + '}',
+                'variables': {'d%d' % i: identifier for i, identifier in enumerate(identifiers)},
+            })
+            if not isinstance(synonyms, dict) or synonyms.get('errors') or not isinstance(synonyms.get('data'), dict):
+                raise RuntimeError('Open Targets exact-synonym verification failed')
+            for i, identifier in enumerate(identifiers):
+                record = synonyms['data'].get('d%d' % i)
+                if not isinstance(record, dict) or not isinstance(record.get('name'), str):
+                    continue
+                groups = record.get('synonyms')
+                if not isinstance(groups, list):
+                    continue
+                names = [record['name']]
+                for group in groups:
+                    if isinstance(group, dict) and group.get('relation') == 'hasExactSynonym' and isinstance(group.get('terms'), list):
+                        names.extend(term for term in group['terms'] if isinstance(term, str))
+                if any(normalize(term) == normalize(name) for term in names):
+                    exact[identifier] = record['name']
     if len(exact) != 1:
         raise ValueError('Disease name has no unique exact match in Open Targets; provide the full disease name or a verified disease_id')
     identifier, label = next(iter(exact.items()))

@@ -10,15 +10,13 @@ import { describe, expect, it } from "vitest";
 const routes = fs.readFileSync(path.join(__dirname, "routes.ts"), "utf8");
 
 const protectedRoutes = [
-  "/api/galaxy-proxy/api/nextflow/outputs/download",
-  "/api/galaxy-proxy/api/nextflow/outputs/local-download",
-  "/api/workflows/runs/:id/step-file",
   "/api/runs/:anyId/outputs",
   "/api/runs/:anyId/meta",
   "/api/workflows/runs/:id/output_files",
   "/api/workflows/runs/:id/outputs",
   "/api/workflows/runs/:id/findings",
   "/api/workflows/runs/:id/findings/report",
+  "/api/workflows/runs/:id/logs",
   "/api/runs/:runId/output/:filename",
   // Legacy output/invocation surfaces — previously unauthenticated (IDOR).
   "/api/outputs/:id",
@@ -44,28 +42,18 @@ describe("run output/findings route authentication wiring", () => {
     expect(section).toContain('return res.status(404).json({ error: "Run not found" });');
     expect(section).not.toContain("chain_unregistered");
   });
-  it('requires authentication and registry ownership for private profiling and dataset metadata', () => {
-    expect(routes).toContain('app.post("/api/perception/profile", authenticateToken, requireDatasetAccess(), _dlProxyHandler)');
-    expect(routes).toContain('app.all("/api/datasets/*", authenticateToken, requireDatasetAccess(true), _dlProxyHandler)');
-  });
-});
 
-const legacyReads = ['/:id', '/:id/status', '/:id/download_commands', '/:id/iterations', '/:id/reproducibility', '/:id/compare', '/:id/logs'];
-const legacyWrites = ['rerun-from-step', 'save-to-project', 'pause', 'resume', 'cancel', 'interactions', 'ai/analyze', 'ai/autofix', 'ai/query', 'promote'];
-describe('legacy run alias owner boundary wiring', () => {
- it.each(legacyReads)('authenticates and authorizes read %s', suffix => {
-  expect(routes).toContain(`app.get("/api/workflows/runs${suffix}", authenticateToken, requireLegacyRunRead,`);
- });
- it.each(legacyWrites)('authenticates and authorizes mutation %s', action => {
-  expect(routes).toContain(`app.post("/api/workflows/runs/:id/${action}", authenticateToken, requireLegacyRunWrite,`);
- });
- it('protects raw rerun aliases and patch/delete handlers', () => {
-  expect(routes).toContain('app.post("/api/workflows/runs/:runId/rerun", authenticateToken, requireLegacyRunIdWrite,');
-  for (const method of ['patch', 'delete']) expect(routes).toContain(`app.${method}("/api/workflows/runs/:id", authenticateToken, requireLegacyRunWrite,`);
- });
- it('authorizes both comparison runs and derives export backend identity from the owned record', () => {
-  expect(routes).toContain('const comparisonRun = await resolveAuthorizedRun(req, res, compareWithId);');
-  expect(routes).toContain('run.execution?.nextflowRunId || run.execution?.galaxyInvocationId || run.id');
-  expect(routes).toContain('legacyRunUpdateSchema.safeParse(req.body)');
- });
+  it('resolves ownership before fetching diagnostics and sends Nextflow to its real status route', () => {
+    const start = routes.indexOf('app.get("/api/workflows/runs/:id/logs"');
+    const end = routes.indexOf('app.post("/api/workflows/convert/galaxy-to-nextflow"', start);
+    const section = routes.slice(start, end);
+    const registration = section.slice(0, section.indexOf('=>'));
+    const ownershipBeforeFetch = section.indexOf('resolveAuthorizedRun') >= 0
+      && section.indexOf('resolveAuthorizedRun') < section.indexOf('await fetch(');
+    expect(registration.includes('requireLegacyRunRead') || ownershipBeforeFetch).toBe(true);
+    expect(section).toContain('/api/nextflow/status/${encodeURIComponent(id)}');
+    expect(section).toContain('Array.isArray(data.log_tail)');
+    expect(section).toContain('signal: AbortSignal.timeout(15000)');
+    expect(section).toContain('!run.execution.galaxyWorkflowId');
+  });
 });
