@@ -26,7 +26,7 @@ describe('tool surfaces: inventory', () => {
   it('assistant tool set is exactly the recorded list', () => {
     expect(assistantTools).toEqual(['run_code', 'read_file', 'query_domain_knowledge', 'list_history', 'search_literature',
       'query_database', 'search_my_data', 'list_data_sources', 'search_workflows', 'request_new_tool', 'identify_targets', 'write_review',
-      'search_chat_history']);
+      'search_chat_history', 'edit_report']);
   });
   it('connector manifest tool set is exactly the recorded list', () => {
     expect(manifestTools).toEqual(['biomate_session', 'search_workflow', 'get_workflow_spec', 'run_workflow', 'get_run', 'cancel_run',
