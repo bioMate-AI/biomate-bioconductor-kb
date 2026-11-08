@@ -1230,10 +1230,28 @@ print('Using receptor group %d (Protein) and ligand group %d (LIG)' % (prot, lig
 PYGROUPS
     source groups.env
 
+    # Frame window from the ACTUAL trajectory length. A fixed window fails on any run shorter than
+    # it ("start frame (10) > total frames (2)"), so when the requested window starts past the end,
+    # skip the first ~20% of frames instead, cap the end at the last frame, and shrink the interval
+    # so >=~10 frames are analysed where the trajectory has them. The window used is recorded below.
+    NFRAMES=\$(gmx check -f ${trajectory} 2>&1 | awk '\$1 == "Step" && \$2 ~ /^[0-9]+\$/ && !f {print \$2; f=1}')
+    read -r MMGBSA_START MMGBSA_END MMGBSA_INTERVAL < <(python3 -c "
+n = int('\${NFRAMES:-0}' or 0)
+s, e, i = ${start_fr}, ${end_fr}, ${interval}
+if n < 1:
+    raise SystemExit('ERROR: no readable frames in ${trajectory}')
+if s > n:
+    s = max(1, int(n * 0.2) + 1)
+e = min(e, n) if e > 0 else n
+i = max(1, min(i, (e - s) // 10 or 1))
+print(s, e, i)")
+    export NFRAMES MMGBSA_START MMGBSA_END MMGBSA_INTERVAL
+    echo "MM-GBSA frames: trajectory has \$NFRAMES; analysing \$MMGBSA_START..\$MMGBSA_END every \$MMGBSA_INTERVAL (requested ${start_fr}..${end_fr} every ${interval})"
+
     # gmx_MMPBSA input file
-    cat > mmgbsa.in << 'MMPBSA_IN_EOF'
+    cat > mmgbsa.in << MMPBSA_IN_EOF
 &general
-   startframe=${start_fr}, endframe=${end_fr}, interval=${interval},
+   startframe=\$MMGBSA_START, endframe=\$MMGBSA_END, interval=\$MMGBSA_INTERVAL,
    verbose=2,
 /
 &gb
@@ -1318,21 +1336,32 @@ summary = {
     'ki_estimate_nM':          ki_nm,
     'tool':                    'gmx_mmpbsa',
     'gb_model':                'igb2',
-    'startframe':              ${start_fr},
-    'endframe':                '${end_fr}',
-    'interval':                ${interval},
+    'trajectory_frames':       int(os.environ['NFRAMES']),
+    'startframe':              int(os.environ['MMGBSA_START']),
+    'endframe':                int(os.environ['MMGBSA_END']),
+    'interval':                int(os.environ['MMGBSA_INTERVAL']),
+    'requested_window':        {'startframe': ${start_fr}, 'endframe': ${end_fr}, 'interval': ${interval}},
     'trajectory_analysis':     traj_summary,
     'interpretation': (
-        'strong binder' if dg_bind and dg_bind < -10 else
-        'moderate binder' if dg_bind and dg_bind < -7 else
-        'weak binder' if dg_bind and dg_bind < -5 else
-        'unfavorable' if dg_bind else 'calculation failed'
+        'calculation failed' if dg_bind is None else
+        'strong binder' if dg_bind < -10 else
+        'moderate binder' if dg_bind < -7 else
+        'weak binder' if dg_bind < -5 else
+        'unfavorable'
     ),
     'timestamp': datetime.utcnow().isoformat() + 'Z',
 }
 with open('binding_summary.json', 'w') as jf:
     json.dump(summary, jf, indent=2)
 
+if dg_bind is None:
+    # gmx_MMPBSA runs under '|| true' so its log can be reported here; a missing DeltaG is a failed
+    # step, not a completed run with an empty result.
+    try:
+        tail = open('mmgbsa_run.log').read().splitlines()[-25:]
+    except OSError:
+        tail = ['(no mmgbsa_run.log)']
+    sys.exit('ERROR: gmx_MMPBSA produced no DELTA TOTAL; last log lines:\\n' + '\\n'.join(tail))
 print('MM-GBSA complete: dGbind = %s kcal/mol' % dg_bind)
 PYEOF
     """
