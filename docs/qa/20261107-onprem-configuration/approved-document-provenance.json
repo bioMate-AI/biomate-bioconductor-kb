@@ -1,0 +1,23 @@
+[
+  {
+    "path": "docs/BioMate本地部署交付清单.docx",
+    "revision": "79c0421d90ff86f5973513a0360677bd72df390c",
+    "sha256": "4d37ba3f9756a0cbab8bd06222f135be2abf7097f54568288c9ada684ea1d3ba",
+    "bytes": 23837,
+    "operation": "read-only; original document not modified"
+  },
+  {
+    "path": "docs/BioMate本地部署运维手册.docx",
+    "revision": "79c0421d90ff86f5973513a0360677bd72df390c",
+    "sha256": "b0c80cd36f34261e31fdb13440ccdddc7cf087c5c4c42aa87f76fb0c961901af",
+    "bytes": 31922,
+    "operation": "read-only; original document not modified"
+  },
+  {
+    "path": "docs/BioMate本地部署运维远程支持手册.docx",
+    "revision": "79c0421d90ff86f5973513a0360677bd72df390c",
+    "sha256": "affa37bfb2f8ea33e532e35fa9fe438c4e2e810ad95edbbcd79b4e673a52508a",
+    "bytes": 18204,
+    "operation": "read-only; original document not modified"
+  }
+]
