@@ -3589,6 +3589,14 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
         except ClientError as exc:
             code = exc.response.get("Error", {}).get("Code", "")
             if code in ("404", "NoSuchKey"):
+                # Key may be a directory prefix without a trailing slash.
+                # Try listing objects under key+'/' before failing.
+                try:
+                    resp = s3.list_objects_v2(Bucket=bucket, Prefix=key + "/", MaxKeys=1)
+                    if resp.get("KeyCount", 0) > 0:
+                        return  # valid directory prefix — treat as found
+                except ClientError:
+                    pass
                 raise HTTPException(
                     status_code=422,
                     detail={
@@ -6757,7 +6765,15 @@ def _resolve_accession_file(
             s3_work_dir=s3_work_dir, s3_outdir=s3_outdir,
         )
     elif handler == "structure":
-        return _download_pdb_structure(accession, dl_dir)
+        # Skip local download — Nextflow containers running on Batch cannot access
+        # EC2 local paths.  Workflow scripts that accept PDB IDs (e.g. alphafold_db_search)
+        # already fetch from RCSB inside the container when given a 4-char ID.
+        # Return None so the caller passes the raw accession string through.
+        log.info(
+            f"[accession] {accession}: PDB/EMDB structure ID — passing raw accession to workflow "
+            f"(workflow container will fetch from RCSB)"
+        )
+        return None
     elif handler == "protein_seq":
         return _download_uniprot_fasta(accession, dl_dir)
     elif handler == "genomic_ref":
