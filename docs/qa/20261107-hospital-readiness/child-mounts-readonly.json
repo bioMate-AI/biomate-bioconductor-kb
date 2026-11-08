@@ -1,0 +1,50 @@
+{
+  "hostPaths": {
+    "/app": {
+      "exists": true,
+      "realpath": "/app",
+      "isLink": false
+    },
+    "/app/database": {
+      "exists": true,
+      "realpath": "/opt/biomate/galaxy_db",
+      "isLink": true
+    },
+    "/app/database/jobs_directory/000/133": {
+      "exists": false,
+      "realpath": "/opt/biomate/galaxy_db/jobs_directory/000/133",
+      "isLink": false
+    },
+    "/app/tools/interactive": {
+      "exists": true,
+      "realpath": "/app/tools/interactive",
+      "isLink": false
+    }
+  },
+  "galaxyMounts": [
+    {
+      "destination": "/app/database",
+      "sourceExists": true,
+      "rw": true
+    }
+  ],
+  "galaxyNetworks": [
+    "biomate-dev-net"
+  ],
+  "job133ScriptPresent": false,
+  "job133ChildMountSources": [],
+  "proxies": [
+    {
+      "name": "gx-it-proxy",
+      "running": true,
+      "networks": [
+        "host"
+      ],
+      "publishedPorts": {}
+    }
+  ],
+  "toolBindFilesCompared": 36,
+  "toolBindMismatches": [
+    "/app/tools/interactive/interactivetool_rstudio_bioc_3.20.xml"
+  ]
+}

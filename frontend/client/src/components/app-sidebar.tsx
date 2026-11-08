@@ -7,8 +7,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { SettingsDialog } from "./settings-dialog"
 import { WorkflowHistoryDialog } from "./workflow-history-dialog"
-import { RecentToolsDialog } from "./recent-tools-dialog"
-import { StarredWorkflowsDialog } from "./starred-workflows-dialog"
 import type { Project } from "@shared/schema"
 import {
   MessageCircle,
@@ -111,7 +109,6 @@ export function AppSidebar({
   }, [fetchSessionStatuses])
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [showWorkflowsDialog, setShowWorkflowsDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [historyInitialTab, setHistoryInitialTab] = useState<'runs' | 'imports' | 'upload'>('runs');
   const [runningCount, setRunningCount] = useState<number>(0);
@@ -128,7 +125,6 @@ export function AppSidebar({
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
-  const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
   const { activeProjectId: contextProjectId, setActiveProjectId: setContextProjectId } = useActiveProject();
@@ -266,15 +262,6 @@ export function AppSidebar({
             <span>{t('chat.new_chat')}</span>
           </span>
         </button>
-        {/* Workflows — top-level Workspace entry (design App.jsx NAV); opens the
-            starred-workflows browser. */}
-        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowWorkflowsDialog(true)}>
-          <Workflow className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>{t('nav.workflows')}</span>
-          </span>
-        </button>
-
         {/* Data — the dataset object is a first-class surface (spec 04). */}
         <button className="side-link" data-testid="button-data-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/files')}>
           <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
@@ -283,14 +270,7 @@ export function AppSidebar({
           </span>
         </button>
 
-        {/* Connectors — top-level Workspace entry (design App.jsx NAV has it here,
-            not buried under Settings). Opens the workspace connections page. */}
-        <button className="side-link" data-testid="button-connectors-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/settings/connections')}>
-          <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>{t('nav.connectors')}</span>
-          </span>
-        </button>
+
 
         {/* IND Report is paused — see IND_REPORT_ENABLED (feature-flags.ts). */}
         {IND_REPORT_ENABLED && (<button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
@@ -350,14 +330,14 @@ export function AppSidebar({
                     {/* Project-child rows render in the design's accent blue (UI
                         refinement 1b) rather than muted gray. Active chat keeps its
                         background highlight. */}
-                    <button className="side-link" style={{ display: 'flex', gap: 6, padding: '3px 10px', fontSize: 11.5, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))' }} onClick={() => { setContextProjectId(proj.id); setLocation(`/projects?project=${proj.id}&tab=instructions`); }} data-testid={`project-link-instructions-${proj.id}`}><Settings className="w-3 h-3" />Instructions</button>
+                    <button className="side-link" style={{ display: 'flex', gap: 6, padding: '3px 10px', fontSize: 11.5, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))' }} onClick={() => { setContextProjectId(proj.id); setLocation(`/projects?project=${proj.id}&tab=instructions`); }} data-testid={`project-link-instructions-${proj.id}`}><Settings className="w-3 h-3" />{t("project_instructions.instructions")}</button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => (() => { setContextProjectId(proj.id); setLocation("/files"); })()} data-testid={`project-link-files-${proj.id}`}>
                       <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.7 }} />
-                      Files
+                      {t("project_instructions.files")}
                     </button>
                     {/* Project Runs navigation hidden: executions are accessible from their chats. */}
                     {(projectSessions[proj.id] || []).map(chat => <button key={chat.session_id} data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 12, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button>)}
-                    <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 12, width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />New chat</button>
+                    <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 12, width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />{t("New Chat")}</button>
                   </div>
                 )}
               </div>
@@ -418,10 +398,7 @@ export function AppSidebar({
           </div>
         )}
 
-        <details className="text-xs text-muted-foreground px-2 py-2"><summary className="cursor-pointer">{t('nav.more_tools')}</summary><div className="flex flex-col items-start gap-2 pt-3"><button onClick={() => setLocation('/files')}>{t('nav.data')}</button><button onClick={() => setLocation('/design')}>{t('nav.design_generate')}</button><button onClick={() => setShowRecentToolsDialog(true)}>{t('nav.recent_tools')}</button><button data-testid="button-import-workflow-settings" onClick={() => { setHistoryInitialTab('upload'); setShowHistoryDialog(true); }}>{t('nav.import_workflow')}</button></div></details>
-        {/* Settings — a single click opens the tabbed Settings panel (API Keys is a
-            tab inside it). Connectors moved up to the Workspace nav; Import workflow
-            moved into "more tools" — so Settings is one clean entry, no sub-items. */}
+        {/* One Settings entry; imports and connectors live inside its panel. */}
         <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
           <button
             style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
@@ -457,17 +434,7 @@ export function AppSidebar({
           <div style={{ fontWeight: 500, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--bm-text)' }}>{user?.name || user?.email?.split('@')[0] || 'Researcher'}</div>
           <div style={{ color: 'var(--bm-text-dim)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || 'researcher@biomate.ai'}</div>
         </div>
-        <button
-          onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }}
-          data-testid="button-settings"
-          title={t('nav.settings')}
-          style={{
-            flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
-            padding: '4px 6px', borderRadius: 6, display: 'grid', placeItems: 'center', color: 'var(--bm-text-muted)',
-          }}
-        >
-          <Settings className="w-3.5 h-3.5" style={{ opacity: 0.8 }} />
-        </button>
+
         <button
           onClick={async () => { await logout(); setLocation('/login'); }}
           data-testid="button-logout"
@@ -482,12 +449,9 @@ export function AppSidebar({
       </div>
 
       {/* Dialogs */}
-      <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
-      <StarredWorkflowsDialog open={showWorkflowsDialog} onOpenChange={setShowWorkflowsDialog} />
+      <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} onImportWorkflow={() => { setShowSettingsDialog(false); setHistoryInitialTab("upload"); setShowHistoryDialog(true); }} />
       <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} importOnly onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { window.location.assign(`/?reuseWorkflow=${encodeURIComponent(row.runId)}`); }} />
-<RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
-        onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}
-      />
+
     </div>
   )
 }

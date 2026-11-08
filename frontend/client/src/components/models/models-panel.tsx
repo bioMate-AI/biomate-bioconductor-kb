@@ -1,3 +1,4 @@
+import { OwnedTrainingRegistry } from "./owned-training-registry"
 /**
  * ModelsPanel — the 5-track Models surface:
  *
@@ -13,12 +14,14 @@
  * "Run a model" track submits inference and renders the result with
  * the wave-1 viewers by evidence class.
  *
- * Train / House style / Rounds are project-scoped surfaces with no WS1 read
- * endpoint in this wave; they render descriptive track content (no fabricated
- * data). Any live data they receive arrives via props.
+ * Train / House style / Rounds fetch their track endpoints. Loading and failures
+ * are distinct from a successful empty result; explicit data props override reads.
  */
 
+import { ModelSetup } from "./model-setup"
+import { TrainingRegistration } from "./training-registration"
 import { useState } from "react"
+import { t } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -341,6 +344,10 @@ function OptimiseTrack({
  * endpoint for training runs in this wave).
  */
 export interface TrainRun {
+  runId?: string
+  registrationEligible?: boolean
+  chatSessionId?: string
+  createdAt?: string | null
   name: string
   family: string
   when: string
@@ -429,13 +436,13 @@ function TrainTrack({
           {runs.length ? (
             runs.map((r) => (
               <div
-                key={r.name}
+                key={r.runId || r.name}
                 className="rounded border px-2 py-1.5 text-xs space-y-1"
                 data-testid={`train-run-${r.name}`}
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold">{r.name}</span>
-                  <Badge variant="outline" className="text-[10px]">{r.family}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{r.family === "ml_training" ? t("models.training_workflow") : r.family}</Badge>
                   <span className="text-[10px] text-muted-foreground ml-auto">{r.when}</span>
                   <Badge
                     variant="outline"
@@ -451,7 +458,7 @@ function TrainTrack({
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className="text-[10px]">{r.metric}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{r.metric === "Not recorded" ? t("models.not_recorded") : r.metric}</Badge>
                   <Badge
                     variant="outline"
                     className="text-[10px] gap-1"
@@ -461,17 +468,19 @@ function TrainTrack({
                       className="inline-block h-1.5 w-1.5 rounded-full"
                       style={{ background: trainStatusColor(r.status) }}
                     />
-                    {r.gate}
+                    {r.gate === "Not recorded" ? t("models.not_recorded") : r.gate}
                   </Badge>
-                  <span className="font-mono text-[10px] text-muted-foreground truncate">{r.dataset}</span>
-                  {(r.modelId || r.status === "running") && (
+                  <span className="font-mono text-[10px] text-muted-foreground truncate">{r.dataset === "Not recorded" ? t("models.not_recorded") : r.dataset}</span>
+                  {r.chatSessionId && <a className="ml-auto text-primary hover:underline" href={`/?session=${encodeURIComponent(r.chatSessionId)}`} data-testid={`train-run-chat-${r.runId || r.name}`}>{t("models.open_training_chat")}</a>}
+                  {r.runId && /^(completed|complete|success|succeeded)$/i.test(r.status) && <TrainingRegistration runId={r.runId} eligible={r.registrationEligible} />}
+                  {r.modelId && (
                     <button
                       type="button"
                       className="ml-auto text-primary hover:underline"
                       onClick={() => r.modelId && onOpenModel(r.modelId)}
                       data-testid={`train-run-open-${r.name}`}
                     >
-                      {r.status === "running" ? "watch live →" : "open experiment →"}
+                      {t("models.open_model")}
                     </button>
                   )}
                 </div>
@@ -662,6 +671,21 @@ function AdaptTrack({
   )
 }
 
+function TrackRequestState({ query, overridden, children }: {
+  query: { isPending: boolean; isError: boolean; refetch: () => unknown }
+  overridden: boolean
+  children: React.ReactNode
+}) {
+  if (!overridden && query.isPending) return <p role="status">{t("models.activity_loading")}</p>
+  if (!overridden && query.isError) return (
+    <div role="alert" className="rounded-lg border border-destructive/30 p-4 space-y-2">
+      <p>{t("models.activity_error")}</p>
+      <Button variant="outline" size="sm" onClick={() => query.refetch()}>{t("models.retry")}</Button>
+    </div>
+  )
+  return <>{children}</>
+}
+
 // ── Panel ────────────────────────────────────────────────────────────────────
 export interface ModelsPanelProps {
   /** Project name shown in the crumb. */
@@ -722,12 +746,15 @@ export function ModelsPanel({
   // Self-fetch the project-scoped track data so the panel works standalone; an
   // explicit prop always overrides the fetched default (parent stays in control).
   const projectArg = project === "Project" ? undefined : project
-  const { data: fetchedTrain } = useTrainTrack(projectArg)
-  const { data: fetchedAdapt } = useAdaptTrack(projectArg)
-  const { data: fetchedOptimise } = useOptimiseTrack(projectArg)
+  const trainQuery = useTrainTrack(projectArg)
+  const fetchedTrain = trainQuery.data
+  const adaptQuery = useAdaptTrack(projectArg)
+  const fetchedAdapt = adaptQuery.data
+  const optimiseQuery = useOptimiseTrack(projectArg)
+  const fetchedOptimise = optimiseQuery.data
   const effectiveTrainData = trainData ?? fetchedTrain
   const effectiveAdaptData = adaptData ?? fetchedAdapt
-  const effectiveOptimiseData = optimiseData ?? fetchedOptimise
+  const effectiveOptimiseData = optimiseData ?? fetchedOptimise ?? undefined
 
   // Adapt mutations: persist a learned-pair toggle / queue a retrain. A parent
   // callback still wins; otherwise these fire the persisted server mutations.
@@ -756,7 +783,7 @@ export function ModelsPanel({
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{project}</span>
+            <span>{project === "Project" ? t("models.account_scope") : project}</span>
             <span>/</span>
             <span>Models</span>
           </div>
@@ -794,19 +821,30 @@ export function ModelsPanel({
             </TabsList>
 
             <TabsContent value="0">
+              <ModelSetup />
+              <TrackRequestState query={trainQuery} overridden={trainData !== undefined}>
+
               <TrainTrack data={effectiveTrainData} onOpenModel={setOpenModelId} />
+              </TrackRequestState>
             </TabsContent>
 
             <TabsContent value="1">
+              <TrackRequestState query={adaptQuery} overridden={adaptData !== undefined}>
+
               <AdaptTrack
                 data={effectiveAdaptData}
                 onToggleLearned={effectiveAdaptToggle}
                 onRetrain={effectiveAdaptRetrain}
               />
+              </TrackRequestState>
             </TabsContent>
 
             <TabsContent value="2">
+              <ModelSetup rounds />
+              <TrackRequestState query={optimiseQuery} overridden={optimiseData !== undefined}>
+
               <OptimiseTrack data={effectiveOptimiseData} onOpenModel={setOpenModelId} />
+              </TrackRequestState>
             </TabsContent>
 
             <TabsContent value="3">
@@ -814,6 +852,7 @@ export function ModelsPanel({
             </TabsContent>
 
             <TabsContent value="4">
+              <OwnedTrainingRegistry project={projectArg} />
               <RegistryTrack onOpenModel={setOpenModelId} />
             </TabsContent>
           </Tabs>

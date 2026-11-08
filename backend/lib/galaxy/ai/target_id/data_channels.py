@@ -14,6 +14,7 @@ next adds (CAPTAIN needs weights+GPU, so it ships as an adapter run where those 
 import csv
 import json
 import os
+import re
 import urllib.request
 from typing import Any, Callable, Dict, List, Optional
 
@@ -69,6 +70,64 @@ def _default_http_post(url: str, payload: Dict[str, Any], timeout: int = 25,
     req = urllib.request.Request(url, data=data, method="POST", headers=hdrs)
     with urllib.request.urlopen(req, timeout=timeout) as r:  # nosec - fixed https endpoint
         return json.loads(r.read().decode("utf-8"))
+
+
+def resolve_disease_name(name: str, http: Optional[Callable[..., Any]] = None) -> Dict[str, str]:
+    """Resolve an exact public disease name, never a guessed first search hit.
+
+    Ambiguous/nonexact names require clarification. Offline installations must
+    supply a verified identifier instead of silently making an external call.
+    """
+    if offline_mode():
+        raise ValueError('Disease-name lookup is unavailable offline; provide a verified disease_id')
+    if not isinstance(name, str) or not name.strip() or len(name.strip()) > 300:
+        raise ValueError('disease must be a non-empty name of at most 300 characters')
+    query = ('query($name:String!){search(queryString:$name,entityNames:["disease"],'
+             'page:{index:0,size:20}){hits{id name}}}')
+    response = (http or _default_http_post)(OPENTARGETS_GQL, {'query': query, 'variables': {'name': name.strip()}})
+    if not isinstance(response, dict) or response.get('errors'):
+        raise RuntimeError('Open Targets disease-name lookup failed')
+    hits = ((response.get('data') or {}).get('search') or {}).get('hits')
+    if not isinstance(hits, list):
+        raise RuntimeError('Open Targets disease-name lookup returned invalid results')
+    normalize = lambda text: re.sub(r'[\s\-\u2010-\u2015]+', ' ', text.strip().casefold())
+    exact = {hit['id']: hit['name'] for hit in hits if isinstance(hit, dict)
+             and isinstance(hit.get('name'), str) and isinstance(hit.get('id'), str)
+             and re.fullmatch(r'(?:EFO|MONDO)_\d+', hit['id'])
+             and normalize(hit['name']) == normalize(name)}
+    if not exact:
+        # Search also indexes ontology synonyms. Verify them against the source
+        # and accept ONLY hasExactSynonym, never broad/narrow/related matches.
+        identifiers = sorted({hit['id'] for hit in hits if isinstance(hit, dict)
+                              and isinstance(hit.get('id'), str)
+                              and re.fullmatch(r'(?:EFO|MONDO)_\d+', hit['id'])})[:20]
+        if identifiers:
+            declarations = ','.join('$d%d:String!' % i for i in range(len(identifiers)))
+            fields = ' '.join('d%d:disease(efoId:$d%d){name synonyms{relation terms}}' % (i, i)
+                              for i in range(len(identifiers)))
+            synonyms = (http or _default_http_post)(OPENTARGETS_GQL, {
+                'query': 'query(' + declarations + '){' + fields + '}',
+                'variables': {'d%d' % i: identifier for i, identifier in enumerate(identifiers)},
+            })
+            if not isinstance(synonyms, dict) or synonyms.get('errors') or not isinstance(synonyms.get('data'), dict):
+                raise RuntimeError('Open Targets exact-synonym verification failed')
+            for i, identifier in enumerate(identifiers):
+                record = synonyms['data'].get('d%d' % i)
+                if not isinstance(record, dict) or not isinstance(record.get('name'), str):
+                    continue
+                groups = record.get('synonyms')
+                if not isinstance(groups, list):
+                    continue
+                names = [record['name']]
+                for group in groups:
+                    if isinstance(group, dict) and group.get('relation') == 'hasExactSynonym' and isinstance(group.get('terms'), list):
+                        names.extend(term for term in group['terms'] if isinstance(term, str))
+                if any(normalize(term) == normalize(name) for term in names):
+                    exact[identifier] = record['name']
+    if len(exact) != 1:
+        raise ValueError('Disease name has no unique exact match in Open Targets; provide the full disease name or a verified disease_id')
+    identifier, label = next(iter(exact.items()))
+    return {'disease_id': identifier, 'disease': label, 'source': 'Open Targets disease search'}
 
 
 class OpenTargetsGeneticsChannel(Channel):

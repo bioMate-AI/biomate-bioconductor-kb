@@ -57,23 +57,20 @@ def resolve_dataset_param(cfg: TrainingConfig, s3_dataset_uri: Optional[str] = N
     return str(value)
 
 
-def build_execute_request(
-    cfg: TrainingConfig,
-    *,
-    user_id: str,
-    nextflow_path: str = DEFAULT_NEXTFLOW_PATH,
-    s3_dataset_uri: Optional[str] = None,
-    aws_batch_queue: Optional[str] = None,
-    is_pilot: bool = False,
-) -> dict[str, Any]:
-    """Build a NextflowExecuteRequest-compatible dict for POST /api/nextflow/execute."""
-    cfg.validate()
+def training_launch_parameters(cfg: TrainingConfig, s3_dataset_uri: Optional[str] = None, *,
+                               allow_unresolved_dataset: bool = False) -> dict[str, Any]:
+    """One selected-config parameter map for workflow cards and executor launch.
+
+    Cards can show an unresolved required dataset; execution still validates it.
+    """
     hp = cfg.hyperparams
     parameters: dict[str, Any] = {
-        "dataset": resolve_dataset_param(cfg, s3_dataset_uri),
+        "dataset": ((s3_dataset_uri or cfg.dataset.s3_uri or cfg.dataset.name or cfg.dataset.path or "")
+                    if allow_unresolved_dataset else resolve_dataset_param(cfg, s3_dataset_uri)),
         "smiles_col": cfg.dataset.smiles_col,
         "target_col": cfg.dataset.target_col,
         "split": cfg.dataset.split,
+        "cv_folds": cfg.dataset.cv_folds,
         "val_frac": cfg.dataset.val_frac,
         "test_frac": cfg.dataset.test_frac,
         "model_type": cfg.model_type,
@@ -88,6 +85,7 @@ def build_execute_request(
         "ensemble_size": hp.ensemble_size,
         "seed": hp.seed,
         "metric": cfg.metric,
+        "gate_threshold": cfg.gate_threshold,
         "model_name": cfg.name,
         "campaign_id": cfg.campaign_id,
         "mlflow_experiment": cfg.mlflow_experiment,
@@ -106,6 +104,22 @@ def build_execute_request(
         "reward": llm.reward if llm else "length",
         "reward_keyword": llm.reward_keyword if llm else "",
     })
+
+    return parameters
+
+
+def build_execute_request(
+    cfg: TrainingConfig,
+    *,
+    user_id: str,
+    nextflow_path: str = DEFAULT_NEXTFLOW_PATH,
+    s3_dataset_uri: Optional[str] = None,
+    aws_batch_queue: Optional[str] = None,
+    is_pilot: bool = False,
+) -> dict[str, Any]:
+    """Build a NextflowExecuteRequest-compatible dict for POST /api/nextflow/execute."""
+    cfg.validate()
+    parameters = training_launch_parameters(cfg, s3_dataset_uri)
 
     compute_config: dict[str, Any] = {
         "executor": "awsbatch",

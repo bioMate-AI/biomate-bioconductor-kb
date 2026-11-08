@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n"
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
@@ -117,7 +118,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [loadingProject, setLoadingProject] = useState(true)
   const [isEditingInstructions, setIsEditingInstructions] = useState(false)
   const [instructionsValue, setInstructionsValue] = useState("")
-  const validTabs = ["chat", "files", "workflows", "instructions"]
+  const validTabs = ["chat", "files", "instructions"]
   const [activeTab, setActiveTab] = useState(validTabs.includes(initialTab || "") ? initialTab! : "files")
 
   const [sessions, setSessions] = useState<any[]>([])
@@ -615,7 +616,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   return (
     <div className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden [overflow-wrap:anywhere]">
       {/* Header */}
-      <div className="border-b border-border px-6 py-4 shrink-0" style={activeTab === "instructions" || activeTab === "workflows" ? { display: "none" } : undefined}>
+      <div className="border-b border-border px-6 py-4 shrink-0" style={activeTab === "instructions" ? { display: "none" } : undefined}>
         <div className="flex items-center gap-3 mb-3">
           <Button variant="ghost" size="sm" onClick={onBack} data-testid="button-back-to-projects">
             <ArrowLeft className="w-4 h-4 mr-2" />All projects
@@ -712,7 +713,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={activeTab === "instructions" ? { display: "none" } : undefined}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0" style={activeTab === "workflows" ? { display: "none" } : undefined}>
+            <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0">
               <TabsTrigger value="chat" className="flex items-center gap-1.5" data-testid="tab-project-chat">
                 <MessageCircle className="w-3.5 h-3.5" />Chat
                 {sessions.length > 0 && (
@@ -812,131 +813,13 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               </div>
             </TabsContent>
 
-            {/* WORKFLOW RUNS TAB */}
-            <TabsContent value="workflows" className="flex-1 m-0 min-h-0 overflow-hidden" data-testid="tab-content-workflows">
-              <div className="h-full flex min-h-0">
-                {/* Run list */}
-                <div className={selectedRunId ? "hidden" : "flex-1 min-w-0 flex flex-col"}>
-                  <div className="px-4 sm:px-8 py-6 border-b border-border shrink-0"><p className="text-xs text-muted-foreground mb-2">{project.name} / Runs</p><div className="flex items-center justify-between"><h2 className="text-xl font-semibold">Runs <span className="text-sm font-normal text-muted-foreground">{runs.length}</span></h2>
-                    <button onClick={loadRuns} aria-label="Refresh runs" className="text-muted-foreground hover:text-foreground">
-                      <RefreshCw className="w-3 h-3" />
-                    </button>
-                  </div><p className="text-sm text-muted-foreground mt-3">Workflow runs started in this project. Open a run to see its settings, progress and results.</p></div>
-                  <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-8">
-                    {runsLoading ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 justify-center">
-                        <Loader2 className="w-4 h-4 animate-spin" />Loading…
-                      </div>
-                    ) : runs.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground px-4">
-                        <FlaskConical className="w-8 h-8 mb-2 opacity-30" />
-                        <p className="text-xs font-medium">No runs yet</p>
-                        <p className="text-sm mt-1">Start from a chat or a project file. Its run record will appear here.</p><div className="flex flex-wrap justify-center gap-2 mt-4"><Button size="sm" onClick={() => openChatWithProject()}>New chat in this project</Button><Button size="sm" variant="outline" onClick={() => navigate("/files")}>Open project files</Button></div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {runs.map((run: any) => {
-                          const id = run.id ?? run.runId
-                          const status = run.execution?.status ?? run.status ?? "unknown"
-                          const name = run.workflowName ?? id
-                          const ts = run.createdAt ?? run.execution?.createdAt
-                          const isSel = selectedRunId === id
-                          return (
-                            <button
-                              key={id}
-                              className={cn(
-                                "w-full flex items-center gap-3 px-4 py-4 text-left rounded-lg border border-border hover:bg-muted/40 transition-colors",
-                                isSel && "bg-muted"
-                              )}
-                              onClick={() => setSelectedRunId(isSel ? null : id)}
-                              data-testid={`run-row-${id}`}
-                            >
-                              {statusIcon(status)}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{name}</p>
-                                <p className="text-xs text-muted-foreground">{relTime(ts)}</p>
-                              </div>
-                              <span className="text-xs rounded-full border border-border px-2 py-1">{status.replace(/_/g, " ")}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
+            {/* Duplicate project Runs view retired at user request; history remains in Run Manager. */}
 
-                {/* Workflow viewer */}
-                <div className={selectedRunId ? "flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden" : "hidden"}>
-                  {selectedRunId && <div className="px-4 sm:px-6 py-3 border-b border-border shrink-0"><Button variant="ghost" size="sm" onClick={() => setSelectedRunId(null)}><ArrowLeft className="w-3.5 h-3.5 mr-2" />Back to runs</Button></div>}
-                  {selectedRunId ? (
-                    (() => {
-                      const run = runs.find((r: any) => (r.id ?? r.runId) === selectedRunId)
-                      const status = run?.execution?.status ?? run?.status ?? "unknown"
-                      const wfStatus: "idle" | "running" | "paused" | "completed" | "failed" | "pending_review" =
-                        status === "completed" ? "completed" :
-                        status === "failed" || status === "errored" ? "failed" :
-                        status === "running" ? "running" : "idle"
-                      const handleSaveOutputs = async () => {
-                        if (!projectId || !selectedRunId) return
-                        setSavingOutputs(true); setSaveOutputsMsg(null)
-                        try {
-                          const r = await fetch(`/api/workflows/runs/${selectedRunId}/save-to-project`, {
-                            method: 'POST', credentials: 'include',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ projectId }),
-                          })
-                          const d = await r.json()
-                          if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`)
-                          setSaveOutputsMsg(`${d.registered} file${d.registered !== 1 ? 's' : ''} saved to Files tab`)
-                          window.dispatchEvent(new Event('biomate:project-files-updated'))
-                        } catch (e: any) {
-                          setSaveOutputsMsg(`Error: ${e.message}`)
-                        } finally {
-                          setSavingOutputs(false)
-                        }
-                      }
-                      return (
-                        <>
-                          {status === 'completed' && (
-                            <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
-                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5"
-                                onClick={handleSaveOutputs} disabled={savingOutputs}>
-                                {savingOutputs
-                                  ? <><RefreshCw className="h-3 w-3 animate-spin" />Saving…</>
-                                  : <><Download className="h-3 w-3" />Save outputs to Files tab</>}
-                              </Button>
-                              {saveOutputsMsg && (
-                                <span className="text-xs text-muted-foreground">{saveOutputsMsg}</span>
-                              )}
-                            </div>
-                          )}
-                          <div className="flex-1 min-h-0 min-w-0 overflow-hidden"><NextflowWorkflowViewer
-                            runId={selectedRunId}
-                            invocationId={run?.execution?.galaxyInvocationId}
-                            sessionId={run?.chatSessionId}
-                            workflowId={run?.workflowName}
-                            workflowDefinition={run?.workflowDefinition}
-                            status={wfStatus}
-                            errorMessage={run?.execution?.errorMessage}
-                          /></div>
-                        </>
-                      )
-                    })()
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground px-6">
-                      <FlaskConical className="w-10 h-10 mb-3 opacity-20" />
-                      <p className="text-sm font-medium">Select a run to view its workflow panel</p>
-                      <p className="text-xs mt-1">Phases, steps, QC gates, and output files appear here.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
           </Tabs>
         </div>
 
         {/* Right sidebar */}
-        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : activeTab === "workflows" ? "hidden" : "w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden"}>
+        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : "w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden"}>
           {activeTab === "instructions" && <ProjectInstructionsPage projectId={projectId} projectName={project.name} canEdit={canEdit} instructions={project.instructions || ""} onInstructionsSaved={(t) => { setInstructionsValue(t); setProject(prev => prev ? { ...prev, instructions: t } : prev); }} />}
           {activeTab !== "instructions" && <div className="p-4 flex-1 overflow-y-auto space-y-6">
             {/* Standing instructions — the agent-read directives (persist to researchGoal). */}
@@ -1126,21 +1009,21 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
           {project && <div className={`border-t border-border p-4 shrink-0${activeTab === "instructions" ? " w-full max-w-4xl mx-auto sm:px-6" : ""}`} data-testid="members-panel">
             <div className="flex items-center gap-1.5 mb-3">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
-              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground flex-1">Members & roles</h4>
+              <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground flex-1">{t('project_members.title')}</h4>
               {/* The current user's OWN role for this project (real, from the server). */}
               <span
                 data-testid="my-role-badge"
                 className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary capitalize"
-                title="Your role in this project"
+                title={t('project_members.your_role')}
               >
-                You: {myRole}
+                {t('project_members.you')}: {t(`project_members.${myRole}`)}
               </span>
             </div>
 
             {/* Share link — owner only */}
             {isOwner && (
               <div className="mb-3 p-2.5 rounded-md bg-muted/40 border border-border">
-                <p className="text-xs font-medium mb-1.5">Invite link</p>
+                <p className="text-xs font-medium mb-1.5">{t('project_members.invite_link')}</p>
                 {shareToken ? (
                   <div className="space-y-1.5">
                     <div className="flex gap-1.5">
@@ -1156,7 +1039,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                         onClick={handleCopyShareLink}
                         data-testid="button-copy-share-link"
                       >
-                        {shareLinkCopied ? "Copied!" : "Copy"}
+                        {shareLinkCopied ? t('project_members.copied') : t('project_members.copy')}
                       </Button>
                     </div>
                     <button
@@ -1164,7 +1047,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       onClick={handleRevokeShareLink}
                       data-testid="button-revoke-share-link"
                     >
-                      Revoke link
+                      {t('project_members.revoke_link')}
                     </button>
                   </div>
                 ) : (
@@ -1175,7 +1058,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                     data-testid="button-generate-share-link"
                   >
                     {shareLinkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
-                    Generate share link
+                    {t('project_members.generate_link')}
                   </Button>
                 )}
               </div>
@@ -1197,8 +1080,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="viewer">Viewer</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
+                      <SelectItem value="viewer">{t('project_members.viewer')}</SelectItem>
+                      <SelectItem value="editor">{t('project_members.editor')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1209,14 +1092,14 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   data-testid="button-share-invite"
                 >
                   {inviting ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
-                  Invite
+                  {t('project_members.invite')}
                 </Button>
                 {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
               </div>
             )}
 
             {members.length === 0 && isOwner ? (
-              <p className="text-xs text-muted-foreground">No collaborators yet.</p>
+              <p className="text-xs text-muted-foreground">{t('project_members.no_members')}</p>
             ) : (
               <div className="space-y-1.5">
                 {members.map(m => {
@@ -1238,20 +1121,20 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       </div>
                       {/* Role badge / change dropdown */}
                       {m.role === "owner" ? (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">Owner</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">{t('project_members.owner')}</span>
                       ) : isOwner ? (
                         <Select value={m.role} onValueChange={(v) => handleRoleChange(m.user_id, v as "viewer" | "editor")}>
                           <SelectTrigger className="h-5 w-16 text-[10px] px-1.5 border-0 bg-muted/60 rounded shrink-0" data-testid={`select-role-${m.user_id}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="viewer">Viewer</SelectItem>
-                            <SelectItem value="editor">Editor</SelectItem>
+                            <SelectItem value="viewer">{t('project_members.viewer')}</SelectItem>
+                            <SelectItem value="editor">{t('project_members.editor')}</SelectItem>
                           </SelectContent>
                         </Select>
                       ) : (
                         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${m.role === "editor" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-muted text-muted-foreground"}`}>
-                          {m.role}
+                          {t(`project_members.${m.role}`)}
                         </span>
                       )}
                       {/* Make owner — transfers ownership to this member (owner-only, confirm dialog) */}
@@ -1260,7 +1143,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                           onClick={() => { setTransferError(null); setTransferTarget(m) }}
                           className="text-muted-foreground hover:text-primary shrink-0"
                           aria-label={`Make ${m.email} owner`}
-                          title="Transfer ownership"
+                          title={t('project_members.transfer')}
                           data-testid={`button-transfer-owner-${m.user_id}`}
                         >
                           <Crown className="w-3 h-3" />
@@ -1287,7 +1170,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                     className="mt-1 text-[11px] text-muted-foreground hover:text-destructive"
                     data-testid="button-leave-project"
                   >
-                    Leave project
+                    {t('project_members.leave')}
                   </button>
                 )}
               </div>

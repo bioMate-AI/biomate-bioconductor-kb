@@ -1,0 +1,29 @@
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { NextflowWorkflowViewer, failureDiagnosisMessage } from './nextflow-workflow-viewer';
+vi.mock('@/v2/AfterRunReport', () => ({AfterRunReport:()=>null}));
+vi.mock('./feedback/report-confusion-button',()=>({ReportConfusionButton:()=>null}));
+vi.mock('./feedback/download-outcome-prompt',()=>({DownloadOutcomePrompt:()=>null}));
+beforeEach(()=>{vi.stubGlobal('fetch',vi.fn(async()=>({ok:false,status:404,json:async()=>({}),text:async()=>''})));});
+
+describe('recorded recovery capability and directly accessible settings',()=>{
+  it('preserves the cause while removing a server resume promise with no recorded checkpoint',()=>{
+    const message='The run stopped before completing. You can resume from the last completed step.';
+    expect(failureDiagnosisMessage(message,false)).toBe('The run stopped before completing.');
+    expect(failureDiagnosisMessage(message,true)).toBe(message);
+    render(<NextflowWorkflowViewer runId="failed-owned" status="failed" workflowDefinition={{name:'Launch failure',steps:{s1:{name:'First step'}}}} nextflowStatus={{failure:{user_message:message,suggested_action:'resume'}}}/>);
+    expect(screen.getByText('The run stopped before completing.')).toBeTruthy();
+    expect(screen.queryByText(/You can resume/)).toBeNull();
+    expect(screen.getByTestId('failure-recovery-advice')).toHaveTextContent('No completed step');
+  });
+
+  it('needs only the Optional parameters disclosure to reach editable settings',()=>{
+    const onParameterChange=vi.fn();
+    render(<NextflowWorkflowViewer status="idle" onParameterChange={onParameterChange} workflowDefinition={{name:'Editable settings',steps:{s1:{name:'First step'}},optional_params:[{name:'threshold',label:'Threshold',type:'number',default:4}]}}/>);
+    expect(screen.queryByTestId('button-toggle-workflow-settings')).toBeNull();
+    fireEvent.click(screen.getByText('Optional parameters'));
+    fireEvent.change(screen.getByRole('spinbutton'),{target:{value:'8'}});
+    expect(onParameterChange).toHaveBeenCalledWith('threshold',8);
+  });
+});

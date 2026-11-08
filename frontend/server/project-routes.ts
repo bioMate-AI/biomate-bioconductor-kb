@@ -1488,6 +1488,26 @@ export function registerProjectRoutes(app: Express): void {
     }
   });
 
+  // Human notes only: never delete synthesized knowledge or another project's row.
+  app.delete("/api/projects/:id/notes-list/:noteId", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, noteId } = req.params;
+    if (!/^[1-9]\d*$/.test(noteId) || !Number.isSafeInteger(Number(noteId))) return res.status(400).json({ error: "Invalid note ID" });
+    try {
+      if (!(await _isOwnerOrEditor(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const deleted = await pool.query(
+        `DELETE FROM project_knowledge WHERE id = $1 AND project_id = $2 AND knowledge_type = $3 RETURNING id`,
+        [Number(noteId), id, USER_NOTES_TYPE]
+      );
+      if (!deleted.rows.length) return res.status(404).json({ error: "Note not found" });
+      return res.json({ deleted: true });
+    } catch (e: any) {
+      console.error("[user_notes] delete failed:", e?.message ?? e);
+      return res.status(500).json({ error: "Failed to delete note" });
+    }
+  });
+
   // ─── GET /api/join/:token ────────────────────────────────────────────────────
   // PUBLIC — no auth required. Returns project preview for the join landing page.
   app.get("/api/join/:token", async (req: Request, res: Response) => {

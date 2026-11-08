@@ -33,7 +33,7 @@ process BIOC_PROTEOMM_MULTI_DATASET_PROTEOMM_PIPELINE {
 
     publishDir "${params.outdir}", mode: 'copy'
 
-    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim"
+    container "quay.io/biocontainers/bioconductor-proteomm:1.28.0--r45hdfd78af_0"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')

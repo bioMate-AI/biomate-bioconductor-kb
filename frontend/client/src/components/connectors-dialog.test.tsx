@@ -10,7 +10,7 @@
  * Also asserts the pre-existing behaviour (DB select toggle) is intact.
  */
 import React from "react";
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import { ConnectorsDialog } from "./connectors-dialog";
 import {
@@ -178,5 +178,50 @@ describe("Workspace Connections panel", () => {
     for (const tab of ["databases", "ai", "skills", "mcp"]) {
       expect(screen.getByTestId(`connector-tab-${tab}`)).toBeInTheDocument();
     }
+  });
+});
+
+ describe('embedded connector navigation', () => {
+  it('keeps a real Close action separate from cancelling the add flow', () => {
+   const close = vi.fn(); render(<ConnectorsDialog embedded open onOpenChange={close} />);
+   fireEvent.click(screen.getByText('Add a connector'));
+   expect(screen.getByTestId('add-connector-flow')).toBeInTheDocument();
+   fireEvent.click(screen.getByText('Cancel adding'));
+   expect(screen.queryByTestId('add-connector-flow')).toBeNull();
+   expect(close).not.toHaveBeenCalled();
+   fireEvent.click(screen.getByTestId('connectors-close'));
+   expect(close).toHaveBeenCalledWith(false);
+  });
+  it('keeps long add forms inside a bounded scroll body and preserves persistent close', () => {
+   render(<ConnectorsDialog embedded open onOpenChange={() => {}} />);
+   fireEvent.click(screen.getByText('Add a connector'));
+   const scroll = screen.getByTestId('connectors-scroll');
+   expect(scroll).toContainElement(screen.getByTestId('add-connector-flow'));
+   expect(scroll.style.minHeight).toBe('0');
+   expect(scroll.style.overflowY).toBe('auto');
+   expect(scroll).not.toContainElement(screen.getByTestId('connectors-close'));
+  });
+ });
+
+describe('connector setup navigation', () => {
+  it('returns from a chosen setup to the picker, then cancels back to the original tab', () => {
+    const close = vi.fn();
+    render(<ConnectorsDialog open embedded onOpenChange={close} />);
+    fireEvent.click(screen.getByTestId('connector-tab-ai'));
+    fireEvent.click(screen.getByRole('button', {name: 'Add a connector'}));
+    expect(screen.queryByTestId('connector-row-Ollama')).not.toBeInTheDocument();
+    expect(screen.queryByText('Configure model providers and API keys')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('add-kind-setup-database'));
+    expect(screen.getByTestId('connector-setup-back')).toBeInTheDocument();
+    expect(screen.getByTestId('private-db-section')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('connector-setup-back'));
+    expect(screen.getByTestId('add-connector-flow')).toBeInTheDocument();
+    expect(screen.queryByTestId('private-db-section')).not.toBeInTheDocument();
+    expect(screen.queryByText('Configure model providers and API keys')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'Cancel adding'}));
+    expect(screen.queryByTestId('add-connector-flow')).not.toBeInTheDocument();
+    expect(screen.getByTestId('connector-row-Ollama')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('connectors-close'));
+    expect(close).toHaveBeenCalledWith(false);
   });
 });

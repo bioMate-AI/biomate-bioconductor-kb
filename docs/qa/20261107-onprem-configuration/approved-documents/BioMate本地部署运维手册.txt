@@ -1,0 +1,748 @@
+Table of Contents
+
+BioMate 本地部署指南
+适用版本：docker-compose.onprem.yml
+目标读者：现场实施工程师
+前置要求：Docker ≥ 24、Docker Compose v2、≥ 16 GB RAM（Ollama 离线模式需要 ≥ 32 GB）
+部署前置清单 / 验收标准： 见 ONPREM_DELIVERY_CHECKLIST.md
+
+目录
+硬件与架构兼容性
+快速启动
+LLM 提供商配置
+系统管理面板
+存储配置
+计算资源配置
+工作流数据库更新
+Ollama 离线模式
+反向代理（HTTPS）
+备份与恢复
+日常维护命令
+国内环境特殊配置
+故障排查
+附录：交付包生成指南（乙方工程师）
+
+0. 硬件与架构兼容性
+0.1 架构支持矩阵
+CPU 架构
+典型机型
+Docker 镜像
+uname -m
+状态
+海光 C86（优先）
+海光 7285、7265
+linux/amd64（原生）
+x86_64
+✅ 完整支持
+标准 x86-64
+Intel/AMD
+linux/amd64（原生）
+x86_64
+✅ 完整支持
+飞腾 FT-2000+/S2500
+飞腾服务器
+linux/arm64（原生）
+aarch64
+✅ 完整支持
+华为鲲鹏 920
+TaiShan 200
+linux/arm64（原生）
+aarch64
+✅ 完整支持
+龙芯 LoongArch
+龙芯 3A5000
+无镜像
+loongarch64
+❌ 暂不支持
+部署建议：优先选择海光 C86。 它完全兼容 linux/amd64 镜像，无需 QEMU 转译，性能与标准 x86 相同；ARM64（鲲鹏/飞腾）同样完整支持，但需按第 0.3 节额外配置。
+
+0.2 海光 C86 部署注意事项
+海光 C86 基于 AMD Zen 1 授权，uname -m 返回 x86_64，直接走标准 x86 部署流程，无需任何额外配置。
+验证是否为海光 C86：
+grep -m1 "model name" /proc/cpuinfo
+# 海光输出示例: model name : Hygon C86 7285 32-core Processor
+潜在兼容性问题（Hygon Zen 1 特有）：
+Zen 1 支持 SSE4.2 / AVX / AVX2，但不支持 AVX-512。若工作流容器内的某个二进制文件是在 Intel 机器上以 -march=native（有 AVX-512）编译的，在 C86 上会崩溃并报 Illegal instruction。
+检测方法：
+# 看容器崩溃日志里是否有 "Illegal instruction" 或 signal 4 (SIGILL)
+docker logs biomate-galaxy 2>&1 | grep -i "illegal\|SIGILL\|signal 4"
+
+# 检查是否有 AVX-512 指令
+grep -c "avx512" /proc/cpuinfo   # 返回 0 = 无 AVX-512，C86 正常
+缓解方案（若出现 SIGILL）：
+在 .env 中加入以下变量，限制数值计算库只使用 AVX2：
+# 限制 OpenBLAS 不使用 AVX-512（numpy/scipy 相关）
+OPENBLAS_CORETYPE=SANDYBRIDGE
+
+# 限制 Intel MKL 不使用 AVX-512（部分 ML 库用 MKL）
+MKL_ENABLE_INSTRUCTIONS=AVX2
+MKL_CBWR=AVX2
+
+# 禁用 Intel MKL 自动 CPU 检测（有时 MKL 会误判）
+MKL_DEBUG_CPU_TYPE=5
+然后在 docker-compose.onprem.yml 的 galaxy-backend 服务 environment: 块中追加这些变量（或在 install.sh 运行后通过 docker restart biomate-galaxy 应用）。
+实际情况： BioMate 官方镜像在构建时使用通用 linux/amd64 目标，不开 -march=native，正常情况下不会触发 SIGILL。上述配置仅在遇到问题时才需要。
+
+0.3 ARM64（鲲鹏/飞腾）部署注意事项
+ARM64 主机（uname -m = aarch64）需要以下额外步骤：
+0.3.1 install.sh 自动处理（无需手动操作）：
+install.sh 检测到 ARM64 后会自动： 1. 移除 docker-compose.onprem.yml 中所有 platform: linux/amd64 限制 2. 设置 DOCKER_DEFAULT_PLATFORM=linux/arm64（写入 .env） 3. 安装 amd64 QEMU binfmt（作为备用，处理少数仅有 x86 版本的工具镜像）
+0.3.2 工作流任务容器（Nextflow）：
+在 .env 中必须设置：
+DOCKER_DEFAULT_PLATFORM=linux/arm64
+BioMate 工作流的核心任务容器均已发布 ARM64 原生版本，Nextflow 执行器会自动拉取对应架构的镜像。
+0.3.3 Bioconductor R 容器（RNA-seq / scRNA-seq）：
+部分生信分析容器（RNA-seq、scRNA-seq 等 R 类工作流）目前仅有 x86_64 版本，暂无 ARM64 原生版本。在 ARM64 主机上将通过 QEMU 以模拟模式运行——功能正常，但速度会慢 2～4 倍，建议 RNA-seq 等计算量大的分析优先使用 x86_64 主机。
+0.3.4 gunicorn 冷启动时间：
+ARM64 主机在 QEMU 模拟模式下（如旧版未迁移镜像），BioMate AI 后端冷启动可能需要 20～30 分钟。docker-compose.onprem.yml 已将 start_period 设为 1800s，健康检查不会误报。只要 docker logs biomate-galaxy 中出现 Booting worker，即表示正在正常启动，无需干预。
+0.3.5 ARM64 快速诊断：
+# 确认 BioMate AI 后端容器以 ARM64 原生运行（应返回 aarch64）
+docker exec biomate-galaxy uname -m
+
+# 确认 MinIO 是 ARM64 原生（日志里应有 linux/arm64）
+docker logs biomate-minio 2>&1 | grep -i "version\|arch"
+
+# 确认 ADMET 任务容器用的是 ARM64 镜像
+docker exec biomate-galaxy printenv BIOMATE_ADMET_CONTAINER
+
+0.4 最低硬件要求
+配置
+最低
+推荐（生产）
+CPU
+8 核 x86-64 / ARM64
+32 核
+内存
+16 GB
+64 GB
+磁盘
+200 GB SSD
+500 GB NVMe
+GPU
+无需（CPU 推理）
+NVIDIA A100（批量 AI 分析）
+网络
+内网 1Gbps
+内网 10Gbps
+注： Ollama 本地大模型需要 ≥ 32 GB 内存（32B 参数模型），推荐 ≥ 24 GB 显存的 GPU。
+
+1. 快速启动
+推荐入口：使用 install.sh 一键安装。 脚本会自动检测 CPU 架构（海光 C86 / 鲲鹏）、探测 Docker GID、生成密钥、拉取镜像并启动服务。不要直接运行 docker compose up，会跳过所有自动检测步骤。
+BioMate 以部署包形式交付，乙方工程师已将安装包（biomate-deploy-<版本>.tar.gz）传入服务器。
+# 1. 解压部署包（包路径由工程师提供）
+tar -xzf /tmp/biomate-deploy-<版本>.tar.gz -C /app/
+cd /app/biomate
+
+# 2. 运行一键安装脚本（交互式，按提示填写）
+bash install.sh
+
+# 脚本会依次引导：
+#   - 选择 LLM 提供商（千问 / DeepSeek / 智谱 / 内网模型）
+#   - 填写数据库密码（自定义，≥ 8 位）
+#   - 填写 MinIO 密码（自定义，≥ 8 位）
+#   - JWT / Session / Galaxy API 密钥（自动随机生成，无需手动填写）
+#   - 自动拉取镜像、启动服务、等待健康检查
+
+# 3. 安装完成后访问
+# 浏览器打开 http://<本机IP>:5000
+密钥说明
+配置项
+如何获得
+说明
+POSTGRES_PASSWORD
+自行设置
+数据库密码，≥ 8 位，含字母和数字
+MINIO_ROOT_PASSWORD
+自行设置
+对象存储密码，≥ 8 位
+JWT_SECRET
+install.sh 自动生成
+无需手动填写
+SESSION_SECRET
+install.sh 自动生成
+无需手动填写
+GALAXY_API_KEY
+install.sh 自动生成
+无需手动填写
+LLM API Key
+由甲方提供（见第 2 节）
+千问 / DeepSeek 等
+创建管理员账号
+安装脚本完成后，用浏览器注册第一个用户，然后执行：
+# 将注册的邮箱升级为管理员（替换 admin@example.com 为实际邮箱）
+docker exec -it biomate-postgres psql -U biomate -d biomate -c \
+  "UPDATE users SET subscription_tier = 'admin' WHERE email = 'admin@example.com';"
+
+2. LLM 提供商配置
+BioMate 支持多种 LLM 提供商，无需翻墙的推荐使用 DeepSeek / 智谱 GLM / Ollama。
+提供商
+环境变量
+国内直连
+说明
+Anthropic Claude
+ANTHROPIC_API_KEY
+需要 VPN
+默认，效果最好
+DeepSeek
+DEEPSEEK_API_KEY
+✅
+国内直连，性价比高
+智谱 GLM
+ZHIPU_API_KEY
+✅
+国内直连
+OpenRouter
+OPENROUTER_API_KEY
+部分需要 VPN
+支持多种模型中转
+Ollama
+无需 Key
+✅ 完全离线
+需要本地 GPU/大内存
+切换提供商
+方法一：通过管理面板（推荐）
+用 admin 账号登录 → 侧边栏点击「系统管理」
+在「系统 LLM 配置」中选择提供商
+点击「保存配置」，复制输出的环境变量
+更新 .env 文件，然后重启后端：
+docker restart biomate-galaxy
+方法二：直接编辑 .env
+# 切换到 DeepSeek
+GALAXY_AI_LLM_PROVIDER=deepseek
+GALAXY_AI_LLM_MODEL=deepseek-chat
+DEEPSEEK_API_KEY=sk-your-deepseek-key
+
+# 应用配置
+docker restart biomate-galaxy
+支持的 GALAXY_AI_LLM_PROVIDER 值：anthropic / deepseek / zhipu / openrouter / ollama
+
+3. 系统管理面板
+管理面板位于 http://<服务器>:5000/admin，需要 admin 账号登录。
+创建 admin 账号：
+# 方法：在 PostgreSQL 中将现有用户升级为 admin
+docker exec -it biomate-postgres psql -U biomate -d biomate -c \
+  "UPDATE users SET subscription_tier = 'admin' WHERE email = 'your@email.com';"
+管理面板功能：
+服务健康状态：实时查看各服务是否正常，自动标红异常服务
+LLM 配置：选择提供商、填写模型名，保存后自动生成需要配置的环境变量
+
+4. 存储配置
+对象存储：MinIO（默认，本机自带）
+本地部署自带 MinIO（S3 兼容对象存储，docker-compose.onprem.yml 中的 minio 服务），用于存放 工作流的输入（上传的数据集）和输出。后端通过 S3_ENDPOINT_URL=http://minio:9000 接入——所有 S3 调用 被透明地路由到本机 MinIO，无需 AWS、不出网。
+上传的数据集 → MinIO bucket biomate-data
+工作流输出 → MinIO：s3://biomate-data/nextflow/outputs/<user_id>/<run_id>/ （项目运行为 s3://biomate-data/projects/<project_id>/runs/<run_id>/output）
+Nextflow 工作目录（中间文件） → NEXTFLOW_WORK_DIR（默认 /app/nf-work，宿主机绑定挂载）
+持久化：MinIO 数据保存在 biomate-minio-data Docker volume（宿主机磁盘），容器重启后保留
+管理界面：http://<服务器IP>:9001（用 MINIO_ROOT_USER / MINIO_ROOT_PASSWORD 登录）。
+# 查看卷/存储占用
+docker system df -v
+可配置项
+变量
+作用
+默认
+S3_ENDPOINT_URL
+对象存储端点——指向自带 MinIO，或客户自有的 S3 兼容存储 / NAS-S3 网关
+http://minio:9000
+S3_BUCKET_NAME
+bucket 名称
+biomate-data
+MINIO_ROOT_USER / MINIO_ROOT_PASSWORD
+对象存储访问凭证（即 S3 access key / secret）
+biomate /（必填）
+NEXTFLOW_WORK_DIR
+Nextflow 工作目录（宿主机路径）
+/app/nf-work
+要把输入/输出改存到客户已有的对象存储，只需把 S3_ENDPOINT_URL、S3_BUCKET_NAME 和凭证指向该存储即可， 无需改动代码。
+对接阿里云 OSS / 腾讯云 COS（替代内置 MinIO）
+若客户已在内网或云端购买对象存储（如阿里云 OSS、腾讯云 COS），可以完全替换内置 MinIO。只需修改 .env 中以下变量并重启服务，无需改动代码或重建镜像。关键区别在于 S3_FORCE_PATH_STYLE——MinIO 和 OSS 的要求相反。
+注意： S3_FORCE_PATH_STYLE 是最常见的踩坑点。MinIO 使用 path-style 访问（URL 形如 http://minio:9000/<bucket>/key），而阿里云 OSS / 腾讯云 COS使用 virtual-hosted style（URL 形如 https://<bucket>.oss-cn-hangzhou.aliyuncs.com/key）。填错会导致所有文件上传 / 下载返回 403 或 SignatureDoesNotMatch。
+# .env 中的关键配置差异
+# MinIO（本机自带，默认）
+S3_ENDPOINT_URL=http://minio:9000
+S3_BUCKET_NAME=biomate-data
+AWS_ACCESS_KEY_ID=<MINIO_ROOT_USER>
+AWS_SECRET_ACCESS_KEY=<MINIO_ROOT_PASSWORD>
+S3_FORCE_PATH_STYLE=true      # MinIO 必须 true（path-style）
+
+# 阿里云 OSS（替换内置 MinIO）
+S3_ENDPOINT_URL=https://oss-cn-hangzhou.aliyuncs.com   # 按 Region 修改
+S3_BUCKET_NAME=your-biomate-bucket
+AWS_ACCESS_KEY_ID=<OSS_ACCESS_KEY_ID>
+AWS_SECRET_ACCESS_KEY=<OSS_ACCESS_KEY_SECRET>
+S3_FORCE_PATH_STYLE=false     # OSS / 腾讯 COS 必须 false（virtual-hosted）
+
+# 应用配置
+docker restart biomate-galaxy biomate-frontend
+
+5. 计算资源配置
+工作流在何处运行由 .env 的 NEXTFLOW_EXECUTOR 决定（默认 local）。
+取值
+说明
+GPU 支持
+local（默认）
+本机 Docker 单节点执行
+✅ 见 §5.1
+slurm
+提交到已有 Slurm HPC 集群
+✅
+k8s
+提交到 Kubernetes 集群
+✅
+CPU 资源档位（自动注入，所有执行器一致）：
+标签
+CPU
+内存
+适用场景
+process_low
+4 核
+12 GB
+轻量分析、格式转换
+process_medium
+16 核
+72 GB
+标准 RNA-seq、ADMET
+process_high
+32 核
+200 GB
+WGS、全基因组分析
+process_gpu
+8 核
+32 GB
+深度学习、CryoEM（见 §5.1）
+
+5.1 GPU 支持说明
+BioMate 工作流通过 label 'process_gpu' 标记需要 GPU 的进程，共 24 个工作流（Cryo-EM、结构预测、分子动力学、虚拟细胞、ML 训练等）。这类工作流必须在配备 NVIDIA GPU 的服务器上运行，在纯 CPU 环境下速度极慢，不建议使用。
+需要 GPU 的工作流（24 个）： Cryo-EM 单颗粒分析（8个）、Cryo-ET 冷冻电子断层（3个）、结构生物学（Boltz/Chai-1/AlphaFold，3个）、药物发现（GROMACS MD、DrugClip 虚拟筛选等，4个）、虚拟细胞（3个）、蛋白质组学（1个）、单细胞（1个）、ML 训练（1个）。
+不需要 GPU 的工作流： ADMET、BOIN 临床试验、RNA-seq（DESeq2）、WGS 变异分析、PBPK——这些在 CPU 服务器上运行正常，占平台工作流总量的绝大多数。
+GPU 接入配置——三种方案按需选择
+方案 A：单节点本地 GPU（单台服务器带 NVIDIA 卡）
+前提：宿主机已安装 NVIDIA 驱动 + nvidia-container-toolkit。
+在 docker-compose.onprem.yml 的 galaxy-backend 服务块中追加：
+deploy:
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: all
+          capabilities: [gpu]
+在 .env 中追加：
+NEXTFLOW_DOCKER_GPU_OPTIONS=--gpus all
+executor 会将此值注入 Nextflow 的 docker { runOptions } 块，使 process_gpu 任务容器能访问 GPU 设备。
+重启服务：docker compose -f docker-compose.onprem.yml up -d --force-recreate galaxy-backend
+方案 B：Slurm GPU 集群
+NEXTFLOW_EXECUTOR=slurm
+SLURM_PARTITION=compute          # CPU 分区
+# GPU 任务自动路由到 --partition=gpu --gres=gpu:1（无需额外配置）
+SLURM_WORK_DIR=/scratch/biomate
+方案 C：Kubernetes GPU 集群
+NEXTFLOW_EXECUTOR=k8s
+NXF_K8S_NAMESPACE=biomate-jobs
+NXF_K8S_STORAGE_CLAIM=biomate-work-pvc
+NXF_K8S_STORAGE_MOUNT=/nf-work
+NXF_K8S_SERVICE_ACCOUNT=nextflow
+NXF_K8S_GPU_RESOURCE=nvidia.com/gpu    # 国产 GPU 可改为 hygon.com/dcu 等
+国产 GPU 适配说明： 海光 DCU（K100、Z100L）在 K8s 中的资源名为 hygon.com/dcu，需将 NXF_K8S_GPU_RESOURCE 设为对应值，并确保集群已安装对应的 device plugin。
+
+接入 Slurm 集群（CPU 场景）
+NEXTFLOW_EXECUTOR=slurm
+SLURM_PARTITION=compute          # 可选，默认 compute
+# SLURM_QOS=                     # 可选
+# SLURM_ACCOUNT=                 # 可选
+SLURM_WORK_DIR=/scratch/biomate  # 集群共享文件系统上的工作/输出目录
+接入 Kubernetes 集群（CPU 场景）
+NEXTFLOW_EXECUTOR=k8s
+NXF_K8S_NAMESPACE=biomate-jobs
+NXF_K8S_STORAGE_CLAIM=biomate-work-pvc   # 需预先创建的 PVC（建议 ReadWriteMany）
+NXF_K8S_STORAGE_MOUNT=/nf-work
+NXF_K8S_SERVICE_ACCOUNT=nextflow
+说明：本地部署支持 local / slurm / k8s；PBS/SGE/LSF 暂不支持。
+
+6. 工作流数据库更新
+BioMate 的工作流目录存储在 backend/database/galaxy_ai_tools.db（279 MB SQLite 文件，2600+ 工作流）。
+更新方法：
+# 停止后端
+docker stop biomate-galaxy
+
+# 备份旧版本
+docker cp biomate-galaxy:/app/database/galaxy_ai_tools.db ./backups/galaxy_ai_tools_$(date +%Y%m%d).db
+
+# 从新版代码中复制最新数据库
+# （当收到 BioMate 团队的新版本包时，解压后运行）
+docker cp ./backend/database/galaxy_ai_tools.db biomate-galaxy:/app/database/galaxy_ai_tools.db
+
+# 重启
+docker start biomate-galaxy
+接收更新包：
+BioMate 团队会定期提供包含最新工作流库的更新包（.tar.gz）。解压后按上述步骤替换数据库文件即可，无需完整重新构建镜像。
+
+7. Ollama 离线模式
+适用于：完全内网、不允许任何外部 API 调用 的场景。
+要求： ≥ 32 GB RAM，推荐 NVIDIA GPU（≥ 24 GB 显存用于 qwen3:32b）
+启用步骤：
+# 1. 在 docker-compose.onprem.yml 中取消 ollama 服务的注释（约第100行）
+
+# 2. 在 .env 中设置
+GALAXY_AI_LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://ollama:11434
+
+# 3. 启动（包含 Ollama）
+docker compose -f docker-compose.onprem.yml up -d
+
+# 4. 拉取模型（首次需要下载，约 20 GB）
+docker exec biomate-ollama ollama pull qwen3:32b
+
+# 5. 重启后端使配置生效
+docker restart biomate-galaxy
+GALAXY_AI_LLM_MODEL=qwen3:8b   # 若显存有限可选较小模型
+
+8. 反向代理（HTTPS）
+生产环境建议在 biomate-frontend:5000 前面加 Nginx 或 Caddy 做 SSL 终止。
+Caddy 示例（最简单）：
+biomate.your-company.com {
+    reverse_proxy localhost:5000
+}
+Nginx 示例：
+server {
+    listen 443 ssl;
+    server_name biomate.your-company.com;
+    ssl_certificate /etc/ssl/certs/your.crt;
+    ssl_certificate_key /etc/ssl/private/your.key;
+
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 600s;
+    }
+}
+启用 HTTPS 后，在 .env 中设置：
+FORCE_HTTPS=1
+ENABLE_HSTS=1
+
+9. 备份与恢复
+备份
+#!/bin/bash
+# backup.sh — 建议每天定时执行
+BACKUP_DIR=/opt/biomate/backups/$(date +%Y%m%d)
+mkdir -p $BACKUP_DIR
+
+# PostgreSQL（用户数据、项目、历史）
+docker exec biomate-postgres pg_dump -U biomate biomate | gzip > $BACKUP_DIR/postgres.sql.gz
+
+# 工作流数据库
+docker cp biomate-galaxy:/app/database/galaxy_ai_tools.db $BACKUP_DIR/
+
+# 保留最近 30 天
+find /opt/biomate/backups -maxdepth 1 -mtime +30 -type d -exec rm -rf {} +
+echo "Backup done: $BACKUP_DIR"
+恢复
+# 恢复 PostgreSQL
+gunzip -c /opt/biomate/backups/20260101/postgres.sql.gz | \
+  docker exec -i biomate-postgres psql -U biomate -d biomate
+
+# 恢复工作流数据库
+docker stop biomate-galaxy
+docker cp /opt/biomate/backups/20260101/galaxy_ai_tools.db \
+  biomate-galaxy:/app/database/galaxy_ai_tools.db
+docker start biomate-galaxy
+
+10. 日常维护命令
+# 查看所有服务状态
+docker compose -f docker-compose.onprem.yml ps
+
+# 查看日志（实时）
+docker logs -f biomate-galaxy   # AI 后端
+docker logs -f biomate-frontend # Node 前端
+docker logs -f biomate-postgres # 数据库
+
+# 重启单个服务（改完配置后）
+docker restart biomate-galaxy
+docker restart biomate-frontend
+
+# 升级（拉取新镜像后）
+docker compose -f docker-compose.onprem.yml pull
+docker compose -f docker-compose.onprem.yml up -d
+
+# 停止所有服务
+docker compose -f docker-compose.onprem.yml down
+
+# 彻底清除（包括数据库，慎用！）
+docker compose -f docker-compose.onprem.yml down -v
+
+11. 国内环境特殊配置
+以下问题在国内（包括阿里云 ECS 和客户内网）环境中均可能遇到。所有问题在阿里云 Demo 实例（101.201.107.126）的 CI 流程中已自动修复，但在新客户环境首次部署时仍需手动检查。
+
+11.1 DaoCloud 镜像加速拦截本地镜像（P1）
+现象： 工作流任务报 Unable to find image 'X' locally，但 docker images 确认镜像存在。
+根因： ECS 或客户机器的 /etc/docker/daemon.json 配置了 DaoCloud（或其他）加速器 registry-mirrors，Docker 会拦截所有 docker pull，包括本地已有的镜像，路由到加速器——加速器没有私有镜像 → 失败。
+修复（Nextflow executor 注入 --pull never）：
+docker exec biomate-galaxy grep "pull.never" \
+  /app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py
+# 若无输出，说明未注入，需要执行以下修复
+
+docker exec biomate-galaxy python3 -c "
+import re, pathlib
+p = pathlib.Path('/app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py')
+old = '--user root'
+new = '--user root --pull never'
+content = p.read_text()
+if new not in content:
+    p.write_text(content.replace(old, new, 1))
+    print('已注入 --pull never')
+else:
+    print('已存在，无需修改')
+"
+docker restart biomate-galaxy
+--pull never 告诉 Nextflow Docker 执行器：只使用本地缓存，永不尝试远程拉取。
+
+11.2 Google CDN 导致页面空白（P6）
+现象： 浏览器打开后白屏，F12 看到 fonts.googleapis.com 或 googletagmanager.com 请求一直 pending。
+根因： index.html 构建时硬编码了 Google Fonts CDN 链接（fonts.googleapis.com / fonts.gstatic.com / googletagmanager.com），国内访问时 CSS 请求挂起，浏览器白屏等待。
+方法一（推荐，永久生效）：设置 DISABLE_GOOGLE_FONTS=true 环境变量
+# 在 .env 中添加（已有则跳过）
+echo "DISABLE_GOOGLE_FONTS=true" >> /app/biomate/.env
+
+# 重启前端（Node.js 在 serveStatic 中运行时剥离 Google CDN 链接）
+docker restart biomate-frontend
+
+# 验证：刷新浏览器，F12 Network 中不再出现 googleapis.com 请求
+方法二（紧急，无需重启）：直接 patch 运行中容器的 index.html
+# 找到 index.html 路径（通常是 /app/dist/public/index.html）
+docker exec biomate-frontend find /app/dist -name "index.html" 2>/dev/null | head -1
+
+# 移除所有 Google CDN 链接（立即生效，无需重启）
+docker exec biomate-frontend sed -i \
+  "/fonts\.googleapis\.com/d; /fonts\.gstatic\.com/d; /googletagmanager\.com/d" \
+  /app/dist/public/index.html
+
+# 验证
+docker exec biomate-frontend grep -c "googleapis" /app/dist/public/index.html
+# 期望输出: 0
+
+# 注意：此方法在容器重建后失效，需重新执行。建议同时设置 DISABLE_GOOGLE_FONTS=true 作为永久修复。
+
+11.3 CORS 拒绝 IP 访问（P7）
+现象： 浏览器控制台报 CORS error，API 调用返回 403。常见于使用 IP 直接访问（无域名）的场景。
+修复（.env + 重启前端）：
+# 获取机器 IP
+PUBLIC_IP=$(curl -s --max-time 5 http://100.100.100.200/latest/meta-data/eip/public-ip 2>/dev/null \
+         || ip route get 1 | awk '{print $7; exit}')
+
+# 写入 CORS 配置（多个 Origin 用逗号分隔）
+sed -i "s|^CORS_ORIGINS=.*|CORS_ORIGINS=http://${PUBLIC_IP}:5000|" .env
+
+docker restart biomate-frontend
+
+11.4 工作流数据库下载慢（P3，仅首次）
+现象： db-init 容器长时间卡住，galaxy_ai_tools.db 只有几十 MB（损坏）。
+根因： 工作流数据库约 303 MB，网速较慢时初始下载会超时。
+修复：直接用交付包中的离线资产替换
+# 找到 db volume 挂载路径
+VOL=$(docker inspect biomate-galaxy \
+  --format '{{range .Mounts}}{{if eq .Destination "/app/database"}}{{.Source}}{{end}}{{end}}')
+
+# 从交付包的离线资产目录复制（需已解压 biomate-assets-*.tar.gz）
+cp /opt/biomate-assets/galaxy_ai_tools.db "${VOL}/galaxy_ai_tools.db"
+
+docker restart biomate-galaxy
+若未提供离线资产包，联系 BioMate 技术支持获取数据库文件。
+
+11.5 Involucro 锁文件死锁（P8）
+现象： biomate-galaxy 容器每隔约 60 秒重启，日志显示 Acquiring lock on involucro，退出码 0。
+修复：
+VOL=$(docker inspect biomate-galaxy \
+  --format '{{range .Mounts}}{{if eq .Destination "/app/database"}}{{.Source}}{{end}}{{end}}')
+rm -f "${VOL}/dependencies/involucro.lock"
+docker restart biomate-galaxy
+
+11.6 轮询状态的正确 API 端点（P5）
+若自定义脚本需要轮询工作流状态，必须使用以下端点，否则状态会一直显示 running：
+# ✅ 正确（同步 BioMate AI 后端实时状态）
+GET /api/workflows/runs/<run_id>/status
+
+# ❌ 错误（只读 DB 缓存，不同步实时状态）
+GET /api/runs/<run_id>/meta
+
+11.7 国内镜像加速配置（Docker daemon）
+如果从 GHCR（ghcr.io）拉取镜像太慢，可以配置阿里云镜像加速（需要登录阿里云控制台获取个人专属地址）：
+cat > /etc/docker/daemon.json <<'EOF'
+{
+  "registry-mirrors": [
+    "https://<your-id>.mirror.aliyuncs.com"
+  ],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "50m",
+    "max-file": "3"
+  }
+}
+EOF
+systemctl reload docker
+注意： 配置 registry-mirrors 后，请务必参考 11.1 节注入 --pull never，否则工作流任务容器会通过加速器尝试拉取本地私有镜像导致失败。
+
+12. 故障排查
+服务启动慢（BioMate AI 后端 120 秒才 healthy）
+正常现象。BioMate AI 后端启动时需要加载嵌入模型（约 500 MB）。等待即可。如果超过 3 分钟仍未 healthy：
+docker logs biomate-galaxy 2>&1 | tail -50
+工作流搜索不返回结果
+# 检查工作流索引是否加载
+curl http://localhost:8081/api/admin/index-health
+# 或通过管理面板查看「工作流索引」状态
+LLM 调用失败（中国网络）
+先确认 API Key 是否正确：docker exec biomate-galaxy printenv DEEPSEEK_API_KEY
+如果使用 Anthropic，需要确认服务器能访问 api.anthropic.com（境外需要 VPN）
+国内推荐切换到 DeepSeek 或 智谱 GLM（见第2节）
+数据库连接失败（Frontend 启动报错）
+# 确认 PostgreSQL 已就绪
+docker exec biomate-postgres pg_isready -U biomate -d biomate
+
+# 确认 DATABASE_URL 格式正确
+docker exec biomate-frontend printenv DATABASE_URL
+磁盘空间不足
+# 查看 Docker 占用
+docker system df
+
+# 清理无用镜像和容器（不影响运行中的服务）
+docker system prune -f
+
+# 查看工作流运行产生的文件
+docker exec biomate-galaxy du -sh /app/logs /app/database
+海光 C86 Illegal instruction 崩溃
+# 确认是 AVX-512 问题
+docker logs biomate-galaxy 2>&1 | grep -i "illegal\|SIGILL\|signal 4"
+
+# 如确认是 AVX-512，在 .env 中加入以下变量后重启
+echo "OPENBLAS_CORETYPE=SANDYBRIDGE" >> .env
+echo "MKL_ENABLE_INSTRUCTIONS=AVX2" >> .env
+docker restart biomate-galaxy
+ARM64 容器启动极慢（30 分钟+）
+原因是某个镜像以 QEMU 模拟 x86 运行。检查：
+docker exec biomate-galaxy uname -m   # 应为 aarch64
+docker exec biomate-galaxy file /usr/bin/python3  # 应含 ARM aarch64
+
+# 若返回 x86-64，说明镜像用了错误的架构，需要强制重拉 ARM64 版本
+docker compose -f docker-compose.onprem.yml pull --no-parallel
+docker compose -f docker-compose.onprem.yml up -d --force-recreate galaxy-backend
+工作流运行结果文件预览 / 下载返回 403
+现象： 工作流运行完成后，在「After Run → Outputs」面板点击文件预览弹出 Preview unavailable (HTTP 403)，或点击下载按钮也报 403。
+根本原因（三个）：
+场景
+原因
+文件路径是裸文件名（无目录分隔符）
+前端回落到文件名，resolve() 后路径不在允许目录内
+work_dir 未写入 DB（快速缓存命中的跑）
+allowedRoots 检查失去依据，拒绝所有本地路径
+MinIO bucket 名不在内置白名单
+旧版 ALLOWED_BUCKETS 白名单仅含固定几个名字
+排查步骤：
+# 1. 查看 Node.js 前端日志中 step-file 的 403 详情
+docker logs biomate-frontend 2>&1 | grep "\[step-file\]"
+
+# 典型输出（本地路径不在允许目录）：
+# [step-file] 403 allowedRoots: resolved=/app/nf-work/xxx/file.txt roots=["/tmp/nextflow_runs"]
+
+# 典型输出（MinIO bucket 名不在白名单 — 旧版镜像）：
+# [step-file] S3 bucket not allowed: my-bucket
+
+# 典型输出（裸文件名被解析到 MinIO 存储路径）：
+# [step-file] Resolved bare filename "predict_admet_properties_output.txt" → s3://biomate-data/...
+修复方案（已在 v0.9.1+ 内置）：
+新版镜像已修复：MinIO 模式跳过白名单、自动查找裸文件名的存储路径、扩展允许目录至 /app/nf-work。若使用旧镜像，可在 .env 中临时添加环境变量并重启前端：
+# 对旧镜像的临时绕过（新镜像无需此项）
+echo "NEXTFLOW_WORK_DIR=/app/nf-work" >> .env
+docker restart biomate-frontend
+
+# 确认修复生效：访问一个已完成的工作流，点击 Outputs 中的文件
+# 日志中应看到 "Resolved bare filename" 或直接输出文件内容（无 403）
+仍无法访问文件时的兜底排查：
+# 确认 MinIO 健康
+docker exec biomate-minio mc alias set local http://localhost:9000 \
+  ${MINIO_ROOT_USER:-biomate} ${MINIO_ROOT_PASSWORD} 2>/dev/null || \
+  docker exec biomate-minio curl -sf http://localhost:9000/minio/health/live && echo OK
+
+# 确认文件确实上传到 MinIO（替换 <user_id>/<run_id>）
+docker exec biomate-minio mc ls local/biomate-data/nextflow/outputs/<user_id>/<run_id>/ --recursive
+
+# 确认前端容器能访问 MinIO（同一 Docker 网络）
+docker exec biomate-frontend curl -sf http://minio:9000/minio/health/live && echo "MinIO reachable"
+
+附录：交付包生成指南（乙方工程师）
+本节供 BioMate 实施工程师在出发前准备交付包使用。客户 IT 人员无需阅读此节。
+前提：认证 ghcr.io（仅乙方工程师需要，客户无需此步骤）
+BioMate 镜像托管在私有 GitHub Container Registry（ghcr.io），打包时需要认证。 此 Token 是乙方内部凭证，不需要也不应该提供给客户。 客户收到的是已打包好的镜像 tar 包，完全离线安装。
+# 在 BioMate 内部 1Password / 密钥管理系统中获取打包专用 Token
+# Token 类型: GitHub PAT，权限: read:packages
+export GHCR_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx   # 替换为实际 Token
+
+# 验证认证是否成功
+echo "$GHCR_TOKEN" | docker login ghcr.io -u biomate-deploy --password-stdin
+Token 安全说明： 此 PAT 仅需 read:packages 权限，建议设置 90 天有效期并定期轮换。 打包完成后可执行 docker logout ghcr.io 清除本地凭证。
+生成标准交付包
+在 BioMate 代码库根目录（需要 Docker、能访问 ghcr.io 的网络）执行：
+# 生成 amd64 包（适合海光 C86 / 标准 x86 服务器）
+bash scripts/package-onprem.sh --arch amd64
+
+# 生成 ARM64 包（适合鲲鹏 920 服务器）
+bash scripts/package-onprem.sh --arch arm64
+
+# 同时生成两种架构
+bash scripts/package-onprem.sh --arch both
+
+# 含离线资产（工作流数据库 + nfcore 文件，约 350 MB 额外，完全离网时使用）
+bash scripts/package-onprem.sh --arch amd64 --with-assets
+
+# 指定版本号（默认从 git describe 获取）
+bash scripts/package-onprem.sh --arch amd64 --version v2.1.0
+
+# 强制重新拉取所有镜像（确保最新版）
+bash scripts/package-onprem.sh --arch amd64 --pull
+输出文件（在 dist/ 目录）：
+文件
+大小（估）
+用途
+biomate-deploy-<version>.tar.gz
+~20 MB
+代码包（配置 + 脚本）
+biomate-images-amd64-<version>.tar.gz
+~5-7 GB
+x86 Docker 镜像
+biomate-images-arm64-<version>.tar.gz
+~5-7 GB
+ARM64 Docker 镜像（如需）
+biomate-assets-<version>.tar.gz
+~350 MB
+工作流数据库（完全离网用）
+*.sha256
+-
+SHA256 校验文件
+传输交付包到客户服务器
+# 通过 scp 传输（服务器可 SSH 访问时）
+scp dist/biomate-deploy-<version>.tar.gz \
+    dist/biomate-images-amd64-<version>.tar.gz \
+    root@<客户服务器IP>:/tmp/
+
+# 大文件传输提速（使用 rsync 续传）
+rsync -avP --progress \
+    dist/biomate-images-amd64-<version>.tar.gz \
+    root@<客户服务器IP>:/tmp/
+内网环境（无法 SSH）： 将文件拷贝至 USB 或内网文件服务器，由客户 IT 人员传入目标服务器。
+完全离网部署补充步骤
+若客户服务器完全无法访问外网，需要额外操作：
+# 1. 解压资产包到固定目录
+mkdir -p /opt/biomate-assets
+tar -xzf /tmp/biomate-assets-<version>.tar.gz -C /opt/biomate-assets/
+
+# 2. 在 /app/biomate/.env 中设置本地资产路径（install.sh 执行前，或修改后重新 up）
+echo "BIOMATE_DB_URL=file:///opt/biomate-assets/galaxy_ai_tools.db" >> /app/biomate/.env
+echo "BIOMATE_NFCORE_URL=file:///opt/biomate-assets/nextflow_nfcore_subworkflows.tar.gz" >> /app/biomate/.env
+
+# 3. 重新启动（若服务已运行）
+docker compose -f /app/biomate/docker-compose.onprem.yml up -d
+
+联系支持
+技术问题：联系 BioMate 工程团队
+更新包申请：请求最新 galaxy_ai_tools.db 和 Docker 镜像

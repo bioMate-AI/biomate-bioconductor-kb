@@ -2,13 +2,17 @@
 Self-contained test suite for BayesianOptimizer.
 
 Run with:
-    cd /app && python backend/lib/galaxy/ai/drug_discovery/test_bo.py
+    python backend/lib/galaxy/ai/drug_discovery/test_bo.py
+    # or
+    pytest backend/lib/galaxy/ai/drug_discovery/test_bo.py
 """
 import json
 import os
 import sys
 import tempfile
 import traceback
+
+import pytest
 
 # Make the package importable when run directly from the repo root
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
@@ -333,6 +337,11 @@ def test_multiple_proposals(db_path: str):
     except Exception:
         traceback.print_exc()
         _report("test_multiple_proposals", False, "exception raised")
+
+
+@pytest.fixture
+def db_path(tmp_path):
+    return str(tmp_path / "test_bo.db")
 
 
 # ---------------------------------------------------------------------------

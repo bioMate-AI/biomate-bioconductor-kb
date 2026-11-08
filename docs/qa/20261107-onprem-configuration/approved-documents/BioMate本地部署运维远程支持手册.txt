@@ -1,0 +1,292 @@
+BioMate 本地部署 — 远程支持手册
+适用对象： BioMate 实施 / 支持工程师
+版本： v1.0 · 2026-11-06
+前置要求： 已完成初始部署（参见 ONPREM_SETUP.md）
+
+目录
+决策树：选哪种接入方式
+诊断包：先拿快照再分析
+方案 A：Tailscale（推荐）
+方案 B：frp 反向隧道
+方案 C：Cloudflare Tunnel（临时）
+接入后：用 Claude Code 排查问题
+常见问题速查
+frp 服务端搭建（BioMate 团队内部）
+
+1. 决策树：选哪种接入方式
+客户内网有问题
+        │
+        ▼
+能让客户发给你诊断包？ ──是──► 先收诊断包分析，80% 的问题可远程解决
+        │                        (bash diag-onprem.sh)
+        否
+        │
+        ▼
+需要实时远程操作
+        │
+   ┌────┴─────────────────────────┐
+   ▼                              ▼
+客户允许安装软件                客户安全管控严格
+（IT 审批较快）                 （不能装软件）
+        │                              │
+   方案 A: Tailscale              方案 B: frp
+   - 5 分钟搭好                   - 客户只需运行一个二进制
+   - 工程师 IP 透明可审计         - 流量走你们自己的中继服务器
+   - 临时 key 自动过期            - token 一次性，支持完即销毁
+        │                              │
+        └──────────┬───────────────────┘
+                   │
+            紧急/临时一次性？
+                   │
+              方案 C: Cloudflare
+              - 无需在客户机装任何东西（Docker 即可）
+              - 临时 URL，断开即失效
+              - 网速较慢，仅适合轻量诊断
+
+2. 诊断包：先拿快照再分析
+大多数问题（容器崩溃、日志报错、配置错误）不需要远程接入，拿到诊断包就够了。
+2.1 客户操作（60 秒）
+# 在客户服务器上运行（需要 Docker 已安装）
+bash <(curl -fsSL https://raw.githubusercontent.com/biomate-ai/biomate/main/scripts/diag-onprem.sh)
+
+# 或者如果已有脚本文件：
+bash diag-onprem.sh
+输出：/tmp/biomate-diag-YYYYMMDD_HHMMSS.tar.gz
+客户通过微信 / 钉钉 / 邮件发给工程师即可。
+2.2 工程师分析诊断包
+拿到文件后，在本地解压：
+cd /tmp && tar -xzf biomate-diag-20261106_143022.tar.gz
+cd biomate-diag-20261106_143022
+目录结构：
+SUMMARY.txt              # 先看这个：容器状态 + 错误行统计
+system.txt               # 系统信息（OS、CPU、内存、磁盘）
+docker-info.txt          # Docker 版本、磁盘用量
+containers-status.txt    # 所有容器健康状态 + 重启次数
+logs/
+  biomate-galaxy-errors.log    # Galaxy 后端错误行（最重要）
+  biomate-frontend-errors.log
+  biomate-postgres-errors.log
+  biomate-galaxy-tail.log      # 完整日志（最近 500 行）
+  ...
+inspect/
+  biomate-galaxy.json          # docker inspect 完整 JSON
+  ...
+api-checks.txt           # /api/health、许可证、工作流搜索结果
+recent-runs.txt          # 最近 10 次工作流运行
+env-summary.txt          # 环境变量（密钥已脱敏）
+用 Claude Code 分析（推荐）：
+# 在本地打开诊断目录
+claude /tmp/biomate-diag-20261106_143022/
+
+# 然后让 Claude Code 帮你分析
+# 示例：
+# "帮我看一下 SUMMARY.txt 和 galaxy-errors.log，诊断为什么 ADMET 工作流失败"
+# "api-checks.txt 里许可证状态是什么，有没有异常"
+
+3. 方案 A：Tailscale（推荐）
+适用： 客户 IT 允许安装第三方软件，或可审批加入临时 Tailscale 网络。
+优势： 最简单，工程师 IP 记录在 Tailscale 控制台（可审计），临时 auth-key 到期自动断开。
+3.1 工程师准备（一次性）
+注册 Tailscale 账号（免费，支持最多 20 台设备）
+在工程师自己的机器上安装 Tailscale
+在 Tailscale 控制台生成 一次性 auth-key：
+控制台 → Settings → Keys → Generate auth key
+勾选 Ephemeral（临时，连接断开后设备自动移除）
+Expiry: 1 hour（建议）
+将 auth-key 通过安全渠道发给客户（加密消息）
+3.2 客户服务器操作
+# 一键安装并接入（将 tskey-auth-xxxx 替换为工程师提供的 key）
+bash remote-access.sh tailscale --key tskey-auth-xxxxxxxxxxxxxxxxxxxx
+3.3 工程师连接
+# 查看客户机器的 Tailscale IP（在 Tailscale 控制台或让客户运行 tailscale ip -4）
+ssh root@100.x.x.x
+
+# 然后启动 Claude Code 进行诊断
+claude
+3.4 支持结束后
+客户服务器运行：
+bash remote-access.sh stop
+或工程师在 Tailscale 控制台删除该设备。
+
+4. 方案 B：frp 反向隧道
+适用： 客户不允许安装 Tailscale，但可以运行一个临时二进制文件。
+优势： 中继服务器由 BioMate 团队控制，流量不经过第三方，合规性更好。
+4.1 BioMate 团队准备（服务端，只需搭一次）
+在阿里云 ECS 上搭 frps 服务端，参见第 8 节。
+4.2 工程师生成一次性 token
+# 在 frps 服务端生成一次性 token（每次支持会话使用不同 token）
+# 目前：直接用配置文件里的共享 token，后续可升级为动态 token
+# 联系团队 @yaoyun 获取当前 token
+4.3 客户服务器操作
+# token 由工程师通过安全渠道提供
+bash remote-access.sh frp \
+  --server frps.biomate.ai \
+  --token <工程师提供的token> \
+  --port 16022
+脚本会自动下载适合架构的 frpc（支持 x86_64 和 ARM64），国内访问 GitHub 超时时自动切换镜像源。
+4.4 工程师连接
+ssh root@frps.biomate.ai -p 16022
+
+# 然后启动 Claude Code
+claude
+4.5 支持结束后
+客户服务器运行：
+bash remote-access.sh stop
+
+5. 方案 C：Cloudflare Tunnel（临时）
+适用： 紧急情况，只需要轻量诊断，不需要完整 SSH 功能。
+注意： 临时 URL 随机生成，每次断开后失效；国内访问 Cloudflare 速度不稳定。
+5.1 客户服务器操作
+# 快速模式（无需任何账号，Docker 一行启动）
+bash remote-access.sh cloudflare --quick
+脚本输出类似：
+✓ 临时 Cloudflare 隧道已建立！
+  将以下 URL 发给工程师: https://abc-xyz.trycloudflare.com
+  工程师连接方式: ssh -o ProxyCommand='cloudflared access ssh --hostname %h' root@abc-xyz.trycloudflare.com
+5.2 工程师连接（需安装 cloudflared）
+# 安装 cloudflared（一次性）
+brew install cloudflared  # macOS
+# 或: curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared
+
+# 连接
+ssh -o ProxyCommand='cloudflared access ssh --hostname %h' \
+  root@abc-xyz.trycloudflare.com
+5.3 支持结束后
+bash remote-access.sh stop
+
+6. 接入后：用 Claude Code 排查问题
+成功 SSH 进入客户服务器后，推荐工作流：
+6.1 启动 Claude Code
+# 如果客户机有网：
+# 通过 npm 临时安装（不影响系统）
+npx @anthropic-ai/claude-code
+
+# 如果无网：先在本地机器用 claude，ssh 进去手动执行命令
+6.2 常用诊断命令（Claude Code 可直接执行）
+# 查看所有容器状态
+docker ps -a
+
+# 查看 Galaxy 后端最近错误
+docker logs biomate-galaxy --tail 100 2>&1 | grep -iE "error|fail|exception"
+
+# 实时跟踪日志
+docker logs -f biomate-galaxy 2>&1 | grep -v "DEBUG\|INFO"
+
+# 检查健康状态
+docker inspect biomate-galaxy | python3 -c "import sys,json; d=json.load(sys.stdin)[0]; h=d['State']['Health']; print(h['Status']); [print(l['Output']) for l in h.get('Log',[])]"
+
+# 重启单个服务
+docker restart biomate-galaxy
+
+# 检查磁盘使用（/app 目录）
+df -h /app && du -sh /app/nf-work/* 2>/dev/null | sort -hr | head -10
+
+# 检查许可证
+curl -sf http://localhost:5000/api/license/status | python3 -m json.tool
+
+# 测试 LLM 连通性
+curl -sf http://localhost:5000/api/health/llm | python3 -m json.tool
+
+# 查看 Nextflow 运行日志（最近的）
+ls -lt /app/nf-work/ 2>/dev/null | head -5
+6.3 典型问题排查路径
+现象
+先看
+常见原因
+页面打不开
+docker ps + docker logs biomate-frontend
+容器崩溃、端口占用
+登录报错
+docker logs biomate-postgres
+DB 连接失败、密码错误
+工作流提交失败
+docker logs biomate-galaxy --tail 200
+LLM 超时、许可证过期
+工作流卡在 running
+docker logs biomate-galaxy 2>&1 \| grep -i nextflow
+Nextflow 未安装、Docker 权限
+磁盘满
+df -h
+/app/nf-work 未清理
+许可证失效
+/api/license/status
+时钟偏差 > 5 分钟，或 key 过期
+
+7. 常见问题速查
+Q: 客户的 diag-onprem.sh 运行报 permission denied
+# 加执行权限
+chmod +x diag-onprem.sh && bash diag-onprem.sh
+# 或者直接 bash 调用
+bash diag-onprem.sh
+Q: frpc 下载失败（国内网络）
+脚本会自动切换 ghproxy 镜像，如果仍然失败：
+# 工程师从自己机器下载后通过 scp 传给客户
+# frpc 下载地址: https://github.com/fatedier/frp/releases
+# 文件名: frpc_0.61.1_linux_amd64.tar.gz 或 frpc_0.61.1_linux_arm64.tar.gz
+scp frpc root@<客户临时IP>:/tmp/biomate-frpc
+ssh root@<客户临时IP> "chmod +x /tmp/biomate-frpc"
+# 然后运行
+bash remote-access.sh frp --server frps.biomate.ai --token <token> --port 16022
+Q: Tailscale 无法穿透客户防火墙
+Tailscale 默认使用 DERP（中继）服务器。如果客户防火墙封锁了 UDP 443：
+# 强制走 TCP 443（HTTPS，几乎不会被封）
+sudo tailscale up --authkey="..." --netfilter-mode=off
+Q: 诊断包里没有 biomate-minio 容器
+旧版本部署使用 MinIO，新版本使用阿里云 OSS。 如果客户是离线部署（无公网访问），biomate-minio 是必须运行的，缺失则工作流无法存储结果。
+# 检查 compose 文件里是否有 minio 服务
+grep -A 5 "minio" docker-compose.onprem.yml
+Q: 支持完成后如何确认隧道已关闭
+bash remote-access.sh status
+# 应显示: 无活跃远程接入会话
+
+8. frp 服务端搭建（BioMate 团队内部）
+在阿里云 ECS（推荐 2 核 2G，华东节点）部署 frps：
+# 1. 下载 frps
+FRP_VER=0.61.1
+curl -LO https://github.com/fatedier/frp/releases/download/v${FRP_VER}/frp_${FRP_VER}_linux_amd64.tar.gz
+tar -xzf frp_${FRP_VER}_linux_amd64.tar.gz
+cp frp_${FRP_VER}_linux_amd64/frps /usr/local/bin/
+
+# 2. 写配置
+cat > /etc/frps.toml <<'EOF'
+bindPort = 7000
+auth.method = "token"
+auth.token = "your-shared-token-here"
+
+# 允许的端口范围（SSH 转发用）
+allowPorts = [
+  { start = 16000, end = 16100 }
+]
+
+# 日志
+log.to = "/var/log/frps.log"
+log.level = "info"
+log.maxDays = 7
+EOF
+
+# 3. 创建 systemd 服务
+cat > /etc/systemd/system/frps.service <<'EOF'
+[Unit]
+Description=BioMate frp Server
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/frps -c /etc/frps.toml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable --now frps
+
+# 4. 配置域名（在阿里云 DNS 添加 A 记录）
+# frps.biomate.ai → ECS 公网 IP
+
+# 5. 安全组开放端口
+# 7000/tcp  (frp 控制端口，只对 frpc 客户端开放)
+# 16000-16100/tcp  (SSH 转发端口，对工程师 IP 开放)
+Token 管理原则： - 使用一个共享 token（非动态） - token 通过 1Password 团队 vault 管理 - 每季度轮换一次 - 客户支持完成后检查 /var/log/frps.log 确认连接已断开
+
+文档维护：BioMate 实施团队 · 有问题联系 @yaoyun

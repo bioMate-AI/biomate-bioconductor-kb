@@ -7,12 +7,35 @@ it('presents completed target evidence without stale literature fallback or pati
     ranking:{mode:'primary_channel',primary_channel:'genetics_ot'},channels_run:['genetics_ot'],
     channel_errors:{llm_reasoned:'unavailable'},note:'Scores are associations, not clinical probabilities.'};
   const reply = targetEvidenceReply(result);
-  expect(reply).toContain('completed successfully');
+  expect(reply).toContain('completed with incomplete evidence');
+  expect(reply).not.toContain('completed successfully');
   expect(reply).toContain('| 1 | BRAF | 0.8533 | nominated | Yes |');
   expect(reply).toContain('Failed channels: AI-generated reasoning');
   expect(reply).toContain('not clinical probabilities');
   expect(reply).not.toMatch(/patient|not executed|could not be run|genetics_ot|llm_reasoned/);
   expect(() => targetEvidenceReply({...result,status:'error'})).toThrow();
+});
+
+it('never labels an AI-only target ranking as successful external evidence retrieval', () => {
+  const reply = targetEvidenceReply({status:'ok', targets:[{rank:1,target:'EGFR',score:0.5,tier:'nominated'}],
+    channels_run:['llm_reasoned'], channel_errors:{genetics_ot:'timeout',ppi_string:'unavailable'}});
+  expect(reply).toContain('AI reasoning only');
+  expect(reply).toContain('External evidence was not verified');
+  expect(reply).toContain('Retrieve or retry');
+  expect(reply).not.toContain('completed successfully');
+  expect(reply).not.toContain('timeout');
+});
+
+it('does not invent source provenance or count a failed channel as successful', () => {
+  const base = {status:'ok', targets:[{rank:1,target:'EGFR',score:0.5,tier:'nominated'}]};
+  expect(targetEvidenceReply(base)).toContain('without verified channel provenance');
+  const conflicting = targetEvidenceReply({...base, channels_run:['genetics_ot'], channel_errors:{genetics_ot:'failed'},
+    ranking:{mode:'primary_channel',primary_channel:'genetics_ot'}});
+  expect(conflicting).toContain('Successful channels: none reported');
+  expect(conflicting).not.toContain('ordered by Open Targets');
+  const complete = targetEvidenceReply({...base, channels_run:['genetics_ot']});
+  expect(complete).toContain('completed successfully');
+  expect(complete).not.toContain('Retrieve or retry');
 });
 
 describe('scientific chat boundary (pure contracts, no API mocks)', () => {
@@ -30,6 +53,19 @@ describe('scientific chat boundary (pure contracts, no API mocks)', () => {
     for (const top_k of [0, -1, 1.1, '5', true, NaN, Infinity]) expect(() => scientificToolRequest({query:'q',top_k}, 'targets')).toThrow(/top_k/);
     for (const candidate_targets of ['BRAF', [null], [5], ['']]) expect(() => scientificToolRequest({query:'q',candidate_targets}, 'targets')).toThrow(/candidate_targets/);
     expect(() => scientificToolRequest({query:'q',disease_id:'melanoma'}, 'targets')).toThrow(/disease_id/);
+  });
+  it('passes a disease name for source verification and rejects invented-identifier fallback', () => {
+    expect(scientificToolRequest({query:'EGFR in NSCLC', disease:' non-small-cell lung carcinoma '}, 'targets'))
+      .toMatchObject({disease:'non-small-cell lung carcinoma',disease_id:null});
+    for (const disease of [42, {}, '', ' ', 'x'.repeat(301)]) {
+      expect(() => scientificToolRequest({query:'q',disease}, 'targets')).toThrow(/disease/);
+    }
+    const failed = scientificToolResult({targets:[{target:'EGFR',score:0.5,rank:1,tier:'nominated'}],
+      channels_run:['llm_reasoned'],channel_errors:{genetics_ot:'OT: disease EFO_0003838 did not resolve'}}, 'targets', 'q');
+    expect(failed.error).toContain('full disease name');
+    expect(failed).not.toHaveProperty('targets');
+    const resolution={disease_id:'MONDO_0005233',disease:'non-small cell lung carcinoma',source:'Open Targets disease search'};
+    expect(scientificToolResult({targets:[],disease_resolution:resolution}, 'targets', 'q').disease_resolution).toEqual(resolution);
   });
   it('passes the optional ranking, validation and modality options and keeps modality unvalidated', () => {
     expect(scientificToolRequest({query: 'q'}, 'targets')).not.toHaveProperty('ranking_mode');

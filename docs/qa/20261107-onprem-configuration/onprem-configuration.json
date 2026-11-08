@@ -1,0 +1,1405 @@
+[
+  {
+    "name": "ALLOWED_BUCKETS",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "ANTHROPIC_API_KEY",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "APP_URL",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "AWS_ACCESS_KEY_ID",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend",
+      "minio-init"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "AWS_DEFAULT_REGION",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "AWS_REGION",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "AWS_SECRET_ACCESS_KEY",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend",
+      "minio-init"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "BACKUP_DIR",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "BILLING_INTERNAL_KEY",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BILLING_LAGO_ENABLED",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_ADMET_CONTAINER",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "BIOMATE_BACKEND_IMAGE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_BIOC_CONTAINER",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_BIOMNI_TOOLS_IMAGE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_DB_URL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "db-init"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "BIOMATE_DOCKER_NETWORK",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_FRONTEND_IMAGE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_LICENSE_KEY",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_LICENSE_SECRET",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_LOCAL_REGISTRY",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_MINIO_IMAGE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_MINIO_MC_IMAGE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_NFCORE_URL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "nfcore-init"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "BIOMATE_VERSION",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BIOMATE_WORKFLOW_TOOLS_IMAGE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BLUE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "BOLD",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "CORS_ORIGINS",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "CPU_MODEL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "CYN",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "DATABASE_URL",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "DEEPSEEK_API_KEY",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "DISABLE_GOOGLE_FONTS",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "DISK_FREE_GB",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "DOCKER_DEFAULT_PLATFORM",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "DOCKER_GID",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "EMAIL_FROM",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "EMAIL_HOST",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "EMAIL_PASS",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "EMAIL_PORT",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "EMAIL_SECURE",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "EMAIL_USER",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "ENABLE_HSTS",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "ENV_FILE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "FORCE_HTTPS",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "FRONTEND_PORT",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "FRONTEND_URL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "FRP_VER",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "GALAXY_AI_LLM_MODEL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "GALAXY_AI_LLM_PROVIDER",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "GALAXY_API_KEY",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "GALAXY_CONFIG_FILE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "GALAXY_CONFIG_OVERRIDE_BOOTSTRAP_ADMIN_API_KEY",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "GALAXY_CONFIG_OVERRIDE_INVOLUCRO_AUTO_INIT",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "GALAXY_PORT",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "GALAXY_URL",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "GHCR_TOKEN",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "GHCR_TOKEN_USER",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "GHCR_USER",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "GREEN",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "GRN",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "HOST_ARCH",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "HOST_ARCH_NORM",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "HOST_IP",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "JWT_SECRET",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "LAGO_API_KEY",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "LLM_API_KEY",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "LLM_API_URL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "LLM_MODEL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "LOG_LINES",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "MEM_GB",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "MINIO_ROOT_PASSWORD",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "minio"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "MINIO_ROOT_USER",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "minio"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "MKL_CBWR",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "MKL_DEBUG_CPU_TYPE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "MKL_ENABLE_INSTRUCTIONS",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "NC",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "NEXTFLOW_DOCKER_GPU_OPTIONS",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "NEXTFLOW_EXECUTOR",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "NEXTFLOW_USE_AWS",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "NEXTFLOW_WORK_DIR",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "NODE_ENV",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "NXF_K8S_GPU_RESOURCE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "NXF_K8S_NAMESPACE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "NXF_K8S_PULL_POLICY",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "NXF_K8S_SERVICE_ACCOUNT",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "NXF_K8S_STORAGE_CLAIM",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "NXF_K8S_STORAGE_MOUNT",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "OLLAMA_BASE_URL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "ONPREM_DELIVERY_CHECKLIST",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "ONPREM_SETUP",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "OPENAI_API_BASE_URL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "OPENAI_API_KEY",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "OPENBLAS_CORETYPE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "OPENROUTER_API_KEY",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "OSS_ACCESS_KEY_ID",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "OSS_ACCESS_KEY_SECRET",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "PORT",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "POSTGRES_DB",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "postgres"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "POSTGRES_PASSWORD",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "postgres"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "POSTGRES_USER",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "postgres"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "PUBLIC_IP",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "PYTHONUNBUFFERED",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "RED",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "REDIS_URL",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "REGISTRY_STORAGE_DELETE_ENABLED",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "registry"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "RESET",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "RUN_STATE_STORE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": false,
+    "approved_container_services": [
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": false,
+    "document_reference": false
+  },
+  {
+    "name": "S3_BUCKET_NAME",
+    "in_git_manifest": true,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend",
+      "minio-init"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "S3_ENDPOINT_URL",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "S3_FORCE_PATH_STYLE",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "SESSION_SECRET",
+    "in_git_manifest": true,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "SLURM_ACCOUNT",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "SLURM_PARTITION",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "SLURM_QOS",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "SLURM_WORK_DIR",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "STRIPE_SECRET_KEY",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "TIMESTAMP",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "WORKFLOW_NOTIFY",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "YELLOW",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "YLW",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  },
+  {
+    "name": "YYYYMMDD_HHMMSS",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": false,
+    "document_reference": true
+  },
+  {
+    "name": "ZHIPU_API_KEY",
+    "in_git_manifest": false,
+    "secret_review": true,
+    "literal_runtime_read": true,
+    "in_onprem_template": true,
+    "approved_container_services": [
+      "frontend",
+      "galaxy-backend"
+    ],
+    "host_or_script_reference": true,
+    "document_reference": true
+  },
+  {
+    "name": "_FE_PORT",
+    "in_git_manifest": false,
+    "secret_review": false,
+    "literal_runtime_read": false,
+    "in_onprem_template": false,
+    "approved_container_services": [],
+    "host_or_script_reference": true,
+    "document_reference": false
+  }
+]

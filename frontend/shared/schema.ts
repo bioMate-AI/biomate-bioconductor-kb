@@ -1095,6 +1095,7 @@ export const executionRunSchema = z.object({
     nextflowOutputDir: z.string().optional(),
     executionEngine: z.string().optional(),
     nextflowStatus: z.any().optional(),
+    trainingLaunchParameters: z.record(z.unknown()).optional(),
     status: executionRunStatusSchema,
     startedAt: z.coerce.date().optional(),
     completedAt: z.coerce.date().optional(),

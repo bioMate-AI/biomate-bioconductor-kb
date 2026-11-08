@@ -1,3 +1,4 @@
+import { LanguageSelector } from "./language-selector";
 import { useState, useEffect, useCallback } from "react"
 import { MfaSettings } from "./mfa-settings"
 import { RetrainAdapterCard } from "./RetrainAdapterCard"
@@ -14,7 +15,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { userSettingsService } from "@/lib/user-settings"
 import { t, tOr, setLanguagePreference } from "@/lib/i18n"
 import type { UserSettings } from "@shared/schema"
@@ -346,9 +346,10 @@ function useS3Credentials(open: boolean) {
 interface SettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onImportWorkflow?: () => void
 }
 
-export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: SettingsDialogProps) {
   const { logout } = useAuth()
   const [, setLocation] = useLocation()
   const [settings, setSettings] = useState<UserSettings>(userSettingsService.getSettings())
@@ -409,20 +410,21 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] p-0">
-        <DialogHeader className="p-6 pb-0">
+      <DialogContent className="flex h-[min(90dvh,48rem)] max-h-[90dvh] w-[95vw] max-w-2xl min-h-0 flex-col overflow-hidden p-0" data-testid="settings-dialog">
+        <DialogHeader className="shrink-0 p-4 pb-0 sm:p-6 sm:pb-0">
           <DialogTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
             {t('settings.title')}
           </DialogTitle>
+          <LanguageSelector />
         </DialogHeader>
 
         {/* Settings panel — tabbed. API Keys is one tab inside Settings (not a
             standalone modal). Only genuinely-functional tabs are enabled; the
             stale stub tabs stay gated (enabling them would ship broken forms). */}
-        <div className="flex flex-1 overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1" orientation="vertical">
-            <div className="hidden sm:block w-48 border-r bg-muted/50 p-4">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 min-w-0 flex-1" orientation="vertical">
+            <div className="w-36 sm:w-48 shrink-0 overflow-y-auto overscroll-contain border-r bg-muted/50 p-2 sm:p-4">
               <TabsList className="grid w-full grid-cols-1 h-auto gap-1 bg-transparent">
                 <TabsTrigger value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
                   <Key className="w-4 h-4" />
@@ -432,6 +434,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <Palette className="w-4 h-4" />
                   {tOr('settings.appearance', 'Appearance')}
                 </TabsTrigger>
+                <TabsTrigger value="connections" className="justify-start gap-2 p-3" data-testid="tab-settings-connectors">{t('nav.connectors')}</TabsTrigger>
+                {onImportWorkflow && <TabsTrigger value="imports" className="justify-start gap-2 p-3" data-testid="tab-settings-imports">{t('nav.import_workflow')}</TabsTrigger>}
                 {/* Stale stub tabs (profile/general/chat/data/notifications/privacy/
                     security/advanced) remain gated below until rebuilt. */}
               </TabsList>
@@ -440,7 +444,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             </div>
 
             {/* Settings Content */}
-            <ScrollArea className="flex-1 p-6">
+            <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6" data-testid="settings-scroll-content" role="region" aria-label={t("settings.content")} tabIndex={0}>
               {/* Non-api-keys tabs commented out — only API Keys needed for now */}
               {false && (<>
               {/* Profile Tab */}
@@ -872,6 +876,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
               {/* Appearance Tab (active) — theme selector; makes Settings a real
                   tabbed panel alongside API Keys without enabling the stub tabs. */}
+              <TabsContent value="connections" className="space-y-4 m-0">
+                <Button data-testid="button-connectors-settings" onClick={() => { onOpenChange(false); setLocation('/settings/connections'); }}>{t('nav.connectors')}</Button>
+              </TabsContent>
+              <TabsContent value="imports" className="space-y-4 m-0">
+                <Button data-testid="button-import-workflow-settings" onClick={onImportWorkflow}>{t('nav.import_workflow')}</Button>
+              </TabsContent>
               <TabsContent value="appearance" className="space-y-6 m-0" data-testid="tab-content-appearance">
                 <div>
                   <h3 className="text-lg font-semibold mb-4">{tOr('settings.appearance', 'Appearance')}</h3>
@@ -1276,7 +1286,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   </Card>
                 </div>
               </TabsContent>}
-            </ScrollArea>
+            </div>
           </Tabs>
         </div>
       </DialogContent>

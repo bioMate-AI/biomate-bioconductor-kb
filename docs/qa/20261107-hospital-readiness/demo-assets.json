@@ -1,0 +1,446 @@
+[
+  {
+    "asset": "demo/cold-start/1BXL.fasta",
+    "http": 200,
+    "bytes": 325,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/1BXL.pdb",
+    "http": 200,
+    "bytes": 270702,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/1HZH.fasta",
+    "http": 200,
+    "bytes": 864,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/1IEP.fasta",
+    "http": 200,
+    "bytes": 378,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/1IEP.pdb",
+    "http": 200,
+    "bytes": 434565,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/1LYZ.fasta",
+    "http": 200,
+    "bytes": 190,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/1LYZ.pdb",
+    "http": 200,
+    "bytes": 145962,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/3J7H.pdb",
+    "http": 200,
+    "bytes": 2747763,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/6Z43.fasta",
+    "http": 200,
+    "bytes": 1615,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/6Z43.pdb",
+    "http": 200,
+    "bytes": 2443527,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/Strelka_1234N_variants.vcf.gz",
+    "http": 200,
+    "bytes": 3189,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/Strelka_9876T_variants.vcf.gz",
+    "http": 200,
+    "bytes": 3035,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/airway.RData",
+    "http": 200,
+    "bytes": 5651312,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/airway_counts.csv",
+    "http": 200,
+    "bytes": 2287688,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/airway_metadata.csv",
+    "http": 200,
+    "bytes": 212,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/bace.csv",
+    "http": 200,
+    "bytes": 3897767,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/bace_assays.csv",
+    "http": 200,
+    "bytes": 194475,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/breast.TCGA.rda",
+    "http": 200,
+    "bytes": 734724,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/candidate_library.csv",
+    "http": 200,
+    "bytes": 40761,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/checksums.json",
+    "http": 200,
+    "bytes": 8545,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/clinical_cohort.csv",
+    "http": 200,
+    "bytes": 7252,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/clinical_dictionary.json",
+    "http": 200,
+    "bytes": 442,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/crispr_counts.tsv",
+    "http": 200,
+    "bytes": 39411,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/crispr_design.csv",
+    "http": 200,
+    "bytes": 118,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/cryo_inputs.json",
+    "http": 200,
+    "bytes": 809,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/demo_notes.md",
+    "http": 200,
+    "bytes": 1370,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/enzyme_candidates.fasta",
+    "http": 200,
+    "bytes": 3656,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/enzyme_constraints.json",
+    "http": 200,
+    "bytes": 292,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/example_smiles.csv",
+    "http": 200,
+    "bytes": 117,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/herg.csv",
+    "http": 200,
+    "bytes": 28282,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/macrocycle_constraints.json",
+    "http": 200,
+    "bytes": 364,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/macrocycles.csv",
+    "http": 200,
+    "bytes": 17580,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/map_inputs.json",
+    "http": 200,
+    "bytes": 271,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/nanobody_candidates.fasta",
+    "http": 200,
+    "bytes": 3619,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/nanobody_constraints.json",
+    "http": 200,
+    "bytes": 535,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/normal_R1.fastq.gz",
+    "http": 200,
+    "bytes": 45010,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/normal_R2.fastq.gz",
+    "http": 200,
+    "bytes": 47703,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/nutrimouse.rda",
+    "http": 200,
+    "bytes": 7647,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/nutrimouse_gene.csv",
+    "http": 200,
+    "bytes": 29123,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/nutrimouse_lipid.csv",
+    "http": 200,
+    "bytes": 4679,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/nutrimouse_metadata.csv",
+    "http": 200,
+    "bytes": 709,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/pbmc3k_raw.h5ad",
+    "http": 200,
+    "bytes": 5855727,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/peptide_candidates.fasta",
+    "http": 200,
+    "bytes": 1186,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/peptide_constraints.json",
+    "http": 200,
+    "bytes": 472,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/pilot_README.md",
+    "http": 200,
+    "bytes": 1777,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/pilot_assay_results_arm3.csv",
+    "http": 200,
+    "bytes": 1205,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/pilot_compounds.csv",
+    "http": 200,
+    "bytes": 2603,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/pilot_reference_actives.smi",
+    "http": 200,
+    "bytes": 277,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/pilot_target_info.json",
+    "http": 200,
+    "bytes": 1104,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/plate_compounds.csv",
+    "http": 200,
+    "bytes": 9203,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/plate_layout.csv",
+    "http": 200,
+    "bytes": 1810,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/predicted_measured.csv",
+    "http": 200,
+    "bytes": 145351,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/prediction_method.json",
+    "http": 200,
+    "bytes": 311,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/proteinGroups.txt",
+    "http": 200,
+    "bytes": 1913304,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/proteomics_design.csv",
+    "http": 200,
+    "bytes": 298,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/reference_grch37.fasta",
+    "http": 200,
+    "bytes": 818613,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/sequencing_samples.csv",
+    "http": 200,
+    "bytes": 166,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/solubility.csv",
+    "http": 200,
+    "bytes": 96699,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/sources.json",
+    "http": 200,
+    "bytes": 2885,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/submission_contrasts.csv",
+    "http": 200,
+    "bytes": 84,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/submission_counts_matrix.csv",
+    "http": 200,
+    "bytes": 23382,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/submission_records.json",
+    "http": 200,
+    "bytes": 437,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/submission_sample_metadata.csv",
+    "http": 200,
+    "bytes": 360,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/tcga_metadata.csv",
+    "http": 200,
+    "bytes": 1560,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/tcga_mrna.csv",
+    "http": 200,
+    "bytes": 546156,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/tcga_protein.csv",
+    "http": 200,
+    "bytes": 397395,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/tumor_R1.fastq.gz",
+    "http": 200,
+    "bytes": 27427,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/tumor_R2.fastq.gz",
+    "http": 200,
+    "bytes": 26833,
+    "match": true
+  },
+  {
+    "asset": "demo/cold-start/variant_samples.csv",
+    "http": 200,
+    "bytes": 102,
+    "match": true
+  },
+  {
+    "asset": "demo/mg_demo/contrasts.csv",
+    "http": 200,
+    "bytes": 84,
+    "match": true
+  },
+  {
+    "asset": "demo/mg_demo/counts_matrix.csv",
+    "http": 200,
+    "bytes": 23382,
+    "match": true
+  },
+  {
+    "asset": "demo/mg_demo/de_genes.txt",
+    "http": 200,
+    "bytes": 251,
+    "match": true
+  },
+  {
+    "asset": "demo/mg_demo/patient_clinical_data.csv",
+    "http": 200,
+    "bytes": 1455,
+    "match": true
+  },
+  {
+    "asset": "demo/mg_demo/sample_metadata.csv",
+    "http": 200,
+    "bytes": 360,
+    "match": true
+  }
+]

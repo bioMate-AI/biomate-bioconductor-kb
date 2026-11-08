@@ -28,6 +28,7 @@ from __future__ import annotations
 import logging
 import re
 import time
+import uuid
 from typing import Any, Dict, Optional
 
 # A bare process exit code ("exit 1", "exit 127", "rc=1", "127") is meaningless to
@@ -86,7 +87,7 @@ def _phase_failed(t: Dict[str, Any]) -> str:
     reason = _clean_reason(t.get("reason"))
     if reason:
         return f"{name} failed — {reason}."
-    return f"{name} failed — auto-fixing…"
+    return f"{name} failed."
 
 
 def _completed_summary(t: Dict[str, Any]) -> str:
@@ -217,11 +218,13 @@ def emit(
     technical: Optional[Dict[str, Any]] = None,
     *,
     sse_callback: Optional[Any] = None,
+    event_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Emit a workflow progress event.
 
     - Renders the friendly chat line for `kind`.
+    - Assigns a durable event identity; a replay may pass the original event_id.
     - Logs a structured [WORKFLOW] line with the technical payload.
     - If `sse_callback` is provided, calls it with ('chat_progress', payload)
       so the frontend WorkflowSSEManager delivers the event. Optional so
@@ -232,6 +235,7 @@ def emit(
     technical = technical or {}
     friendly = render_friendly(kind, technical)
     payload = {
+        "event_id": event_id or str(uuid.uuid4()),
         "kind": kind,
         "invocation_id": invocation_id,
         "friendly_message": friendly,

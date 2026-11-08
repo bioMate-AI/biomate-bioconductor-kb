@@ -247,7 +247,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
     return (
       <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
         <BookOpen className="h-3.5 w-3.5 animate-pulse" />
-        {tOr('panel.findings.analyzing', 'Analyzing outputs…')}
+        {tOr('panel.findings.analyzing', 'Loading findings…')}
       </div>
     )
   }
@@ -272,7 +272,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
     return (
       <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
         <BookOpen className="h-3.5 w-3.5 animate-pulse" />
-        {tOr('panel.findings.in_progress', 'Analysis in progress…')}
+        {tOr('panel.findings.in_progress', 'Findings are not available yet.')}
       </div>
     )
   }
@@ -306,7 +306,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
       <CardHeader className="pb-2 pt-3 px-3">
         <CardTitle className="text-sm flex items-center gap-2" style={{ fontWeight: 600 }}>
           <Sparkles className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--bm-text-dim, var(--text-dim))' }} />
-          {tOr('panel.findings.summary_title', 'AI Findings · generated from outputs')}
+          {tOr('panel.findings.summary_title', 'Findings · generated from outputs')}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 space-y-3">

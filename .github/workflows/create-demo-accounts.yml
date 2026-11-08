@@ -1,0 +1,29 @@
+name: Create Demo Accounts (one-off)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - run/create-demo-accounts
+
+jobs:
+  create-accounts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ECS_IP: 101.201.107.126
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Insert demo users into Postgres
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          PW='$2b$12$lyeREmSsPiOf/FxdZOnBxOlY5F3JjrQHa6MJZjU5UxiuHEy6v3TLW'
+          SQL=$(printf \
+            "INSERT INTO users (email,password,full_name,subscription_status,subscription_tier,email_verified) VALUES ('demo2@biomate-demo.com','%s','Demo User 2','trialing','professional',true),('demo3@biomate-demo.com','%s','Demo User 3','trialing','professional',true),('demo4@biomate-demo.com','%s','Demo User 4','trialing','professional',true),('demo5@biomate-demo.com','%s','Demo User 5','trialing','professional',true),('guest1@biomate-demo.com','%s','Guest User 1','trialing','professional',true),('guest2@biomate-demo.com','%s','Guest User 2','trialing','professional',true) ON CONFLICT (email) DO NOTHING; SELECT email,full_name,subscription_tier FROM users WHERE email LIKE '%%@biomate-demo.com' ORDER BY email;" \
+            "$PW" "$PW" "$PW" "$PW" "$PW" "$PW")
+          ENCODED=$(printf '%s' "$SQL" | base64 | tr -d '\n')
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            root@"$ECS_IP" \
+            "echo $ENCODED | base64 -d | docker exec -i biomate-postgres psql -U biomate biomate"

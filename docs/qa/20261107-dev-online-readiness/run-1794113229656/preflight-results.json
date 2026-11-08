@@ -1,0 +1,212 @@
+{
+  "testedAt": "2026-11-08T04:49:24.640Z",
+  "target": "https://dev-public.biomate.ai",
+  "scope": "HTTP drafts, direct target evidence and authenticated workbench; not Nextflow execution or scientific accuracy",
+  "checks": [
+    {
+      "name": "service health",
+      "passed": true,
+      "detail": {
+        "status": "ok",
+        "timestamp": "2026-11-08T04:47:10.466Z",
+        "services": {
+          "api": "ok",
+          "galaxy": {
+            "connected": true,
+            "url": "http://biomate-galaxy-dev:8080"
+          },
+          "ai": "ok"
+        }
+      }
+    },
+    {
+      "name": "Galaxy API available",
+      "passed": true,
+      "detail": {
+        "status": 200,
+        "version": "25.1"
+      }
+    },
+    {
+      "name": "anonymous project access denied",
+      "passed": true,
+      "detail": {
+        "status": 401
+      }
+    },
+    {
+      "name": "nonexistent project concealed",
+      "passed": true,
+      "detail": {
+        "status": 404
+      }
+    },
+    {
+      "name": "authenticated workbench visible",
+      "passed": true,
+      "detail": {
+        "screenshot": "authenticated-workbench.png"
+      }
+    },
+    {
+      "name": "small-molecule ADMET",
+      "passed": true,
+      "detail": {
+        "state": "workflow_ready",
+        "route": {
+          "name": "Predict ADMET Properties (AI)",
+          "type": "nextflow",
+          "nextflowPath": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf"
+        },
+        "autoDispatched": false,
+        "responseExcerpt": "**Predict ADMET Properties (AI)** — Comprehensive toxicity and drug-likeness screening for both compounds, followed by automated developability ranking.\n\n- **Input:** Two SMILES strings\n  - Caffeine: `CN1C=NC2=C1C(=O)N(C(=O)N2C)C`\n  - Aspirin: `CC(=O)OC1=CC=CC=C1C(=O)O`\n\n- **Key steps:**\n  - SMILES parsing + 6-endpoint ADMET prediction (hERG cardiac toxicity, DILI hepato, Caco-2 permeability, BBB penetration, aqueous solubility, Ames mutagenicity)\n  - Per-compound risk color assignment (GREEN/YELLOW/RED) and composite developability score\n  - Rank-ordered summary table with safety margins and liabilities flagged\n\n- **Expected output:**\n  - `admet_results.csv` — per-compound scores across all",
+        "clarification": {
+          "workflowGenerationDiagnostics": null
+        }
+      }
+    },
+    {
+      "name": "peptide properties",
+      "passed": true,
+      "detail": {
+        "state": "chat_only",
+        "route": null,
+        "autoDispatched": false,
+        "peptideEvidence": {
+          "exitCode": 0,
+          "sequence": "ACDEFGHIKLMNPQRSTVWY",
+          "length": 20,
+          "molecular_weight": 2395.71,
+          "isoelectric_point": 6.78,
+          "aromaticity": 0.15,
+          "instability_index": 84.74,
+          "gravy": -0.49
+        },
+        "responseExcerpt": "**Physicochemical Properties of ACDEFGHIKLMNPQRSTVWY:**\n\n| Property | Value |\n|----------|-------|\n| **Molecular Weight** | **2395.71 Da** |\n| **Isoelectric Point (pI)** | **6.78** |\n| Length | 20 amino acids |\n| Aromaticity | 0.15 (15% aromatic residues) |\n| Instability Index | 84.74 (unstable) |\n| GRAVY | −0.49 (hydrophilic) |\n\n**Rationale:**\n\nThe molecular weight and isoelectric point were calculated using BioPython's ProteinAnalysis module, which applies standard biochemical formulas to the linear, unmodified peptide sequence. The sequence contains all 20 standard amino acids, making it a useful reference peptide. The high instability index (>64) indicates this peptide would be unstable ",
+        "clarification": {
+          "workflowGenerationDiagnostics": null
+        }
+      }
+    },
+    {
+      "name": "oncology target evidence",
+      "passed": true,
+      "detail": {
+        "state": "chat_only",
+        "route": null,
+        "autoDispatched": false,
+        "targetEvidence": {
+          "status": "ok",
+          "targets": [
+            {
+              "rank": 1,
+              "target": "EGFR",
+              "score": 0.8884,
+              "tier": "corroborated",
+              "n_fired": 3,
+              "fired_channels": [
+                "genetics_ot",
+                "llm_reasoned",
+                "ppi_string"
+              ],
+              "conflict": false,
+              "note": "ranked by genetics_ot; corroborated by llm_reasoned,ppi_string",
+              "per_channel_z": {
+                "genetics_ot": 0.888,
+                "llm_reasoned": 1,
+                "ppi_string": 0.999
+              },
+              "evidence_links": {
+                "genetics_ot": {
+                  "kind": "public_source",
+                  "url": "https://platform.opentargets.org/evidence/ENSG00000146648/MONDO_0005233",
+                  "label": "Open Targets evidence: EGFR in non-small cell lung carcinoma"
+                },
+                "llm_reasoned": {
+                  "kind": "model_judgment",
+                  "url": null,
+                  "label": "model judgment, no citation"
+                },
+                "ppi_string": {
+                  "kind": "public_source",
+                  "url": "https://string-db.org/cgi/network?identifiers=EGFR&species=9606",
+                  "label": "STRING network: EGFR"
+                }
+              }
+            }
+          ],
+          "channels": [
+            "genetics_ot",
+            "llm_reasoned",
+            "ppi_string"
+          ],
+          "failedChannels": [],
+          "sourceErrors": {},
+          "failureKinds": {},
+          "ranking": {
+            "mode": "primary_channel",
+            "primary_channel": "genetics_ot",
+            "requested_primary_channel": "genetics_ot",
+            "evidence_value_type": "normalized_score",
+            "requested_candidates": [
+              "EGFR"
+            ],
+            "unscored_candidates": [],
+            "seed_source": "genetics_ot",
+            "n_seed_genes": 20
+          }
+        },
+        "targetRequest": {
+          "query": "EGFR in non-small cell lung cancer",
+          "disease": "non-small cell lung cancer",
+          "candidate_targets": [
+            "EGFR"
+          ],
+          "ranking_mode": "auto",
+          "suggest_modality": true,
+          "top_k": 1
+        },
+        "responseExcerpt": "Target identification completed successfully.\n\n| Rank | Target | Score | Evidence tier | Channel conflict |\n| --- | --- | --- | --- | --- |\n| 1 | EGFR | 0.8884 | corroborated | No |\n\nRanking: ordered by Open Targets disease-association evidence. Successful channels: Open Targets disease-association evidence, AI-generated reasoning, ppi_string. Failed channels: none reported.\n\nScores are associations, not clinical probabilities. Evidence tiers describe channel agreement, not independent experimental validation; AI-generated reasoning is not a retrieved publication. A conflict means the channels disagree. No improvement over Open Targets alone has been established.",
+        "clarification": {
+          "workflowGenerationDiagnostics": null
+        }
+      }
+    },
+    {
+      "name": "requests launch no Nextflow runs",
+      "passed": true,
+      "detail": {
+        "status": 200,
+        "runCount": 0
+      }
+    },
+    {
+      "name": "cleanup session dev-acceptance-da075e2e-2226-4414-bf7e-8e1af49e0563",
+      "passed": true,
+      "detail": {
+        "status": 204
+      }
+    },
+    {
+      "name": "cleanup session dev-acceptance-2686c066-e53e-4d56-a184-2ef0433328b7",
+      "passed": true,
+      "detail": {
+        "status": 204
+      }
+    },
+    {
+      "name": "cleanup session dev-acceptance-5e862438-61cf-482e-87ac-9bf956a52315",
+      "passed": true,
+      "detail": {
+        "status": 204
+      }
+    },
+    {
+      "name": "cleanup acceptance project",
+      "passed": true,
+      "detail": {
+        "status": 200
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "status": "verified",
+  "migrationLogLines": 1,
+  "canonicalMigrationLogPresent": false,
+  "migrationLogCount29": true,
+  "noPendingMigrationsLogPresent": true,
+  "applicationRestarted": false,
+  "databaseWrites": false,
+  "ssmStatus": "Success",
+  "ssmCommandId": "34d161dc-2ab7-483f-8f6b-576c3622bd11"
+}

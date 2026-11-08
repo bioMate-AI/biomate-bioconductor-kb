@@ -1,0 +1,39 @@
+{
+  "kind": "synthetic_validation_inputs",
+  "seed": 20261105,
+  "historical_s3_prefix": "s3://biomate-nextflow-work/smoke-inputs/sysucc_20261105_031724",
+  "historical_snf_run": "RID=ab67ad23-cbd7-4b70-b45f-51087f606df3",
+  "description": "Synthetic research demonstration. No hospital patient records. Preserved historical input bytes, not a newly executed run or a claim of real-cohort accuracy.",
+  "files": {
+    "rna.csv": {
+      "sha256": "b58323ce6c4d155514bdec1a957f2d95d21db508b293db34bd7cfe8a1e5a6785",
+      "rows_excluding_header": 1500,
+      "columns": 151
+    },
+    "protein.csv": {
+      "sha256": "f2ea6b5c20d116062d23884941624d0503352b6775fb9d18d39823c56863ce4a",
+      "rows_excluding_header": 400,
+      "columns": 145
+    },
+    "methyl.csv": {
+      "sha256": "9b7785f312cec9f3139ef7e203e8eee291da3c56acf34fb4441e894767c956c7",
+      "rows_excluding_header": 600,
+      "columns": 146
+    },
+    "mo_feature_matrix.csv": {
+      "sha256": "48c8b4076d60d5614bca9f392b91c798ef3d443d1101f98252c918f9527c63f8",
+      "rows_excluding_header": 139,
+      "columns": 2502
+    },
+    "ground_truth.csv": {
+      "sha256": "089b6f9d7772fd3199266b484c89e8a70c3194d679546354817738512a54bdeb",
+      "rows_excluding_header": 150,
+      "columns": 2
+    },
+    "true_drivers.csv": {
+      "sha256": "edccb7e3efb6a45ddf6ca03bb16ff580a6fce9b521e0e7b434aeff5d99c0aecd",
+      "rows_excluding_header": 24,
+      "columns": 2
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import "./data-hub.css"
 /**
  * DataHub (/files) — the data-centric surface, styled to the claude-design
  * "dataset as centroid" reference (dataui/DataHub.jsx): a two-pane hub with a
@@ -207,7 +208,7 @@ export default function DataHubPage() {
   }
 
   return (
-    <div className="w-full px-5 py-4 space-y-4" data-testid="data-hub">
+    <div className="data-hub-container flex-1 min-h-0 overflow-y-auto w-full min-w-0 px-5 py-4 space-y-4" data-testid="data-hub">
       {/* Breadcrumb + title — Models-module header language. */}
       <div className="space-y-1">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -256,10 +257,10 @@ export default function DataHubPage() {
       {!activeProjectId ? (
         <ProjectPicker projects={projects} loading={loading} onPick={setActiveProjectId} />
       ) : (
-        // Two-pane hub: persistent file-tree sidebar + detail pane. Mirrors the
-        // reference `.hub` grid (252px 1fr).
-        <div className="grid gap-3 md:grid-cols-[300px_1fr]" data-testid="data-hub-panes">
-          <div className="h-[72vh] min-h-[420px]">
+        // Stack by available workspace width, including sidebar/panel resizing.
+        // The reference two-pane layout remains when both panes fit.
+        <div className="data-hub-panes" data-testid="data-hub-panes">
+          <div className="data-hub-file-list min-w-0">
             <ProjectFileTree
               projectId={activeProjectId}
               onOpenDataset={(f) => setSelected(f)}

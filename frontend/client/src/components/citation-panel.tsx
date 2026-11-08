@@ -141,13 +141,13 @@ export function CitationPanel({
   // is present (server-side export) or at least one citation carries a
   // formatted_bibtex (local export). Literature answers have neither, so hide the
   // button rather than show one that silently emits nothing (a dead button).
-  const canExportBibTeX = Boolean(workflow) || citations.some(c => c.formatted_bibtex)
+  const canExportBibTeX = Boolean(workflow) || citations.some(c => c.formatted_bibtex?.trim())
   const activeConflicts = (conflicts || []).filter(c => c.positions && c.positions.length > 0)
   // Spec 09 — only surfaces when the retrieval path supplied real per-source
   // counts. We never derive these from the citation list (that would be a
   // fabricated "kept"); absent → section omitted.
   const retrievalSources = (retrieval || []).filter(
-    s => s && s.name && Number.isFinite(s.found) && Number.isFinite(s.kept),
+    s => s && s.name && Number.isFinite(s.found) && Number.isFinite(s.kept) && s.found >= 0 && s.kept >= 0 && s.kept <= s.found,
   )
   const retrievalKept = retrievalSources.reduce((n, s) => n + s.kept, 0)
   const retrievalFound = retrievalSources.reduce((n, s) => n + s.found, 0)
@@ -200,7 +200,7 @@ export function CitationPanel({
 
   const fallbackExport = () => {
     const bibtexContent = citations
-      .filter(c => c.formatted_bibtex)
+      .filter(c => c.formatted_bibtex?.trim())
       .map(c => c.formatted_bibtex)
       .join('\n\n')
 
@@ -471,7 +471,7 @@ export function CitationPanel({
         <CollapsibleContent>
           <CardContent className="p-3 pt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              {kind === "workflow" && <TabsList className="grid w-full grid-cols-2 h-auto min-h-8">
+              {kind === "workflow" && (!!displayMethodsSection || !!workflow) && <TabsList className="grid w-full grid-cols-2 h-auto min-h-8">
                 <TabsTrigger value="citations" className="text-xs">
                   Tool Citations
                 </TabsTrigger>
@@ -489,7 +489,7 @@ export function CitationPanel({
                     className="rounded-md bg-muted/30 p-2.5 space-y-1.5"
                     data-testid="retrieval-transparency"
                   >
-                    <summary className="cursor-pointer text-xs font-medium">
+                    <summary className="cursor-pointer text-xs font-medium flex flex-wrap items-center gap-2">
                       <span>How this was searched</span>
                       <span className="flex-1" />
                       <Badge
@@ -501,27 +501,11 @@ export function CitationPanel({
                       </Badge>
                     </summary>
                     <div className="space-y-1">
-                      {retrievalSources.map((s) => {
-                        const pct = s.found > 0 ? Math.round((s.kept / s.found) * 100) : 0
-                        return (
-                          <div
-                            key={s.name}
-                            className="flex items-center gap-2 text-[11px]"
-                            data-testid={`retrieval-source-${s.name}`}
-                          >
-                            <span className="w-28 truncate text-muted-foreground">{s.name}</span>
-                            <span className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                              <span
-                                className="block h-full bg-primary/60 rounded-full"
-                                style={{ width: `${pct}%` }}
-                              />
-                            </span>
-                            <span className="font-mono text-muted-foreground tabular-nums">
-                              {s.found} found · <span className="text-foreground font-medium">{s.kept} kept</span>
-                            </span>
-                          </div>
-                        )
-                      })}
+                      {retrievalSources.map((s) => (
+                        <p key={s.name} className="text-[11px] leading-relaxed break-words" data-testid={`retrieval-source-${s.name}`}>
+                          {s.name}: {s.found} found · <span className="font-medium">{s.kept} kept</span>
+                        </p>
+                      ))}
                     </div>
                   </details>
                 )}
@@ -797,13 +781,12 @@ function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId,
 
       {isExpanded && (
         <div className="px-3 pb-3 pt-1 border-t bg-muted/30">
-          <p className="text-xs text-muted-foreground mb-2">
-            {citation.formatted_short || `${citation.authors?.[0] || 'Unknown'} et al., ${citation.year || 'n.d.'}`}
-          </p>
+          {(citation.authors?.length || citation.year || citation.journal) ? <p className="text-xs text-muted-foreground mb-2">
+            {[citation.authors?.join(', '), citation.year, citation.journal].filter(Boolean).join(' · ')}
+          </p> : null}
 
-          {citation.title && (
-            <p className="text-xs mb-2 line-clamp-2">{citation.title}</p>
-          )}
+          {citation.title && citation.title !== citation.tool_name && <p className="text-xs mb-2">{citation.title}</p>}
+          {citation.abstract?.trim() && <p className="text-xs mb-2 line-clamp-3" data-testid="citation-abstract">{citation.abstract}</p>}
 
           {/* Spec 01 §1.3.2 — the locus relied on, not a bare DOI list. */}
           {citation.locus && (

@@ -94,6 +94,34 @@ case "$HOST_ARCH" in
 esac
 ok "主机架构: ${HOST_ARCH} (${HOST_ARCH_NORM})"
 
+# 海光 C86 检测（Hygon — 兼容 x86-64 / AMD Zen 1，无 AVX-512）
+CPU_MODEL=""
+if [[ -f /proc/cpuinfo ]]; then
+  CPU_MODEL=$(grep -m1 "model name" /proc/cpuinfo | cut -d: -f2- | xargs 2>/dev/null || true)
+fi
+IS_HYGON=false
+if echo "$CPU_MODEL" | grep -qi "hygon\|c86"; then
+  IS_HYGON=true
+  info "检测到海光 C86 处理器: ${CPU_MODEL}"
+  info "C86 完全兼容 linux/amd64 镜像，标准 x86 流程直接部署，无需额外配置。"
+  # C86 (Zen 1) 支持 AVX2，不支持 AVX-512。
+  # 若工作流容器内有 AVX-512 指令会崩溃（SIGILL）。
+  # 官方 BioMate 镜像用通用 linux/amd64 目标构建，不开 -march=native，正常无此问题。
+  # 预防性注入 OPENBLAS/MKL 限制，确保第三方容器内的数值库也不走 AVX-512 路径。
+  if ! grep -q "OPENBLAS_CORETYPE" "${ENV_FILE:-/dev/null}" 2>/dev/null; then
+    info "注入 C86 兼容性环境变量（防止 AVX-512 SIGILL）..."
+    cat >> "${ENV_FILE:-.env}" <<'HYGON_ENV'
+
+# ── 海光 C86 兼容性（由 install.sh 自动写入）────────────────────────────────
+# C86 (Zen 1) 不支持 AVX-512；以下变量限制数值库只用 AVX2，防止 SIGILL 崩溃。
+OPENBLAS_CORETYPE=SANDYBRIDGE
+MKL_ENABLE_INSTRUCTIONS=AVX2
+MKL_DEBUG_CPU_TYPE=5
+HYGON_ENV
+    ok "C86 兼容性变量已写入 .env"
+  fi
+fi
+
 # 内存 (至少 16GB)
 if [[ "$(uname)" == "Linux" ]]; then
   MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
@@ -329,31 +357,33 @@ for _img in "$GALAXY_IMAGE" "$FRONTEND_IMAGE"; do
   fi
 done
 
-# ── 拉取并标记 biomni-tools 镜像（Nextflow 工作流任务容器） ──────────────────
-# BioMate 工作流（drug_discovery, clinical_trials 等）的 .nf 文件引用本地镜像名
-# "biomate/biomni-tools:latest"。install.sh 负责从 GHCR 拉取公共版本并重新标记。
-# 如果已通过离线包 docker load，则跳过拉取步骤直接标记。
+# ── 拉取并标记工作流任务容器镜像 ─────────────────────────────────────────────
+# BioMate 工作流的 .nf 文件引用本地镜像名 "biomate/biomni-tools:latest"。
+# install.sh 负责从 GHCR 拉取并重新标记；离线部署通过 docker load 预置后直接标记。
 _BIOMNI_REMOTE="${BIOMATE_BIOMNI_TOOLS_IMAGE:-ghcr.io/biomate-ai/biomni-tools:latest}"
 _BIOMNI_LOCAL="biomate/biomni-tools:latest"
+_BIOMATE_TOOLS="biomate/biomate-tools:latest"
 
 # Check if local tag already correct
 if docker image inspect "$_BIOMNI_LOCAL" &>/dev/null; then
-  ok "biomni-tools 镜像已就绪: $_BIOMNI_LOCAL"
+  ok "工作流镜像已就绪: $_BIOMNI_LOCAL"
 else
   if docker image inspect "$_BIOMNI_REMOTE" &>/dev/null; then
-    info "重新标记 biomni-tools 镜像..."
+    info "重新标记工作流镜像..."
   else
-    info "拉取 biomni-tools 镜像: $_BIOMNI_REMOTE ..."
+    info "拉取工作流镜像: $_BIOMNI_REMOTE ..."
     if ! docker pull "$_BIOMNI_REMOTE" 2>&1; then
-      warn "biomni-tools 拉取失败。工作流（ADMET、BOIN、药物发现等）将无法运行。"
-      warn "离线部署（架构: ${HOST_ARCH_NORM}）：docker load -i biomni-tools-${HOST_ARCH_NORM}.tar，然后重新运行 install.sh"
+      warn "工作流镜像拉取失败。工作流（ADMET、BOIN、药物发现等）将无法运行。"
+      warn "离线部署（架构: ${HOST_ARCH_NORM}）：docker load < biomate-images-${HOST_ARCH_NORM}.tar.gz，然后重新运行 install.sh"
     fi
   fi
   if docker image inspect "$_BIOMNI_REMOTE" &>/dev/null; then
     docker tag "$_BIOMNI_REMOTE" "$_BIOMNI_LOCAL"
-    ok "biomni-tools 已标记为: $_BIOMNI_LOCAL"
+    ok "工作流镜像已标记为: $_BIOMNI_LOCAL"
   fi
 fi
+# 同时添加对外展示的 BioMate 品牌标签（docker images 中可见）
+docker tag "$_BIOMNI_LOCAL" "$_BIOMATE_TOOLS" 2>/dev/null || true
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. 创建 Nextflow 工作目录

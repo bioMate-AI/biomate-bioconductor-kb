@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ChevronLeft, ShieldCheck, GitBranch, Boxes, Plug, History } from "lucide-react"
 import { useModel } from "./models-api"
 import type { ModelDetail, ModelGate } from "./types"
+import { tOr } from "@/lib/i18n"
 
 // ── verdict → colour ─────────────────────────────────────────────────────────
 function verdictColor(verdict: string): string {
@@ -407,6 +408,7 @@ export function ModelObjectLoader({
     return (
       <Card className={className} data-testid="model-object-loading">
         <CardContent className="py-4 space-y-2">
+          {onBack && <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onBack}>{tOr('actions.back', 'Back')}</Button>}
           <Skeleton className="h-5 w-48" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-2/3" />

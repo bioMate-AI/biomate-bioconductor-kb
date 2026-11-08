@@ -1,0 +1,92 @@
+[
+  {
+    "case": "rnaseq",
+    "language": "en",
+    "http": 200,
+    "seconds": 0.32,
+    "result": {
+      "success": true,
+      "lane": "instant",
+      "domain": "rna-seq",
+      "why": "reads as result comparison — a cited answer, no pipeline",
+      "intent": "result_comparison",
+      "confidence": 0.7,
+      "resonance": null
+    }
+  },
+  {
+    "case": "rnaseq",
+    "language": "zh",
+    "http": 200,
+    "seconds": 0.39,
+    "result": {
+      "success": true,
+      "lane": "cloud",
+      "domain": "transcriptomics",
+      "why": "reads as a transcriptomics workflow request",
+      "intent": "general_question",
+      "confidence": 0.826,
+      "resonance": 0.826
+    }
+  },
+  {
+    "case": "survival",
+    "language": "en",
+    "http": 200,
+    "seconds": 0.32,
+    "result": {
+      "success": true,
+      "lane": "cloud",
+      "domain": "general",
+      "why": "reads as a validated workflow request (workflow generation)",
+      "intent": "workflow_generation",
+      "confidence": 0.3,
+      "resonance": null
+    }
+  },
+  {
+    "case": "survival",
+    "language": "zh",
+    "http": 200,
+    "seconds": 0.36,
+    "result": {
+      "success": true,
+      "lane": "cloud",
+      "domain": "drug_discovery",
+      "why": "reads as a drug_discovery workflow request",
+      "intent": "general_question",
+      "confidence": 0.743,
+      "resonance": 0.743
+    }
+  },
+  {
+    "case": "literature",
+    "language": "en",
+    "http": 200,
+    "seconds": 0.41,
+    "result": {
+      "success": true,
+      "lane": "cloud",
+      "domain": "transcriptomics",
+      "why": "reads as a transcriptomics workflow request",
+      "intent": "literature_survey",
+      "confidence": 0.714,
+      "resonance": 0.714
+    }
+  },
+  {
+    "case": "literature",
+    "language": "zh",
+    "http": 200,
+    "seconds": 0.36,
+    "result": {
+      "success": true,
+      "lane": "cloud",
+      "domain": "transcriptomics",
+      "why": "reads as a transcriptomics workflow request",
+      "intent": "general_question",
+      "confidence": 0.737,
+      "resonance": 0.737
+    }
+  }
+]

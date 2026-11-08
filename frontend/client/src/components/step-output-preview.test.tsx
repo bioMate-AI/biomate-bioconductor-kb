@@ -32,6 +32,10 @@ vi.mock("./interactive-launcher", () => ({
     open ? <div data-testid="mock-interactive-launcher" /> : null,
 }));
 
+vi.mock("./pdf-canvas-viewer", () => ({
+  PdfCanvasViewer: ({ data, name }: {data: Uint8Array; name: string}) => <div data-testid="safe-pdf-canvas" data-bytes={Array.from(data).join(',')}>{name}</div>,
+}));
+
 const runId = "run-1";
 const onClose = vi.fn();
 
@@ -45,6 +49,7 @@ function mockFetch(body: string | object, contentType = "text/plain", ok = true,
     text: async () => text,
     json: async () => (typeof body === "string" ? JSON.parse(text) : body),
     blob: async () => blob,
+    arrayBuffer: async () => new TextEncoder().encode(text).buffer,
   } as unknown as Response);
 }
 
@@ -139,8 +144,7 @@ describe("StepOutputPreview — viewer routing by extension", () => {
     render(<StepOutputPreview runId={runId} file={{ name: "data.cs", path: "/p", extension: "cs" }} onClose={onClose} />);
     // .cs is registered in CRYO_BINARY_EXTS → viewer='download', shows a download link
     await waitFor(() => {
-      const dl = screen.getAllByRole("link").find(a => a.getAttribute("href") === "blob:mock-url");
-      expect(dl).toBeTruthy();
+      expect(screen.getByRole("link", { name: "Download data.cs" })).toBeInTheDocument();
     });
   });
 
@@ -150,11 +154,12 @@ describe("StepOutputPreview — viewer routing by extension", () => {
       <StepOutputPreview runId={runId} file={{ name: "report.html", path: "/pipeline_info/report.html", extension: "html" }} onClose={onClose} />,
     );
     const link = await screen.findByRole("link", { name: /Open full report in a new tab/i });
-    // Opens the fetched report in an isolated top-level tab — never weakens the
-    // iframe sandbox (blob: URL would inherit the app origin → stored-XSS risk).
+    // Navigate through the authenticated endpoint so its CSP sandbox survives.
+    // A same-origin blob would discard those headers, even with noopener.
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    expect(link).toHaveAttribute("href", "blob:mock-url");
+    expect(link.getAttribute('href')).toContain(`/api/workflows/runs/${runId}/step-file?`);
+    expect(link.getAttribute('href')).not.toMatch(/^blob:/);
     // The blank 256px sandboxed iframe must be gone.
     expect(container.querySelector("iframe")).toBeNull();
   });
@@ -278,4 +283,41 @@ describe("parsePlddtFromPdb", () => {
     const pdb = [pdbLine(1, 145.0), pdbLine(2, 210.0)].join("\n");
     expect(parsePlddtFromPdb(pdb)).toEqual([]);
   });
+});
+
+describe('embedded output preview', () => {
+  it('omits duplicate filename and close controls when its parent owns the modal header', async () => {
+    mockFetch('preview text', 'text/plain');
+    render(<StepOutputPreview embedded runId={runId} file={{name:'one-name.txt',path:'/owned/one-name.txt',extension:'txt'}} onClose={onClose}/>);
+    await waitFor(()=>expect(screen.getByText('preview text')).toBeInTheDocument());
+    expect(screen.queryByTitle('one-name.txt')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:/close/i})).not.toBeInTheDocument();
+  });
+});
+
+it('shows an enlarged image directly in the parent view panel without another click', async()=>{
+  mockFetch('image bytes','image/png');
+  render(<StepOutputPreview expanded embedded runId={runId} file={{name:'large.png',path:'/owned/large.png',extension:'png'}} onClose={onClose}/>);
+  expect(await screen.findByTestId('expanded-output-image')).toHaveAttribute('alt','large.png');
+  expect(screen.queryByRole('button',{name:/download/i})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:/close/i})).not.toBeInTheDocument();
+});
+
+it.each([
+  ['fsc_validation_report.json', {frequencies:[0.1],fsc:[0.5]}],
+  ['triage_hits.json', {hits:[]}],
+])('omits the nested %s header in a parent-owned file panel',async(name,data)=>{
+  mockFetch(data,'application/json');
+  render(<StepOutputPreview embedded runId={runId} file={{name,path:'/owned/'+name,extension:'json'}} onClose={onClose}/>);
+  await waitFor(()=>expect(global.fetch).toHaveBeenCalled());
+  expect(screen.queryByText(name)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:/close/i})).not.toBeInTheDocument();
+});
+
+
+it("routes PDF bytes, including octet-stream responses, into the canvas renderer without an iframe", async () => {
+  mockFetch('%PDF-1.4 synthetic', 'application/octet-stream');
+  render(<StepOutputPreview expanded embedded runId={runId} file={{name:'report.pdf',path:'/owned/report.pdf',extension:'pdf'}} onClose={onClose}/>);
+  expect(await screen.findByTestId('safe-pdf-canvas')).toHaveAttribute('data-bytes', Array.from(new TextEncoder().encode('%PDF-1.4 synthetic')).join(','));
+  expect(document.querySelector('iframe')).toBeNull();
 });

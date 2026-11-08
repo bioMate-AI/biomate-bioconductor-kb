@@ -1,0 +1,655 @@
+Table of Contents
+
+BioMate 本地部署 · 交付清单
+文档用途： 部署前由甲方（客户）对照填写，乙方（BioMate 实施工程师）现场验收签字。
+适用场景： 国内信创 / 私有化部署（千问 LLM + 海光 C86 / 华为鲲鹏）
+文档版本： v1.1 · 2026-11-06
+预计部署时长参考：
+阶段
+预计时长
+备注
+环境预检 + 数据盘挂载
+30 分钟
+含操作系统确认、Docker 安装
+镜像拉取（联网）
+30～60 分钟
+取决于内网带宽，约 5 GB
+镜像加载（离线包）
+15～30 分钟
+本地 I/O 速度
+服务启动 + 健康检查
+10～20 分钟
+BioMate AI 后端冷启动约 5 分钟（x86），鲲鹏约 10 分钟
+验收测试
+30～60 分钟
+ADMET + BOIN 各跑一次
+合计
+2～3 小时
+离线 + 鲲鹏按上限估
+
+一、甲方环境准备清单
+请在工程师上门前完成以下准备。带 ★ 的为硬性前置条件，未满足时无法开始部署。
+
+1. 服务器硬件
+方案 A — 海光 C86（x86，推荐）
+项目
+最低要求
+推荐配置
+甲方确认
+CPU
+海光 C86 ≥ 8 核（如 7185、7265、7285）
+32 核
+☐
+内存
+32 GB
+128 GB
+☐
+系统盘
+100 GB SSD
+200 GB NVMe
+☐
+数据盘 ★
+500 GB，独立挂载至 /app
+2 TB NVMe
+☐
+网卡
+千兆内网
+万兆内网
+☐
+方案 B — 华为鲲鹏 920（ARM64）
+项目
+最低要求
+推荐配置
+甲方确认
+CPU
+鲲鹏 920 ≥ 32 核（如 TaiShan 200）
+64 核
+☐
+内存
+64 GB
+256 GB
+☐
+系统盘
+100 GB SSD
+200 GB NVMe
+☐
+数据盘 ★
+500 GB，独立挂载至 /app
+2 TB NVMe
+☐
+网卡
+千兆内网
+万兆内网
+☐
+说明： - 数据盘单独挂载是必须的。工作流运行产生的中间文件会写入 /app/nf-work，高峰期单次 RNA-seq 可产生 50～200 GB 临时文件。 - 鲲鹏 920 支持 ARM64 原生 Docker 镜像，BioMate AI 后端冷启动约 3～5 分钟（原生），Bioconductor R 类工作流（RNA-seq/scRNA-seq）通过 QEMU 运行，速度约为 x86 的 1/3，暂无 ARM64 原生版本。
+
+2. 操作系统
+发行版
+版本要求
+甲方确认
+统信 UOS
+V20（1060e 及以上）
+☐
+麒麟 OS
+V10 SP1 或 V10 SP2
+☐
+OpenEuler
+22.03 LTS SP3 及以上
+☐
+Alibaba Cloud Linux
+3（兼容 RHEL 8）
+☐
+Ubuntu
+22.04 LTS
+☐
+CentOS / RHEL
+8.x 或 9.x
+☐
+以上任选其一即可。UOS / 麒麟为信创认证发行版，优先推荐。
+
+3. 软件预安装 ★
+软件
+版本要求
+验证命令
+甲方确认
+Docker Engine
+≥ 24.0
+docker version
+☐
+Docker Compose plugin
+v2（docker compose，非 docker-compose）
+docker compose version
+☐
+curl / wget
+任意版本
+curl --version
+☐
+Docker 安装参考（统信 UOS / 麒麟，x86）：
+# 方式一：使用阿里云镜像源
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmor \
+  -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://mirrors.aliyun.com/docker-ce/linux/ubuntu jammy stable" \
+  > /etc/apt/sources.list.d/docker.list
+apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+systemctl enable --now docker
+
+# 验证
+docker version && docker compose version
+Docker 安装参考（鲲鹏 / OpenEuler，ARM64）：
+# OpenEuler 自带 docker（版本较旧），建议使用 openEuler 官方源升级
+dnf install -y docker docker-compose
+systemctl enable --now docker
+
+4. 网络与防火墙 ★
+4.1 服务器对外开放端口（内网用户访问）
+端口
+用途
+必须开放
+5000
+BioMate Web 界面（主入口）
+★
+9001
+MinIO 对象存储管理界面（运维用，可选）
+可选
+443 / 80
+配置 Nginx/Caddy 后的 HTTPS 入口
+可选
+端口 8081（BioMate AI 后端）、9000（MinIO S3 API）、5432（PostgreSQL）、6379（Redis）、5050（本地镜像仓库）均只需服务器内部通信，不对外暴露。
+4.2 服务器出站网络需求
+目标地址
+用途
+是否必须
+LLM 服务地址（内网或外网）
+AI 推理（千问/DeepSeek/vLLM 等）
+★ 必须
+registry-1.docker.io
+拉取基础镜像（postgres、redis 等）
+仅联网部署时需要；离线包已包含
+标准做法（推荐）： 乙方提前准备好离线镜像包（biomate-images-amd64.tar.gz），通过 U 盘或内网 HTTP 服务传入。部署全程不需要访问任何外网镜像仓库，工作流数据库也已包含在交付包中。
+4.3 内网 LLM 服务（如使用本地部署的千问 / DeepSeek）
+若客户已在内网部署 vLLM / LMDeploy 服务：
+项目
+要求
+甲方确认
+服务地址
+提供 OpenAI 兼容接口（/v1/chat/completions）
+☐
+模型名称
+确认 --model 启动参数中的模型名
+☐
+BioMate 服务器可访问该地址
+防火墙放行对应端口（默认 8000）
+☐
+
+5. LLM API 凭证
+选择以下任一方式，提前准备好凭证。
+LLM 方式
+准备内容
+甲方确认
+千问（DashScope，推荐）
+DashScope API Key（sk-xxx，从 dashscope.console.aliyun.com 获取）
+☐
+DeepSeek API
+DeepSeek API Key（sk-xxx，从 platform.deepseek.com 获取）
+☐
+智谱 GLM
+智谱 API Key（从 open.bigmodel.cn 获取）
+☐
+内网 vLLM / LMDeploy
+服务地址 + 模型名（如 qwen2.5-32b-instruct）
+☐
+推荐：千问 qwen-plus。 性价比最佳，国内直连无延迟，支持函数调用（工作流参数提取所需）。
+
+6. 账号权限
+权限
+说明
+甲方确认
+服务器 root 权限 ★
+安装 Docker、创建目录、配置防火墙
+☐
+Docker 组权限
+或直接使用 root 用户运行 Docker
+☐
+数据盘挂载完成
+/app 目录已挂载到数据盘，df -h /app 显示正确容量
+☐
+
+7. 甲方信息收集表（工程师填写）
+字段
+甲方提供值
+服务器 IP（内网）
+
+服务器架构
+☐ 海光 C86 (x86)　☐ 鲲鹏 920 (ARM64)
+操作系统及版本
+
+数据盘挂载路径
+☐ /app（默认）　☐ 其他：________
+LLM 方式
+☐ 千问　☐ DeepSeek　☐ 智谱　☐ 内网 vLLM
+LLM API Key / 地址
+（现场填写，不写入本文档）
+是否可访问外网
+☐ 可以　☐ 不可以（需要离线包）
+预计用户数
+
+主要工作流场景
+☐ ADMET　☐ RNA-seq　☐ WGS　☐ CryoEM　☐ 药物发现　☐ 其他
+
+二、乙方实施步骤（工程师执行）
+步骤 1：环境预检
+# 1. 确认架构
+uname -m
+grep -m1 "model name" /proc/cpuinfo
+
+# 2. 确认 Docker
+docker version --format '{{.Server.Version}}'
+docker compose version --short
+
+# 3. 确认数据盘挂载
+df -h /app
+# 期望：数据盘容量 ≥ 500 GB，不是根分区
+
+# 4. 确认端口未被占用
+ss -tuln | grep -E ':5000|:9001|:8081'
+# 期望：无输出（端口空闲）
+
+# 5. 确认 Docker socket 权限
+stat -c '%G %a' /var/run/docker.sock
+
+步骤 1.5（可选）：数据盘格式化与挂载
+若 /app 已挂载到独立数据盘，跳过此步骤。若 df -h /app 显示的是根分区，须先挂载。
+# 查看可用磁盘（找到未挂载的大容量盘，如 /dev/vdb）
+lsblk
+
+# 格式化（仅对全新未分区磁盘执行；若已有数据，跳过）
+mkfs.ext4 /dev/vdb
+
+# 挂载
+mkdir -p /app
+mount /dev/vdb /app
+
+# 写入 /etc/fstab 确保重启后自动挂载
+UUID=$(blkid -s UUID -o value /dev/vdb)
+echo "UUID=${UUID} /app ext4 defaults 0 2" >> /etc/fstab
+
+# 确认
+df -h /app
+# 期望：显示 /dev/vdb 挂载到 /app，容量 ≥ 500 GB
+
+步骤 2：传入部署包
+BioMate 以打包文件方式交付，不需要访问 GitHub 私有仓库。
+乙方使用 scripts/package-onprem.sh 生成交付包（见运维手册附录），然后将以下文件传入客户服务器：
+文件
+说明
+biomate-deploy-<版本>.tar.gz
+代码包（约 20 MB）
+biomate-images-amd64.tar.gz
+x86 镜像包（约 5 GB，海光 C86 使用）
+biomate-images-arm64.tar.gz
+ARM64 镜像包（约 5 GB，鲲鹏 920 使用）
+标准做法（推荐，代码包 + 镜像包一同传入）：
+BioMate 镜像为私有包，客户服务器无法自行拉取。请始终使用乙方预打包的镜像 tar 包， 即使服务器可访问外网也不例外。
+# 将代码包和镜像包一同传入
+scp biomate-deploy-<版本>.tar.gz biomate-images-amd64-<版本>.tar.gz root@<服务器IP>:/app/
+
+# 在服务器上解压代码包
+mkdir -p /app/biomate
+tar -xzf /app/biomate-deploy-<版本>.tar.gz -C /app/biomate --strip-components=1
+cd /app/biomate
+离线环境（服务器无法访问外网）：
+# 将代码包和镜像包一同传入
+scp biomate-deploy-<版本>.tar.gz biomate-images-amd64.tar.gz root@<服务器IP>:/app/
+# 鲲鹏 920 使用：biomate-images-arm64.tar.gz
+
+# 在服务器上解压代码包
+mkdir -p /app/biomate
+tar -xzf /app/biomate-deploy-<版本>.tar.gz -C /app/biomate --strip-components=1
+cd /app/biomate
+
+# 预加载 Docker 镜像（install.sh 也会自动检测并跳过拉取步骤）
+docker load < /app/biomate-images-amd64.tar.gz
+# 或：docker load < /app/biomate-images-arm64.tar.gz（鲲鹏）
+
+步骤 3：运行安装脚本
+cd /app/biomate
+bash install.sh
+install.sh 交互式向导会引导填写： - PostgreSQL 密码 - MinIO 密码 - LLM 提供商选择（选千问时填 DashScope API Key） - JWT / Session 密钥（自动生成）
+海光 C86 机器会自动检测并写入 AVX-512 兼容变量，无需手动操作。
+鲲鹏 ARM64 机器会自动移除 platform: linux/amd64 限制，拉取 ARM64 原生镜像。
+
+步骤 4：创建管理员账号
+# install.sh 完成后自动提示，或手动执行：
+docker exec -it biomate-postgres psql -U biomate -d biomate -c \
+  "UPDATE users SET subscription_tier = 'admin' WHERE email = '管理员邮箱';"
+
+三、交付验收标准
+以下所有项目通过后，视为部署完成，双方签字确认。
+
+验收 1：服务健康状态 ★
+docker compose -f /app/biomate/docker-compose.onprem.yml ps
+期望： 以下 6 个容器全部为 healthy 或 running：
+容器
+期望状态
+实测状态
+通过
+biomate-postgres
+healthy
+
+☐
+biomate-redis
+healthy
+
+☐
+biomate-minio
+healthy
+
+☐
+biomate-galaxy
+healthy
+
+☐
+biomate-frontend
+healthy
+
+☐
+biomate-registry
+running
+
+☐
+
+验收 2：Web 界面可访问 ★
+在客户内网机器浏览器打开 http://<服务器IP>:5000：
+浏览器要求： Chrome 100+、Edge 100+、Firefox 100+（推荐 Chrome）。不支持 IE 及旧版 Edge（EdgeHTML）。360 浏览器须切换为极速模式（Chromium 内核）。
+检查项
+期望结果
+通过
+页面正常加载（非空白、非 502）
+✅
+☐
+注册新用户成功
+✅
+☐
+使用注册账号登录成功
+✅
+☐
+侧边栏、聊天框正常显示
+✅
+☐
+
+验收 3：LLM 对话功能 ★
+在聊天框发送：你好，介绍一下 BioMate 的功能
+检查项
+期望结果
+通过
+AI 在 30 秒内返回流式回复
+✅
+☐
+回复内容正常（非错误提示）
+✅
+☐
+外部 API（千问 / DeepSeek）： 若超时或报错，检查：
+docker logs biomate-galaxy 2>&1 | grep -i "llm\|api\|error" | tail -20
+curl -s -o /dev/null -w "%{http_code}" https://dashscope.aliyuncs.com
+内网 vLLM / LMDeploy： 在服务器上验证 LLM 服务可达：
+curl -s http://<内网LLM地址>:8000/v1/models | python3 -m json.tool
+# 期望：返回模型列表 JSON
+若内网 LLM 不可达，检查服务器防火墙是否放行对应端口，及 .env 中 OPENAI_API_BASE_URL 是否正确填写。
+
+验收 4：工作流搜索与执行 ★
+测试 1 — ADMET 预测（Python 工作流，CPU，约 3～5 分钟）：
+在聊天框发送：
+请对以下 SMILES 进行 ADMET 性质预测：
+CC(=O)Oc1ccccc1C(=O)O
+检查项
+期望结果
+通过
+AI 返回工作流方案（ADMET 相关）
+✅
+☐
+右侧面板出现工作流卡片
+✅
+☐
+点击“确认运行”后状态变为“Running”
+✅
+☐
+5 分钟内状态变为“Completed”
+✅
+☐
+结果面板显示 ADMET 属性数据
+✅
+☐
+测试 2 — BOIN 临床试验（Python 工作流，CPU，约 2～3 分钟）：
+在聊天框发送：
+设计一个 I 期临床试验的 BOIN 剂量爬坡方案，目标 DLT 率 25%，剂量范围 10mg 到 80mg
+检查项
+期望结果
+通过
+AI 返回 BOIN 相关方案
+✅
+☐
+工作流在 3 分钟内完成
+✅
+☐
+结果包含剂量爬坡表格
+✅
+☐
+
+验收 5：存储功能
+# MinIO 管理界面可访问（浏览器）
+# http://<服务器IP>:9001
+# 用户名/密码：与 .env 中 MINIO_ROOT_USER / MINIO_ROOT_PASSWORD 一致
+检查项
+期望结果
+通过
+MinIO 管理界面正常登录
+✅
+☐
+biomate-data bucket 存在且有文件
+✅（工作流运行后）
+☐
+
+验收 6：性能基准（参考值）
+指标
+海光 C86 参考值
+鲲鹏 920 参考值
+页面首次加载
+< 3 秒
+< 5 秒
+LLM 首个 token 返回
+< 5 秒（千问 API）
+< 5 秒（千问 API）
+ADMET 工作流完成
+< 5 分钟
+< 8 分钟
+BOIN 工作流完成
+< 3 分钟
+< 5 分钟
+以上为 32 核 / 64 GB 内存配置参考值，实际以甲方硬件为准。
+
+四、签字确认
+角色
+姓名
+日期
+签字
+甲方技术负责人
+
+
+
+乙方实施工程师
+
+
+
+验收结论：
+☐ 全部通过，部署验收完成
+☐ 部分通过，遗留问题：______________________（约定解决时间：__________）
+
+附录 A：常见问题快速处置
+A1. 页面空白 / 白屏
+根因：index.html 构建时硬编码了 Google Fonts CDN 链接（fonts.googleapis.com），国内访问时 CSS 请求挂起，浏览器白屏等待。
+永久修复：在 .env 中添加 DISABLE_GOOGLE_FONTS=true，然后重启前端：
+docker restart biomate-frontend
+紧急修复（无需重启，容器重建后失效）：
+docker exec biomate-frontend sed -i \
+  "/fonts\.googleapis\.com/d; /fonts\.gstatic\.com/d; /googletagmanager\.com/d" \
+  /app/dist/public/index.html
+docker restart biomate-frontend
+A2. 工作流启动后一直 running 不结束
+原因：DaoCloud 等镜像加速器会拦截 Docker-in-Docker 子容器拉取，导致 Nextflow 卡死。
+修复：删除 Docker daemon 加速器配置，改用直连：
+# 编辑 /etc/docker/daemon.json，删除 "registry-mirrors" 字段（或设为 []）
+vi /etc/docker/daemon.json
+systemctl restart docker
+docker restart biomate-galaxy
+A3. BioMate AI 后端容器无限重启
+原因：involucro 锁文件残留（上次异常关机导致）。
+修复：
+docker stop biomate-galaxy
+docker run --rm -v biomate_galaxy_data:/data busybox \
+  find /data -name "*.lock" -delete
+docker start biomate-galaxy
+A4. AI 回复报错 / 超时
+原因：LLM API Key 错误或服务器无法访问 dashscope.aliyuncs.com。
+修复：
+# 检查 API Key 配置
+grep LLM /app/biomate/.env
+
+# 测试网络连通性
+curl -s -o /dev/null -w "%{http_code}" https://dashscope.aliyuncs.com
+# 期望：200 或 400（连通即可）
+
+# 若无法访问，确认防火墙出站规则，或改用内网 LLM
+A5. 海光 C86 服务器报 Illegal instruction
+原因：某些镜像编译了 AVX-512 指令，C86 不支持。
+修复：在 .env 中添加：
+OPENBLAS_CORETYPE=SANDYBRIDGE
+MKL_ENABLE_INSTRUCTIONS=AVX2
+MKL_DEBUG_CPU_TYPE=5
+然后重启：docker restart biomate-galaxy
+A6. 鲲鹏服务器 BioMate AI 后端容器启动耗时超过 15 分钟
+原因：ARM64 服务器运行 x86 镜像，QEMU 模拟模式导致 Python 启动极慢。
+确认（应为 ARM64 原生镜像）：
+docker inspect biomate-galaxy | grep Architecture
+# 期望：arm64（若显示 amd64，重新用 arm64 镜像包部署）
+A7. MinIO 访问报 SignatureDoesNotMatch
+原因：.env 中的 MINIO_ROOT_PASSWORD 与容器实际使用的密码不一致。
+修复：
+A8. 工作流输出文件预览 / 下载返回 403
+现象：工作流运行完成后，在「After Run → Outputs」点击文件，弹出 Preview unavailable (HTTP 403) 或下载失败。
+根因：.env 中未配置 NEXTFLOW_WORK_DIR，或旧版镜像未包含本地文件路径白名单修复。
+修复：
+# 1. 检查前端日志确认原因
+docker logs biomate-frontend 2>&1 | grep '\[step-file\]' | tail -10
+
+# 2. 确认 NEXTFLOW_WORK_DIR 写入 .env
+grep NEXTFLOW_WORK_DIR /app/biomate/.env || \
+  echo 'NEXTFLOW_WORK_DIR=/app/nf-work' >> /app/biomate/.env
+
+# 3. 重启前端（无需重建镜像）
+docker restart biomate-frontend
+
+# 4. 验证：再次点击已完成工作流的 Outputs 文件，应直接显示内容
+详见运维手册第12节「故障排查 — 工作流运行结果文件预览 / 下载返回 403」获取完整排查步骤。
+grep MINIO /app/biomate/.env
+# 确认 MINIO_ROOT_USER 和 MINIO_ROOT_PASSWORD 与创建时一致
+# 若不一致，停止服务 → 删除 minio 卷 → 重新 install.sh
+
+附录 B：版本升级与回滚
+升级步骤
+cd /app/biomate
+
+# 1. 备份当前 .env（含所有密钥）
+cp .env .env.backup-$(date +%Y%m%d)
+
+# 2. 传入新版部署包，解压覆盖代码目录（保留 .env）
+tar -xzf /tmp/biomate-deploy-<新版本>.tar.gz -C /app/biomate --strip-components=1
+
+# 3. 联网环境：拉取新镜像
+docker compose -f docker-compose.onprem.yml pull
+
+#    离线环境：加载新镜像包
+#    docker load < /tmp/biomate-images-amd64-<新版本>.tar.gz
+
+# 4. 滚动重启（无停机时间约 30 秒）
+docker compose -f docker-compose.onprem.yml up -d
+
+# 5. 验证
+docker compose -f docker-compose.onprem.yml ps
+docker logs biomate-galaxy --tail 30
+回滚步骤（如升级后出现异常）
+# 恢复旧版镜像标签（需有旧版镜像包）
+docker load < /tmp/biomate-images-amd64-<旧版本>.tar.gz
+
+# 恢复代码包
+tar -xzf /tmp/biomate-deploy-<旧版本>.tar.gz -C /app/biomate --strip-components=1
+
+# 重启
+docker compose -f docker-compose.onprem.yml up -d
+注意： 若新版本执行了数据库迁移，回滚时需同时恢复数据库备份。升级前务必执行：
+docker exec biomate-postgres pg_dump -U biomate biomate > /app/backup-$(date +%Y%m%d).sql
+
+附录 C：交付后日常运维指引（移交给甲方 IT）
+日常巡检命令（每日一次）
+# 查看所有服务状态
+docker compose -f /app/biomate/docker-compose.onprem.yml ps
+
+# 查看 BioMate AI 后端最近日志（有无 ERROR）
+docker logs biomate-galaxy --since 1h 2>&1 | grep -i error | tail -20
+
+# 查看磁盘用量（数据盘剩余）
+df -h /app
+服务重启命令
+# 重启单个服务（如 BioMate AI 后端）
+docker restart biomate-galaxy
+
+# 重启全部服务（不丢数据）
+docker compose -f /app/biomate/docker-compose.onprem.yml restart
+
+# 完全停止后启动（服务器重启后）
+docker compose -f /app/biomate/docker-compose.onprem.yml up -d
+数据备份建议
+备份内容
+命令
+建议频率
+PostgreSQL 数据库
+docker exec biomate-postgres pg_dump -U biomate biomate > backup.sql
+每日
+.env 配置文件
+cp /app/biomate/.env /nas/backup/.env.$(date +%Y%m%d)
+每次变更时
+MinIO 数据卷
+对 /app/biomate/data/minio 目录做增量备份
+每周
+并发用户容量参考
+配置
+推荐并发用户数
+32 核 / 64 GB（最低推荐）
+10～20 人
+64 核 / 128 GB
+30～50 人
+128 核 / 256 GB
+80～120 人
+以上为 LLM 调用走外部 API（千问 DashScope）的情况。若内网 LLM 推理资源有限，实际并发受 LLM 吞吐量约束。
+
+附录 D：部署后移交资料清单
+乙方部署完成后须移交以下资料：
+☐ .env 配置文件备份（脱敏版 — 不含明文密码，密码另外密封交接）
+☐ 管理员账号信息（密封信封，含初始密码）
+☐ 本运维手册（docs/ONPREM_SETUP.md）纸质或电子版
+☐ 本验收清单（双方签字版）
+☐ 乙方支持联系方式（见下）
+
+技术支持联系方式
+场景
+联系方式
+部署问题 / 验收期支持
+实施工程师（现场移交时当面确认）
+生产运行故障
+发送日志截图至 BioMate 技术支持邮箱（合同约定）
+功能使用咨询
+参考 docs/ONPREM_SETUP.md 运维手册
+收集问题日志命令（发送给支持团队）：
+docker compose -f /app/biomate/docker-compose.onprem.yml logs \
+  --tail 200 > /tmp/biomate-logs-$(date +%Y%m%d-%H%M).txt 2>&1
+# 发送 /tmp/biomate-logs-*.txt 文件

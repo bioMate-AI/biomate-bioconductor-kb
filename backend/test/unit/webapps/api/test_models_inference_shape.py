@@ -313,19 +313,22 @@ def test_adapt_toggle_roundtrip(mod, tmp_path, monkeypatch):
     # Point the disabled-set sidecar at a temp file.
     disabled_path = str(tmp_path / "disabled_pairs.jsonl")
     monkeypatch.setattr(mod, "_disabled_pairs_path", lambda: disabled_path)
+    monkeypatch.setattr(mod, "_read_all_dpo_pairs", lambda: [
+        {"meta": {"row_id": key, "user_id": "owner", "org_id": "project"}} for key in ("p1", "p2")
+    ])
 
     assert mod._load_disabled_pairs() == set()  # nothing disabled initially
     # Flip p1 on→off, then off→on.
-    assert mod.toggle_adapt_pair("p1", None) == {"id": "p1", "on": False}
+    assert mod.toggle_adapt_pair("p1", None, owner_id="owner") == {"id": "p1", "on": False}
     assert mod._load_disabled_pairs() == {"p1"}
-    assert mod.toggle_adapt_pair("p1", None) == {"id": "p1", "on": True}
+    assert mod.toggle_adapt_pair("p1", None, owner_id="owner") == {"id": "p1", "on": True}
     assert mod._load_disabled_pairs() == set()
     # Explicit target (the TogglePairRequest carries on=…).
     req_off = mod.TogglePairRequest(on=False)
-    assert mod.toggle_adapt_pair("p2", req_off) == {"id": "p2", "on": False}
+    assert mod.toggle_adapt_pair("p2", req_off, owner_id="owner") == {"id": "p2", "on": False}
     assert "p2" in mod._load_disabled_pairs()
     req_on = mod.TogglePairRequest(on=True)
-    assert mod.toggle_adapt_pair("p2", req_on) == {"id": "p2", "on": True}
+    assert mod.toggle_adapt_pair("p2", req_on, owner_id="owner") == {"id": "p2", "on": True}
     assert "p2" not in mod._load_disabled_pairs()
 
 
@@ -339,15 +342,117 @@ def test_toggle_requires_pair_id(mod):
 def test_run_registry_uses_shared_store(mod):
     # A run written by _new_run/_finish_run must be readable via the same store
     # any worker resolves through get_run_state_store() (InMemory in this env).
-    run_id = mod._new_run("bionemo:boltz2", mod.STRUCTURE)
+    run_id = mod._new_run("bionemo:boltz2", mod.STRUCTURE, "owner")
     assert run_id.startswith("inf-")
     store = mod._store()
     assert store.get_run(run_id)["status"] == "running"
     mod._finish_run(run_id, {"plddt": [], "pae": [], "regions": [], "structureFileRef": None})
-    out = mod.get_inference_result(run_id)
+    out = mod.get_inference_result(run_id, owner_id="owner")
     assert out["status"] == "completed"
     assert out["evidenceClass"] == mod.STRUCTURE
     # Unknown run → 404 (HTTPException), not a silent empty.
     import pytest as _pytest
     with _pytest.raises(Exception):
         mod.get_inference_result("inf-does-not-exist")
+
+
+# Owner boundaries are tested on synthetic stores only.
+def test_missing_trusted_owner_is_rejected(mod):
+    with pytest.raises(Exception) as error:
+        mod.list_models(owner_id=None)
+    assert error.value.status_code == 403
+
+
+def test_private_catalog_matches_durable_owner_binding(mod, tmp_path, monkeypatch):
+    import sqlite3
+    registry = tmp_path / "campaigns_registry.db"
+    with sqlite3.connect(registry) as db:
+        db.execute("CREATE TABLE campaigns(campaign_id TEXT, user_id TEXT)")
+        db.executemany("INSERT INTO campaigns VALUES (?,?)", [("own", "owner"), ("foreign", "stranger"), ("unbound", "")])
+    campaigns = tmp_path / "campaigns"
+    campaigns.mkdir()
+    for key in ("own", "foreign", "unbound"):
+        with sqlite3.connect(campaigns / (key + ".db")) as db:
+            db.execute("CREATE TABLE custom_model_registrations(campaign_id TEXT,model_name TEXT,mode TEXT,weight REAL,higher_is_better INTEGER,enabled INTEGER,registered_at TEXT)")
+            db.execute("INSERT INTO custom_model_registrations VALUES (?,?, 'python',1,1,1,'2026-11-07')", (key, key + "-private-model"))
+    monkeypatch.setenv("BIOMATE_CAMPAIGN_REGISTRY_DB", str(registry))
+    monkeypatch.setattr(mod, "_campaign_db_dir", lambda: str(campaigns))
+    assert [row['campaign_id'] for row in mod._iter_custom_registrations('owner')] == ['own']
+    assert mod._iter_custom_registrations(None) == []
+    assert mod._resolve_campaign_ids('foreign', 'owner') == []
+    assert mod._resolve_campaign_ids('missing', 'owner') == []
+    monkeypatch.setattr(mod, '_bionemo_catalog', lambda: [{'id':'bionemo:public-pretrained'}])
+    ids = {row['id'] for row in mod.list_models(owner_id='owner')}
+    assert 'bionemo:public-pretrained' in ids
+    assert not any('foreign' in value or 'unbound' in value for value in ids)
+    with pytest.raises(Exception) as error:
+        mod.get_model('custom:foreign:foreign-private-model', owner_id='owner')
+    assert error.value.status_code == 404
+
+
+def test_customer_edit_reads_and_toggles_are_owner_bound(mod, tmp_path, monkeypatch):
+    rows = [
+        {'chosen':'mine', 'rejected':'my draft', 'meta':{'user_id':'owner','org_id':'project','row_id':'mine'}},
+        {'chosen':'private stranger text','meta':{'user_id':'stranger','org_id':'project','row_id':'foreign'}},
+        {'chosen':'unbound legacy text','meta':{'org_id':'project','row_id':'unbound'}},
+    ]
+    monkeypatch.setattr(mod, '_read_all_dpo_pairs', lambda: rows)
+    monkeypatch.setattr(mod, '_disabled_pairs_path', lambda: str(tmp_path / 'disabled.jsonl'))
+    assert [row['chosen'] for row in mod._read_dpo_pairs('project','owner')] == ['mine']
+    assert mod._read_dpo_pairs('project',None) == []
+    assert mod._read_dpo_pairs('other','owner') == []
+    with pytest.raises(Exception) as error:
+        mod.toggle_adapt_pair('foreign', None, owner_id='owner')
+    assert error.value.status_code == 403
+    assert not (tmp_path / 'disabled.jsonl').exists()
+    with pytest.raises(Exception) as error:
+        mod.retrain_adapt('other-project', owner_id='owner')
+    assert error.value.status_code == 409
+
+
+def test_inference_results_do_not_cross_owners_or_accept_legacy_unowned(mod):
+    for actor in ('owner', None):
+        run_id = mod._new_run('bionemo:boltz2', mod.STRUCTURE, actor)
+        with pytest.raises(Exception) as error:
+            mod.get_inference_result(run_id, owner_id='stranger')
+        assert error.value.status_code == 403
+
+
+def test_models_routes_require_admin_bridge_before_trusting_owner_headers():
+    import ast
+    tree = ast.parse(open(_MODULE_PATH).read())
+    routes = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+              and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name)
+              and node.func.value.id == 'router' and node.func.attr in ('get','post')]
+    assert routes
+    assert all(any(kw.arg == 'require_admin' and isinstance(kw.value, ast.Constant) and kw.value.value is True for kw in node.keywords) for node in routes)
+
+
+def test_unavailable_pretrained_inference_does_not_become_completed_science(mod, monkeypatch):
+    monkeypatch.setattr(mod, '_find_catalog_row', lambda model_id, owner_id=None: {'id':model_id})
+    monkeypatch.setattr(mod, '_dispatch_bionemo', lambda *args: {'stub':True,'stub_reason':'Model backend not configured'})
+    result = mod.infer('bionemo:boltz2', mod.InferRequest(inputs={'sequence':'AA'}), owner_id='owner')
+    record = mod.get_inference_result(result['run_id'], owner_id='owner')
+    assert record['status'] == 'failed'
+    assert 'not configured' in record['error']
+
+
+def test_corrupt_ownership_store_is_unavailable_not_empty_success(mod, tmp_path, monkeypatch):
+    path = tmp_path / 'broken.db'
+    path.write_text('not sqlite')
+    monkeypatch.setenv('BIOMATE_CAMPAIGN_REGISTRY_DB', str(path))
+    with pytest.raises(Exception) as error:
+        mod._owned_campaign_ids('owner')
+    assert error.value.status_code == 503
+
+
+def test_active_version_uses_registry_record_not_inferred_version_one(mod, tmp_path, monkeypatch):
+    import sqlite3
+    db_dir = tmp_path / 'campaigns'
+    db_dir.mkdir()
+    monkeypatch.setattr(mod, '_campaign_db_dir', lambda: str(db_dir))
+    with sqlite3.connect(db_dir / 'own.db') as db:
+        db.execute('CREATE TABLE custom_model_versions(campaign_id TEXT,model_name TEXT,version INTEGER,status TEXT)')
+        db.execute("INSERT INTO custom_model_versions VALUES ('own','classifier',7,'active')")
+    assert mod._recorded_active_version('own','classifier') == '7'
+    assert mod._recorded_active_version('own','missing') == 'Not recorded'

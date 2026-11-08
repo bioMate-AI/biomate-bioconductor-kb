@@ -150,3 +150,10 @@ describe("<StepDetail> — rendered ⇄ raw toggle", () => {
     expect(onOpenOutput).toHaveBeenCalledWith("s1/logs.txt");
   });
 });
+
+it('renders actual recorded failure, job and work directory in the full step view', () => {
+ render(<StepDetail runId="run" step={{ id: 'failed', name: 'Align', status: 'failed', errorMessage: 'Actual container exit 127', jobId: 'job-7', workDir: '/work/real-task' }} onClose={() => {}} />);
+ expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('Actual container exit 127');
+ expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('job-7');
+ expect(screen.getByTestId('step-recorded-details')).toHaveTextContent('/work/real-task');
+});

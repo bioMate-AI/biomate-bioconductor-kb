@@ -1168,9 +1168,19 @@ def _classify_failure(
     # claim a restart when the log actually shows orphan/log-stream/worker-recycle
     # evidence. (Root-cause of the 2026-10-05 mis-diagnosis.)
     if any(k in low for k in ("worker recycle", "log-stream", "orphan")):
-        return verdict("infra_transient",
-                       "The run was interrupted by a backend restart. "
-                       "It can resume from where it left off.", True, "resume")
+        # Build a non-internal snippet so the user sees any real Nextflow errors
+        # that happened before the restart. Filter out pure-internal lines but keep
+        # actual error/exception lines from the orchestrator log.
+        _nf_error_lines = [
+            l for l in raw.splitlines()
+            if l.strip() and not _INTERNAL_LINE_RE.search(l)
+            and any(k in l.lower() for k in ("error", "exception", "failed", "exit status", "command error"))
+        ][-10:]
+        _restart_snippet = _redact_internal("\n".join(_nf_error_lines))[:1500] if _nf_error_lines else task_error_snippet
+        return {**verdict("infra_transient",
+                          "The run was interrupted by a backend restart. "
+                          "It can resume from where it left off.", True, "resume"),
+                "task_error_snippet": _restart_snippet}
     # ── out of memory (deterministic: needs more memory) ──
     if ("outofmemory" in low or "out of memory" in low or rc == 137
             or "exit status : 137" in low or "oomkilled" in low):
@@ -1423,6 +1433,30 @@ def _trigger_auto_reroute_on_failure(
                     name=f"nf-reroute-{new_run_id[:8]}",
                 ).start()
                 return  # Layer-1 handled; skip Layer-2.
+
+        # ── Layer 1b: auto-resume for transient infrastructure failures ──────
+        # For backend-restart / spot-reclaim failures, the fix is simply to
+        # re-launch with -resume so Nextflow reuses its cached work directory.
+        # We emit auto_resuming immediately (30 s countdown so the user can
+        # cancel) and also emit ai_diagnosis so the card is ready if the
+        # resume itself fails. The frontend drives the actual API call after
+        # the countdown so the backend has time to stabilise.
+        if category == "infra_transient" and not run_meta.get("auto_resume_attempted"):
+            # Mark so a resumed run that also fails doesn't loop back here.
+            with _runs_lock:
+                if run_id in _runs:
+                    _runs[run_id]["auto_resume_attempted"] = True
+            try:
+                get_run_state_store().update_run(run_id, {"auto_resume_attempted": True})
+            except Exception:
+                pass
+            _post_sse_direct(inv_id, "auto_resuming", {
+                "run_id": run_id,
+                "delay_s": 30,
+                "reason": failure_verdict.get("user_message", ""),
+            })
+            log.info("[auto_reroute] Layer-1b auto-resume scheduled for run=%s (delay=30s)", run_id)
+            # Fall through to also emit ai_diagnosis as backup (shown if resume fails).
 
         # ── Layer 2: AI diagnosis card ────────────────────────────────────
         # Emit a structured diagnosis so the frontend can surface it as a
@@ -3555,6 +3589,14 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
         except ClientError as exc:
             code = exc.response.get("Error", {}).get("Code", "")
             if code in ("404", "NoSuchKey"):
+                # Key may be a directory prefix without a trailing slash.
+                # Try listing objects under key+'/' before failing.
+                try:
+                    resp = s3.list_objects_v2(Bucket=bucket, Prefix=key + "/", MaxKeys=1)
+                    if resp.get("KeyCount", 0) > 0:
+                        return  # valid directory prefix — treat as found
+                except ClientError:
+                    pass
                 raise HTTPException(
                     status_code=422,
                     detail={
@@ -3595,14 +3637,48 @@ def _generate_executor_config(
     executor = compute.get("executor", "local")
     s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
 
-    # For local executor with MinIO: generate a minimal config so Nextflow can
-    # stage s3:// input files from MinIO rather than AWS S3.
+    # For local executor: generate a config so Nextflow uses proper Docker settings.
+    # Without a -c override config, Nextflow reads only the pipeline's own nextflow.config
+    # which may contain wrong Docker runOptions (e.g. bind mounts to paths that don't exist
+    # on this host) or no Docker settings at all, causing task container failures.
     if executor not in ("awsbatch", "slurm", "k8s"):
         if not s3_endpoint:
-            return None
+            # On-prem local executor without MinIO: generate a minimal config with Docker
+            # runOptions so Nextflow uses --pull missing, correct entrypoint/user, and the
+            # right network. This overrides the pipeline's own nextflow.config Docker settings
+            # via the -c flag (Nextflow applies -c configs AFTER pipeline nextflow.config).
+            docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
+            import platform as _nf_platform
+            _is_arm64 = _nf_platform.machine().lower() in ("aarch64", "arm64")
+            _arm64_env_block = 'env { DOCKER_DEFAULT_PLATFORM = "linux/arm64" }' if _is_arm64 else ""
+            import multiprocessing as _mp
+            host_cpus = _mp.cpu_count()
+            onprem_local_config = f"""docker {{
+  enabled = true
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull missing'
+}}
+{_arm64_env_block}
+executor {{
+  name   = 'local'
+  cpus   = {max(host_cpus, 4)}
+  memory = '16 GB'
+}}
+
+process {{
+  cpus   = 1
+  memory = '4 GB'
+}}
+"""
+            config_path = config_dir / "biomate_executor_override.config"
+            config_path.write_text(onprem_local_config)
+            log.info(f"[Nextflow] Generated on-prem local config (no MinIO): {config_path}")
+            return config_path
         # MinIO config for local executor
         minio_key    = os.environ.get("AWS_ACCESS_KEY_ID",     os.environ.get("MINIO_ROOT_USER", "biomate"))
         minio_secret = os.environ.get("AWS_SECRET_ACCESS_KEY", os.environ.get("MINIO_ROOT_PASSWORD", ""))
+        # OSS uses virtual-hosted style (forcePathStyle=false); MinIO uses path style (true).
+        force_path_style_str = os.environ.get("S3_FORCE_PATH_STYLE", "true").lower()
+        s3_path_style_access = force_path_style_str not in ("false", "0", "no")
         # Docker network for task containers: must match the compose network so
         # task containers can resolve "minio" hostname for S3 file staging.
         # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
@@ -3638,7 +3714,7 @@ process {{
         if admet_container:
             admet_container_override = f"""
 process {{
-  withName: ~/.*ADMET.*/ {{
+  withName: '/.*ADMET.*/' {{
     container = '{admet_container}'
   }}
 }}
@@ -3653,7 +3729,7 @@ process {{
 aws {{
   client {{
     endpoint = '{s3_endpoint}'
-    s3PathStyleAccess = true
+    s3PathStyleAccess = {str(s3_path_style_access).lower()}
     connectionTimeout = 60000
     maxConnections    = 4
   }}
@@ -3666,9 +3742,10 @@ docker {{
 {docker_executable_line}
   // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
   // --user root: task containers need write access to the nf-work bind-mount.
-  // --pull never: use locally-loaded images only; skip registry check so Docker registry
-  //   mirrors (e.g. DaoCloud on Alibaba Cloud ECS) don't block pre-loaded on-prem images.
-  runOptions = '--entrypoint "" --user root --network {docker_network} --pull never'
+  // --pull missing: pull from registry only when image is not in local cache.
+  //   Pre-pulled images (e.g. via GHA sync workflow) are used directly; registry is only
+  //   contacted for images not yet cached (e.g. quay.io bioconductor containers on first run).
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull missing'
 }}
 {_arm64_env_block}
 
@@ -4520,7 +4597,11 @@ _TRACE_SKIP_FILES = frozenset({
 
 
 def _scan_task_work_dir(work_dir: str) -> List[str]:
-    """List output files in a Nextflow task work directory, skipping internal files."""
+    """List output files in a Nextflow task work directory, skipping internal files.
+
+    Returns full absolute paths so the step-file API can serve them directly
+    without resolving relative to CWD (which causes 403 on the allowed-roots check).
+    """
     p = Path(work_dir)
     if not p.is_dir():
         return []
@@ -4531,7 +4612,7 @@ def _scan_task_work_dir(work_dir: str) -> List[str]:
                 continue
             if entry.name in _TRACE_SKIP_FILES:
                 continue
-            files.append(entry.name)
+            files.append(str(entry))
     except PermissionError:
         pass
     return sorted(files)
@@ -5673,6 +5754,33 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
 
         step = data.get("step", rf.get("name", ""))
 
+        # BioMate alternate_state_generation report → surface reliability + memorization as QC metrics
+        # so the existing QC panel renders them (measured-vs-threshold, green/red). Keyed on the report's
+        # own `alternate_state` field, not a step name; `continue` skips the cryo-EM branches below.
+        if isinstance(data, dict) and "alternate_state" in data:
+            alt = data.get("alternate_state") or {}
+            rel = alt.get("consensus_reliability")
+            if rel is not None:
+                all_metrics.append({"name": "Alternate-state reliability", "step": step,
+                                     "measured": round(float(rel), 2), "unit": "",
+                                     "threshold": 0.5, "pass": float(rel) >= 0.5})
+            ba = alt.get("best_asym")
+            if ba is not None:
+                all_metrics.append({"name": "State-call |asym| (>=1.0 high-reliability)", "step": step,
+                                     "measured": round(abs(float(ba)), 2), "unit": "",
+                                     "threshold": 1.0, "pass": abs(float(ba)) >= 1.0})
+            memo = alt.get("memorization_signal")
+            if memo:
+                _low = ("reasoned" in memo.lower()) or ("low" in memo.lower())
+                all_metrics.append({"name": "Memorization risk", "step": step,
+                                     "measured": "LOW" if _low else "HIGH", "unit": "",
+                                     "threshold": "LOW", "pass": bool(_low)})
+            metrics["alternate_state"] = {
+                "reliability": rel, "best_asym": ba, "reached": alt.get("reached"),
+                "strategies": alt.get("strategies_populating"), "memorization": memo,
+            }
+            continue
+
         if "02_patch_motion" in step or "02_motion" in step:
             num_mics = data.get("num_micrographs")
             motion_entry: Dict[str, Any] = {}
@@ -6657,7 +6765,15 @@ def _resolve_accession_file(
             s3_work_dir=s3_work_dir, s3_outdir=s3_outdir,
         )
     elif handler == "structure":
-        return _download_pdb_structure(accession, dl_dir)
+        # Skip local download — Nextflow containers running on Batch cannot access
+        # EC2 local paths.  Workflow scripts that accept PDB IDs (e.g. alphafold_db_search)
+        # already fetch from RCSB inside the container when given a 4-char ID.
+        # Return None so the caller passes the raw accession string through.
+        log.info(
+            f"[accession] {accession}: PDB/EMDB structure ID — passing raw accession to workflow "
+            f"(workflow container will fetch from RCSB)"
+        )
+        return None
     elif handler == "protein_seq":
         return _download_uniprot_fasta(accession, dl_dir)
     elif handler == "genomic_ref":
@@ -9598,7 +9714,14 @@ def download_local_output(run_id: str, rel_path: str) -> Any:
     if not str(target).startswith(str(base)):
         raise HTTPException(status_code=403, detail="Path escapes run output directory.")
     if not target.is_file():
-        raise HTTPException(status_code=404, detail=f"File not found: {rel_path}")
+        # Bare-filename fallback: search recursively within outdir.
+        # Handles publishDir that writes to a subdirectory (e.g. "run/filename.csv").
+        name_only = Path(rel_path).name
+        matches = [m for m in base.rglob(name_only) if m.is_file() and str(m.resolve()).startswith(str(base))]
+        if matches:
+            target = matches[0]
+        else:
+            raise HTTPException(status_code=404, detail=f"File not found: {rel_path}")
 
     return FileResponse(str(target), filename=target.name)
 

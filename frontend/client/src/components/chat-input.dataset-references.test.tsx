@@ -43,6 +43,20 @@ describe('ChatInput — request-scoped dataset references', () => {
     expect(onSend.mock.calls[0][0]).not.toContain('suggest the right workflow');
   });
 
+  it('links both project datasets from a model round setup URL without sending', async () => {
+    window.history.replaceState(null, '', '/?project=project-a&attachFile=assays&attachFile=candidates');
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => ({ ok: true, json: async () => url.endsWith('/url')
+      ? { name: url.includes('/assays/') ? 'measured.csv' : 'candidates.csv' }
+      : { settings: { outputRequirements: '', skillPackIds: [] } } })));
+    const onSend = vi.fn(); render(<ChatInput activeProjectId="project-a" onSend={onSend} />);
+    await waitFor(() => expect(screen.getAllByTestId('composer-dataset-ref')).toHaveLength(2));
+    expect(screen.getByTestId('chat-input')).toHaveValue(''); expect(onSend).not.toHaveBeenCalled();
+    expect(window.location.search).not.toContain('attachFile');
+    fireEvent.input(screen.getByTestId('chat-input'), { target: { value: 'Prepare my next round for confirmation.' } });
+    fireEvent.click(screen.getByTestId('chat-send-button'));
+    expect(onSend.mock.calls[0][2].datasetReferences.map((item: { id: string }) => item.id)).toEqual(['assays', 'candidates']);
+  });
+
   it('carries the exact selected project-file IDs with a multi-file comparison request', () => {
     const onSend = vi.fn();
     render(<ChatInput onSend={onSend} isStreaming={false} />);

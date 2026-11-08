@@ -1,0 +1,16 @@
+{
+  "status": "verified",
+  "recoverySnapshotTagVerified": true,
+  "historicalRunDirectories": 2,
+  "historicalFiles": 22,
+  "historicalBytes": 99930,
+  "sha256MatchingFiles": 22,
+  "liveRunDirectories": 2,
+  "liveFiles": 22,
+  "applicationRestarted": false,
+  "databaseWrites": false,
+  "dataLeftHost": false,
+  "migrationLedgerEntries": 29,
+  "ssmStatus": "Success",
+  "ssmCommandId": "a9be0ac1-acd1-4456-a8f3-caf968c58870"
+}

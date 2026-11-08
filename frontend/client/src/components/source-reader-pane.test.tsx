@@ -75,6 +75,22 @@ describe("<SourceReaderPane>", () => {
     expect(screen.getByText(/Full text is not available/i)).toBeInTheDocument()
   })
 
+  it("shows actual retrieved content and author metadata without an empty framed panel", () => {
+    render(<SourceReaderPane sources={[makeSource({ abstract: 'Measured response in two conditions.', excerpt: 'Figure 3 compares the response.' })]} index={0} onIndexChange={() => {}} />)
+    expect(screen.getByTestId('reader-abstract')).toHaveTextContent('Measured response in two conditions.')
+    expect(screen.getByTestId('reader-excerpt')).toHaveTextContent('Figure 3 compares the response.')
+    expect(screen.getByTestId('reader-authors')).toHaveTextContent('Author A')
+    expect(screen.queryByTestId('reader-no-content')).toBeNull()
+  })
+
+  it("states missing content compactly without inventing authors or abstracts", () => {
+    render(<SourceReaderPane sources={[makeSource({ authors: [], abstract: undefined, doi: undefined, pmid: undefined })]} index={0} onIndexChange={() => {}} />)
+    expect(screen.getByTestId('reader-no-content')).toHaveTextContent('No abstract or excerpt was supplied')
+    expect(screen.queryByTestId('reader-authors')).toBeNull()
+    expect(screen.queryByTestId('reader-open-source')).toBeNull()
+    expect(screen.queryByText(/Unknown/)).toBeNull()
+  })
+
   it("navigates next/prev and disables at the ends", async () => {
     const user = userEvent.setup()
     const onIndexChange = vi.fn()
@@ -103,4 +119,9 @@ describe("<SourceReaderPane>", () => {
     expect(screen.queryByTestId("reader-locus")).not.toBeInTheDocument()
     expect(screen.queryByText(/Retrieved/)).not.toBeInTheDocument()
   })
+})
+
+it('normalizes DOI URLs supplied as DOI metadata', () => {
+  expect(sourceUrl(makeSource({ doi: 'https://doi.org/10.1000/abc' }))).toBe('https://doi.org/10.1000/abc')
+  expect(sourceUrl(makeSource({ doi: undefined, pmid: 'not-a-pmid', url: 'https://publisher.example/article' }))).toBe('https://publisher.example/article')
 })

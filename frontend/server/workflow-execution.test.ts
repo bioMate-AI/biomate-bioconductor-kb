@@ -643,6 +643,36 @@ describe('WorkflowSSEManager', () => {
       expect(mockResponse.write).toHaveBeenCalledWith(expect.stringContaining('running'));
     });
 
+    it('fans out one durable identity and preserves it during replay', () => {
+      const manager = new WorkflowSSEManager(mockPoller as any);
+      const secondResponse = { write: vi.fn() };
+      manager.clients.set('inv-identity', [
+        { id: 'one', isActive: true, response: mockResponse },
+        { id: 'two', isActive: true, response: secondResponse },
+      ]);
+      const payload = { event_id: 'original-event-1', kind: 'workflow.failed', friendly_message: 'Workflow hit an error.' };
+      manager.injectRawEvent('inv-identity', 'chat_progress', payload);
+      expect(mockResponse.write).toHaveBeenCalledWith('id: original-event-1\n');
+      expect(secondResponse.write).toHaveBeenCalledWith('id: original-event-1\n');
+      const frames = mockResponse.write.mock.calls.map(([line]: [string]) => line).filter((line: string) => line.startsWith('data: '));
+      expect(JSON.parse(frames[0].slice(6)).event_id).toBe('original-event-1');
+      manager.injectRawEvent('inv-identity', 'chat_progress', { ...payload });
+      expect(mockResponse.write.mock.calls.filter(([line]: [string]) => line === 'id: original-event-1\n')).toHaveLength(2);
+    });
+
+    it('generates one identity per emission rather than one per client', () => {
+      const manager = new WorkflowSSEManager(mockPoller as any);
+      const secondResponse = { write: vi.fn() };
+      manager.clients.set('inv-identity', [
+        { id: 'one', isActive: true, response: mockResponse },
+        { id: 'two', isActive: true, response: secondResponse },
+      ]);
+      manager.injectRawEvent('inv-identity', 'chat_progress', { kind: 'workflow.running' });
+      const idLine = mockResponse.write.mock.calls.find(([line]: [string]) => line.startsWith('id: '))?.[0];
+      expect(idLine).toMatch(/^id: [a-f0-9-]+\n$/);
+      expect(secondResponse.write).toHaveBeenCalledWith(idLine);
+    });
+
     it('TC-SSE-007: should broadcast step_state events to clients', async () => {
       const manager = new WorkflowSSEManager(mockPoller as any);
 

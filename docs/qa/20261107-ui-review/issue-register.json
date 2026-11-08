@@ -1,0 +1,134 @@
+[
+  {
+    "id": "UI01",
+    "screenshot": "wrong_cascade_afterrun.png",
+    "title": "Failure and after run hierarchy",
+    "priority": "P1",
+    "observed": "The After run tab contains AI Diagnosis, another AFTER RUN heading, RUN FAILED, nested Summary / Outputs / Report tabs, and an AI Findings card describing the same failure. The diagnosis recommends resuming, while the visible footer says Restart.",
+    "evidence": "Visible duplication; source confirms separate diagnosis rendering in nextflow-workflow-viewer.tsx and a second result surface in v2/AfterRunReport.tsx. Whether this specific failure is transient requires its saved diagnosis and logs.",
+    "repair": "Use one failure summary with the actual process error and one supported recovery action. A failure without outputs must not appear to have generated scientific findings or an available findings report.",
+    "acceptance": "A failed run shows one status hierarchy; recovery wording matches the enabled action and checkpoint availability; no findings download is offered without substantive findings.",
+    "previous_request": "Related to earlier requests to remove duplicated workflow hierarchy and improve after-run state."
+  },
+  {
+    "id": "UI02",
+    "screenshot": "no_coloring_workflow_design.png",
+    "title": "Phase status and failure diagnostics",
+    "priority": "P1",
+    "observed": "The workflow is Failed, but every collapsed phase has the same neutral treatment. The displayed error is unspecified and does not identify a failed process. Phase A repeats in its own subtitle.",
+    "evidence": "Visible neutral phase state and generic error. The screenshot alone does not show which process actually ran or prove the cause is CSS.",
+    "repair": "Bind phase and step appearance to recorded execution state; distinguish failed, completed, skipped and not started with text, icons and semantic colors. Preserve the real executor error.",
+    "acceptance": "A controlled step failure marks its phase, identifies the process and error, and leaves unexecuted phases explicitly not started. Colors and spacing match the approved design tokens.",
+    "previous_request": "Repeat of requests for detailed step panels and consistent design coloring."
+  },
+  {
+    "id": "UI03",
+    "screenshot": "no_complete_data_history.png",
+    "title": "Historical chat timestamps lack date context",
+    "priority": "P2",
+    "observed": "The visible message header contains only You and 5:37 PM. The surrounding image supplies no calendar date.",
+    "evidence": "Visible ambiguity in historical time presentation. This crop cannot prove that messages, datasets or earlier history were deleted. The filename is a reported symptom, not evidence of data loss.",
+    "repair": "Add date separators or a full-date accessible tooltip when reopening old chats. Independently compare persisted messages and attachments with the rendered history.",
+    "acceptance": "Reopened multi-day chats show dates and times in the selected locale and timezone; full message and attachment counts match stored records.",
+    "previous_request": "Related to the earlier requirement that reopened chats preserve all corresponding workflow context."
+  },
+  {
+    "id": "UI04",
+    "screenshot": "duplicate_message_wrongbottomicon.png",
+    "title": "Duplicate lifecycle messages and misplaced actions",
+    "priority": "P1",
+    "observed": "Got it — starting your workflow now and Workflow hit an error appear both inside the assistant block and again beneath the toolbar. The reply is still asking for the assay type while a workflow has already been generated. A document-download icon and a separate download arrow coexist without visible labels.",
+    "evidence": "Duplication and contradictory visible states are confirmed by the image. The exact duplicate source requires correlating saved message IDs and SSE events; CSS alone cannot repair duplicated records.",
+    "repair": "Keep one lifecycle entry per event, preserve scientific prose styling, and attach the toolbar only to its owning response. Require clarification before workflow launch when required information is missing. Give distinct download actions explicit accessible names and purpose.",
+    "acceptance": "Test clarification, confirmation, run failure, reconnect and reopen: no duplicate events, no premature launch, one correctly placed toolbar, and understandable actions.",
+    "previous_request": "Repeat of premature-workflow and ill-formed-progress reports."
+  },
+  {
+    "id": "UI05",
+    "screenshot": "no_scrolldown.png",
+    "title": "Models panel scroll and placeholder content",
+    "priority": "P1",
+    "observed": "The Models content extends below the viewport in the supplied crop. The user reports being unable to scroll down. The sidebar still shows More tools and a footer Settings gear.",
+    "evidence": "A static crop cannot prove scroll failure. Source confirms descriptive Train content, absent Train launch action, ignored track query errors, and a watch-live action tied to modelId rather than a run viewer.",
+    "repair": "Repair the scroll owner and flex sizing without clipping the footer; restore the agreed navigation. Connect each model tab to real actions, project context and saved records. Treat descriptive cards as guidance, not completed functionality.",
+    "acceptance": "Keyboard and wheel reach the last control at desktop and narrow widths. Each tab has working actions, loading/error states, persistence and reopen tests.",
+    "previous_request": "Repeat of Models functionality, fitting, and duplicated Settings reports. Local error-state and navigation patches are started, not deployed."
+  },
+  {
+    "id": "UI06",
+    "screenshot": "nowaytoeditformat_output.png",
+    "title": "Output formats cannot be edited",
+    "priority": "P1",
+    "observed": "Add a format creates a fixed New format row. Name, kind and instructions have no visible edit control. The row offers Preview and Remove.",
+    "evidence": "Source confirmed in project-guidance-cards.tsx: Add appends literal placeholder content; rows render spans, not inputs; Preview calls setError with explanatory text instead of rendering a preview.",
+    "repair": "Provide editable name, kind and instructions with Save and Cancel, validation and persisted reload. Preview must show the actual template or accurately describe its scope without using an error banner as a substitute.",
+    "acceptance": "Create, edit, cancel and reload a format; ensure disabled formats do not enter model instructions. Preview displays meaningful content or a clear unavailable state.",
+    "previous_request": "Earlier Instructions requirements were partially addressed by template examples, leaving editing and preview incomplete."
+  },
+  {
+    "id": "UI07",
+    "screenshot": "duplication_output_template.png",
+    "title": "Output template insertion is not idempotent",
+    "priority": "P1",
+    "observed": "Two identical Internal memo rows appear above the same example. Repeating Use or Start from these examples can create duplicate saved entries.",
+    "evidence": "Source confirmed: the handlers append copies with [...formats, example] or append every example, without identity checks or duplicate protection. Existing duplicates may already be persisted.",
+    "repair": "Make example insertion idempotent with stable identities or canonical matching; retain intentional user variants. Offer explicit cleanup of existing exact duplicates rather than silently deleting user-edited data.",
+    "acceptance": "Repeated single and bulk insertion creates one instance of each exact example; edited variants survive. Save failures do not falsely show a successful stored state.",
+    "previous_request": "A bug in the template feature added by b3cf79c50, rather than proof that the template update failed to deploy."
+  },
+  {
+    "id": "UI08",
+    "screenshot": "skill_connector_noexit_navigation_no_import.png",
+    "title": "Skills and connector navigation is incomplete",
+    "priority": "P1",
+    "observed": "Skills & experts shows a creation form and an existing expert cut at the bottom. This view has Add a connector but no visible close/back control or skill-import action.",
+    "evidence": "This screenshot has no visible exit; mouse_everywhere.png shows Close in a different connector state. Therefore exit availability is inconsistent across states, not proven universally absent. Skill import availability requires inspection of every supported entry.",
+    "repair": "Keep persistent back/close navigation and a scrollable list in all connector states. Preserve current connections and expert data. Expose the supported import path, or specify its missing implementation rather than implying that a creation form imports skills.",
+    "acceptance": "Create, list, edit, import if supported, cancel and exit a skill; return to the originating project Instructions panel with selections intact. Test long lists and small screens.",
+    "previous_request": "Repeat of connector panel, skills reachability and navigation requests."
+  },
+  {
+    "id": "UI09",
+    "screenshot": "mouse_everywhere.png",
+    "title": "Cursor halo and connector context",
+    "priority": "P2",
+    "observed": "A large black pointer with a blue halo appears in the connector setup page. This connector state does have a Close button and All connector kinds navigation.",
+    "evidence": "Cursor/halo source is unconfirmed: it may be capture instrumentation, an accessibility highlight or an application overlay. A focused source search found no custom cursor asset rule; that does not rule out injected overlays.",
+    "repair": "Reproduce in a normal manual browser and a clean capture session. Remove the overlay from product content only if application-generated; otherwise adjust the recording/capture configuration. Do not remove ordinary keyboard focus indicators.",
+    "acceptance": "Compare manual and automated screenshots; only the real pointer is visible where expected, with no ghost cursors or unexplained halos; focus remains accessible.",
+    "previous_request": "Related to screenshot mouse artifacts; diagnostic item, not yet an established product bug."
+  },
+  {
+    "id": "UI10",
+    "screenshot": "textfloating.png",
+    "title": "File type overflow and misleading preview statistics",
+    "priority": "P1",
+    "observed": "The MIME label application/octet-stream overflows the Type card. A JSON file shows table-oriented controls and Rows 0 / Columns 0; Plot has no distribution. HTTP 400 remains visible above all tabs.",
+    "evidence": "Overflow and displayed fallback values are visible. Zero values do not prove an empty file. The JSON may be unprofiled, unsupported by this viewer, or incorrectly classified; response and metadata tracing is required.",
+    "repair": "Wrap long metadata with min-width constraints; infer supported JSON types accurately and render structured/raw content. Display unknown or not applicable statistics instead of invented zero counts. Scope operation errors to their action.",
+    "acceptance": "Preview nonempty object JSON, array JSON, YAML and text; verify true values or explicit unavailable statistics. Long MIME strings fit at narrow widths.",
+    "previous_request": "Repeat of JSON/YAML preview, quality-statistics and panel-fitting requests."
+  },
+  {
+    "id": "UI11",
+    "screenshot": "open_jupiterbook_error.png",
+    "title": "Open in Jupyter fails",
+    "priority": "P1",
+    "observed": "Opening QUICKSTART.txt in Jupyter produces Request failed with status code 400, without an actionable explanation.",
+    "evidence": "Screenshot confirms a failed request, not its backend cause. The current client posts tool=jupyter to the project-file open-in endpoint and expects a URL; staging, identity, availability and launch errors need separate traces.",
+    "repair": "Trace the exact request and response, project/file IDs, authorized staging and interactive session launch. Return a user-actionable error. Validate popup handling after a successful asynchronous launch.",
+    "acceptance": "An authorized text/JSON/CSV file opens in a real Jupyter session with the exact file present; unavailable service and staging failures give useful errors without losing the current view.",
+    "previous_request": "Repeated from earlier interactive-panel failure reports. API availability checks do not establish a successful launch."
+  },
+  {
+    "id": "UI12",
+    "screenshot": "mouse_datapanel.png",
+    "title": "Provenance view retains unrelated error and cursor artifact",
+    "priority": "P2",
+    "observed": "The Provenance tab still shows HTTP 400 from the file operation, and the same cursor halo appears. Only Source upload and Added are visible in this crop.",
+    "evidence": "Persistent error and cursor are visible. The crop does not establish that the complete provenance graph is missing; remaining content and stored lineage must be inspected.",
+    "repair": "Separate file-operation errors from provenance loading failures, with dismissal or retry scoped to the failed action. Check upload version, originating run, transformations and downstream consumers against stored lineage. Investigate the cursor as UI09.",
+    "acceptance": "Switching tabs does not misattribute a failed notebook launch to provenance. Available lineage is shown; absent lineage is explicitly identified; timestamps retain their timezone context.",
+    "previous_request": "Related to earlier complete file history, provenance, fitting and cursor complaints."
+  }
+]

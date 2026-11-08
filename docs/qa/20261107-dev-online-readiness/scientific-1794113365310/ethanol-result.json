@@ -1,0 +1,6 @@
+{
+  "success": true,
+  "function": "calculate_physicochemical_properties",
+  "domain": "pharmacology",
+  "result": "Physicochemical Property Calculation Research Log:\n\nAnalyzed compound with SMILES: CCO\n\nKey properties:\n- Molecular Weight: 46.07 g/mol\n- cLogP: -0.0\n- Topological Polar Surface Area: 20.23 \u00c5\u00b2\n- H-Bond Donors: 1\n- H-Bond Acceptors: 1\n- Rotatable Bonds: 0\n- Molar Refractivity: 12.76\n- QED (dimensionless, 0-1): 0.4068\n\nIonization-dependent logD and pKa were not calculated. QED is a descriptive\ndrug-likeness metric, not evidence of efficacy or safety.\n\nComplete results saved to: /tmp/nxf.WbYS5VeMxO/physicochemical_properties.csv\n"
+}

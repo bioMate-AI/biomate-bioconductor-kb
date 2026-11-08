@@ -248,20 +248,23 @@ export function ChatInput({
   const [datasetLinkError, setDatasetLinkError] = useState("")
   useEffect(() => {
     const query = new URLSearchParams(window.location.search)
-    const fileId = query.get("attachFile")
-    if (!fileId || !activeProjectId || query.get("project") !== activeProjectId) return
+    const fileIds = [...new Set(query.getAll("attachFile"))].filter(Boolean)
+    if (!fileIds.length || !activeProjectId || query.get("project") !== activeProjectId) return
     let cancelled = false
     const abort = new AbortController()
     setLinkingDataset(true)
     setDatasetLinkError("")
-    fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/files/${encodeURIComponent(fileId)}/url`, {
-      credentials: "include", signal: abort.signal,
-    }).then(async response => {
+    Promise.all(fileIds.map(async fileId => {
+      const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/files/${encodeURIComponent(fileId)}/url`, {
+        credentials: "include", signal: abort.signal,
+      })
       if (!response.ok) throw new Error(`Cannot link this project file (${response.status}).`)
       const file = await response.json()
       if (typeof file.name !== "string") throw new Error("The project file is unavailable.")
+      return { id: fileId, value: fileId, name: file.name }
+    })).then(files => {
       if (cancelled) return
-      setSelectedDatasets(previous => [...previous.filter(d => d.value !== fileId), { id: fileId, value: fileId, name: file.name }])
+      setSelectedDatasets(previous => [...previous.filter(d => !fileIds.includes(d.value)), ...files])
       query.delete("attachFile")
       window.history.replaceState(null, "", `${window.location.pathname}?${query.toString()}`)
       textareaRef.current?.focus()

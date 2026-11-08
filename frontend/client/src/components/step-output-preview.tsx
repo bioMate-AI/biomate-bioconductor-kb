@@ -1,3 +1,5 @@
+import { PdfCanvasViewer } from "./pdf-canvas-viewer";
+import { RunFileDownload } from "./run-file-download";
 /**
  * StepOutputPreview — inline viewer for a single Nextflow step output file.
  *
@@ -16,9 +18,9 @@
  *   download → download link for unknown binary formats
  */
 
-import { t } from "@/lib/i18n";
+import { t, tOr } from "@/lib/i18n";
 import { useState, useEffect, useRef } from "react";
-import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop, Maximize2, ExternalLink } from "lucide-react";
+import { Loader2, X, FileText, ZoomIn, ChevronDown, ChevronUp, Laptop, Maximize2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { DensityMapViewer } from "./viewers/density-map-viewer";
@@ -69,9 +71,13 @@ export interface StepOutputPreviewProps {
    * pane) passes a taller value like "max-h-[70vh]".
    */
   maxHClass?: string;
+  /** Parent already supplies file identity, close and download controls. */
+  embedded?: boolean;
+  expanded?: boolean;
 }
 
 interface FetchedContent {
+  pdfData?: Uint8Array;
   url: string;
   contentType: string;
   text?: string;
@@ -106,29 +112,18 @@ function pickInteractiveTool(ext: string): {
   return { tool: 'jupyter', label: t('preview.open_jupyter') };
 }
 
-/** Download URL for a step output — the honest fallback when the matching
- *  interactive tool isn't provisioned in this environment. */
-function stepFileDownloadUrl(runId: string, file: { name: string; path: string }): string {
-  return `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
-}
-
 /** Shown in place of an "Open in <tool>" button when that interactive tool
  *  isn't launchable here (it would 400). Offers the download instead of a dead
  *  button, so the user can analyze the file locally. */
 function InteractiveUnavailableNote({
-  runId, file, toolLabel,
-}: { runId: string; file: { name: string; path: string }; toolLabel: string }) {
+  runId, file, toolLabel, embedded,
+}: { embedded?: boolean; runId: string; file: { name: string; path: string }; toolLabel: string }) {
   return (
     <div className="flex flex-col gap-2" data-testid="interactive-unavailable">
       <p className="text-xs text-muted-foreground">
         {toolLabel} isn’t enabled in this environment. Download the file to analyze it locally.
       </p>
-      <a href={stepFileDownloadUrl(runId, file)} download={file.name}>
-        <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs">
-          <Download className="h-3.5 w-3.5" />
-          {t('preview.download_file', { name: file.name })}
-        </Button>
-      </a>
+      {!embedded && <RunFileDownload runId={runId} file={file} />}
     </div>
   );
 }
@@ -211,11 +206,11 @@ function InlineImageViewer({ src, name }: { src: string; name: string }) {
 
 // Density viewer wrapper — renders DensityMapViewer without going through
 // the blob/text fetch machinery (the viewer fetches its own data).
-function DensityPreview({ runId, file, onClose, projectId }: StepOutputPreviewProps) {
+function DensityPreview({ runId, file, onClose, embedded, projectId }: StepOutputPreviewProps) {
   const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
   return (
     <div className="mt-2">
-      <div className="flex items-center justify-between mb-2 gap-2 px-1">
+      {!embedded && <div className="flex items-center justify-between mb-2 gap-2 px-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
@@ -225,7 +220,7 @@ function DensityPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
+      </div>}
       <DensityMapViewer src={stepFileUrl} name={file.name} />
     </div>
   );
@@ -247,7 +242,7 @@ interface RdsSummary {
 /** R object viewer — RDS/RData are binary. If the run produced a `<name>.rds.json`
  * sidecar (object class, dims, assays, reductions, colData), render it inline; otherwise
  * fall back to the RStudio launcher. */
-function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewProps) {
+function RObjectPreview({ runId, file, onClose, embedded, projectId }: StepOutputPreviewProps) {
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [summary, setSummary] = useState<RdsSummary | null>(null);
   const [sidecarTried, setSidecarTried] = useState(false);
@@ -282,7 +277,7 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
 
   return (
     <div className="mt-2 border rounded-md bg-background p-3">
-      <div className="flex items-center justify-between mb-2 gap-2">
+      {!embedded && <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
@@ -292,7 +287,7 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
+      </div>}
 
       {summary ? (
         <div className="mb-3">
@@ -335,7 +330,7 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
           />
         </>
       ) : (
-        <InteractiveUnavailableNote runId={runId} file={file} toolLabel="RStudio" />
+        <InteractiveUnavailableNote embedded={embedded} runId={runId} file={file} toolLabel="RStudio" />
       )}
     </div>
   );
@@ -343,7 +338,7 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
 
 /** Single-cell AnnData / Loom preview — binary format; cannot be read inline.
  *  Offers CellxGene (ideal for .h5ad / .loom) and Jupyter as fallback. */
-function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
+function SingleCellPreview({ runId, file, onClose, embedded }: StepOutputPreviewProps) {
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [launcherTool, setLauncherTool] = useState<'cellxgene' | 'jupyter'>('cellxgene');
   // Whether the in-app summary sidecar is missing (→ interactive/download is the
@@ -363,7 +358,7 @@ function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
 
   return (
     <div className="mt-2 border rounded-md bg-background p-3">
-      <div className="flex items-center justify-between mb-2 gap-2">
+      {!embedded && <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
@@ -371,7 +366,7 @@ function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
         <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
           <X className="h-3.5 w-3.5" />
         </Button>
-      </div>
+      </div>}
 
       {/* In-app summary (UMAP + clusters + markers) from the pipeline's sidecar,
           when present. Self-hides and calls onAbsent when there's no sidecar. */}
@@ -407,7 +402,7 @@ function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
       ) : summaryAbsent ? (
         // No in-app summary AND no interactive tool → offer the download.
         <div className="mt-3">
-          <InteractiveUnavailableNote runId={runId} file={file} toolLabel="Interactive viewers (CellxGene/Jupyter)" />
+          <InteractiveUnavailableNote embedded={embedded} runId={runId} file={file} toolLabel="Interactive viewers (CellxGene/Jupyter)" />
         </div>
       ) : null}
     </div>
@@ -424,7 +419,7 @@ function resolveCryoChartViewer(fileName: string): 'fsc-curve' | 'motion-histogr
 }
 
 /** Fetches JSON from step-file and renders a CryoEM chart component */
-function CryoChartPreview({ runId, file, onClose, projectId, chartType }: StepOutputPreviewProps & {
+function CryoChartPreview({ runId, file, onClose, embedded, projectId, chartType }: StepOutputPreviewProps & {
   chartType: 'fsc-curve' | 'motion-histogram' | 'ctf-quality'
 }) {
   const [data, setData] = useState<any>(null);
@@ -440,14 +435,14 @@ function CryoChartPreview({ runId, file, onClose, projectId, chartType }: StepOu
 
   return (
     <div className="mt-2">
-      <div className="flex items-center justify-between mb-2 gap-2 px-1">
+      {!embedded && <div className="flex items-center justify-between mb-2 gap-2 px-1">
         <span className="text-xs font-mono font-medium truncate">{file.name}</span>
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
+      </div>}
       {error && <p className="text-xs text-destructive">{error}</p>}
       {data && chartType === 'fsc-curve'         && <FscCurveChart data={data} />}
       {data && chartType === 'motion-histogram'  && <MotionHistogramChart data={data} />}
@@ -494,7 +489,7 @@ function toHitVerdict(v: unknown): HitVerdict {
  * The viewers own their honest empty states, so a malformed / empty body shows
  * "no data" rather than a fabricated result.
  */
-function DlJsonPreview({ runId, file, onClose, viewerKind }: StepOutputPreviewProps & {
+function DlJsonPreview({ runId, file, onClose, embedded, viewerKind }: StepOutputPreviewProps & {
   viewerKind: 'seq-tracks' | 'hit-grid' | 'pae'
 }) {
   const [data, setData] = useState<any>(null);
@@ -534,14 +529,14 @@ function DlJsonPreview({ runId, file, onClose, viewerKind }: StepOutputPreviewPr
 
   return (
     <div className="mt-2" data-testid="dl-json-preview">
-      <div className="flex items-center justify-between mb-2 gap-2 px-1">
+      {!embedded && <div className="flex items-center justify-between mb-2 gap-2 px-1">
         <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
+      </div>}
       {error && <p className="text-xs text-destructive">{t('preview.failed', { error })}</p>}
       {data && viewerKind === 'seq-tracks' && (
         <SeqTracks
@@ -565,43 +560,43 @@ function DlJsonPreview({ runId, file, onClose, viewerKind }: StepOutputPreviewPr
   );
 }
 
-export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullStepView, maxHClass }: StepOutputPreviewProps) {
+export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullStepView, maxHClass, embedded, expanded }: StepOutputPreviewProps) {
   const ext = file.extension.toLowerCase().replace(/^\./, '');
   const viewer = resolveViewer(ext);
 
   // Route density files to a separate component (avoids hook-after-conditional).
   if (viewer === 'density') {
-    return <DensityPreview runId={runId} file={file} onClose={onClose} projectId={projectId} />;
+    return <DensityPreview runId={runId} file={file} embedded={embedded} onClose={onClose} projectId={projectId} />;
   }
 
   // R object files — binary, no inline preview; offer RStudio launch instead.
   if (viewer === 'r-object') {
-    return <RObjectPreview runId={runId} file={file} onClose={onClose} projectId={projectId} />;
+    return <RObjectPreview runId={runId} file={file} embedded={embedded} onClose={onClose} projectId={projectId} />;
   }
 
   // Single-cell AnnData/Loom files — binary; offer CellxGene launch.
   if (viewer === 'singlecell') {
-    return <SingleCellPreview runId={runId} file={file} onClose={onClose} />;
+    return <SingleCellPreview runId={runId} file={file} embedded={embedded} onClose={onClose} />;
   }
 
   // Route special CryoEM JSON reports to dedicated chart viewers.
   if (ext === 'json') {
     const chartType = resolveCryoChartViewer(file.name);
     if (chartType) {
-      return <CryoChartPreview runId={runId} file={file} onClose={onClose} projectId={projectId} chartType={chartType} />;
+      return <CryoChartPreview runId={runId} file={file} embedded={embedded} onClose={onClose} projectId={projectId} chartType={chartType} />;
     }
     // DL-model JSON sidecars (genomic tracks / ranked chemical hits).
     const dlKind = resolveDlJsonViewer(file.name);
     if (dlKind) {
-      return <DlJsonPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewerKind={dlKind} />;
+      return <DlJsonPreview runId={runId} file={file} embedded={embedded} onClose={onClose} projectId={projectId} viewerKind={dlKind} />;
     }
   }
 
-  return <FetchingPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewer={viewer} ext={ext} onOpenFullStepView={onOpenFullStepView} maxHClass={maxHClass} />;
+  return <FetchingPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewer={viewer} ext={ext} onOpenFullStepView={onOpenFullStepView} maxHClass={maxHClass} embedded={embedded} expanded={expanded} />;
 }
 
 function FetchingPreview({
-  runId, file, onClose, projectId, viewer, ext, onOpenFullStepView, maxHClass,
+  runId, file, onClose, projectId, viewer, ext, onOpenFullStepView, maxHClass, embedded, expanded,
 }: StepOutputPreviewProps & { viewer: ViewerKind; ext: string }) {
   const [content, setContent] = useState<FetchedContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -631,15 +626,16 @@ function FetchingPreview({
           const text = await res.text();
           if (cancelled) return;
           setContent({ url: stepFileUrl, contentType: ct, text });
+        } else if (viewer === 'pdf') {
+          const pdfData = new Uint8Array(await res.arrayBuffer());
+          if (!cancelled) setContent({url: stepFileUrl, contentType: ct, pdfData});
+        } else if (viewer === 'html') {
+          // Keep the server's CSP sandbox on navigation. A new blob URL would
+          // discard those headers and execute the report with the app's origin.
+          if (!cancelled) setContent({ url: stepFileUrl, contentType: ct });
         } else {
           let blob = await res.blob();
           if (cancelled) return;
-          // The step-file endpoint sometimes serves binaries as
-          // application/octet-stream; an <iframe> only renders a PDF blob whose
-          // type is application/pdf. Force it so the inline viewer always works.
-          if (viewer === 'pdf' && blob.type !== 'application/pdf') {
-            blob = new Blob([blob], { type: 'application/pdf' });
-          }
           objectUrl = URL.createObjectURL(blob);
           setContent({ url: objectUrl, contentType: ct });
         }
@@ -659,7 +655,7 @@ function FetchingPreview({
 
   return (
     <div className="mt-2 border rounded-md bg-background p-3">
-      <div className="flex items-center justify-between mb-2 gap-2">
+      {!embedded && <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
@@ -682,7 +678,7 @@ function FetchingPreview({
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
+      </div>}
 
       {loading && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
@@ -696,7 +692,7 @@ function FetchingPreview({
         </div>
       )}
       {!loading && !error && content && (
-        <ViewerContent viewer={viewer} content={content} file={file} ext={ext} maxHClass={maxHClass} />
+        <ViewerContent runId={runId} embedded={embedded} expanded={expanded} viewer={viewer} content={content} file={file} ext={ext} maxHClass={maxHClass} />
       )}
 
       {/* Per-file "Open in Jupyter / Analyze in RStudio" buttons removed
@@ -712,29 +708,24 @@ function FetchingPreview({
 // ---------------------------------------------------------------------------
 
 function ViewerContent({
-  viewer, content, file, ext, maxHClass,
+  runId, embedded, expanded, viewer, content, file, ext, maxHClass,
 }: {
+  runId: string;
   viewer: ViewerKind;
   content: FetchedContent;
   file: { name: string; path: string; extension: string };
   ext: string;
   maxHClass?: string;
+  /** Parent already supplies file identity, close and download controls. */
+  embedded?: boolean;
+  expanded?: boolean;
 }) {
   switch (viewer) {
     case 'image':
-      return <InlineImageViewer src={content.url} name={file.name} />;
+      return expanded ? <img src={content.url} alt={file.name} className="w-full max-h-[80vh] object-contain" data-testid="expanded-output-image" /> : <InlineImageViewer src={content.url} name={file.name} />;
 
     case 'pdf':
-      // PDFs render natively in an iframe (vector figures stay sharp). Taller than
-      // the html box since figures are usually full-page. A download link is offered
-      // by the surrounding chrome for browsers without an inline PDF plugin.
-      return (
-        <iframe
-          src={content.url}
-          className="w-full h-96 border rounded"
-          title={file.name}
-        />
-      );
+      return content.pdfData ? <PdfCanvasViewer data={content.pdfData} name={file.name} /> : null;
 
     case 'html':
       // FIX #9.3 — a 256px iframe sandboxed with ONLY `allow-scripts` renders
@@ -767,7 +758,7 @@ function ViewerContent({
       );
 
     case 'table':
-      return content.text != null ? <InlineTableViewer text={content.text} ext={ext} maxHClass={maxHClass} /> : null;
+      return content.text != null ? <InlineTableViewer text={content.text} ext={ext} maxHClass={maxHClass} complete={expanded} /> : null;
 
     case 'sequence':
       return content.text != null ? <InlineSequenceViewer text={content.text} /> : null;
@@ -796,10 +787,7 @@ function ViewerContent({
     case 'download':
     default:
       return (
-        <a href={content.url} download={file.name} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
-          <Download className="h-3.5 w-3.5" />
-          {t('preview.download_file', { name: file.name })}
-        </a>
+        embedded ? <p className="text-xs text-muted-foreground">{tOr('afterrun.preview_unavailable_download_card', 'Preview is unavailable. Use Download on the output card.')}</p> : <RunFileDownload runId={runId} file={file} />
       );
   }
 }

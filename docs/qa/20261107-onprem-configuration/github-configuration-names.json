@@ -1,0 +1,15 @@
+{
+  "checked_date": "2026-11-07",
+  "repository": "bioMate-AI/biomate",
+  "repository_secrets": ["ALIYUN_AK", "ALIYUN_SK", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "ECS_ROOT_PASS"],
+  "repository_variables": [],
+  "environments": {
+    "development": {"secrets": [], "variables": []},
+    "test": {"secrets": [], "variables": []}
+  },
+  "scope": "Names only returned by gh metadata calls. No secret values requested, no settings changed.",
+  "limitations": [
+    "Organization-level inheritance and other external managers are not established by these repository/environment queries.",
+    "AWS Secrets Manager value/key coverage was not read. The active deployment loader can source configuration there, independently of these GitHub lists."
+  ]
+}

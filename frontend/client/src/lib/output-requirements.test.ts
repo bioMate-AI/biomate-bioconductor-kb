@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseOutputFormats, outputRequirementsToPrompt, EXAMPLE_OUTPUT_FORMATS } from './output-requirements';
+import { parseOutputFormats, outputRequirementsToPrompt, EXAMPLE_OUTPUT_FORMATS, exampleOutputFormats, appendMissingOutputFormats } from './output-requirements';
 
 describe('output-requirements store parsing', () => {
   it('parses a JSON array of formats', () => {
@@ -54,5 +54,24 @@ describe('outputRequirementsToPrompt — only enabled formats reach the model', 
     // once a user turns one on, it appears
     const oneOn = JSON.stringify(EXAMPLE_OUTPUT_FORMATS.map((f, i) => i === 0 ? { ...f, on: true } : f));
     expect(outputRequirementsToPrompt(oneOn)).toContain(EXAMPLE_OUTPUT_FORMATS[0].name);
+  });
+});
+
+
+describe('translated built-in output formats', () => {
+  it('does not add translated duplicates or change existing enabled formats', () => {
+    const saved = EXAMPLE_OUTPUT_FORMATS.map(format => ({ ...format, on: true }));
+    expect(appendMissingOutputFormats(saved, exampleOutputFormats('zh'))).toEqual(saved);
+    const chinese = exampleOutputFormats('zh');
+    expect(chinese[0].name).toBe('内部备忘录');
+    expect(appendMissingOutputFormats(chinese, exampleOutputFormats('en'))).toEqual(chinese);
+    expect(outputRequirementsToPrompt(JSON.stringify(chinese))).toBe('');
+  });
+  it('preserves a user-edited template while adding the original example', () => {
+    const custom = { ...exampleOutputFormats('zh')[0], detail: '保留用户自定义要求', on: true };
+    const next = appendMissingOutputFormats([custom], [EXAMPLE_OUTPUT_FORMATS[0]]);
+    expect(next).toHaveLength(2);
+    expect(next[0]).toEqual(custom);
+    expect(next[1].on).toBe(false);
   });
 });

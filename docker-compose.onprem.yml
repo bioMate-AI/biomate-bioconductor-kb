@@ -151,7 +151,9 @@ services:
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER:     ${MINIO_ROOT_USER:-biomate}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      # :? guard removed — OSS/local mode users don't need MinIO but the service still starts.
+      # MinIO mode: set a strong password in .env (MINIO_ROOT_PASSWORD=<strong_pass>).
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-biomate_minio_default}
     volumes:
       - biomate-minio-data:/data
     ports:
@@ -190,7 +192,7 @@ services:
       "
     environment:
       AWS_ACCESS_KEY_ID:     ${MINIO_ROOT_USER:-biomate}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-biomate_minio_default}
       S3_BUCKET_NAME:        ${S3_BUCKET_NAME:-biomate-data}
     restart: "no"
     networks:
@@ -212,12 +214,12 @@ services:
     networks:
       - biomate-network
 
-  # ── Galaxy AI Backend ───────────────────────────────────────────────────────
-  galaxy-backend:
+  # ── BioMate AI Engine ────────────────────────────────────────────────────────
+  biomate-engine:
     image: ${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}
     # ghcr.io/biomate-ai/biomate-backend:latest is a multi-arch manifest (amd64 + arm64).
     # Docker auto-selects the host architecture — no platform override needed.
-    container_name: biomate-galaxy
+    container_name: biomate-engine
     # Use /bin/sh -c as entrypoint so the command runs as a shell string.
     # This lets us add a safety-net before gunicorn: if galaxy.yml is missing from
     # the bind-mounted config dir (fresh checkout, no install.sh), copy from template
@@ -283,10 +285,15 @@ services:
       # below, so Docker does NOT prefix it with the project name.
       BIOMATE_DOCKER_NETWORK: ${BIOMATE_DOCKER_NETWORK:-biomate-network}
 
-      # ── 存储 (MinIO 替代 S3) ─────────────────────────────────────────────
-      S3_ENDPOINT_URL:      http://minio:9000
-      AWS_ACCESS_KEY_ID:    ${MINIO_ROOT_USER:-biomate}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      # ── 存储 ──────────────────────────────────────────────────────────────
+      # MinIO 模式（默认）: S3_ENDPOINT_URL 不设置 → 使用下面的 http://minio:9000
+      # OSS   模式:         S3_ENDPOINT_URL=https://oss-cn-hangzhou.aliyuncs.com
+      #                     S3_FORCE_PATH_STYLE=false  AWS_ACCESS_KEY_ID=<OSS AccessKey>
+      # 纯本地模式:         S3_ENDPOINT_URL=  (空字符串) → 文件走 Galaxy 本地代理
+      S3_ENDPOINT_URL:      ${S3_ENDPOINT_URL-http://minio:9000}
+      S3_FORCE_PATH_STYLE:  ${S3_FORCE_PATH_STYLE:-true}
+      AWS_ACCESS_KEY_ID:    ${AWS_ACCESS_KEY_ID:-${MINIO_ROOT_USER:-biomate}}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-${MINIO_ROOT_PASSWORD:-biomate_minio}}
       AWS_DEFAULT_REGION:   ${AWS_DEFAULT_REGION:-us-east-1}
       S3_BUCKET_NAME:       ${S3_BUCKET_NAME:-biomate-data}
 
@@ -318,6 +325,14 @@ services:
 
       # ── 本地镜像仓库 ──────────────────────────────────────────────────────
       BIOMATE_LOCAL_REGISTRY: ${BIOMATE_LOCAL_REGISTRY:-localhost:5050}
+
+      # ── 海光 C86 / 信创 x86 兼容性（由 install.sh 自动写入 .env）──────────
+      # C86 (Zen 1) 不支持 AVX-512；这些变量限制 OpenBLAS / Intel MKL 只使用
+      # AVX2 路径，防止在 Hygon CPU 上出现 SIGILL 崩溃。在标准 x86 / ARM64 上
+      # 这些变量无害，统一透传即可。
+      OPENBLAS_CORETYPE: ${OPENBLAS_CORETYPE:-}
+      MKL_ENABLE_INSTRUCTIONS: ${MKL_ENABLE_INSTRUCTIONS:-}
+      MKL_DEBUG_CPU_TYPE: ${MKL_DEBUG_CPU_TYPE:-}
 
       # ── Bioconductor container override ───────────────────────────────────
       # Bioconductor R workflows use a private ECR image by default.
@@ -435,7 +450,7 @@ services:
     environment:
       NODE_ENV:    production
       PORT:        "3000"
-      GALAXY_URL:  http://galaxy-backend:8080
+      GALAXY_URL:  http://biomate-engine:8080
       GALAXY_API_KEY: ${GALAXY_API_KEY:-}
 
       DATABASE_URL: postgresql://${POSTGRES_USER:-biomate}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-biomate}
@@ -458,10 +473,11 @@ services:
       OPENAI_API_KEY:     ${OPENAI_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
 
-      # ── 存储 (MinIO) ──────────────────────────────────────────────────────
-      S3_ENDPOINT_URL:       http://minio:9000
-      AWS_ACCESS_KEY_ID:     ${MINIO_ROOT_USER:-biomate}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      # ── 存储 ──────────────────────────────────────────────────────────────
+      S3_ENDPOINT_URL:       ${S3_ENDPOINT_URL-http://minio:9000}
+      S3_FORCE_PATH_STYLE:   ${S3_FORCE_PATH_STYLE:-true}
+      AWS_ACCESS_KEY_ID:     ${AWS_ACCESS_KEY_ID:-${MINIO_ROOT_USER:-biomate}}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-${MINIO_ROOT_PASSWORD:-biomate_minio}}
       AWS_REGION:            ${AWS_DEFAULT_REGION:-us-east-1}
       S3_BUCKET_NAME:        ${S3_BUCKET_NAME:-biomate-data}
 
@@ -474,12 +490,18 @@ services:
       # On-prem 使用 docker profile (biomate/biomni-tools 容器本地运行).
       # false → routes.ts 选择 'docker' profile; true → 'aws' (Batch).
       NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
+      # Must match NEXTFLOW_WORK_DIR in biomate-engine so the step-file allowed-roots
+      # check passes for per-task work dir files served from the nf-work volume above.
+      NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
 
       # ── 网络 ──────────────────────────────────────────────────────────────
       FORCE_HTTPS:   ${FORCE_HTTPS:-0}
       ENABLE_HSTS:   ${ENABLE_HSTS:-0}
       CORS_ORIGINS:  ${CORS_ORIGINS:-}
       FRONTEND_URL:  ${FRONTEND_URL:-}
+      # On-prem / China: strip Google Fonts CDN links at runtime (prevents white screen behind GFW).
+      # vite.ts serveStatic() reads this env var and removes the links before serving index.html.
+      DISABLE_GOOGLE_FONTS: "true"
 
       # ── Workflow notifications ─────────────────────────────────────────────
       # Send email when a workflow finishes. Requires SMTP config above.
@@ -518,17 +540,22 @@ services:
       # 3. 在下方 volumes 取消 /tmp/biomate_code 挂载注释
       # 4. 在下方 depends_on 取消 sandbox-launcher 注释
 
-    # volumes:  # Uncomment and add entries when enabling sandbox-launcher (run_code support):
-    #   - /tmp/biomate_code:/tmp/biomate_code
+    volumes:
+      # Nextflow task work dirs — read-only mount so the step-file API can serve per-step
+      # output files directly without proxying through the engine.  The engine writes here;
+      # the frontend only reads.  Same host path as the biomate-engine volume above.
+      - /app/nf-work:/app/nf-work:ro
+      # Uncomment when enabling sandbox-launcher (run_code support):
+      # - /tmp/biomate_code:/tmp/biomate_code
 
     depends_on:
       postgres:
         condition: service_healthy
-      galaxy-backend:
-        # service_started (not service_healthy): galaxy takes 15-20 min under QEMU.
+      biomate-engine:
+        # service_started (not service_healthy): the engine takes 15-20 min under QEMU.
         # The frontend /api/health endpoint returns "degraded" (not an error) when
-        # galaxy is unreachable, so it is safe to start the frontend before galaxy
-        # is fully ready.  Blocking on service_healthy would stall `docker compose up`
+        # the engine is unreachable, so it is safe to start the frontend before the
+        # engine is fully ready.  Blocking on service_healthy would stall `docker compose up`
         # for the entire QEMU cold-start window.
         condition: service_started
       # sandbox-launcher:

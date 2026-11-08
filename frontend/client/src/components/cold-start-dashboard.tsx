@@ -45,7 +45,7 @@
  */
 
 import { useState } from "react";
-import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES } from "./cold-start-examples";
+import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES, HOSPITAL_EXAMPLES } from "./cold-start-examples";
 import { Search, FlaskConical, Dna, Sparkles, ChevronRight, ChevronDown, Send } from "lucide-react";
 import { laneForText, type LaneKind } from "./lane-preview";
 import { t } from "@/lib/i18n";
@@ -666,7 +666,7 @@ function ExampleRow({ text, onSeed }: ExampleRowProps) {
         color: "var(--bm-text, oklch(0.22 0.01 260))",
       }}
     >
-      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>“{text}”</span>
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>“{text === HOSPITAL_EXAMPLES[0].label ? t('cold_start.hospital_integration') : text === HOSPITAL_EXAMPLES[1].label ? t('cold_start.hospital_prediction') : text}”</span>
       <span style={{ flex: 1 }} />
       <ChevronRight size={12} aria-hidden style={{ flexShrink: 0, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
     </button>
