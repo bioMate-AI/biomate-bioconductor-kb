@@ -1,3 +1,4 @@
+import { stepFileDisposition } from "./step-file-disposition";
 import { waitForInteractiveSession } from "./interactive-session-readiness";
 import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
 import { authorizeModelProject, fetchOwnedModelSurface, ModelSurfaceAccessError, isTrackedAdaptJob } from "./model-surface-access";
@@ -14004,6 +14005,7 @@ Rules:
           return null;
         });
       }
+      if (req.query.download === '1') res.attachment('run-record.json');
       res.json(record);
     } catch (e: any) {
       console.error("[reproducibility-record] error:", e?.message ?? e);
@@ -14816,9 +14818,7 @@ Rules:
       };
       const ct = contentTypeMap[ext] || 'application/octet-stream';
 
-      if (fileName) {
-        res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
-      }
+      res.setHeader('Content-Disposition', stepFileDisposition(fileName || filePath, req.query.download));
       res.setHeader('Content-Type', ct);
       setFilePreviewSecurityHeaders(res, ct);
 

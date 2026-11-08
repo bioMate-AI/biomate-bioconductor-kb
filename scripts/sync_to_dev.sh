@@ -2113,6 +2113,16 @@ _DB_MD5_FILE="$REPO_ROOT/.last_dev_sync_db_md5"
 REMOTE_SYNC_LEASE="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
 ec2_ssh "umask 077; mkdir /opt/biomate/.dev-deploy.lock && printf '%s\n' '$REMOTE_SYNC_LEASE' > /opt/biomate/.dev-deploy.lock/owner" || { log "Another deployment holds the remote lease; refusing"; exit 1; }
 REMOTE_SYNC_LEASE_ACQUIRED=1
+# Refuse stale/divergent worktrees while holding the deployment lease. This is
+# read-only and does not change existing layer selection or health/rollback.
+_ANCESTRY_ARGS=(--repo "$REPO_ROOT")
+if [[ -n "${BIOMATE_EMERGENCY_DEPLOY_REASON:-}" ]]; then
+  log "WARNING: explicit emergency ancestry override requested; retain the incident reason"
+  _ANCESTRY_ARGS+=(--emergency-override-reason "$BIOMATE_EMERGENCY_DEPLOY_REASON")
+fi
+_ANCESTRY_JSON="$(python3 "$REPO_ROOT/scripts/dev_deploy_ancestry.py" "${_ANCESTRY_ARGS[@]}")" || exit 2
+_DEPLOYED_COMMIT="$(printf '%s' "$_ANCESTRY_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["deployedCommit"])')"
+log "Public dev ancestry verified: ${_DEPLOYED_COMMIT:0:8} -> ${CURRENT_COMMIT:0:8}"
 if [[ "${BIOMATE_ENABLE_IT:-}" == "1" ]]; then
   enable_interactive_tools
   log "=== IT review/apply path finished (full code and DB sync skipped) ==="

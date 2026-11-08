@@ -4330,7 +4330,7 @@ export function NextflowWorkflowViewer({
             <div className="findings-card" data-testid="ai-analysis-panel">
               <div className="f-h">
                 <Activity className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
-                {tOr('panel.ai_findings_analysis', 'AI Findings Analysis')}
+                {tOr('panel.ai_findings_analysis', 'Findings analysis')}
                 {analysisState === 'done' && <span style={{ fontWeight: 400, marginLeft: 'auto', fontSize: 10 }}>claude-sonnet-4-6</span>}
               </div>
 

@@ -1,3 +1,4 @@
+import { RunFileDownload, runFileUrl } from "@/components/run-file-download";
 import { normalizeQcEvents, qcActionTaken, qcResultLabel, type QcAssessment } from "@shared/qc-assessment";
 /**
  * AfterRunReport — 7-tab inline after-run panel for the v2 workflow surface.
@@ -18,7 +19,7 @@ import { normalizeQcEvents, qcActionTaken, qcResultLabel, type QcAssessment } fr
  * placeholders read as "this product is unfinished".
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, FileJson, FileText, FileCode, FileSpreadsheet, Image as ImageIcon, Dna, Database, File as FileIcon, ExternalLink } from "lucide-react";
+import { FileJson, FileText, FileCode, FileSpreadsheet, Image as ImageIcon, Dna, Database, File as FileIcon, ExternalLink } from "lucide-react";
 import { tOr } from "@/lib/i18n";
 import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
@@ -26,6 +27,7 @@ import { resolveViewer } from "@/components/viewers/inline-content-viewers";
 import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
 import { TrajectoryView, type TrajectoryRow, type TrajectoryKind } from "@/components/trajectory-view";
 import ReactMarkdown from "react-markdown";
+import { ReportDocument } from "./ReportDocument";
 
 // Text-like file extensions we render inline as text (in a <pre>) rather than
 // in an <iframe>. Chrome blocks iframing a step-file response served with
@@ -400,7 +402,7 @@ export function AfterRunReport({
             aria-expanded={downloadMenuOpen}
             data-testid="afterrun-download-toggle"
           >
-            ↓ {tOr('afterrun.download', 'Download')} ▾
+            {tOr('afterrun.export_report', 'Export report')} ▾
           </button>
           {downloadMenuOpen && (
             <>
@@ -538,19 +540,10 @@ export function AfterRunReport({
             record (Methods / Software / Citations / QC) folds in below. Scrolls. */}
         {tab === "report" && (
           <div data-testid="after-report-tab">
-            <div style={styles.runOriginalRow}>
-              <span style={styles.runOriginalBadge}>{tOr('afterrun.tab.report', 'Report')}</span>
-              <span style={styles.runOriginalHint}>
-                {tOr('afterrun.report_hint', 'Question · Answer · Data · Method · Results · Quality checks · Caveats · Citations. Edits save as a new version; the run original is never overwritten.')}
-              </span>
-            </div>
-            <div className="bmx-report-doc" data-testid="after-report-doc" style={{
-              border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg-elev, #fff)',
-              padding: '18px 20px', marginTop: 10, maxHeight: '58vh', overflow: 'auto',
-              fontSize: 13, lineHeight: 1.55, color: 'var(--text)',
-            }}>
-              <ReactMarkdown>{reportMarkdown}</ReactMarkdown>
-            </div>
+            <ReportDocument markdown={reportMarkdown} />
+            <p style={{ ...styles.runOriginalHint, margin: '10px 0 0' }}>
+              {tOr('afterrun.report_readonly_hint', 'Read-only summary of the saved run, its outputs, methods and quality checks.')}
+            </p>
             {/* Reproducibility record commented out 2026-10-28 (user request): the
                 Methods / Parameters / Software / Citations / QC accordion is removed
                 from the Report tab. The report document above already carries Method /
@@ -1173,7 +1166,9 @@ function stepLabel(step: unknown): string {
     /^[0-9a-f]{6,}$/i.test(v) ||
     /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(v) ||
     /^\d+$/.test(v);
-  return opaque ? "" : v;
+  if (opaque) return "";
+  if (v === 'custom_thresholds') return tOr('afterrun.group_custom_thresholds', 'Quality control · custom thresholds');
+  return v.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
 
 /**
@@ -1275,7 +1270,7 @@ function OutputsTab({
   // "Download all (N)" and the primary table reflect scientific outputs only.
   const totalCount = scientificOutputs.length;
   const metadataCount = metadataOutputs.length;
-  const reproUrl = `/api/nextflow/runs/${runId}/reproducibility`;
+  const reproUrl = `/api/runs/${encodeURIComponent(runId)}/reproducibility-record?download=1`;
   // Phase 1 of docs/20260602_ASYNC_JOB_QUEUE_DESIGN.md §11 — bulk ZIP is now
   // produced asynchronously by the jobs subsystem; the user clicks a
   // <JobButton> which polls until ready, then we trigger the actual download.
@@ -1370,15 +1365,6 @@ function OutputsTab({
     }
   };
 
-  const fileUrl = (f: OutputFile, download = false) => {
-    // Prefer download_url (Galaxy proxy / presigned URL) when available.
-    // This avoids routing through the Node.js step-file endpoint, which requires
-    // the file to be reachable from the Node.js container. On on-prem MinIO
-    // deployments, Galaxy is in the same Docker network as MinIO and can serve
-    // the file reliably even when the Node.js container cannot.
-    if ((f as any).download_url) return (f as any).download_url;
-    return `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;
-  };
 
   // Monochrome lucide glyphs at --text-muted (design spec 14 uses restrained
   // neutral line icons, not color emoji — emoji clash with the palette and
@@ -1439,6 +1425,9 @@ function OutputsTab({
         Execution bookkeeping written by Nextflow (DAG, timeline, trace, run log).
         These are not scientific results — they're useful for debugging a run.
       </p>
+      <a href={reproUrl} download="run-record.json" style={styles.linkish}>
+        {tOr('afterrun.download_run_metadata', 'Download run record · JSON')}
+      </a>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
           <tbody>
@@ -1458,11 +1447,7 @@ function OutputsTab({
                         style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
                       >view</button>
                     )}
-                    <a
-                      href={fileUrl(f, true)}
-                      download
-                      style={{ color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11, textDecoration: 'none' }}
-                    >dl</a>
+                    <RunFileDownload runId={runId} file={f} />
                   </span>
                 </td>
               </tr>
@@ -1498,19 +1483,11 @@ function OutputsTab({
           <JobButton
             kind="download_all_zip"
             payload={{ invocationId, runId }}
-            label={tOr('afterrun.download_all_zip', '↓ Download all ({{n}}) as ZIP', { n: totalCount })}
+            label={tOr('afterrun.download_outputs_zip', 'Download output files ({{n}}) · ZIP', { n: totalCount })}
             onReady={triggerDownload}
             className="afterrun-download-all-btn"
           />
         )}
-        <a
-          href={reproUrl}
-          download
-          style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary }}
-          title={tOr('afterrun.repro_bundle_title', 'Configs, command scripts, logs, versions.yml — enough to re-run elsewhere')}
-        >
-          ↓ {tOr('afterrun.repro_bundle', 'Reproducibility bundle')}
-        </a>
 
         {/* Save-to-Project affordance */}
         {savedProjectId ? (
@@ -1581,7 +1558,7 @@ function OutputsTab({
       {/* Outputs gallery — each output as an inline preview card. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '2px 0 10px' }}>
         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }} data-testid="outputs-heading">
-          {tOr('afterrun.outputs_heading', 'Outputs')} ({totalCount})
+          {tOr('afterrun.output_files_count', '{{n}} files', { n: totalCount })}
         </span>
         <input
           type="text"
@@ -1615,9 +1592,11 @@ function OutputsTab({
             <React.Fragment key={key}>
               {showStepHeader && fStepLabel && (
                 <div data-testid="output-step-group" style={{
-                  fontSize: 11, fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase',
+                  fontSize: 12, fontWeight: 600,
                   color: 'var(--text-muted)', margin: i === 0 ? '0 0 2px' : '12px 0 2px',
-                }}>{fStepLabel}</div>
+                }} title={tOr('afterrun.output_group_hint', 'Files grouped by their workflow output folder; this is not necessarily a workflow step.')}>
+                  {tOr('afterrun.output_group', 'Output group')}: {fStepLabel}
+                </div>
               )}
             <div
               data-testid="output-card"
@@ -1629,9 +1608,6 @@ function OutputsTab({
                 <span style={{ display: 'inline-flex', alignItems: 'center' }}>{iconForExt(f.ext)}</span>
                 <span style={{ fontFamily: 'ui-monospace, monospace', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }} title={f.name}>{f.name}</span>
                 <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 10 }}>{f.ext || '—'}</span>
-                {fStepLabel && (
-                  <span style={{ color: 'var(--text-muted)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }} title={fStepLabel}>· {fStepLabel}</span>
-                )}
                 <span style={{ flex: 1 }} />
                 {sizeLabel && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{sizeLabel}</span>}
                 {canPrev && (
@@ -1641,13 +1617,7 @@ function OutputsTab({
                     title={tOr('afterrun.view_fullsize', 'Open full size')}
                   >{inline ? tOr('afterrun.view', 'view') : tOr('afterrun.preview', 'preview')}</button>
                 )}
-                <a
-                  href={fileUrl(f, true)}
-                  download
-                  title={tOr('afterrun.download', 'Download')}
-                  aria-label={tOr('afterrun.download', 'Download')}
-                  style={{ color: 'var(--accent, oklch(0.55 0.18 260))', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none', fontSize: 11 }}
-                ><ArrowDownToLine size={12} />{tOr('afterrun.dl', 'dl')}</a>
+                <RunFileDownload runId={runId} file={f} />
                 {isDatasetOutput && (
                   <a
                     href={`/files?file=${encodeURIComponent(datasetId)}`}
@@ -1661,11 +1631,15 @@ function OutputsTab({
               {/* Inline preview (lazy-mounted) ONLY for light previewable files.
                   Heavy/binary/large files preview on demand via the "preview" modal. */}
               {inline && !collapsed && (
+                <button type="button" onClick={() => setCollapsedCards((s) => { const n = new Set(s); n.add(key); return n; })} className="text-xs text-muted-foreground mt-2">{tOr('afterrun.hide_preview', 'Hide preview')}</button>
+              )}
+              {inline && !collapsed && (
                 <LazyMount>
                   <StepOutputPreview
                     runId={runId}
                     file={{ name: f.name, path: f.path || f.name, extension: f.ext }}
                     projectId={savedProjectId}
+                    embedded
                     onClose={() => setCollapsedCards((s) => { const n = new Set(s); n.add(key); return n; })}
                   />
                 </LazyMount>
@@ -1708,9 +1682,16 @@ function OutputsTab({
               artefact (.rds etc.) shows a compact card (spec 14.2) instead of a
               near-empty full-height void; a big table/image still fills the pane. */}
           <div
+            role="dialog" aria-modal="true" aria-label={previewFile.name} tabIndex={-1}
+            ref={node => node?.focus()}
+            onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setPreviewFile(null); } }}
             onClick={e => e.stopPropagation()}
             style={{ background: 'var(--bg, #fff)', padding: 20, width: 'min(1080px, 96vw)', maxWidth: 'none', height: 'auto', maxHeight: '100vh', overflow: 'auto', borderLeft: '1px solid var(--border, #e5e7eb)', boxShadow: '-8px 0 32px rgba(0,0,0,0.18)' }}
           >
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <h3 className="text-sm font-semibold break-all">{previewFile.name}</h3>
+              <button type="button" className="text-sm shrink-0" onClick={() => setPreviewFile(null)}>{tOr('actions.close', 'Close')}</button>
+            </div>
             {stepLabel(previewFile.step) && (
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{stepLabel(previewFile.step)}</div>
             )}
@@ -1725,10 +1706,10 @@ function OutputsTab({
               onClose={() => setPreviewFile(null)}
               projectId={savedProjectId}
               maxHClass="max-h-[70vh]"
+              expanded
+              embedded
             />
-            <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-              <a href={fileUrl(previewFile, true)} download style={{ fontSize: 12, color: 'var(--accent, oklch(0.55 0.18 260))' }}>↓ {tOr('afterrun.download', 'Download')}</a>
-            </div>
+
           </div>
         </div>
       )}
@@ -2652,10 +2633,8 @@ function buildFullReportMarkdown(args: {
   const lines: string[] = [];
 
   // ── Header ────────────────────────────────────────────────────────────────
-  lines.push(`# BioMate Run Report`);
+  lines.push(`# ${workflowName || "Analysis results"}`);
   lines.push("");
-  lines.push(`- **Run ID**: \`${runId}\``);
-  if (workflowName) lines.push(`- **Workflow**: ${workflowName}`);
   lines.push(`- **Generated**: ${new Date().toISOString()}`);
   lines.push("");
   lines.push(`_This report is a research summary. Input and output file bytes_`);
@@ -2750,14 +2729,12 @@ function buildFullReportMarkdown(args: {
   if (outputs.length === 0) {
     lines.push(`_No output files registered for this run._`);
   } else {
-    lines.push(`Outputs below are linked via BioMate's per-file download endpoint`);
-    lines.push(`(\`/api/runs/${runId}/output/...\`). Bytes stay in your project's`);
-    lines.push(`output location; the report is portable.`);
+    lines.push(`File links open the saved outputs in your BioMate workspace.`);
     lines.push("");
     const byStep: Record<string, OutputFile[]> = {};
     for (const o of outputs) (byStep[o.step] = byStep[o.step] || []).push(o);
     for (const [step, files] of Object.entries(byStep)) {
-      lines.push(`### ${step || "(unspecified step)"}`);
+      lines.push(`### ${stepLabel(step) || "Files"}`);
       lines.push("");
       // Show sizes if present; otherwise hide the column to avoid empty cells
       const hasSize = files.some(f => typeof f.size === "number" && f.size > 0);
@@ -2769,7 +2746,7 @@ function buildFullReportMarkdown(args: {
                    : `| File | Type |\n|------|------|`);
       lines.push(header);
       for (const f of files) {
-        const dl = `[${f.name}](/api/runs/${runId}/output/${encodeURIComponent(f.name)})`;
+        const dl = `[${f.name}](${runFileUrl(runId, f, true)})`;
         const type = f.ext || "—";
         const size = hasSize ? formatBytes(f.size) : null;
         const desc = hasDesc ? (f.description || "") : null;
@@ -2849,11 +2826,8 @@ function buildFullReportMarkdown(args: {
   lines.push(`---`);
   lines.push(`## Reproducibility`);
   lines.push("");
-  lines.push(`This run is reproducible by re-dispatching the same workflow with`);
-  lines.push(`the parameters listed above against the same software versions`);
-  lines.push(`(see *Software* section). Outputs are addressable in your BioMate`);
-  lines.push(`workspace under \`runs/${runId}/\`; download each file via the`);
-  lines.push(`endpoint links in the *Outputs* section.`);
+  lines.push(`The saved parameters, software versions and output references support review of this run.`);
+  lines.push(`Re-running also requires the original inputs and a compatible execution environment.`);
   lines.push("");
   lines.push(`Generated by BioMate · ${new Date().toISOString()}`);
 

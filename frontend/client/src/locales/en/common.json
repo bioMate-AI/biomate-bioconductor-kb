@@ -571,9 +571,11 @@
       "not_started": "Not started"
     },
     "findings": {
-      "analyzing": "Loading the AI summary…",
-      "in_progress": "AI summary is not available yet."
-    }
+      "analyzing": "Loading findings…",
+      "in_progress": "Findings are not available yet.",
+      "summary_title": "Findings · generated from outputs"
+    },
+    "ai_findings_analysis": "Findings analysis"
   },
   "preview": {
     "loading": "Loading preview…",
@@ -595,7 +597,9 @@
     "analyze_rstudio": "Analyze in RStudio",
     "explore_cellxgene": "Explore in CellxGene",
     "opens_preloaded": "Opens with this file pre-loaded",
-    "download_file": "Download {{name}}"
+    "download_file": "Download {{name}}",
+    "previous_rows": "Previous rows",
+    "next_rows": "Next rows"
   },
   "step_view": {
     "title": "Full step view",
@@ -818,5 +822,19 @@
     "owner": "Owner",
     "transfer": "Transfer ownership",
     "leave": "Leave project"
+  },
+  "afterrun": {
+    "group_custom_thresholds": "Quality control · custom thresholds",
+    "output_group": "Output group",
+    "output_group_hint": "Files grouped by their workflow output folder; this is not necessarily a workflow step.",
+    "file_download_failed": "Download failed ({{error}}). Try again.",
+    "hide_preview": "Hide preview",
+    "preview_unavailable_download_card": "Preview is unavailable. Use Download on the output card.",
+    "export_report": "Export report",
+    "download_outputs_zip": "Download output files ({{n}}) · ZIP",
+    "output_files_count": "{{n}} files",
+    "report_readonly_hint": "Read-only summary of the saved run, its outputs, methods and quality checks.",
+    "report_table": "Report table",
+    "download_run_metadata": "Download run record · JSON"
   }
 }

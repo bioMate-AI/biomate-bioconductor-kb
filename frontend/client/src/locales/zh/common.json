@@ -604,11 +604,11 @@
     "phases_appear": "工作流开始后，执行阶段会显示在这里。",
     "required": "必需",
     "findings": {
-      "analyzing": "正在加载 AI 摘要…",
+      "analyzing": "正在加载分析发现…",
       "not_available_failed": "分析不可用——工作流未成功完成。",
-      "in_progress": "AI 摘要尚未就绪。",
+      "in_progress": "分析发现尚未就绪。",
       "unavailable_fallback": "无法读取工作流输出，分析不可用。请修复输出访问权限后重试。",
-      "summary_title": "AI 结果 · 源自运行输出",
+      "summary_title": "分析发现 · 源自运行输出",
       "key_results": "关键结果",
       "col_metric": "指标",
       "col_value": "数值",
@@ -654,7 +654,7 @@
     "dataset_path_placeholder": "数据集路径或 ID",
     "add_step_msg": "在“{{step}}”之后添加一个步骤，用于 ",
     "ai_analysis": "AI 分析",
-    "ai_findings_analysis": "AI 分析发现",
+    "ai_findings_analysis": "分析发现",
     "analysis_failed": "分析失败，请重试。",
     "analyzing": "分析中…",
     "analyzing_error": "正在分析错误…",
@@ -809,7 +809,9 @@
     "analyze_rstudio": "在 RStudio 中分析",
     "explore_cellxgene": "在 CellxGene 中探索",
     "opens_preloaded": "打开时会预先载入此文件",
-    "download_file": "下载 {{name}}"
+    "download_file": "下载 {{name}}",
+    "previous_rows": "上一页",
+    "next_rows": "下一页"
   },
   "step_view": {
     "title": "完整步骤视图",
@@ -1010,7 +1012,19 @@
     "deck_failed": "演示文稿导出失败 — 请改用 Markdown 报告",
     "download_deck": "下载演示文稿（PPTX）",
     "download_deck_title": "将此报告导出为 PowerPoint 演示文稿（.pptx），在本地生成 — 不经过任何外部服务",
-    "preview_lazy": "滚动以加载预览…"
+    "preview_lazy": "滚动以加载预览…",
+    "group_custom_thresholds": "质量控制 · 自定义阈值",
+    "output_group": "输出分组",
+    "output_group_hint": "按工作流输出文件夹分组，不一定对应一个工作流步骤。",
+    "file_download_failed": "下载失败（{{error}}）。请重试。",
+    "hide_preview": "收起预览",
+    "preview_unavailable_download_card": "无法预览。请使用输出文件卡片上的下载按钮。",
+    "export_report": "导出报告",
+    "download_outputs_zip": "下载输出文件（{{n}}）· ZIP",
+    "output_files_count": "{{n}} 个文件",
+    "report_readonly_hint": "已保存运行的只读摘要，包含输出、方法与质量检查。",
+    "report_table": "报告表格",
+    "download_run_metadata": "下载运行记录 · JSON"
   },
   "design": {
     "axis_x": "横轴",

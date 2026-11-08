@@ -662,12 +662,42 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     { step: "", name: ".nextflow.log", path: "logs/.nextflow.log", ext: "log" },
   ];
 
+  it("labels directory-derived groups once instead of repeating a supposed step on each file", async () => {
+    render(<AfterRunReport {...baseProps} outputs={[
+      { step: 'custom_thresholds', name: 'sample-a.bin', path: '02_quality_control/custom_thresholds/sample-a.bin', ext: 'bin' },
+      { step: 'custom_thresholds', name: 'sample-b.bin', path: '02_quality_control/custom_thresholds/sample-b.bin', ext: 'bin' },
+    ]} />);
+    fireEvent.click(await screen.findByTestId('after-tab-outputs'));
+    expect(screen.getAllByTestId('output-step-group')).toHaveLength(1);
+    expect(screen.getByTestId('output-step-group')).toHaveTextContent('Output group: Quality control · custom thresholds');
+    for (const card of screen.getAllByTestId('output-card')) {
+      expect(card).not.toHaveTextContent('custom_thresholds');
+    }
+  });
+
+  it("opens a single-identity view without download controls and closes with Escape", async () => {
+    render(<AfterRunReport {...baseProps} outputs={[
+      { step: 'custom_thresholds', name: 'quality.png', path: 'custom_thresholds/quality.png', ext: 'png' },
+    ]} />);
+    fireEvent.click(await screen.findByTestId('after-tab-outputs'));
+    const card = screen.getByTestId('output-card');
+    expect(within(card).getAllByText('quality.png')).toHaveLength(1);
+    expect(within(card).getAllByRole('button', { name: 'Download quality.png' })).toHaveLength(1);
+    fireEvent.click(within(card).getByRole('button', { name: 'view' }));
+    const dialog = screen.getByRole('dialog', { name: 'quality.png' });
+    expect(within(dialog).getAllByText('quality.png')).toHaveLength(1);
+    expect(within(dialog).queryByRole('button', { name: /Download/ })).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it.each(['completed', 'failed'])("keeps run metadata visible when a %s run has no scientific outputs", async status => {
     render(<AfterRunReport {...baseProps} executionStatus={status as any} outputs={mixedOutputs.slice(1) as any} />);
     fireEvent.click(await screen.findByTestId('after-tab-outputs'));
     const section = await screen.findByTestId('run-metadata-section');
     expect(within(section).getByText('dag.html')).toBeInTheDocument();
-    expect(screen.queryByText(/Download all \(3\)/)).toBeNull();
+    expect(screen.queryByText(/Download output files \(3\)/)).toBeNull();
   });
 
   it("does not repeat the parent After run heading when embedded", async () => {
@@ -698,8 +728,8 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     // Outputs live under the Outputs tab (component lands on Summary).
     fireEvent.click(await screen.findByTestId("after-tab-outputs"));
     // 1 scientific output of 4 total → "Download all (1)", never (4).
-    expect(await screen.findByText(/Download all \(1\) as ZIP/)).toBeInTheDocument();
-    expect(screen.queryByText(/Download all \(4\)/)).toBeNull();
+    expect(await screen.findByText(/Download output files \(1\) · ZIP/)).toBeInTheDocument();
+    expect(screen.queryByText(/Download output files \(4\)/)).toBeNull();
   });
 
   it("groups Nextflow bookkeeping under a 'Run metadata' section (not Outputs)", async () => {
