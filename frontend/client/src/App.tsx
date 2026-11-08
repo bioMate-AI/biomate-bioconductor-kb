@@ -83,13 +83,13 @@ interface ToolItem {
   icon: any
 }
 
-function ProjectsRouter({ onNewChat }: { onNewChat: () => void }) {
+export function ProjectsRouter() {
   const { setActiveProjectId } = useActiveProject();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const projectId = searchParams.get('project');
-  const initialTab = searchParams.get('tab') ?? undefined;
+  const initialTab = searchParams.get('tab') ?? 'chat';
   useEffect(() => {
     if (!projectId) return;
     setActiveProjectId(projectId);
@@ -97,8 +97,8 @@ function ProjectsRouter({ onNewChat }: { onNewChat: () => void }) {
       // Retired duplicate project Runs view: keep project context and open Files.
       // Do not create a chat or reconstruct a workflow as a new run.
       setLocation(`/files?project=${encodeURIComponent(projectId)}`, { replace: true });
-    } else if (initialTab === "chat") onNewChat();
-    else if (initialTab !== "instructions") setLocation("/files");
+    } else if (initialTab === "files") setLocation("/files");
+    // Opening project Chats only reads saved sessions. New Chat remains an explicit action.
   }, [projectId, initialTab]);
 
   const handleProjectSelect = (id: string) => {
@@ -800,7 +800,7 @@ function Router({
           activeChatId={currentChatSession?.id}
           chatSessions={chatSessions}
         >
-          <ProjectsRouter onNewChat={onNewChat} />
+          <ProjectsRouter />
         </PlatformLayout>
       </Route>
 

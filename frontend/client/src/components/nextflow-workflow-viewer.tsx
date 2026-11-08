@@ -2086,17 +2086,6 @@ export function NextflowWorkflowViewer({
       userOverriddenParams.current.has(p.id || p.name) ? { ...p, overridden: true } : p);
   }, [workflowDefinition, params, toolHintMap]);
 
-  // Count params that belong to the Workflow Settings tab (not pinned to any phase).
-  // Used for the tab badge — total count (renderedParameters.length) is misleading because
-  // it includes phase-specific params that are shown inside phase cards, not the settings tab.
-  const settingsParamCount = React.useMemo(() => {
-    const phaseNames = new Set(
-      groupedPhases.filter((g: any) => g.key !== 'all').flatMap((g: any) => g.phaseParams as string[])
-    );
-    return renderedParameters.filter((p: any) => !phaseNames.has(p.id || p.name || '')).length;
-  }, [groupedPhases, renderedParameters]);
-
-
   /**
    * Count global params that are required AND still empty.
    * Mirrors the logic inside the Workflow-settings strip IIFE (~line 2490) but
@@ -3127,7 +3116,7 @@ export function NextflowWorkflowViewer({
             {/* Settings tab: the existing Workflow-settings collapsible strip
                 that today lives at the TOP of panel-body. Same content; just
                 moved into its own tab via CSS-hide (no JSX restructure). */}
-            {tabBtn('settings', t('panel.tabs.settings'), settingsParamCount > 0 ? countBadge(settingsParamCount) : undefined)}
+            {tabBtn('settings', t('panel.tabs.settings'), undefined)}
             {tabBtn('phases', t('panel.tabs.phases'), countBadge(phaseCount))}
             {tabBtn('after-run', t('panel.tabs.after_run'), showAfterRunDot ? dotBadge : null)}
           </div>
@@ -3544,7 +3533,9 @@ export function NextflowWorkflowViewer({
                     <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
-                    {tOr('panel.styleA_attach_hint', 'This workflow needs a data file. Attach it with the paperclip (📎) in the message box below — BioMate wires your uploaded file into the workflow automatically.')}
+                    {!styleAInputs.some((p: any) => p.value != null && String(p.value).trim() !== '')
+                      ? tOr('panel.styleA_attach_hint', 'This workflow needs a data file. Attach it with the paperclip (📎) in the message box below — BioMate wires your uploaded file into the workflow automatically.')
+                      : tOr('panel.inputs_linked_review', 'Input references are set. Review the mapping below.')}
                   </div>
                   <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {styleAInputs.map((p: any, i: number) => {

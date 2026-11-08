@@ -139,7 +139,7 @@ describe("StepOutputPreview — viewer routing by extension", () => {
     render(<StepOutputPreview runId={runId} file={{ name: "data.cs", path: "/p", extension: "cs" }} onClose={onClose} />);
     // .cs is registered in CRYO_BINARY_EXTS → viewer='download', shows a download link
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Download data.cs" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Download data.cs" })).toBeInTheDocument();
     });
   });
 

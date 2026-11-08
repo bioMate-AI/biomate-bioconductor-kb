@@ -787,7 +787,8 @@
     "what_went_wrong": "问题所在：",
     "workflow_failed": "工作流失败",
     "workflow_parameters": "工作流参数",
-    "styleA_attach_hint": "此工作流需要一个数据文件。请用下方消息框中的回形针（📎）附加文件 — BioMate 会自动将您上传的文件接入工作流。"
+    "styleA_attach_hint": "此工作流需要一个数据文件。请用下方消息框中的回形针（📎）附加文件 — BioMate 会自动将您上传的文件接入工作流。",
+    "inputs_linked_review": "已设置输入文件引用，请核对下方映射。"
   },
   "preview": {
     "loading": "正在加载预览…",
@@ -1024,7 +1025,11 @@
     "output_files_count": "{{n}} 个文件",
     "report_readonly_hint": "已保存运行的只读摘要，包含输出、方法与质量检查。",
     "report_table": "报告表格",
-    "download_run_metadata": "下载运行记录 · JSON"
+    "download_run_metadata": "下载运行记录 · JSON",
+    "findings_loading": "正在加载已保存的分析发现…",
+    "findings_load_failed": "无法加载分析发现，仍可查看已保存的输出文件。",
+    "findings_pending": "分析发现仍在生成，完成后报告会自动更新。",
+    "findings_empty": "未记录结构化的分析发现摘要。"
   },
   "design": {
     "axis_x": "横轴",

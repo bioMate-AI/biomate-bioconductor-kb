@@ -806,52 +806,33 @@ interface FindingsData {
 function useFetchFindings(runId: string): FindingsData | null {
   const [data, setData] = useState<FindingsData | null>(null);
   useEffect(() => {
+    setData(null);
     if (!runId) return;
     let cancelled = false;
-
-    // Phase 4: route through async job system. The handler server-polls
-    // /api/workflows/runs/:id/findings until status=ready (5-min cap),
-    // then writes the JSON as the artifact. Dedup means N tabs on the
-    // same run trigger one Claude call. 24h cache means re-open is
-    // <500ms instead of 5–60s.
-    (async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+    const controller = new AbortController();
+    // Use the same authenticated saved-findings endpoint as FindingsCard.
+    // A cache miss returns pending while that endpoint coalesces analysis;
+    // no separate queue job or unauthenticated loopback request is needed.
+    const read = async () => {
       try {
-        const enq = await fetch("/api/jobs", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ kind: "findings_analysis", payload: { runId } }),
+        const response = await fetch(`/api/workflows/runs/${encodeURIComponent(runId)}/findings`, {
+          credentials: "include", signal: controller.signal,
         });
-        if (!enq.ok || cancelled) return;
-        const job = await enq.json();
-        const jobId: string = job.jobId;
-
-        // Show "pending" while waiting so the UI distinguishes from "no data yet".
-        if (job.state !== "ready") setData({ status: "pending" });
-
-        for (let i = 0; i < 200; i++) {
-          if (cancelled) return;
-          if (i === 0 && job.state === "ready") break;
-          await new Promise((r) => setTimeout(r, i === 0 ? 500 : 2000));
-          const r = await fetch(`/api/jobs/${jobId}`, { credentials: "include" });
-          if (!r.ok || cancelled) break;
-          const j = await r.json();
-          if (j.state === "ready") break;
-          if (j.state === "failed" || j.state === "cancelled") {
-            if (!cancelled) setData({ status: "failed" });
-            return;
-          }
-        }
         if (cancelled) return;
-
-        const art = await fetch(`/api/jobs/${jobId}/artifact`, { credentials: "include" });
-        if (!art.ok || cancelled) return;
-        const payload = (await art.json()) as FindingsData;
-        if (!cancelled) setData(payload);
-      } catch { /* ignore */ }
-    })();
-
-    return () => { cancelled = true; };
+        if (!response.ok) { setData({ status: "failed" }); return; }
+        const payload = await response.json() as FindingsData;
+        if (cancelled) return;
+        setData(payload);
+        if (payload.status === "pending") {
+          if (++attempts < 60) timer = setTimeout(read, 5000);
+          else setData({ status: "unavailable" });
+        }
+      } catch { if (!cancelled) setData({ status: "failed" }); }
+    };
+    void read();
+    return () => { cancelled = true; controller.abort(); if (timer) clearTimeout(timer); };
   }, [runId]);
   return data;
 }
@@ -2679,9 +2660,17 @@ function buildFullReportMarkdown(args: {
   // notice if the AI analysis hasn't completed yet at click time.
   lines.push(`## Findings`);
   lines.push("");
-  if (!findings || findings.status === "pending" || !findings.summary) {
-    lines.push(`_Findings analysis is still pending. Re-download in a minute to_`);
-    lines.push(`_capture the structured AI summary, key results, caveats, and next steps._`);
+  if (!findings) {
+    lines.push(`_${tOr('afterrun.findings_loading', 'Loading recorded findings…')}_`);
+    lines.push("");
+  } else if (["failed", "error", "unavailable"].includes(findings.status)) {
+    lines.push(`_${tOr('afterrun.findings_load_failed', 'Findings could not be loaded. The recorded outputs remain available.')}_`);
+    lines.push("");
+  } else if (findings.status === "pending") {
+    lines.push(`_${tOr('afterrun.findings_pending', 'Findings analysis is still pending. This report updates when the analysis is available.')}_`);
+    lines.push("");
+  } else if (!findings.summary && !findings.key_results?.length) {
+    lines.push(`_${tOr('afterrun.findings_empty', 'No structured findings summary was recorded.')}_`);
     lines.push("");
   } else {
     if (findings.summary) {

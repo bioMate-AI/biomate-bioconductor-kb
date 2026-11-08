@@ -575,7 +575,8 @@
       "in_progress": "Findings are not available yet.",
       "summary_title": "Findings · generated from outputs"
     },
-    "ai_findings_analysis": "Findings analysis"
+    "ai_findings_analysis": "Findings analysis",
+    "inputs_linked_review": "Input references are set. Review the mapping below."
   },
   "preview": {
     "loading": "Loading preview…",
@@ -835,6 +836,10 @@
     "output_files_count": "{{n}} files",
     "report_readonly_hint": "Read-only summary of the saved run, its outputs, methods and quality checks.",
     "report_table": "Report table",
-    "download_run_metadata": "Download run record · JSON"
+    "download_run_metadata": "Download run record · JSON",
+    "findings_loading": "Loading recorded findings…",
+    "findings_load_failed": "Findings could not be loaded. The recorded outputs remain available.",
+    "findings_pending": "Findings analysis is still pending. This report updates when the analysis is available.",
+    "findings_empty": "No structured findings summary was recorded."
   }
 }

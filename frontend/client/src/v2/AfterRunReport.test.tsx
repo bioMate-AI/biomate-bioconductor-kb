@@ -78,7 +78,7 @@ async function openQcTab() {
 describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // Mock the findings job pipeline: enqueue → state-ready → artifact returns FindingsData
+    // The report and card share the authenticated cached findings endpoint.
     const findingsArtifact = {
       status: "ok",
       summary: "DESeq2 found 2,841 differentially expressed genes.",
@@ -100,7 +100,7 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
           json: async () => ({ jobId: "job-1", state: "ready" }),
           text: async () => "" } as Response;
       }
-      if (url === "/api/jobs/job-1/artifact") {
+      if (url.endsWith("/findings")) {
         return { ok: true, status: 200,
           json: async () => findingsArtifact, text: async () => "" } as Response;
       }
@@ -150,7 +150,7 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
         return { ok: true, status: 200,
           json: async () => ({ jobId: "j2", state: "ready" }), text: async () => "" } as Response;
       }
-      if (url === "/api/jobs/j2/artifact") {
+      if (url.endsWith("/findings")) {
         // No `figures` key → panel should not mount
         return { ok: true, status: 200,
           json: async () => ({ status: "ok", summary: "no figures here" }),
@@ -226,7 +226,7 @@ describe.skip("v2/AfterRunReport — MethodsTab editable report (Spec 12 increme
         return { ok: true, status: 200, json: async () => ({ state: "ready" }),
           text: async () => "" } as Response;
       }
-      if (url === "/api/jobs/fjob-1/artifact") {
+      if (url.endsWith("/findings")) {
         return { ok: true, status: 200,
           json: async () => ({ status: "ok", summary: "" }), text: async () => "" } as Response;
       }
@@ -682,11 +682,11 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     fireEvent.click(await screen.findByTestId('after-tab-outputs'));
     const card = screen.getByTestId('output-card');
     expect(within(card).getAllByText('quality.png')).toHaveLength(1);
-    expect(within(card).getAllByRole('button', { name: 'Download quality.png' })).toHaveLength(1);
+    expect(within(card).getAllByRole('link', { name: 'Download quality.png' })).toHaveLength(1);
     fireEvent.click(within(card).getByRole('button', { name: 'view' }));
     const dialog = screen.getByRole('dialog', { name: 'quality.png' });
     expect(within(dialog).getAllByText('quality.png')).toHaveLength(1);
-    expect(within(dialog).queryByRole('button', { name: /Download/ })).toBeNull();
+    expect(within(dialog).queryByRole('link', { name: /Download/ })).toBeNull();
     expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument();
     fireEvent.keyDown(dialog, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -795,5 +795,36 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     render(<AfterRunReport {...baseProps} executionStatus={"completed" as any} />);
     expect(await screen.findByTestId("afterrun-download-toggle")).toBeInTheDocument();
     expect(screen.queryByTestId("afterrun-no-report")).toBeNull();
+  });
+});
+
+describe('Report reads the same authenticated saved findings as Summary', () => {
+  it('includes cached findings in the Report without enqueuing findings analysis', async () => {
+    const fetcher = vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      if (String(input).endsWith('/findings')) return { ok: true, status: 200, json: async () => ({ status: 'ready', summary: 'Three samples retained 1102 cells.', key_results: [{ metric: 'Silhouette', value: 0.5944 }] }) } as Response;
+      return { ok: false, status: 404, json: async () => ({}) } as Response;
+    });
+    render(<AfterRunReport {...baseProps} />);
+    fireEvent.click(screen.getByTestId('after-tab-report'));
+    await waitFor(() => expect(screen.getByTestId('after-report-tab')).toHaveTextContent('Three samples retained 1102 cells.'));
+    expect(screen.getByTestId('after-report-tab')).toHaveTextContent('0.5944');
+    const direct = fetcher.mock.calls.filter(([url]) => String(url).endsWith('/findings'));
+    expect(direct.length).toBeGreaterThan(0);
+    expect(direct.every(([, options]) => options?.credentials === 'include')).toBe(true);
+    expect(fetcher.mock.calls.some(([url, options]) => String(url) === '/api/jobs' && String(options?.body).includes('findings_analysis'))).toBe(false);
+  });
+  it('reports a 401 retrieval failure honestly instead of calling it pending', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => ({ ok: false, status: String(input).endsWith('/findings') ? 401 : 404, json: async () => ({}) } as Response));
+    render(<AfterRunReport {...baseProps} />);
+    fireEvent.click(screen.getByTestId('after-tab-report'));
+    await waitFor(() => expect(screen.getByTestId('after-report-tab')).toHaveTextContent('Findings could not be loaded.'));
+    expect(screen.getByTestId('after-report-tab')).not.toHaveTextContent('still pending');
+  });
+  it('keeps actual pending distinct from a failed retrieval', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => String(input).endsWith('/findings') ? ({ ok: true, status: 200, json: async () => ({ status: 'pending' }) } as Response) : ({ ok: false, status: 404, json: async () => ({}) } as Response));
+    render(<AfterRunReport {...baseProps} />);
+    fireEvent.click(screen.getByTestId('after-tab-report'));
+    await waitFor(() => expect(screen.getByTestId('after-report-tab')).toHaveTextContent('Findings analysis is still pending.'));
+    expect(screen.getByTestId('after-report-tab')).not.toHaveTextContent('could not be loaded');
   });
 });
