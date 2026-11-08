@@ -1,0 +1,28 @@
+const { chromium } = require('../../frontend/node_modules/playwright');
+const fs = require('fs');
+const path = require('path');
+(async()=>{
+ const root=path.resolve(__dirname,'../..');
+ const out=path.join(root,'docs/qa/20261003-tutorial-release/pilot-frames');fs.mkdirSync(out,{recursive:true});
+ const browser=await chromium.launch({channel:'chrome',headless:true});
+ const page=await browser.newPage({viewport:{width:1920,height:1080},deviceScaleFactor:1});
+ const issues=[];
+ try {
+  for(const lang of ['en','zh']){
+   await page.goto(`http://127.0.0.1:7788/reference/claude_design/tutorials/review-pilot/index.html?lang=${lang}`,{waitUntil:'networkidle'});
+   await page.waitForFunction(()=>window.__ready===true);
+   await page.evaluate(()=>document.fonts.ready);
+   for(let i=0;i<10;i++){
+    await page.evaluate(n=>window.renderScene(n),i);await page.waitForTimeout(900);
+    const bad=await page.evaluate(()=>[...document.querySelectorAll('h1,.subtitle,.card,.card .label,.card .value,.screen,.footer')].flatMap(el=>{
+     const b=el.getBoundingClientRect();const footer=document.querySelector('.footer').getBoundingClientRect();
+     return b.left<0||b.right>1921||b.bottom>1080||(!el.classList.contains('card')&&(el.scrollWidth>el.clientWidth+2||el.scrollHeight>el.clientHeight+2))||(!el.classList.contains('footer')&&b.bottom>footer.top-8)?[{text:el.textContent.slice(0,100),bounds:{x:b.x,y:b.y,width:b.width,height:b.height},scroll:[el.scrollWidth,el.scrollHeight]}]:[];
+    }));
+    issues.push(...bad.map(x=>({language:lang,scene:i+1,...x})));
+    await page.screenshot({path:path.join(out,`${lang}-${String(i+1).padStart(2,'0')}.png`)});
+   }
+  }
+  fs.writeFileSync(path.join(out,'layout-audit.json'),JSON.stringify({frames:20,issues},null,2));
+  console.log(JSON.stringify({frames:20,issues:issues.length}));if(issues.length)process.exitCode=1;
+ } finally {await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

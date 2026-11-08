@@ -18,6 +18,7 @@ import {
   type RunComparisonResponse,
   executionRuns as executionRunsTable,
 } from "@shared/schema";
+import { extractInputBindings } from "./workflow-input-gate";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -323,6 +324,10 @@ export class MemStorage implements IStorage {
       workflowName,
       workflowDefinition: request.workflowDefinition,
 
+      // Provenance: record which exact dataset was bound to each data-input step
+      // at launch, so the run record can state its resolved inputs.
+      inputBindings: extractInputBindings((request as any).inputs),
+
       dataScope: {
         fraction: config.dataScope?.fraction ?? 1.0,
         absoluteCount: config.dataScope?.absoluteCount,
@@ -390,6 +395,7 @@ export class MemStorage implements IStorage {
       mode: executionRun.mode,
       workflowName: executionRun.workflowName,
       workflowDefinition: JSON.stringify(executionRun.workflowDefinition),
+      inputBindings: JSON.stringify(executionRun.inputBindings ?? []),
       dataScope: JSON.stringify(executionRun.dataScope),
       parameters: JSON.stringify(executionRun.parameters),
       galaxyInvocationId: executionRun.execution?.galaxyInvocationId,
@@ -402,9 +408,17 @@ export class MemStorage implements IStorage {
       nextflowOutputDir: executionRun.execution?.nextflowOutputDir,
       steps: JSON.stringify(executionRun.steps),
       metrics: JSON.stringify(executionRun.metrics),
+      // audit S5#3: persist progress — the INSERT omitted these, so a DB-loaded run
+      // (cross-worker / after MemStorage eviction) read totalSteps=0 / percentComplete=0
+      // and a completed run's card showed "N of 0 steps / 0%".
+      totalSteps: String(executionRun.progress?.totalSteps ?? 0),
+      completedSteps: String(executionRun.progress?.completedSteps ?? 0),
+      currentStepIndex: executionRun.progress?.currentStepIndex != null ? String(executionRun.progress.currentStepIndex) : undefined,
+      currentStepName: executionRun.progress?.currentStepName,
+      percentComplete: String(executionRun.progress?.percentComplete ?? 0),
       createdAt: executionRun.createdAt,
       updatedAt: executionRun.updatedAt,
-    }).catch(e => console.warn('[Storage] Failed to persist execution run to DB:', e.message));
+    }).catch(e => console.error('[Storage] DURABILITY: failed to persist execution run to DB — run is MemStorage-only and will be lost on a worker recycle:', e?.message));
 
     return executionRun;
   }
@@ -414,6 +428,8 @@ export class MemStorage implements IStorage {
     try { execution = row.executionJson ? JSON.parse(row.executionJson) : {}; } catch {}
     let workflowDefinition: any = {};
     try { workflowDefinition = row.workflowDefinition ? JSON.parse(row.workflowDefinition) : {}; } catch {}
+    let inputBindings: any[] = [];
+    try { inputBindings = row.inputBindings ? JSON.parse(row.inputBindings) : []; } catch {}
     let dataScope: any = { fraction: 1, samplingStrategy: 'random', sampledIds: [] };
     try { dataScope = row.dataScope ? JSON.parse(row.dataScope) : dataScope; } catch {}
     let parameters: any = { version: 1, toolParameters: {} };
@@ -432,6 +448,7 @@ export class MemStorage implements IStorage {
       mode: (row.mode || 'sandbox') as 'sandbox' | 'production',
       workflowName: row.workflowName,
       workflowDefinition,
+      inputBindings,
       dataScope,
       parameters,
       execution: {
@@ -584,10 +601,15 @@ export class MemStorage implements IStorage {
       executionJson: JSON.stringify(exec),
       steps: JSON.stringify(updated.steps),
       metrics: JSON.stringify(updated.metrics),
+      // audit S5#3: persist the full progress block, not just completedSteps/currentStepName,
+      // so a DB-loaded completed run no longer reads totalSteps=0 / percentComplete=0.
+      totalSteps: String(updated.progress?.totalSteps ?? 0),
       completedSteps: String(updated.progress?.completedSteps || 0),
+      currentStepIndex: updated.progress?.currentStepIndex != null ? String(updated.progress.currentStepIndex) : undefined,
       currentStepName: updated.progress?.currentStepName,
+      percentComplete: String(updated.progress?.percentComplete ?? 0),
       updatedAt: updated.updatedAt,
-    }).where(eq(executionRunsTable.id, id)).catch(e => console.warn('[Storage] DB updateExecutionRun failed:', e.message));
+    }).where(eq(executionRunsTable.id, id)).catch(e => console.error('[Storage] DURABILITY: DB updateExecutionRun failed — this update is MemStorage-only until the next successful write:', e?.message));
 
     return updated;
   }
@@ -605,7 +627,16 @@ export class MemStorage implements IStorage {
       execution: {
         ...existing.execution,
         status,
-        errorMessage,
+        // A failed run keeps the error already recorded unless a new one is given: the
+        // Nextflow terminal transition writes the failure summary and then emits
+        // workflow_completed, whose handler re-sets the status with no message and was
+        // erasing it (every failed nf-core validation run showed errorMessage=null).
+        errorMessage:
+          errorMessage !== undefined
+            ? errorMessage
+            : status === 'failed'
+              ? existing.execution?.errorMessage
+              : undefined,
       },
       updatedAt: now,
     };

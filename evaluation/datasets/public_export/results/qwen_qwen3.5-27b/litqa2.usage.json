@@ -1,0 +1,16 @@
+{
+  "task": "litqa2",
+  "mode": null,
+  "model": "qwen/qwen3.5-27b",
+  "n": 199,
+  "n_with_usage": 199,
+  "input_tokens_total": 26808,
+  "output_tokens_total": 1195,
+  "input_tokens_mean": 134.71356783919597,
+  "output_tokens_mean": 6.005025125628141,
+  "latency_ms_p50": 1150,
+  "latency_ms_p95": 3418,
+  "latency_ms_mean": 1517.2964824120604,
+  "n_with_latency": 199,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

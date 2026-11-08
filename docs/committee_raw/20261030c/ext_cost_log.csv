@@ -1,0 +1,4 @@
+ts,reviewer,model,attempt,prompt_tokens,completion_tokens,reasoning_tokens,reported_cost_usd,counted_cost_usd,finish,balance_before,balance_after,note
+2026-10-28T21:34:35,GPT,openai/gpt-5.5,1,33459,6842,20,0.3726,0.3726,stop,3.309,3.309,
+2026-10-28T21:35:09,GEMINI,google/gemini-3.1-pro-preview,1,37951,3067,1217,0.1127,0.1127,stop,3.309,3.309,
+2026-10-28T21:38:21,SONNET,anthropic/claude-sonnet-4.6,1,39081,7238,28,0.2258,0.3387,stop,2.937,2.824,

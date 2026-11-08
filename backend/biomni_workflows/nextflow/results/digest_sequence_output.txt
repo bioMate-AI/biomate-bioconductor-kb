@@ -1,4 +1,0 @@
-Biomni: Digest Sequence Results
-============================================================
-
-error: module 'Bio.Restriction' has no attribute 'E'

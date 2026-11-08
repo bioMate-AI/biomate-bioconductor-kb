@@ -1,0 +1,16 @@
+2013_CHUGAI k=5 s=0 K     indep=0.185593736 pipeline=0.185593736 |diff|=8.33e-17
+2013_CHUGAI k=5 s=0 A     indep=0.072278660 pipeline=0.072278660 |diff|=4.16e-17
+2013_CHUGAI k=5 s=0 F1_5  indep=0.166285317 pipeline=0.166285317 |diff|=5.55e-17
+2013_CHUGAI k=5 s=0 F2_5  indep=0.192044962 pipeline=0.192044962 |diff|=5.55e-17
+   r independent = 0.1875  pipeline r = 0.1875
+2013_CHUGAI k=25 s=3 K     indep=0.179227788 pipeline=0.179227788 |diff|=2.78e-17
+2013_CHUGAI k=25 s=3 A     indep=0.369782991 pipeline=0.369782991 |diff|=5.55e-17
+2013_CHUGAI k=25 s=3 F1_5  indep=0.383014635 pipeline=0.383014635 |diff|=5.55e-17
+2013_CHUGAI k=25 s=3 F2_5  indep=0.355181078 pipeline=0.355181078 |diff|=5.55e-17
+   r independent = 0.198629  pipeline r = 0.198629
+2015_Ahlbach k=5 s=1 K     indep=0.266693668 pipeline=0.266693668 |diff|=0.00e+00
+2015_Ahlbach k=5 s=1 A     indep=0.197768372 pipeline=0.197768372 |diff|=5.55e-17
+2015_Ahlbach k=5 s=1 F1_5  indep=0.150442478 pipeline=0.150442478 |diff|=8.33e-17
+2015_Ahlbach k=5 s=1 F2_5  indep=0.233551366 pipeline=0.233551366 |diff|=2.78e-17
+   r independent = 0.557143  pipeline r = 0.557143
+WORST |diff| = 8.326672684688674e-17 PASS

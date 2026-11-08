@@ -52,7 +52,7 @@ with open("map_to_ima_interpret_scRNA_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("map_to_ima_interpret_scRNA_output.txt", "w") as f:
-    f.write("Biomni: Map To Ima Interpret Scrna Results" + NL)
+    f.write("BioMate: Map To Ima Interpret Scrna Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

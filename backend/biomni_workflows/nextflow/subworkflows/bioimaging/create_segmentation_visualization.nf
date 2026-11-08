@@ -52,7 +52,7 @@ with open("create_segmentation_visualization_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("create_segmentation_visualization_output.txt", "w") as f:
-    f.write("Biomni: Create Segmentation Visualization Results" + NL)
+    f.write("BioMate: Create Segmentation Visualization Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

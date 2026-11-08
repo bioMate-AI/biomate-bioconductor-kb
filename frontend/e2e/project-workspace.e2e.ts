@@ -569,7 +569,7 @@ test.describe.serial('project-workspace', () => {
     await shot(page, 'project-workspace', 'PW4_02_after_archive');
 
     // Project card must NOT appear in the default active list
-    const card = page.locator(`[data-testid="project-card-${sharedProjectId}"]`);
+    const card = page.locator(`[data-testid="card-project-${sharedProjectId}"]`);
     await expect(card).not.toBeVisible({ timeout: 5_000 });
 
     // API must confirm archived status

@@ -1,0 +1,495 @@
+{
+  "GWCD4i.DE_stats.by_donors.h5mu": {
+    "root_keys": [
+      "mod",
+      "obs",
+      "obsm",
+      "obsmap",
+      "obsp",
+      "uns",
+      "var",
+      "varm",
+      "varmap",
+      "varp"
+    ],
+    "modalities": {
+      "CE0006864_CE0008162": {
+        "keys": [
+          "X",
+          "layers",
+          "obs",
+          "obsm",
+          "obsp",
+          "uns",
+          "var",
+          "varm",
+          "varp"
+        ],
+        "obs_columns": [
+          "chunk",
+          "culture_condition",
+          "distal_offtarget_flag",
+          "donor_correlation_all_mean",
+          "donor_correlation_all_min",
+          "donor_correlation_hits_mean",
+          "donor_correlation_hits_min",
+          "guide_correlation_all",
+          "guide_correlation_all_pval",
+          "guide_correlation_signif",
+          "guide_correlation_signif_pval",
+          "guide_n_signif_ontarget",
+          "low_target_gex",
+          "n_cells_target",
+          "n_down_genes",
+          "n_downstream",
+          "n_guides",
+          "n_total_de_genes",
+          "n_total_genes_category",
+          "n_up_genes",
+          "neighboring_gene_KD",
+          "ontarget_effect_size",
+          "ontarget_significant",
+          "single_guide_estimate",
+          "target_baseMean",
+          "target_condition",
+          "target_contrast",
+          "target_contrast_gene_name"
+        ],
+        "layers": {
+          "adj_p_value": [
+            4880,
+            10273
+          ],
+          "baseMean": [
+            4880,
+            10273
+          ],
+          "lfcSE": [
+            4880,
+            10273
+          ],
+          "log_fc": [
+            4880,
+            10273
+          ],
+          "p_value": [
+            4880,
+            10273
+          ],
+          "zscore": [
+            4880,
+            10273
+          ]
+        }
+      },
+      "CE0006864_CE0008678": {
+        "keys": [
+          "X",
+          "layers",
+          "obs",
+          "obsm",
+          "obsp",
+          "uns",
+          "var",
+          "varm",
+          "varp"
+        ],
+        "obs_columns": [
+          "chunk",
+          "culture_condition",
+          "distal_offtarget_flag",
+          "donor_correlation_all_mean",
+          "donor_correlation_all_min",
+          "donor_correlation_hits_mean",
+          "donor_correlation_hits_min",
+          "guide_correlation_all",
+          "guide_correlation_all_pval",
+          "guide_correlation_signif",
+          "guide_correlation_signif_pval",
+          "guide_n_signif_ontarget",
+          "low_target_gex",
+          "n_cells_target",
+          "n_down_genes",
+          "n_downstream",
+          "n_guides",
+          "n_total_de_genes",
+          "n_total_genes_category",
+          "n_up_genes",
+          "neighboring_gene_KD",
+          "ontarget_effect_size",
+          "ontarget_significant",
+          "single_guide_estimate",
+          "target_baseMean",
+          "target_condition",
+          "target_contrast",
+          "target_contrast_gene_name"
+        ],
+        "layers": {
+          "adj_p_value": [
+            4880,
+            10273
+          ],
+          "baseMean": [
+            4880,
+            10273
+          ],
+          "lfcSE": [
+            4880,
+            10273
+          ],
+          "log_fc": [
+            4880,
+            10273
+          ],
+          "p_value": [
+            4880,
+            10273
+          ],
+          "zscore": [
+            4880,
+            10273
+          ]
+        }
+      },
+      "CE0006864_CE0010866": {
+        "keys": [
+          "X",
+          "layers",
+          "obs",
+          "obsm",
+          "obsp",
+          "uns",
+          "var",
+          "varm",
+          "varp"
+        ],
+        "obs_columns": [
+          "chunk",
+          "culture_condition",
+          "distal_offtarget_flag",
+          "donor_correlation_all_mean",
+          "donor_correlation_all_min",
+          "donor_correlation_hits_mean",
+          "donor_correlation_hits_min",
+          "guide_correlation_all",
+          "guide_correlation_all_pval",
+          "guide_correlation_signif",
+          "guide_correlation_signif_pval",
+          "guide_n_signif_ontarget",
+          "low_target_gex",
+          "n_cells_target",
+          "n_down_genes",
+          "n_downstream",
+          "n_guides",
+          "n_total_de_genes",
+          "n_total_genes_category",
+          "n_up_genes",
+          "neighboring_gene_KD",
+          "ontarget_effect_size",
+          "ontarget_significant",
+          "single_guide_estimate",
+          "target_baseMean",
+          "target_condition",
+          "target_contrast",
+          "target_contrast_gene_name"
+        ],
+        "layers": {
+          "adj_p_value": [
+            4880,
+            10273
+          ],
+          "baseMean": [
+            4880,
+            10273
+          ],
+          "lfcSE": [
+            4880,
+            10273
+          ],
+          "log_fc": [
+            4880,
+            10273
+          ],
+          "p_value": [
+            4880,
+            10273
+          ],
+          "zscore": [
+            4880,
+            10273
+          ]
+        }
+      },
+      "CE0008162_CE0008678": {
+        "keys": [
+          "X",
+          "layers",
+          "obs",
+          "obsm",
+          "obsp",
+          "uns",
+          "var",
+          "varm",
+          "varp"
+        ],
+        "obs_columns": [
+          "chunk",
+          "culture_condition",
+          "distal_offtarget_flag",
+          "donor_correlation_all_mean",
+          "donor_correlation_all_min",
+          "donor_correlation_hits_mean",
+          "donor_correlation_hits_min",
+          "guide_correlation_all",
+          "guide_correlation_all_pval",
+          "guide_correlation_signif",
+          "guide_correlation_signif_pval",
+          "guide_n_signif_ontarget",
+          "low_target_gex",
+          "n_cells_target",
+          "n_down_genes",
+          "n_downstream",
+          "n_guides",
+          "n_total_de_genes",
+          "n_total_genes_category",
+          "n_up_genes",
+          "neighboring_gene_KD",
+          "ontarget_effect_size",
+          "ontarget_significant",
+          "single_guide_estimate",
+          "target_baseMean",
+          "target_condition",
+          "target_contrast",
+          "target_contrast_gene_name"
+        ],
+        "layers": {
+          "adj_p_value": [
+            4879,
+            10273
+          ],
+          "baseMean": [
+            4879,
+            10273
+          ],
+          "lfcSE": [
+            4879,
+            10273
+          ],
+          "log_fc": [
+            4879,
+            10273
+          ],
+          "p_value": [
+            4879,
+            10273
+          ],
+          "zscore": [
+            4879,
+            10273
+          ]
+        }
+      },
+      "CE0008162_CE0010866": {
+        "keys": [
+          "X",
+          "layers",
+          "obs",
+          "obsm",
+          "obsp",
+          "uns",
+          "var",
+          "varm",
+          "varp"
+        ],
+        "obs_columns": [
+          "chunk",
+          "culture_condition",
+          "distal_offtarget_flag",
+          "donor_correlation_all_mean",
+          "donor_correlation_all_min",
+          "donor_correlation_hits_mean",
+          "donor_correlation_hits_min",
+          "guide_correlation_all",
+          "guide_correlation_all_pval",
+          "guide_correlation_signif",
+          "guide_correlation_signif_pval",
+          "guide_n_signif_ontarget",
+          "low_target_gex",
+          "n_cells_target",
+          "n_down_genes",
+          "n_downstream",
+          "n_guides",
+          "n_total_de_genes",
+          "n_total_genes_category",
+          "n_up_genes",
+          "neighboring_gene_KD",
+          "ontarget_effect_size",
+          "ontarget_significant",
+          "single_guide_estimate",
+          "target_baseMean",
+          "target_condition",
+          "target_contrast",
+          "target_contrast_gene_name"
+        ],
+        "layers": {
+          "adj_p_value": [
+            4880,
+            10273
+          ],
+          "baseMean": [
+            4880,
+            10273
+          ],
+          "lfcSE": [
+            4880,
+            10273
+          ],
+          "log_fc": [
+            4880,
+            10273
+          ],
+          "p_value": [
+            4880,
+            10273
+          ],
+          "zscore": [
+            4880,
+            10273
+          ]
+        }
+      },
+      "CE0008678_CE0010866": {
+        "keys": [
+          "X",
+          "layers",
+          "obs",
+          "obsm",
+          "obsp",
+          "uns",
+          "var",
+          "varm",
+          "varp"
+        ],
+        "obs_columns": [
+          "chunk",
+          "culture_condition",
+          "distal_offtarget_flag",
+          "donor_correlation_all_mean",
+          "donor_correlation_all_min",
+          "donor_correlation_hits_mean",
+          "donor_correlation_hits_min",
+          "guide_correlation_all",
+          "guide_correlation_all_pval",
+          "guide_correlation_signif",
+          "guide_correlation_signif_pval",
+          "guide_n_signif_ontarget",
+          "low_target_gex",
+          "n_cells_target",
+          "n_down_genes",
+          "n_downstream",
+          "n_guides",
+          "n_total_de_genes",
+          "n_total_genes_category",
+          "n_up_genes",
+          "neighboring_gene_KD",
+          "ontarget_effect_size",
+          "ontarget_significant",
+          "single_guide_estimate",
+          "target_baseMean",
+          "target_condition",
+          "target_contrast",
+          "target_contrast_gene_name"
+        ],
+        "layers": {
+          "adj_p_value": [
+            4880,
+            10273
+          ],
+          "baseMean": [
+            4880,
+            10273
+          ],
+          "lfcSE": [
+            4880,
+            10273
+          ],
+          "log_fc": [
+            4880,
+            10273
+          ],
+          "p_value": [
+            4880,
+            10273
+          ],
+          "zscore": [
+            4880,
+            10273
+          ]
+        }
+      }
+    }
+  },
+  "GWCD4i.pseudobulk_merged.h5ad": {
+    "root_keys": [
+      "X",
+      "layers",
+      "obs",
+      "obsm",
+      "obsp",
+      "uns",
+      "var",
+      "varm",
+      "varp"
+    ],
+    "obs_columns": [
+      "10xrun_id",
+      "_index",
+      "culture_condition",
+      "donor_id",
+      "guide_id",
+      "guide_type",
+      "keep_effective_guides",
+      "keep_for_DE",
+      "keep_min_cells",
+      "keep_test_genes",
+      "keep_total_counts",
+      "log10_n_cells",
+      "n_cells",
+      "perturbed_gene_id",
+      "perturbed_gene_name",
+      "total_counts"
+    ],
+    "var_columns": [
+      "_index",
+      "gene_ids",
+      "gene_name"
+    ],
+    "X_storage": [
+      "data",
+      "indices",
+      "indptr"
+    ],
+    "layers": [],
+    "categorical_values": {
+      "10xrun_id": [
+        "CD4i_R1",
+        "CD4i_R2"
+      ],
+      "culture_condition": [
+        "Rest",
+        "Stim8hr",
+        "Stim48hr"
+      ],
+      "donor_id": [
+        "CE0006864",
+        "CE0008162",
+        "CE0008678",
+        "CE0010866"
+      ],
+      "guide_type": [
+        "non-targeting",
+        "targeting"
+      ]
+    }
+  }
+}

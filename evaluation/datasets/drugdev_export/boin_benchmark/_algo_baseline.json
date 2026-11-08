@@ -1,0 +1,134 @@
+{
+  "baseline": "BOIN MTD-selection rule on the TRUE exposure-response DLT curve (oracle upper bound)",
+  "n": 20,
+  "correct": 17,
+  "accuracy": 0.85,
+  "misses": [
+    "CT-005",
+    "CT-009",
+    "CT-017"
+  ],
+  "note": "misses are selection-rule edge cases, not curve errors: CT-005/CT-017 are no-MTD safety declarations the fixed 0.10 band does not trigger; CT-009 is a closest-vs-higher-dose tie. These mark items where 'the MTD' is itself a judgment call.",
+  "per_item": [
+    {
+      "id": "CT-001",
+      "gold_mtd_mg": 150,
+      "algo_mtd_mg": 150,
+      "correct": true
+    },
+    {
+      "id": "CT-002",
+      "gold_mtd_mg": 20,
+      "algo_mtd_mg": 20,
+      "correct": true
+    },
+    {
+      "id": "CT-003",
+      "gold_mtd_mg": 40,
+      "algo_mtd_mg": 40,
+      "correct": true
+    },
+    {
+      "id": "CT-004",
+      "gold_mtd_mg": 400,
+      "algo_mtd_mg": 400,
+      "correct": true
+    },
+    {
+      "id": "CT-005",
+      "gold_mtd_mg": null,
+      "algo_mtd_mg": 80,
+      "correct": false
+    },
+    {
+      "id": "CT-006",
+      "gold_mtd_mg": 10,
+      "algo_mtd_mg": 10,
+      "correct": true
+    },
+    {
+      "id": "CT-007",
+      "gold_mtd_mg": 200,
+      "algo_mtd_mg": 200,
+      "correct": true
+    },
+    {
+      "id": "CT-008",
+      "gold_mtd_mg": 10,
+      "algo_mtd_mg": 10,
+      "correct": true
+    },
+    {
+      "id": "CT-009",
+      "gold_mtd_mg": 200,
+      "algo_mtd_mg": 100,
+      "correct": false
+    },
+    {
+      "id": "CT-010",
+      "gold_mtd_mg": 100,
+      "algo_mtd_mg": 100,
+      "correct": true
+    },
+    {
+      "id": "CT-011",
+      "gold_mtd_mg": 1.2,
+      "algo_mtd_mg": 1.2,
+      "correct": true
+    },
+    {
+      "id": "CT-012",
+      "gold_mtd_mg": 100,
+      "algo_mtd_mg": 100,
+      "correct": true
+    },
+    {
+      "id": "CT-013",
+      "gold_mtd_mg": 800,
+      "algo_mtd_mg": 800,
+      "correct": true
+    },
+    {
+      "id": "CT-014",
+      "gold_mtd_mg": 20,
+      "algo_mtd_mg": 20,
+      "correct": true
+    },
+    {
+      "id": "CT-015",
+      "gold_mtd_mg": 200,
+      "algo_mtd_mg": 200,
+      "correct": true
+    },
+    {
+      "id": "CT-016",
+      "gold_mtd_mg": 100,
+      "algo_mtd_mg": 100,
+      "correct": true
+    },
+    {
+      "id": "CT-017",
+      "gold_mtd_mg": null,
+      "algo_mtd_mg": 50,
+      "correct": false
+    },
+    {
+      "id": "CT-018",
+      "gold_mtd_mg": 80,
+      "algo_mtd_mg": 80,
+      "correct": true
+    },
+    {
+      "id": "CT-019",
+      "gold_mtd_mg": 160,
+      "algo_mtd_mg": 160,
+      "correct": true
+    },
+    {
+      "id": "CT-020",
+      "gold_mtd_mg": 80,
+      "algo_mtd_mg": 80,
+      "correct": true
+    }
+  ]
+}

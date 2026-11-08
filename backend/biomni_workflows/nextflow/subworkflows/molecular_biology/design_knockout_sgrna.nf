@@ -54,7 +54,7 @@ with open("design_knockout_sgrna_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("design_knockout_sgrna_output.txt", "w") as f:
-    f.write("Biomni: Design Knockout Sgrna Results" + NL)
+    f.write("BioMate: Design Knockout Sgrna Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

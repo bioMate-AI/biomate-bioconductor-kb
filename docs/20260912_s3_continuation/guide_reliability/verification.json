@@ -1,0 +1,5 @@
+{
+  "pearson_and_spearman_values_independently_recomputed": 1920,
+  "source": "individual raw control counts, not saved aggregates; explicit tie ranks; log instead of log1p",
+  "passed": true
+}

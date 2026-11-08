@@ -227,7 +227,7 @@ with open("quantify_amyloid_beta_plaques_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("quantify_amyloid_beta_plaques_output.txt", "w") as f:
-    f.write("Biomni: Quantify Amyloid Beta Plaques" + NL)
+    f.write("BioMate: Quantify Amyloid Beta Plaques" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

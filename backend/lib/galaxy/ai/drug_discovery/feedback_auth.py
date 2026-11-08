@@ -26,7 +26,8 @@ from fastapi import Header, HTTPException, Request
 
 log = logging.getLogger(__name__)
 
-_REPO_ROOT = Path(__file__).resolve().parents[5]
+from ._data_root import data_root  # deploy-layout-independent writable data root
+_REPO_ROOT = data_root().parent
 _PAID_ORGS_FILE = _REPO_ROOT / "data" / "regulatory_training" / "paid_orgs.json"
 
 # ---------------------------------------------------------------------------

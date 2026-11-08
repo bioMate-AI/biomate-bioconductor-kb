@@ -264,7 +264,7 @@ function RunLogDrawer({ runId, runName, onClose }: {
               className={`text-xs py-2 border-b-2 transition-colors ${tab === "nf" ? "border-primary text-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
               onClick={() => setTab("nf")}
             >
-              Nextflow 日志
+              流水线日志
               {data.nf_log_total_lines ? ` (共 ${data.nf_log_total_lines} 行)` : ""}
             </button>
             <button
@@ -294,7 +294,7 @@ function RunLogDrawer({ runId, runName, onClose }: {
               )}
               {data.nf_log.length === 0 && !data.nf_log_error && (
                 <div className="text-slate-500 text-center py-8">
-                  暂无本地 Nextflow 日志<br/>
+                  暂无本地流水线日志<br/>
                   <span className="text-xs">（Batch 任务日志请查看 CloudWatch 标签）</span>
                 </div>
               )}
@@ -975,7 +975,7 @@ function LLMConfigPanel() {
         {error && <div className="flex items-start gap-2 text-xs rounded p-2 bg-destructive/10 text-destructive"><XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" /> {error}</div>}
         {successMsg && <div className="flex items-start gap-2 text-xs rounded p-2 bg-green-500/10 text-green-700"><CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" /> {successMsg}</div>}
         {envVarBlock && <CopyBlock text={envVarBlock} label="将以下内容追加到后端 .env 文件，然后重启容器：" />}
-        {envVarBlock && <CopyBlock text="docker restart biomate-galaxy" label="重启 Galaxy 后端：" />}
+        {envVarBlock && <CopyBlock text="docker restart biomate-engine" label="重启 BioMate 引擎：" />}
         <Button size="sm" className="h-8 text-xs gap-1.5 w-full" onClick={save} disabled={saving || loading}>
           {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : null} 保存配置
         </Button>

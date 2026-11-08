@@ -1,0 +1,23 @@
+shuffle None labs 20 peptides 6784
+done 2013_CHUGAI 405 6
+done 2015_Ahlbach 270 6
+done 2015_Wang 297 7
+done 2016_Furukawa 405 7
+done 2017_Pye 0 8
+done 2018_Naylor 405 8
+done 2020_Barlow 135 9
+done 2020_Furukawa 270 9
+done 2020_Le Roux 270 10
+done 2020_Townsend 405 12
+done 2021_Comeau 270 12
+done 2021_Golosov 0 12
+done 2021_Kelly 405 14
+done 2021_Wang 0 14
+done 2022_Bhardwaj 405 14
+done 2022_Taechalertpaisarn 324 15
+done 2023_Ghosh 270 15
+done 2024_Faris 405 16
+done 2024_Koch 270 16
+done 2024_Ly 0 17
+wrote perm_cells_nopt.csv 5211
+nopt rc=0

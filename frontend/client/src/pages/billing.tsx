@@ -75,8 +75,11 @@ interface LLMBreakdown {
   total_usd: number
   input_usd: number
   output_usd: number
-  tokens_in: number
-  tokens_out: number
+  // audit S5#1: match the API's actual field names (get_current_costs) — the UI used
+  // input_tokens/output_tokens/mem_usd/total_hours/size_gb/put_count which the API never emits,
+  // so every usage QUANTITY (not the $ amounts) rendered as 0.
+  input_tokens: number
+  output_tokens: number
   calls: number
 }
 
@@ -84,15 +87,16 @@ interface ComputeBreakdown {
   total_usd: number
   vcpu_usd: number
   gpu_usd: number
-  mem_usd: number
+  memory_usd: number
   jobs: number
-  total_hours: number
+  total_seconds: number
 }
 
 interface StorageBreakdown {
   total_usd: number
-  size_gb: number
-  put_count: number
+  storage_usd: number
+  puts: number
+  gets: number
 }
 
 interface UsageData {
@@ -552,7 +556,7 @@ export default function BillingPage() {
   const compute = usage?.breakdown?.compute
   const storage = usage?.breakdown?.storage
 
-  const totalTokens = (llm?.tokens_in ?? 0) + (llm?.tokens_out ?? 0)
+  const totalTokens = (llm?.input_tokens ?? 0) + (llm?.output_tokens ?? 0)
 
   // plan included token quota (approximate: quota_usd / $0.02 per 1K tokens = N tokens)
   const TOKEN_COST_PER_K = 0.02 / 1000
@@ -693,31 +697,31 @@ export default function BillingPage() {
                   </TableRow>
 
                   {/* Input tokens sub-row */}
-                  {llm && llm.tokens_in > 0 && (
+                  {llm && llm.input_tokens > 0 && (
                     <TableRow className="border-none bg-transparent">
                       <TableCell className="pl-10 text-sm text-muted-foreground/70">
                         ↳ Input
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground/70">
-                        {fmtTokens(llm.tokens_in)}
+                        {fmtTokens(llm.input_tokens)}
                       </TableCell>
                       <TableCell className="pr-6 text-right text-sm text-muted-foreground/70">
-                        {includedTokens ? `${((llm.tokens_in / includedTokens) * 100).toFixed(1)}%` : "—"}
+                        {includedTokens ? `${((llm.input_tokens / includedTokens) * 100).toFixed(1)}%` : "—"}
                       </TableCell>
                     </TableRow>
                   )}
 
                   {/* Output tokens sub-row */}
-                  {llm && llm.tokens_out > 0 && (
+                  {llm && llm.output_tokens > 0 && (
                     <TableRow className="border-none bg-transparent">
                       <TableCell className="pl-10 text-sm text-muted-foreground/70">
                         ↳ Output
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground/70">
-                        {fmtTokens(llm.tokens_out)}
+                        {fmtTokens(llm.output_tokens)}
                       </TableCell>
                       <TableCell className="pr-6 text-right text-sm text-muted-foreground/70">
-                        {includedTokens ? `${((llm.tokens_out / includedTokens) * 100).toFixed(1)}%` : "—"}
+                        {includedTokens ? `${((llm.output_tokens / includedTokens) * 100).toFixed(1)}%` : "—"}
                       </TableCell>
                     </TableRow>
                   )}
@@ -727,7 +731,7 @@ export default function BillingPage() {
                     <TableCell className="pl-6 font-medium">Compute (Batch)</TableCell>
                     <TableCell className="text-muted-foreground">
                       {compute && compute.jobs > 0
-                        ? `${compute.jobs} job${compute.jobs !== 1 ? "s" : ""} · ${compute.total_hours.toFixed(1)} hrs`
+                        ? `${compute.jobs} job${compute.jobs !== 1 ? "s" : ""} · ${((compute.total_seconds ?? 0) / 3600).toFixed(1)} hrs`
                         : "0 jobs"}
                     </TableCell>
                     <TableCell className="text-right pr-6 text-muted-foreground">
@@ -741,9 +745,9 @@ export default function BillingPage() {
                   <TableRow className="border-none">
                     <TableCell className="pl-6 font-medium">Storage (S3)</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {storage && storage.size_gb > 0
-                        ? `${storage.size_gb.toFixed(2)} GB`
-                        : "0 GB"}
+                      {storage && storage.puts > 0
+                        ? `${storage.puts} object${storage.puts !== 1 ? "s" : ""}`
+                        : "0 objects"}
                     </TableCell>
                     <TableCell className="text-right pr-6 text-muted-foreground">
                       {pct !== null && storage && storage.total_usd > 0
@@ -827,14 +831,14 @@ export default function BillingPage() {
                         <TableCell className="pl-6 font-medium">AI / LLM</TableCell>
                         <TableCell className="text-muted-foreground">Input tokens</TableCell>
                         <TableCell className="text-muted-foreground">$0.003 / 1K</TableCell>
-                        <TableCell className="text-muted-foreground">{fmtTokens(llm.tokens_in)}</TableCell>
+                        <TableCell className="text-muted-foreground">{fmtTokens(llm.input_tokens)}</TableCell>
                         <TableCell className="text-right pr-6">{fmt(llm.input_usd)}</TableCell>
                       </TableRow>
                       <TableRow className="border-none bg-transparent">
                         <TableCell className="pl-6 text-muted-foreground/60" />
                         <TableCell className="text-muted-foreground">Output tokens</TableCell>
                         <TableCell className="text-muted-foreground">$0.015 / 1K</TableCell>
-                        <TableCell className="text-muted-foreground">{fmtTokens(llm.tokens_out)}</TableCell>
+                        <TableCell className="text-muted-foreground">{fmtTokens(llm.output_tokens)}</TableCell>
                         <TableCell className="text-right pr-6">{fmt(llm.output_usd)}</TableCell>
                       </TableRow>
                     </>
@@ -847,7 +851,7 @@ export default function BillingPage() {
                           <TableCell className="pl-6 font-medium">Compute</TableCell>
                           <TableCell className="text-muted-foreground">vCPU time</TableCell>
                           <TableCell className="text-muted-foreground">$0.10 / hr</TableCell>
-                          <TableCell className="text-muted-foreground">{compute.total_hours.toFixed(1)} hrs</TableCell>
+                          <TableCell className="text-muted-foreground">{((compute.total_seconds ?? 0) / 3600).toFixed(1)} hrs</TableCell>
                           <TableCell className="text-right pr-6">{fmt(compute.vcpu_usd)}</TableCell>
                         </TableRow>
                       )}
@@ -856,7 +860,10 @@ export default function BillingPage() {
                           <TableCell className="pl-6 font-medium">{compute.vcpu_usd > 0 ? "" : "Compute"}</TableCell>
                           <TableCell className="text-muted-foreground">GPU time</TableCell>
                           <TableCell className="text-muted-foreground">$1.50 / hr</TableCell>
-                          <TableCell className="text-muted-foreground">{compute.total_hours.toFixed(1)} hrs</TableCell>
+                          {/* committee Sonnet-3: the API emits ONE total_seconds for all compute, so
+                              showing it on both vCPU and GPU rows double-states the hours. Show it on
+                              the vCPU row only; blank here when vCPU is also present. */}
+                          <TableCell className="text-muted-foreground">{compute.vcpu_usd > 0 ? "—" : `${((compute.total_seconds ?? 0) / 3600).toFixed(1)} hrs`}</TableCell>
                           <TableCell className="text-right pr-6">{fmt(compute.gpu_usd)}</TableCell>
                         </TableRow>
                       )}
@@ -867,8 +874,10 @@ export default function BillingPage() {
                     <TableRow>
                       <TableCell className="pl-6 font-medium">Storage</TableCell>
                       <TableCell className="text-muted-foreground">S3 objects</TableCell>
-                      <TableCell className="text-muted-foreground">$0.15 / GB</TableCell>
-                      <TableCell className="text-muted-foreground">{storage.size_gb.toFixed(2)} GB</TableCell>
+                      {/* committee Sonnet-3: the API has no GB figure (only puts/gets + $), so the
+                          "$0.15 / GB" rate can't reconcile with the PUT quantity — blank the rate. */}
+                      <TableCell className="text-muted-foreground">—</TableCell>
+                      <TableCell className="text-muted-foreground">{storage.puts ?? 0} put{(storage.puts ?? 0) !== 1 ? "s" : ""}</TableCell>
                       <TableCell className="text-right pr-6">{fmt(storage.total_usd)}</TableCell>
                     </TableRow>
                   )}

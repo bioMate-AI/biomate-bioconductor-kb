@@ -1,0 +1,13 @@
+Item,Sequence_N_to_C,Length,Cyclization,Purity,Quantity_mg,Salt_form,QC,Priority
+AVB6-B-01,GRGRNKYYP,9,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+AVB6-B-02,NKYRSRRGK,9,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+AVB6-B-03,GSLASLGIGRR,11,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+AVB6-B-04,ARRGNLAPLG,10,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+AVB6-B-05,KGLRGRSG,8,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+AVB6-B-06,GLFGGRGRR,9,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+AVB6-B-07,RGKLMPGRG,9,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Standard
+AVB6-B-08,GTGTGSLGRLR,11,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Standard
+AVB6-B-09,SSRSSLGHLLG,11,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Standard
+AVB6-B-10,SRKGIVKGP,9,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Standard
+AVB6-B-11,GTGIGSLGKLL,11,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Standard
+AVB6-B-12,APRGALASLG,10,Head-to-tail backbone amide (no free termini),>=95% (RP-HPLC),5,Acetate (TFA-free),"RP-HPLC, ESI-MS, net peptide content, CoA",Standard

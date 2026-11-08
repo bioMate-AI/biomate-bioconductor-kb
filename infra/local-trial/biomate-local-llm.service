@@ -1,0 +1,13 @@
+[Unit]
+Description=BioMate recovered local model
+After=network-online.target
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/biomate-trial
+ExecStart=/bin/bash /opt/biomate-trial/serve-model.sh
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target

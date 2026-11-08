@@ -1,0 +1,36 @@
+{
+  "mechanisms": [
+    {
+      "action_type": "INHIBITOR",
+      "binding_site_comment": null,
+      "direct_interaction": 1,
+      "disease_efficacy": 1,
+      "max_phase": 3,
+      "mec_id": 9163,
+      "mechanism_comment": null,
+      "mechanism_of_action": "IL-33 receptor (ST2) inhibitor",
+      "mechanism_refs": [
+        {
+          "ref_id": "33872652",
+          "ref_type": "PubMed",
+          "ref_url": "https://pubmed.ncbi.nlm.nih.gov/33872652/"
+        }
+      ],
+      "molecular_mechanism": 1,
+      "molecule_chembl_id": "CHEMBL4594385",
+      "parent_molecule_chembl_id": "CHEMBL4594385",
+      "record_id": 3461055,
+      "selectivity_comment": null,
+      "site_id": null,
+      "target_chembl_id": "CHEMBL4804256",
+      "variant_sequence": null
+    }
+  ],
+  "page_meta": {
+    "limit": 10,
+    "next": null,
+    "offset": 0,
+    "previous": null,
+    "total_count": 1
+  }
+}

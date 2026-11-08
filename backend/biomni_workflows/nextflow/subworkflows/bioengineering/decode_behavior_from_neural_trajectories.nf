@@ -54,7 +54,7 @@ with open("decode_behavior_from_neural_trajectories_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("decode_behavior_from_neural_trajectories_output.txt", "w") as f:
-    f.write("Biomni: Decode Behavior From Neural Trajectories Results" + NL)
+    f.write("BioMate: Decode Behavior From Neural Trajectories Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -1,0 +1,38 @@
+{
+  "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ShifrutMarson2018.h5ad",
+  "etag": "\"d706da80f6e1e7203bd0cf2d6baddc95-104\"",
+  "size": 871481676,
+  "selection": {
+    "assigned_guide_cells": 25094,
+    "excluded_cells": 27142,
+    "groups": 192,
+    "genes": 33694,
+    "logical_sparse_scan_bytes": 864128520,
+    "rule": "All cells with a single assigned guide annotation and consistent target; no efficacy/expression filtering. Missing guide labels excluded. nperts includes TCR stimulation and is not used as a guide-count filter",
+    "gene_index_field": "_index",
+    "nperts_by_sample": {
+      "D1_nostim": {
+        "0.0": 5535,
+        "1.0": 0,
+        "2.0": 0
+      },
+      "D1_stim": {
+        "0.0": 0,
+        "1.0": 6953,
+        "2.0": 0
+      },
+      "D2_nostim": {
+        "0.0": 5145,
+        "1.0": 0,
+        "2.0": 0
+      },
+      "D2_stim": {
+        "0.0": 0,
+        "1.0": 7461,
+        "2.0": 0
+      }
+    }
+  },
+  "full_library_matches_ncounts": true,
+  "sha256": "a4dc1e3d8146f09bf6e947c39a710bea4a5408ae1acd6203a54c86c0f4aaee1e"
+}

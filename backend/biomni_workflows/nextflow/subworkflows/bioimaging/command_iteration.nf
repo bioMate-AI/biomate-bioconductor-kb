@@ -47,7 +47,7 @@ with open("command_iteration_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("command_iteration_output.txt", "w") as f:
-    f.write("Biomni: Command Iteration Results" + NL)
+    f.write("BioMate: Command Iteration Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

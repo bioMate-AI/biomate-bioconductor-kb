@@ -1,0 +1,4 @@
+{
+  "synthetic_constant_and_missingness_checks": "passed",
+  "six_direction_donor_disjoint_alignment_and_independent_mse_recomputation": "passed"
+}

@@ -1,0 +1,117 @@
+name: Mirror minio image to GHCR
+
+# Mirrors minio/minio and minio/mc from Docker Hub to GHCR so on-prem installs
+# can pull without Docker Hub rate-limit / auth issues.
+# GHA runners have Docker Hub pull quota, so no DOCKERHUB_TOKEN needed.
+# Supports multi-arch: amd64 + arm64 via native runners.
+
+on:
+  workflow_dispatch:
+    inputs:
+      minio_tag:
+        description: 'minio Docker Hub tag to mirror'
+        required: false
+        default: 'latest'
+        type: string
+
+permissions:
+  contents: read
+  packages: write   # push to GHCR
+
+jobs:
+  mirror-amd64:
+    name: Mirror minio amd64
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull and push minio amd64
+        run: |
+          docker pull --platform linux/amd64 minio/minio:${{ inputs.minio_tag || 'latest' }}
+          docker tag minio/minio:${{ inputs.minio_tag || 'latest' }} \
+            ghcr.io/biomate-ai/minio:${{ inputs.minio_tag || 'latest' }}-amd64
+          docker push ghcr.io/biomate-ai/minio:${{ inputs.minio_tag || 'latest' }}-amd64
+
+      - name: Pull and push mc amd64
+        run: |
+          docker pull --platform linux/amd64 minio/mc:${{ inputs.minio_tag || 'latest' }}
+          docker tag minio/mc:${{ inputs.minio_tag || 'latest' }} \
+            ghcr.io/biomate-ai/minio-mc:${{ inputs.minio_tag || 'latest' }}-amd64
+          docker push ghcr.io/biomate-ai/minio-mc:${{ inputs.minio_tag || 'latest' }}-amd64
+
+  mirror-arm64:
+    name: Mirror minio arm64
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull and push minio arm64
+        run: |
+          docker pull --platform linux/arm64 minio/minio:${{ inputs.minio_tag || 'latest' }}
+          docker tag minio/minio:${{ inputs.minio_tag || 'latest' }} \
+            ghcr.io/biomate-ai/minio:${{ inputs.minio_tag || 'latest' }}-arm64
+          docker push ghcr.io/biomate-ai/minio:${{ inputs.minio_tag || 'latest' }}-arm64
+
+      - name: Pull and push mc arm64
+        run: |
+          docker pull --platform linux/arm64 minio/mc:${{ inputs.minio_tag || 'latest' }}
+          docker tag minio/mc:${{ inputs.minio_tag || 'latest' }} \
+            ghcr.io/biomate-ai/minio-mc:${{ inputs.minio_tag || 'latest' }}-arm64
+          docker push ghcr.io/biomate-ai/minio-mc:${{ inputs.minio_tag || 'latest' }}-arm64
+
+  merge-manifest:
+    name: Merge multi-arch manifest
+    runs-on: ubuntu-latest
+    needs: [mirror-amd64, mirror-arm64]
+    timeout-minutes: 10
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create multi-arch manifest for minio
+        run: |
+          TAG="${{ inputs.minio_tag || 'latest' }}"
+          docker buildx imagetools create \
+            --tag ghcr.io/biomate-ai/minio:${TAG} \
+            ghcr.io/biomate-ai/minio:${TAG}-amd64 \
+            ghcr.io/biomate-ai/minio:${TAG}-arm64
+          echo "minio manifest: ghcr.io/biomate-ai/minio:${TAG}"
+
+      - name: Create multi-arch manifest for mc
+        run: |
+          TAG="${{ inputs.minio_tag || 'latest' }}"
+          docker buildx imagetools create \
+            --tag ghcr.io/biomate-ai/minio-mc:${TAG} \
+            ghcr.io/biomate-ai/minio-mc:${TAG}-amd64 \
+            ghcr.io/biomate-ai/minio-mc:${TAG}-arm64
+          echo "mc manifest: ghcr.io/biomate-ai/minio-mc:${TAG}"
+
+      - name: Verify manifests
+        run: |
+          docker buildx imagetools inspect ghcr.io/biomate-ai/minio:${{ inputs.minio_tag || 'latest' }}
+          docker buildx imagetools inspect ghcr.io/biomate-ai/minio-mc:${{ inputs.minio_tag || 'latest' }}
+
+      - name: Summary
+        run: |
+          echo "## minio GHCR mirror complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`ghcr.io/biomate-ai/minio:${{ inputs.minio_tag || 'latest' }}\` (amd64 + arm64)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`ghcr.io/biomate-ai/minio-mc:${{ inputs.minio_tag || 'latest' }}\` (amd64 + arm64)" >> "$GITHUB_STEP_SUMMARY"

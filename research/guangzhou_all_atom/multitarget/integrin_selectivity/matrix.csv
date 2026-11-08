@@ -1,0 +1,241 @@
+ligand_id,ligand,source,integrin,ic50_nM,unit,censor,pIC50,sd,sd_kind,table,row,verbatim
+Echistatin,Echistatin,kapp2017,avb3,0.46,nM,=,9.3372,0.14,SD(as printed ±),Table 1,1,0.46 ± 0.14
+Echistatin,Echistatin,kapp2017,avb5,1.4,nM,=,8.8539,0.2,SD(as printed ±),Table 1,1,1.4 ± 0.2
+Echistatin,Echistatin,kapp2017,avb6,13.7,nM,=,7.8633,0.3,SD(as printed ±),Table 1,1,13.7 ± 0.3
+Echistatin,Echistatin,kapp2017,avb8,12.8,nM,=,7.8928,2.5,SD(as printed ±),Table 1,1,12.8 ± 2.5
+Echistatin,Echistatin,kapp2017,a5b1,0.57,nM,=,9.2441,0.19,SD(as printed ±),Table 1,1,0.57 ± 0.19
+Echistatin,Echistatin,kapp2017,aIIbb3,0.9,nM,=,9.0458,0.24,SD(as printed ±),Table 1,1,0.90 ± 0.24
+RGD,RGD,kapp2017,avb3,89.0,nM,=,7.0506,12.0,SD(as printed ±),Table 1,2,89 ± 12
+RGD,RGD,kapp2017,avb5,440.0,nM,=,6.3565,65.0,SD(as printed ±),Table 1,2,440 ± 65
+RGD,RGD,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,2,> 10000
+RGD,RGD,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,2,> 10000
+RGD,RGD,kapp2017,a5b1,335.0,nM,=,6.475,40.0,SD(as printed ±),Table 1,2,335 ± 40
+RGD,RGD,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,2,> 10000
+RGDS,RGDS,kapp2017,avb3,45.0,nM,=,7.3468,5.0,SD(as printed ±),Table 1,3,45 ± 5
+RGDS,RGDS,kapp2017,avb5,433.0,nM,=,6.3635,34.0,SD(as printed ±),Table 1,3,433 ± 34
+RGDS,RGDS,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,3,> 10000
+RGDS,RGDS,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,3,> 10000
+RGDS,RGDS,kapp2017,a5b1,181.0,nM,=,6.7423,23.0,SD(as printed ±),Table 1,3,181 ± 23
+RGDS,RGDS,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,3,> 10000
+GRGD,GRGD,kapp2017,avb3,55.0,nM,=,7.2596,7.0,SD(as printed ±),Table 1,4,55 ± 7
+GRGD,GRGD,kapp2017,avb5,580.0,nM,=,6.2366,23.0,SD(as printed ±),Table 1,4,580 ± 23
+GRGD,GRGD,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,4,> 10000
+GRGD,GRGD,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,4,> 10000
+GRGD,GRGD,kapp2017,a5b1,137.0,nM,=,6.8633,14.0,SD(as printed ±),Table 1,4,137 ± 14
+GRGD,GRGD,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,4,> 10000
+GRGDS,GRGDS,kapp2017,avb3,28.0,nM,=,7.5528,3.0,SD(as printed ±),Table 1,5,28 ± 3
+GRGDS,GRGDS,kapp2017,avb5,260.0,nM,=,6.585,42.0,SD(as printed ±),Table 1,5,260 ± 42
+GRGDS,GRGDS,kapp2017,avb6,1480.0,nM,=,5.8297,162.0,SD(as printed ±),Table 1,5,1480 ± 162
+GRGDS,GRGDS,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,5,> 10000
+GRGDS,GRGDS,kapp2017,a5b1,77.0,nM,=,7.1135,8.0,SD(as printed ±),Table 1,5,77 ± 8
+GRGDS,GRGDS,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,5,> 10000
+GRGDSP,GRGDSP,kapp2017,avb3,13.7,nM,=,7.8633,0.3,SD(as printed ±),Table 1,6,13.7 ± 0.3
+GRGDSP,GRGDSP,kapp2017,avb5,167.0,nM,=,6.7773,39.0,SD(as printed ±),Table 1,6,167 ± 39
+GRGDSP,GRGDSP,kapp2017,avb6,693.0,nM,=,6.1593,40.0,SD(as printed ±),Table 1,6,693 ± 40
+GRGDSP,GRGDSP,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,6,> 10000
+GRGDSP,GRGDSP,kapp2017,a5b1,51.0,nM,=,7.2924,8.0,SD(as printed ±),Table 1,6,51 ± 8
+GRGDSP,GRGDSP,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,6,> 10000
+GRGDSPK,GRGDSPK,kapp2017,avb3,12.2,nM,=,7.9136,0.1,SD(as printed ±),Table 1,7,12.2 ± 0.1
+GRGDSPK,GRGDSPK,kapp2017,avb5,201.0,nM,=,6.6968,32.0,SD(as printed ±),Table 1,7,201 ± 32
+GRGDSPK,GRGDSPK,kapp2017,avb6,1030.0,nM,=,5.9872,242.0,SD(as printed ±),Table 1,7,1030 ± 242
+GRGDSPK,GRGDSPK,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,7,> 10000
+GRGDSPK,GRGDSPK,kapp2017,a5b1,66.0,nM,=,7.1805,6.0,SD(as printed ±),Table 1,7,66 ± 6
+GRGDSPK,GRGDSPK,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,7,> 10000
+GRGDNP,GRGDNP,kapp2017,avb3,45.0,nM,=,7.3468,12.0,SD(as printed ±),Table 1,8,45 ± 12
+GRGDNP,GRGDNP,kapp2017,avb5,506.0,nM,=,6.2958,120.0,SD(as printed ±),Table 1,8,506 ± 120
+GRGDNP,GRGDNP,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,8,> 10000
+GRGDNP,GRGDNP,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,8,> 10000
+GRGDNP,GRGDNP,kapp2017,a5b1,34.0,nM,=,7.4685,3.0,SD(as printed ±),Table 1,8,34 ± 3
+GRGDNP,GRGDNP,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,8,> 10000
+GRGDTP,GRGDTP,kapp2017,avb3,28.0,nM,=,7.5528,5.0,SD(as printed ±),Table 1,9,28 ± 5
+GRGDTP,GRGDTP,kapp2017,avb5,423.0,nM,=,6.3737,65.0,SD(as printed ±),Table 1,9,423 ± 65
+GRGDTP,GRGDTP,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,9,> 10000
+GRGDTP,GRGDTP,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,9,> 10000
+GRGDTP,GRGDTP,kapp2017,a5b1,84.0,nM,=,7.0757,12.0,SD(as printed ±),Table 1,9,84 ± 12
+GRGDTP,GRGDTP,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,9,> 10000
+c(RGDfV),c(RGDfV),kapp2017,avb3,1.54,nM,=,8.8125,0.12,SD(as printed ±),Table 1,10,1.54 ± 0.12
+c(RGDfV),c(RGDfV),kapp2017,avb5,250.0,nM,=,6.6021,15.0,SD(as printed ±),Table 1,10,250 ± 15
+c(RGDfV),c(RGDfV),kapp2017,avb6,49.0,nM,=,7.3098,5.0,SD(as printed ±),Table 1,10,49 ± 5
+c(RGDfV),c(RGDfV),kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,10,> 10000
+c(RGDfV),c(RGDfV),kapp2017,a5b1,200.0,nM,=,6.699,41.0,SD(as printed ±),Table 1,10,200 ± 41
+c(RGDfV),c(RGDfV),kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,10,> 10000
+Cilengitide,Cilengitide,kapp2017,avb3,0.61,nM,=,9.2147,0.06,SD(as printed ±),Table 1,11,0.61 ± 0.06
+Cilengitide,Cilengitide,kapp2017,avb5,8.4,nM,=,8.0757,2.1,SD(as printed ±),Table 1,11,8.4 ± 2.1
+Cilengitide,Cilengitide,kapp2017,avb6,2050.0,nM,=,5.6882,640.0,SD(as printed ±),Table 1,11,2050 ± 640
+Cilengitide,Cilengitide,kapp2017,avb8,2350.0,nM,=,5.6289,438.0,SD(as printed ±),Table 1,11,2350 ± 438
+Cilengitide,Cilengitide,kapp2017,a5b1,14.9,nM,=,7.8268,3.1,SD(as printed ±),Table 1,11,14.9 ± 3.1
+Cilengitide,Cilengitide,kapp2017,aIIbb3,5400.0,nM,=,5.2676,814.0,SD(as printed ±),Table 1,11,5400 ± 814
+c(RGDfK),c(RGDfK),kapp2017,avb3,2.25,nM,=,8.6478,0.34,SD(as printed ±),Table 1,12,2.25 ± 0.34
+c(RGDfK),c(RGDfK),kapp2017,avb5,340.0,nM,=,6.4685,24.0,SD(as printed ±),Table 1,12,340 ± 24
+c(RGDfK),c(RGDfK),kapp2017,avb6,55.0,nM,=,7.2596,9.0,SD(as printed ±),Table 1,12,55 ± 9
+c(RGDfK),c(RGDfK),kapp2017,avb8,5200.0,nM,=,5.284,670.0,SD(as printed ±),Table 1,12,5200 ± 670
+c(RGDfK),c(RGDfK),kapp2017,a5b1,141.0,nM,=,6.8508,15.0,SD(as printed ±),Table 1,12,141 ± 15
+c(RGDfK),c(RGDfK),kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,12,> 10000
+c(RGDyK),c(RGDyK),kapp2017,avb3,3.8,nM,=,8.4202,0.42,SD(as printed ±),Table 1,13,3.8 ± 0.42
+c(RGDyK),c(RGDyK),kapp2017,avb5,503.0,nM,=,6.2984,55.0,SD(as printed ±),Table 1,13,503 ± 55
+c(RGDyK),c(RGDyK),kapp2017,avb6,86.0,nM,=,7.0655,7.0,SD(as printed ±),Table 1,13,86 ± 7
+c(RGDyK),c(RGDyK),kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,13,> 10000
+c(RGDyK),c(RGDyK),kapp2017,a5b1,236.0,nM,=,6.6271,45.0,SD(as printed ±),Table 1,13,236 ± 45
+c(RGDyK),c(RGDyK),kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,13,> 10000
+c(RGDfC),c(RGDfC),kapp2017,avb3,6.3,nM,=,8.2007,0.5,SD(as printed ±),Table 1,14,6.3 ± 0.5
+c(RGDfC),c(RGDfC),kapp2017,avb5,433.0,nM,=,6.3635,23.0,SD(as printed ±),Table 1,14,433 ± 23
+c(RGDfC),c(RGDfC),kapp2017,avb6,121.0,nM,=,6.9172,10.0,SD(as printed ±),Table 1,14,121 ± 10
+c(RGDfC),c(RGDfC),kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,14,> 10000
+c(RGDfC),c(RGDfC),kapp2017,a5b1,215.0,nM,=,6.6676,55.0,SD(as printed ±),Table 1,14,215 ± 55
+c(RGDfC),c(RGDfC),kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,14,> 10000
+sn243,sn243,kapp2017,avb3,0.65,nM,=,9.1871,0.05,SD(as printed ±),Table 1,15,0.65 ± 0.05
+sn243,sn243,kapp2017,avb5,199.0,nM,=,6.7011,21.0,SD(as printed ±),Table 1,15,199 ± 21
+sn243,sn243,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,15,>10000
+sn243,sn243,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,15,>10000
+sn243,sn243,kapp2017,a5b1,108.0,nM,=,6.9666,27.5,SD(as printed ±),Table 1,15,108 ± 27.5
+sn243,sn243,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,15,>10000
+RGD-4C,RGD-4C,kapp2017,avb3,8.3,nM,=,8.0809,2.1,SD(as printed ±),Table 1,16,8.3 ± 2.1
+RGD-4C,RGD-4C,kapp2017,avb5,46.0,nM,=,7.3372,11.0,SD(as printed ±),Table 1,16,46 ± 11
+RGD-4C,RGD-4C,kapp2017,avb6,380.0,nM,=,6.4202,44.0,SD(as printed ±),Table 1,16,380 ± 44
+RGD-4C,RGD-4C,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,16,> 10000
+RGD-4C,RGD-4C,kapp2017,a5b1,244.0,nM,=,6.6126,37.0,SD(as printed ±),Table 1,16,244 ± 37
+RGD-4C,RGD-4C,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,16,> 10000
+RGD10 (RGD-2C),RGD10 (RGD-2C),kapp2017,avb3,10.3,nM,=,7.9872,2.9,SD(as printed ±),Table 1,17,10.3 ± 2.9
+RGD10 (RGD-2C),RGD10 (RGD-2C),kapp2017,avb5,102.0,nM,=,6.9914,11.0,SD(as printed ±),Table 1,17,102 ± 11
+RGD10 (RGD-2C),RGD10 (RGD-2C),kapp2017,avb6,278.0,nM,=,6.556,34.0,SD(as printed ±),Table 1,17,278 ± 34
+RGD10 (RGD-2C),RGD10 (RGD-2C),kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,17,> 10000
+RGD10 (RGD-2C),RGD10 (RGD-2C),kapp2017,a5b1,133.0,nM,=,6.8761,52.0,SD(as printed ±),Table 1,17,133 ± 52
+RGD10 (RGD-2C),RGD10 (RGD-2C),kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,17,> 10000
+NC100717,NC100717,kapp2017,avb3,1.1,nM,=,8.9586,0.1,SD(as printed ±),Table 1,18,1.1 ± 0.1
+NC100717,NC100717,kapp2017,avb5,16.7,nM,=,7.7773,2.1,SD(as printed ±),Table 1,18,16.7 ± 2.1
+NC100717,NC100717,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,18,> 10000
+NC100717,NC100717,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,18,> 10000
+NC100717,NC100717,kapp2017,a5b1,820.0,nM,=,6.0862,156.0,SD(as printed ±),Table 1,18,820 ± 156
+NC100717,NC100717,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,18,> 10000
+c(phgisoDGRk),c(phgisoDGRk),kapp2017,avb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,19,> 10000
+c(phgisoDGRk),c(phgisoDGRk),kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,19,> 10000
+c(phgisoDGRk),c(phgisoDGRk),kapp2017,avb6,18.0,nM,=,7.7447,2.5,SD(as printed ±),Table 1,19,18 ± 2.5
+c(phgisoDGRk),c(phgisoDGRk),kapp2017,avb8,77.0,nM,=,7.1135,6.0,SD(as printed ±),Table 1,19,77 ± 6
+c(phgisoDGRk),c(phgisoDGRk),kapp2017,a5b1,9.43,nM,=,8.0255,1.33,SD(as printed ±),Table 1,19,9.43 ± 1.33
+c(phgisoDGRk),c(phgisoDGRk),kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,19,> 10000
+44b,44b,kapp2017,avb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,20,> 10000
+44b,44b,kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,20,> 10000
+44b,44b,kapp2017,avb6,433.0,nM,=,6.3635,101.0,SD(as printed ±),Table 1,20,433 ± 101
+44b,44b,kapp2017,avb8,37.0,nM,=,7.4318,3.0,SD(as printed ±),Table 1,20,37 ± 3
+44b,44b,kapp2017,a5b1,2.3,nM,=,8.6383,0.02,SD(as printed ±),Table 1,20,2.3 ± 0.02
+44b,44b,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,20,> 10000
+ATN161,ATN161,kapp2017,avb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,21,> 10000
+ATN161,ATN161,kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,21,> 10000
+ATN161,ATN161,kapp2017,avb6,3133.0,nM,=,5.504,591.0,SD(as printed ±),Table 1,21,3133 ± 591
+ATN161,ATN161,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,21,> 10000
+ATN161,ATN161,kapp2017,a5b1,4.2,nM,=,8.3768,0.5,SD(as printed ±),Table 1,21,4.2 ± 0.5
+ATN161,ATN161,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,21,> 10000
+JSM6427,JSM6427,kapp2017,avb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,22,> 10000
+JSM6427,JSM6427,kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,22,> 10000
+JSM6427,JSM6427,kapp2017,avb6,23.0,nM,=,7.6383,3.4,SD(as printed ±),Table 1,22,23 ± 3.4
+JSM6427,JSM6427,kapp2017,avb8,8.2,nM,=,8.0862,0.52,SD(as printed ±),Table 1,22,8.2 ± 0.52
+JSM6427,JSM6427,kapp2017,a5b1,2.5,nM,=,8.6021,0.4,SD(as printed ±),Table 1,22,2.5 ± 0.4
+JSM6427,JSM6427,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,22,> 10000
+RTDLDSLRT,RTDLDSLRT,kapp2017,avb3,6233.0,nM,=,5.2053,540.0,SD(as printed ±),Table 1,23,6233 ± 540
+RTDLDSLRT,RTDLDSLRT,kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,23,> 10000
+RTDLDSLRT,RTDLDSLRT,kapp2017,avb6,29.5,nM,=,7.5302,4.5,SD(as printed ±),Table 1,23,29.5 ± 4.5
+RTDLDSLRT,RTDLDSLRT,kapp2017,avb8,320.0,nM,=,6.4949,25.0,SD(as printed ±),Table 1,23,320 ± 25
+RTDLDSLRT,RTDLDSLRT,kapp2017,a5b1,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,23,> 10000
+RTDLDSLRT,RTDLDSLRT,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,23,> 10000
+A20FMDV2,A20FMDV2,kapp2017,avb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,24,> 10000
+A20FMDV2,A20FMDV2,kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,24,> 10000
+A20FMDV2,A20FMDV2,kapp2017,avb6,0.93,nM,=,9.0315,0.07,SD(as printed ±),Table 1,24,0.93 ± 0.07
+A20FMDV2,A20FMDV2,kapp2017,avb8,45.0,nM,=,7.3468,4.1,SD(as printed ±),Table 1,24,45 ± 4.1
+A20FMDV2,A20FMDV2,kapp2017,a5b1,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,24,> 10000
+A20FMDV2,A20FMDV2,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,24,> 10000
+Mol11,Mol11,kapp2017,avb3,13.2,nM,=,7.8794,0.5,SD(as printed ±),Table 1,25,13.2 ± 0.5
+Mol11,Mol11,kapp2017,avb5,530.0,nM,=,6.2757,49.0,SD(as printed ±),Table 1,25,530 ± 49
+Mol11,Mol11,kapp2017,avb6,1.32,nM,=,8.8794,0.04,SD(as printed ±),Table 1,25,1.32 ± 0.04
+Mol11,Mol11,kapp2017,avb8,18.5,nM,=,7.7328,4.3,SD(as printed ±),Table 1,25,18.5 ± 4.3
+Mol11,Mol11,kapp2017,a5b1,3020.0,nM,=,5.52,410.0,SD(as printed ±),Table 1,25,3020 ± 410
+Mol11,Mol11,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,25,> 10000
+c(FRGDLAFp(NMe)K),c(FRGDLAFp(NMe)K),kapp2017,avb3,1200.0,nM,=,5.9208,240.0,SD(as printed ±),Table 1,26,1200 ± 240
+c(FRGDLAFp(NMe)K),c(FRGDLAFp(NMe)K),kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,26,>10000
+c(FRGDLAFp(NMe)K),c(FRGDLAFp(NMe)K),kapp2017,avb6,0.28,nM,=,9.5528,0.019,SD(as printed ±),Table 1,26,0.28 ± 0.019
+c(FRGDLAFp(NMe)K),c(FRGDLAFp(NMe)K),kapp2017,avb8,24.0,nM,=,7.6198,3.1,SD(as printed ±),Table 1,26,24 ± 3.1
+c(FRGDLAFp(NMe)K),c(FRGDLAFp(NMe)K),kapp2017,a5b1,73.0,nM,=,7.1367,6.0,SD(as printed ±),Table 1,26,73 ± 6
+c(FRGDLAFp(NMe)K),c(FRGDLAFp(NMe)K),kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,26,>10000
+Eptifibatide,Eptifibatide,kapp2017,avb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,27,> 10000
+Eptifibatide,Eptifibatide,kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,27,> 10000
+Eptifibatide,Eptifibatide,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,27,> 10000
+Eptifibatide,Eptifibatide,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,27,> 10000
+Eptifibatide,Eptifibatide,kapp2017,a5b1,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,27,> 10000
+Eptifibatide,Eptifibatide,kapp2017,aIIbb3,2.44,nM,=,8.6126,0.45,SD(as printed ±),Table 1,27,2.44 ± 0.45
+Tirofiban,Tirofiban,kapp2017,avb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,28,> 10000
+Tirofiban,Tirofiban,kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,28,> 10000
+Tirofiban,Tirofiban,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,28,> 10000
+Tirofiban,Tirofiban,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,28,> 10000
+Tirofiban,Tirofiban,kapp2017,a5b1,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,28,> 10000
+Tirofiban,Tirofiban,kapp2017,aIIbb3,1.3,nM,=,8.8861,0.04,SD(as printed ±),Table 1,28,1.3 ± 0.04
+GR144053,GR144053,kapp2017,avb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,29,> 10000
+GR144053,GR144053,kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,29,> 10000
+GR144053,GR144053,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,29,> 10000
+GR144053,GR144053,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,29,> 10000
+GR144053,GR144053,kapp2017,a5b1,10000.0,nM,>,5.0,,SD(as printed ±),Table 1,29,> 10000
+GR144053,GR144053,kapp2017,aIIbb3,18.0,nM,=,7.7447,2.2,SD(as printed ±),Table 1,29,18 ± 2.2
+F-Galacto-c(RGDfK),F-Galacto-c(RGDfK),kapp2017,avb3,8.2,nM,=,8.0862,0.46,SD(as printed ±),Table 2,1,8.2 ± 0.46
+F-Galacto-c(RGDfK),F-Galacto-c(RGDfK),kapp2017,avb5,310.0,nM,=,6.5086,39.0,SD(as printed ±),Table 2,1,310 ± 39
+F-Galacto-c(RGDfK),F-Galacto-c(RGDfK),kapp2017,avb6,840.0,nM,=,6.0757,192.0,SD(as printed ±),Table 2,1,840 ± 192
+F-Galacto-c(RGDfK),F-Galacto-c(RGDfK),kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,1,> 10000
+F-Galacto-c(RGDfK),F-Galacto-c(RGDfK),kapp2017,a5b1,41.0,nM,=,7.3872,2.9,SD(as printed ±),Table 2,1,41 ± 2.9
+F-Galacto-c(RGDfK),F-Galacto-c(RGDfK),kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,1,> 10000
+(Ga)NOPO*-c(RGDfK),(Ga)NOPO*-c(RGDfK),kapp2017,avb3,1.1,nM,=,8.9586,0.09,SD(as printed ±),Table 2,2,1.1 ± 0.09
+(Ga)NOPO*-c(RGDfK),(Ga)NOPO*-c(RGDfK),kapp2017,avb5,299.0,nM,=,6.5243,36.0,SD(as printed ±),Table 2,2,299 ± 36
+(Ga)NOPO*-c(RGDfK),(Ga)NOPO*-c(RGDfK),kapp2017,avb6,255.0,nM,=,6.5935,64.0,SD(as printed ±),Table 2,2,255 ± 64
+(Ga)NOPO*-c(RGDfK),(Ga)NOPO*-c(RGDfK),kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,2,> 10000
+(Ga)NOPO*-c(RGDfK),(Ga)NOPO*-c(RGDfK),kapp2017,a5b1,25.0,nM,=,7.6021,2.1,SD(as printed ±),Table 2,2,25 ± 2.1
+(Ga)NOPO*-c(RGDfK),(Ga)NOPO*-c(RGDfK),kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,2,> 10000
+c(RGDfK)-Peg-MPA,c(RGDfK)-Peg-MPA,kapp2017,avb3,15.0,nM,=,7.8239,1.8,SD(as printed ±),Table 2,3,15 ± 1.8
+c(RGDfK)-Peg-MPA,c(RGDfK)-Peg-MPA,kapp2017,avb5,390.0,nM,=,6.4089,53.0,SD(as printed ±),Table 2,3,390 ± 53
+c(RGDfK)-Peg-MPA,c(RGDfK)-Peg-MPA,kapp2017,avb6,422.0,nM,=,6.3747,44.0,SD(as printed ±),Table 2,3,422 ± 44
+c(RGDfK)-Peg-MPA,c(RGDfK)-Peg-MPA,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,3,> 10000
+c(RGDfK)-Peg-MPA,c(RGDfK)-Peg-MPA,kapp2017,a5b1,201.0,nM,=,6.6968,31.0,SD(as printed ±),Table 2,3,201 ± 31
+c(RGDfK)-Peg-MPA,c(RGDfK)-Peg-MPA,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,3,> 10000
+Flucilatide,Flucilatide,kapp2017,avb3,2.3,nM,=,8.6383,0.3,SD(as printed ±),Table 2,4,2.3 ± 0.3
+Flucilatide,Flucilatide,kapp2017,avb5,36.0,nM,=,7.4437,5.0,SD(as printed ±),Table 2,4,36 ± 5
+Flucilatide,Flucilatide,kapp2017,avb6,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,4,> 10000
+Flucilatide,Flucilatide,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,4,> 10000
+Flucilatide,Flucilatide,kapp2017,a5b1,1170.0,nM,=,5.9318,230.0,SD(as printed ±),Table 2,4,1170 ± 230
+Flucilatide,Flucilatide,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,4,> 10000
+c(phgisoDGRk)-Peg-MPA,c(phgisoDGRk)-Peg-MPA,kapp2017,avb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,5,> 10000
+c(phgisoDGRk)-Peg-MPA,c(phgisoDGRk)-Peg-MPA,kapp2017,avb5,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,5,> 10000
+c(phgisoDGRk)-Peg-MPA,c(phgisoDGRk)-Peg-MPA,kapp2017,avb6,52.0,nM,=,7.284,4.8,SD(as printed ±),Table 2,5,52 ± 4.8
+c(phgisoDGRk)-Peg-MPA,c(phgisoDGRk)-Peg-MPA,kapp2017,avb8,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,5,> 10000
+c(phgisoDGRk)-Peg-MPA,c(phgisoDGRk)-Peg-MPA,kapp2017,a5b1,31.0,nM,=,7.5086,3.4,SD(as printed ±),Table 2,5,31 ± 3.4
+c(phgisoDGRk)-Peg-MPA,c(phgisoDGRk)-Peg-MPA,kapp2017,aIIbb3,10000.0,nM,>,5.0,,SD(as printed ±),Table 2,5,> 10000
+Quigley_FF,Quigley_FF,quigley2023,avb6,0.17,nM,=,9.7696,,95%CI printed (not used),Table 1,1,0.17 (0.09–0.33)
+Quigley_FF,Quigley_FF,quigley2023,avb8,32.0,nM,=,7.4949,,95%CI printed (not used),Table 1,1,32 (20–51)
+Quigley_FF,Quigley_FF,quigley2023,avb3,424.0,nM,=,6.3726,,95%CI printed (not used),Table 1,1,424 (270–670)
+Quigley_FF,Quigley_FF,quigley2023,a5b1,226.0,nM,=,6.6459,,95%CI printed (not used),Table 1,1,226 (115–193)
+Quigley_YF,Quigley_YF,quigley2023,avb6,3.3,nM,=,8.4815,,95%CI printed (not used),Table 1,2,3.3 (2.4–4.4)
+Quigley_YF,Quigley_YF,quigley2023,avb8,23.0,nM,=,7.6383,,95%CI printed (not used),Table 1,2,23 (16–32)
+Quigley_YF,Quigley_YF,quigley2023,avb3,630.0,nM,=,6.2007,,95%CI printed (not used),Table 1,2,630 (341–1162)
+Quigley_YF,Quigley_YF,quigley2023,a5b1,114.0,nM,=,6.9431,,95%CI printed (not used),Table 1,2,114 (82–158)
+Quigley_FY,Quigley_FY,quigley2023,avb6,2.8,nM,=,8.5528,,95%CI printed (not used),Table 1,3,2.8 (2.1–3.7)
+Quigley_FY,Quigley_FY,quigley2023,avb8,37.0,nM,=,7.4318,,95%CI printed (not used),Table 1,3,37 (27–51)
+Quigley_FY,Quigley_FY,quigley2023,avb3,732.0,nM,=,6.1355,,95%CI printed (not used),Table 1,3,732 (486–1104)
+Quigley_FY,Quigley_FY,quigley2023,a5b1,177.0,nM,=,6.752,,95%CI printed (not used),Table 1,3,177 (138–227)
+Quigley_YY,Quigley_YY,quigley2023,avb6,0.84,nM,=,9.0757,,95%CI printed (not used),Table 1,4,0.84 (0.56–1.2)
+Quigley_YY,Quigley_YY,quigley2023,avb8,26.0,nM,=,7.585,,95%CI printed (not used),Table 1,4,26 (19–37)
+Quigley_YY,Quigley_YY,quigley2023,avb3,219.0,nM,=,6.6596,,95%CI printed (not used),Table 1,4,219 (88–540)
+Quigley_YY,Quigley_YY,quigley2023,a5b1,150.0,nM,=,6.8239,,95%CI printed (not used),Table 1,4,150 (116–193)
+Tomassi_cmpd1,Tomassi_cmpd1,tomassi2021,avb6,1.3,nM,=,8.8861,0.1,SD(as printed ±),Table 1,1,1.3 ± 0.1
+Tomassi_cmpd1,Tomassi_cmpd1,tomassi2021,avb8,174.0,nM,=,6.7595,31.0,SD(as printed ±),Table 1,1,174 ± 31
+Tomassi_cmpd1,Tomassi_cmpd1,tomassi2021,avb3,364.0,nM,=,6.4389,96.0,SD(as printed ±),Table 1,1,364 ± 96
+Tomassi_cmpd1,Tomassi_cmpd1,tomassi2021,a5b1,105.0,nM,=,6.9788,11.0,SD(as printed ±),Table 1,1,105 ± 11
+Tomassi_cmpd2,Tomassi_cmpd2,tomassi2021,avb6,105.0,nM,=,6.9788,8.0,SD(as printed ±),Table 1,2,105 ± 8
+Tomassi_cmpd2,Tomassi_cmpd2,tomassi2021,avb8,2252.0,nM,=,5.6474,89.0,SD(as printed ±),Table 1,2,2252 ± 89
+Tomassi_cmpd3,Tomassi_cmpd3,tomassi2021,avb6,211.0,nM,=,6.6757,26.0,SD(as printed ±),Table 1,3,211 ± 26
+Tomassi_cmpd3,Tomassi_cmpd3,tomassi2021,avb8,3319.0,nM,=,5.479,122.0,SD(as printed ±),Table 1,3,3319 ± 122
+Tomassi_cmpd4,Tomassi_cmpd4,tomassi2021,avb6,5000.0,nM,>,5.301,,SD(as printed ±),Table 1,4,>5000
+Tomassi_cmpd4,Tomassi_cmpd4,tomassi2021,avb8,4687.0,nM,=,5.3291,570.0,SD(as printed ±),Table 1,4,4687 ± 570
+Tomassi_cmpd5,Tomassi_cmpd5,tomassi2021,avb6,5000.0,nM,>,5.301,,SD(as printed ±),Table 1,5,>5000
+Tomassi_cmpd5,Tomassi_cmpd5,tomassi2021,avb8,5000.0,nM,>,5.301,,SD(as printed ±),Table 1,5,>5000
+Tomassi_cmpd6,Tomassi_cmpd6,tomassi2021,avb6,1.6,nM,=,8.7959,0.1,SD(as printed ±),Table 1,6,1.6 ± 0.1
+Tomassi_cmpd6,Tomassi_cmpd6,tomassi2021,avb8,60.0,nM,=,7.2218,2.0,SD(as printed ±),Table 1,6,60 ± 2
+Tomassi_cmpd6,Tomassi_cmpd6,tomassi2021,avb3,1199.0,nM,=,5.9212,121.0,SD(as printed ±),Table 1,6,1199 ± 121
+Tomassi_cmpd6,Tomassi_cmpd6,tomassi2021,a5b1,112.0,nM,=,6.9508,26.0,SD(as printed ±),Table 1,6,112 ± 26
+Cilengitide@tomassi2021,Cilengitide@tomassi2021,tomassi2021,avb3,1.4,nM,=,8.8539,0.1,SD(as printed ±),Table 1,7,1.4 ± 0.1
+Cilengitide@tomassi2021,Cilengitide@tomassi2021,tomassi2021,a5b1,22.0,nM,=,7.6576,1.0,SD(as printed ±),Table 1,7,22 ± 1
+RTDLDSLRT@tomassi2021,RTDLDSLRT@tomassi2021,tomassi2021,avb6,38.0,nM,=,7.4202,7.0,SD(as printed ±),Table 1,8,38 ± 7
+RTDLDSLRT@tomassi2021,RTDLDSLRT@tomassi2021,tomassi2021,avb8,122.0,nM,=,6.9136,38.0,SD(as printed ±),Table 1,8,122 ± 38

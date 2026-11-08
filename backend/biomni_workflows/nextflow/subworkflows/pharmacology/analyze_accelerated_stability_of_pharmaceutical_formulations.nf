@@ -52,7 +52,7 @@ with open("analyze_accelerated_stability_of_pharmaceutical_formulations_results.
 # Create human-readable output
 NL = chr(10)
 with open("analyze_accelerated_stability_of_pharmaceutical_formulations_output.txt", "w") as f:
-    f.write("Biomni: Analyze Accelerated Stability Of Pharmaceutical Formulations Results" + NL)
+    f.write("BioMate: Analyze Accelerated Stability Of Pharmaceutical Formulations Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

@@ -232,7 +232,7 @@ with open("digest_sequence_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("digest_sequence_output.txt", "w") as f:
-    f.write("Biomni: Digest Sequence" + NL)
+    f.write("BioMate: Digest Sequence" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

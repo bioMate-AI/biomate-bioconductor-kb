@@ -1,0 +1,19 @@
+{
+ "zero_shot": {
+  "I_zero_shot": {
+   "k": 0,
+   "targets": 46,
+   "families": 26,
+   "positives": 7600,
+   "items": 9432
+  },
+  "I_CD_zero_shot": {
+   "k": 0,
+   "targets": 29,
+   "families": 16,
+   "positives": 5993,
+   "items": 7151
+  }
+ },
+ "note": "tables: coverage_per_fold.csv, target_family_fold_map.csv, coverage_controls_per_family.csv, coverage_h4b_per_k_seed.csv; regime for analyses I/M2 = single frozen list (no seeds); seeds apply to H4b reveal sets (5 seeds)"
+}

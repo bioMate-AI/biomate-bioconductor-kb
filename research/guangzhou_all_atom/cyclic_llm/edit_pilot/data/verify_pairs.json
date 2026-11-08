@@ -1,0 +1,86 @@
+{
+ "nme": {
+  "n_pairs": 4166,
+  "n_sources": 15,
+  "pairs_straddling_sources": 0,
+  "max_abs_dz_recompute_err": 6.661338147750939e-16,
+  "max_abs_effect_err": 6.661338147750939e-16,
+  "edited_has_feature_frac": 1.0,
+  "parent_has_feature_frac": 0.0,
+  "rdkit_missing_smiles": 0,
+  "sources_per_half": {
+   "0": 6,
+   "1": 9
+  },
+  "pairs_per_half": {
+   "0": 2882,
+   "1": 1284
+  },
+  "per_source_n": {
+   "2013_CHUGAI": 9,
+   "2015_Ahlbach": 1,
+   "2015_Bockus_2": 7,
+   "2015_Wang": 10,
+   "2016_Furukawa": 143,
+   "2016_Hickey": 5,
+   "2018_Kaneda": 1,
+   "2020_Barlow": 5,
+   "2020_Le Roux": 10,
+   "2020_Townsend": 2851,
+   "2021_Comeau": 2,
+   "2021_Golosov": 5,
+   "2021_Kelly": 1107,
+   "2022_Bhardwaj": 4,
+   "2024_Ly": 6
+  },
+  "same_flat_parent_edit_frac": 0.0
+ },
+ "dflip": {
+  "n_pairs": 7467,
+  "n_sources": 18,
+  "pairs_straddling_sources": 0,
+  "max_abs_dz_recompute_err": 6.661338147750939e-16,
+  "max_abs_effect_err": 6.661338147750939e-16,
+  "edited_has_feature_frac": 1.0,
+  "parent_has_feature_frac": 0.0,
+  "rdkit_missing_smiles": 0,
+  "sources_per_half": {
+   "0": 6,
+   "1": 12
+  },
+  "pairs_per_half": {
+   "0": 4427,
+   "1": 3040
+  },
+  "per_source_n": {
+   "2006_Rezai_1": 7,
+   "2006_Rezai_2": 3,
+   "2013_CHUGAI": 12,
+   "2015_Bockus_1": 4,
+   "2015_Wang": 2,
+   "2016_Furukawa": 429,
+   "2016_Hickey": 3,
+   "2018_Kaneda": 2,
+   "2019_Ono": 12,
+   "2020_Le Roux": 12,
+   "2020_Townsend": 4390,
+   "2021_Comeau": 2,
+   "2021_Golosov": 3,
+   "2021_Kelly": 2220,
+   "2022_Bhardwaj": 1,
+   "2022_Taechalertpaisarn": 12,
+   "2024_Faris": 350,
+   "2024_Otani": 3
+  },
+  "same_flat_parent_edit_frac": 1.0
+ },
+ "label_scale": {
+  "n_sources": 41,
+  "max_abs_source_mean": 1.5707654224730108,
+  "sd_range": [
+   0.03272491488897855,
+   1.3074138759153628
+  ],
+  "note": "sd 0 or nan sources have <2 labels"
+ }
+}

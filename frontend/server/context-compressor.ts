@@ -1,3 +1,4 @@
+import { localOnly, localMessagesClient } from './local-llm.js';
 /**
  * Context Compression Service
  *
@@ -52,7 +53,7 @@ export class ContextCompressor {
   private readonly WARNING_THRESHOLD = 140000;      // 70% of 200k
 
   constructor(apiKey: string) {
-    this.claude = new Anthropic({ apiKey });
+    this.claude = (localOnly() ? localMessagesClient() as unknown as Anthropic : new Anthropic({ apiKey }));
   }
 
   /**

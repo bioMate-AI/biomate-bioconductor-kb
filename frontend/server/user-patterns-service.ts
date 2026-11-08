@@ -38,7 +38,7 @@ export interface UserContext {
 export class UserPatternsService {
   private backendUrl: string;
   private apiKey: string;
-  private cache: Map<number, { insights: UserInsights; timestamp: number }> = new Map();
+  private cache: Map<number | string, { insights: UserInsights; timestamp: number }> = new Map();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(backendUrl: string = 'http://localhost:8081', apiKey: string = '') {
@@ -49,7 +49,7 @@ export class UserPatternsService {
   /**
    * Fetch user insights from backend (with caching)
    */
-  async getUserInsights(userId?: number): Promise<UserInsights | null> {
+  async getUserInsights(userId?: number | string): Promise<UserInsights | null> {
     // If no userId specified, we can't fetch patterns
     if (!userId) {
       return null;

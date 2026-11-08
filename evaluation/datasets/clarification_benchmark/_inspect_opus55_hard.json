@@ -1,0 +1,197 @@
+[
+  {
+    "id": "hd_contrast",
+    "query": "Run DESeq2 differential expression on counts.tsv comparing treated and control.",
+    "context": "samples.tsv lists 3 treated and 3 control; no reference/baseline level is set.",
+    "gold_action": "clarify",
+    "gold_target": "contrast",
+    "pred": {
+      "action": "interpret",
+      "value": "condition: treated vs control (control as reference level; log2FC = treated/control)",
+      "clarify_about": ""
+    },
+    "outcome": 0.0
+  },
+  {
+    "id": "hd_prov_conflict",
+    "query": "Call germline variants on GRCh38 from aligned.bam.",
+    "context": "aligned.bam sequence dictionary (@SQ) is GRCh37; the original FASTQs are also available.",
+    "gold_action": "clarify",
+    "gold_target": "genome_conflict",
+    "pred": {
+      "action": "clarify",
+      "value": "",
+      "clarify_about": "You asked for GRCh38 variant calls, but the @SQ header in aligned.bam shows it is aligned to GRCh37, so calling directly on it would give GRCh37 coordinates. Which do you want: (a) realign the available original FASTQs to GRCh38 and call variants on that (recommended, but more compute), (b) call on the existing GRCh37 BAM and lift the VCF over to GRCh38 (faster, but some variants may be lost or mis-mapped), or (c) call on GRCh37 and keep GRCh37 coordinates?"
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_recover_strand",
+    "query": "Quantify expression from these bulk RNA-seq reads; I don't know the strandedness.",
+    "context": "run_manifest.json records strandedness: reverse for these sample IDs.",
+    "gold_action": "interpret",
+    "gold_target": "strandedness",
+    "pred": {
+      "action": "interpret",
+      "value": "reverse",
+      "clarify_about": ""
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_tool_bulk_seurat",
+    "query": "Run Seurat single-cell clustering on my RNA-seq counts.",
+    "context": "the counts matrix is 6 bulk samples (genes x 6 samples), not per-cell.",
+    "gold_action": "clarify",
+    "gold_target": "tool_data_conflict",
+    "pred": {
+      "action": "clarify",
+      "value": "",
+      "clarify_about": "Your counts matrix has 6 bulk RNA-seq samples (genes x 6 samples), not per-cell data, so Seurat single-cell clustering doesn't fit: it needs hundreds to thousands of cells to find clusters. Do you want a bulk workflow instead (for example DESeq2 or edgeR normalization, then PCA and hierarchical clustering of the 6 samples, plus differential expression), or do you have a per-cell matrix (such as 10x filtered_feature_bc_matrix) you meant to use?"
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_tool_sniffles",
+    "query": "Find structural variants in my short-read Illumina WGS using Sniffles.",
+    "context": "reads are 150 bp paired-end Illumina (Sniffles is a long-read SV caller).",
+    "gold_action": "clarify",
+    "gold_target": "tool_data_conflict",
+    "pred": {
+      "action": "clarify",
+      "value": "",
+      "clarify_about": "Sniffles is built for long-read data (PacBio/ONT), but your reads are 150 bp paired-end Illumina, so it won't work properly on them. Should I use a short-read SV caller instead (for example Manta, DELLY, LUMPY/smoove, or GRIDSS), or do you also have long-read data you meant to run Sniffles on?"
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_mouse_build",
+    "query": "Align my mouse RNA-seq reads and quantify gene counts.",
+    "context": "",
+    "gold_action": "clarify",
+    "gold_target": "genome_build",
+    "pred": {
+      "action": "interpret",
+      "value": "GRCm39 (mm39), the current mouse reference, with matching GENCODE M-series / Ensembl gene annotation",
+      "clarify_about": "No build was specified and there is no context to settle it, so this uses the current mouse reference as a default. If you need to match earlier analyses done on GRCm38 (mm10), say so before running, because gene IDs and annotations differ between builds."
+    },
+    "outcome": 0.0
+  },
+  {
+    "id": "hd_pdb_chain",
+    "query": "Use PDB 4XYZ as the receptor and dock my ligand into the ATP site.",
+    "context": "4XYZ contains two distinct ATP-binding chains, A and B.",
+    "gold_action": "clarify",
+    "gold_target": "receptor_chain",
+    "pred": {
+      "action": "clarify",
+      "value": "",
+      "clarify_about": "PDB 4XYZ has two distinct ATP-binding chains (A and B), so 'the ATP site' could mean either one. Which chain should be the receptor: A, B, or both docked separately? If the chains are different proteins, which protein is your target?"
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_10x_interp",
+    "query": "Run the scRNA-seq pipeline on my 10x Genomics Chromium 3' v3 FASTQs.",
+    "context": "",
+    "gold_action": "interpret",
+    "gold_target": "strandedness",
+    "pred": {
+      "action": "interpret",
+      "value": "forward",
+      "clarify_about": ""
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_paired_not_strand",
+    "query": "Align my paired-end FASTQ files for human and count reads per gene.",
+    "context": "",
+    "gold_action": "clarify",
+    "gold_target": "strandedness",
+    "pred": {
+      "action": "interpret",
+      "value": "auto-detect (infer strandedness from the aligned reads, e.g. RSeQC infer_experiment.py or Salmon libType A, then set featureCounts -s / htseq-count --stranded to match: unstranded, forward, or reverse)",
+      "clarify_about": ""
+    },
+    "outcome": 0.0
+  },
+  {
+    "id": "hd_followup_normal",
+    "query": "Earlier you asked which BAM is tumor vs normal. Reply: A.bam is tumor; B.bam is a second tumor biopsy from the same patient. Proceed with somatic calling.",
+    "context": "no matched normal sample has been provided.",
+    "gold_action": "clarify",
+    "gold_target": "matched_normal",
+    "pred": {
+      "action": "clarify",
+      "value": "",
+      "clarify_about": "Both BAMs are tumor biopsies (A.bam and B.bam from the same patient), and no matched normal has been provided. Using B.bam as the 'normal' would filter out the true somatic variants the two tumors share, giving wrong results. Do you have a matched normal (e.g., blood or adjacent normal tissue BAM)? If not, should I run tumor-only somatic calling on each biopsy, using a panel of normals and germline resources such as gnomAD? Calling both tumors jointly is also an option, which would identify shared versus private variants."
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_recover_header",
+    "query": "Call variants from sample.bam for this human sample.",
+    "context": "sample.bam header @SQ shows GRCh38 contigs (chr1..chrY).",
+    "gold_action": "interpret",
+    "gold_target": "genome",
+    "pred": {
+      "action": "interpret",
+      "value": "GRCh38",
+      "clarify_about": ""
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_reproduce_default",
+    "query": "Reproduce the differential-expression results from the Smith 2023 paper using my counts.tsv.",
+    "context": "Smith 2023 methods state GRCh37 and edgeR were used.",
+    "gold_action": "interpret",
+    "gold_target": "genome",
+    "pred": {
+      "action": "interpret",
+      "value": "GRCh37",
+      "clarify_about": ""
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_tpm_matrix",
+    "query": "Run DESeq2 on matrix.csv.",
+    "context": "matrix.csv contains TPM-normalized values (decimals), not integer raw counts.",
+    "gold_action": "clarify",
+    "gold_target": "matrix_type",
+    "pred": {
+      "action": "clarify",
+      "value": "TPM-normalized (non-integer) values",
+      "clarify_about": "DESeq2 needs raw integer counts, but matrix.csv contains TPM-normalized decimal values. Do you have the raw count matrix (e.g., from featureCounts, HTSeq, or tximport of Salmon/kallisto output) to use instead? If only TPMs exist, should I switch to a method suited to normalized data, such as limma on log2(TPM+1), rather than rounding TPMs into DESeq2?"
+    },
+    "outcome": 1.0
+  },
+  {
+    "id": "hd_multi_matrix",
+    "query": "Run differential expression analysis.",
+    "context": "the workspace has two files: raw_counts.tsv and normalized_tpm.tsv.",
+    "gold_action": "clarify",
+    "gold_target": "matrix_select",
+    "pred": {
+      "action": "interpret",
+      "value": "raw_counts.tsv",
+      "clarify_about": ""
+    },
+    "outcome": 0.0
+  },
+  {
+    "id": "hd_recover_layout",
+    "query": "Align my FASTQ files to GRCh38.",
+    "context": "the folder contains sample1_R1.fastq.gz and sample1_R2.fastq.gz per sample.",
+    "gold_action": "interpret",
+    "gold_target": "read_layout",
+    "pred": {
+      "action": "interpret",
+      "value": "paired-end",
+      "clarify_about": ""
+    },
+    "outcome": 1.0
+  }
+]

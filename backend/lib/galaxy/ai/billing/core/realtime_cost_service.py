@@ -46,6 +46,12 @@ POLL_INTERVAL  = 10               # seconds between running-job estimate refresh
 
 calculator = CostCalculator()
 
+# Durability outcomes returned by the record_* write helpers so callers
+# (billing endpoints) can choose the right HTTP status code.
+DURABILITY_REDIS      = "redis"       # primary ledger write succeeded
+DURABILITY_DEADLETTER = "deadletter"  # Redis failed, event queued to durable dead-letter
+DURABILITY_LOST       = "lost"        # Redis AND dead-letter both failed — total loss
+
 
 def _month_key() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m")
@@ -74,6 +80,29 @@ class RealtimeCostService:
         self._poller.start()
 
     # -----------------------------------------------------------------------
+    # Dead-letter (durable backstop when the primary Redis write fails)
+    # -----------------------------------------------------------------------
+
+    def _deadletter(self, event_type: str, payload: dict, exc: Exception) -> str:
+        """Persist a cost event whose Redis write failed to the durable
+        dead-letter log. Returns DURABILITY_DEADLETTER if it was persisted,
+        DURABILITY_LOST if even that failed (total loss). Never raises."""
+        try:
+            from galaxy.ai import cost_log
+            ok = cost_log.record_deadletter(
+                event_type=event_type, payload=payload, reason=repr(exc),
+            )
+        except Exception as dl_exc:
+            # Importing/invoking the dead-letter writer itself failed — total loss.
+            log.error(
+                "[billing] TOTAL LOSS — dead-letter writer unavailable for %s event "
+                "(redis err=%r): %s | payload=%s",
+                event_type, exc, dl_exc, payload,
+            )
+            return DURABILITY_LOST
+        return DURABILITY_DEADLETTER if ok else DURABILITY_LOST
+
+    # -----------------------------------------------------------------------
     # Write helpers (called by event handlers)
     # -----------------------------------------------------------------------
 
@@ -84,8 +113,11 @@ class RealtimeCostService:
         output_usd: float,
         input_tokens: int,
         output_tokens: int,
-    ) -> None:
-        month = _month_key()
+        month: Optional[str] = None,
+    ) -> str:
+        # month override is used only by the dead-letter reconciler to credit the
+        # ORIGINAL billing period; all live callers pass None → current month.
+        month = month or _month_key()
         key   = f"cost:{user_id}:month:{month}:llm"
         try:
             pipe  = self._r.pipeline()
@@ -97,8 +129,17 @@ class RealtimeCostService:
             pipe.expire(key, TTL_SECONDS)
             pipe.execute()
             self._update_total(user_id, month, input_usd + output_usd)
+            return DURABILITY_REDIS
         except Exception as e:
-            log.warning("[billing] Redis unavailable — LLM cost not recorded: %s", e)
+            log.warning("[billing] Redis unavailable — LLM cost queued to dead-letter: %s", e)
+            return self._deadletter("llm_cost", {
+                "user_id":       user_id,
+                "input_usd":     input_usd,
+                "output_usd":    output_usd,
+                "input_tokens":  int(input_tokens),
+                "output_tokens": int(output_tokens),
+                "month":         month,
+            }, e)
 
     def record_batch_job_cost(
         self,
@@ -108,8 +149,9 @@ class RealtimeCostService:
         gpu_usd: float,
         mem_usd: float,
         duration_seconds: float,
-    ) -> None:
-        month = _month_key()
+        month: Optional[str] = None,
+    ) -> str:
+        month = month or _month_key()  # override only by the reconciler (see record_llm_cost)
         key   = f"cost:{user_id}:month:{month}:compute"
         try:
             pipe  = self._r.pipeline()
@@ -123,10 +165,21 @@ class RealtimeCostService:
             pipe.delete(f"cost:{user_id}:job:{job_id}:running")
             pipe.execute()
             self._update_total(user_id, month, vcpu_usd + gpu_usd + mem_usd)
+            status = DURABILITY_REDIS
         except Exception as e:
-            log.warning("[billing] Redis unavailable — batch job cost not recorded: %s", e)
+            log.warning("[billing] Redis unavailable — batch job cost queued to dead-letter: %s", e)
+            status = self._deadletter("batch_job_cost", {
+                "user_id":          user_id,
+                "job_id":           job_id,
+                "vcpu_usd":         vcpu_usd,
+                "gpu_usd":          gpu_usd,
+                "mem_usd":          mem_usd,
+                "duration_seconds": duration_seconds,
+                "month":            month,
+            }, e)
         with self._lock:
             self._running_jobs.pop(job_id, None)
+        return status
 
     def record_s3_put(
         self,
@@ -135,8 +188,9 @@ class RealtimeCostService:
         storage_usd: float,
         request_usd: float,
         object_key: str = "",
-    ) -> None:
-        month = _month_key()
+        month: Optional[str] = None,
+    ) -> str:
+        month = month or _month_key()  # override only by the reconciler (see record_llm_cost)
         key   = f"cost:{user_id}:month:{month}:storage"
         pipe  = self._r.pipeline()
         pipe.hincrbyfloat(key, "storage_usd", storage_usd)
@@ -159,8 +213,17 @@ class RealtimeCostService:
         try:
             pipe.execute()
             self._update_total(user_id, month, storage_usd + request_usd)
+            return DURABILITY_REDIS
         except Exception as e:
-            log.warning("[billing] Redis unavailable — S3 cost not recorded: %s", e)
+            log.warning("[billing] Redis unavailable — S3 put cost queued to dead-letter: %s", e)
+            return self._deadletter("s3_put", {
+                "user_id":     user_id,
+                "size_bytes":  size_bytes,
+                "storage_usd": storage_usd,
+                "request_usd": request_usd,
+                "object_key":  object_key,
+                "month":       month,
+            }, e)
 
     def record_s3_delete(
         self,
@@ -641,4 +704,11 @@ def get_cost_service() -> RealtimeCostService:
     global _service
     if _service is None:
         _service = RealtimeCostService()
+        # Start the dead-letter reconciler loop IFF BILLING_RECONCILE_ENABLED is set
+        # (disabled by default → no-op). Gated + idempotent; never blocks service use.
+        try:
+            from galaxy.ai.billing.core.reconcile import start_reconcile_scheduler
+            start_reconcile_scheduler(_service)
+        except Exception as _rec_exc:
+            log.warning("[billing] reconcile scheduler not started: %s", _rec_exc)
     return _service

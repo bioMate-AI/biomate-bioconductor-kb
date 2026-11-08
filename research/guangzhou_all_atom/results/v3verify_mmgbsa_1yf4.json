@@ -1,0 +1,72 @@
+{
+  "1yf4_10": {
+    "ok": true,
+    "seq": "GPMIPGVTD",
+    "dG": -39.87
+  },
+  "1yf4_22": {
+    "ok": true,
+    "seq": "GGPLLGR",
+    "dG": -42.21
+  },
+  "1yf4_07": {
+    "ok": true,
+    "seq": "YSGGGPG",
+    "dG": -30.96
+  },
+  "1yf4_31": {
+    "ok": true,
+    "seq": "MGSGGGS",
+    "dG": -17.77
+  },
+  "1yf4_15": {
+    "ok": true,
+    "seq": "SYSGSGG",
+    "dG": -24.05
+  },
+  "1yf4_28": {
+    "ok": true,
+    "seq": "FVVGNPIA",
+    "dG": -42.38
+  },
+  "1yf4_18": {
+    "ok": true,
+    "seq": "FGSGGPL",
+    "dG": -16.78
+  },
+  "1yf4_02": {
+    "ok": true,
+    "seq": "SYSFGPM",
+    "dG": -23.11
+  },
+  "1yf4_25": {
+    "ok": true,
+    "seq": "SRDSSNPEAM",
+    "dG": -43.29
+  },
+  "1yf4_03": {
+    "ok": true,
+    "seq": "SEAPSSGL PM",
+    "dG": -34.32
+  },
+  "1yf4_27": {
+    "ok": true,
+    "seq": "MSRDSSNPEA",
+    "dG": -44.67
+  },
+  "1yf4_19": {
+    "ok": true,
+    "seq": "FSRLSKNPNV",
+    "dG": -44.42
+  },
+  "1yf4_29": {
+    "ok": true,
+    "seq": "FIPGDSIK",
+    "dG": -34.34
+  },
+  "1yf4_00": {
+    "ok": true,
+    "seq": "FSEAATGLAP",
+    "dG": -47.3
+  }
+}

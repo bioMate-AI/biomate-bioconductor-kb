@@ -1,0 +1,20 @@
+{"id": "wg_B01", "prediction": ["FastQC", "Cutadapt", "STAR", "SAMtools", "featureCounts", "ribotricer", "xtail"], "recall": 0.8, "hit": true}
+{"id": "wg_B02", "prediction": ["FastQC", "MultiQC", "Trim Galore!", "Bowtie2", "SAMtools", "Picard", "MACS2", "SEACR", "IDR", "BEDTools", "deepTools"], "recall": 1.0, "hit": true}
+{"id": "wg_B03", "prediction": ["Guppy", "minimap2", "samtools", "Nanopolish", "m6Anet", "xPore"], "recall": 0.75, "hit": true}
+{"id": "wg_B04", "prediction": ["DELLY", "Manta", "Sniffles2", "SURVIVOR"], "recall": 0.667, "hit": true}
+{"id": "wg_B05", "prediction": ["STAR", "samtools", "TEtranscripts", "DESeq2"], "recall": 1.0, "hit": true}
+{"id": "wg_B06", "prediction": ["SLAM-DUNK", "GRAND-SLAM", "GEDI", "NextGenMap", "samtools", "sambamba", "VarScan 2", "R"], "recall": 0.75, "hit": true}
+{"id": "wg_B07", "prediction": ["XCMS", "LipidBlast"], "recall": 0.5, "hit": true}
+{"id": "wg_B08", "prediction": ["WASP", "WhatsHap", "STAR", "BWA-MEM", "SAMtools", "BCFtools", "GATK"], "recall": 1.0, "hit": true}
+{"id": "wg_B09", "prediction": ["FastQC", "Trim Galore!", "BWA-MEM", "SAMtools", "Picard", "BEDTools", "ichorCNA", "R", "caret", "gbm"], "recall": 0.5, "hit": true}
+{"id": "wg_B10", "prediction": ["Bowtie2", "SAMtools", "BEDTools", "NucleoATAC", "DANPOS"], "recall": 0.8, "hit": true}
+{"id": "wg_B11", "prediction": ["STAR", "samtools", "StringTie", "gffread", "TransDecoder", "bcftools", "customProDB", "MS-GF+", "Percolator"], "recall": 0.8, "hit": true}
+{"id": "wg_B12", "prediction": ["CRISPResso2"], "recall": 0.333, "hit": false}
+{"id": "wg_B13", "prediction": ["TOBIAS", "samtools", "bedtools", "MACS2"], "recall": 0.6, "hit": true}
+{"id": "wg_B14", "prediction": ["FastQC", "Cutadapt", "UMI-tools", "Novoalign", "SAMtools", "BEDTools", "CTK"], "recall": 0.4, "hit": false}
+{"id": "wg_B15", "prediction": ["ArchR", "scVelo", "velocyto", "Seurat", "Scanpy"], "recall": 0.75, "hit": true}
+{"id": "wg_B16", "prediction": ["HiC-Pro", "Bowtie2", "SAMtools", "cooler", "cooltools", "HiCExplorer", "BEDTools", "HOMER"], "recall": 0.4, "hit": false}
+{"id": "wg_B17", "prediction": ["FastQC", "Trim Galore!", "Bismark", "Bowtie2", "SAMtools", "BCFtools", "WhatsHap", "SNPsplit", "BEDTools", "methylKit"], "recall": 0.75, "hit": true}
+{"id": "wg_B18", "prediction": ["MinKNOW", "Dorado", "readfish", "NanoPlot", "pycoQC", "minimap2", "samtools", "bedtools", "mosdepth", "Clair3", "Sniffles2", "bcftools"], "recall": 0.6, "hit": true}
+{"id": "wg_B19", "prediction": ["Cell Ranger", "Seurat", "dsb", "scRepertoire"], "recall": 0.2, "hit": false}
+{"id": "wg_B20", "prediction": ["CODEX Toolkit", "toffy", "ASHLAR", "DeepCell", "Mesmer", "Cellpose", "QuPath", "histoCAT", "FlowSOM", "PhenoGraph", "Squidpy"], "recall": 0.5, "hit": true}

@@ -1,0 +1,97 @@
+# Proteomics MS/MS Database-Search Benchmark — Phase 0
+# Measures BOTH axes on the same runs: SPEED (wall-clock, PSMs/CPU-sec, RAM)
+# and MATCH-COUNT at controlled FDR (#PSMs/#peptides/#proteins at 1% FDR),
+# plus the honesty axis: entrapment false-match-rate (FMR) vs the claimed 1%.
+#
+# Design: docs/20260907_PROTEOMICS_DB_SEARCH_OPTIMIZATION_SURVEY.md §14
+# Build:  docs/20260907_PROTEOMICS_SEARCH_BENCHMARK_PHASE0.md
+#
+# Ground-truth triangulation (each dataset answers a different question):
+#   A. Entrapment DB  -> is claimed 1% FDR real?     (all datasets, always on)
+#   B. Synthetic      -> true precision/recall + recall@k  (ProteomeTools; Phase 1)
+#   C. Species mixture-> foreign-ID rate + quant       (LFQbench/iPRG; later)
+
+metadata:
+  version: "0.1-phase0"
+  created: "2026-09-07"
+  benchmark: "proteomics_search"
+  capability: "Intent-agnostic MS/MS peptide-spectrum-match: speed + match-count at calibrated FDR"
+  phase: "0 — baselines only, no new modeling"
+  # Fair-comparison controls applied to EVERY method (§14.4):
+  controls:
+    fasta: "identical target+decoy+entrapment for all engines"
+    search_settings: "identical enzyme / missed-cleavages / tolerances / variable-PTMs"
+    fdr_estimator: "uniform downstream target-decoy q-value (score_*.py), not each engine's own"
+    hardware: "same AWS Batch instance type + vcpus; N>=3 replicates for speed variance"
+    versions: "pinned biocontainer image tags"
+  entrapment:
+    method: "combined"                 # combined | paired (Wen 2025; Freestone/Keich/Noble)
+    source: "shuffled_target"          # shuffled_target | distant_organism
+    ratio: 1.0                         # |entrapment| / |target|  (1.0 conservative; 8.0 more sensitive to miscalibration)
+    fmr_estimator: "(E / ratio) / T"   # E=entrapment IDs, T=target IDs among accepted @ claimed FDR
+  targets:
+    ids_at_1pct_fdr: ">= MSFragger+MSBooster baseline (once available); Phase0 = record Comet/MSGF+ absolute"
+    measured_fmr_at_claimed_1pct: "<= 1.3%"       # calibration must hold
+    open_search_speedup: ">= 5x (fragment-index vs brute-force) — Phase 3, informational in Phase 0"
+
+# Search engines exercised in Phase 0 (present in BioMate today; see audit).
+methods:
+  - id: comet
+    engine: "Comet"
+    container: "quay.io/biocontainers/comet-ms:2024011--pl5321h4ac6f70_0"
+    note: "SEQUEST-lineage XCorr; fragment-ion indexing available (Comet-FI 2024)"
+    native_output: "pepXML"
+  - id: msgf
+    engine: "MS-GF+"
+    container: "quay.io/biocontainers/msgf_plus:2024.03.26--hdfd78af_0"
+    note: "generating-function E-values; rigorous stats"
+    native_output: "mzIdentML"
+  # Phase 3 additions (NOT in BioMate yet — flagged absent in the audit):
+  #  - id: sage        engine: "Sage"       (fragment index, Rust; open search)
+  #  - id: msfragger   engine: "MSFragger"  (fragment index; license needed)
+  # Phase 2 rescoring layer (absent today): mokapot (+ AlphaPeptDeep predictions)
+
+# Datasets: real, already in BioMate's registry (biomate_dataset_registry.json / on S3).
+cases:
+  - id: PROT-SEARCH-001
+    accession: PXD000612
+    repository: PRIDE/ProteomeXchange
+    title: "Human plasma, MaxQuant DDA (label-free)"
+    organism: Homo sapiens
+    acquisition: DDA
+    instrument: "Thermo Orbitrap"
+    fasta: "UniProt human SwissProt (reviewed) + cRAP contaminants (~21,200 seq)"
+    search:
+      enzyme: trypsin
+      missed_cleavages: 2
+      fixed_mods: ["Carbamidomethyl (C)"]
+      variable_mods: ["Oxidation (M)"]
+      precursor_tolerance_ppm: 10
+      fragment_tolerance_da: 0.02
+    reference:
+      registry_metric: "1,023 proteins @ 0.8% protein FDR (registry QC certificate: PASS)"
+      role: "primary speed + match-count case; moderate search space"
+
+  - id: PROT-SEARCH-002
+    accession: PXD001854
+    repository: PRIDE/ProteomeXchange
+    title: "Phosphoproteomics, HeLa"
+    organism: Homo sapiens
+    acquisition: DDA
+    instrument: "Thermo Orbitrap"
+    fasta: "UniProt human SwissProt (reviewed) + cRAP"
+    search:
+      enzyme: trypsin
+      missed_cleavages: 2
+      fixed_mods: ["Carbamidomethyl (C)"]
+      variable_mods: ["Oxidation (M)", "Phospho (STY)"]   # larger search space (variable PTM)
+      precursor_tolerance_ppm: 10
+      fragment_tolerance_da: 0.02
+    reference:
+      registry_metric: "15,234 phosphosites @ 89% localization (registry QC certificate: PASS)"
+      role: "larger-search-space stress (variable phospho) — where speed/specificity diverge"
+
+# Phase 1+ datasets to add (need download/caching; not in registry yet):
+#   ProteomeTools  PXD004732  -> synthetic ground truth (precision/recall, recall@k)
+#   LFQbench / iPRG           -> defined human+yeast+E.coli mixtures (foreign-ID + quant)
+#   an HLA immunopeptidome set-> large-search-space anchor

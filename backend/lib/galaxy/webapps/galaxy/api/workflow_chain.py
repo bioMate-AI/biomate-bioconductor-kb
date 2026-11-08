@@ -18,6 +18,7 @@ import os
 import sqlite3
 import re
 import threading
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -83,8 +84,108 @@ def resolve_context_params(
         resolved[dest_param] = raw_val
     return resolved
 
+
+# ---------------------------------------------------------------------------
+# Scalar {{stepN.field}} handoff — resolve a scalar VALUE out of a prior step's
+# parsed JSON outputs into a next-step param. The file-based handoff
+# (_apply_connection_handoffs / _resolve_outputs_for_run) wires output FILES;
+# this wires a scalar (e.g. ADMET herg_ic50 → CiPA input). Curated chains like
+# admet_to_cipa_cardiac use this `{{step1.herg_ic50_nM}}` form.
+# ---------------------------------------------------------------------------
+_STEP_TEMPLATE_RE = re.compile(r"\{\{\s*step(\d+)\.([\w.]+)\s*\}\}")
+
+
+def _flatten_scalars(data, out, prefix: str = ""):
+    """Flatten scalar (str/int/float/bool) fields of a JSON value into ``out``,
+    keyed by BOTH the leaf name and the dotted path, so ``{{stepN.herg_ic50}}``
+    resolves whether the field is top-level or nested."""
+    if isinstance(data, dict):
+        for k, v in data.items():
+            path = f"{prefix}{k}"
+            if isinstance(v, (str, int, float, bool)):
+                out.setdefault(k, v)   # leaf name (first writer wins)
+                out[path] = v          # dotted path (unambiguous)
+            elif isinstance(v, (dict, list)):
+                _flatten_scalars(v, out, f"{path}.")
+    elif isinstance(data, list):
+        for i, v in enumerate(data):
+            _flatten_scalars(v, out, f"{prefix}{i}.")
+
+
+def substitute_step_templates(params, step_scalars):
+    """Resolve ``{{stepN.field}}`` scalar templates in ``params`` from
+    ``step_scalars`` (1-based step number -> flat {field: value}). A whole-value
+    template becomes the raw typed value (numbers stay numbers); an embedded
+    template is string-substituted. Pure. Returns (resolved_params, warnings)."""
+    out, warnings = {}, []
+    for key, val in params.items():
+        if not isinstance(val, str):
+            out[key] = val
+            continue
+        whole = _STEP_TEMPLATE_RE.fullmatch(val.strip())
+        if whole:
+            n, field = int(whole.group(1)), whole.group(2)
+            scalars = step_scalars.get(n, {})
+            if field in scalars:
+                out[key] = scalars[field]
+            else:
+                warnings.append(f"unresolved {{{{step{n}.{field}}}}}: not in step {n} outputs")
+                out[key] = val
+        elif _STEP_TEMPLATE_RE.search(val):
+            def _rep(m):
+                sm = step_scalars.get(int(m.group(1)), {})
+                return str(sm[m.group(2)]) if m.group(2) in sm else m.group(0)
+            new = _STEP_TEMPLATE_RE.sub(_rep, val)
+            if "{{step" in new:
+                warnings.append(f"unresolved template(s) in param '{key}'")
+            out[key] = new
+        else:
+            out[key] = val
+    return out, warnings
+
+
+def _read_output_text(f, max_bytes: int = 2_000_000):
+    """Read a run output file's text (local path or s3://), best-effort -> str|None."""
+    path = str(f.get("path") or f.get("filename") or "")
+    s3_uri = str(f.get("s3_uri") or (path if path.startswith("s3://") else ""))
+    try:
+        if s3_uri.startswith("s3://"):
+            import boto3  # noqa: PLC0415
+            bucket, _, key = s3_uri[5:].partition("/")
+            obj = boto3.client("s3").get_object(Bucket=bucket, Key=key)
+            return obj["Body"].read(max_bytes).decode("utf-8", "ignore")
+        p = Path(path)
+        if p.is_file():
+            return p.read_text(errors="ignore")[:max_bytes]
+    except Exception as exc:  # pragma: no cover - best-effort I/O
+        log.debug("workflow_chain: could not read output %s: %s", path or s3_uri, exc)
+    return None
+
+
+def _read_run_scalar_outputs(run_id: str):
+    """Flatten scalar fields of a prior run's JSON outputs into a flat {field: value}
+    map for {{stepN.field}} resolution. Best-effort; returns {} on any failure."""
+    scalars = {}
+    try:
+        files = _list_run_output_files(run_id)
+    except Exception:
+        return scalars
+    for f in files:
+        name = str(f.get("filename") or f.get("name") or f.get("path") or "")
+        if not name.endswith(".json"):
+            continue
+        text = _read_output_text(f)
+        if not text:
+            continue
+        try:
+            _flatten_scalars(json.loads(text), scalars)
+        except Exception:
+            continue
+    return scalars
+
+
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictInt
 
 from galaxy.webapps.galaxy.api import Router
 
@@ -125,9 +226,16 @@ def _load_chain(chain_run_id: str) -> Optional[Dict[str, Any]]:
 def _save_chain(state: Dict[str, Any]) -> None:
     p = _chain_path(state["chain_run_id"])
     try:
-        p.write_text(json.dumps(state, indent=2, default=str))
+        with tempfile.NamedTemporaryFile(mode="w", dir=p.parent, delete=False) as stream:
+            temporary = stream.name
+            stream.write(json.dumps(state, indent=2, default=str))
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, p)
     except Exception as exc:
         log.warning("workflow_chain: failed to persist %s: %s", p, exc)
+        if state.get("execution_mode") == "dag":
+            raise  # Never dispatch a DAG step without a durable submission intent.
 
 
 # ---------------------------------------------------------------------------
@@ -155,6 +263,12 @@ def _update_chain(state: Dict[str, Any]) -> None:
 # Output-as-input resolver
 # ---------------------------------------------------------------------------
 
+# Real data-output extensions (used by the F3 single-candidate handoff fallback;
+# excludes logs/plots/reports so a lone tabular/object result is picked unambiguously).
+_OUTPUT_DATA_EXTS = {"csv", "tsv", "txt", "json", "rds", "rdata", "h5", "h5ad",
+                     "vcf", "bed", "gtf", "gff", "bam", "fasta", "fa", "sdf", "smi",
+                     "mtx", "parquet", "xlsx"}
+
 # Extension → common parameter names for Nextflow workflows
 _EXT_TO_PARAM: Dict[str, List[str]] = {
     "fastq": ["reads", "input", "fastq", "fastq_input"],
@@ -180,6 +294,7 @@ def _list_run_output_files(run_id: str) -> List[Dict[str, Any]]:
         _runs,
         _runs_lock,
         get_nextflow_status,
+        _list_s3_output_files,
     )
 
     files: List[Dict[str, Any]] = []
@@ -194,14 +309,21 @@ def _list_run_output_files(run_id: str) -> List[Dict[str, Any]]:
     with _runs_lock:
         run_info = dict(_runs.get(run_id, {}))
     for f in run_info.get("s3_output_files") or []:
-        _add({**f, "filename": f.get("filename", "")})
+        _add({**f, "filename": f.get("filename") or f.get("name", "")})
 
     try:
         status = get_nextflow_status(run_id)
         for f in status.get("s3_output_files") or []:
-            _add({**f, "filename": f.get("filename", "")})
+            _add({**f, "filename": f.get("filename") or f.get("name", "")})
         outdir = status.get("outdir")
-        if outdir and Path(outdir).exists():
+        if outdir and str(outdir).startswith("s3://"):
+            # Batch runs publish to S3 — the local-path branch below never fires
+            # for an s3:// outdir, so list the prefix directly. Without this the
+            # chain handoff gets an empty file list and no connection can resolve
+            # (every chain stalls after step 1). See docs/20261005_MULTISPECIALTY_CHAINED_USE_CASES.md.
+            for f in _list_s3_output_files(str(outdir)):
+                _add({**f, "filename": f.get("name") or f.get("filename", "")})
+        elif outdir and Path(outdir).exists():
             for fpath in sorted(Path(outdir).rglob("*")):
                 if not fpath.is_file():
                     continue
@@ -232,6 +354,8 @@ def _apply_connection_handoffs(
     wired: Dict[str, Any] = {}
     warnings: List[str] = []
     target_step = step_index + 1  # catalog connections are 1-based
+    if 0 <= step_index < len(steps):
+        steps[step_index].pop("transform_error", None)  # stale from an earlier attempt
 
     for conn in connections:
         if int(conn.get("to_step", -1)) != target_step:
@@ -248,11 +372,61 @@ def _apply_connection_handoffs(
         if not prev_run_id:
             warnings.append(f"Step {from_step + 1} missing run_id for {from_output}→{to_input}")
             continue
-        picked = pick_artifact_file(_list_run_output_files(prev_run_id), from_output)
+        files_prev = _list_run_output_files(prev_run_id)
+        picked = pick_artifact_file(files_prev, from_output)
         if not picked:
-            warnings.append(f"No artifact '{from_output}' found from step {from_step + 1}")
-            continue
+            # F3 safety net: the declared from_output label didn't match any published
+            # file (connection-based chains otherwise get NO fallback — the _EXT_TO_PARAM
+            # path is gated to connection-less chains). Retry matching on the downstream
+            # param name (often a better hint, e.g. "counts"/"matrix"), then on a single
+            # remaining data-file candidate, before giving up.
+            picked = pick_artifact_file(files_prev, to_input)
+            if not picked:
+                _data = [f for f in files_prev
+                         if (f.get("extension") or "").lower() in _OUTPUT_DATA_EXTS
+                         and not str(f.get("filename", "")).startswith(".")]
+                if len(_data) == 1:
+                    picked = _data[0]
+            if picked:
+                warnings.append(
+                    f"Artifact '{from_output}' not found by name; wired {to_input} via fallback "
+                    f"({picked.get('filename')})"
+                )
+            else:
+                warnings.append(f"No artifact '{from_output}' found from step {from_step + 1}")
+                continue
         value = artifact_value(picked)
+        if value and conn.get("transform"):
+            # Transform rule: the transform reads the artifact's file (local path, or S3/MinIO object downloaded first).
+            # A str result is wired to to_input. A dict result wires result[to_input]
+            # to to_input, plus every other key that the downstream workflow declares
+            # (e.g. box_size alongside box_center); undeclared keys are metadata and
+            # ignored. list/dict values are JSON-serialised (params are env strings).
+            try:
+                from galaxy.chain import transforms as _tf  # noqa: PLC0415
+                from galaxy.chain.binding_check import declared_params  # noqa: PLC0415
+                spec = conn["transform"]
+                tname = spec.get("name") if isinstance(spec, dict) else str(spec)
+                targs = spec.get("args") if isinstance(spec, dict) else None
+                result = _tf.apply_to_artifact(tname, picked, targs)   # local file, or S3 artifact downloaded first
+                if isinstance(result, dict):
+                    if to_input not in result:
+                        raise _tf.TransformError(
+                            f"transform '{tname}' result has no key '{to_input}' (keys: {sorted(result)})")
+                    declared = declared_params(
+                        (steps[step_index].get("nextflow_path") or "")) or set()
+                    out = {k: v for k, v in result.items() if k == to_input or k in declared}
+                else:
+                    out = {to_input: result}
+                value = ""  # handled below, not as a raw file path
+                for k, v in out.items():
+                    if k not in params and k not in wired:
+                        wired[k] = v if isinstance(v, str) else json.dumps(v)
+            except _tf.TransformError as exc:
+                msg = f"transform failed for {from_output}→{to_input}: {exc}"
+                warnings.append(msg)
+                steps[step_index]["transform_error"] = msg
+                continue
         if value and to_input not in params:
             wired[to_input] = value
             log.info(
@@ -429,9 +603,21 @@ def _compute_chain_meta(
         return None
 
 
+def _check_bindings(steps, connections):
+    """(problems, undeterminable) from galaxy.chain.binding_check; never raises."""
+    try:
+        from galaxy.chain.binding_check import check_connections  # noqa: PLC0415
+        return check_connections(steps, connections)
+    except Exception as exc:  # pragma: no cover - defensive; check must not break chains
+        log.warning("workflow_chain: binding check unavailable: %s", exc)
+        return [], []
+
+
 def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
-    """Execute chain steps sequentially in a background thread."""
+    """Execute a legacy sequential chain or an explicit dependency plan."""
     state = _get_chain(chain_run_id)
+    if state and state.get("execution_mode") == "dag":
+        return _run_dag_chain(state)
     if state is None:
         log.error("workflow_chain: chain %s not found", chain_run_id)
         return
@@ -471,12 +657,39 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
             _update_chain(current)
             return
 
+        # Fail loudly BEFORE launch if a connection names a parameter the downstream
+        # workflow does not declare (it would be injected and silently ignored).
+        if connections:
+            bind_problems, bind_undet = _check_bindings(
+                current["steps"],
+                [c for c in connections if int(c.get("to_step", -1)) == idx + 1],
+            )
+            if bind_undet:
+                log.info("workflow_chain: step %d binding undeterminable: %s", idx, bind_undet)
+            if bind_problems:
+                msg = "; ".join(p["message"] for p in bind_problems)
+                log.error("workflow_chain: step %d not launched: %s", idx, msg)
+                current["steps"][idx]["status"] = "failed"
+                current["steps"][idx]["error"] = msg
+                current["steps"][idx]["binding_problems"] = bind_problems
+                current["status"] = "failed"
+                _update_chain(current)
+                return
+
         # Auto-wire outputs → inputs via chain connections (Phase 2) or extension heuristics
         if connections:
             params, conn_warnings = _apply_connection_handoffs(current, idx, params)
             if conn_warnings:
                 current["steps"][idx]["handoff_warnings"] = conn_warnings
                 _update_chain(current)
+            if current["steps"][idx].get("transform_error"):
+                msg = current["steps"][idx]["transform_error"]
+                log.error("workflow_chain: step %d not launched: %s", idx, msg)
+                current["steps"][idx]["status"] = "failed"
+                current["steps"][idx]["error"] = msg
+                current["status"] = "failed"
+                _update_chain(current)
+                return
             # Propagate context params from the previous step's run params
             # (e.g. genome → organism transform for DESeq2 / clusterProfiler).
             # This runs whenever connections are defined, regardless of whether
@@ -545,6 +758,22 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
             current["steps"][idx]["input_types"] = next_in_types
             current["steps"][idx]["output_types"] = next_out_types
             _update_chain(current)
+
+        # Resolve {{stepN.field}} SCALAR templates from prior steps' parsed JSON
+        # outputs. The handoffs above only wire output FILES; this wires a scalar
+        # VALUE out of a prior JSON output (e.g. ADMET herg_ic50 -> CiPA input) —
+        # the form curated chains like admet_to_cipa_cardiac declare.
+        if idx > 0 and any(isinstance(v, str) and "{{step" in v for v in params.values()):
+            step_scalars = {}
+            for j in range(idx):  # 0-based prior steps -> 1-based template keys
+                pst = current["steps"][j]
+                if pst.get("status") == "succeeded" and pst.get("run_id"):
+                    step_scalars[j + 1] = _read_run_scalar_outputs(pst["run_id"])
+            params, tmpl_warnings = substitute_step_templates(params, step_scalars)
+            if tmpl_warnings:
+                current["steps"][idx].setdefault("handoff_warnings", []).extend(tmpl_warnings)
+                _update_chain(current)
+                log.warning("workflow_chain: step %d scalar-template warnings: %s", idx, tmpl_warnings)
 
         # Launch Nextflow via the existing executor
         try:
@@ -634,6 +863,56 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
     log.info("workflow_chain: chain %s completed successfully", chain_run_id)
 
 
+def _run_dag_chain(state: Dict[str, Any]) -> None:
+    from galaxy.chain.dag import bind_inputs, run_plan
+    from galaxy.chain.artifact_contracts import artifact_value
+    from galaxy.webapps.galaxy.api.nextflow_executor import (
+        NextflowExecuteRequest, execute_nextflow, get_nextflow_status,
+    )
+
+    def submit(step, params):
+        return execute_nextflow(NextflowExecuteRequest(
+            nextflow_path=step["nextflow_path"], parameters=params,
+        )).get("run_id")
+
+    def poll(run_id):
+        payload = get_nextflow_status(run_id)
+        status = _normalize_run_status(payload.get("status"))
+        if payload.get("returncode") not in (None, 0):
+            status = "failed"
+        files = _list_run_output_files(run_id) if status == "succeeded" else []
+        error = payload.get("error")
+        if status == "succeeded" and not files:
+            status, error = "failed", "Completed without published result artifacts"
+        return {"status": status, "error": error, "output_files": files}
+
+    def save(current):
+        _update_chain(current)
+        _write_pipeline_manifest(current)
+
+    if state.get("connections"):
+        bind_problems, bind_undet = _check_bindings(state["steps"], state["connections"])
+        if bind_undet:
+            log.info("workflow_chain: DAG binding undeterminable: %s", bind_undet)
+        if bind_problems:
+            msg = "; ".join(p["message"] for p in bind_problems)
+            log.error("workflow_chain: DAG plan not launched: %s", msg)
+            for p in bind_problems:
+                st = state["steps"][p["to_step"] - 1]
+                st["status"], st["error"] = "failed", p["message"]
+            state.update(status="failed", error=msg)
+            _update_chain(state)
+            return
+
+    try:
+        run_plan(state, submit, poll, save,
+                 lambda current, i: bind_inputs(current, i, _list_run_output_files,
+                                                 artifact_value, resolve_context_params))
+    except Exception as exc:
+        state.update(status="failed", error=str(exc))
+        _update_chain(state)
+
+
 def _normalize_run_status(raw_status: str) -> str:
     """Map Nextflow executor status strings to chain step terminal states."""
     s = (raw_status or "running").lower()
@@ -671,7 +950,9 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
             _hb["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
             _update_chain(_hb)
 
-        # Batch/driver mismatch: failed in memory but S3 outputs exist and pass QC heuristics.
+        # Batch/driver mismatch: permit rescue only when the executor has
+        # explicit Nextflow completion statistics. S3 artifacts by themselves
+        # can be partial output from a failed step and are never terminal proof.
         if status == "failed":
             s3_files = status_payload.get("s3_output_files") or []
             if s3_files and not _looks_like_false_success(
@@ -683,7 +964,7 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
                 nextflow_path=status_payload.get("nextflow_path", ""),
             ):
                 log.info(
-                    "workflow_chain: run %s reported failed but has valid outputs — treating as succeeded",
+                    "workflow_chain: run %s reported failed but Nextflow completion is explicit — treating as succeeded",
                     run_id,
                 )
                 status = "succeeded"
@@ -772,6 +1053,8 @@ def _rehydrate_chain(chain_run_id: str) -> None:
     state = _get_chain(chain_run_id)
     if not state or state.get("status") != "running":
         return
+    if state.get("execution_mode") == "dag":
+        return _run_dag_chain(state)
     steps = state.get("steps") or []
     idx = next((i for i, s in enumerate(steps) if s.get("status") == "running"), None)
     if idx is None:
@@ -995,6 +1278,9 @@ def _build_pipeline_manifest(state: Dict[str, Any]) -> Dict[str, Any]:
             "run_id": step.get("run_id"),
             "status": step.get("status"),
             "artifacts": step.get("artifacts") or {},
+            "depends_on": step.get("depends_on"),
+            "dimensions": step.get("dimensions") or {},
+            "output_files": step.get("output_files") or [],
         }
         if step.get("outdir"):
             entry["outdir"] = step.get("outdir")
@@ -1045,6 +1331,8 @@ def _resolve_submit_steps(steps: List["ChainStep"]) -> List[Dict[str, Any]]:
             "workflow_name": wn,
             "role": role,
             "step_key": data.get("step_key") or _slug_step_key(wn, role),
+            "depends_on": data.get("depends_on"),
+            "dimensions": data.get("dimensions") or {},
         })
     return resolved
 
@@ -1131,6 +1419,8 @@ def check_step_compatibility(
 # ---------------------------------------------------------------------------
 
 class ChainStep(BaseModel):
+    depends_on: Optional[List[StrictInt]] = None  # 1-based; [] explicitly declares a DAG root
+    dimensions: Optional[Dict[str, str]] = None  # e.g. inhibitor/target/tool coverage labels
     nextflow_path: Optional[str] = None  # Optional: may be unresolved for AI-generated pipelines
     workflow_name: Optional[str] = None
     role: Optional[str] = None
@@ -1139,6 +1429,8 @@ class ChainStep(BaseModel):
 
 
 class ChainSubmitRequest(BaseModel):
+    coverage_axes: Optional[Dict[str, List[str]]] = None
+    max_parallel: StrictInt = 4
     chain_run_id: Optional[str] = None
     chain_name: Optional[str] = None
     chat_session_id: Optional[str] = None
@@ -1157,7 +1449,7 @@ class ResolveOutputsRequest(BaseModel):
 # Routes
 # ---------------------------------------------------------------------------
 
-@router.post("/api/workflows/chain", summary="Submit a sequential Nextflow workflow chain")
+@router.post("/api/workflows/chain", summary="Submit a sequential chain or explicit workflow DAG")
 async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
     """
     Accept a list of Nextflow workflow steps and execute them sequentially.
@@ -1172,6 +1464,24 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
 
     if not request.steps:
         raise HTTPException(status_code=400, detail="steps array required")
+
+    is_dag = any(step.depends_on is not None for step in request.steps)
+    if is_dag:
+        from galaxy.chain.dag import validate_plan, validate_coverage
+        if request.start_from_step or request.end_at_step is not None:
+            raise HTTPException(status_code=400, detail="DAG plans do not support linear step ranges")
+        if request.chain_run_id and _get_chain(request.chain_run_id):
+            raise HTTPException(status_code=409, detail="Plan already exists; poll it rather than resubmitting")
+        try:
+            resolved_plan = _resolve_submit_steps(request.steps)
+            validate_plan(resolved_plan, request.connections or [], request.max_parallel)
+            validate_coverage(resolved_plan, request.coverage_axes)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+    elif request.chain_run_id:
+        prior = _get_chain(request.chain_run_id)
+        if prior and prior.get("execution_mode") == "dag":
+            raise HTTPException(status_code=409, detail="Cannot overwrite a DAG plan through the sequential API")
 
     start_from = max(0, int(request.start_from_step or 0))
     end_at = request.end_at_step
@@ -1239,7 +1549,9 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
                 "nextflow_path": step.get("nextflow_path"),
                 "workflow_name": step.get("workflow_name"),
                 "role": step.get("role"),
-                "step_key": step.get("step_key"),
+                "step_key": (request.steps[i].step_key or f"step_{i + 1}") if is_dag else step.get("step_key"),
+                "depends_on": step.get("depends_on"),
+                "dimensions": step.get("dimensions") or {},
                 "params": step.get("params") or {},
                 "status": "pending",
                 "run_id": None,
@@ -1253,6 +1565,9 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
         state: Dict[str, Any] = {
             "chain_run_id": chain_run_id,
             "chain_name": chain_name_final,
+            "execution_mode": "dag" if is_dag else "sequential",
+            "max_parallel": request.max_parallel,
+            "coverage_axes": request.coverage_axes,
             "chat_session_id": request.chat_session_id,
             "connections": request.connections or [],
             "end_at_step": int(end_at) if end_at is not None else None,
@@ -1271,11 +1586,17 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
     )
     t.start()
 
+    binding_problems, binding_undeterminable = _check_bindings(
+        steps_state, (request.connections or []) if request.connections is not None
+        else (_get_chain(chain_run_id) or {}).get("connections") or [],
+    )
     return {
         "chain_run_id": chain_run_id,
         "status": "running",
         "steps": steps_state,
         "resumed_from_step": start_from if resume else None,
+        "binding_problems": binding_problems,
+        "binding_undeterminable": binding_undeterminable,
     }
 
 
@@ -1339,6 +1660,7 @@ async def get_chain_outputs(chain_run_id: str) -> Dict[str, Any]:
         "status": state.get("status"),
         "steps": step_outputs,
         "output_files": all_files,
+        "report": state.get("report"),
         "count": len(all_files),
     }
 

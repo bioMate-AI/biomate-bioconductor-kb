@@ -1,0 +1,13 @@
+target_key,genes,kb,n_pos,eligible_M,eligible_I
+"P05107,P05362,P20701","ICAM1,ITGAL,ITGB2",lfa1,0,False,False
+"P05556,P13612","ITGA4,ITGB1",a4b1,24,True,True
+"P06756,P18564","ITGAV,ITGB6",avb6,72,True,False
+"P13612,P26010","ITGA4,ITGB7",a4b7,17,True,False
+P18564,ITGB6,avb6,72,True,False
+P20701,ITGAL,lfa1,0,False,False
+P25942,CD40,cd40,2,False,False
+P55899,FCGRT,fcrn,23,True,False
+"Q15116,Q9NZQ7","CD274,PDCD1",pdl1,41,True,False
+Q16552,IL17A,il17a,3,False,False
+Q9NPF7,IL23A,il23,50,True,False
+Q9NZQ7,CD274,pdl1,85,True,False

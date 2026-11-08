@@ -48,7 +48,7 @@ with open("extract_url_content_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("extract_url_content_output.txt", "w") as f:
-    f.write("Biomni: Extract Url Content Results" + NL)
+    f.write("BioMate: Extract Url Content Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

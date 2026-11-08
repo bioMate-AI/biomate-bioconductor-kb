@@ -1,0 +1,16 @@
+{
+  "task": "workflow_generation",
+  "mode": null,
+  "model": "base",
+  "n": 40,
+  "n_with_usage": 40,
+  "input_tokens_total": 5063,
+  "output_tokens_total": null,
+  "input_tokens_mean": 126.575,
+  "output_tokens_mean": 0.0,
+  "latency_ms_p50": 809,
+  "latency_ms_p95": 1008,
+  "latency_ms_mean": 1594.2,
+  "n_with_latency": 40,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

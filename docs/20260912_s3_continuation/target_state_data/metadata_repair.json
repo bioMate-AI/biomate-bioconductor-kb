@@ -1,0 +1,19 @@
+{
+  "old_sha256": "91a0fdbbde0d45ce3597a8d5644ff5f7805a94f5bc0f2bbf82ad98a29bcc8b1d",
+  "new_sha256": "619c0e9257a09500c01321954429d9222f5296065c1768c1c9153f80c9d351ea",
+  "repaired_fields": [
+    "donor_id.npy",
+    "culture_condition.npy",
+    "guide_id.npy",
+    "perturbed_gene_name.npy",
+    "_index.npy"
+  ],
+  "unchanged_members_sha256": {
+    "counts.npy": "91014cda560637b5a77f3f2fbeb3a2e7d232532efa18ccf1d775759ab042e626",
+    "library_counts.npy": "102fe1b68e09becfb3afd1669b6edf44ebaa438ddb4b0b7d0ca40225e595a1b2",
+    "gene_symbols.npy": "02f1c9f2e15093dfecbdcbc3f3d8ec75aec60129c58da4e8bbea10a6880ece53",
+    "source_rows.npy": "cb6d77737d582309e8242ec7fd9d851e9a69f4732563e530d6c8fed9dcdcfe2e",
+    "n_cells.npy": "d87422f257fc1dcc7a157595effe5dd6c1ea062f465fa2416eb6ee454f7e3f79"
+  },
+  "safe_load_all_fields": true
+}

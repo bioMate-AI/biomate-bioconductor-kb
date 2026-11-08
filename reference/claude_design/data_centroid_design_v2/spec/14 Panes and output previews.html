@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 14 — Panes, previews and navigation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Panes, previews and navigation</h1>
+<p class="docmeta"><span>BioMate · Spec 14 · addendum to Specs 00 &amp; 04</span><span>Status: contract split — sequencing TBD</span><span>Surface: shell</span></p>
+
+<p class="lede">Three shell-level changes that the new surfaces made necessary: either side of the chat/run split can be put away and comes back predictably; outputs and artefacts are previewed as file objects rather than as terminal images; and every new page is reachable and leaveable by breadcrumb, not only by Back.</p>
+
+<h2><span class="num">14.1</span>Collapsing the split</h2>
+<table class="st prose">
+<thead><tr><th>Action</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>"Hide chat" in the chat topbar</td><td>The chat collapses to a 46px rail with a vertical <em>Chat</em> tab; the run panel takes the full stage.</td></tr>
+<tr><td>Back on the run panel</td><td>The panel hides; the chat takes the full stage and gains a "Run panel" chip that restores it exactly as it was.</td></tr>
+<tr><td>Stage narrower than 880px</td><td>The chat collapses on its own. Widening restores it — but only if the hide was automatic.</td></tr>
+<tr><td>Reveal below the threshold</td><td>Restoring the chat <strong>swaps</strong> which side is away: the run panel collapses rather than building a split the stage cannot hold.</td></tr>
+<tr><td>Reveal above the threshold</td><td>Panel width is clamped so the chat column gets its 380px minimum.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Rule</span><p>An automatic hide is remembered as automatic; a hide the user chose is never undone by a resize. And a collapsed pane always carries its own reopen control — a pane with no way back is indistinguishable from a broken one.</p></div>
+<p>Because a pane is both user-resizable (to 320px) and auto-collapsing, the chat topbar must survive narrowness: crumb and title ellipsize on one line, buttons do not shrink, and their labels drop to icons under ~520px of pane width.</p>
+
+<h2><span class="num">14.2</span>Previewing outputs and artefacts</h2>
+<p>Every artefact a run or a case produces follows one resolver, whatever produced it. The user sees a short scientific label — Table, Figure, Structure, Report or Log — rather than the resolver's implementation taxonomy.</p>
+<table class="el">
+<thead><tr><th>Kind</th><th>Preview</th><th>Affordances</th></tr></thead>
+<tbody>
+<tr><td>table</td><td>Preview tab with the first rows and a column profile; the header states shape.</td><td>Open in Files · versions · ask-to-edit (cell diff) · download.</td></tr>
+<tr><td>document</td><td>The document itself, typeset, in a Document tab.</td><td>Edit in place · ask-to-edit (prose diff) · versions · download menu (5 formats).</td></tr>
+<tr><td>figure</td><td>Thumbnail in the output grid; opens with the step that produced it.</td><td>Open the step · open in Files.</td></tr>
+<tr><td>model artefact</td><td>Named with its interface and size.</td><td>Open the model object · registry entry.</td></tr>
+<tr><td>structure / state file</td><td>Named with what it carries (e.g. pLDDT in the B-factor column).</td><td>Open in Files.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Rule</span><p>An artefact is a file object, not a picture of one. If it can be seen it can be opened and taken; versioning and editing are retained capabilities enabled when their file contract exists. A preview that dead-ends is a screenshot.</p></div>
+<p>On a case page, the artefacts block states that every artifact can be opened and downloaded with its provenance. Report artifacts additionally expose the immutable original and reproducibility bundle; "Open &amp; edit" is enabled when the retained project-file contract is available.</p>
+
+<h2><span class="num">14.3</span>Navigation through the new pages</h2>
+<table class="st prose">
+<thead><tr><th>Page</th><th>Crumb</th><th>Exits</th></tr></thead>
+<tbody>
+<tr><td>Search answer</td><td>project / Search &amp; evidence / track</td><td>Project crumb → project files. Back → chat. Next-step cards → a run, or a saved document.</td></tr>
+<tr><td>Model use case</td><td>project / Models / track</td><td>Project crumb → files. "Models" crumb → the registry. Model chip → the model object. Artefacts → Files. Back → chat.</td></tr>
+<tr><td>Document (in Files)</td><td>project / file</td><td>"Open the run that produced it" when derived from a run.</td></tr>
+<tr><td>Document (on a run)</td><td>Report tab</td><td>"In Files" opens the same document as a file object.</td></tr>
+<tr><td>Model object</td><td>Models / Registry / model</td><td>Lineage links to the dataset version and the training run; consumers link to the surfaces that call it.</td></tr>
+</tbody>
+</table>
+<p>Opening a file from anywhere resolves its owning project, expands that project in the sidebar, selects the file and switches to Files — so a report reached from a run is in the same place as a report reached from the tree.</p>
+
+<h2><span class="num">14.4</span>Consistency invariants</h2>
+<ul class="deck">
+<li><b>one version</b><span>File row, object header, Versions tab and open document read the same current version, through one helper.</span></li>
+<li><b>one control</b><span>Each control (version chip, download, in-Files) appears once per screen; host and component never both render it.</span></li>
+<li><b>one destination</b><span>A sentence typed in the composer and the same sentence clicked on a card reach the same surface.</span></li>
+<li><b>named objects only</b><span>A page may only name a model, file or run that exists and can be opened.</span></li>
+<li><b>no silent substitution</b><span>If a worked example answers a different question than the one asked, the page says so.</span></li>
+</ul>
+
+<h2><span class="num">14.5</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Whether the auto-hide threshold should be per-pane content rather than a single 880px stage width.</li>
+<li><span class="tag open">open</span> Whether a collapsed run panel should keep showing live progress on its rail.</li>
+<li><span class="tag open">open</span> Figure previews are currently thumbnails only; a full viewer with the step's parameters attached is unbuilt.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 14 · Panes, previews and navigation</span><span>Amends: 00, 04, 08</span><span>End of addendum set</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

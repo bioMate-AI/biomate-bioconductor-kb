@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-09T21:33:36.574Z",
+  "checks": [
+    {
+      "step": "create-personal-key",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "read-owned-run-with-personal-key",
+      "passed": true
+    },
+    {
+      "step": "revoke-temporary-key",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "step": "revoked-key-denied",
+      "passed": true
+    }
+  ]
+}

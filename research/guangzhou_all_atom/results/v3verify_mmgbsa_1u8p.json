@@ -1,0 +1,67 @@
+{
+  "1u8p_00": {
+    "ok": true,
+    "seq": "GLGGDPR",
+    "dG": -24.05
+  },
+  "1u8p_01": {
+    "ok": true,
+    "seq": "GPGGLPY",
+    "dG": -17.78
+  },
+  "1u8p_02": {
+    "ok": true,
+    "seq": "SDPITGRWP",
+    "dG": -22.99
+  },
+  "1u8p_06": {
+    "ok": true,
+    "seq": "GP  PFL",
+    "dG": -21.88
+  },
+  "1u8p_10": {
+    "ok": true,
+    "seq": "NPSDRWDPS",
+    "dG": -20.3
+  },
+  "1u8p_12": {
+    "ok": true,
+    "seq": "GPDDRFF",
+    "dG": -23.64
+  },
+  "1u8p_13": {
+    "ok": true,
+    "seq": "GGGGFPW",
+    "dG": -24.1
+  },
+  "1u8p_17": {
+    "ok": true,
+    "seq": "SPLSSDPD",
+    "dG": -14.5
+  },
+  "1u8p_18": {
+    "ok": true,
+    "seq": "GYGTSPF",
+    "dG": -20.96
+  },
+  "1u8p_21": {
+    "ok": true,
+    "seq": "SLFGGPGSS",
+    "dG": -27.53
+  },
+  "1u8p_25": {
+    "ok": true,
+    "seq": "GPFVPGL",
+    "dG": -27.58
+  },
+  "1u8p_30": {
+    "ok": true,
+    "seq": "SADLPDPF",
+    "dG": -25.96
+  },
+  "1u8p_31": {
+    "ok": true,
+    "seq": "SDPDSLFFP",
+    "dG": -23.15
+  }
+}

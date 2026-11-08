@@ -1,0 +1,10 @@
+{
+  "target": "BCL-XL",
+  "pdb": "1BXL",
+  "target_chain": "A",
+  "reference_peptide_chain": "B",
+  "reference_sequence": "GQVGRQLAIIGDDINR",
+  "design_status": "Proposed inputs; no measured affinity/stability/permeability labels",
+  "chemistry": "For staple/cyclization proposals specify positions and linkage chemistry; do not assume natural sequence is cyclized",
+  "ranking": "Prioritize predicted BCL-XL binding, low aggregation, serum stability; show uncertainty"
+}

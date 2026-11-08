@@ -411,6 +411,8 @@ export interface WorkflowGenerationRequest {
   penalized_domains?: string[];
   /** LLM-extracted technical key terms — boost FTS recall in backend search */
   key_terms?: string[];
+  /** Kinds of data the user has (closed vocabulary; see galaxy-assistant INPUT_KIND_VOCAB). undefined = backend detects from text. */
+  user_input_kinds?: string[];
   /** User's actual session-uploaded datasets — wires WorkflowDatasetSelector + domain-specialist format context */
   session_datasets?: Array<{ id: string; name: string; type: string }>;
   /** Licensed tool credential map: {tool_id: true/false} presence flags for premium integrations */

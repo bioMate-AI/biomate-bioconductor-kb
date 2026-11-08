@@ -1,0 +1,26 @@
+{
+  "target": "cd40",
+  "name": "CD40",
+  "indication": "rheumatoid arthritis",
+  "modality": "PPI blocker (iscalimab axis)",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "motif": null,
+    "metal_cofactor": null,
+    "site": "CD40L (CD154) interface"
+  },
+  "counter_targets": [],
+  "receptor_structure": "3QD6 \u2014 needs prep",
+  "source": "docs/20260727_CROSS_DISEASE_TARGET_SCORECARD.md (OT-ranked, drug-blind rediscovery)",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet"
+  },
+  "cofactors": [],
+  "receptor_pdb": "3qd6"
+}

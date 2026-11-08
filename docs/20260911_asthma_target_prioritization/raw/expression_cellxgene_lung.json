@@ -1,0 +1,2304 @@
+{
+  "collection_id": "6f6d381a-7701-4781-935c-db10d30de293",
+  "collection_url": "https://cellxgene.cziscience.com/collections/6f6d381a-7701-4781-935c-db10d30de293",
+  "collection_version_id": "3e480820-4fd0-4722-84e3-4602f8c28a70",
+  "consortia": [
+    "CZI Cell Science",
+    "Human Cell Atlas (HCA)"
+  ],
+  "contact_email": "malte.luecken@helmholtz-muenchen.de",
+  "contact_name": "Malte D. Luecken",
+  "created_at": "2026-06-09T22:53:27+00:00",
+  "curator_name": "Jason Hilton",
+  "datasets": [
+    {
+      "assay": [
+        {
+          "label": "10x 3' v1",
+          "ontology_term_id": "EFO:0009901"
+        },
+        {
+          "label": "10x 3' v2",
+          "ontology_term_id": "EFO:0009899"
+        },
+        {
+          "label": "10x 3' v3",
+          "ontology_term_id": "EFO:0009922"
+        },
+        {
+          "label": "10x 5' transcription profiling",
+          "ontology_term_id": "EFO:0030004"
+        },
+        {
+          "label": "10x 5' v1",
+          "ontology_term_id": "EFO:0011025"
+        },
+        {
+          "label": "10x 5' v2",
+          "ontology_term_id": "EFO:0009900"
+        },
+        {
+          "label": "Drop-seq",
+          "ontology_term_id": "EFO:0008722"
+        },
+        {
+          "label": "Seq-Well",
+          "ontology_term_id": "EFO:0008919"
+        }
+      ],
+      "assets": [
+        {
+          "filesize": 21860171922,
+          "filetype": "H5AD",
+          "url": "https://datasets.cellxgene.cziscience.com/5f863718-02a6-46cb-83e7-52be988b915b.h5ad"
+        }
+      ],
+      "batch_condition": [
+        "dataset"
+      ],
+      "cell_count": 2282447,
+      "cell_type": [
+        {
+          "label": "B cell",
+          "ontology_term_id": "CL:0000236"
+        },
+        {
+          "label": "CD1c-positive myeloid dendritic cell",
+          "ontology_term_id": "CL:0002399"
+        },
+        {
+          "label": "CD4-positive, alpha-beta T cell",
+          "ontology_term_id": "CL:0000624"
+        },
+        {
+          "label": "CD8-positive, alpha-beta T cell",
+          "ontology_term_id": "CL:0000625"
+        },
+        {
+          "label": "T cell",
+          "ontology_term_id": "CL:0000084"
+        },
+        {
+          "label": "acinar cell",
+          "ontology_term_id": "CL:0000622"
+        },
+        {
+          "label": "alveolar adventitial fibroblast",
+          "ontology_term_id": "CL:4028006"
+        },
+        {
+          "label": "alveolar macrophage",
+          "ontology_term_id": "CL:0000583"
+        },
+        {
+          "label": "alveolar type 1 fibroblast cell",
+          "ontology_term_id": "CL:4028004"
+        },
+        {
+          "label": "bronchial goblet cell",
+          "ontology_term_id": "CL:1000312"
+        },
+        {
+          "label": "bronchus fibroblast of lung",
+          "ontology_term_id": "CL:2000093"
+        },
+        {
+          "label": "brush cell of tracheobronchial tree",
+          "ontology_term_id": "CL:0002075"
+        },
+        {
+          "label": "capillary endothelial cell",
+          "ontology_term_id": "CL:0002144"
+        },
+        {
+          "label": "classical monocyte",
+          "ontology_term_id": "CL:0000860"
+        },
+        {
+          "label": "club cell",
+          "ontology_term_id": "CL:0000158"
+        },
+        {
+          "label": "conventional dendritic cell",
+          "ontology_term_id": "CL:0000990"
+        },
+        {
+          "label": "dendritic cell",
+          "ontology_term_id": "CL:0000451"
+        },
+        {
+          "label": "elicited macrophage",
+          "ontology_term_id": "CL:0000861"
+        },
+        {
+          "label": "endothelial cell of lymphatic vessel",
+          "ontology_term_id": "CL:0002138"
+        },
+        {
+          "label": "epithelial cell of lower respiratory tract",
+          "ontology_term_id": "CL:0002632"
+        },
+        {
+          "label": "fibroblast",
+          "ontology_term_id": "CL:0000057"
+        },
+        {
+          "label": "hematopoietic stem cell",
+          "ontology_term_id": "CL:0000037"
+        },
+        {
+          "label": "ionocyte",
+          "ontology_term_id": "CL:0005006"
+        },
+        {
+          "label": "lung macrophage",
+          "ontology_term_id": "CL:1001603"
+        },
+        {
+          "label": "lung pericyte",
+          "ontology_term_id": "CL:0009089"
+        },
+        {
+          "label": "mast cell",
+          "ontology_term_id": "CL:0000097"
+        },
+        {
+          "label": "mesothelial cell",
+          "ontology_term_id": "CL:0000077"
+        },
+        {
+          "label": "mucus secreting cell",
+          "ontology_term_id": "CL:0000319"
+        },
+        {
+          "label": "multiciliated columnar cell of tracheobronchial tree",
+          "ontology_term_id": "CL:0002145"
+        },
+        {
+          "label": "multiciliated epithelial cell",
+          "ontology_term_id": "CL:0005012"
+        },
+        {
+          "label": "myofibroblast cell",
+          "ontology_term_id": "CL:0000186"
+        },
+        {
+          "label": "nasal mucosa goblet cell",
+          "ontology_term_id": "CL:0002480"
+        },
+        {
+          "label": "natural killer cell",
+          "ontology_term_id": "CL:0000623"
+        },
+        {
+          "label": "non-classical monocyte",
+          "ontology_term_id": "CL:0000875"
+        },
+        {
+          "label": "plasma cell",
+          "ontology_term_id": "CL:0000786"
+        },
+        {
+          "label": "plasmacytoid dendritic cell",
+          "ontology_term_id": "CL:0000784"
+        },
+        {
+          "label": "pulmonary alveolar epithelial cell",
+          "ontology_term_id": "CL:0000322"
+        },
+        {
+          "label": "pulmonary alveolar type 1 cell",
+          "ontology_term_id": "CL:0002062"
+        },
+        {
+          "label": "pulmonary alveolar type 2 cell",
+          "ontology_term_id": "CL:0002063"
+        },
+        {
+          "label": "pulmonary artery endothelial cell",
+          "ontology_term_id": "CL:1001568"
+        },
+        {
+          "label": "pulmonary neuroendocrine cell",
+          "ontology_term_id": "CL:1000223"
+        },
+        {
+          "label": "respiratory basal cell",
+          "ontology_term_id": "CL:0002633"
+        },
+        {
+          "label": "respiratory tract hillock cell",
+          "ontology_term_id": "CL:4030023"
+        },
+        {
+          "label": "serous secreting cell",
+          "ontology_term_id": "CL:0000313"
+        },
+        {
+          "label": "smooth muscle cell",
+          "ontology_term_id": "CL:0000192"
+        },
+        {
+          "label": "stromal cell",
+          "ontology_term_id": "CL:0000499"
+        },
+        {
+          "label": "tracheobronchial goblet cell",
+          "ontology_term_id": "CL:0019003"
+        },
+        {
+          "label": "tracheobronchial serous cell",
+          "ontology_term_id": "CL:0019001"
+        },
+        {
+          "label": "tracheobronchial smooth muscle cell",
+          "ontology_term_id": "CL:0019019"
+        },
+        {
+          "label": "unknown",
+          "ontology_term_id": "unknown"
+        },
+        {
+          "label": "vein endothelial cell",
+          "ontology_term_id": "CL:0002543"
+        }
+      ],
+      "citation": "Publication: https://doi.org/10.1038/s41591-023-02327-2 Dataset Version: https://datasets.cellxgene.cziscience.com/5f863718-02a6-46cb-83e7-52be988b915b.h5ad curated and distributed by CZ CELLxGENE Discover in Collection: https://cellxgene.cziscience.com/collections/6f6d381a-7701-4781-935c-db10d30de293",
+      "dataset_id": "9f222629-9e39-47d0-b83f-e08d610c7479",
+      "dataset_version_id": "5f863718-02a6-46cb-83e7-52be988b915b",
+      "default_embedding": "X_umap",
+      "development_stage": [
+        {
+          "label": "1-month-old stage",
+          "ontology_term_id": "HsapDv:0000273"
+        },
+        {
+          "label": "10-year-old stage",
+          "ontology_term_id": "HsapDv:0000104"
+        },
+        {
+          "label": "11-month-old stage",
+          "ontology_term_id": "HsapDv:0000184"
+        },
+        {
+          "label": "12-month-old stage",
+          "ontology_term_id": "HsapDv:0000185"
+        },
+        {
+          "label": "12-year-old stage",
+          "ontology_term_id": "HsapDv:0000106"
+        },
+        {
+          "label": "14-year-old stage",
+          "ontology_term_id": "HsapDv:0000108"
+        },
+        {
+          "label": "15-year-old stage",
+          "ontology_term_id": "HsapDv:0000109"
+        },
+        {
+          "label": "16-year-old stage",
+          "ontology_term_id": "HsapDv:0000110"
+        },
+        {
+          "label": "18-year-old stage",
+          "ontology_term_id": "HsapDv:0000112"
+        },
+        {
+          "label": "2-year-old stage",
+          "ontology_term_id": "HsapDv:0000096"
+        },
+        {
+          "label": "20-year-old stage",
+          "ontology_term_id": "HsapDv:0000114"
+        },
+        {
+          "label": "21-year-old stage",
+          "ontology_term_id": "HsapDv:0000115"
+        },
+        {
+          "label": "22-year-old stage",
+          "ontology_term_id": "HsapDv:0000116"
+        },
+        {
+          "label": "23-year-old stage",
+          "ontology_term_id": "HsapDv:0000117"
+        },
+        {
+          "label": "24-year-old stage",
+          "ontology_term_id": "HsapDv:0000118"
+        },
+        {
+          "label": "25-year-old stage",
+          "ontology_term_id": "HsapDv:0000119"
+        },
+        {
+          "label": "26-year-old stage",
+          "ontology_term_id": "HsapDv:0000120"
+        },
+        {
+          "label": "27-year-old stage",
+          "ontology_term_id": "HsapDv:0000121"
+        },
+        {
+          "label": "29-year-old stage",
+          "ontology_term_id": "HsapDv:0000123"
+        },
+        {
+          "label": "3-month-old stage",
+          "ontology_term_id": "HsapDv:0000176"
+        },
+        {
+          "label": "3-year-old stage",
+          "ontology_term_id": "HsapDv:0000097"
+        },
+        {
+          "label": "30-year-old stage",
+          "ontology_term_id": "HsapDv:0000124"
+        },
+        {
+          "label": "31-year-old stage",
+          "ontology_term_id": "HsapDv:0000125"
+        },
+        {
+          "label": "33-year-old stage",
+          "ontology_term_id": "HsapDv:0000127"
+        },
+        {
+          "label": "34-year-old stage",
+          "ontology_term_id": "HsapDv:0000128"
+        },
+        {
+          "label": "35-year-old stage",
+          "ontology_term_id": "HsapDv:0000129"
+        },
+        {
+          "label": "36-year-old stage",
+          "ontology_term_id": "HsapDv:0000130"
+        },
+        {
+          "label": "37-year-old stage",
+          "ontology_term_id": "HsapDv:0000131"
+        },
+        {
+          "label": "38-year-old stage",
+          "ontology_term_id": "HsapDv:0000132"
+        },
+        {
+          "label": "4-year-old stage",
+          "ontology_term_id": "HsapDv:0000098"
+        },
+        {
+          "label": "40-year-old stage",
+          "ontology_term_id": "HsapDv:0000134"
+        },
+        {
+          "label": "41-year-old stage",
+          "ontology_term_id": "HsapDv:0000135"
+        },
+        {
+          "label": "42-year-old stage",
+          "ontology_term_id": "HsapDv:0000136"
+        },
+        {
+          "label": "43-year-old stage",
+          "ontology_term_id": "HsapDv:0000137"
+        },
+        {
+          "label": "44-year-old stage",
+          "ontology_term_id": "HsapDv:0000138"
+        },
+        {
+          "label": "45-year-old stage",
+          "ontology_term_id": "HsapDv:0000139"
+        },
+        {
+          "label": "46-year-old stage",
+          "ontology_term_id": "HsapDv:0000140"
+        },
+        {
+          "label": "47-year-old stage",
+          "ontology_term_id": "HsapDv:0000141"
+        },
+        {
+          "label": "48-year-old stage",
+          "ontology_term_id": "HsapDv:0000142"
+        },
+        {
+          "label": "49-year-old stage",
+          "ontology_term_id": "HsapDv:0000143"
+        },
+        {
+          "label": "5-year-old stage",
+          "ontology_term_id": "HsapDv:0000099"
+        },
+        {
+          "label": "50-year-old stage",
+          "ontology_term_id": "HsapDv:0000144"
+        },
+        {
+          "label": "51-year-old stage",
+          "ontology_term_id": "HsapDv:0000145"
+        },
+        {
+          "label": "52-year-old stage",
+          "ontology_term_id": "HsapDv:0000146"
+        },
+        {
+          "label": "53-year-old stage",
+          "ontology_term_id": "HsapDv:0000147"
+        },
+        {
+          "label": "54-year-old stage",
+          "ontology_term_id": "HsapDv:0000148"
+        },
+        {
+          "label": "55-year-old stage",
+          "ontology_term_id": "HsapDv:0000149"
+        },
+        {
+          "label": "56-year-old stage",
+          "ontology_term_id": "HsapDv:0000150"
+        },
+        {
+          "label": "57-year-old stage",
+          "ontology_term_id": "HsapDv:0000151"
+        },
+        {
+          "label": "58-year-old stage",
+          "ontology_term_id": "HsapDv:0000152"
+        },
+        {
+          "label": "59-year-old stage",
+          "ontology_term_id": "HsapDv:0000153"
+        },
+        {
+          "label": "6-month-old stage",
+          "ontology_term_id": "HsapDv:0000179"
+        },
+        {
+          "label": "60-year-old stage",
+          "ontology_term_id": "HsapDv:0000154"
+        },
+        {
+          "label": "61-year-old stage",
+          "ontology_term_id": "HsapDv:0000155"
+        },
+        {
+          "label": "62-year-old stage",
+          "ontology_term_id": "HsapDv:0000156"
+        },
+        {
+          "label": "63-year-old stage",
+          "ontology_term_id": "HsapDv:0000157"
+        },
+        {
+          "label": "64-year-old stage",
+          "ontology_term_id": "HsapDv:0000158"
+        },
+        {
+          "label": "65-year-old stage",
+          "ontology_term_id": "HsapDv:0000159"
+        },
+        {
+          "label": "66-year-old stage",
+          "ontology_term_id": "HsapDv:0000160"
+        },
+        {
+          "label": "67-year-old stage",
+          "ontology_term_id": "HsapDv:0000161"
+        },
+        {
+          "label": "68-year-old stage",
+          "ontology_term_id": "HsapDv:0000162"
+        },
+        {
+          "label": "69-year-old stage",
+          "ontology_term_id": "HsapDv:0000163"
+        },
+        {
+          "label": "7-year-old stage",
+          "ontology_term_id": "HsapDv:0000101"
+        },
+        {
+          "label": "70-year-old stage",
+          "ontology_term_id": "HsapDv:0000164"
+        },
+        {
+          "label": "71-year-old stage",
+          "ontology_term_id": "HsapDv:0000165"
+        },
+        {
+          "label": "72-year-old stage",
+          "ontology_term_id": "HsapDv:0000166"
+        },
+        {
+          "label": "73-year-old stage",
+          "ontology_term_id": "HsapDv:0000167"
+        },
+        {
+          "label": "75-year-old stage",
+          "ontology_term_id": "HsapDv:0000169"
+        },
+        {
+          "label": "76-year-old stage",
+          "ontology_term_id": "HsapDv:0000170"
+        },
+        {
+          "label": "77-year-old stage",
+          "ontology_term_id": "HsapDv:0000171"
+        },
+        {
+          "label": "79-year-old stage",
+          "ontology_term_id": "HsapDv:0000173"
+        },
+        {
+          "label": "81-year-old stage",
+          "ontology_term_id": "HsapDv:0000207"
+        },
+        {
+          "label": "86-year-old stage",
+          "ontology_term_id": "HsapDv:0000212"
+        },
+        {
+          "label": "9-year-old stage",
+          "ontology_term_id": "HsapDv:0000103"
+        },
+        {
+          "label": "fifth decade stage",
+          "ontology_term_id": "HsapDv:0000239"
+        },
+        {
+          "label": "fourth decade stage",
+          "ontology_term_id": "HsapDv:0000238"
+        },
+        {
+          "label": "newborn stage (0-28 days)",
+          "ontology_term_id": "HsapDv:0000262"
+        },
+        {
+          "label": "seventh decade stage",
+          "ontology_term_id": "HsapDv:0000241"
+        },
+        {
+          "label": "sixth decade stage",
+          "ontology_term_id": "HsapDv:0000240"
+        },
+        {
+          "label": "unknown",
+          "ontology_term_id": "unknown"
+        }
+      ],
+      "disease": [
+        {
+          "label": "COVID-19",
+          "ontology_term_id": "MONDO:0100096"
+        },
+        {
+          "label": "chronic obstructive pulmonary disease",
+          "ontology_term_id": "MONDO:0005002"
+        },
+        {
+          "label": "chronic rhinitis",
+          "ontology_term_id": "MONDO:0004514"
+        },
+        {
+          "label": "cystic fibrosis",
+          "ontology_term_id": "MONDO:0009061"
+        },
+        {
+          "label": "hypersensitivity pneumonitis",
+          "ontology_term_id": "MONDO:0017853"
+        },
+        {
+          "label": "interstitial lung disease",
+          "ontology_term_id": "MONDO:0015925"
+        },
+        {
+          "label": "lung adenocarcinoma",
+          "ontology_term_id": "MONDO:0005061"
+        },
+        {
+          "label": "lung large cell carcinoma",
+          "ontology_term_id": "MONDO:0003050"
+        },
+        {
+          "label": "lymphangioleiomyomatosis",
+          "ontology_term_id": "MONDO:0011705"
+        },
+        {
+          "label": "non-specific interstitial pneumonia",
+          "ontology_term_id": "MONDO:0019622"
+        },
+        {
+          "label": "normal",
+          "ontology_term_id": "PATO:0000461"
+        },
+        {
+          "label": "pleomorphic carcinoma",
+          "ontology_term_id": "MONDO:0003573"
+        },
+        {
+          "label": "pneumonia",
+          "ontology_term_id": "MONDO:0005249"
+        },
+        {
+          "label": "pulmonary fibrosis",
+          "ontology_term_id": "MONDO:0002771"
+        },
+        {
+          "label": "pulmonary sarcoidosis",
+          "ontology_term_id": "MONDO:0001708"
+        },
+        {
+          "label": "squamous cell lung carcinoma",
+          "ontology_term_id": "MONDO:0005097"
+        }
+      ],
+      "donor_id": [
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_02",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747cc05p",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD68",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D062",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc9826",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747donor 1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lambrechts_7",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0005",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D12",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP13",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747RU682",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747A40",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747S2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D344",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747207CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D032",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747051I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747390C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T89",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747RU684",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747192CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747donor 2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837472020-3173-NC004",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747A44",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747439C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lambrechts_6",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D339",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD57",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747A26",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747133C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc8257",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747A37",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D17",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL019",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc5103",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN12574693",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T90",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lambrechts_3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP18",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D367",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D239",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837472020-3173-NC008",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747193CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP24",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD84",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-03",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SHMI57ng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD60",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NU_CZI02",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747098C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP31",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747LuT_553",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747RU653",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lambrechts_4",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D326",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lafy_donor_5",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747034I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747S1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747donor 3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837472020-3173-NC007",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747PMB_2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D13",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL010",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD59",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747166I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T85",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN15153957",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747226C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Patient_1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_06",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SSc-ILD_02",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0009",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0007",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747AN11",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD61",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Case_1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747PMB_1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747TILD028",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747IPF_03",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D15",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lafy_donor_6",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_03",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_27",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN15153962",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D353",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NML3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D7",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837472020-3173-NC005",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_361",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0012",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GSM4593897",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747DD046Q",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747M3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747A43",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_A",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_7",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D354",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747IPF_02",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_20",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_48374716E0F2ng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T154",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lambrechts_2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_48374749I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_04",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747RU679",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD072",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T167",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747IPF1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747IPF2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747001C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD071",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL014",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D372",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747184CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747A47",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747RU675",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747RU661",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD106",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD67",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-11",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP15",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747010I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747TILD019",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747IPF_04",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747368C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747157I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747HC2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747RU676",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747186CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Patient_6",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP32",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP27",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL030",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747153CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747S4ECX8ng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747356C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747123I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747TILD006",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN15153959",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN12574699",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SSc_4",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747052CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D5",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD103",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747296C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747003C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_321",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747194CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D139",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lambrechts_8",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD077",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN15153955",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_356",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747138I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SSc_1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D046",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747063I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN15153961",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lambrechts_5",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747ND17494",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-04",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD94",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Patient_2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T164",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747DD047Q",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SSc-ILD_01",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-10",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_317",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747158I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747192C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-09",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD104",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747298C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747209I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D175",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0019",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP12",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747ND15989",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lafy_donor_4",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_318",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_36",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL021",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747DD073R",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NML2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD98",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD66",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP19",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN15153958",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T101",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D150",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NU_CZI01",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747237CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D363",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP37",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747290B",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747TILD030",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837472020-3173-NC006",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D088",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_01",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837472020-3173-NC002",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747152CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lafy_donor_2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_316",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN15153963",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SSc_2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747222C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_8",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747225I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD95",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc9833",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T137",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747041I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747302C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747QZY9VQng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747IPF3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747222I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP23",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837471372C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP14",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747101CV0ng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Patient_5",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747178CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747228I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747ODGS1Mng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SCD1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0015",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Myositis-ILD_01",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747160C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc10380",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_37",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D322",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747022I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747A9LCTZng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NML1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL001",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D11",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD58",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D14",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747210I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747218C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747465C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL039",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D4",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL013",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_9",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837478CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747221I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-02",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_48374729I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD85",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T121",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747cc01p",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_05",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T166",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_08",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD92",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_360",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747AN6",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_48374723CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747cc04p",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T120",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747HC1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T126",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_B",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747388C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP20",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747TILD015",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D10",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837472020-3173-NC003",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D16",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747ND15656",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747177I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc10381",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0001",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Patient_3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_48374759I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747145I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP17",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL017",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D231",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL020",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD62",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747179I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL015",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Donor_07",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747212I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747dd10p",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD101",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP44",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747ZM3KACng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP22",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D8",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747056CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL034",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_163",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_320",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP38",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL003",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747235CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747JVV9L8ng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN15153956",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SSc_3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_25",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP39",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD65",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747292B",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_362",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747053I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-08",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_5",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T153",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD70",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747TILD010",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747M2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP30",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL018",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747040I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747092C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL012",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD107",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747dd49p",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL009",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_22",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747RU685",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747174I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_31",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747KKD019N",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP35",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Cryobiopsy_01",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL038",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747396C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747135I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL011",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D6",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc4659",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD073",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD63",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747454C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D337",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL035",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0014",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL027",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747T165",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837471A1DFBng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL016",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_21",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747S6",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc9832",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL031",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc3843",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747AN9",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D122",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lambrechts_1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lafy_donor_3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747AN13",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL026",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL029",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP16",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_308",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_33",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL023",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL024",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_19",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747RU680",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Patient_4",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747208C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL033",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-07",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747137C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747HP_01",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747AN5",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0020",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc5212",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747CF301018",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Wunderink2021_subject_4",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747M1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_34",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-06",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0017",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Patient_7",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747S3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SCD2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747AN12",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0008",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747SAMN15153960",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747021I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747LuT_437",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747dd39p",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747214I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747IPF_01",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747TILD001",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_310",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747025I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_48374747I",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL002",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP21",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD53",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD078",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP26",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_12",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_312",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747KKD022N",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD55",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747S5",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747cc02p",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_23",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_299",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_4837479JQK55ng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL025",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747AN14",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP10",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL022",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747238CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747081C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747h18",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747002C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747483C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747034C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747484C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747253C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc5213",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc4658",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_358",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747084C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747cf019",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0006",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP47",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747KJYDM1ng",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD48",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP11",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP43",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL028",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747HC3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747065C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD54",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747KKD020N",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747GRO-01",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_3",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747lafy_donor_1",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc5105",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747KKCFFT32N",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL040",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_30",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747217CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747dd09p",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP36",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747D2",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747A32",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUILD64",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_305",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747S4",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD080",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_359",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747THD0010",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747ND16737",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD69",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747NP41",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747Shalek2018_subject_298",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL032",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747KKD023N",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747137CO",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL037",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747muc5288",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747244C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747LuT_580",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_26",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_7",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD105",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD076",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BAL036",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_18",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747284C",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747KKD024N",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_24",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747BG9_35",
+        "homosapiens_None_2023_None_sikkemalisa_002_d10_1101_2022_03_10_483747VUHD87"
+      ],
+      "embeddings": [
+        "X_scanvi_emb",
+        "X_umap"
+      ],
+      "explorer_url": "https://cellxgene.cziscience.com/e/9f222629-9e39-47d0-b83f-e08d610c7479.cxg/",
+      "feature_biotype": [
+        "gene"
+      ],
+      "feature_count": 55329,
+      "feature_reference": [
+        "NCBITaxon:9606"
+      ],
+      "genetic_perturbation_strategy": null,
+      "is_pre_analysis": false,
+      "is_primary_data": [
+        true,
+        false
+      ],
+      "mean_genes_per_cell": 1758.3523503503038,
+      "organism": [
+        {
+          "label": "Homo sapiens",
+          "ontology_term_id": "NCBITaxon:9606"
+        }
+      ],
+      "perturbation_types": null,
+      "primary_cell_count": 1926653,
+      "published_at": "2023-05-09T17:49:57+00:00",
+      "raw_data_location": "raw.X",
+      "revised_at": "2026-06-11T16:52:43+00:00",
+      "schema_version": "7.1.0",
+      "self_reported_ethnicity": [
+        {
+          "label": "American",
+          "ontology_term_id": "HANCESTRO:0463"
+        },
+        {
+          "label": "Asian",
+          "ontology_term_id": "HANCESTRO:0847"
+        },
+        {
+          "label": "British",
+          "ontology_term_id": "HANCESTRO:0462"
+        },
+        {
+          "label": "Pacific Islander",
+          "ontology_term_id": "HANCESTRO:0574"
+        },
+        {
+          "label": "unknown",
+          "ontology_term_id": "unknown"
+        }
+      ],
+      "sex": [
+        {
+          "label": "female",
+          "ontology_term_id": "PATO:0000383"
+        },
+        {
+          "label": "male",
+          "ontology_term_id": "PATO:0000384"
+        },
+        {
+          "label": "unknown",
+          "ontology_term_id": "unknown"
+        }
+      ],
+      "spatial": null,
+      "suspension_type": [
+        "cell",
+        "nucleus"
+      ],
+      "tissue": [
+        {
+          "label": "lung",
+          "ontology_term_id": "UBERON:0002048",
+          "tissue_type": "tissue"
+        },
+        {
+          "label": "lung parenchyma",
+          "ontology_term_id": "UBERON:0008946",
+          "tissue_type": "tissue"
+        },
+        {
+          "label": "nose",
+          "ontology_term_id": "UBERON:0000004",
+          "tissue_type": "tissue"
+        },
+        {
+          "label": "respiratory airway",
+          "ontology_term_id": "UBERON:0001005",
+          "tissue_type": "tissue"
+        }
+      ],
+      "title": "An integrated cell atlas of the human lung in health and disease (full)",
+      "tombstone": false,
+      "x_approximate_distribution": null
+    },
+    {
+      "assay": [
+        {
+          "label": "10x 3' v1",
+          "ontology_term_id": "EFO:0009901"
+        },
+        {
+          "label": "10x 3' v2",
+          "ontology_term_id": "EFO:0009899"
+        },
+        {
+          "label": "10x 3' v3",
+          "ontology_term_id": "EFO:0009922"
+        },
+        {
+          "label": "10x 5' v1",
+          "ontology_term_id": "EFO:0011025"
+        },
+        {
+          "label": "10x 5' v2",
+          "ontology_term_id": "EFO:0009900"
+        }
+      ],
+      "assets": [
+        {
+          "filesize": 5873612847,
+          "filetype": "H5AD",
+          "url": "https://datasets.cellxgene.cziscience.com/688185ad-11c2-4172-a53a-f4f1f4076860.h5ad"
+        }
+      ],
+      "batch_condition": [
+        "dataset"
+      ],
+      "cell_count": 584944,
+      "cell_type": [
+        {
+          "label": "B cell",
+          "ontology_term_id": "CL:0000236"
+        },
+        {
+          "label": "CD1c-positive myeloid dendritic cell",
+          "ontology_term_id": "CL:0002399"
+        },
+        {
+          "label": "CD4-positive, alpha-beta T cell",
+          "ontology_term_id": "CL:0000624"
+        },
+        {
+          "label": "CD8-positive, alpha-beta T cell",
+          "ontology_term_id": "CL:0000625"
+        },
+        {
+          "label": "T cell",
+          "ontology_term_id": "CL:0000084"
+        },
+        {
+          "label": "acinar cell",
+          "ontology_term_id": "CL:0000622"
+        },
+        {
+          "label": "alveolar adventitial fibroblast",
+          "ontology_term_id": "CL:4028006"
+        },
+        {
+          "label": "alveolar macrophage",
+          "ontology_term_id": "CL:0000583"
+        },
+        {
+          "label": "alveolar type 1 fibroblast cell",
+          "ontology_term_id": "CL:4028004"
+        },
+        {
+          "label": "bronchial goblet cell",
+          "ontology_term_id": "CL:1000312"
+        },
+        {
+          "label": "bronchus fibroblast of lung",
+          "ontology_term_id": "CL:2000093"
+        },
+        {
+          "label": "brush cell of tracheobronchial tree",
+          "ontology_term_id": "CL:0002075"
+        },
+        {
+          "label": "capillary endothelial cell",
+          "ontology_term_id": "CL:0002144"
+        },
+        {
+          "label": "classical monocyte",
+          "ontology_term_id": "CL:0000860"
+        },
+        {
+          "label": "club cell",
+          "ontology_term_id": "CL:0000158"
+        },
+        {
+          "label": "conventional dendritic cell",
+          "ontology_term_id": "CL:0000990"
+        },
+        {
+          "label": "dendritic cell",
+          "ontology_term_id": "CL:0000451"
+        },
+        {
+          "label": "elicited macrophage",
+          "ontology_term_id": "CL:0000861"
+        },
+        {
+          "label": "endothelial cell of lymphatic vessel",
+          "ontology_term_id": "CL:0002138"
+        },
+        {
+          "label": "epithelial cell of lower respiratory tract",
+          "ontology_term_id": "CL:0002632"
+        },
+        {
+          "label": "fibroblast",
+          "ontology_term_id": "CL:0000057"
+        },
+        {
+          "label": "hematopoietic stem cell",
+          "ontology_term_id": "CL:0000037"
+        },
+        {
+          "label": "ionocyte",
+          "ontology_term_id": "CL:0005006"
+        },
+        {
+          "label": "lung macrophage",
+          "ontology_term_id": "CL:1001603"
+        },
+        {
+          "label": "lung pericyte",
+          "ontology_term_id": "CL:0009089"
+        },
+        {
+          "label": "mast cell",
+          "ontology_term_id": "CL:0000097"
+        },
+        {
+          "label": "mesothelial cell",
+          "ontology_term_id": "CL:0000077"
+        },
+        {
+          "label": "mucus secreting cell",
+          "ontology_term_id": "CL:0000319"
+        },
+        {
+          "label": "multiciliated columnar cell of tracheobronchial tree",
+          "ontology_term_id": "CL:0002145"
+        },
+        {
+          "label": "multiciliated epithelial cell",
+          "ontology_term_id": "CL:0005012"
+        },
+        {
+          "label": "myofibroblast cell",
+          "ontology_term_id": "CL:0000186"
+        },
+        {
+          "label": "nasal mucosa goblet cell",
+          "ontology_term_id": "CL:0002480"
+        },
+        {
+          "label": "natural killer cell",
+          "ontology_term_id": "CL:0000623"
+        },
+        {
+          "label": "non-classical monocyte",
+          "ontology_term_id": "CL:0000875"
+        },
+        {
+          "label": "plasma cell",
+          "ontology_term_id": "CL:0000786"
+        },
+        {
+          "label": "plasmacytoid dendritic cell",
+          "ontology_term_id": "CL:0000784"
+        },
+        {
+          "label": "pulmonary alveolar epithelial cell",
+          "ontology_term_id": "CL:0000322"
+        },
+        {
+          "label": "pulmonary alveolar type 1 cell",
+          "ontology_term_id": "CL:0002062"
+        },
+        {
+          "label": "pulmonary alveolar type 2 cell",
+          "ontology_term_id": "CL:0002063"
+        },
+        {
+          "label": "pulmonary artery endothelial cell",
+          "ontology_term_id": "CL:1001568"
+        },
+        {
+          "label": "pulmonary neuroendocrine cell",
+          "ontology_term_id": "CL:1000223"
+        },
+        {
+          "label": "respiratory basal cell",
+          "ontology_term_id": "CL:0002633"
+        },
+        {
+          "label": "respiratory tract hillock cell",
+          "ontology_term_id": "CL:4030023"
+        },
+        {
+          "label": "serous secreting cell",
+          "ontology_term_id": "CL:0000313"
+        },
+        {
+          "label": "smooth muscle cell",
+          "ontology_term_id": "CL:0000192"
+        },
+        {
+          "label": "stromal cell",
+          "ontology_term_id": "CL:0000499"
+        },
+        {
+          "label": "tracheobronchial goblet cell",
+          "ontology_term_id": "CL:0019003"
+        },
+        {
+          "label": "tracheobronchial serous cell",
+          "ontology_term_id": "CL:0019001"
+        },
+        {
+          "label": "tracheobronchial smooth muscle cell",
+          "ontology_term_id": "CL:0019019"
+        },
+        {
+          "label": "vein endothelial cell",
+          "ontology_term_id": "CL:0002543"
+        }
+      ],
+      "citation": "Publication: https://doi.org/10.1038/s41591-023-02327-2 Dataset Version: https://datasets.cellxgene.cziscience.com/688185ad-11c2-4172-a53a-f4f1f4076860.h5ad curated and distributed by CZ CELLxGENE Discover in Collection: https://cellxgene.cziscience.com/collections/6f6d381a-7701-4781-935c-db10d30de293",
+      "dataset_id": "066943a2-fdac-4b29-b348-40cede398e4e",
+      "dataset_version_id": "688185ad-11c2-4172-a53a-f4f1f4076860",
+      "default_embedding": "X_umap",
+      "development_stage": [
+        {
+          "label": "10-year-old stage",
+          "ontology_term_id": "HsapDv:0000104"
+        },
+        {
+          "label": "15-year-old stage",
+          "ontology_term_id": "HsapDv:0000109"
+        },
+        {
+          "label": "18-year-old stage",
+          "ontology_term_id": "HsapDv:0000112"
+        },
+        {
+          "label": "21-year-old stage",
+          "ontology_term_id": "HsapDv:0000115"
+        },
+        {
+          "label": "22-year-old stage",
+          "ontology_term_id": "HsapDv:0000116"
+        },
+        {
+          "label": "23-year-old stage",
+          "ontology_term_id": "HsapDv:0000117"
+        },
+        {
+          "label": "24-year-old stage",
+          "ontology_term_id": "HsapDv:0000118"
+        },
+        {
+          "label": "25-year-old stage",
+          "ontology_term_id": "HsapDv:0000119"
+        },
+        {
+          "label": "26-year-old stage",
+          "ontology_term_id": "HsapDv:0000120"
+        },
+        {
+          "label": "27-year-old stage",
+          "ontology_term_id": "HsapDv:0000121"
+        },
+        {
+          "label": "29-year-old stage",
+          "ontology_term_id": "HsapDv:0000123"
+        },
+        {
+          "label": "30-year-old stage",
+          "ontology_term_id": "HsapDv:0000124"
+        },
+        {
+          "label": "31-year-old stage",
+          "ontology_term_id": "HsapDv:0000125"
+        },
+        {
+          "label": "33-year-old stage",
+          "ontology_term_id": "HsapDv:0000127"
+        },
+        {
+          "label": "34-year-old stage",
+          "ontology_term_id": "HsapDv:0000128"
+        },
+        {
+          "label": "35-year-old stage",
+          "ontology_term_id": "HsapDv:0000129"
+        },
+        {
+          "label": "36-year-old stage",
+          "ontology_term_id": "HsapDv:0000130"
+        },
+        {
+          "label": "37-year-old stage",
+          "ontology_term_id": "HsapDv:0000131"
+        },
+        {
+          "label": "38-year-old stage",
+          "ontology_term_id": "HsapDv:0000132"
+        },
+        {
+          "label": "40-year-old stage",
+          "ontology_term_id": "HsapDv:0000134"
+        },
+        {
+          "label": "41-year-old stage",
+          "ontology_term_id": "HsapDv:0000135"
+        },
+        {
+          "label": "42-year-old stage",
+          "ontology_term_id": "HsapDv:0000136"
+        },
+        {
+          "label": "44-year-old stage",
+          "ontology_term_id": "HsapDv:0000138"
+        },
+        {
+          "label": "46-year-old stage",
+          "ontology_term_id": "HsapDv:0000140"
+        },
+        {
+          "label": "47-year-old stage",
+          "ontology_term_id": "HsapDv:0000141"
+        },
+        {
+          "label": "49-year-old stage",
+          "ontology_term_id": "HsapDv:0000143"
+        },
+        {
+          "label": "51-year-old stage",
+          "ontology_term_id": "HsapDv:0000145"
+        },
+        {
+          "label": "52-year-old stage",
+          "ontology_term_id": "HsapDv:0000146"
+        },
+        {
+          "label": "53-year-old stage",
+          "ontology_term_id": "HsapDv:0000147"
+        },
+        {
+          "label": "54-year-old stage",
+          "ontology_term_id": "HsapDv:0000148"
+        },
+        {
+          "label": "55-year-old stage",
+          "ontology_term_id": "HsapDv:0000149"
+        },
+        {
+          "label": "56-year-old stage",
+          "ontology_term_id": "HsapDv:0000150"
+        },
+        {
+          "label": "57-year-old stage",
+          "ontology_term_id": "HsapDv:0000151"
+        },
+        {
+          "label": "58-year-old stage",
+          "ontology_term_id": "HsapDv:0000152"
+        },
+        {
+          "label": "59-year-old stage",
+          "ontology_term_id": "HsapDv:0000153"
+        },
+        {
+          "label": "61-year-old stage",
+          "ontology_term_id": "HsapDv:0000155"
+        },
+        {
+          "label": "62-year-old stage",
+          "ontology_term_id": "HsapDv:0000156"
+        },
+        {
+          "label": "63-year-old stage",
+          "ontology_term_id": "HsapDv:0000157"
+        },
+        {
+          "label": "64-year-old stage",
+          "ontology_term_id": "HsapDv:0000158"
+        },
+        {
+          "label": "66-year-old stage",
+          "ontology_term_id": "HsapDv:0000160"
+        },
+        {
+          "label": "68-year-old stage",
+          "ontology_term_id": "HsapDv:0000162"
+        },
+        {
+          "label": "69-year-old stage",
+          "ontology_term_id": "HsapDv:0000163"
+        },
+        {
+          "label": "71-year-old stage",
+          "ontology_term_id": "HsapDv:0000165"
+        },
+        {
+          "label": "75-year-old stage",
+          "ontology_term_id": "HsapDv:0000169"
+        },
+        {
+          "label": "76-year-old stage",
+          "ontology_term_id": "HsapDv:0000170"
+        },
+        {
+          "label": "fifth decade stage",
+          "ontology_term_id": "HsapDv:0000239"
+        },
+        {
+          "label": "fourth decade stage",
+          "ontology_term_id": "HsapDv:0000238"
+        },
+        {
+          "label": "seventh decade stage",
+          "ontology_term_id": "HsapDv:0000241"
+        },
+        {
+          "label": "sixth decade stage",
+          "ontology_term_id": "HsapDv:0000240"
+        },
+        {
+          "label": "unknown",
+          "ontology_term_id": "unknown"
+        }
+      ],
+      "disease": [
+        {
+          "label": "normal",
+          "ontology_term_id": "PATO:0000461"
+        }
+      ],
+      "donor_id": [
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747Donor_05",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747donor 2",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747Donor_07",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T164",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747donor 3",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747donor 1",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD103",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-03",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-10",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747Donor_03",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD68",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747NU_CZI02",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD92",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T165",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD67",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747Donor_06",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T121",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D363",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-08",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747296C",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747lafy_donor_1",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD071",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747302C",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0012",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747lafy_donor_6",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D372",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747368C",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-06",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-01",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-02",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T154",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747NU_CZI01",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D326",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-09",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD94",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747390C",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0009",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_4837472020-3173-NC004",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD70",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T90",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0005",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T166",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T89",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D353",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D337",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D354",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D344",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747290B",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747356C",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747Donor_04",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747lafy_donor_3",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD98",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_4837472020-3173-NC008",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D339",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747lafy_donor_4",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747Donor_08",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D367",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD95",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747Donor_01",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T137",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0019",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0015",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_4837472020-3173-NC006",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_4837472020-3173-NC002",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD106",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0007",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T120",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0008",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747D322",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD104",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747Donor_02",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD84",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD101",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T167",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0020",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T85",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0001",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0006",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD66",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-04",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T101",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0017",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T126",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_4837472020-3173-NC005",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-11",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD080",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747292B",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747T153",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747GRO-07",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747lafy_donor_5",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747lafy_donor_2",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_4837472020-3173-NC003",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_4837472020-3173-NC007",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0014",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD105",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747298C",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747THD0010",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD107",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD073",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD077",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD69",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD072",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD85",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747284C",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD078",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD076",
+        "homosapiens_None_2023_None_sikkemalisa_001_d10_1101_2022_03_10_483747VUHD87"
+      ],
+      "embeddings": [
+        "X_scanvi_emb",
+        "X_umap"
+      ],
+      "explorer_url": "https://cellxgene.cziscience.com/e/066943a2-fdac-4b29-b348-40cede398e4e.cxg/",
+      "feature_biotype": [
+        "gene"
+      ],
+      "feature_count": 27402,
+      "feature_reference": [
+        "NCBITaxon:9606"
+      ],
+      "genetic_perturbation_strategy": null,
+      "is_pre_analysis": false,
+      "is_primary_data": [
+        false
+      ],
+      "mean_genes_per_cell": 1946.6289901255504,
+      "organism": [
+        {
+          "label": "Homo sapiens",
+          "ontology_term_id": "NCBITaxon:9606"
+        }
+      ],
+      "perturbation_types": null,
+      "primary_cell_count": 0,
+      "published_at": "2022-03-11T16:47:39+00:00",
+      "raw_data_location": "raw.X",
+      "revised_at": "2026-06-11T16:52:43+00:00",
+      "schema_version": "7.1.0",
+      "self_reported_ethnicity": [
+        {
+          "label": "American",
+          "ontology_term_id": "HANCESTRO:0463"
+        },
+        {
+          "label": "Asian",
+          "ontology_term_id": "HANCESTRO:0847"
+        },
+        {
+          "label": "British",
+          "ontology_term_id": "HANCESTRO:0462"
+        },
+        {
+          "label": "Pacific Islander",
+          "ontology_term_id": "HANCESTRO:0574"
+        },
+        {
+          "label": "unknown",
+          "ontology_term_id": "unknown"
+        }
+      ],
+      "sex": [
+        {
+          "label": "female",
+          "ontology_term_id": "PATO:0000383"
+        },
+        {
+          "label": "male",
+          "ontology_term_id": "PATO:0000384"
+        }
+      ],
+      "spatial": null,
+      "suspension_type": [
+        "cell"
+      ],
+      "tissue": [
+        {
+          "label": "lung parenchyma",
+          "ontology_term_id": "UBERON:0008946",
+          "tissue_type": "tissue"
+        },
+        {
+          "label": "nose",
+          "ontology_term_id": "UBERON:0000004",
+          "tissue_type": "tissue"
+        },
+        {
+          "label": "respiratory airway",
+          "ontology_term_id": "UBERON:0001005",
+          "tissue_type": "tissue"
+        }
+      ],
+      "title": "An integrated cell atlas of the human lung in health and disease (core)",
+      "tombstone": false,
+      "x_approximate_distribution": null
+    }
+  ],
+  "description": "The integrated Human Lung Cell Atlas (HLCA) represents the first large-scale, integrated single-cell reference atlas of the human lung. It consists of over 2 million cells  from the respiratory tract of 486 individuals, and includes 49 different datasets. It is split into the HLCA core, and the extended or full HLCA.\nThe HLCA core includes data of healthy lung tissue from 107 individuals, and includes manual cell type annotations based on consensus across 6 independent experts, as well as demographic, biological and technical metadata. The datasets in the HLCA core were integrated using scANVI. The HLCA core can be used as a reference to map new datasets onto using scArches.\nThe full HLCA includes 35 further  datasets that include donors with various lung diseases. These datasets were mapped onto the core with scArches, and include disease annotations as well as cell type annotations transferred from the HLCA core onto the mapped datasets.\nNote that while the the HLCA includes an integrated, batch-correctd low-dimensional embedding, the gene counts themselves were not batch-corrected. Both the HLCA core and the full HLCA can be explored below. Detailed information about all metadata in the objects, as well as further HLCA-related information , can be found on the HLCA landing page: https://github.com/LungCellAtlas/HLCA. Raw counts are available in the downloaded .h5ad at adata.raw.X, in the downloaded .rds at seurat_object@assays$RNA@counts, and via CELLxGENE Census.",
+  "doi": "10.1038/s41591-023-02327-2",
+  "is_pre_analysis": false,
+  "links": [
+    {
+      "link_name": "HLCA landing page",
+      "link_type": "OTHER",
+      "link_url": "https://github.com/LungCellAtlas/HLCA"
+    }
+  ],
+  "name": "The integrated Human Lung Cell Atlas",
+  "published_at": "2022-03-11T16:47:39+00:00",
+  "publisher_metadata": {
+    "authors": [
+      {
+        "family": "Sikkema",
+        "given": "Lisa"
+      },
+      {
+        "family": "Ram\u00edrez-Su\u00e1stegui",
+        "given": "Ciro"
+      },
+      {
+        "family": "Strobl",
+        "given": "Daniel C."
+      },
+      {
+        "family": "Gillett",
+        "given": "Tessa E."
+      },
+      {
+        "family": "Zappia",
+        "given": "Luke"
+      },
+      {
+        "family": "Madissoon",
+        "given": "Elo"
+      },
+      {
+        "family": "Markov",
+        "given": "Nikolay S."
+      },
+      {
+        "family": "Zaragosi",
+        "given": "Laure-Emmanuelle"
+      },
+      {
+        "family": "Ji",
+        "given": "Yuge"
+      },
+      {
+        "family": "Ansari",
+        "given": "Meshal"
+      },
+      {
+        "family": "Arguel",
+        "given": "Marie-Jeanne"
+      },
+      {
+        "family": "Apperloo",
+        "given": "Leonie"
+      },
+      {
+        "family": "Banchero",
+        "given": "Martin"
+      },
+      {
+        "family": "B\u00e9cavin",
+        "given": "Christophe"
+      },
+      {
+        "family": "Berg",
+        "given": "Marijn"
+      },
+      {
+        "family": "Chichelnitskiy",
+        "given": "Evgeny"
+      },
+      {
+        "family": "Chung",
+        "given": "Mei-i"
+      },
+      {
+        "family": "Collin",
+        "given": "Antoine"
+      },
+      {
+        "family": "Gay",
+        "given": "Aurore C. A."
+      },
+      {
+        "family": "Gote-Schniering",
+        "given": "Janine"
+      },
+      {
+        "family": "Hooshiar Kashani",
+        "given": "Baharak"
+      },
+      {
+        "family": "Inecik",
+        "given": "Kemal"
+      },
+      {
+        "family": "Jain",
+        "given": "Manu"
+      },
+      {
+        "family": "Kapellos",
+        "given": "Theodore S."
+      },
+      {
+        "family": "Kole",
+        "given": "Tessa M."
+      },
+      {
+        "family": "Leroy",
+        "given": "Sylvie"
+      },
+      {
+        "family": "Mayr",
+        "given": "Christoph H."
+      },
+      {
+        "family": "Oliver",
+        "given": "Amanda J."
+      },
+      {
+        "family": "von Papen",
+        "given": "Michael"
+      },
+      {
+        "family": "Peter",
+        "given": "Lance"
+      },
+      {
+        "family": "Taylor",
+        "given": "Chase J."
+      },
+      {
+        "family": "Walzthoeni",
+        "given": "Thomas"
+      },
+      {
+        "family": "Xu",
+        "given": "Chuan"
+      },
+      {
+        "family": "Bui",
+        "given": "Linh T."
+      },
+      {
+        "family": "De Donno",
+        "given": "Carlo"
+      },
+      {
+        "family": "Dony",
+        "given": "Leander"
+      },
+      {
+        "family": "Faiz",
+        "given": "Alen"
+      },
+      {
+        "family": "Guo",
+        "given": "Minzhe"
+      },
+      {
+        "family": "Gutierrez",
+        "given": "Austin J."
+      },
+      {
+        "family": "Heumos",
+        "given": "Lukas"
+      },
+      {
+        "family": "Huang",
+        "given": "Ni"
+      },
+      {
+        "family": "Ibarra",
+        "given": "Ignacio L."
+      },
+      {
+        "family": "Jackson",
+        "given": "Nathan D."
+      },
+      {
+        "family": "Kadur Lakshminarasimha Murthy",
+        "given": "Preetish"
+      },
+      {
+        "family": "Lotfollahi",
+        "given": "Mohammad"
+      },
+      {
+        "family": "Tabib",
+        "given": "Tracy"
+      },
+      {
+        "family": "Talavera-L\u00f3pez",
+        "given": "Carlos"
+      },
+      {
+        "family": "Travaglini",
+        "given": "Kyle J."
+      },
+      {
+        "family": "Wilbrey-Clark",
+        "given": "Anna"
+      },
+      {
+        "family": "Worlock",
+        "given": "Kaylee B."
+      },
+      {
+        "family": "Yoshida",
+        "given": "Masahiro"
+      },
+      {
+        "family": "Chen",
+        "given": "Yuexin"
+      },
+      {
+        "family": "Hagood",
+        "given": "James S."
+      },
+      {
+        "family": "Agami",
+        "given": "Ahmed"
+      },
+      {
+        "family": "Horvath",
+        "given": "Peter"
+      },
+      {
+        "family": "Lundeberg",
+        "given": "Joakim"
+      },
+      {
+        "family": "Marquette",
+        "given": "Charles-Hugo"
+      },
+      {
+        "family": "Pryhuber",
+        "given": "Gloria"
+      },
+      {
+        "family": "Samakovlis",
+        "given": "Chistos"
+      },
+      {
+        "family": "Sun",
+        "given": "Xin"
+      },
+      {
+        "family": "Ware",
+        "given": "Lorraine B."
+      },
+      {
+        "family": "Zhang",
+        "given": "Kun"
+      },
+      {
+        "family": "van den Berge",
+        "given": "Maarten"
+      },
+      {
+        "family": "Boss\u00e9",
+        "given": "Yohan"
+      },
+      {
+        "family": "Desai",
+        "given": "Tushar J."
+      },
+      {
+        "family": "Eickelberg",
+        "given": "Oliver"
+      },
+      {
+        "family": "Kaminski",
+        "given": "Naftali"
+      },
+      {
+        "family": "Krasnow",
+        "given": "Mark A."
+      },
+      {
+        "family": "Lafyatis",
+        "given": "Robert"
+      },
+      {
+        "family": "Nikolic",
+        "given": "Marko Z."
+      },
+      {
+        "family": "Powell",
+        "given": "Joseph E."
+      },
+      {
+        "family": "Rajagopal",
+        "given": "Jayaraj"
+      },
+      {
+        "family": "Rojas",
+        "given": "Mauricio"
+      },
+      {
+        "family": "Rozenblatt-Rosen",
+        "given": "Orit"
+      },
+      {
+        "family": "Seibold",
+        "given": "Max A."
+      },
+      {
+        "family": "Sheppard",
+        "given": "Dean"
+      },
+      {
+        "family": "Shepherd",
+        "given": "Douglas P."
+      },
+      {
+        "family": "Sin",
+        "given": "Don D."
+      },
+      {
+        "family": "Timens",
+        "given": "Wim"
+      },
+      {
+        "family": "Tsankov",
+        "given": "Alexander M."
+      },
+      {
+        "family": "Whitsett",
+        "given": "Jeffrey"
+      },
+      {
+        "family": "Xu",
+        "given": "Yan"
+      },
+      {
+        "family": "Banovich",
+        "given": "Nicholas E."
+      },
+      {
+        "family": "Barbry",
+        "given": "Pascal"
+      },
+      {
+        "family": "Duong",
+        "given": "Thu Elizabeth"
+      },
+      {
+        "family": "Falk",
+        "given": "Christine S."
+      },
+      {
+        "family": "Meyer",
+        "given": "Kerstin B."
+      },
+      {
+        "family": "Kropski",
+        "given": "Jonathan A."
+      },
+      {
+        "family": "Pe\u2019er",
+        "given": "Dana"
+      },
+      {
+        "family": "Schiller",
+        "given": "Herbert B."
+      },
+      {
+        "family": "Tata",
+        "given": "Purushothama Rao"
+      },
+      {
+        "family": "Schultze",
+        "given": "Joachim L."
+      },
+      {
+        "family": "Teichmann",
+        "given": "Sara A."
+      },
+      {
+        "family": "Misharin",
+        "given": "Alexander V."
+      },
+      {
+        "family": "Nawijn",
+        "given": "Martijn C."
+      },
+      {
+        "family": "Luecken",
+        "given": "Malte D."
+      },
+      {
+        "family": "Theis",
+        "given": "Fabian J."
+      },
+      {
+        "name": "Lung Biological Network Consortium"
+      }
+    ],
+    "is_preprint": false,
+    "journal": "Nat Med",
+    "published_at": 1686182400.0,
+    "published_day": 8,
+    "published_month": 6,
+    "published_year": 2023
+  },
+  "revised_at": "2026-06-11T16:52:43+00:00",
+  "revising_in": null,
+  "revision_of": null,
+  "visibility": "PUBLIC"
+}

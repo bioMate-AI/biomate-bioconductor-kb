@@ -1,0 +1,14 @@
+{
+ "S1_logistic_F_all_C0.1": 0.843,
+ "S2_logistic_F_pl_C1.0": 0.864,
+ "S3_contrastive_F_pl_lam0.01": 0.844,
+ "S3_contrastive_F_pl_lam0.1": 0.844,
+ "S3_contrastive_F_pl_lam1.0": 0.819,
+ "S3_contrastive_F_pl_lam10.0": 0.81,
+ "S3_contrastive_F_all_lam0.01": 0.822,
+ "S3_contrastive_F_all_lam0.1": 0.824,
+ "S3_contrastive_F_all_lam1.0": 0.801,
+ "S3_contrastive_F_all_lam10.0": 0.784,
+ "S3_best_config": "S3_contrastive_F_pl_lam0.01",
+ "S3_best_CV": 0.844
+}

@@ -1,0 +1,35 @@
+{
+  "targets": {
+    "1yf4": {
+      "perm_aware": {
+        "mean_dG": -29.6,
+        "mean_LE": -0.62,
+        "mean_heavy": 47.5
+      },
+      "boltzgen_default": {
+        "mean_dG": -38.9,
+        "mean_LE": -0.577,
+        "mean_heavy": 67.1
+      }
+    },
+    "1u8p": {
+      "perm_aware": {
+        "mean_dG": -23.7,
+        "mean_LE": -0.489,
+        "mean_heavy": 49.0
+      },
+      "boltzgen_default": {
+        "mean_dG": -22.4,
+        "mean_LE": -0.373,
+        "mean_heavy": 61.8
+      }
+    }
+  },
+  "note": "LE=dG/heavy_atoms. \u00a73.9: raw-dG \"binding sacrificed\" is size-confounded (raw dG is ~size-dominated, spearman rawdG~LE high); by LE the perm-aware picks bind BETTER per atom on both targets -> \u00a73.9 claim OVERTURNED. \u00a73.2: iptm-vs-physics is set/normalization dependent (-0.04 within-target-z on original 32 vs ~-0.40 pooled here) and survives size correction -> the STRONG \"orthogonal\" claim is unsupported; operational \"verify with physics\" still prudent. Caveat: LE is itself a heuristic (favors small); FEP remains the absolute arbiter.",
+  "iptm_vs_physics": {
+    "n": 27,
+    "spearman_iptm_rawdG": -0.404,
+    "spearman_iptm_LE": -0.455,
+    "spearman_rawdG_LE": 0.779
+  }
+}

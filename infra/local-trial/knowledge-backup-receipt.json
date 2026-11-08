@@ -1,0 +1,10 @@
+{
+  "bucket": "biomate-models-399683337364",
+  "manifest_key": "biomate-core-local-trial/20260912/knowledge/snapshots/20260912T172822Z-df49deae4284415084230452b19e1af9/manifest.json",
+  "manifest_sha256": "245ac3b4dfd7edd62a730e4860807e05c71cf6dbb6190fc84c1b6ec802f22027",
+  "file_count": 2,
+  "restore_verified": true,
+  "sqlite_quick_check": "ok",
+  "restored_tools": 12312,
+  "restored_workflows": 4200
+}

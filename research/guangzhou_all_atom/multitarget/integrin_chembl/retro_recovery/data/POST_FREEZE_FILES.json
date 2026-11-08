@@ -1,0 +1,9 @@
+{
+ "contamination_flags.csv.gz": "2320476bd726eee727089b2715926ed987b48d078f2843c668cbedc9efb0c3af",
+ "columns": [
+  "compound_id",
+  "in_atomlm_pretrain_corpus",
+  "in_cycpeptmpdb"
+ ],
+ "note": "compound-level flags for the S3 contamination-controlled analysis; produced after the A2 freeze; alters no frozen file"
+}

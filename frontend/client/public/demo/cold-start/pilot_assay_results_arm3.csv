@@ -1,0 +1,16 @@
+compound_id,name,IC50_nM,Ki_nM,hERG_IC50_uM,solubility_ug_mL,caco2_permeability_nm_s,notes
+CPD001,Imatinib,600,190,>30,85,120,Published IC50; oral bioavailability 98%
+CPD002,Dasatinib,0.6,0.2,1.6,>250,350,High potency; hERG borderline
+CPD003,Nilotinib,12,4,0.8,7,890,Low solubility; hERG concern
+CPD004,Bosutinib,1,0.5,>30,7,450,Good kinetics; low solubility concern
+CPD005,Ponatinib,0.37,0.14,0.9,>250,350,Pan-BCR-ABL; cardiac risk
+CPD006,Asciminib,0.5,0.2,>30,>250,200,Allosteric; clean ADMET
+CPD007,Gleevec-analog-1,1200,400,>30,90,115,Predicted lower potency (truncated chain)
+CPD008,Gleevec-analog-2,800,250,>30,80,110,Predicted comparable to imatinib
+CPD009,Terfenadine,>10000,>10000,0.08,3,80,Inactive on BCR-ABL; extreme hERG
+CPD010,Cisapride,>10000,>10000,0.05,10,600,Inactive on BCR-ABL; extreme hERG
+CPD011,Metoclopramide,>10000,>10000,>100,>250,300,Fully inactive; negative control
+CPD012,Erlotinib,>10000,>10000,>30,8,350,EGFR-selective; no ABL1 activity
+CPD013,Gefitinib,>10000,>10000,>30,12,300,EGFR-selective; no ABL1 activity
+CPD014,Doxorubicin,>10000,>10000,4.8,>250,5,DNA intercalator; non-selective
+CPD015,Acetaminophen,>10000,>10000,>100,>250,300,No kinase activity; negative control

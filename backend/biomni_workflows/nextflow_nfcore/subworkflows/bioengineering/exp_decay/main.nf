@@ -125,7 +125,7 @@ with open("exp_decay_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("exp_decay_output.txt", "w") as f:
-    f.write("Biomni: Exp Decay" + NL)
+    f.write("BioMate: Exp Decay" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

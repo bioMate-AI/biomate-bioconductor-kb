@@ -1,0 +1,22 @@
+{
+ "pampa": {
+  "n_peptides": 6960,
+  "n_pairs": 33398,
+  "n_transformations": 28
+ },
+ "caco2": {
+  "n_peptides": 1259,
+  "n_pairs": 818,
+  "n_transformations": 20
+ },
+ "rrck": {
+  "n_peptides": 175,
+  "n_pairs": 246,
+  "n_transformations": 21
+ },
+ "mdck": {
+  "n_peptides": 64,
+  "n_pairs": 33,
+  "n_transformations": 6
+ }
+}

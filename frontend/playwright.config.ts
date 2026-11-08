@@ -61,6 +61,10 @@ export default defineConfig({
         // there and would run under qemu emulation, crashing the GPU process.
         channel: process.env.PLAYWRIGHT_CHANNEL || (process.platform === 'darwin' ? 'chrome' : undefined),
         viewport: { width: 1920, height: 1080 },
+        // HIGH-RES manual/doc screenshots: force 2x (retina) pixel density so
+        // captures are crisp regardless of host display (headless EC2 = 1x
+        // otherwise). A 1440-wide viewport thus yields a 2880px PNG.
+        deviceScaleFactor: 2,
       },
     },
     {
@@ -82,6 +86,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Firefox'],
         viewport: { width: 1920, height: 1080 },
+        deviceScaleFactor: 2, // HIGH-RES: match chromium — 2x retina PNGs (no video on this project, so safe)
       },
     },
   ],

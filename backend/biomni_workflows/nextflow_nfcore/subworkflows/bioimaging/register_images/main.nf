@@ -119,7 +119,7 @@ with open("register_images_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("register_images_output.txt", "w") as f:
-    f.write("Biomni: Register Images" + NL)
+    f.write("BioMate: Register Images" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

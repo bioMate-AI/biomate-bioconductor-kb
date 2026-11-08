@@ -1,0 +1,20 @@
+{
+  "train_total": 3681,
+  "eval_total": 570,
+  "train_by_task": {
+    "knowledge_qa": 1551,
+    "decompose": 457,
+    "param": 424,
+    "autofix": 421,
+    "wfgen": 419,
+    "routing": 409
+  },
+  "eval_by_task": {
+    "knowledge_qa": 261,
+    "routing": 87,
+    "wfgen": 75,
+    "autofix": 72,
+    "decompose": 39,
+    "param": 36
+  }
+}

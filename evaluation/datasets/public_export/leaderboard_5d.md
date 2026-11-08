@@ -1,0 +1,26 @@
+# RealBio 5-D leaderboard (D1 accuracy in leaderboard.csv; D2/D5 pending sweep)
+
+D3 Time + D4 Cost (tokens/query) from committed `*.usage.json`. $ needs a price map.
+
+| model_slug | D3_latency_p50_s | D3_latency_p95_s | D4_tok_in_per_q | D4_tok_out_per_q | D2_stability | D5_hallucination | n_usage_tasks |
+|---|---|---|---|---|---|---|---|
+| base | 1.1 | 1.9 | 220.9 | 0.0 | pending | pending | 9 |
+| biomni_ec2 | None | None | None | None | pending | pending | 2 |
+| sft | 6.1 | 6.9 | 220.9 | 0.0 | pending | pending | 9 |
+| qwen_qwen-2.5-72b-instruct | 0.8 | 2.1 | 642.4 | 11.1 | pending | pending | 4 |
+| qwen_qwen-2.5-7b-instruct | 0.3 | 0.5 | 663.4 | 13.2 | pending | pending | 4 |
+| qwen_qwen3.5-9b | 1.2 | 3.5 | 537.2 | 15.2 | pending | pending | 5 |
+| qwen_qwen3.5-27b | 1.4 | 3.8 | 537.2 | 17.4 | pending | pending | 5 |
+| qwen_qwen3.8-27b | 0.7 | 2.6 | 537.2 | 19.6 | pending | pending | 12 |
+| anthropic_claude-opus-5.5 | 4.0 | 7.8 | 336.5 | 91.9 | pending | pending | 6 |
+| openai_gpt-6.1-sol-pro | 5.7 | 12.9 | 2113.1 | 155.3 | pending | pending | 6 |
+| anthropic_claude-opus-5 | 6.6 | 10.8 | 898.6 | 291.1 | pending | pending | 6 |
+| google_gemini-3.8-flash | 3.9 | 12.0 | 209.3 | 470.9 | pending | pending | 6 |
+| openai_gpt-5.6 | 11.2 | 17.7 | 232.4 | 483.1 | pending | pending | 3 |
+| z-ai_glm-5.3-prime | 9.3 | 25.3 | 198.8 | 702.5 | pending | pending | 6 |
+| openai_gpt-5.6-luna | 8.7 | 15.6 | 232.4 | 727.3 | pending | pending | 3 |
+| z-ai_glm-5.2 | 15.2 | 22.2 | 239.7 | 1146.7 | pending | pending | 3 |
+| google_gemini-3.1-pro-preview | 11.3 | 12.4 | 249.8 | 1184.3 | pending | pending | 3 |
+| deepseek_deepseek-v4-pro | 24.2 | 44.4 | 238.9 | 1190.0 | pending | pending | 3 |
+| moonshotai_kimi-k3 | 17.1 | 48.0 | 314.3 | 1272.0 | pending | pending | 3 |
+| qwen_qwen3.8-max | 32.7 | 35.4 | 290.5 | 1326.2 | pending | pending | 3 |

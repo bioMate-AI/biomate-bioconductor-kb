@@ -1,0 +1,70 @@
+{
+  "training_eligible": false,
+  "label_audit": "pending",
+  "geo": {
+    "GSE15316.soft": {
+      "unique_sample_records": 23,
+      "patient_count": "not yet reconciled",
+      "characteristic_keys": [
+        "cell type",
+        "disease state",
+        "phenotype",
+        "tissue"
+      ],
+      "sample_table_lines_including_headers": 403650
+    },
+    "GSE113156.soft": {
+      "unique_sample_records": 22,
+      "patient_count": "not yet reconciled",
+      "characteristic_keys": [
+        "age",
+        "diagnosis",
+        "gender",
+        "tissue"
+      ],
+      "sample_table_lines_including_headers": 0
+    },
+    "GSE35455.soft": {
+      "unique_sample_records": 224,
+      "patient_count": "not yet reconciled",
+      "characteristic_keys": [
+        "age (y)",
+        "disease state",
+        "gender",
+        "patient",
+        "tissue",
+        "treatment"
+      ],
+      "sample_table_lines_including_headers": 6795488
+    }
+  },
+  "trials": {
+    "rheumatoid_arthritis": {
+      "candidate_studies": 322,
+      "with_results_section": 201,
+      "with_outcome_module": 201,
+      "with_adverse_event_module": 201,
+      "relevance": "broad query; manual endpoint adjudication pending",
+      "individual_patient_records": 0
+    },
+    "asthma": {
+      "candidate_studies": 219,
+      "with_results_section": 113,
+      "with_outcome_module": 113,
+      "with_adverse_event_module": 113,
+      "relevance": "broad query; manual endpoint adjudication pending",
+      "individual_patient_records": 0
+    },
+    "lupus": {
+      "candidate_studies": 86,
+      "with_results_section": 43,
+      "with_outcome_module": 43,
+      "with_adverse_event_module": 43,
+      "relevance": "broad query; manual endpoint adjudication pending",
+      "individual_patient_records": 0
+    }
+  },
+  "downloaded_bytes": 211547937,
+  "failed_downloads": 0,
+  "unique_trials_across_queries": 621
+}

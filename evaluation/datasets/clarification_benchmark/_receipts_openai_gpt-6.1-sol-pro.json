@@ -1,0 +1,50 @@
+[
+  {
+    "id": "h2_sheet_conflict",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Your request specifies human reads aligned to GRCh38, but the samplesheet specifies the mouse genome GRCm39. Should I use human GRCh38 and correct the samplesheet, or is mouse GRCm39 intended?"
+  },
+  {
+    "id": "h2_rnaseq_10x",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "nf-core/rnaseq is designed for bulk RNA-seq, not 10x single-cell FASTQs. Should I use nf-core/scrnaseq instead to process cell barcodes and UMIs?"
+  },
+  {
+    "id": "h2_dock_no_receptor",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Please provide the kinase receptor structure as a PDB file, or specify the kinase and PDB ID to use."
+  },
+  {
+    "id": "h2_tpm_deseq",
+    "action": "clarify",
+    "value": "TPM-normalized",
+    "clarify_about": "expression.csv contains TPM-normalized values, which are not suitable input for DESeq2. Can you provide raw, unnormalized gene counts instead?"
+  },
+  {
+    "id": "h2_bam_hg19",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "sample.bam is aligned to hg19/GRCh37, which conflicts with the requested hg38 reference. Should variants be called against hg19, or should the reads be realigned to hg38 before variant calling?"
+  },
+  {
+    "id": "h2_fully_specified",
+    "action": "interpret",
+    "value": "germline SNVs and indels",
+    "clarify_about": ""
+  },
+  {
+    "id": "h2_no_groups",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Which condition or group does each sample (sample1\u2013sample6) belong to, and which condition should be compared against which reference condition?"
+  },
+  {
+    "id": "h2_truseq_strand",
+    "action": "interpret",
+    "value": "reverse-stranded (first-strand)",
+    "clarify_about": ""
+  }
+]

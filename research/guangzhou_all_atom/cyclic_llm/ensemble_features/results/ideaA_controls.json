@@ -1,0 +1,57 @@
+{
+ "n": 4918,
+ "sources": {
+  "2020_Townsend": 2761,
+  "2021_Kelly": 1396,
+  "2016_Furukawa": 662,
+  "2018_Naylor": 50,
+  "2015_Wang": 49
+ },
+ "labs": [
+  "2020_Townsend",
+  "2021_Kelly",
+  "2016_Furukawa",
+  "2018_Naylor",
+  "2015_Wang"
+ ],
+ "E_columns": [
+  "Water_avgGR",
+  "Hexane_avgGR",
+  "Water_avgRMSD_All",
+  "Water_avgRMSD_BackBone",
+  "Hexane_avgRMSD_All",
+  "Hexane_avgRMSD_BackBone",
+  "Water_Desolvation_Free_Energy",
+  "Water_3D_SASA",
+  "Water_3D_NPSA",
+  "Water_3D_PSA",
+  "Hexane_3D_SASA",
+  "Hexane_3D_NPSA",
+  "Hexane_3D_PSA",
+  "dPSA",
+  "dPSA_frac",
+  "dRg",
+  "dRMSD"
+ ],
+ "nan_E": 0,
+ "controls": {
+  "shuffled_mean_over_labs": {
+   "D": -0.0031141442616123144,
+   "E": 0.015094582641591563,
+   "D+E": 0.023418628071971752
+  },
+  "shuffled_pass": true,
+  "planted_mean_over_labs": {
+   "D": 0.1222037802687757,
+   "E": 0.8138600007896301,
+   "D+E": 0.8140668956179333
+  },
+  "planted_pass": true,
+  "decoy_mean_over_labs": {
+   "D": 0.4091019351614794,
+   "D+E": 0.4108089144383517
+  },
+  "decoy_pass": true,
+  "all_pass": true
+ }
+}

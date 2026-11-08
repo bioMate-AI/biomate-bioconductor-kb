@@ -1,0 +1,151 @@
+{
+  "molecules": [
+    {
+      "atc_classifications": [],
+      "availability_type": null,
+      "biotherapeutic": {
+        "biocomponents": [
+          {
+            "component_id": 31238,
+            "component_type": null,
+            "description": "Disulfide bridges",
+            "organism": null,
+            "sequence": "22-96 $ 22''-96'' $ 23'-88' $ 23'''-88''' $ 134'-194' $ 134'''-194''' $ 136-214' $ 136'-214''' $ 149-205 $149''-205'' $ 228-228'' $ 231-231'' $ 263-323 $ 263''-323'' $ 369-427 $ 369''-427''",
+            "tax_id": null
+          },
+          {
+            "component_id": 29901,
+            "component_type": "Protein",
+            "description": "Heavy chain",
+            "organism": null,
+            "sequence": "EVQLVESGGNLEQPGGSLRLSCTASGFTFSRSAMNWVRRAPGKGLEWVSGISGSGGRTYYADSVKGRFTISRDNSKNTLYLQMNSLSAEDTAAYYCAKDSYTTSWYGGMDVWGHGTTVTVSSASTKGPSVFPLAPCSRSTSESTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTKTYTCNVDHKPSNTKVDKRVESKYGPPCPPCPAPEFLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSQEDPEVQFNWYVDGVEVHNAKTKPREEQFNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKGLPSSIEKTISKAKGQPREPQVYTLPPSQEEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSRLTVDKSRWQEGNVFSCSVMHEALHNHYTQKSLSLSLGK",
+            "tax_id": null
+          },
+          {
+            "component_id": 29904,
+            "component_type": "Protein",
+            "description": "Light chain",
+            "organism": null,
+            "sequence": "DIQMTQSPSSVSASVGDRVTITCRASQGIFSWLAWYQQKPGKAPKLLIYAASSLQSGVPSRFSGSGSGTDFTLTISSLQPEDFAIYYCQQANSVPITFGQGTRLEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "tax_id": null
+          },
+          {
+            "component_id": 31338,
+            "component_type": null,
+            "description": "Glycosylation sites (N)",
+            "organism": null,
+            "sequence": "299 $ 299''",
+            "tax_id": null
+          },
+          {
+            "component_id": 29834,
+            "component_type": null,
+            "description": "Glycosylation sites (N)",
+            "organism": null,
+            "sequence": "299 $ 299''''",
+            "tax_id": null
+          }
+        ],
+        "description": null,
+        "helm_notation": null,
+        "molecule_chembl_id": "CHEMBL4594594"
+      },
+      "black_box_warning": 0,
+      "chemical_probe": 0,
+      "chirality": 1,
+      "cross_references": [
+        {
+          "xref_id": "https://searchusan.ama-assn.org/finder/usan/search/ITEPEKIMAB/relevant/1/",
+          "xref_name": "ITEPEKIMAB",
+          "xref_src": "USAN"
+        }
+      ],
+      "dosed_ingredient": false,
+      "first_approval": null,
+      "first_in_class": 0,
+      "helm_notation": null,
+      "inorganic_flag": 0,
+      "max_phase": "3.0",
+      "molecule_chembl_id": "CHEMBL4594594",
+      "molecule_hierarchy": {
+        "active_chembl_id": "CHEMBL4594594",
+        "molecule_chembl_id": "CHEMBL4594594",
+        "parent_chembl_id": "CHEMBL4594594"
+      },
+      "molecule_properties": null,
+      "molecule_structures": null,
+      "molecule_synonyms": [
+        {
+          "molecule_synonym": "Itepekimab",
+          "syn_type": "INN",
+          "synonyms": "ITEPEKIMAB"
+        },
+        {
+          "molecule_synonym": "Itepekimab",
+          "syn_type": "OTHER",
+          "synonyms": "ITEPEKIMAB"
+        },
+        {
+          "molecule_synonym": "Itepekimab",
+          "syn_type": "USAN",
+          "synonyms": "ITEPEKIMAB"
+        },
+        {
+          "molecule_synonym": "REGN-3500",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "REGN-3500"
+        },
+        {
+          "molecule_synonym": "Regn3500",
+          "syn_type": "OTHER",
+          "synonyms": "REGN3500"
+        },
+        {
+          "molecule_synonym": "REGN3500",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "REGN3500"
+        },
+        {
+          "molecule_synonym": "SAR-440340",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "SAR-440340"
+        },
+        {
+          "molecule_synonym": "Sar440340",
+          "syn_type": "OTHER",
+          "synonyms": "SAR440340"
+        },
+        {
+          "molecule_synonym": "SAR440340",
+          "syn_type": "RESEARCH_CODE",
+          "synonyms": "SAR440340"
+        }
+      ],
+      "molecule_type": "Antibody",
+      "natural_product": 0,
+      "oral": false,
+      "orphan": 0,
+      "parenteral": false,
+      "polymer_flag": 0,
+      "pref_name": "ITEPEKIMAB",
+      "prodrug": 0,
+      "score": 39.0,
+      "structure_type": "SEQ",
+      "therapeutic_flag": false,
+      "topical": false,
+      "usan_stem": "-mab",
+      "usan_stem_definition": "monoclonal antibodies",
+      "usan_substem": "-mab",
+      "usan_year": 2020,
+      "veterinary": 0,
+      "withdrawn_flag": false
+    }
+  ],
+  "page_meta": {
+    "limit": 10,
+    "next": null,
+    "offset": 0,
+    "previous": null,
+    "total_count": 1
+  }
+}

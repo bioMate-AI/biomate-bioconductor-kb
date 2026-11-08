@@ -1,0 +1,10 @@
+{
+  "group_summary_checks": 315,
+  "normalization_note": "Exact log1p operation ordering retained to preserve floating-point rank ties; independently computed metric formulas.",
+  "status": "passed",
+  "independent_metric_checks": 8640,
+  "maximum_absolute_difference": 5.750955267558311e-14,
+  "full_library_sums_exact": true,
+  "unique_gene_symbols": true,
+  "results_sha256": "7f94255512e78f6edd35d2c0ac813095c36b41f0e2313805001c848e82a0fd75"
+}

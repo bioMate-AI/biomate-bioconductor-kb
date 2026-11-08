@@ -1,0 +1,189 @@
+{
+  "dataset": "peptideclm2_pepmsnd",
+  "repository": "AaronFeller/PeptideCLM-2",
+  "source_revision": "6b9708d4cb05717307d310daaf1c0f88c71ff084",
+  "source_revision_kind": "git commit SHA",
+  "file_count": 25,
+  "uncompressed_bytes": 12598365,
+  "s3_uri": "s3://knowledge-datasets-1759951976/cyclic_peptide/datasets/peptideclm2_pepmsnd/6b9708d4cb05717307d310daaf1c0f88c71ff084/dataset.tar.gz",
+  "sha256": "8ad3496173b92e4c6dfa7501157e1dfbfaac3ccdfe8f8b869e1718cbd831b39b",
+  "s3_readback_verified": true,
+  "qualification": "Collected for evaluation; original assay semantics and individual source rights require provenance review before downstream release.",
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 1068,
+      "git_blob_sha1": "9cdc53e1ac66bc94eafee6767bd45c4eaeec24b2",
+      "sha256": "4019d584376554eec328fc8de20320949e994bc8035079079134b5880bc68973",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/LICENSE"
+    },
+    {
+      "path": "README.md",
+      "bytes": 5328,
+      "git_blob_sha1": "1f3ebb30dcde35b70efb0f0d359f8e95ade48490",
+      "sha256": "fabf0575808dbf11604dd6e4b13034728d1be453c3844251fc9843c8e62940d5",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/README.md"
+    },
+    {
+      "path": "data/PepMSND_clustered_data.csv",
+      "bytes": 1076406,
+      "git_blob_sha1": "debd4b67c1f8c67bc899ee04cca092fa614928a7",
+      "sha256": "d7720b904a27857f61e7ba8bc0c39a714d05b9d8a59f89e88c72fec8d837c737",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_clustered_data.csv"
+    },
+    {
+      "path": "data/PepMSND_data/PepMSND_clustered_data.csv",
+      "bytes": 1076406,
+      "git_blob_sha1": "debd4b67c1f8c67bc899ee04cca092fa614928a7",
+      "sha256": "d7720b904a27857f61e7ba8bc0c39a714d05b9d8a59f89e88c72fec8d837c737",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/PepMSND_clustered_data.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test1.csv",
+      "bytes": 107357,
+      "git_blob_sha1": "f8ea6e757e0570aec9dafff743a30b0ccedbc1ae",
+      "sha256": "4d3a673142a09c5d4a871893af949107092f12cc9686ac58b3c841172a6162eb",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test1.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test10.csv",
+      "bytes": 103861,
+      "git_blob_sha1": "b14e9ba6893242a4fca0e2760ec892a67ae6f0db",
+      "sha256": "dfd96c14cbd49b9b8387c66529db2c88802a12d1f9c5bd2c1468825d92210575",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test10.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test2.csv",
+      "bytes": 106832,
+      "git_blob_sha1": "0b800b31b1e84597b7ce190303ac92975b420133",
+      "sha256": "4717b51eaf149cd5a25b744ffa87ebe57a5eff3162b1bdf9d6b66d7fdc8abb25",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test2.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test3.csv",
+      "bytes": 105103,
+      "git_blob_sha1": "3eb4e396a4596919709dc9ef89bc27ddfd2f3704",
+      "sha256": "8481010aba7a6826c758c56c35a716cb25ae2c78e659efee2444c42fd3e3edc8",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test3.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test4.csv",
+      "bytes": 109486,
+      "git_blob_sha1": "9de1eef3677528541e5b1f93608d48344b133188",
+      "sha256": "3018b9ba42679b9a4b493d953306d0bfe0dc1532dc54119ae4b81375e368ddde",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test4.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test5.csv",
+      "bytes": 105258,
+      "git_blob_sha1": "555686c28ae4d62911f642a4a583786c81be4942",
+      "sha256": "6afac304484d8af6b00426e28be8165823b12f3e9aaa3206cf6c246507ae1d6c",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test5.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test6.csv",
+      "bytes": 106672,
+      "git_blob_sha1": "d6807c7064be04555ac7d116122ce0602a0f5ffb",
+      "sha256": "c42e139663946bc54531dde5acbb7e49a04b071b65650ee29adf79d2f98cea8d",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test6.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test7.csv",
+      "bytes": 106535,
+      "git_blob_sha1": "27ff6141fd1baaaec240f3d8002b4ca2bf951ed8",
+      "sha256": "a4116d41605bb3c57e8796f51e9f76c4537b9aecaa3838952ac41003a016dfe1",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test7.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test8.csv",
+      "bytes": 109567,
+      "git_blob_sha1": "07e13f5dee639093b7af20ca5c63e89b29b1dca1",
+      "sha256": "3169798370bfe1a669221f5b3cfe2e69f18978591e9668549ed3758bae9ac516",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test8.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_test9.csv",
+      "bytes": 103577,
+      "git_blob_sha1": "3a8c01254adc1a583c7222eb518dded6da6c525b",
+      "sha256": "57f8e07b3a6cad17d9155f461fae22b9481ffdd644ada2a58cc871d1aab4a304",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_test9.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train1.csv",
+      "bytes": 936329,
+      "git_blob_sha1": "f74bf773838ddbe54fa9a4db2c618f67a95c1c90",
+      "sha256": "6ec9f570a22f7722c3a91eca9fe88ddeb53788f1b7a79cc6dad1d1290c80cb54",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train1.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train10.csv",
+      "bytes": 939810,
+      "git_blob_sha1": "b93c0a0431cefa94909f905bcab54df767486ff2",
+      "sha256": "7660eb9f8216b8646d9a02bc0b75ff8c8197875a2910c526c80dc5f836b77a5a",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train10.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train2.csv",
+      "bytes": 937033,
+      "git_blob_sha1": "850270d9bb19f7cd3cda10e50e9f658449adb4d9",
+      "sha256": "51e9dc744549282879bf206f3b470c1ce3d40ec05936ccd6f4cf42f514ce9178",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train2.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train3.csv",
+      "bytes": 938597,
+      "git_blob_sha1": "4a6d5f7d515bf91ec08f1cfae8006a3003f7a436",
+      "sha256": "601a42aa78d3022dff905a8c9a4c02fc3567a2ed5c0f5b7a77d09d08aea9a414",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train3.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train4.csv",
+      "bytes": 934204,
+      "git_blob_sha1": "8814550baf631dd2d37c534861dd7b1d56b287cf",
+      "sha256": "e3aaeb6dc17b16b28ea5e7d1cd1600a88e0f17bd1660ff40df1b4e850a85daa2",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train4.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train5.csv",
+      "bytes": 938443,
+      "git_blob_sha1": "c548e9eb07023fa63758df900668b4260906519c",
+      "sha256": "67c4ac1902446b49a3806e96a37551148b392607ef8401bbebd0f73ebf0c935c",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train5.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train6.csv",
+      "bytes": 936999,
+      "git_blob_sha1": "d8f5d42091292506bc2427f19953f70f4365940a",
+      "sha256": "3cff8ececf029e79c5da2a5ed85b9b7337fea32ba007d67f87d877b581c27b90",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train6.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train7.csv",
+      "bytes": 937136,
+      "git_blob_sha1": "384d865ff2a5e151bb65a608bc4b0a63affc12aa",
+      "sha256": "cd17a720a8561fe72101c8d0d9afb7a1de97c5af2aa95bb262b2ad488d9a7b20",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train7.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train8.csv",
+      "bytes": 934104,
+      "git_blob_sha1": "254118e894e2acc28869a64df114bebcc363545e",
+      "sha256": "7e5cb4d8ade976cd32bd49fb3df51cc006b98f2526ff012543f29639a1ef36ec",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train8.csv"
+    },
+    {
+      "path": "data/PepMSND_data/X_train9.csv",
+      "bytes": 940094,
+      "git_blob_sha1": "d9f450a99b24243ab2af3bdb90025bed7c54ba1f",
+      "sha256": "12f02aa4f30d6dea41b8089b782f721c4d80b8908f8d6cd98626a6cb7fc540e9",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/X_train9.csv"
+    },
+    {
+      "path": "data/PepMSND_data/convert_to_one_file.ipynb",
+      "bytes": 2160,
+      "git_blob_sha1": "bfa1b29db1ee647c93e25a95723bdb0adb1e64b3",
+      "sha256": "97ecf79cdf32693b334763e62e9fcd16a66d7a9b33b782884c3c3675d8a25ea2",
+      "source_url": "https://raw.githubusercontent.com/AaronFeller/PeptideCLM-2/6b9708d4cb05717307d310daaf1c0f88c71ff084/data/PepMSND_data/convert_to_one_file.ipynb"
+    }
+  ]
+}

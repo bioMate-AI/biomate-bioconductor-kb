@@ -1,0 +1,5 @@
+{
+  "tests_passed": 21,
+  "command": "python3 -m unittest test_expanded_neural test_guide_shrinkage test_downstream_state test_baseline_state",
+  "status": "passed"
+}

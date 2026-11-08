@@ -1,0 +1,90 @@
+{
+ "CHEMBL1907598": [
+  "avb3",
+  2392
+ ],
+ "CHEMBL2096675": [
+  "avb5",
+  615
+ ],
+ "CHEMBL2111416": [
+  "avb6",
+  1385
+ ],
+ "CHEMBL3430892": [
+  "avb8",
+  278
+ ],
+ "CHEMBL2111407": [
+  "avb1",
+  319
+ ],
+ "CHEMBL2095226": [
+  "a5b1",
+  771
+ ],
+ "CHEMBL2093869": [
+  "aIIbb3",
+  3166
+ ],
+ "CHEMBL6066586": [
+  "a8b1",
+  19
+ ],
+ "CHEMBL4106150": [
+  "EXCL:avb3/avb5 mixed",
+  8
+ ],
+ "CHEMBL2111425": [
+  "EXCL:a5b1+avb3 group",
+  33
+ ],
+ "CHEMBL2111443": [
+  "EXCL:avb3 and aIIbb3 selectivity group",
+  19
+ ],
+ "CHEMBL3430893": [
+  "EXCL:aV/a5",
+  34
+ ],
+ "CHEMBL6066570": [
+  "EXCL:a5/b6",
+  175
+ ],
+ "CHEMBL6066571": [
+  "EXCL:a5/b6/b8",
+  1
+ ],
+ "CHEMBL6066568": [
+  "EXCL:a5/b8",
+  3
+ ],
+ "CHEMBL3660": [
+  "EXCL:alpha-V single chain",
+  59
+ ],
+ "CHEMBL207": [
+  "EXCL:beta-3 single chain",
+  0
+ ],
+ "CHEMBL4876": [
+  "EXCL:beta-6 single chain",
+  1
+ ],
+ "CHEMBL1905": [
+  "EXCL:beta-1 single chain",
+  2
+ ],
+ "CHEMBL2600": [
+  "EXCL:beta-5 single chain",
+  0
+ ],
+ "CHEMBL212": [
+  "EXCL:aIIb single chain",
+  32
+ ],
+ "CHEMBL3955": [
+  "EXCL:alpha-5 single chain",
+  19
+ ]
+}

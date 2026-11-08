@@ -298,7 +298,7 @@ with open("analyze_cas9_mutation_outcomes_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_cas9_mutation_outcomes_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cas9 Mutation Outcomes" + NL)
+    f.write("BioMate: Analyze Cas9 Mutation Outcomes" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

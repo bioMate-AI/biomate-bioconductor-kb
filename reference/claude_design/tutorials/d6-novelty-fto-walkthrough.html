@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Chemical novelty &amp; freedom-to-operate — screen candidates before the CRO order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Compound Novelty Scorer — Tanimoto novelty + patent-presence screen as the pre-CRO gate</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="35.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Chemical Novelty &amp; Freedom-to-Operate</b></div>
+    <div class="kicker">For the team deciding which candidates are worth a CRO order</div>
+    <h2>Is this molecule actually new — and is it clear of occupied space?</h2>
+    <p class="caption">You have a shortlist of candidate compounds and a budget that only stretches to a few CRO orders. Two questions decide which ones advance: <b>how novel is each molecule against known chemistry, and does it sit inside already-occupied, possibly patented space?</b> The Compound Novelty Scorer answers both — a nearest-neighbour similarity search against a library of known compounds, plus an opt-in patent-presence screen — and it is positioned as a gate at the pre-CRO chokepoint. In this walkthrough we build the idea from the ground up, then show exactly what the workflow does.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>A shortlist of candidate SMILES</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Nearest-neighbour Tanimoto search</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Novel vs occupied verdict</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Optional patent-presence flags</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Drop the occupied, order the rest</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>A CRO order is expensive — you don't want to spend it on a molecule someone already owns.</h2>
+    <p class="caption">By the time a candidate reaches a contract research organization for synthesis or assay, it has real cost attached. The worst outcome is paying to make a compound that turns out to be a near-duplicate of a known, possibly patented structure — chemistry that is neither novel enough to claim nor clear enough to pursue. That check has to happen <b>before</b> the order, not after.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">THE CHOICE</div><h4>Which candidates advance?</h4><p>A shortlist on paper; only a few can be ordered. Each order commits real synthesis and assay spend at a C-R-O.</p></div>
+          <div class="tile"><div class="n">THE RISK</div><h4>Known, occupied chemistry</h4><p>A candidate may be a close analog of something already published or patented — low novelty, and possibly inside someone else's claims.</p></div>
+          <div class="tile"><div class="n">THE COST</div><h4>Wasted at the chokepoint</h4><p>Ordering an occupied compound burns budget and time, and may surface a freedom-to-operate problem only after the money is spent.</p></div>
+          <div class="tile"><div class="n">THE NEED</div><h4>A gate before the order</h4><p>A fast, structural screen that flags occupied candidates so the C-R-O request carries only the ones worth pursuing.</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>The need: screen candidates for novelty and occupied space before committing a CRO order</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas, and the whole method follows.</h2>
+    <p class="caption">You don't need cheminformatics internals — just these four concepts, in order.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · FINGERPRINT</div><h4>A molecule as a bit-vector</h4><p>Morgan / E-C-F-P-four encodes each compound's local substructures as a fixed binary fingerprint — a compact, comparable signature of its chemistry.</p></div>
+            <div class="tile"><div class="n">2 · TANIMOTO</div><h4>Similarity between two</h4><p>The Tanimoto coefficient measures overlap between two fingerprints, from 0 (nothing shared) to 1 (identical). It is the ruler for "how alike are these molecules."</p></div>
+            <div class="tile"><div class="n">3 · NOVELTY</div><h4>Far from everything known</h4><p>Search a library of known compounds for the nearest neighbour. A low maximum similarity means nothing close exists — the compound is novel.</p></div>
+            <div class="tile"><div class="n">4 · OCCUPIED SPACE</div><h4>Novel &ne; clear</h4><p>A presence screen against patent sources asks a second question: is this chemistry already disclosed? Structural novelty and legal clearance are distinct.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The whole method is: fingerprint the query, find its <b>nearest known neighbour</b> by Tanimoto, call it novel or occupied against a cutoff, and &mdash; if asked &mdash; check whether it is already present in patent space.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — the vocabulary the rest of the walkthrough uses</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="35.0">
+    <div class="kicker"><span class="st">In BioMate</span> · goal &rarr; workflow</div>
+    <h2>State the goal in the CRO flow; BioMate opens the Compound Novelty Scorer.</h2>
+    <p class="caption">Ask in plain English to screen candidates for novelty and freedom-to-operate before the order, and BioMate opens the real <b>Compound Novelty Scorer</b> — query compounds mapped, the fingerprint library selected, parameters ready to confirm.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · Compound Novelty Scorer in BioMate</span>
+        <div class="frame"><img src="assets/live/novelty-live-panel.png" alt="BioMate workflow panel for the Compound Novelty Scorer (chemical novelty and freedom-to-operate screen)"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain-English routing.</b> "Before we send these candidates to the C-R-O, screen them for novelty and freedom-to-operate and drop anything inside known patent space" lands on the <b>Compound Novelty Scorer</b> — domain <code>drug_discovery</code>.</span></li>
+          <li><span class="b"></span><span><b>The inputs you bring.</b> Two required params: <code>query_smiles</code>, the candidates to score, and <code>fpsim2_db</code>, a mounted fingerprint library of known compounds.</span></li>
+          <li><span class="b"></span><span><b>The gate controls.</b> <code>novelty_tanimoto_cutoff</code> defaults to <code>0.85</code>; <code>check_patents</code> is an opt-in presence screen, off by default.</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run.</b> One click runs the screen, in line before the CRO request is assembled.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real novelty screen, wired as the pre-CRO gate</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker"><span class="st">Inputs</span> · what you bring</div>
+    <h2>The candidates to score, and the library of known chemistry to score them against.</h2>
+    <p class="caption">The screen is comparative, so the inputs are the query compounds and a reference library — plus two knobs that set how strictly novelty is called and whether patents are checked.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">QUERY_SMILES</div><h4>The candidates</h4><p>Your shortlist, each written as a S-M-I-L-E-S string (<code>query_smiles</code>, required). These are the molecules the gate decides on.</p></div>
+          <div class="tile"><div class="n">FPSIM2_DB</div><h4>The known library</h4><p>A mounted FPSim2 <code>.h5</code> fingerprint library of known compounds — for example ChEMBL or BindingDB (<code>fpsim2_db</code>, required). Novelty is relative to what is in here.</p></div>
+          <div class="tile"><div class="n">CUTOFF</div><h4>How strict is "novel"</h4><p><code>novelty_tanimoto_cutoff</code> defaults to <code>0.85</code>: a compound is called NOVEL when its maximum Tanimoto similarity to the library falls <i>below</i> the cutoff.</p></div>
+          <div class="tile"><div class="n">CHECK_PATENTS</div><h4>Opt-in presence screen</h4><p><code>check_patents</code> defaults to <code>false</code>. Turn it on to add a presence lookup against SureChEMBL / PubChem alongside the similarity call.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Required: <code>query_smiles</code>, <code>fpsim2_db</code>. Optional: <code>novelty_tanimoto_cutoff</code> (default <code>0.85</code>), <code>check_patents</code> (default <code>false</code>).</p>
+        <div><span class="verdict ok"><span class="mk"></span>Candidates plus a known library in — a novel-vs-occupied verdict out</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE METHOD -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker"><span class="st">The method</span> · what it actually computes</div>
+    <h2>Fingerprint, nearest-neighbour search, then an optional patent-presence lookup.</h2>
+    <p class="caption">The steps are concrete and sequential. The similarity search is the core; the patent screen is opt-in; and the engine is built to fail open — an unreachable source never silently blocks a candidate.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · FINGERPRINT</div><h4>Morgan / ECFP4</h4><p>Each <code>query_smiles</code> is encoded as a Morgan / E-C-F-P-four fingerprint — the same representation the library in <code>fpsim2_db</code> is built on, so the two are directly comparable.</p></div>
+          <div class="tile"><div class="n">2 · NEAREST NEIGHBOUR</div><h4>Max Tanimoto vs the library</h4><p>FPSim2 computes the Tanimoto similarity of the query against every compound in the library and returns the maximum — the single closest known neighbour and its score.</p></div>
+          <div class="tile"><div class="n">3 · PATENT SCREEN</div><h4>Opt-in presence lookup</h4><p>When <code>check_patents</code> is on, a presence check against SureChEMBL / PubChem asks whether the chemistry is already disclosed. Peptides use Needleman&ndash;Wunsch sequence identity instead.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Fail-open by design: if a data source is unreachable the engine does not silently block a candidate — it reports the gap rather than returning a false "clear."</p>
+        <div><span class="verdict ok"><span class="mk"></span>Real fingerprint similarity against a known library — plus an opt-in patent-presence screen</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">The output</span> · a verdict with its nearest neighbour</div>
+    <h2>Max similarity, the closest known compound, and a novel-vs-occupied call.</h2>
+    <p class="caption">For each candidate the screen reports the maximum Tanimoto similarity and the nearest known neighbour behind it, then the verdict against the cutoff. Below <code>0.85</code> the compound is called novel; at or above, occupied. With patents enabled, presence flags ride alongside.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.4fr 1fr">
+          <div class="tile"><div class="n">NOVELTY RESULT</div><h4>Score + nearest neighbour</h4><p>The maximum Tanimoto similarity to the library and the single nearest known compound that produced it, with the novel-vs-occupied verdict read against <code>novelty_tanimoto_cutoff</code>. The neighbour is what makes the call inspectable.</p></div>
+          <div class="tile"><div class="n">PATENT FLAGS</div><h4>If enabled</h4><p>When <code>check_patents</code> is on, each candidate carries a patent-presence flag from the SureChEMBL / PubChem lookup — a signal that the chemistry is already disclosed somewhere.</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b gr"></span><span><b>The neighbour travels with the verdict.</b> You see not just "occupied" but which known compound it is close to, so the call can be checked rather than taken on faith.</span></li>
+          <li><span class="b am"></span><span><b>Wired into the pre-CRO gate.</b> Candidates scored as occupied are dropped from the C-R-O request before ordering; only the novel, clear ones go forward.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>A verdict you can inspect — the score, the neighbour, and the patent flags together</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">Using the result</span> · the pre-CRO gate</div>
+    <h2>Drop the occupied candidates; send only the novel, clear ones to the CRO.</h2>
+    <p class="caption">The screen earns its place by reshaping the CRO request at the chokepoint: candidates scored as occupied are removed before ordering, so budget goes to chemistry that is both novel and clear. It is a structural signal, so a flagged compound is a prompt to look, not an automatic rejection.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">GATE</div><h4>Screen before ordering</h4><p>Every candidate runs through the Novelty Scorer before the C-R-O request is assembled. Occupied compounds are dropped from the order automatically.</p></div>
+          <div class="tile"><div class="n">PRIORITIZE</div><h4>Spend where it is clear</h4><p>The novel, un-flagged candidates carry forward. The CRO budget is committed to chemistry that is new and not obviously inside occupied space.</p></div>
+          <div class="tile"><div class="n">ESCALATE</div><h4>Flagged &rarr; human review</h4><p>A low-novelty or patent-flagged candidate goes to a patent attorney for the real freedom-to-operate call, not straight to the bin. The gate narrows; a person decides.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">The gate is a filter on the CRO request, not a legal verdict: it removes the clearly occupied candidates cheaply and routes the borderline ones to expert review.</p>
+        <div><span class="verdict ok"><span class="mk"></span>A leaner, cleaner CRO order — occupied chemistry removed before the spend</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker">What you get, precisely</div>
+    <h2>A structural screen, not a legal opinion — be exact about what it is.</h2>
+    <p class="caption">The screen is fast and useful, and knowing exactly what it does not tell you is what keeps it trustworthy for a decision you will defend. A patent attorney, not a Tanimoto score, makes the freedom-to-operate call.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">STRUCTURAL, NOT LEGAL</div><h4>Similarity is a signal</h4><p>Tanimoto novelty is a structural measure; the patent step is a presence SCREEN against SureChEMBL / PubChem, explicitly NOT a freedom-to-operate legal determination. A patent attorney makes the F-T-O call.</p></div>
+          <div class="tile"><div class="n">FINGERPRINT BLIND SPOTS</div><h4>Scaffold-hops slip through</h4><p>Fingerprint similarity can miss scaffold-hops and bioisosteres — compounds that are functionally related but structurally distant may read as novel when they are not meaningfully new.</p></div>
+          <div class="tile"><div class="n">COVERAGE &amp; FAIL-OPEN</div><h4>Absence is not proof</h4><p>Results depend on the library's coverage, and fail-open means a candidate is never silently blocked — so absence of a hit is not proof of novelty, only that nothing close was found in the sources checked.</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>Specific and honest — a structural pre-screen with stated limits, not an FTO opinion</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="38.0">
+    <div class="kicker">The value at a glance</div>
+    <h2 style="font-size:40px">Screen for novelty. Drop the occupied. Order with confidence.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The point in one sentence: <b>before you spend a CRO order, the Compound Novelty Scorer tells you which candidates are actually new and clear of occupied space.</b> BioMate routes your goal to the <code>drug_discovery</code> screen, fingerprints each candidate, finds its nearest known neighbour by Tanimoto against <code>fpsim2_db</code>, and returns a novel-vs-occupied verdict against the <code>0.85</code> cutoff — with an opt-in patent-presence check — so occupied candidates are dropped from the request before the spend.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Bring your candidate S-M-I-L-E-S and a mounted known-compound library</li>
+            <li><span class="k">2</span>BioMate routes to the Compound Novelty Scorer at the pre-CRO gate</li>
+            <li><span class="k">3</span>It returns max Tanimoto, the nearest neighbour, and a novel-vs-occupied verdict</li>
+            <li><span class="k">4</span>Drop the occupied, escalate the flagged to an attorney, order the rest</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>What it answers</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Novel or occupied</span></td></tr>
+            <tr><td>Method</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">ECFP4 + Tanimoto, FPSim2</span></td></tr>
+            <tr><td>Output</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Score + neighbour + flags</span></td></tr>
+            <tr><td>Where it sits</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Pre-CRO gate</span></td></tr>
+            <tr><td>Honest edges</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Structural · not FTO</span></td></tr>
+          </table>
+          <p class="footnote">From a shortlist to a clean CRO order — occupied chemistry removed cheaply, borderline cases routed to a patent attorney, and every verdict shipped with the nearest known neighbour behind it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

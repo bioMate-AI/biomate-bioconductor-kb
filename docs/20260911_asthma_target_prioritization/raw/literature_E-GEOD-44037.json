@@ -1,0 +1,4318 @@
+{
+  "accno": "E-GEOD-44037",
+  "attributes": [
+    {
+      "name": "Title",
+      "value": "Expression data from airway epithelial cells from patients with asthma, rhinitis, and helathy controls"
+    },
+    {
+      "name": "ReleaseDate",
+      "value": "2013-02-05"
+    },
+    {
+      "name": "RootPath",
+      "value": "E-GEOD-44037"
+    },
+    {
+      "name": "AttachTo",
+      "value": "ArrayExpress"
+    }
+  ],
+  "section": {
+    "accno": "s-E-GEOD-44037",
+    "type": "Study",
+    "attributes": [
+      {
+        "name": "Title",
+        "value": "Expression data from airway epithelial cells from patients with asthma, rhinitis, and helathy controls"
+      },
+      {
+        "name": "Study type",
+        "value": "transcription profiling by array",
+        "valqual": [
+          {
+            "name": "Ontology",
+            "value": "EFO"
+          },
+          {
+            "name": "TermId",
+            "value": "EFO_0002768"
+          }
+        ]
+      },
+      {
+        "name": "Organism",
+        "value": "Homo sapiens"
+      },
+      {
+        "name": "Description",
+        "value": "The link between upper and lower airways in patients with both asthma and allergic rhinitis is still poorly understood. As the biological complexity of these disorders can be captured by gene expression profiling we hypothesized that the clinical expression of rhinitis and/or asthma is related to differential gene expression between upper and lower airways epithelium. We used micro array to profile gene expression of primary nasal and bronchial epithelial cells from the same individuals and examining the impact of allergic rhinitis with and without concomitant allergic asthma on expression profiles. 17 subjects were included in a cross-sectional study (6 allergic asthma and allergic rhinitis; 5 allergic rhinitis; 6 healthy controls). RNA was extracted from isolated and cultured epithelial cells from bronchial brushes and nasal biopsies, and analyzed by microarray (Affymetrix U133+ PM Genechip Array)."
+      }
+    ],
+    "links": [
+      [
+        {
+          "url": "GSE44037",
+          "attributes": [
+            {
+              "name": "Type",
+              "value": "GEO"
+            }
+          ]
+        }
+      ]
+    ],
+    "subsections": [
+      [
+        {
+          "accno": "P-GSE44037-1",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE44037-1"
+            },
+            {
+              "name": "Type",
+              "value": "normalization data transformation protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Array images were analyzed by Affymetrix Expression Console using the robust multichip analysis (RMA) algorithm. The normalized data were further analysed using R (version 2.9) and the Bioconductor Limma package (v.3.14.1). Probesets without a known geneID were excluded for further analyses. The data was further normalized in R by quantile normalization between the arrays ID_REF =  VALUE = normalized"
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE44037-5",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE44037-5"
+            },
+            {
+              "name": "Type",
+              "value": "labelling protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Biotinylated cRNA were prepared according to the standard Affymetrix protocol."
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE44037-6",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE44037-6"
+            },
+            {
+              "name": "Type",
+              "value": "hybridization protocol"
+            },
+            {
+              "name": "Description",
+              "value": "According to standard Affymetrix protocol."
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE44037-2",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE44037-2"
+            },
+            {
+              "name": "Type",
+              "value": "sample treatment protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Cells were cultured to 80% confluence and were pre-incubated with BEBM for 48 hours prior to the removement of supernatant and RNA extraction"
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE44037-3",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE44037-3"
+            },
+            {
+              "name": "Type",
+              "value": "growth protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Isolated airway epithelial cells were grown in fully humidified air containing 5% CO2 at 37\u00b0C, and culture medium was replaced every other day."
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE44037-4",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE44037-4"
+            },
+            {
+              "name": "Type",
+              "value": "nucleic acid extraction protocol"
+            },
+            {
+              "name": "Description",
+              "value": "Trizol extraction of total RNA was performed according to the manufacturer's instructions."
+            }
+          ]
+        },
+        {
+          "accno": "P-GSE44037-7",
+          "type": "Protocols",
+          "attributes": [
+            {
+              "name": "Name",
+              "value": "P-GSE44037-7"
+            },
+            {
+              "name": "Type",
+              "value": "array scanning protocol"
+            },
+            {
+              "name": "Description",
+              "value": "According to standard Affymetrix protocol."
+            }
+          ]
+        }
+      ],
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Ariane Wagener"
+          },
+          {
+            "name": "Email",
+            "value": "A.H.Wagener@amc.uva.nl"
+          },
+          {
+            "name": "Role",
+            "value": "submitter"
+          },
+          {
+            "name": "affiliation",
+            "value": "o1",
+            "reference": true
+          }
+        ]
+      },
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Silvia Luiten"
+          }
+        ]
+      },
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Aeilko Zwinderman"
+          }
+        ]
+      },
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Cornelis van Drunen"
+          }
+        ]
+      },
+      {
+        "type": "Author",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Peter Sterk"
+          }
+        ]
+      },
+      {
+        "accno": "o1",
+        "type": "Organization",
+        "attributes": [
+          {
+            "name": "Name",
+            "value": "Academic Medical Center"
+          },
+          {
+            "name": "Address",
+            "value": "Academic Medical Center, Meibergdreef 9, Amsterdam, Netherlands"
+          }
+        ]
+      },
+      {
+        "accno": "s-samples-factors-E-GEOD-44037",
+        "type": "Samples",
+        "attributes": [
+          {
+            "name": "Sample count",
+            "value": "34"
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "PAIRED SAMPLES",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "paired samples"
+              }
+            ]
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "SUBJECT GROUP",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "subject group"
+              }
+            ]
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "CELL TYPE",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "cell type"
+              }
+            ]
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "ORGANISM PART",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "organism part"
+              }
+            ]
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "SEX",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "sex"
+              }
+            ]
+          },
+          {
+            "name": "Experimental Factors",
+            "value": "CONDITION",
+            "valqual": [
+              {
+                "name": "TermName",
+                "value": "condition"
+              }
+            ]
+          }
+        ],
+        "subsections": [
+          {
+            "accno": "exp_factor-E-GEOD-44037",
+            "type": "Experimental Factors",
+            "attributes": [
+              {
+                "name": "Cell type",
+                "value": "isolated and cultured bronchial epithelial cells"
+              },
+              {
+                "name": "Cell type",
+                "value": "isolated and cultured nasal epithelial cells"
+              },
+              {
+                "name": "Condition",
+                "value": "rhinitis"
+              },
+              {
+                "name": "Condition",
+                "value": "healthy"
+              },
+              {
+                "name": "Condition",
+                "value": "asthma"
+              },
+              {
+                "name": "Organism part",
+                "value": "nasal epithelium"
+              },
+              {
+                "name": "Organism part",
+                "value": "bronchial epithelium"
+              },
+              {
+                "name": "Paired samples",
+                "value": "2"
+              },
+              {
+                "name": "Paired samples",
+                "value": "12"
+              },
+              {
+                "name": "Paired samples",
+                "value": "14"
+              },
+              {
+                "name": "Paired samples",
+                "value": "3"
+              },
+              {
+                "name": "Paired samples",
+                "value": "1"
+              },
+              {
+                "name": "Paired samples",
+                "value": "16"
+              },
+              {
+                "name": "Paired samples",
+                "value": "5"
+              },
+              {
+                "name": "Paired samples",
+                "value": "4"
+              },
+              {
+                "name": "Paired samples",
+                "value": "13"
+              },
+              {
+                "name": "Paired samples",
+                "value": "6"
+              },
+              {
+                "name": "Paired samples",
+                "value": "7"
+              },
+              {
+                "name": "Paired samples",
+                "value": "15"
+              },
+              {
+                "name": "Paired samples",
+                "value": "9"
+              },
+              {
+                "name": "Paired samples",
+                "value": "17"
+              },
+              {
+                "name": "Paired samples",
+                "value": "10"
+              },
+              {
+                "name": "Paired samples",
+                "value": "... 2 other values"
+              },
+              {
+                "name": "Sex",
+                "value": "female"
+              },
+              {
+                "name": "Sex",
+                "value": "male"
+              },
+              {
+                "name": "Subject group",
+                "value": "patients with asthma"
+              },
+              {
+                "name": "Subject group",
+                "value": "patients with rhinitis"
+              },
+              {
+                "name": "Subject group",
+                "value": "healthy controls"
+              }
+            ],
+            "subsections": [
+              [
+                {
+                  "accno": "factors_0",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "16"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077161_144_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_1",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "17"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077160_139_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_2",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "5"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077159_138_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_3",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "17"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077158_132_B09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_4",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "13"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077157_129_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_5",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "4"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077156_126_A09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_6",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "16"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077155_120_G05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_7",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "5"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077154_117_H05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_8",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "8"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077153_114_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_9",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "8"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077152_108_E09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_10",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "11"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077151_98_E07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_11",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "1"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077150_88_A05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_12",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "1"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077149_87_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_13",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "9"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077148_79_A07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_14",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "10"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077147_103_B07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_15",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "13"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077146_101_A05_2.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_16",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "6"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077145_68_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_17",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "7"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077144_62_D09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_18",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "6"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077143_59_C09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_19",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "4"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077142_55_H09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_20",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "7"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077141_49_G09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_21",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "14"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077140_48_D05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_22",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "14"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077139_43_B07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_23",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "11"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077138_34_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_24",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "15"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077137_30_H09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_25",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "3"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077136_26_E09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_26",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "3"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077135_22_A09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_27",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "2"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077134_20_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_28",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "10"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "male"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077133_9_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_29",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "12"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077132_6_D05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_30",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "9"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077131_1_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_31",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "15"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077130_16_D09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_32",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "2"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077129_13_F09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "factors_33",
+                  "type": "Factors Table",
+                  "attributes": [
+                    {
+                      "name": "CELL TYPE",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "CONDITION",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "ORGANISM PART",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "PAIRED SAMPLES",
+                      "value": "12"
+                    },
+                    {
+                      "name": "SEX",
+                      "value": "female"
+                    },
+                    {
+                      "name": "SUBJECT GROUP",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077128_10_B05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "accno": "source_chars-E-GEOD-44037",
+            "type": "Source Characteristics",
+            "attributes": [
+              {
+                "name": "Organism",
+                "value": "Homo sapiens"
+              },
+              {
+                "name": "Cell type",
+                "value": "isolated and cultured bronchial epithelial cells"
+              },
+              {
+                "name": "Cell type",
+                "value": "isolated and cultured nasal epithelial cells"
+              },
+              {
+                "name": "Condition",
+                "value": "rhinitis"
+              },
+              {
+                "name": "Condition",
+                "value": "healthy"
+              },
+              {
+                "name": "Condition",
+                "value": "asthma"
+              },
+              {
+                "name": "Organism part",
+                "value": "nasal epithelium"
+              },
+              {
+                "name": "Organism part",
+                "value": "bronchial epithelium"
+              },
+              {
+                "name": "Paired samples",
+                "value": "2"
+              },
+              {
+                "name": "Paired samples",
+                "value": "12"
+              },
+              {
+                "name": "Paired samples",
+                "value": "14"
+              },
+              {
+                "name": "Paired samples",
+                "value": "3"
+              },
+              {
+                "name": "Paired samples",
+                "value": "1"
+              },
+              {
+                "name": "Paired samples",
+                "value": "16"
+              },
+              {
+                "name": "Paired samples",
+                "value": "5"
+              },
+              {
+                "name": "Paired samples",
+                "value": "4"
+              },
+              {
+                "name": "Paired samples",
+                "value": "13"
+              },
+              {
+                "name": "Paired samples",
+                "value": "6"
+              },
+              {
+                "name": "Paired samples",
+                "value": "7"
+              },
+              {
+                "name": "Paired samples",
+                "value": "15"
+              },
+              {
+                "name": "Paired samples",
+                "value": "9"
+              },
+              {
+                "name": "Paired samples",
+                "value": "17"
+              },
+              {
+                "name": "Paired samples",
+                "value": "10"
+              },
+              {
+                "name": "Paired samples",
+                "value": "... 2 other values"
+              },
+              {
+                "name": "Sex",
+                "value": "female"
+              },
+              {
+                "name": "Sex",
+                "value": "male"
+              },
+              {
+                "name": "Subject group",
+                "value": "patients with asthma"
+              },
+              {
+                "name": "Subject group",
+                "value": "patients with rhinitis"
+              },
+              {
+                "name": "Subject group",
+                "value": "healthy controls"
+              }
+            ],
+            "subsections": [
+              [
+                {
+                  "accno": "source_0",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "16"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077161_144_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_1",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "17"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077160_139_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_2",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "5"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077159_138_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_3",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "17"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077158_132_B09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_4",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "13"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077157_129_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_5",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "4"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077156_126_A09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_6",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "16"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077155_120_G05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_7",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "5"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077154_117_H05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_8",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "8"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077153_114_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_9",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "8"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077152_108_E09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_10",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "11"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077151_98_E07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_11",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "1"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077150_88_A05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_12",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "1"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077149_87_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_13",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "9"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077148_79_A07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_14",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "10"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077147_103_B07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_15",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "13"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077146_101_A05_2.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_16",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "6"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077145_68_C05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_17",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "7"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077144_62_D09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_18",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "6"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077143_59_C09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_19",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "4"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077142_55_H09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_20",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "7"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077141_49_G09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_21",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "14"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077140_48_D05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_22",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "14"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077139_43_B07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_23",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "11"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077138_34_E05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_24",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "15"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077137_30_H09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_25",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "3"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077136_26_E09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_26",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "asthma"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "3"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with asthma"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077135_22_A09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_27",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "2"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077134_20_F05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_28",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "10"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "male"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077133_9_H07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_29",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "12"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077132_6_D05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_30",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "9"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077131_1_G07.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_31",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "15"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077130_16_D09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_32",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured nasal epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "healthy"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "nasal epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "2"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "healthy controls"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077129_13_F09.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "accno": "source_33",
+                  "type": "Characteristics Table",
+                  "attributes": [
+                    {
+                      "name": "cell type",
+                      "value": "isolated and cultured bronchial epithelial cells"
+                    },
+                    {
+                      "name": "condition",
+                      "value": "rhinitis"
+                    },
+                    {
+                      "name": "organism part",
+                      "value": "bronchial epithelium"
+                    },
+                    {
+                      "name": "paired samples",
+                      "value": "12"
+                    },
+                    {
+                      "name": "sex",
+                      "value": "female"
+                    },
+                    {
+                      "name": "subject group",
+                      "value": "patients with rhinitis"
+                    },
+                    {
+                      "name": "No. of Samples",
+                      "value": "1",
+                      "valqual": [
+                        {
+                          "name": "search",
+                          "value": "\"GSM1077128_10_B05.CEL\""
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "accno": "s-assays-data-E-GEOD-44037",
+        "type": "Assays and Data",
+        "attributes": [
+          {
+            "name": "Assay count",
+            "value": "34"
+          },
+          {
+            "name": "Technology",
+            "value": "Array assay"
+          },
+          {
+            "name": "Assay by Molecule",
+            "value": "RNA assay"
+          }
+        ],
+        "subsections": [
+          {
+            "accno": "raw-data",
+            "type": "Raw Data",
+            "files": [
+              [
+                {
+                  "path": "GSM1077161_144_G07.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077161 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077160_139_F05.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077160 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077159_138_C05.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077159 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077158_132_B09.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077158 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077157_129_H07.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077157 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077156_126_A09.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077156 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077155_120_G05.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077155 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077154_117_H05.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077154 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077153_114_C05.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077153 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077152_108_E09.CEL",
+                  "size": 5557856,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077152 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077151_98_E07.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077151 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077150_88_A05.CEL",
+                  "size": 5557870,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077150 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077149_87_E05.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077149 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077148_79_A07.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077148 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077147_103_B07.CEL",
+                  "size": 5557850,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077147 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077146_101_A05_2.CEL",
+                  "size": 5557848,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077146 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077145_68_C05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077145 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077144_62_D09.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077144 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077143_59_C09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077143 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077142_55_H09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077142 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077141_49_G09.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077141 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077140_48_D05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077140 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077139_43_B07.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077139 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077138_34_E05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077138 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077137_30_H09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077137 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077136_26_E09.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077136 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077135_22_A09.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077135 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077134_20_F05.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077134 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077133_9_H07.CEL",
+                  "size": 5557842,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077133 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077132_6_D05.CEL",
+                  "size": 5557842,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077132 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077131_1_G07.CEL",
+                  "size": 5557842,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077131 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077130_16_D09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077130 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077129_13_F09.CEL",
+                  "size": 5557852,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077129 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077128_10_B05.CEL",
+                  "size": 5557846,
+                  "attributes": [
+                    {
+                      "name": "Samples",
+                      "value": "GSM1077128 1"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Raw data file"
+                    }
+                  ],
+                  "type": "file"
+                }
+              ]
+            ]
+          },
+          {
+            "accno": "processed-data",
+            "type": "Processed Data",
+            "files": [
+              [
+                {
+                  "path": "GSM1077148_sample_table.txt",
+                  "size": 1281465,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077153_sample_table.txt",
+                  "size": 1280835,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077134_sample_table.txt",
+                  "size": 1281288,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077144_sample_table.txt",
+                  "size": 1280893,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077136_sample_table.txt",
+                  "size": 1280728,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077158_sample_table.txt",
+                  "size": 1281590,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077150_sample_table.txt",
+                  "size": 1280964,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077152_sample_table.txt",
+                  "size": 1281422,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077161_sample_table.txt",
+                  "size": 1281100,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077133_sample_table.txt",
+                  "size": 1281359,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077142_sample_table.txt",
+                  "size": 1281697,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077160_sample_table.txt",
+                  "size": 1281326,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077156_sample_table.txt",
+                  "size": 1281415,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077131_sample_table.txt",
+                  "size": 1281017,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077155_sample_table.txt",
+                  "size": 1281556,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077130_sample_table.txt",
+                  "size": 1281454,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077137_sample_table.txt",
+                  "size": 1281625,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077138_sample_table.txt",
+                  "size": 1281312,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077159_sample_table.txt",
+                  "size": 1281697,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077147_sample_table.txt",
+                  "size": 1280740,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077149_sample_table.txt",
+                  "size": 1281378,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077145_sample_table.txt",
+                  "size": 1281077,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077151_sample_table.txt",
+                  "size": 1281077,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077143_sample_table.txt",
+                  "size": 1281680,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077141_sample_table.txt",
+                  "size": 1281286,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077146_sample_table.txt",
+                  "size": 1281415,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077129_sample_table.txt",
+                  "size": 1281144,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077157_sample_table.txt",
+                  "size": 1281342,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077139_sample_table.txt",
+                  "size": 1281118,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077140_sample_table.txt",
+                  "size": 1281108,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077154_sample_table.txt",
+                  "size": 1281606,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077128_sample_table.txt",
+                  "size": 1281219,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077132_sample_table.txt",
+                  "size": 1281079,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "GSM1077135_sample_table.txt",
+                  "size": 1281542,
+                  "attributes": [
+                    {
+                      "name": "Description",
+                      "value": "Processed Data"
+                    }
+                  ],
+                  "type": "file"
+                }
+              ]
+            ]
+          },
+          {
+            "accno": "mt-E-GEOD-44037",
+            "type": "MAGE-TAB Files",
+            "files": [
+              [
+                {
+                  "path": "E-GEOD-44037.idf.txt",
+                  "size": 3527,
+                  "attributes": [
+                    {
+                      "name": "Type",
+                      "value": "IDF File"
+                    },
+                    {
+                      "name": "Format",
+                      "value": "tab-delimited text"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Investigation Design Format (IDF)"
+                    }
+                  ],
+                  "type": "file"
+                },
+                {
+                  "path": "E-GEOD-44037.sdrf.txt",
+                  "size": 37281,
+                  "attributes": [
+                    {
+                      "name": "Type",
+                      "value": "SDRF File"
+                    },
+                    {
+                      "name": "Format",
+                      "value": "tab-delimited text"
+                    },
+                    {
+                      "name": "Description",
+                      "value": "Sample and Data Relationship Format (SDRF)"
+                    }
+                  ],
+                  "type": "file"
+                }
+              ]
+            ]
+          },
+          {
+            "accno": "ad-E-GEOD-44037",
+            "type": "Array Designs",
+            "links": [
+              [
+                {
+                  "url": "A-GEOD-13158",
+                  "attributes": [
+                    {
+                      "name": "Type",
+                      "value": "Array Design"
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "accno": "score-E-GEOD-44037",
+        "type": "MIAME Score",
+        "attributes": [
+          {
+            "name": "Platforms",
+            "value": "-"
+          },
+          {
+            "name": "Raw",
+            "value": "*"
+          },
+          {
+            "name": "Variables",
+            "value": "*"
+          },
+          {
+            "name": "Processed",
+            "value": "*"
+          },
+          {
+            "name": "Protocols",
+            "value": "-"
+          }
+        ]
+      }
+    ]
+  },
+  "type": "submission"
+}

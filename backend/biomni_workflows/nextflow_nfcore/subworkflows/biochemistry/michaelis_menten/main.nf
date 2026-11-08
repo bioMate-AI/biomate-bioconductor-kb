@@ -130,7 +130,7 @@ with open("michaelis_menten_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("michaelis_menten_output.txt", "w") as f:
-    f.write("Biomni: Michaelis Menten" + NL)
+    f.write("BioMate: Michaelis Menten" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

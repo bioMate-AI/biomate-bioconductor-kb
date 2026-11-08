@@ -54,7 +54,7 @@ with open("register_images_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("register_images_output.txt", "w") as f:
-    f.write("Biomni: Register Images Results" + NL)
+    f.write("BioMate: Register Images Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

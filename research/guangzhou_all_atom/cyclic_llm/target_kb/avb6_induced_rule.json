@@ -1,0 +1,15 @@
+{
+  "target": "avb6",
+  "induced_rule": [
+    "has_rgd",
+    "has_rgdl",
+    "flank_aromatic_p1",
+    "flank_aromatic_p7"
+  ],
+  "coverage": {
+    "pos_covered": "3/3",
+    "neg_excluded": "4/4",
+    "fp": 0,
+    "fn": 0
+  }
+}

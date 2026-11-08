@@ -289,7 +289,7 @@ with open("create_panhumanpy_env_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("create_panhumanpy_env_output.txt", "w") as f:
-    f.write("Biomni: Create Panhumanpy Env" + NL)
+    f.write("BioMate: Create Panhumanpy Env" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

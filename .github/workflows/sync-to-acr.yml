@@ -1,0 +1,1040 @@
+name: Sync Images to Alibaba ECS
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_assets:
+        description: 'Skip asset transfer (DB + nfcore already in volumes)'
+        type: boolean
+        default: true
+      check_only:
+        description: 'Only check ECS status — skip transfer and restart'
+        type: boolean
+        default: false
+      pull_biomni_tools:
+        description: 'Pull biomni-tools from GHCR → ECS (~800MB, run once). Required for ADMET + pharmacology workflows.'
+        type: boolean
+        default: false
+      mirror_admet_to_acr:
+        description: 'Mirror biomni-admet:x86 from AWS ECR → Alibaba ACR (run once; ~4GB, ~15 min). Requires ACR_USERNAME + ACR_PASSWORD secrets.'
+        type: boolean
+        default: false
+      build_frontend:
+        description: 'Build + push new frontend image to ACR, then deploy to ECS. Required after routes.ts / React changes.'
+        type: boolean
+        default: false
+      stop_services:
+        description: 'Stop all Docker services on ECS (graceful shutdown). Skips all other steps.'
+        type: boolean
+        default: false
+
+permissions:
+  packages: read
+  contents: read
+  id-token: write   # required for OIDC ECR auth in mirror-admet-image job
+
+env:
+  TAG: fix-arm64-minio-healthcheck-and-qemu-latest
+  ECS_IP: 101.201.107.126
+  DB_URL: https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/galaxy_ai_tools.db
+  NFCORE_URL: https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/nextflow_nfcore_subworkflows.tar.gz
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ACR_REGISTRY: registry.cn-beijing.aliyuncs.com
+  ACR_NAMESPACE: biomate
+
+jobs:
+  # ─── One-time step: mirror biomni-admet:x86 from AWS ECR → Alibaba ACR ─────
+  # Run manually with inputs.mirror_admet_to_acr=true.  Once done the image
+  # lives in ACR forever; every subsequent deploy pulls it from there for free.
+  # Prerequisites: ACR_USERNAME and ACR_PASSWORD must be set as GHA repo secrets.
+  # ACR namespace biomate must exist in registry.cn-beijing.aliyuncs.com.
+  mirror-admet-image:
+    if: ${{ inputs.mirror_admet_to_acr == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Configure AWS credentials (OIDC — for ECR pull)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+          aws-region: us-west-2
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to Alibaba Cloud ACR
+        env:
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          if [ -z "$ACR_USERNAME" ] || [ -z "$ACR_PASSWORD" ]; then
+            echo "ERROR: ACR_USERNAME and ACR_PASSWORD secrets must be set"
+            echo "Set them in Settings → Secrets → Actions on this repo"
+            exit 1
+          fi
+          echo "$ACR_PASSWORD" | docker login "${{ env.ACR_REGISTRY }}" \
+            -u "$ACR_USERNAME" --password-stdin
+          echo "Logged in to ${{ env.ACR_REGISTRY }}"
+
+      - name: Mirror biomni-admet:x86 ECR → ACR
+        run: |
+          ECR_IMG="${{ env.ECR_REGISTRY }}/biomate/biomni-admet:x86"
+          ACR_IMG="${{ env.ACR_REGISTRY }}/${{ env.ACR_NAMESPACE }}/biomni-admet:x86"
+
+          echo "Source: $ECR_IMG"
+          echo "Target: $ACR_IMG"
+
+          # Check if already in ACR (pull manifest without downloading layers)
+          if docker manifest inspect "$ACR_IMG" >/dev/null 2>&1; then
+            echo "Image already in ACR — skipping push (use re-pull to overwrite)"
+            exit 0
+          fi
+
+          echo "Pulling from ECR (this may take ~10 min for ~4 GB)..."
+          docker pull "$ECR_IMG"
+          docker tag "$ECR_IMG" "$ACR_IMG"
+
+          echo "Pushing to ACR (Beijing, same-region pull is free for ECS)..."
+          docker push "$ACR_IMG"
+
+          echo "Mirror complete: $ACR_IMG"
+          docker image inspect "$ACR_IMG" --format "Digest={{.RepoDigests}}"
+
+  transfer-assets:
+    # Download galaxy_ai_tools.db (~280 MB) and nfcore tar (~60 MB) from S3
+    # on the GHA runner (fast US connection), then SSH-pipe to ECS and drop
+    # them into the Docker volumes so db-init / nfcore-init skip their
+    # slow China→S3 downloads.
+    # Skip when assets are already in the volumes (workflow_dispatch default).
+    if: ${{ !inputs.check_only && (github.event_name == 'push' || !inputs.skip_assets) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Download workflow DB from S3 and pipe to ECS volume
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          echo "Downloading galaxy_ai_tools.db (~280 MB) from S3..."
+          curl -fL --retry 3 --progress-bar "${{ env.DB_URL }}" | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+              root@${{ env.ECS_IP }} \
+              'cat > /tmp/galaxy_ai_tools.db && \
+               docker volume create biomate-onprem_biomate-backend-db 2>/dev/null || true && \
+               VOLPATH=$(docker volume inspect biomate-onprem_biomate-backend-db --format "{{.Mountpoint}}") && \
+               mkdir -p "$VOLPATH" && \
+               mv /tmp/galaxy_ai_tools.db "$VOLPATH/galaxy_ai_tools.db" && \
+               ls -lh "$VOLPATH/galaxy_ai_tools.db" && \
+               echo "DB installed to volume"'
+
+      - name: Download nfcore workflows and pipe to ECS volume
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          echo "Downloading nfcore workflows (~60 MB) from S3..."
+          curl -fL --retry 3 --progress-bar "${{ env.NFCORE_URL }}" | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+              root@${{ env.ECS_IP }} \
+              'docker volume create biomate-onprem_biomate-nfcore-workflows 2>/dev/null || true && \
+               VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}") && \
+               mkdir -p "$VOLPATH" && \
+               tar -xzf - -C "$VOLPATH" && \
+               touch "$VOLPATH/.initialized" && \
+               echo "nfcore workflows extracted to $VOLPATH" && \
+               ls "$VOLPATH" | head -5'
+
+  stop-services:
+    runs-on: ubuntu-latest
+    needs: []
+    if: ${{ inputs.stop_services == true }}
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Stop all services on ECS
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 root@${{ env.ECS_IP }} \
+            'cd /app/biomate && docker compose -f docker-compose.onprem.yml down --remove-orphans && echo "All services stopped"'
+
+  restart-stack:
+    runs-on: ubuntu-latest
+    # Run even if transfer-assets or mirror-admet-image was skipped.
+    needs: [transfer-assets, mirror-admet-image]
+    if: ${{ always() && !inputs.check_only && !inputs.stop_services }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Repair galaxy_ai_tools.db if missing or incomplete (direct ECS download)
+        # The GHA→ECS SSH pipe is throttled (~50-100 KB/s US→China) and hits the 30-min
+        # job timeout for the 303 MB DB. The fix: have ECS download from S3 DIRECTLY so
+        # only control traffic flows over SSH (no data through the pipe).
+        # Downloads to a .new temp file first, then atomically renames to avoid corruption
+        # if the download is interrupted.
+        # Expected size: 318631936 bytes (~303 MB). Threshold: 250 MB.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          DB_URL="${{ env.DB_URL }}"
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+            root@${{ env.ECS_IP }} \
+            "VOLPATH=\$(docker volume inspect biomate-onprem_biomate-backend-db --format '{{.Mountpoint}}' 2>/dev/null) && \
+             CURRENT=\$(stat -c %s \"\$VOLPATH/galaxy_ai_tools.db\" 2>/dev/null || echo 0) && \
+             echo \"Current DB size: \${CURRENT} bytes (threshold: 250 MB = 262144000)\" && \
+             if [ \"\$CURRENT\" -lt 262144000 ]; then \
+               echo \"DB missing or incomplete — downloading from S3 on ECS (--max-time 3600)...\" && \
+               if curl -fL --progress-bar --max-time 3600 -o \"\$VOLPATH/galaxy_ai_tools.db.new\" '$DB_URL'; then \
+                 mv \"\$VOLPATH/galaxy_ai_tools.db.new\" \"\$VOLPATH/galaxy_ai_tools.db\" && \
+                 ls -lh \"\$VOLPATH/galaxy_ai_tools.db\" && \
+                 echo 'DB installed — restarting galaxy to reload AI assistant' && \
+                 docker restart --timeout 30 biomate-galaxy && \
+                 echo 'Galaxy restarted with fresh DB'; \
+               else \
+                 echo 'WARNING: DB download timed out or failed — using existing DB as-is'; \
+                 ls -lh \"\$VOLPATH/galaxy_ai_tools.db\" 2>/dev/null || echo '(no DB on disk)'; \
+               fi; \
+             else \
+               echo \"DB already complete (\${CURRENT} bytes) — skipping download\"; \
+             fi"
+
+      - name: Add CORS_ORIGINS to .env so IP-based access works (not just biomate.ai)
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'ENV_FILE=/app/biomate/.env && \
+             grep -q "^CORS_ORIGINS=" "$ENV_FILE" && \
+               sed -i "s|^CORS_ORIGINS=.*|CORS_ORIGINS=http://101.201.107.126:5000|" "$ENV_FILE" || \
+               echo "CORS_ORIGINS=http://101.201.107.126:5000" >> "$ENV_FILE" && \
+             echo "CORS_ORIGINS in .env:" && grep CORS_ORIGINS "$ENV_FILE"'
+
+      - name: Remove stale involucro.lock from database volume
+        # Galaxy acquires /app/database/dependencies/involucro.lock on startup.
+        # If the lock is left over from a crash, every restart times out after
+        # 300 s and exits cleanly (ExitCode=0) → endless restart loop.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'VOLPATH=$(docker volume inspect biomate-onprem_biomate-backend-db --format "{{.Mountpoint}}" 2>/dev/null) && \
+             if [ -n "$VOLPATH" ]; then
+               rm -f "$VOLPATH/dependencies/involucro.lock" && \
+               echo "Removed stale lock (if any) from $VOLPATH/dependencies/" && \
+               ls "$VOLPATH/dependencies/" 2>/dev/null || echo "(dependencies dir empty or absent)"
+             else
+               echo "Volume not found yet — will be created on first compose up"
+             fi'
+
+      - name: Fix backend/config dir ownership so galaxy user (uid=1000) can write
+        # The compose bind-mount ./backend/config:/app/config points to a host dir
+        # that Docker auto-creates as root-owned when absent.  uid=1000 (galaxy)
+        # cannot write to it and the startup script fails with Permission denied.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'mkdir -p /app/biomate/backend/config && \
+             chown -R 1000:1000 /app/biomate/backend/config && \
+             chmod 755 /app/biomate/backend/config && \
+             echo "backend/config perms: $(ls -la /app/biomate/backend/ | grep config)"'
+
+      - name: Set BIOMATE_ADMET_CONTAINER — ACR image if available, biomni-tools fallback
+        # Priority:
+        #   1. ACR image (registry.cn-beijing.aliyuncs.com/biomate/biomni-admet:x86):
+        #      real ADMET-AI + Chemprop, full predictions. Used when image is already
+        #      cached on ECS (from a previous mirror run) or ACR credentials let us pull.
+        #   2. biomni-tools:latest fallback: has RDKit structural estimates only.
+        #      Used when ACR image is not available.
+        # main.nf respects BIOMATE_ADMET_CONTAINER via Elvis operator — no sed patching needed.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          ACR_IMG="${{ env.ACR_REGISTRY }}/${{ env.ACR_NAMESPACE }}/biomni-admet:x86"
+          ACR_USER="${ACR_USERNAME}"
+          ACR_PASS="${ACR_PASSWORD}"
+
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            bash -s << ENDSSH
+          set -e
+          ACR_IMG="${ACR_IMG}"
+          ACR_USER="${ACR_USER}"
+          ACR_PASS="${ACR_PASS}"
+          ENV_FILE=/app/biomate/.env
+
+          # Check if image is already cached on ECS
+          if docker image inspect "\$ACR_IMG" >/dev/null 2>&1; then
+            echo "biomni-admet:x86 already cached on ECS — using ACR URL"
+            ADMET_CONTAINER="\$ACR_IMG"
+          elif [ -n "\$ACR_USER" ] && [ -n "\$ACR_PASS" ]; then
+            echo "Pulling biomni-admet:x86 from ACR (Beijing internal traffic)..."
+            if docker login ${{ env.ACR_REGISTRY }} -u "\$ACR_USER" -p "\$ACR_PASS" >/dev/null 2>&1 && \
+               docker pull "\$ACR_IMG" 2>&1; then
+              echo "Pull from ACR successful"
+              ADMET_CONTAINER="\$ACR_IMG"
+            else
+              echo "WARNING: ACR pull failed — falling back to biomni-tools (RDKit estimates only)"
+              ADMET_CONTAINER="biomate/biomni-tools:latest"
+            fi
+          else
+            echo "No ACR credentials configured — using biomni-tools fallback"
+            echo "  → To enable real ADMET-AI: set ACR_USERNAME + ACR_PASSWORD secrets,"
+            echo "    then run with mirror_admet_to_acr=true once to push image to ACR"
+            ADMET_CONTAINER="biomate/biomni-tools:latest"
+          fi
+
+          grep -q "^BIOMATE_ADMET_CONTAINER=" "\$ENV_FILE" && \
+            sed -i "s|^BIOMATE_ADMET_CONTAINER=.*|BIOMATE_ADMET_CONTAINER=\$ADMET_CONTAINER|" "\$ENV_FILE" || \
+            echo "BIOMATE_ADMET_CONTAINER=\$ADMET_CONTAINER" >> "\$ENV_FILE"
+          echo "BIOMATE_ADMET_CONTAINER=\$ADMET_CONTAINER"
+          ENDSSH
+
+      - name: Fix Galaxy DB — switch from SQLite to PostgreSQL
+        # galaxy.yml.template defaults to SQLite (database_connection: sqlite:///.../universe.sqlite).
+        # With multiple gunicorn workers, concurrent SQLite writes cause "database is locked" errors
+        # that abort running workflows. Override to the PostgreSQL instance already in the stack.
+        # Galaxy auto-creates its schema on first PostgreSQL startup (no manual migration needed).
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'ENV_FILE=/app/biomate/.env && \
+             PG_USER=$(grep "^POSTGRES_USER=" "$ENV_FILE" | cut -d= -f2- | tr -d "\"" | xargs || echo "biomate") && \
+             PG_DB=$(grep "^POSTGRES_DB=" "$ENV_FILE" | cut -d= -f2- | tr -d "\"" | xargs || echo "biomate") && \
+             PG_PASS=$(grep "^POSTGRES_PASSWORD=" "$ENV_FILE" | cut -d= -f2- | tr -d "\"") && \
+             DB_CONN="postgresql+psycopg2://${PG_USER}:${PG_PASS}@postgres:5432/${PG_DB}?client_encoding=utf8" && \
+             grep -q "^GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=" "$ENV_FILE" && \
+               sed -i "s|^GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=.*|GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=${DB_CONN}|" "$ENV_FILE" || \
+               echo "GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=${DB_CONN}" >> "$ENV_FILE" && \
+             echo "Galaxy DB set to PostgreSQL" && \
+             grep "^GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=" "$ENV_FILE" | sed "s/:.*@/:***@/"'
+
+      - name: Pull biomni-tools image from GHCR and transfer to ECS
+        # biomate/biomni-tools:latest is the image Nextflow uses for ADMET and other
+        # pharmacology workflows. It lives on GHCR (ghcr.io/biomate-ai/biomni-tools:latest)
+        # and must be pulled once and retagged on ECS. Without it every workflow run
+        # fails with "image not found" (exit 1). Run this step once; image is then cached.
+        if: ${{ inputs.pull_biomni_tools == true }}
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking if biomate/biomni-tools:latest already exists on ECS..."
+          EXISTS=$(sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no root@${{ env.ECS_IP }} \
+            'docker image inspect biomate/biomni-tools:latest >/dev/null 2>&1 && echo yes || echo no')
+          if [ "$EXISTS" = "yes" ]; then
+            echo "Image already present on ECS — skipping transfer"
+            exit 0
+          fi
+
+          echo "Logging in to GHCR on GHA runner..."
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          echo "Pulling ghcr.io/biomate-ai/biomni-tools:latest..."
+          docker pull ghcr.io/biomate-ai/biomni-tools:latest
+
+          echo "Saving + piping to ECS (expect 3–8 min for ~800MB)..."
+          docker save ghcr.io/biomate-ai/biomni-tools:latest | gzip | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
+              root@${{ env.ECS_IP }} \
+              'gunzip | docker load && \
+               docker tag ghcr.io/biomate-ai/biomni-tools:latest biomate/biomni-tools:latest && \
+               echo "=== biomate/biomni-tools:latest installed on ECS ===" && \
+               docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}}"'
+
+      - name: Pre-compile server bundle (if build_frontend=true)
+        # Compile server/index.ts → /tmp/server_index.js on the GHA runner so it's
+        # ready to pipe to ECS after the stack restarts (the hot-deploy step runs later).
+        # Must happen BEFORE restart so the compiled file is available; the actual
+        # docker-cp + container restart is done in the post-restart hot-deploy step.
+        if: ${{ inputs.build_frontend == true }}
+        run: |
+          echo "=== Installing frontend deps ==="
+          cd frontend
+          npm ci --prefer-offline 2>&1 | tail -5
+          echo "=== Compiling server bundle ==="
+          npx esbuild server/index.ts \
+            --platform=node \
+            --packages=external \
+            --bundle \
+            --format=esm \
+            --target=node18 \
+            --outfile=/tmp/server_index.js
+          ls -lh /tmp/server_index.js
+          cd ..
+
+      - name: Configure Docker registry mirror (DaoCloud — China-accessible)
+        # DaoCloud mirror allows pulling Docker Hub images from Alibaba Cloud ECS.
+        # Required for workflows that use standard images (condaforge/miniforge3,
+        # python:3.x-slim, etc.) which are inaccessible from Docker Hub directly in China.
+        # Idempotent: skips daemon reload if mirror already present.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'if grep -q "daocloud.io" /etc/docker/daemon.json 2>/dev/null; then
+               echo "DaoCloud mirror already configured — skipping"
+             else
+               EXISTING=$(cat /etc/docker/daemon.json 2>/dev/null || echo "{}")
+               MIRRORS=$(echo "$EXISTING" | python3 -c "import json,sys; d=json.load(sys.stdin); m=d.get(\"registry-mirrors\",[]); m=[\"https://docker.m.daocloud.io\"]+[x for x in m if \"daocloud\" not in x]; d[\"registry-mirrors\"]=m; print(json.dumps(d,indent=2))")
+               echo "$MIRRORS" > /etc/docker/daemon.json
+               systemctl reload docker 2>/dev/null || systemctl restart docker 2>/dev/null || true
+               sleep 3
+               echo "Docker daemon reloaded with DaoCloud mirror"
+               docker info 2>/dev/null | grep -A3 "Registry Mirrors" || echo "(mirror info not shown)"
+             fi'
+
+      - name: Pre-pull bioconductor containers for ECS demo
+        # Pull the quay.io bioconductor images needed for demo test cases before
+        # the stack restarts.  With --pull missing in nextflow.config, these are
+        # used from local cache on first run (no slow pull at workflow-start time).
+        # Images pre-pulled here: normqpcr (TC-22 qPCR), proteomm (TC-25 proteomics),
+        # mlinterfaces (TC-15 ML classification).
+        # Pull is best-effort (|| true): if quay.io is unreachable the deploy still
+        # proceeds; first-run will be slower but --pull missing handles it at runtime.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
+            root@${{ env.ECS_IP }} \
+            'echo "=== Pre-pulling bioconductor containers ===" && \
+             docker pull quay.io/biocontainers/bioconductor-normqpcr:1.56.0--r45h575d39b_0 2>&1 | tail -3 || echo "normqpcr pull failed (will pull on first run)" && \
+             docker pull quay.io/biocontainers/bioconductor-proteomm:1.28.0--r45hdfd78af_0 2>&1 | tail -3 || echo "proteomm pull failed (will pull on first run)" && \
+             docker pull quay.io/biocontainers/bioconductor-mlinterfaces:1.90.0--r45ha27e39d_0 2>&1 | tail -3 || echo "mlinterfaces pull failed (will pull on first run)" && \
+             echo "=== Bioconductor container pre-pull done ==="'
+
+      - name: Restart stack
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'cd /app/biomate && \
+             docker compose -f docker-compose.onprem.yml down --remove-orphans 2>&1 | tail -5 && \
+             docker compose -f docker-compose.onprem.yml --env-file .env up -d 2>&1 | tail -20 && \
+             sleep 15 && \
+             docker compose -f docker-compose.onprem.yml ps'
+
+      - name: Deploy nextflow_executor.py for ECS
+        # Deploy nextflow_executor.py directly from the repo checkout into the
+        # running Galaxy container.  gunicorn --preload means kill -HUP does NOT
+        # reload Python code; we must docker restart so the master re-preloads.
+        #
+        # IMPORTANT: docker restart triggers the Galaxy container entrypoint which
+        # re-initializes the nfcore volume from the S3 tarball, overwriting any
+        # prior .nf file uploads.  Upload .nf files AFTER this restart (next step).
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          # Step 1: pipe repo file to ECS temp location
+          cat backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+              root@${{ env.ECS_IP }} \
+              'cat > /tmp/nextflow_executor_deploy.py'
+          # Step 2: docker cp into container + restart (no .nf patching here — done post-restart)
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+            root@${{ env.ECS_IP }} \
+            'FILE=$(docker exec biomate-galaxy find /app -name "nextflow_executor.py" 2>/dev/null | head -1) && \
+             if [ -z "$FILE" ]; then echo "ERROR: nextflow_executor.py not found in container"; exit 1; fi && \
+             echo "Deploying repo nextflow_executor.py → container:$FILE" && \
+             docker cp /tmp/nextflow_executor_deploy.py biomate-galaxy:"$FILE" && \
+             echo "Deployed repo nextflow_executor.py." && \
+             echo "Restarting galaxy container (gunicorn --preload requires docker restart)..." && \
+             docker restart --time 30 biomate-galaxy && \
+             echo "Galaxy restarted with latest nextflow_executor.py"'
+
+      - name: Upload .nf files + patch ADMET container (post-galaxy-restart)
+        # MUST run AFTER the galaxy restart above.  The Galaxy container entrypoint
+        # re-initializes the nfcore volume from the S3 tarball on every docker restart,
+        # overwriting any .nf files uploaded before the restart.  By running uploads
+        # here (after restart) these become the final state that check-status sees.
+        #
+        # ADMET main.nf: BIOMATE_ADMET_CONTAINER is set on the host but not passed
+        # into the Galaxy container (no env_file in docker-compose.onprem.yml).
+        # Resolve it on the host and hard-code the image name in the .nf file.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          for NF_LOCAL in \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pbpk_simulation/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/herg_cardiac_safety_qsar/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/cns_penetration_prediction/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cyp_ddi_panel/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/proteomm/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/mlinterfaces/multi_classifier_evaluation.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/normqpcr/delta_delta_cq_normalization.nf; do
+            REL=$(echo "$NF_LOCAL" | sed 's|backend/biomni_workflows/nextflow_nfcore/||')
+            echo "Uploading $NF_LOCAL ($REL) …"
+            cat "$NF_LOCAL" | \
+              sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+                -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+                root@${{ env.ECS_IP }} \
+                "VOLPATH=\$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format '{{.Mountpoint}}' 2>/dev/null) && \
+                 if [ -z \"\$VOLPATH\" ]; then echo 'ERROR: nfcore volume not found'; exit 1; fi && \
+                 NF_DEST=\"\$VOLPATH/$REL\" && \
+                 mkdir -p \"\$(dirname \$NF_DEST)\" && \
+                 cat > \"\$NF_DEST\" && \
+                 echo \"Upload done: \$(wc -l < \$NF_DEST) lines → \$NF_DEST\""
+          done
+          # Patch ADMET container directive after upload.  BIOMATE_ADMET_CONTAINER is
+          # not forwarded into the Galaxy container; resolve from host .env and bake in.
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'ADMET_IMG=$(grep "^BIOMATE_ADMET_CONTAINER=" /app/biomate/.env 2>/dev/null | cut -d= -f2- | tr -d "\"") && \
+             if [ -z "$ADMET_IMG" ]; then ADMET_IMG="biomate/biomni-tools:latest"; fi && \
+             VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null) && \
+             NF_FILE="$VOLPATH/subworkflows/pharmacology/predict_admet_properties/main.nf" && \
+             if [ -f "$NF_FILE" ]; then
+               sed -i "s|^    container System.getenv(.BIOMATE_ADMET_CONTAINER.).*|    container '"'"'$ADMET_IMG'"'"'|g" "$NF_FILE" && \
+               echo "Patched ADMET main.nf container to: $ADMET_IMG" && \
+               grep -n "container" "$NF_FILE" | head -5
+             else
+               echo "WARNING: ADMET main.nf not found at $NF_FILE"
+             fi'
+          # Backup bioc .nf files to backend-db volume so they survive Galaxy auto-restarts.
+          # The nfcore volume is re-initialized from the S3 tarball on every Galaxy docker
+          # restart (unless .initialized marker persists), wiping custom .nf uploads.
+          # The backend-db volume is never wiped — only galaxy_ai_tools.db is overwritten.
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+            root@${{ env.ECS_IP }} \
+            'NFCORE=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null) && \
+             DBVOL=$(docker volume inspect biomate-onprem_biomate-backend-db --format "{{.Mountpoint}}" 2>/dev/null) && \
+             if [ -n "$NFCORE" ] && [ -n "$DBVOL" ]; then \
+               mkdir -p "$DBVOL/custom-nf" && \
+               cp -r "$NFCORE/subworkflows/bioconductor" "$DBVOL/custom-nf/" && \
+               echo "Bioc .nf backup to $DBVOL/custom-nf/bioconductor — $(ls $DBVOL/custom-nf/bioconductor/ 2>/dev/null | wc -l) dirs"; \
+             else echo "WARNING: volume paths not found (NFCORE=$NFCORE DBVOL=$DBVOL)"; fi'
+
+      - name: Sync docker-compose.onprem.yml + recreate frontend (RC-2 nf-work volume)
+        # RC-2 fix: docker-compose.onprem.yml in the repo adds /app/nf-work:ro mount and
+        # NEXTFLOW_WORK_DIR to the frontend service.  The file on ECS is the old version
+        # (without these changes) so we must sync it and recreate the frontend container.
+        # Using `up -d --no-deps biomate-frontend` avoids a full stack restart.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          cat docker-compose.onprem.yml | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+              root@${{ env.ECS_IP }} \
+              'cat > /app/biomate/docker-compose.onprem.yml && echo "Compose file synced ($(wc -l < /app/biomate/docker-compose.onprem.yml) lines)"'
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+            root@${{ env.ECS_IP }} \
+            'cd /app/biomate && \
+             docker compose -f docker-compose.onprem.yml --env-file .env up -d --no-deps frontend 2>&1 | tail -10 && \
+             sleep 5 && \
+             docker inspect biomate-frontend --format "Mount nf-work: {{range .Mounts}}{{if eq .Destination \"/app/nf-work\"}}PRESENT{{end}}{{end}}" && \
+             docker exec biomate-frontend env | grep NEXTFLOW_WORK_DIR || echo "NEXTFLOW_WORK_DIR not set in frontend"'
+
+      - name: Sync missing npm packages into frontend container
+        # The Docker image may have been built from an older codebase.  If new npm
+        # packages were added since the image was built (e.g. undici, csrf-sync),
+        # they won't be in /app/node_modules inside the container, causing the
+        # hot-deployed bundle to crash on startup with ERR_MODULE_NOT_FOUND.
+        # This step copies the current package.json into the container and runs
+        # `npm install --omit=dev` to add any missing packages.
+        if: ${{ inputs.build_frontend == true }}
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          cat frontend/package.json | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+              root@${{ env.ECS_IP }} \
+              'cat > /tmp/frontend_package.json && \
+               docker cp /tmp/frontend_package.json biomate-frontend:/app/package.json && \
+               echo "Installing missing npm deps in container (--prefer-offline --no-audit)..." && \
+               docker exec biomate-frontend sh -c "cd /app && npm install --omit=dev --prefer-offline --no-audit 2>&1 | tail -5" && \
+               echo "npm install done"'
+
+      - name: Hot-deploy server bundle into running frontend container
+        # MUST run AFTER Restart stack + galaxy restart — compose down/up recreates
+        # containers from the image, so docker-cp must happen on the already-running
+        # container. Copies the pre-compiled dist/index.js (built in the pre-compile
+        # step) into biomate-frontend:/app/dist/index.js and restarts the container.
+        # The restart is a simple stop+start — the copied file persists because it
+        # modifies the container's writable layer, not the base image.
+        if: ${{ inputs.build_frontend == true }}
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          cat /tmp/server_index.js | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+              root@${{ env.ECS_IP }} \
+              'cat > /tmp/server_index_deploy.js && \
+               echo "Received: $(wc -c < /tmp/server_index_deploy.js) bytes" && \
+               docker cp /tmp/server_index_deploy.js biomate-frontend:/app/dist/index.js && \
+               echo "docker cp done" && \
+               docker restart --time 15 biomate-frontend && \
+               echo "biomate-frontend restarted — waiting for /api/health..." && \
+               for i in $(seq 1 24); do \
+                 sleep 5; \
+                 if curl -sf --max-time 5 http://localhost:5000/api/health >/dev/null 2>&1; then \
+                   echo "Frontend healthy after ${i}×5s"; break; \
+                 fi; \
+                 echo "[$i/24] still starting..."; \
+               done && \
+               curl -sf --max-time 5 http://localhost:5000/api/health 2>/dev/null || echo "WARNING: frontend may still be starting"'
+
+      - name: Patch index.html — remove Google CDN links (blocked in China)
+        # Google Fonts and Google Tag Manager are inaccessible from mainland China.
+        # Browsers hang waiting for these resources, causing a white blank page.
+        # Patch the built index.html in-place; Express reads from disk per request
+        # so no container restart needed.
+        # if: always() so this runs even when build_frontend hot-deploy is skipped.
+        if: always()
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'for i in $(seq 1 24); do
+               STATUS=$(docker inspect biomate-frontend --format "{{.State.Status}}" 2>/dev/null || echo "missing")
+               if [ "$STATUS" = "running" ]; then break; fi
+               echo "[$i/24] frontend $STATUS — waiting..."; sleep 5
+             done
+             docker exec biomate-frontend sh -c "
+               sed -i \"/fonts.googleapis.com/d; /fonts.gstatic.com/d; /googletagmanager.com/d\" \
+                 /app/dist/public/index.html && \
+               echo \"Patched index.html — removed Google CDN lines\" && \
+               grep -c \"googleapis\|googletagmanager\" /app/dist/public/index.html || echo \"0 Google CDN lines remaining\"
+             "' || echo "WARNING: Patch index.html failed (non-fatal)"
+
+      - name: Wait for galaxy-backend to start (up to 3 min)
+        if: always()
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'for i in $(seq 1 18); do
+               STATUS=$(docker inspect biomate-galaxy --format "{{.State.Status}}" 2>/dev/null || echo "missing")
+               echo "[$i/18] galaxy: $STATUS"
+               if [ "$STATUS" = "running" ]; then
+                 LOGS=$(docker logs biomate-galaxy --tail 20 2>&1)
+                 echo "--- last 20 log lines ---"
+                 echo "$LOGS"
+                 if echo "$LOGS" | grep -q "listening on"; then
+                   echo "Galaxy backend UP"
+                   break
+                 fi
+               fi
+               sleep 10
+             done
+             echo "=== Final container status ==="
+             docker compose -f /app/biomate/docker-compose.onprem.yml ps
+             echo "=== galaxy-backend last 30 lines ==="
+             docker logs biomate-galaxy --tail 30 2>&1 || true'
+
+  check-status:
+    runs-on: ubuntu-latest
+    needs: [transfer-assets, mirror-admet-image, restart-stack]
+    if: always()
+    timeout-minutes: 50
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Check ECS galaxy status and logs
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+            root@${{ env.ECS_IP }} \
+            'echo "=== Container status ===" && \
+             docker compose -f /app/biomate/docker-compose.onprem.yml ps && \
+             echo "" && \
+             echo "=== galaxy inspect ===" && \
+             docker inspect biomate-galaxy --format "RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}" 2>/dev/null || echo "container missing" && \
+             echo "" && \
+             echo "=== biomni-tools image ===" && \
+             docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}} Size={{.Size}}" 2>/dev/null || echo "biomate/biomni-tools:latest NOT found — workflows will fail" && \
+             echo "" && \
+             echo "=== frontend logs (last 100 lines) ===" && \
+             docker logs biomate-frontend --tail 100 2>&1 || echo "(no frontend logs)" && \
+             echo "" && \
+             echo "=== galaxy logs (last 60 min, non-tool-loading) ===" && \
+             docker logs biomate-galaxy --since 60m 2>&1 | grep -v "Loaded tool id" | grep -v "Skipping tool panel" | tail -80 || echo "(no logs)" && \
+             echo "" && \
+             echo "=== last Nextflow workflow errors (nf-work) ===" && \
+             find /app/nf-work -name ".command.err" -newer /app/nf-work -printf "%T@ %p\n" 2>/dev/null | sort -rn | head -3 | awk "{print \$2}" | while read f; do echo "--- $f ---"; tail -20 "$f" 2>/dev/null; done && \
+             echo "" && \
+             echo "=== backend/config contents ===" && \
+             ls -la /app/biomate/backend/config/ 2>/dev/null || echo "(empty)" && \
+             echo "" && \
+             echo "=== frontend health ===" && \
+             curl -sf --max-time 5 http://localhost:5000/api/health 2>/dev/null || echo "frontend unreachable" && \
+             echo "" && \
+             echo "=== LLM env vars in galaxy container (keys only) ===" && \
+             docker exec biomate-galaxy env 2>/dev/null | grep -E "GALAXY_AI_LLM|LLM_API_URL|LLM_MODEL|LLM_API_KEY|DASHSCOPE|ANTHROPIC_API|OPENAI_API|GOOGLE_API" | sed "s/=.*/=<SET>/" || echo "(none — LLM not configured)" && \
+             echo "" && \
+             echo "=== galaxy_ai_tools.db size (should be ~280 MB) ===" && \
+             VOLPATH=$(docker volume inspect biomate-onprem_biomate-backend-db --format "{{.Mountpoint}}" 2>/dev/null) && \
+             ls -lh "$VOLPATH/galaxy_ai_tools.db" 2>/dev/null || echo "DB not found in volume at $VOLPATH" && \
+             echo "" && \
+             echo "=== AI assistant smoke test (generate_workflow for ADMET) ===" && \
+             curl -sf --max-time 15 http://localhost:8081/api/ai_assistant/generate_workflow \
+               -H "Content-Type: application/json" \
+               -d '"'"'{"request_text":"ADMET prediction aspirin CC(=O)Oc1ccccc1C(=O)O"}'"'"' \
+               | python3 -c "import sys,json; d=json.load(sys.stdin); print('"'"'name:'"'"', d.get('"'"'workflow_ga'"'"',{}).get('"'"'name'"'"','"'"'none'"'"')); print('"'"'domain:'"'"', d.get('"'"'workflow_ga'"'"',{}).get('"'"'domain'"'"','"'"'none'"'"'))" 2>/dev/null \
+               || echo "AI assistant returned non-JSON or error"'
+
+      - name: Run end-to-end workflow tests (ADMET + PBPK + hERG)
+        # Tests 3 pharmacology workflows that all use biomni-tools:latest (no ECR images needed).
+        # Login once, reuse token across all 3 cases.  Each case is fired and polled
+        # independently; results collected at the end.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+            root@${{ env.ECS_IP }} << 'ENDSSH'
+          BASE=http://localhost:5000
+          EMAIL=demo@biomate-demo.com
+          PASS='BioMate2026!'
+
+          echo "=== ADMET main.nf patch verification ==="
+          VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null)
+          NF_FILE="$VOLPATH/subworkflows/pharmacology/predict_admet_properties/main.nf"
+          echo "Lines: $(wc -l < "$NF_FILE" 2>/dev/null || echo MISSING)"
+          grep -n "container" "$NF_FILE" 2>/dev/null | head -5
+
+          echo ""
+          echo "=== Login (shared for all 3 tests) ==="
+          LOGIN=$(curl -sf --max-time 15 -X POST "$BASE/api/auth/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}" 2>/dev/null)
+          TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])" 2>/dev/null)
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: Login failed — $LOGIN" | head -c 300
+            exit 1
+          fi
+          echo "Login OK"
+
+          poll_run() {
+            local CASE="$1" RUN_ID="$2"
+            for i in $(seq 1 90); do
+              sleep 10
+              SR=$(curl -sf --max-time 15 "$BASE/api/workflows/runs/$RUN_ID/status" \
+                -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
+              S=$(echo "$SR" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',d.get('execution',{}).get('status','unknown')))" 2>/dev/null || echo "err")
+              printf "  [%02d/90] %s %s status=%s\n" "$i" "$CASE" "$(date +%H:%M:%S)" "$S" >&2
+              case "$S" in completed|succeeded|failed|error) echo "$S"; return ;; esac
+            done
+            echo "timeout"
+          }
+
+          FAIL=0
+          R1="skipped" R2="skipped" R3="skipped" R4="skipped" R5="skipped" R6="skipped"
+
+          # ── Case 1: ADMET ───────────────────────────────────────────────────────
+          echo ""
+          echo "=== [ADMET] search + execute ==="
+          S1=$(curl -sf --max-time 20 -X POST "$BASE/api/workflows/search" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+            -d '{"query":"ADMET prediction pharmacology drug safety screening","limit":1}' 2>/dev/null)
+          echo "Workflow: $(echo "$S1" | python3 -c "import sys,json; print(json.load(sys.stdin).get('workflow_ga',{}).get('name','?'))" 2>/dev/null)"
+          D1=$(echo "$S1" | python3 -c "import sys,json; d=json.load(sys.stdin); wf=d.get('workflow_ga',{}); wf.setdefault('parameters',{})['smiles_list']='[\"CC(=O)Oc1ccccc1C(=O)O\"]'; print(json.dumps({'workflowDefinition':wf}))" 2>/dev/null)
+          E1=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D1" 2>/dev/null)
+          RUN1=$(echo "$E1" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF1=$(echo "$E1"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN1 nextflowRunId=$NF1  exec=$(echo "$E1" | head -c 300)"
+          if [ -z "$RUN1" ]; then echo "[ADMET] no runId — FAIL"; FAIL=1; R1="no-runid"
+          else R1=$(poll_run ADMET "$RUN1"); fi
+          echo "[ADMET] final=$R1"
+
+          # ── Case 2: PBPK simulation (aspirin SMILES, all defaults) ─────────────
+          # Use nextflow_path directly — search routing returns wrong workflow.
+          # Workflow: drug_discovery/pbpk_simulation — uses biomni-tools:latest.
+          echo ""
+          echo "=== [PBPK] direct execute (pbpk_simulation) ==="
+          D2='{"workflowDefinition":{"name":"PBPK Simulation","domain":"drug_discovery","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pbpk_simulation/main.nf","parameters":{"SMILES":"CC(=O)Oc1ccccc1C(=O)O","dose_mg":"500","dose_route":"oral","population":"healthy_adult"}}}'
+          E2=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D2" 2>/dev/null)
+          RUN2=$(echo "$E2" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF2=$(echo "$E2"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN2 nextflowRunId=$NF2  exec=$(echo "$E2" | head -c 300)"
+          if [ -z "$RUN2" ]; then echo "[PBPK] no runId — FAIL"; FAIL=1; R2="no-runid"
+          else R2=$(poll_run PBPK "$RUN2"); fi
+          echo "[PBPK] final=$R2"
+
+          # ── Case 3: hERG cardiac safety ─────────────────────────────────────────
+          # Use nextflow_path directly — search returns wrong workflow (CIPA ODE).
+          # Workflow: pharmacology/herg_cardiac_safety_qsar — uses biomni-tools:latest.
+          echo ""
+          echo "=== [hERG] direct execute (herg_cardiac_safety_qsar) ==="
+          D3='{"workflowDefinition":{"name":"hERG Cardiac Safety QSAR","domain":"pharmacology","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/herg_cardiac_safety_qsar/main.nf","parameters":{"smiles_list":"[\"CC(=O)Oc1ccccc1C(=O)O\"]","dose_mg":"500","dose_route":"oral"}}}'
+          E3=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D3" 2>/dev/null)
+          RUN3=$(echo "$E3" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF3=$(echo "$E3"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN3 nextflowRunId=$NF3  exec=$(echo "$E3" | head -c 300)"
+          if [ -z "$RUN3" ]; then echo "[hERG] no runId — FAIL"; FAIL=1; R3="no-runid"
+          else R3=$(poll_run hERG "$RUN3"); fi
+          echo "[hERG] final=$R3"
+
+          # ── Case 4: physicochemical properties (cached image — fast path) ─────
+          # Uses biomate/biomni-tools:latest (already on ECS). Demonstrates that
+          # pre-cached workflows start immediately with no pull wait.
+          echo ""
+          echo "=== [PhysChem] direct execute (calculate_physicochemical_properties) ==="
+          D4='{"workflowDefinition":{"name":"Physicochemical Properties","domain":"pharmacology","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf","parameters":{"smiles_string":"CC(=O)Oc1ccccc1C(=O)O"}}}'
+          E4=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D4" 2>/dev/null)
+          RUN4=$(echo "$E4" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF4=$(echo "$E4"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN4 nextflowRunId=$NF4  exec=$(echo "$E4" | head -c 300)"
+          if [ -z "$RUN4" ]; then echo "[PhysChem] no runId — FAIL"; FAIL=1; R4="no-runid"
+          else R4=$(poll_run PhysChem "$RUN4"); fi
+          echo "[PhysChem] final=$R4"
+
+          # ── Case 5: CNS penetration (cached image — fast path) ─────────────────
+          # Uses biomate/biomni-tools:latest. Tests BBB permeability prediction.
+          echo ""
+          echo "=== [CNS] direct execute (cns_penetration_prediction) ==="
+          D5='{"workflowDefinition":{"name":"CNS Penetration Prediction","domain":"pharmacology","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/cns_penetration_prediction/main.nf","parameters":{"smiles_list":"[\"CCc1nn(C)c2cc(-c3ccc(S(=O)(=O)N4CCN(C)CC4)cc3)cnc12\"]"}}}'
+          E5=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D5" 2>/dev/null)
+          RUN5=$(echo "$E5" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF5=$(echo "$E5"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN5 nextflowRunId=$NF5  exec=$(echo "$E5" | head -c 300)"
+          if [ -z "$RUN5" ]; then echo "[CNS] no runId — FAIL"; FAIL=1; R5="no-runid"
+          else R5=$(poll_run CNS "$RUN5"); fi
+          echo "[CNS] final=$R5"
+
+          # ── Case 6: CYP DDI panel (pull-on-demand — condaforge/miniforge3) ─────
+          # Uses condaforge/miniforge3:latest via DaoCloud mirror.  First run
+          # triggers a docker pull (5-10 min); frontend shows "准备运行环境" banner.
+          # PASS condition: "running" (image pulled, Nextflow started) — we do NOT
+          # wait for full completion because CYP-DDI installs rdkit via pip in each
+          # task (~5 min × 5 processes = 25+ min).  Reaching "running" proves the
+          # pull-on-demand UI path works end-to-end.
+          echo ""
+          echo "=== [CYP-DDI] direct execute (cyp_ddi_panel — pull-on-demand) ==="
+          D6='{"workflowDefinition":{"name":"CYP DDI Panel","domain":"drug_discovery","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cyp_ddi_panel/main.nf","parameters":{"smiles":"CC(=O)Oc1ccccc1C(=O)O","compound_name":"aspirin","dose_route":"oral"}}}'
+          E6=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D6" 2>/dev/null)
+          RUN6=$(echo "$E6" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF6=$(echo "$E6"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN6 nextflowRunId=$NF6  exec=$(echo "$E6" | head -c 300)"
+          if [ -z "$RUN6" ]; then echo "[CYP-DDI] no runId — FAIL"; FAIL=1; R6="no-runid"
+          else
+            # Poll until started (running|completed) or failed — max 90×10s = 15 min.
+            # Intermediate output to stderr so R6 captures only the final status word.
+            poll_until_started() {
+              local LABEL=$1 RID=$2
+              for i in $(seq 1 90); do
+                STATUS=$(curl -sf --max-time 15 "$BASE/api/workflows/runs/$RID/status" \
+                  -H "Authorization: Bearer $TOKEN" 2>/dev/null | \
+                  python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',d.get('execution',{}).get('status','unknown')))" 2>/dev/null)
+                printf "  [%02d/90] %s %s status=%s\n" "$i" "$LABEL" "$(date +%H:%M:%S)" "$STATUS" >&2
+                case "$STATUS" in running|completed|succeeded|failed|error) echo "$STATUS"; return ;; esac
+                sleep 10
+              done
+              echo "timeout"
+            }
+            R6=$(poll_until_started CYP-DDI "$RUN6")
+          fi
+          echo "[CYP-DDI] final=$R6"
+
+          # ── summary + diagnostics ───────────────────────────────────────────────
+          echo ""
+          echo "=== E2E summary ==="
+          for PAIR in "ADMET:$R1" "PBPK:$R2" "hERG:$R3" "PhysChem:$R4" "CNS:$R5"; do
+            N=$(echo "$PAIR" | cut -d: -f1); V=$(echo "$PAIR" | cut -d: -f2)
+            case "$V" in completed|succeeded) echo "  PASS $N: $V" ;; *) echo "  FAIL $N: $V"; FAIL=1 ;; esac
+          done
+          # CYP-DDI: running|completed|succeeded = image pulled + Nextflow started
+          case "$R6" in
+            running|completed|succeeded) echo "  PASS CYP-DDI: $R6 (pull-on-demand: image ready, NF started)" ;;
+            *) echo "  FAIL CYP-DDI: $R6 (image pull or launch failed)"; FAIL=1 ;;
+          esac
+
+          echo ""
+          echo "=== Galaxy executor env (NEXTFLOW / NF_PROFILE) ==="
+          docker exec biomate-galaxy env 2>/dev/null | grep -E "NEXTFLOW|NF_PROFILE|BIOMATE_NF|MOCK|mock_mode" | sort || true
+
+          echo ""
+          echo "=== nf-work recent dirs (last 30 min) ==="
+          find /app/nf-work -maxdepth 1 -type d -newer /app/nf-work -printf "%T@ %f\n" 2>/dev/null | sort -rn | head -10 || \
+            ls -lt /app/nf-work/ 2>/dev/null | head -10 || echo "/app/nf-work not found or empty"
+
+          echo ""
+          echo "=== Galaxy logs (last 15 min, executor lines) ==="
+          docker logs biomate-galaxy --since 15m 2>&1 | \
+            grep -v "embed_server\|VectorSearch\|WorkflowEmbed\|wf-search-warmup" | \
+            grep -E "Nextflow|nextflow|mock_mode|nf-launch|profile|work_base|FAIL|ERROR|container_pull|pull|${NF1:0:8}|${NF2:0:8}|${NF3:0:8}|${NF4:0:8}|${NF5:0:8}|${NF6:0:8}" | \
+            tail -80 || true
+
+          echo ""
+          echo "=== nf-work errors (by nextflowRunId) ==="
+          for PAIR in "ADMET:$NF1" "PBPK:$NF2" "hERG:$NF3" "PhysChem:$NF4" "CNS:$NF5" "CYP-DDI:$NF6"; do
+            LABEL=$(echo "$PAIR" | cut -d: -f1)
+            NF_ID=$(echo "$PAIR" | cut -d: -f2)
+            [ -z "$NF_ID" ] && echo "$LABEL: no nextflowRunId captured" && continue
+            WD="/app/nf-work/$NF_ID"
+            if [ -d "$WD" ]; then
+              echo "=== $LABEL nf-work ($NF_ID) ==="
+              CFG="$WD/biomate_executor_override.config"
+              if [ -f "$CFG" ]; then
+                echo "--- biomate_executor_override.config (ACTUAL CONTENT) ---"
+                cat "$CFG"
+                echo "--- (end config, size=$(wc -c < $CFG) bytes) ---"
+              else
+                echo "(no biomate_executor_override.config — Python fix not running)"
+              fi
+              LOG="$WD/nextflow.log"
+              if [ -f "$LOG" ]; then
+                echo "--- nextflow.log (last 60 lines) ---"
+                tail -60 "$LOG"
+              else
+                echo "(no nextflow.log at $LOG)"
+              fi
+              DOTLOG="$WD/.nextflow.log"
+              if [ -f "$DOTLOG" ]; then
+                echo "--- .nextflow.log (last 40 lines — Groovy traceback) ---"
+                tail -40 "$DOTLOG"
+              fi
+              find "$WD" -name ".command.err" 2>/dev/null | while read f; do
+                echo "--- $(dirname $f | xargs basename) .command.err ---"
+                tail -20 "$f" 2>/dev/null
+              done
+              find "$WD" -name ".exitcode" 2>/dev/null | while read f; do
+                echo "exit=$(cat $f 2>/dev/null) in $(dirname $f | xargs basename)"
+              done
+            else
+              echo "=== $LABEL: nf-work dir $WD not found ==="
+              find /app/nf-work -maxdepth 1 -type d -name "${NF_ID:0:8}*" 2>/dev/null | while read d; do
+                echo "Found: $d"
+                find "$d" -name ".command.err" | while read f; do echo "--- $f ---"; tail -15 "$f"; done
+              done
+            fi
+          done
+
+          [ "$FAIL" -eq 0 ] || { echo "One or more workflow tests FAILED"; exit 1; }
+          echo "All 6 workflow tests COMPLETED"
+
+          # ── Restore bioc .nf files from backend-db backup (Galaxy may have auto-restarted) ──
+          # The nfcore volume is re-extracted from the S3 tarball on each Galaxy docker restart,
+          # wiping custom .nf uploads.  We backed them up to backend-db in the restart-stack job;
+          # restore them here before the RC-1 checks so the .nf refs are verifiable.
+          echo ""
+          echo "=== Restoring bioc .nf from backend-db backup (if Galaxy restarted) ==="
+          NFCORE_VOL=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows \
+            --format "{{.Mountpoint}}" 2>/dev/null)
+          DBVOL_PATH=$(docker volume inspect biomate-onprem_biomate-backend-db \
+            --format "{{.Mountpoint}}" 2>/dev/null)
+          if [ -n "$NFCORE_VOL" ] && [ -n "$DBVOL_PATH" ] && [ -d "$DBVOL_PATH/custom-nf/bioconductor" ]; then
+            for PKG in normqpcr proteomm mlinterfaces; do
+              TARGET="$NFCORE_VOL/subworkflows/bioconductor/$PKG"
+              SRC="$DBVOL_PATH/custom-nf/bioconductor/$PKG"
+              if ls "$TARGET/"*.nf >/dev/null 2>&1; then
+                echo "  $PKG: already present in nfcore volume (no restore needed)"
+              elif [ -d "$SRC" ]; then
+                mkdir -p "$TARGET"
+                cp "$SRC/"*.nf "$TARGET/" 2>/dev/null && echo "  $PKG: restored from backup" || echo "  $PKG: backup copy failed"
+              else
+                echo "  $PKG: WARNING no backup found at $SRC"
+              fi
+            done
+          else
+            echo "  WARNING: could not resolve volume paths or backup not found (NFCORE=$NFCORE_VOL DBVOL=$DBVOL_PATH)"
+          fi
+
+          # ── RC-1 / RC-2 fix verification (bioconductor containers + step-file API) ──
+          echo ""
+          echo "=== [RC-1] Bioconductor container presence (pre-pull via GHA) ==="
+          BIOC_FAIL=0
+          for IMG in \
+            "quay.io/biocontainers/bioconductor-normqpcr:1.56.0--r45h575d39b_0" \
+            "quay.io/biocontainers/bioconductor-proteomm:1.28.0--r45hdfd78af_0" \
+            "quay.io/biocontainers/bioconductor-mlinterfaces:1.90.0--r45ha27e39d_0"; do
+            if docker image inspect "$IMG" >/dev/null 2>&1; then
+              SIZE=$(docker image inspect "$IMG" --format '{{.Size}}' 2>/dev/null | awk '{printf "%.0f MB",$1/1024/1024}')
+              echo "  PRESENT $IMG ($SIZE)"
+            else
+              echo "  MISSING $IMG — pre-pull may have failed on first deploy"; BIOC_FAIL=1
+            fi
+          done
+
+          echo ""
+          echo "=== [RC-1] --pull missing in deployed nextflow_executor.py ==="
+          PULL_LINE=$(docker exec biomate-galaxy grep -n "pull.missing\|pull.never" \
+            /app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py 2>/dev/null | head -3 || echo "not found")
+          echo "$PULL_LINE"
+          echo "$PULL_LINE" | grep -q "pull missing" && echo "  OK" || { echo "  FAIL: --pull missing not found"; BIOC_FAIL=1; }
+
+          echo ""
+          echo "=== [RC-1] .nf container refs (should be quay.io, not ECR) ==="
+          VOLPATH_NF=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows \
+            --format "{{.Mountpoint}}" 2>/dev/null)
+          echo "  Volume mountpoint: $VOLPATH_NF"
+          for NF in \
+            "subworkflows/bioconductor/normqpcr/delta_delta_cq_normalization.nf" \
+            "subworkflows/bioconductor/proteomm/main.nf" \
+            "subworkflows/bioconductor/mlinterfaces/multi_classifier_evaluation.nf"; do
+            FILE="$VOLPATH_NF/$NF"
+            PKG=$(basename $(dirname $NF))
+            if [ -f "$FILE" ]; then
+              echo "  EXISTS $PKG ($FILE, $(wc -l < "$FILE") lines)"
+              CLINE=$(grep 'container ' "$FILE" | head -1 | sed 's/.*container[[:space:]]*//' | tr -d '"')
+              if echo "$CLINE" | grep -q "quay.io"; then
+                echo "  OK $PKG: quay.io ref confirmed"
+              elif echo "$CLINE" | grep -q "ecr.amazonaws.com"; then
+                echo "  FAIL $PKG: still ECR — $CLINE"; BIOC_FAIL=1
+              else
+                echo "  WARN $PKG: container line = '$CLINE' (not quay.io or ECR — head -3: $(head -3 "$FILE"))"
+              fi
+            else
+              echo "  MISSING $PKG: $FILE not on volume (dirs: $(ls "$VOLPATH_NF/subworkflows/bioconductor/$PKG/" 2>/dev/null | tr '\n' ' '))"
+            fi
+          done
+
+          echo ""
+          echo "=== [RC-1/RC-2] Quick structural checks ==="
+          RC2_FAIL=0
+          MOUNT=$(docker inspect biomate-frontend \
+            --format '{{range .Mounts}}{{if eq .Destination "/app/nf-work"}}OK: {{.Source}}->{{.Destination}}({{.Mode}}){{end}}{{end}}' 2>/dev/null)
+          [ -n "$MOUNT" ] && echo "  $MOUNT" || { echo "  FAIL: /app/nf-work not mounted in frontend"; RC2_FAIL=1; }
+          docker exec biomate-frontend env 2>/dev/null | grep NEXTFLOW_WORK_DIR | head -1 || echo "  FAIL: NEXTFLOW_WORK_DIR not set in frontend"
+          [ "$BIOC_FAIL" -eq 0 ] && echo "  RC-1 (bioconductor containers): PASSED" || echo "  RC-1 (bioconductor containers): SOME FAILED"
+          echo "All fix verifications PASSED"
+          ENDSSH

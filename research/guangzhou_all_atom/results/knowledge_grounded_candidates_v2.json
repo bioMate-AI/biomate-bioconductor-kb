@@ -1,0 +1,152 @@
+{
+  "document": "Updated knowledge-grounded avb6 candidates v2 (edit-guideline fixes of v1 flags)",
+  "date": "2026-10-13",
+  "note": "Tier-1 pharmacophore preserved; each edit fixes a v1 liability/FTO flag; re-gated below. Design hypotheses \u2014 physics (MM-GBSA on 9xmm/5O45) + wet-lab still required.",
+  "candidates": [
+    {
+      "id": "AVB6-K-01",
+      "helm": "cyclo(F-R-G-D-L-S-W-[dP]-[NMeA])",
+      "edit": "(unchanged \u2014 v1 PASS/FTO-clean)",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ],
+      "genus_id": {
+        "vs": "avebehexin",
+        "identity": 0.667
+      },
+      "fto": "clean"
+    },
+    {
+      "id": "AVB6-K-02",
+      "helm": "cyclo(W-R-G-D-L-T-F-[dP]-[NMeV])",
+      "edit": "(unchanged \u2014 v1 PASS)",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ],
+      "genus_id": {
+        "vs": "avebehexin",
+        "identity": 0.667
+      },
+      "fto": "clean"
+    },
+    {
+      "id": "AVB6-K-03",
+      "helm": "cyclo(Y-R-G-D-L-G-H-[dP]-[NMeL])",
+      "edit": "(unchanged \u2014 v1 PASS)",
+      "tier": "PASS",
+      "net_charge": 0,
+      "flags": [],
+      "genus_id": {
+        "vs": "Trivehexin",
+        "identity": 0.667
+      },
+      "fto": "clean"
+    },
+    {
+      "id": "AVB6-K-04",
+      "helm": "cyclo(H-R-G-D-L-A-W-[dP]-[NMeE])",
+      "edit": "RENAL: cationic NMeLys -> anionic NMeGlu (lower kidney dose; net +1 -> -1)",
+      "tier": "WATCH",
+      "net_charge": -1,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ],
+      "genus_id": {
+        "vs": "Trivehexin",
+        "identity": 0.667
+      },
+      "fto": "clean"
+    },
+    {
+      "id": "AVB6-K-05",
+      "helm": "cyclo(F-R-G-D-L-I-F-[dP]-[NMeA])",
+      "edit": "(unchanged \u2014 v1 PASS + extended-affinity)",
+      "tier": "PASS",
+      "net_charge": 0,
+      "flags": [
+        "[note] sar:extended-affinity"
+      ],
+      "genus_id": {
+        "vs": "avebehexin",
+        "identity": 0.778
+      },
+      "fto": "clean"
+    },
+    {
+      "id": "AVB6-K-06",
+      "helm": "cyclo(R-G-D-L-Q-F-[dP]-[NMeS]-G)",
+      "edit": "(unchanged \u2014 v1 PASS)",
+      "tier": "PASS",
+      "net_charge": 0,
+      "flags": [],
+      "genus_id": {
+        "vs": "avebehexin",
+        "identity": 0.444
+      },
+      "fto": "clean"
+    },
+    {
+      "id": "AVB6-K-07",
+      "helm": "cyclo([dL]-R-G-D-L-S-F-[dP]-[NMeT])",
+      "edit": "(unchanged \u2014 v1 PASS)",
+      "tier": "PASS",
+      "net_charge": 0,
+      "flags": [],
+      "genus_id": {
+        "vs": "avebehexin",
+        "identity": 0.667
+      },
+      "fto": "clean"
+    },
+    {
+      "id": "AVB6-K-08",
+      "helm": "cyclo(Y-R-G-D-L-I-W-[dP]-[NMeA])",
+      "edit": "(unchanged \u2014 LEAD: PASS + extended-affinity + FTO-clean)",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox",
+        "[note] sar:extended-affinity"
+      ],
+      "genus_id": {
+        "vs": "Trivehexin",
+        "identity": 0.667
+      },
+      "fto": "clean"
+    },
+    {
+      "id": "AVB6-K-09",
+      "helm": "cyclo(W-R-G-D-L-T-H-[dP]-[NMeE])",
+      "edit": "FTO: diversify flanks away from avebehexin FRGDLAFPK (cap F->W, A->T, F->H, +NMeGlu); genus id 0.89 -> target <0.8",
+      "tier": "WATCH",
+      "net_charge": -1,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ],
+      "genus_id": {
+        "vs": "Trivehexin",
+        "identity": 0.556
+      },
+      "fto": "clean"
+    },
+    {
+      "id": "AVB6-K-10",
+      "helm": "cyclo(W-R-G-D-L-S-Y-[dP]-[NMeA])",
+      "edit": "RENAL: cationic Lys flank -> neutral Ser (net +1 -> 0); corrects the backwards v1 'Lys tunes clearance'",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ],
+      "genus_id": {
+        "vs": "Trivehexin",
+        "identity": 0.667
+      },
+      "fto": "clean"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "n": 8466,
+  "target": "Permeability (log Papp)",
+  "features": "ECFP4 Morgan (r=2, 2048)",
+  "model": "HistGradientBoostingRegressor bootstrap-bagged (5); std = epistemic uncertainty",
+  "split": "leak-free Bemis-Murcko generic-scaffold folds (5)",
+  "n_scaffolds": 1441,
+  "scaffold_r2": 0.23091693862421003,
+  "scaffold_mae": 0.6379398347366747,
+  "scaffold_rmse": 0.947221408817425,
+  "mean_epistemic_std": 0.158011412929654,
+  "reference_r2": {
+    "CPMP": 0.67,
+    "CycPeptMP": 0.77,
+    "prior_our_work": "0.11-0.29"
+  },
+  "limits": [
+    "ranking-grade, well below published references (which use multimodal models)",
+    "log Papp regression; ECFP-only; no 3D/conformer features",
+    "scaffold split is the honest generalization metric (random-split R2 is higher)"
+  ]
+}

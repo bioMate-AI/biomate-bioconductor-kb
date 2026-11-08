@@ -10,14 +10,16 @@
  * Pipeline Steps:
  * 1. SMILES_VALIDATION     -- RDKit standardization; SMILES -> InChI/InChIKey;
  *                             MW, cLogP, TPSA, HBD/HBA, RotBonds, Lipinski check
- * 2. CYP_INHIBITION        -- MolBERT/ChemBERTa ML models (fine-tuned on ChEMBL 33
- *                             CYP inhibition assays): predict IC50 (uM) for each
- *                             of the 5 CYP isoforms; classify as inhibitor/non-inhibitor
- *                             at 1 uM and 10 uM cutoffs
- * 3. HEPATIC_CLEARANCE     -- Predict in vitro CLint (mL/min/mg protein) using
- *                             QSAR microsomal clearance model (trained on DMPK data);
- *                             scale to in vivo CLhep using IVIVE (well-stirred model),
- *                             output extraction ratio and fu,p
+ * 2. CYP_INHIBITION        -- DETERMINISTIC physicochemical heuristic (RDKit
+ *                             descriptors) for CYP IC50 (uM) per isoform. This is a
+ *                             clearly-labelled HEURISTIC screen with a reported
+ *                             uncertainty band — NOT a trained/validated ML model.
+ *                             classify as inhibitor/non-inhibitor at 1 uM/10 uM.
+ * 3. HEPATIC_CLEARANCE     -- DETERMINISTIC descriptor heuristic for in vitro CLint
+ *                             (uL/min/mg protein), clearly labelled as a heuristic;
+ *                             the in-vitro->in-vivo scaling to CLhep uses the REAL
+ *                             IVIVE well-stirred model (Obach 1997). Output
+ *                             extraction ratio and fu,p.
  * 4. DDI_RISK_ASSESSMENT   -- FDA 2020 DDI guidance: compute R1 (perpetrator reversible),
  *                             R1gut (intestinal), R2 (time-dependent inhibition proxy),
  *                             and R3 (induction proxy); flag INVESTIGATE / CLINICAL STUDY
@@ -33,12 +35,24 @@
  *   cyp_radar_chart.png          -- radar chart of CYP inhibition risk
  *   clearance_funnel.png         -- in vitro -> in vivo clearance scaling diagram
  *
+ * HONESTY CONTRACT (2026-09-22 fabrication sweep):
+ *   The CYP IC50 and in-vitro CLint values are DETERMINISTIC physicochemical
+ *   heuristics computed from RDKit descriptors. The previous version added
+ *   `np.random.default_rng(fp_hash)` lognormal NOISE to each value and labelled
+ *   the function a "QSAR model (Random Forest, trained on ChEMBL 33)" claiming
+ *   "~0.7-0.8 ROC-AUC". No such trained model shipped in the container and the
+ *   hash-seeded noise was fabrication. Both the RNG and the false model claims
+ *   are DELETED. Values are now reproducible heuristic estimates carrying an
+ *   explicit `method: physchem_heuristic` tag and an order-of-magnitude
+ *   uncertainty flag. The downstream FDA-2020 DDI math and Obach-1997 IVIVE
+ *   scaling are real and unchanged; they simply consume honest heuristic inputs.
+ *
  * References:
  *   FDA DDI guidance (2020): https://www.fda.gov/media/134582/download
- *   ChemBERTa: Chithrananda et al. arXiv 2020, 2010.09885
  *   IVIVE well-stirred model: Obach et al. Drug Metab. Dispos. 1997, 25:1359-1369
+ *   hERG/CYP physicochemical drivers: Aronov Drug Discov. Today 2005; Lee et al.
+ *     (CYP substrate/inhibitor pharmacophores) — used only to shape the heuristic.
  *   RDKit: https://www.rdkit.org
- *   MolBERT: Fabian et al. Sci. Rep. 2020, 10:20803
  */
 
 nextflow.enable.dsl = 2
@@ -207,8 +221,9 @@ PYEOF
 // [Phase B] CYP Inhibition Panel (IC50)
 process CYP_INHIBITION {
     /*
-     * Predict CYP450 inhibition IC50 (uM) for all 5 major isoforms.
-     * Uses QSAR models (Morgan fingerprints + Random Forest, trained on ChEMBL 33).
+     * Estimate CYP450 inhibition IC50 (uM) for all 5 major isoforms using a
+     * DETERMINISTIC physicochemical heuristic over RDKit descriptors (NOT a
+     * trained ML model). Reproducible; carries an explicit uncertainty band.
      * Classifies: non-inhibitor / weak (1-10 uM) / moderate (0.1-1 uM) / strong (<0.1 uM).
      */
     tag "cyp_inhibition"
@@ -231,7 +246,7 @@ process CYP_INHIBITION {
     pip install rdkit scikit-learn numpy matplotlib 2>/dev/null || true
 
     python3 - <<'PYEOF'
-import json, math, hashlib
+import json, math
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -251,16 +266,21 @@ compound = json.load(open('${compound_file}'))
 smiles = compound['canonical_smiles']
 mol = Chem.MolFromSmiles(smiles)
 
-# -- QSAR-based IC50 prediction using physicochemical-space heuristics --
-# Trained RF models not available in container; use calibrated QSAR equations
-# based on published structure-activity relationships from ChEMBL CYP data.
-# Accuracy: ~0.7-0.8 ROC-AUC vs ChEMBL test set (comparable to published QSAR).
+# -- DETERMINISTIC physicochemical heuristic for CYP IC50 ----------------------
+# HONESTY: this is NOT a trained QSAR/ML model. It is a reproducible descriptor
+# heuristic that shapes a plausible IC50 from published isoform pharmacophore
+# drivers (aromaticity, logP, basic-N count, MW). It carries no fabricated
+# per-compound noise. Treat outputs as an order-of-magnitude screen only.
+# The previous version multiplied each value by `rng.normal(0,0.3)` seeded by
+# the fingerprint hash and claimed a trained RF with 0.7-0.8 ROC-AUC — both
+# removed as fabrication.
+IC50_METHOD = 'physchem_heuristic'
+IC50_UNCERTAINTY = 'order_of_magnitude'   # ~±1 log unit; heuristic, not validated
 
 def predict_cyp_ic50_um(mol, isoform):
     '''
-    Physicochemical QSAR for CYP inhibition IC50 (uM).
-    Based on pharmacophore features associated with each isoform substrate/inhibitor.
-    Returns IC50 in uM (lower = stronger inhibitor).
+    Deterministic physicochemical heuristic for CYP inhibition IC50 (uM).
+    Reproducible from RDKit descriptors; NOT a trained model. Lower = stronger.
     '''
     mw     = Descriptors.MolWt(mol)
     logp   = Crippen.MolLogP(mol)
@@ -269,11 +289,6 @@ def predict_cyp_ic50_um(mol, isoform):
     hba    = rdMolDescriptors.CalcNumHBA(mol)
     arom   = rdMolDescriptors.CalcNumAromaticRings(mol)
     rotb   = rdMolDescriptors.CalcNumRotatableBonds(mol)
-
-    # Molecular fingerprint for compound-specific noise
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, 1024)
-    fp_hash = int(hashlib.md5(fp.ToBitString().encode()).hexdigest(), 16) % (2**32)
-    rng = np.random.default_rng(fp_hash)
 
     if isoform == 'CYP1A2':
         # CYP1A2 prefers planar, aromatic compounds (caffeine, theophylline substrate)
@@ -301,8 +316,10 @@ def predict_cyp_ic50_um(mol, isoform):
     else:
         base = 10
 
-    # Clamp to realistic range [0.01, 200] uM with lognormal noise
-    log_ic50 = np.log10(max(0.1, base)) + rng.normal(0, 0.3)
+    # Deterministic map of the descriptor score to an IC50, clamped to a
+    # realistic [0.01, 200] uM window. No RNG: same molecule -> same value,
+    # because this is a heuristic estimate, not a sampled prediction.
+    log_ic50 = np.log10(max(0.1, base))
     ic50 = 10 ** log_ic50
     return round(float(np.clip(ic50, 0.01, 200)), 3)
 
@@ -329,6 +346,8 @@ for isoform in isoforms:
         'classification': classification,
         'flag_at_1uM': flag_1um,
         'flag_at_10uM': flag_10um,
+        'method': IC50_METHOD,
+        'uncertainty': IC50_UNCERTAINTY,
     }
 
 # -- Radar chart --
@@ -371,6 +390,11 @@ plt.close()
 output = {
     'compound_name': compound['compound_name'],
     'canonical_smiles': compound['canonical_smiles'],
+    'ic50_method': IC50_METHOD,
+    'ic50_uncertainty': IC50_UNCERTAINTY,
+    'ic50_disclaimer': ('IC50 values are a deterministic physicochemical heuristic '
+                        '(RDKit descriptors), not a trained/validated QSAR model. '
+                        'Use as an order-of-magnitude triage screen only.'),
     'cyp_inhibition': cyp_results,
     'summary': {
         'n_flagged_1uM': sum(1 for r in cyp_results.values() if r['flag_at_1uM']),
@@ -414,7 +438,7 @@ process HEPATIC_CLEARANCE {
     pip install rdkit scikit-learn numpy matplotlib 2>/dev/null || true
 
     python3 - <<'PYEOF'
-import json, math, hashlib
+import json, math
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -438,16 +462,18 @@ tpsa   = rdMolDescriptors.CalcTPSA(mol)
 hbd    = rdMolDescriptors.CalcNumHBD(mol)
 n_N    = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() == 7)
 
-# Compound-specific seed
-fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, 1024)
-fp_hash = int(hashlib.md5(fp.ToBitString().encode()).hexdigest(), 16) % (2**32)
-rng = np.random.default_rng(fp_hash + 1)
-
-# -- Predict CLint from descriptors (QSAR microsomal clearance) --
-# Model based on: lipophilicity drives metabolic liability (Ma et al. 2010)
-# CLint (uL/min/mg protein) = f(logP, MW, N-count, HBD)
+# -- DETERMINISTIC descriptor heuristic for in vitro CLint ---------------------
+# HONESTY: this is a reproducible descriptor heuristic, NOT a trained QSAR model.
+# It shapes CLint from the known driver (lipophilicity drives metabolic
+# liability; Ma et al. 2010). The previous version added
+# `np.random.default_rng(fp_hash + 1).normal(0, 3)` noise to the value — that
+# hash-seeded fabrication is removed. Same molecule -> same CLint.
+# The IVIVE well-stirred scaling below (Obach 1997) is REAL methodology and
+# operates on this honest heuristic input.
+CLINT_METHOD = 'physchem_heuristic'
+CLINT_UNCERTAINTY = 'order_of_magnitude'
 base_clint = 5 + max(0, logp - 1) * 8 + n_N * 3 - hbd * 2 - max(0, mw - 400) * 0.02
-clint_uL_per_min_mg = float(np.clip(base_clint + rng.normal(0, 3), 0.5, 200))
+clint_uL_per_min_mg = float(np.clip(base_clint, 0.5, 200))
 clint_mL_per_min_mg = clint_uL_per_min_mg / 1000
 
 # -- Predict fu_plasma if not provided --
@@ -505,6 +531,10 @@ clearance_result = {
     'compound_name': compound['compound_name'],
     'clint_uL_per_min_per_mg_protein': round(clint_uL_per_min_mg, 2),
     'clint_mL_per_min_per_mg_protein': round(clint_mL_per_min_mg, 4),
+    'clint_method': CLINT_METHOD,
+    'clint_uncertainty': CLINT_UNCERTAINTY,
+    'clint_disclaimer': ('In vitro CLint is a deterministic descriptor heuristic, not a '
+                         'trained QSAR model; downstream IVIVE (Obach 1997) is real.'),
     'fu_plasma': round(fu_plasma, 3),
     'fu_plasma_predicted': fu_plasma_predicted,
     'fu_mic': fu_mic,
@@ -768,6 +798,10 @@ qc_metrics = {
     'highest_risk_isoform': result['summary']['highest_risk_isoform'],
     'evidence_tier': 'GOLD',
     'citation': 'FDA 2020 In Vitro Drug Interaction Studies Guidance for Industry',
+    # HONESTY: the DDI static-math (R1/R1gut/R2) is GOLD FDA methodology, but the
+    # IC50 inputs are a physicochemical HEURISTIC (not a validated model). Flag it.
+    'ic50_input_method': cyp.get('ic50_method', 'physchem_heuristic'),
+    'ic50_input_uncertainty': cyp.get('ic50_uncertainty', 'order_of_magnitude'),
 }
 with open('qc_metrics.json', 'w') as f:
     json.dump(qc_metrics, f, indent=2)
@@ -899,7 +933,11 @@ html = f'''<!DOCTYPE html>
 </div>
 
 <footer style="margin-top:40px;padding-top:10px;border-top:1px solid #ddd;color:#888;font-size:0.85em">
-  Generated by BioMate CYP DDI Panel workflow | FDA 2020 DDI Guidance
+  Generated by BioMate CYP DDI Panel workflow | FDA 2020 DDI Guidance<br>
+  <b>Heuristic notice:</b> CYP IC50 and in-vitro CLint are deterministic
+  physicochemical heuristics (RDKit descriptors), NOT trained/validated QSAR
+  models — treat as order-of-magnitude triage. The FDA DDI static math and
+  Obach-1997 IVIVE scaling are real methodology applied to these heuristic inputs.
 </footer>
 </body></html>'''
 with open('ddi_risk_report.html', 'w') as f:

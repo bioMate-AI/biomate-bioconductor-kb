@@ -1,4 +1,0 @@
-    "DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP":
-        python: 3.11.14
-        mock_mode: "false"
-    END_VERSIONS

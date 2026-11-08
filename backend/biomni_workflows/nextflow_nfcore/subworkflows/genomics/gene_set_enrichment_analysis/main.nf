@@ -184,7 +184,7 @@ with open("gene_set_enrichment_analysis_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("gene_set_enrichment_analysis_output.txt", "w") as f:
-    f.write("Biomni: Gene Set Enrichment Analysis" + NL)
+    f.write("BioMate: Gene Set Enrichment Analysis" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

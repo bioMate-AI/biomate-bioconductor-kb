@@ -223,7 +223,8 @@ async def feedback_queue(
 # feedback endpoints.
 # ---------------------------------------------------------------------------
 
-_PROJECTS_PATH = Path(__file__).resolve().parents[5] / "data" / "ind_demo" / "registry" / "projects.json"
+from ._data_root import data_root  # deploy-layout-independent writable data root
+_PROJECTS_PATH = data_root() / "ind_demo" / "registry" / "projects.json"
 
 _VALID_ID = re.compile(r"^[a-zA-Z0-9_-]{1,40}$")
 _VALID_REGIONS = {"FDA", "EMA", "NMPA", "PMDA"}

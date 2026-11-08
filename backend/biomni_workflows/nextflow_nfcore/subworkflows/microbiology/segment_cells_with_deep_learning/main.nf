@@ -317,7 +317,7 @@ with open("segment_cells_with_deep_learning_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("segment_cells_with_deep_learning_output.txt", "w") as f:
-    f.write("Biomni: Segment Cells With Deep Learning" + NL)
+    f.write("BioMate: Segment Cells With Deep Learning" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

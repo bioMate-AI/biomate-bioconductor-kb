@@ -1,0 +1,18 @@
+﻿donor_name,donor_id,age,sex,ethnicity,weight_kg,height_cm,smoker,blood_type,anticoagulant,harvest_date
+Donor5,CE0010989,32,Male,Hispanic,114,175,Yes,O+,ACDA,11/5/25
+Donor6,CE0011289,39,Female,Caucasian,67,163,No,O+,ACDA,10/30/25
+Donor7,CE0009596,30,Male,Caucasian,121,180,No,O+,ACDA,10/30/25
+Donor8,CE0007545,57,Male,Hispanic,57,168,No,O+,ACDA,11/5/25
+Donor9,000047245,31,Male,Pacific Islander,69,168,No,A+,ACDA,11/12/25
+Donor10,889017905,42,Male,Caucasian,92,173,No,A+,ACDA,11/12/25
+DonorA,CE0011482,23,Male,Caucasian,84,196,No,O+,ACDA,3/18/26
+DonorB,CE0010625,27,Male,Caucasian,69,178,No,A+,ACDA,3/18/26
+DonorC,CE0011506,36,Female,Caucasian,60,163,No,A+,ACDA,3/11/26
+DonorD,CE0009992,37,Female,Hispanic,86,160,No,A+,ACDA,3/10/26
+DonorE,CE0011397,21,Female,Hispanic,57,157,No,O+,ACDA,3/25/26
+DonorF,CE0011182,24,Female,Asian,59,165,No,AB+,ACDA,3/25/26
+DonorG,CE0011120,26,Female,Hispanic,58,157,No,A+,ACDA,3/25/26
+DonorH,CE0011304,29,Male,Hispanic,94,183,Yes,A-,ACDA,4/21/26
+DonorX,CE0008264,30,Female,Hispanic,63,150,No,B+,ACDA,5/31/23
+DonorY,CE0009942,30,Male,African American,66,185,No,O+,ACDA,3/6/24
+DonorZ,CE0010806,28,Female,Mixed,69,163,Yes,AB+,ACDA,4/23/25

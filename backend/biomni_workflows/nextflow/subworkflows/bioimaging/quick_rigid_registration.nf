@@ -66,7 +66,7 @@ with open("quick_rigid_registration_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("quick_rigid_registration_output.txt", "w") as f:
-    f.write("Biomni: Quick Rigid Registration Results" + NL)
+    f.write("BioMate: Quick Rigid Registration Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

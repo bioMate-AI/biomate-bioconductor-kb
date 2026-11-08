@@ -23,6 +23,34 @@ interface NormalizeOptions {
   hasInlineData?: boolean;
 }
 
+/**
+ * Return true only for values that can genuinely satisfy a workflow input.
+ * Configuration such as ``threads=4`` must not make an input-less workflow
+ * look executable, while inline SMILES, sequences, matrices and selected files
+ * must be treated consistently by chat, the workflow card, and execution.
+ */
+export function hasInlineInputData(workflow: any): boolean {
+  if (!workflow || typeof workflow !== "object") return false;
+  const values = {
+    ...(workflow.parameters && typeof workflow.parameters === "object" ? workflow.parameters : {}),
+    ...(workflow.inline_parameters && typeof workflow.inline_parameters === "object" ? workflow.inline_parameters : {}),
+  } as Record<string, unknown>;
+  const schema = [
+    ...(Array.isArray(workflow.required_params) ? workflow.required_params : []),
+    ...(Array.isArray(workflow.optional_params) ? workflow.optional_params : []),
+  ];
+  const fileParams = new Set(
+    schema.filter((p: any) => p?.type === "file").map((p: any) => String(p.name || p.id || "").toLowerCase())
+  );
+  // Match complete parameter tokens. In particular, `threads` must not match
+  // the `reads` suffix and accidentally be treated as sequencing input.
+  const inputName = /(?:^|_)(?:smiles(?:_list)?|sequences?|fasta|fastq|reads?|matrix|counts?|metadata|samplesheet|sample_sheet|coldata|contrasts?|design|library|ligands?|receptors?|genome|annotation|input)(?:$|_)/i;
+  return Object.entries(values).some(([key, value]) => {
+    if (value === null || value === undefined || value === "" || (Array.isArray(value) && value.length === 0)) return false;
+    return fileParams.has(key.toLowerCase()) || inputName.test(key);
+  });
+}
+
 export function normalizePrereqChecklist(
   prerequisitesValidation: any,
   options: NormalizeOptions = {}

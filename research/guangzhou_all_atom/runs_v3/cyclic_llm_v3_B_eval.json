@@ -1,0 +1,59 @@
+{
+  "split": "B_phage_disulfide",
+  "train_target": "Abeta42",
+  "heldout_target": "hIAPP",
+  "ref_binder": "CHVVGVIC",
+  "n_sample": 400,
+  "n_heldout_rows": 83229,
+  "n_heldout_binders": 828,
+  "heldout_regressor_fitted": true,
+  "conditionings": {
+    "heldout_feats_hi": {
+      "validity": 1.0,
+      "pred_heldout_enrichment": 0.144,
+      "identity_to_ref_binder": 0.375,
+      "mean_max_identity_to_heldout_binders": 0.614,
+      "novelty_frac": 0.182,
+      "unique_frac": 0.907
+    },
+    "heldout_feats_lo": {
+      "validity": 1.0,
+      "pred_heldout_enrichment": 0.248,
+      "identity_to_ref_binder": 0.289,
+      "mean_max_identity_to_heldout_binders": 0.594,
+      "novelty_frac": 0.99,
+      "unique_frac": 1.0
+    },
+    "train_feats_hi": {
+      "validity": 0.998,
+      "pred_heldout_enrichment": 0.162,
+      "identity_to_ref_binder": 0.389,
+      "mean_max_identity_to_heldout_binders": 0.621,
+      "novelty_frac": 0.198,
+      "unique_frac": 0.897
+    },
+    "train_feats_lo": {
+      "validity": 1.0,
+      "pred_heldout_enrichment": 0.263,
+      "identity_to_ref_binder": 0.287,
+      "mean_max_identity_to_heldout_binders": 0.585,
+      "novelty_frac": 0.973,
+      "unique_frac": 1.0
+    }
+  },
+  "cross_target_deltas": {
+    "hi_vs_lo_pred_heldout_enr": -0.104,
+    "hi_vs_lo_ident_ref": 0.086,
+    "hi_vs_lo_ident_binders": 0.02,
+    "heldoutfeats_vs_trainfeats_pred_heldout_enr": -0.018,
+    "heldoutfeats_vs_trainfeats_ident_ref": -0.014,
+    "heldoutfeats_vs_trainfeats_ident_binders": -0.007
+  },
+  "verdict": {
+    "validity_ok": true,
+    "enrichment_conditioning_fires": false,
+    "target_features_matter": false,
+    "cross_target_transfer": "NULL",
+    "note": "n=1 training target per regime: target-feature gradient is degenerate; a NULL (target features ignored -> held-out conditioning == train conditioning) is the expected, honest, publishable data-wall result. Transfer requires >=3 training targets/regime."
+  }
+}

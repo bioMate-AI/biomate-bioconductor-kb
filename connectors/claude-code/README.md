@@ -39,7 +39,7 @@ The installer opens your browser, runs OAuth 2.1 + PKCE against `biomate.ai`, an
 
 ## What you get
 
-Claude Code gains 14 MCP tools across 3 tiers:
+Claude Code gains 19 MCP tools across 3 tiers:
 
 ### Tier 1 — Streaming agentic tool (the wow tool)
 
@@ -50,11 +50,12 @@ Claude Code gains 14 MCP tools across 3 tiers:
 | Tool | Purpose |
 |---|---|
 | `search_workflow` | Ranked catalog search across 34 biological domains |
-| `get_workflow_spec` | Required + optional params, allowed values, default QC profile, cost estimate |
+| `get_workflow_spec` | Required + optional parameters, allowed values, default QC profile, expected input files, and license requirements |
 | `run_workflow` | Start a run; `stream: true` for inline events |
 | `cancel_run` | Cancel an in-flight run |
 | `list_runs` | History with experiment/workflow/status filters |
 | `get_run` | One call: status + phases + steps + findings + output files |
+| `watch_run` | Watch an existing run and receive supported progress events; use after a non-streaming submission |
 
 ### Tier 3 — Outputs, analysis, reporting
 
@@ -67,6 +68,10 @@ Claude Code gains 14 MCP tools across 3 tiers:
 | `recall_memory` | Retrieve relevant prior runs, findings, procedures |
 | `upload_file` | Get a signed S3 PUT URL for local uploads |
 | `query_database` | UniProt / PDB / AlphaFold / NCBI / ChEMBL |
+| `resolve_accession` | Resolve GEO/SRA/ENA/DDBJ accessions into a fetch workflow and pre-filled parameters |
+| `browse_data` | Browse approved public repositories or configured workspace paths before choosing an exact file |
+| `fetch_public_data` | Fetch a chosen public-repository file into the BioMate workspace |
+| `search_literature` | Search and cite published literature across supported literature sources |
 
 ## Why it's different
 

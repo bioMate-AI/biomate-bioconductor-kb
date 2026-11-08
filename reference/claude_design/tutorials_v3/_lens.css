@@ -1,0 +1,34 @@
+/* Lens — camera window onto a real kit screen (tutorials_v2/_ui). Shared by every deck. */
+.lens{--hot:oklch(0.55 0.2 256);--hot-soft:oklch(0.94 0.05 256);--warn:oklch(0.56 0.13 65);--warn-soft:oklch(0.96 0.05 75);--lsh:0 2px 6px rgba(15,23,42,.06),0 22px 54px rgba(15,23,42,.12)}
+
+.lens{position:absolute;transition:height .8s cubic-bezier(.6,0,.2,1)}
+.lens>.ct{position:absolute;top:-34px;left:2px;display:flex;gap:12px;align-items:center;font:600 15px/1 var(--ff-mono);letter-spacing:.09em;text-transform:uppercase;color:oklch(0.48 0.012 260);white-space:nowrap;z-index:2}
+.lens>.ct b{color:var(--hot);font-weight:600}
+.lens>.ct .il{color:var(--warn);background:var(--warn-soft);padding:4px 8px;border-radius:6px;letter-spacing:.05em}
+.lens .lv{position:absolute;inset:0;overflow:hidden;border-radius:18px;background:#fff;box-shadow:var(--lsh);border:1px solid oklch(0.915 0.006 240)}
+.lens .ll{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.lens .bmx{border-radius:0;box-shadow:none}
+.lens .lring{position:absolute;border:3px solid var(--hot);opacity:0;transform:scale(1.05);transition:opacity .35s,transform .45s cubic-bezier(.3,1.5,.5,1);pointer-events:none;z-index:8}
+.lens .lring.on{opacity:1;transform:none;animation:lpulse 1.8s ease-in-out infinite}
+@keyframes lpulse{50%{opacity:.7}}
+.lens .lcur{position:absolute;z-index:9;pointer-events:none;filter:drop-shadow(0 3px 6px rgba(15,23,42,.35))}
+.lens .lcur svg{width:100%;height:100%;display:block}
+.lens .lcur::after{content:"";position:absolute;left:-40%;top:-35%;width:90%;height:75%;border-radius:50%;border:3px solid var(--hot);opacity:0}
+.lens .lcur.click::after{animation:ripple .7s ease-out 2}
+.lens .lpress{transform:scale(.96);transition:transform .15s}
+.lens .bmx .x_pt,.lens .bmx .x_bar{transition:transform .5s cubic-bezier(.3,1.6,.5,1);transition-delay:calc(var(--i,0)*24ms)}
+.lens .bmx .lpending .x_pt{transform:scale(0)}.lens .bmx .lpending .x_bar{transform:scaleY(0)}
+.lens .bmx .lpending .x_ln,.lens .bmx .lpending .x_hull{opacity:0}.lens .bmx .x_ln,.lens .bmx .x_hull{transition:opacity .8s .6s}
+.lens .bmx .lpending .x_q-in,.lens .bmx .lpending .x_q-out{opacity:0}.lens .bmx .x_q-in,.lens .bmx .x_q-out{transition:opacity .4s 1.2s}
+
+.lens.inflow{position:relative;flex:none}
+@keyframes ripple{from{opacity:1;transform:scale(.4)}to{opacity:0;transform:scale(2.2)}}
+.tags .tag.mo-on{background:oklch(0.55 0.2 256)!important;color:#fff!important;transform:scale(1.06);transition:all .35s cubic-bezier(.3,1.5,.5,1)}
+.tags .tag.mo-past{background:oklch(0.94 0.04 250)!important;color:oklch(0.40 0.14 250)!important;transition:all .35s}
+.lens .bmx img{width:18px!important;height:20px!important;max-width:none!important;max-height:none!important;filter:none!important;object-fit:cover;object-position:0 50%}
+.frame>.lens.inflow{flex:none}
+
+/* review-only annotations: which design screen a view comes from, and the proposal note. Hidden in the tutorial; press R or add ?review to show. */
+.lens>.ct,.prop{display:none!important}
+body.review .lens>.ct{display:flex!important}
+body.review .prop{display:block!important}

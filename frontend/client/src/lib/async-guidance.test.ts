@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getChatAsyncGuidance, getExecutionAsyncGuidance } from './async-guidance'
+import { getChatAsyncGuidance, getExecutionAsyncGuidance, isTransientChatError } from './async-guidance'
 
 describe('getChatAsyncGuidance', () => {
   // DB / infra errors must NOT be "Connection error"
@@ -87,6 +87,80 @@ describe('getChatAsyncGuidance', () => {
     const g = getChatAsyncGuidance('request timeout')
     expect(g.title).toBe('Response timed out')
     expect(g.isTimeout).toBe(true)
+  })
+})
+
+describe('isTransientChatError (workflow-generation auto-retry policy)', () => {
+  // ---- TRANSIENT: should retry ----
+  it('browser "Failed to fetch" is transient', () => {
+    expect(isTransientChatError('Failed to fetch')).toBe(true)
+  })
+
+  it('request timeout is transient', () => {
+    expect(isTransientChatError('Workflow generation timed out after 120s')).toBe(true)
+  })
+
+  it('per-attempt timeout flag (via message) is transient', () => {
+    expect(isTransientChatError('request timed out')).toBe(true)
+  })
+
+  it('empty / incomplete stream is transient', () => {
+    expect(isTransientChatError('No final payload received from stream')).toBe(true)
+    expect(isTransientChatError('Streaming response body unavailable')).toBe(true)
+  })
+
+  it('HTTP 5xx is transient', () => {
+    expect(isTransientChatError('Chat API error: Internal Server Error', { httpStatus: 500 })).toBe(true)
+    expect(isTransientChatError('Chat API error: Bad Gateway', { httpStatus: 502 })).toBe(true)
+    expect(isTransientChatError('Chat API error: Service Unavailable', { httpStatus: 503 })).toBe(true)
+  })
+
+  it('HTTP 429 rate-limit is transient', () => {
+    expect(isTransientChatError('temporarily busy', { httpStatus: 429 })).toBe(true)
+    expect(isTransientChatError('The service is temporarily busy. Please wait a moment and try again.')).toBe(true)
+  })
+
+  it('upstream gateway / socket-reset messages are transient', () => {
+    expect(isTransientChatError('502 Bad Gateway from upstream')).toBe(true)
+    expect(isTransientChatError('socket hang up')).toBe(true)
+    expect(isTransientChatError('read ECONNRESET')).toBe(true)
+  })
+
+  it('legacy __maintenance__ sentinel is treated as transient', () => {
+    expect(isTransientChatError('__maintenance__')).toBe(true)
+  })
+
+  // ---- DETERMINISTIC: must NOT retry ----
+  it('user abort is never retried', () => {
+    expect(isTransientChatError('aborted', { aborted: true })).toBe(false)
+    // even a "transient-looking" message must not retry when aborted
+    expect(isTransientChatError('Failed to fetch', { aborted: true })).toBe(false)
+  })
+
+  it('HTTP 4xx client errors are NOT retried', () => {
+    expect(isTransientChatError('Bad Request', { httpStatus: 400 })).toBe(false)
+    expect(isTransientChatError('Unauthorized', { httpStatus: 401 })).toBe(false)
+    expect(isTransientChatError('Forbidden', { httpStatus: 403 })).toBe(false)
+    expect(isTransientChatError('Not Found', { httpStatus: 404 })).toBe(false)
+    expect(isTransientChatError('Unprocessable Entity', { httpStatus: 422 })).toBe(false)
+  })
+
+  it('validation / clarification responses are NOT retried', () => {
+    expect(isTransientChatError('parameter validation failed')).toBe(false)
+    expect(isTransientChatError('needs_input: missing genome')).toBe(false)
+    expect(isTransientChatError('clarification required')).toBe(false)
+    expect(isTransientChatError('invalid SMILES string')).toBe(false)
+  })
+
+  it('unrecognised / empty errors are NOT retried (conservative default)', () => {
+    expect(isTransientChatError('')).toBe(false)
+    expect(isTransientChatError(null)).toBe(false)
+    expect(isTransientChatError('some unexpected non-transient failure')).toBe(false)
+  })
+
+  it('deterministic message wins even if a 5xx-ish word appears', () => {
+    // "invalid" is deterministic and takes precedence over any weak transient hint
+    expect(isTransientChatError('invalid gateway parameter')).toBe(false)
   })
 })
 

@@ -315,7 +315,7 @@ with open("analyze_itc_binding_thermodynamics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_itc_binding_thermodynamics_output.txt", "w") as f:
-    f.write("Biomni: Analyze Itc Binding Thermodynamics" + NL)
+    f.write("BioMate: Analyze Itc Binding Thermodynamics" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

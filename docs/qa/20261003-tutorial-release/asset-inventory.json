@@ -1,0 +1,975 @@
+{
+  "checkedAt": "2026-10-03T16:43:07.917689+00:00",
+  "releaseStatus": "HOLD",
+  "documents": [
+    {
+      "path": "docs/user-manual/tutorials/M1-search-and-evidence.md",
+      "sha256": "70ebd6bfb81cd3aa7aff52619197667bda0da3c5fd2435fcc8c3c0459d4d1131",
+      "images": 1,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/M2-data-analysis.md",
+      "sha256": "26cc7c52bed07e41a4493456a6ae9b5680745333ea097d4f304c980c78cb557c",
+      "images": 1,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 3,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/README.md",
+      "sha256": "52b72ecc99f01b6681e7346643871dfee4a049939dee20210e9808979d9dea59",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 1,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/S1-sidebar-navigation.md",
+      "sha256": "758333c51722e01508ad6b40ca7522fa6cac0e6b7da67547f0e2e9e712406486",
+      "images": 1,
+      "missingImages": [],
+      "unfinishedFigures": 5,
+      "captureMarkers": 6,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T0-getting-started.md",
+      "sha256": "5bf907d221e7ece51a3d2881e0ffed88566bfa489cd8e8f5216863cdea54627f",
+      "images": 2,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 1,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T1-design-and-generate.md",
+      "sha256": "e2a0a4724628a7ad4820932bfb34f456b53564e3611cf4127f884efcf3f37759",
+      "images": 2,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 0,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T10-exploring-your-datasets.md",
+      "sha256": "174c182f1f0607fa785d9c088fd590b7457dcb5d3473469beccd4361dcab4727",
+      "images": 6,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 6,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T11-drug-development-end-to-end.md",
+      "sha256": "3f5131013b21e459e5c86b8213f2624381bddb14dea18223c9ef8eb59a86b9bb",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 6,
+      "captureMarkers": 6,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T2-models-and-the-closed-loop.md",
+      "sha256": "b2d864b6528976cdd6a3de057ba19fe89b7ffb4ff0521ccc01c9e26c7a24b3ac",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 0,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T3-running-a-workflow-and-reading-the-report.md",
+      "sha256": "e8c12ff53606d026e51357b62a70e895c7f97065fbb545cd7a1ab7fe52c16eb9",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 0,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T4-bringing-your-own-data.md",
+      "sha256": "539c677376802dd9ea980476ff8bc70847c0a8824696b06d20c94b528dca2d92",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 0,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T5-viewing-your-results.md",
+      "sha256": "7e4d96736d7b519c930e264a8a3ec1c74c3d323c219bf512d5e6ff91ad7c3265",
+      "images": 2,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 1,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T6-connecting-instruments.md",
+      "sha256": "8ab36db8de092d93d4ffea0cc631547645a4bc9e313c070d0237544288c9f41d",
+      "images": 3,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 3,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T7-projects-and-collaboration.md",
+      "sha256": "4eea9aba3640273fb180271cdf7a7778da7ea54f5ebda2c99d822fa64d5acda7",
+      "images": 2,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 3,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T8-reports-edit-and-export.md",
+      "sha256": "cf9c89dfa343d04eb9b88adb55d168411e64a3c5cdc258f562db9d73140d99f8",
+      "images": 2,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/T9-connecting-data-and-tools.md",
+      "sha256": "00eb6151a0a7f25f27df91fb5c6a7a457a2688437246065aaac1e9927846bbf6",
+      "images": 1,
+      "missingImages": [],
+      "unfinishedFigures": 4,
+      "captureMarkers": 5,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/W1-workflow-panel-tabs.md",
+      "sha256": "21ffc3a12ea5aa8bc2682bfb46d938b895b53eceff7ef7be9f829f7b213d4286",
+      "images": 5,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 4,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/W2-after-run-panel.md",
+      "sha256": "94335d9f7884cf43ca390e9eeb92cd18447c6bf50469c6e8c39ec37979137bc4",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/W3-full-step-view.md",
+      "sha256": "411b9ad3f1b2b02eb67ea3de456a409b3d38e3e4591c874fb1acfe518b024a78",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 3,
+      "captureMarkers": 3,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/basespace-sequencing.md",
+      "sha256": "2b91b5c8f294c274bc2cbddf77395b2fe2140aea763b03104f77c11f4edb8c7a",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/benchling-eln-lims.md",
+      "sha256": "d5fe944b045946514df326ae53e944d713d0ecfe5814de0a98f95b339cc95333",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/cryoem-reconstruction.md",
+      "sha256": "4aa5128390180cf5ffa74befe9ebad907ac8c96c7d8b6c5df200be1a35a51540",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/flow-cytometry-gating.md",
+      "sha256": "127c60b55066fa522a02c7e1df6f8e7f766d47adb41fa15d805269595ff1f15f",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/lcms-proteomics-metabolomics.md",
+      "sha256": "14204534c0b2b7315947d459f3c7b3444ef0f1dd5c1cd24784fffcefd09fb67f",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/nanopore-minknow.md",
+      "sha256": "ac5661278dab9ed42b4b9ed359c8be2d5e46b959f07f2ce572f37e0f5258de6b",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/opentrons-liquid-handling.md",
+      "sha256": "7da719febced81b2aa9e493744d0bfb01f4d49122f91a585693d550cb3b16079",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/plate-reader-assays.md",
+      "sha256": "18ec4955e50c39697cdfa775b32195002c7db15fe6005003bdf99c317ba208cf",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/qpcr-quantification.md",
+      "sha256": "3672bfda95b2d1cf764e693238d8eb291b41eef9af1379beb47f44b443a6b534",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/instruments/sila2-devices.md",
+      "sha256": "758ad855beeb18da3be4a612f12aba98205360fe86d7909fea9ffa48c8dddc4b",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 1,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/M1-search-and-evidence.zh.md",
+      "sha256": "1e6c438ff6aa2c68c87ea662e8ff81c9cb2c6d2533dcd0f48a5a784767262553",
+      "images": 1,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/M2-data-analysis.zh.md",
+      "sha256": "1fabb67fcef773a026669967471a5fd274af29d122607b165f9b1a1c3c5b3781",
+      "images": 1,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 3,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/S1-sidebar-navigation.zh.md",
+      "sha256": "c81b994de72f5c5666b013ef268383c54e4e8133f75420617fee81135be43945",
+      "images": 1,
+      "missingImages": [],
+      "unfinishedFigures": 5,
+      "captureMarkers": 6,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T0-getting-started.zh.md",
+      "sha256": "0f5be76724f8d4aba7d1aea5e189b5f696e6b726cc81e1892f64840342199dcd",
+      "images": 1,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 1,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T1-design-and-generate.zh.md",
+      "sha256": "84d13fcbde4e110fd299f0c63cc755214261ab20bb644829a33b0380aee77697",
+      "images": 2,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 0,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T10-exploring-your-datasets.zh.md",
+      "sha256": "b007a9544938b204893406519a85ec0a2f7c6346c42cae4c289beba1a5680f0f",
+      "images": 6,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 6,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T11-drug-development-end-to-end.zh.md",
+      "sha256": "77bd8ff87a08d183f40dfb82410f9703217e182d768313c0f81df69010c5bacb",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 6,
+      "captureMarkers": 6,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T2-models-and-the-closed-loop.zh.md",
+      "sha256": "1b81784aec3143e44bfa4083273718017fc2c32fe1a28199af7f67ac1b50d2ba",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 0,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T3-running-a-workflow-and-reading-the-report.zh.md",
+      "sha256": "43cd70fae0b4ed78a93b5dc09c8a2a2d72419afe116ac486b3c08cf06bd324b3",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 0,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T4-bringing-your-own-data.zh.md",
+      "sha256": "ba423b011f527c8645f39da8a1fa3f8c28bafc661492bf9fdf2059e05771e769",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 0,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T5-viewing-your-results.zh.md",
+      "sha256": "e6bd6a5fc23c239a37434ddadf9372eeb3c49036eb2af9ce05074050baae3ff2",
+      "images": 2,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 1,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T6-connecting-instruments.zh.md",
+      "sha256": "bb02c2dea990a6da948f5b026ae4e9cc90bad6e5fb686e82ddbb4f7b5b491f31",
+      "images": 3,
+      "missingImages": [],
+      "unfinishedFigures": 0,
+      "captureMarkers": 3,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T7-projects-and-collaboration.zh.md",
+      "sha256": "d88f4a56bb7f4e5169b19e0c03538c0bc9088a79c552cf8f83979ba85a894949",
+      "images": 2,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 3,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T8-reports-edit-and-export.zh.md",
+      "sha256": "f204d6cd25b821eb6274a1e862ad719e2b88d6fe1bfed1817c24ae5f872cafb8",
+      "images": 2,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/T9-connecting-data-and-tools.zh.md",
+      "sha256": "6e0aad16227244b97af5c398c0c46fcd752791c9e04b64ef7233a80fd12ab326",
+      "images": 1,
+      "missingImages": [],
+      "unfinishedFigures": 4,
+      "captureMarkers": 5,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/W1-workflow-panel-tabs.zh.md",
+      "sha256": "4e2e22c0ecf394daef04ac0af2142e68e3582570341ca1c7c3f12fc296dfcea3",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 4,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/W2-after-run-panel.zh.md",
+      "sha256": "99fe453ec4401b3799f04fc62638a1382c5aa5775ce2a5b4c29410fd462e5f11",
+      "images": 4,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/W3-full-step-view.zh.md",
+      "sha256": "9bf5f90c84567418577ea75400221635d023f489cdad1b5ba56d754358d50cdf",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 3,
+      "captureMarkers": 3,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/basespace-sequencing.zh.md",
+      "sha256": "b73f75940171fa8162f88046f0237c02f43296733c3b54b4d7df3f062ea5b0da",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/benchling-eln-lims.zh.md",
+      "sha256": "78db67e5137e30b4d4f947ce1036d13bffeedafcd41dbc169865b1f21b40e2ec",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/cryoem-reconstruction.zh.md",
+      "sha256": "7725fade6afdf7fe7b070ea0d307676459df0c1da7afa3c8cc0570c5ce7341e9",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/flow-cytometry-gating.zh.md",
+      "sha256": "ec45f224083836b353c23fc313260936e02b45588cd8badfe3f8893249e8c348",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/lcms-proteomics-metabolomics.zh.md",
+      "sha256": "1df65783b93b8fb027d32636e9d412a8e9da89582040fbe124b112d8c3461359",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/nanopore-minknow.zh.md",
+      "sha256": "c1dc0cb34e94b4e322015578218b893d31d704b1a603746d16e45a633edd24e3",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/opentrons-liquid-handling.zh.md",
+      "sha256": "68ae3fd6e8c64d8d58aa4fb5d873313b8e63f64ce1ff2059ee85bde303429bff",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/plate-reader-assays.zh.md",
+      "sha256": "6746bb7f164aab0b6198b1a8a21fb2863873fde4dbba1b9a2fd7e491e12bdcbf",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/qpcr-quantification.zh.md",
+      "sha256": "a139f4e42472c173660d818832d84868afe2aa9f26158a55e0685eda71b5d83a",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 2,
+      "captureMarkers": 2,
+      "releaseStatus": "UNREVIEWED"
+    },
+    {
+      "path": "docs/user-manual/tutorials/zh/instruments/sila2-devices.zh.md",
+      "sha256": "d6e1ade4d15c8de64a3407f1e282aee73e07a2f15ded117ca55329ad73f4f909",
+      "images": 0,
+      "missingImages": [],
+      "unfinishedFigures": 1,
+      "captureMarkers": 1,
+      "releaseStatus": "UNREVIEWED"
+    }
+  ],
+  "videos": [
+    {
+      "path": "recording/output/drug-dev-en.mp4",
+      "sha256": "1fe1ef64fda70e78834f70380a6933b18824ee7c9ac89ce3b1cc4374a23360aa",
+      "bytes": 24010603,
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "25/1"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0"
+          }
+        ],
+        "format": {
+          "duration": "325.890000"
+        }
+      },
+      "releaseStatus": "HOLD"
+    },
+    {
+      "path": "recording/output/drug-dev-zh.mp4",
+      "sha256": "76573102ff462e27c914713237c9587b49ebb430a69fddbb832ff1e3b1ae410e",
+      "bytes": 26340023,
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "25/1"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0"
+          }
+        ],
+        "format": {
+          "duration": "333.378000"
+        }
+      },
+      "releaseStatus": "HOLD"
+    },
+    {
+      "path": "recording/output/t0-getting-started-en.mp4",
+      "sha256": "85941ec9c9d151565938c727bbfe41fa9bac2ca1840044a0b772c09a551c8cb4",
+      "bytes": 17147253,
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "25/1"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0"
+          }
+        ],
+        "format": {
+          "duration": "218.240000"
+        }
+      },
+      "releaseStatus": "HOLD"
+    },
+    {
+      "path": "recording/output/t0-getting-started-zh.mp4",
+      "sha256": "4af58dad31797fa1a7da639caf4baa8409167b449181b04ff7d2cf1572becee2",
+      "bytes": 18259610,
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "25/1"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0"
+          }
+        ],
+        "format": {
+          "duration": "222.218000"
+        }
+      },
+      "releaseStatus": "HOLD"
+    },
+    {
+      "path": "recording/output/t3-run-and-report-en.mp4",
+      "sha256": "54cb070eaf5e821033dfd7caff1949af124599c5d7fc61124cc9ed3ec3b6989a",
+      "bytes": 21829447,
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "25/1"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0"
+          }
+        ],
+        "format": {
+          "duration": "283.726000"
+        }
+      },
+      "releaseStatus": "HOLD"
+    },
+    {
+      "path": "recording/output/t3-run-and-report-zh.mp4",
+      "sha256": "471e1324c0345641369d4f92d606c2cd32cad6154c5d236457f67552d3d9b772",
+      "bytes": 23300203,
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "25/1"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2,
+            "r_frame_rate": "0/0"
+          }
+        ],
+        "format": {
+          "duration": "288.200000"
+        }
+      },
+      "releaseStatus": "HOLD"
+    }
+  ],
+  "pilotAudio": {
+    "en": [
+      {
+        "scene": 1,
+        "duration": 24.816,
+        "slot": 34.2,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 2,
+        "duration": 26.088,
+        "slot": 30.7,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 3,
+        "duration": 22.56,
+        "slot": 27.1,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 4,
+        "duration": 25.272,
+        "slot": 32.8,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 5,
+        "duration": 30.96,
+        "slot": 36.1,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 6,
+        "duration": 23.88,
+        "slot": 30.4,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 7,
+        "duration": 18.624,
+        "slot": 24.0,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 8,
+        "duration": 16.752,
+        "slot": 19.2,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 9,
+        "duration": 32.664,
+        "slot": 43.2,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 10,
+        "duration": 28.392,
+        "slot": 39.1,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 11,
+        "duration": 33.36,
+        "slot": 43.8,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 12,
+        "duration": 27.888,
+        "slot": 32.4,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 13,
+        "duration": 21.84,
+        "slot": 26.5,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 14,
+        "duration": 13.752,
+        "slot": 18.9,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 15,
+        "duration": 17.688,
+        "slot": 21.0,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 16,
+        "duration": 12.6,
+        "slot": 16.7,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 17,
+        "duration": 31.032,
+        "slot": 40.0,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      }
+    ],
+    "zh": [
+      {
+        "scene": 1,
+        "duration": 33.48,
+        "slot": 34.2,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 2,
+        "duration": 30.024,
+        "slot": 30.7,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 3,
+        "duration": 26.352,
+        "slot": 27.1,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 4,
+        "duration": 32.112,
+        "slot": 32.8,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 5,
+        "duration": 35.424,
+        "slot": 36.1,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 6,
+        "duration": 29.736,
+        "slot": 30.4,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 7,
+        "duration": 23.256,
+        "slot": 24.0,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 8,
+        "duration": 18.456,
+        "slot": 19.2,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 9,
+        "duration": 42.504,
+        "slot": 43.2,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 10,
+        "duration": 38.376,
+        "slot": 39.1,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 11,
+        "duration": 43.104,
+        "slot": 43.8,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 12,
+        "duration": 31.656,
+        "slot": 32.4,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 13,
+        "duration": 25.752,
+        "slot": 26.5,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 14,
+        "duration": 18.24,
+        "slot": 18.9,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 15,
+        "duration": 20.328,
+        "slot": 21.0,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 16,
+        "duration": 15.984,
+        "slot": 16.7,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      },
+      {
+        "scene": 17,
+        "duration": 39.336,
+        "slot": 40.0,
+        "overrun": 0,
+        "channels": 1,
+        "sampleWidth": 2
+      }
+    ]
+  },
+  "summary": {
+    "documents": 57,
+    "documentsWithMissingImages": 0,
+    "unfinishedFigures": 92,
+    "existingVideos": 6,
+    "upgradedPilotSeconds": 516.0999999999999,
+    "approvedVideos": 0
+  }
+}

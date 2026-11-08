@@ -1,0 +1,89 @@
+{
+  "lane": "clinical_regulatory",
+  "retrieved_at": "2026-09-11",
+  "scores": {
+    "TSLP": 5,
+    "IL33": 3,
+    "IL1RL1": 3
+  },
+  "confidence": {
+    "TSLP": "high",
+    "IL33": "moderate",
+    "IL1RL1": "moderate"
+  },
+  "direct_asthma_trials": {
+    "TSLP": [
+      "NCT03347279",
+      "NCT03406078"
+    ],
+    "IL33": [
+      "NCT03387852",
+      "NCT04570657",
+      "NCT06932263"
+    ],
+    "IL1RL1": [
+      "NCT02918019"
+    ]
+  },
+  "rationale": {
+    "TSLP": "FDA asthma approval and pivotal exacerbation efficacy; SOURCE steroid-sparing endpoint failed",
+    "IL33": "Positive phase2 itepekimab; negative primary endpoint FRONTIER-3; recruiting phase2b Umbriel",
+    "IL1RL1": "Positive phase2b ZENYATTA exacerbation reduction; no verified pivotal asthma confirmation"
+  },
+  "adjacent_excluded": [
+    "COPD",
+    "CRSwNP",
+    "CRSsNP",
+    "atopic dermatitis",
+    "bronchiectasis",
+    "eosinophilic esophagitis"
+  ],
+  "gaps": [
+    "PharmGKB configured hostname DNS failure; not a negative finding",
+    "Registry drug-name searches bounded to one page; tezepelumab truncated",
+    "Open Targets candidate response omits tozorakimab",
+    "Global molecule maximum phases cannot establish asthma phase3 validation"
+  ],
+  "sources": [
+    "https://content.govdelivery.com/accounts/USFDA/bulletins/301ce9f",
+    "https://pubmed.ncbi.nlm.nih.gov/33979488/",
+    "https://pubmed.ncbi.nlm.nih.gov/35364018/",
+    "https://pubmed.ncbi.nlm.nih.gov/34706171/",
+    "https://pubmed.ncbi.nlm.nih.gov/41736737/",
+    "https://pubmed.ncbi.nlm.nih.gov/33872652/",
+    "https://clinicaltrials.gov/study/NCT06932263"
+  ],
+  "raw_files": [
+    "raw/clinical_tozorakimab_ct.json",
+    "raw/clinical_tezepelumab_mechanism_response.json",
+    "raw/clinical_astegolimab_chembl.json",
+    "raw/clinical_itepekimab_mechanism_response.json",
+    "raw/clinical_IL33_pharmgkb_response.json",
+    "raw/clinical_astegolimab_ct.json",
+    "raw/clinical_astegolimab_mechanism_response.json",
+    "raw/clinical_itepekimab_ct_response.json",
+    "raw/clinical_tozorakimab_ct_response.json",
+    "raw/clinical_tezepelumab_chembl_response.json",
+    "raw/clinical_tezepelumab_ct_response.json",
+    "raw/clinical_tozorakimab_mechanism.json",
+    "raw/clinical_astegolimab_mechanism.json",
+    "raw/clinical_itepekimab_ct.json",
+    "raw/clinical_tozorakimab_mechanism_response.json",
+    "raw/clinical_opentargets_response.json",
+    "raw/clinical_tezepelumab_ct.json",
+    "raw/clinical_frontier3_ct.json",
+    "raw/clinical_tezepelumab_mechanism.json",
+    "raw/clinical_frontier3_ct_response.json",
+    "raw/clinical_IL1RL1_pharmgkb_response.json",
+    "raw/clinical_itepekimab_chembl_response.json",
+    "raw/clinical_itepekimab_chembl.json",
+    "raw/clinical_astegolimab_chembl_response.json",
+    "raw/clinical_tozorakimab_chembl.json",
+    "raw/clinical_tozorakimab_chembl_response.json",
+    "raw/clinical_TSLP_pharmgkb_response.json",
+    "raw/clinical_opentargets.json",
+    "raw/clinical_tezepelumab_chembl.json",
+    "raw/clinical_astegolimab_ct_response.json",
+    "raw/clinical_itepekimab_mechanism.json"
+  ]
+}

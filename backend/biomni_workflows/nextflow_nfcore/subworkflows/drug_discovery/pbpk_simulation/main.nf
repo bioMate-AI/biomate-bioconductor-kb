@@ -39,7 +39,7 @@ params.dose_route     = 'oral'
 params.simulation_hours = '96'
 // Optional: observed AUC for the pbpk_auc_fold_error gate (GOLD, FDA 2018).
 // When supplied, qc_metrics.json will emit auc_fold_error = max(p/o, o/p).
-params.auc_observed_ug_h_mL = null
+params.auc_observed_ug_h_mL = 'null'   // optional (string sentinel like MW/logP); the QC step at L442 treats '', 'null', 'None' as "not supplied", so a bare null (→ UI-required) is wrong
 
 process PBPK_SIMULATION {
     tag "$meta.id"

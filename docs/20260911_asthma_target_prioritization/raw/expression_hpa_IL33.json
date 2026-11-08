@@ -1,0 +1,344 @@
+{
+  "Gene": "IL33",
+  "Gene synonym": [
+    "C9orf26",
+    "DKFZp586H0523",
+    "DVS27",
+    "IL1F11",
+    "NF-HEV"
+  ],
+  "Ensembl": "ENSG00000137033",
+  "Gene description": "Interleukin 33",
+  "Uniprot": [
+    "O95760"
+  ],
+  "Chromosome": "9",
+  "Position": "6215786-6257983",
+  "Protein class": [
+    "Predicted intracellular proteins",
+    "Predicted secreted proteins"
+  ],
+  "Biological process": [
+    "Transcription"
+  ],
+  "Molecular function": [
+    "Cytokine"
+  ],
+  "Disease involvement": null,
+  "Evidence": "Evidence at protein level",
+  "HPA evidence": "Evidence at protein level",
+  "UniProt evidence": "Evidence at protein level",
+  "NeXtProt evidence": "Evidence at protein level",
+  "RNA tissue specificity": "Tissue enhanced",
+  "RNA tissue distribution": "Detected in many",
+  "RNA tissue specificity score": null,
+  "RNA tissue specific nTPM": {
+    "urinary bladder": "114.2"
+  },
+  "RNA single cell type specificity": "Cell type enhanced",
+  "RNA single cell type distribution": "Detected in many",
+  "RNA single cell type specificity score": null,
+  "RNA single cell type specific nCPM": {
+    "Astrocytes": "81.6",
+    "Bergmann glia": "70.5",
+    "Breast lactating cells": "91.7",
+    "Fibro-adipogenic progenitors": "65.4",
+    "Fibroblasts": "100.1",
+    "Gastric chief cells": "76.4",
+    "Lymphatic endothelial cells": "132.1",
+    "Medullary thymic epithelial cells": "127.2",
+    "Mucous neck cells": "128.4",
+    "Respiratory basal cells": "262.6",
+    "Respiratory secretory cells": "92.5",
+    "Vascular endothelial cells": "185.7"
+  },
+  "RNA single cell type group specificity": "Cell type enhanced",
+  "RNA single cell type group distribution": "Detected in many",
+  "RNA single cell type group specificity score": null,
+  "RNA single cell type group specific nCPM": {
+    "Basal cells": "262.6",
+    "Endothelial cells": "185.7",
+    "Gastric glandular cells": "128.4",
+    "Secretory gland support": "127.2"
+  },
+  "RNA single nuclei brain specificity": "Cell type enhanced",
+  "RNA single nuclei brain distribution": "Detected in some",
+  "RNA single nuclei brain specificity score": null,
+  "RNA single nuclei brain specific nCPM": {
+    "astrocyte": "86.9",
+    "Bergmann glia": "76.4"
+  },
+  "RNA cancer specificity": "Low cancer specificity",
+  "RNA cancer distribution": "Detected in all",
+  "RNA cancer specificity score": null,
+  "RNA cancer specific pTPM": null,
+  "RNA brain regional specificity": "Low region specificity",
+  "RNA brain regional distribution": "Detected in all",
+  "RNA brain regional specificity score": null,
+  "RNA brain regional specific nTPM": null,
+  "RNA blood cell specificity": "Not detected in immune cells",
+  "RNA blood cell distribution": "Not detected",
+  "RNA blood cell specificity score": null,
+  "RNA blood cell specific nTPM": null,
+  "RNA blood lineage specificity": "Not detected",
+  "RNA blood lineage distribution": "Not detected",
+  "RNA blood lineage specificity score": null,
+  "RNA blood lineage specific nTPM": null,
+  "RNA cell line specificity": "Group enriched",
+  "RNA cell line distribution": "Detected in many",
+  "RNA cell line specificity score": "6",
+  "RNA cell line specific nTPM": {
+    "colorectal cancer": "24.6",
+    "Rhabdoid": "15.7",
+    "Sarcoma": "26.2",
+    "thyroid cancer": "8.9"
+  },
+  "RNA tissue cell type enrichment": [
+    "Adrenal gland - Endothelial cells",
+    "Heart muscle - Fibroblasts",
+    "Liver - Vascular endothelial cells",
+    "Skeletal muscle - Fibroblasts",
+    "Spleen - Fibroblasts_1"
+  ],
+  "RNA mouse brain regional specificity": "Low region specificity",
+  "RNA mouse brain regional distribution": "Detected in all",
+  "RNA mouse brain regional specificity score": null,
+  "RNA mouse brain regional specific nTPM": null,
+  "RNA pig brain regional specificity": "Low region specificity",
+  "RNA pig brain regional distribution": "Detected in all",
+  "RNA pig brain regional specificity score": null,
+  "RNA pig brain regional specific nTPM": null,
+  "Protein cell type specificity": "Cell type enhanced",
+  "Protein cell type distribution": "Detected in many",
+  "Protein cell type specificity score": null,
+  "Protein cell type specific Intensity": {
+    "Macrophages": "1055421.0"
+  },
+  "Protein tissue specificity": "Tissue enhanced",
+  "Protein tissue distribution": "Detected in many",
+  "Protein tissue specificity score": null,
+  "Protein tissue specific Intensity": {
+    "intestine": "5439206.6"
+  },
+  "Antibody": [
+    "CAB007057",
+    "HPA022899",
+    "HPA024426"
+  ],
+  "Reliability (IH)": "Supported",
+  "Reliability (Mouse Brain)": null,
+  "Reliability (IF)": "Supported",
+  "Subcellular location": [
+    "Nucleoplasm",
+    "Vesicles"
+  ],
+  "Secretome location": "Secreted to blood",
+  "Secretome function": "Interleukin",
+  "CCD Protein": "NA",
+  "CCD Transcript": "NA",
+  "Blood concentration - Conc. blood IM [pg/L]": null,
+  "Blood concentration - Conc. blood MS [pg/L]": null,
+  "Blood expression cluster": null,
+  "Tissue expression cluster": "Cluster 13: Lung - Secretion",
+  "Brain expression cluster": "Cluster 40: Astrocytes - Astrocyte-neuron interactions",
+  "Cell line expression cluster": "Cluster 57: Stomach & Colon cancer - Digestion",
+  "Single cell expression cluster": "Cluster 12: Endothelial cells - Angiogenesis & vascular homeostasis",
+  "Interactions": 6,
+  "Subcellular main location": [
+    "Nucleoplasm"
+  ],
+  "Subcellular additional location": [
+    "Vesicles"
+  ],
+  "Antibody RRID": {
+    "CAB007057": null,
+    "HPA022899": null,
+    "HPA024426": null
+  },
+  "Cancer prognostics - Bladder Urothelial Carcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "7.47e-3"
+  },
+  "Cancer prognostics - Breast Invasive Carcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.17e-3"
+  },
+  "Cancer prognostics - Breast Invasive Carcinoma (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "9.27e-3"
+  },
+  "Cancer prognostics - Cervical Squamous Cell Carcinoma and Endocervical Adenocarcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.13e-2"
+  },
+  "Cancer prognostics - Colon Adenocarcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.16e-2"
+  },
+  "Cancer prognostics - Colon Adenocarcinoma (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.41e-2"
+  },
+  "Cancer prognostics - Glioblastoma Multiforme (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "2.48e-1"
+  },
+  "Cancer prognostics - Glioblastoma Multiforme (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "5.28e-2"
+  },
+  "Cancer prognostics - Head and Neck Squamous Cell Carcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.45e-1"
+  },
+  "Cancer prognostics - Kidney Chromophobe (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.05e-1"
+  },
+  "Cancer prognostics - Kidney Renal Clear Cell Carcinoma (TCGA)": {
+    "prognostic type": "favorable",
+    "prognostic": "potential prognostic",
+    "is_prognostic": true,
+    "p_val": "2.34e-5"
+  },
+  "Cancer prognostics - Kidney Renal Clear Cell Carcinoma (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.34e-2"
+  },
+  "Cancer prognostics - Kidney Renal Papillary Cell Carcinoma (TCGA)": {
+    "prognostic type": "unfavorable",
+    "prognostic": "potential prognostic",
+    "is_prognostic": true,
+    "p_val": "6.68e-5"
+  },
+  "Cancer prognostics - Liver Hepatocellular Carcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "3.70e-3"
+  },
+  "Cancer prognostics - Liver Hepatocellular Carcinoma (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "3.24e-3"
+  },
+  "Cancer prognostics - Lung Adenocarcinoma (TCGA)": {
+    "prognostic type": "favorable",
+    "prognostic": "potential prognostic",
+    "is_prognostic": true,
+    "p_val": "4.43e-4"
+  },
+  "Cancer prognostics - Lung Adenocarcinoma (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "2.27e-2"
+  },
+  "Cancer prognostics - Lung Squamous Cell Carcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "2.53e-1"
+  },
+  "Cancer prognostics - Lung Squamous Cell Carcinoma (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.08e-1"
+  },
+  "Cancer prognostics - Ovary Serous Cystadenocarcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.75e-1"
+  },
+  "Cancer prognostics - Ovary Serous Cystadenocarcinoma (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.84e-1"
+  },
+  "Cancer prognostics - Pancreatic Adenocarcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "2.63e-1"
+  },
+  "Cancer prognostics - Pancreatic Adenocarcinoma (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "5.19e-2"
+  },
+  "Cancer prognostics - Prostate Adenocarcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.51e-1"
+  },
+  "Cancer prognostics - Rectum Adenocarcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "7.21e-2"
+  },
+  "Cancer prognostics - Rectum Adenocarcinoma (validation)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "9.60e-2"
+  },
+  "Cancer prognostics - Skin Cutaneous Melanoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.09e-1"
+  },
+  "Cancer prognostics - Stomach Adenocarcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "1.43e-3"
+  },
+  "Cancer prognostics - Testicular Germ Cell Tumor (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "9.85e-2"
+  },
+  "Cancer prognostics - Thyroid Carcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "9.30e-2"
+  },
+  "Cancer prognostics - Uterine Corpus Endometrial Carcinoma (TCGA)": {
+    "prognostic type": "",
+    "prognostic": "unprognostic",
+    "is_prognostic": false,
+    "p_val": "9.85e-2"
+  }
+}

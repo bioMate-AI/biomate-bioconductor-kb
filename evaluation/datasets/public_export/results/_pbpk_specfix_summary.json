@@ -1,0 +1,14 @@
+{
+  "anthropic/claude-opus-5": 0.4666666666666667,
+  "google/gemini-3.1-pro-preview": 0.4,
+  "moonshotai/kimi-k3": 0.0,
+  "deepseek/deepseek-v4-pro": 0.06666666666666667,
+  "z-ai/glm-5.2": 0.26666666666666666,
+  "z-ai/glm-5.3-prime": 0.13333333333333333,
+  "openai/gpt-6.1-sol-pro": 0.3333333333333333,
+  "openai/gpt-5.6-luna": 0.3333333333333333,
+  "qwen/qwen3.8-max-prime": 0.0,
+  "qwen/qwen3.5-27b": 0.26666666666666666,
+  "qwen/qwen3.5-9b": 0.0,
+  "qwen/qwen-2.5-7b-instruct": 0.06666666666666667
+}

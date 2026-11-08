@@ -1,0 +1,21 @@
+{
+  "campaign_id": "SIMULATED-UNIMOMO-DPO",
+  "data_origin": "simulated",
+  "candidates": [
+    {
+      "id": "7QGV",
+      "sequence": "Af211f214Kf244f281f244f250",
+      "target": "SIMULATED-integration-target"
+    },
+    {
+      "id": "7TPT",
+      "sequence": "Wf276f214f220Af297f281f205Cf297f136f281A",
+      "target": "SIMULATED-integration-target"
+    },
+    {
+      "id": "3WNG",
+      "sequence": "PKIDNf136f281",
+      "target": "SIMULATED-integration-target"
+    }
+  ]
+}

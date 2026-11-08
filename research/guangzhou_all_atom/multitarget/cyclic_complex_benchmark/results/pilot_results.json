@@ -1,0 +1,586 @@
+{
+ "all_thr0.23": {
+  "default": {
+   "value": 0.808,
+   "ci95": [
+    0.654,
+    0.962
+   ]
+  },
+  "iptm": {
+   "value": 0.769,
+   "ci95": [
+    0.615,
+    0.923
+   ]
+  },
+  "default_ringvalid": {
+   "value": 0.808,
+   "ci95": [
+    0.654,
+    0.962
+   ]
+  },
+  "oracle": {
+   "value": 0.962,
+   "ci95": [
+    0.885,
+    1.0
+   ]
+  },
+  "random": {
+   "value": 0.803,
+   "ci95": [
+    0.677,
+    0.915
+   ]
+  },
+  "gap_oracle_default": {
+   "value": 0.154,
+   "ci95": [
+    0.038,
+    0.308
+   ]
+  },
+  "gain_ringvalid_filter": {
+   "value": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  "n_complexes": 26,
+  "n_clusters": 26
+ },
+ "strict_thr0.23": {
+  "default": {
+   "value": 0.778,
+   "ci95": [
+    0.556,
+    0.944
+   ]
+  },
+  "iptm": {
+   "value": 0.722,
+   "ci95": [
+    0.5,
+    0.944
+   ]
+  },
+  "default_ringvalid": {
+   "value": 0.778,
+   "ci95": [
+    0.556,
+    0.944
+   ]
+  },
+  "oracle": {
+   "value": 0.944,
+   "ci95": [
+    0.833,
+    1.0
+   ]
+  },
+  "random": {
+   "value": 0.758,
+   "ci95": [
+    0.589,
+    0.907
+   ]
+  },
+  "gap_oracle_default": {
+   "value": 0.167,
+   "ci95": [
+    0.0,
+    0.333
+   ]
+  },
+  "gain_ringvalid_filter": {
+   "value": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  "n_complexes": 18,
+  "n_clusters": 18
+ },
+ "noncanonical_thr0.23": {
+  "default": {
+   "value": 0.875,
+   "ci95": [
+    0.625,
+    1.0
+   ]
+  },
+  "iptm": {
+   "value": 0.875,
+   "ci95": [
+    0.625,
+    1.0
+   ]
+  },
+  "default_ringvalid": {
+   "value": 0.875,
+   "ci95": [
+    0.625,
+    1.0
+   ]
+  },
+  "oracle": {
+   "value": 1.0,
+   "ci95": [
+    1.0,
+    1.0
+   ]
+  },
+  "random": {
+   "value": 0.905,
+   "ci95": [
+    0.725,
+    1.0
+   ]
+  },
+  "gap_oracle_default": {
+   "value": 0.125,
+   "ci95": [
+    0.0,
+    0.375
+   ]
+  },
+  "gain_ringvalid_filter": {
+   "value": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  "n_complexes": 8,
+  "n_clusters": 8
+ },
+ "all_thr0.49": {
+  "default": {
+   "value": 0.615,
+   "ci95": [
+    0.423,
+    0.808
+   ]
+  },
+  "iptm": {
+   "value": 0.577,
+   "ci95": [
+    0.385,
+    0.769
+   ]
+  },
+  "default_ringvalid": {
+   "value": 0.615,
+   "ci95": [
+    0.423,
+    0.808
+   ]
+  },
+  "oracle": {
+   "value": 0.692,
+   "ci95": [
+    0.5,
+    0.846
+   ]
+  },
+  "random": {
+   "value": 0.572,
+   "ci95": [
+    0.402,
+    0.746
+   ]
+  },
+  "gap_oracle_default": {
+   "value": 0.077,
+   "ci95": [
+    0.0,
+    0.192
+   ]
+  },
+  "gain_ringvalid_filter": {
+   "value": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  "n_complexes": 26,
+  "n_clusters": 26
+ },
+ "strict_thr0.49": {
+  "default": {
+   "value": 0.611,
+   "ci95": [
+    0.389,
+    0.833
+   ]
+  },
+  "iptm": {
+   "value": 0.556,
+   "ci95": [
+    0.333,
+    0.778
+   ]
+  },
+  "default_ringvalid": {
+   "value": 0.611,
+   "ci95": [
+    0.389,
+    0.833
+   ]
+  },
+  "oracle": {
+   "value": 0.667,
+   "ci95": [
+    0.444,
+    0.889
+   ]
+  },
+  "random": {
+   "value": 0.56,
+   "ci95": [
+    0.342,
+    0.767
+   ]
+  },
+  "gap_oracle_default": {
+   "value": 0.056,
+   "ci95": [
+    0.0,
+    0.167
+   ]
+  },
+  "gain_ringvalid_filter": {
+   "value": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  "n_complexes": 18,
+  "n_clusters": 18
+ },
+ "noncanonical_thr0.49": {
+  "default": {
+   "value": 0.625,
+   "ci95": [
+    0.25,
+    0.875
+   ]
+  },
+  "iptm": {
+   "value": 0.625,
+   "ci95": [
+    0.25,
+    0.875
+   ]
+  },
+  "default_ringvalid": {
+   "value": 0.625,
+   "ci95": [
+    0.25,
+    0.875
+   ]
+  },
+  "oracle": {
+   "value": 0.75,
+   "ci95": [
+    0.375,
+    1.0
+   ]
+  },
+  "random": {
+   "value": 0.6,
+   "ci95": [
+    0.27,
+    0.88
+   ]
+  },
+  "gap_oracle_default": {
+   "value": 0.125,
+   "ci95": [
+    0.0,
+    0.375
+   ]
+  },
+  "gain_ringvalid_filter": {
+   "value": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  "n_complexes": 8,
+  "n_clusters": 8
+ },
+ "iptm_auroc_pooled": 0.682,
+ "iptm_auroc_within_complex_mean": 0.56,
+ "n_complexes_with_mixed_outcomes": 10,
+ "ring_valid_fraction_overall": 0.749,
+ "per_complex": {
+  "28KD_2": {
+   "n": 25,
+   "default": 0.806,
+   "iptm": 0.878,
+   "default_ringvalid": 0.898,
+   "oracle": 0.898,
+   "random_mean": 0.825,
+   "random_succ": 1.0,
+   "ring_valid_frac": 0.8
+  },
+  "8R7T_2": {
+   "n": 25,
+   "default": 0.891,
+   "iptm": 0.92,
+   "default_ringvalid": 0.891,
+   "oracle": 0.92,
+   "random_mean": 0.896,
+   "random_succ": 1.0,
+   "ring_valid_frac": 1.0
+  },
+  "8UUI_3": {
+   "n": 25,
+   "default": 0.038,
+   "iptm": 0.038,
+   "default_ringvalid": 0.038,
+   "oracle": 0.045,
+   "random_mean": 0.029,
+   "random_succ": 0.0,
+   "ring_valid_frac": 1.0
+  },
+  "8VX7_2": {
+   "n": 25,
+   "default": 0.448,
+   "iptm": 0.448,
+   "default_ringvalid": 0.448,
+   "oracle": 0.504,
+   "random_mean": 0.409,
+   "random_succ": 1.0,
+   "ring_valid_frac": 1.0
+  },
+  "8WSS_5": {
+   "n": 25,
+   "default": 0.222,
+   "iptm": 0.147,
+   "default_ringvalid": 0.213,
+   "oracle": 0.319,
+   "random_mean": 0.243,
+   "random_succ": 0.64,
+   "ring_valid_frac": 0.44
+  },
+  "8WTW_2": {
+   "n": 25,
+   "default": 0.243,
+   "iptm": 0.243,
+   "default_ringvalid": 0.268,
+   "oracle": 0.285,
+   "random_mean": 0.259,
+   "random_succ": 0.96,
+   "ring_valid_frac": 0.04
+  },
+  "8X8L_3": {
+   "n": 25,
+   "default": 0.612,
+   "iptm": 0.569,
+   "default_ringvalid": 0.543,
+   "oracle": 0.723,
+   "random_mean": 0.595,
+   "random_succ": 1.0,
+   "ring_valid_frac": 0.24
+  },
+  "8XPF_2": {
+   "n": 25,
+   "default": 0.261,
+   "iptm": 0.261,
+   "default_ringvalid": 0.261,
+   "oracle": 0.314,
+   "random_mean": 0.232,
+   "random_succ": 0.56,
+   "ring_valid_frac": 0.0
+  },
+  "8XWP_2": {
+   "n": 25,
+   "default": 0.884,
+   "iptm": 0.888,
+   "default_ringvalid": 0.884,
+   "oracle": 0.888,
+   "random_mean": 0.869,
+   "random_succ": 1.0,
+   "ring_valid_frac": 0.96
+  },
+  "8XZH_6": {
+   "n": 25,
+   "default": 0.736,
+   "iptm": 0.667,
+   "default_ringvalid": 0.736,
+   "oracle": 0.746,
+   "random_mean": 0.698,
+   "random_succ": 1.0,
+   "ring_valid_frac": 0.76
+  },
+  "8ZBI_6": {
+   "n": 25,
+   "default": 0.622,
+   "iptm": 0.424,
+   "default_ringvalid": 0.622,
+   "oracle": 0.662,
+   "random_mean": 0.556,
+   "random_succ": 1.0,
+   "ring_valid_frac": 0.48
+  },
+  "8ZEB_2": {
+   "n": 25,
+   "default": 0.123,
+   "iptm": 0.123,
+   "default_ringvalid": 0.123,
+   "oracle": 0.325,
+   "random_mean": 0.183,
+   "random_succ": 0.28,
+   "ring_valid_frac": 0.92
+  },
+  "9B0A_2": {
+   "n": 25,
+   "default": 0.25,
+   "iptm": 0.009,
+   "default_ringvalid": 0.25,
+   "oracle": 0.273,
+   "random_mean": 0.118,
+   "random_succ": 0.28,
+   "ring_valid_frac": 0.48
+  },
+  "9CDT_2": {
+   "n": 25,
+   "default": 0.918,
+   "iptm": 0.918,
+   "default_ringvalid": 0.918,
+   "oracle": 0.939,
+   "random_mean": 0.916,
+   "random_succ": 1.0,
+   "ring_valid_frac": 1.0
+  },
+  "9CDU_2": {
+   "n": 25,
+   "default": 0.881,
+   "iptm": 0.882,
+   "default_ringvalid": 0.881,
+   "oracle": 0.888,
+   "random_mean": 0.869,
+   "random_succ": 1.0,
+   "ring_valid_frac": 1.0
+  },
+  "9CDZ_2": {
+   "n": 25,
+   "default": 0.738,
+   "iptm": 0.738,
+   "default_ringvalid": 0.738,
+   "oracle": 0.796,
+   "random_mean": 0.635,
+   "random_succ": 0.8,
+   "ring_valid_frac": 1.0
+  },
+  "9EMZ_2": {
+   "n": 25,
+   "default": 0.728,
+   "iptm": 0.682,
+   "default_ringvalid": 0.728,
+   "oracle": 0.753,
+   "random_mean": 0.712,
+   "random_succ": 1.0,
+   "ring_valid_frac": 0.8
+  },
+  "9F6H_4": {
+   "n": 25,
+   "default": 0.371,
+   "iptm": 0.275,
+   "default_ringvalid": 0.371,
+   "oracle": 0.4,
+   "random_mean": 0.32,
+   "random_succ": 1.0,
+   "ring_valid_frac": 0.4
+  },
+  "9HGD_2": {
+   "n": 25,
+   "default": 0.937,
+   "iptm": 0.925,
+   "default_ringvalid": 0.937,
+   "oracle": 0.956,
+   "random_mean": 0.939,
+   "random_succ": 1.0,
+   "ring_valid_frac": 1.0
+  },
+  "9I8X_2": {
+   "n": 25,
+   "default": 0.789,
+   "iptm": 0.671,
+   "default_ringvalid": 0.789,
+   "oracle": 0.806,
+   "random_mean": 0.613,
+   "random_succ": 1.0,
+   "ring_valid_frac": 1.0
+  },
+  "9P4H_2": {
+   "n": 25,
+   "default": 0.849,
+   "iptm": 0.856,
+   "default_ringvalid": 0.849,
+   "oracle": 0.889,
+   "random_mean": 0.763,
+   "random_succ": 1.0,
+   "ring_valid_frac": 1.0
+  },
+  "9P51_2": {
+   "n": 25,
+   "default": 0.644,
+   "iptm": 0.754,
+   "default_ringvalid": 0.644,
+   "oracle": 0.754,
+   "random_mean": 0.608,
+   "random_succ": 0.92,
+   "ring_valid_frac": 0.48
+  },
+  "9PHQ_3": {
+   "n": 25,
+   "default": 0.694,
+   "iptm": 0.901,
+   "default_ringvalid": 0.694,
+   "oracle": 0.907,
+   "random_mean": 0.652,
+   "random_succ": 0.88,
+   "ring_valid_frac": 1.0
+  },
+  "9T26_2": {
+   "n": 25,
+   "default": 0.076,
+   "iptm": 0.069,
+   "default_ringvalid": 0.076,
+   "oracle": 0.637,
+   "random_mean": 0.116,
+   "random_succ": 0.08,
+   "ring_valid_frac": 1.0
+  },
+  "9UPJ_2": {
+   "n": 25,
+   "default": 0.965,
+   "iptm": 0.965,
+   "default_ringvalid": 0.965,
+   "oracle": 0.981,
+   "random_mean": 0.971,
+   "random_succ": 1.0,
+   "ring_valid_frac": 1.0
+  },
+  "9Z2H_1": {
+   "n": 25,
+   "default": 0.215,
+   "iptm": 0.215,
+   "default_ringvalid": 0.215,
+   "oracle": 0.296,
+   "random_mean": 0.225,
+   "random_succ": 0.48,
+   "ring_valid_frac": 0.68
+  }
+ }
+}

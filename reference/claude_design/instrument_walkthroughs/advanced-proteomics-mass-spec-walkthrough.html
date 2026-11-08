@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Advanced Mass-Spec Proteomics — TMT, PTM & immunopeptidomics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:74ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:74ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+/* figure placeholder — Claude Design: drop the real screenshot here (see data-capture note) */
+.ph{flex:1; min-height:0; border:1.5px dashed var(--line2); border-radius:8px; background:
+  repeating-linear-gradient(135deg,#fff,#fff 10px,var(--panel) 10px,var(--panel) 20px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:28px}
+.ph .pht{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--blue)}
+.ph .phd{font-size:14px; color:var(--mut); max-width:46ch; line-height:1.5}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Instrument tutorial · Advanced mass-spec proteomics — TMT, PTM & immunopeptidomics</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Mass Spec &rarr; Quant, Sites &amp; Antigens</b></div>
+    <div class="kicker">High-resolution MS — from spectra to a defensible result</div>
+    <h2>Turn mass-spec spectra into TMT quant, phospho sites, or HLA antigens.</h2>
+    <p class="caption">Your Orbitrap or timsTOF records spectra as vendor raw (<code>.raw</code>/<code>.d</code>/<code>.wiff</code>, converted to <b>.mzML</b>). BioMate routes the run by <b>assay</b> — multiplexed <b>TMT/iTRAQ</b> quantification, <b>PTM/phospho</b> site localization, or <b>immunopeptidomics</b> — to the matching Bioconductor or nf-core pipeline, with no files copied by hand.</p>
+    <p class="caption sub">What you do with spectra depends entirely on the experimental design — and that design is exactly what decides which pipeline runs.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>MS spectra / .mzML</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Assay type</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Matched pipeline</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Quant &middot; sites &middot; antigens</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker">The problem</div>
+    <h2>Raw spectra are not an answer — and the assay decides the analysis.</h2>
+    <p class="caption">A <code>.mzML</code> or a PSM export means nothing until peptides are identified, quantified, and interpreted. And &ldquo;interpreted&rdquo; means something different for TMT channels, for a phospho residue, and for an HLA ligand — run the wrong pipeline and you get a confident wrong answer.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · SPECTRA, NOT RESULTS</div><h4>A chain, not a tool</h4><p>Conversion, search, summarization, and testing must be chained correctly before a single ratio, site, or antigen exists.</p></div>
+            <div class="tile"><div class="n">2 · THE ASSAY DECIDES</div><h4>Same spectra, different biology</h4><p>TMT &rarr; which proteins change across channels. Phospho &rarr; which residue carries the mod. HLA elution &rarr; which peptides are presented. The assay picks the path.</p></div>
+            <div class="tile"><div class="n">3 · ANNOTATION BY HAND</div><h4>Design leaks</h4><p>Search engines don&rsquo;t emit the channel&rarr;condition annotation; a wrong annotation is the most common cause of a silently wrong TMT result.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The pipelines wrap reference packages — MSstatsTMT, isobar/PhosphoRS, nf-core/mhcquant. The goal is to route to the right one and read it honestly.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the problem in one line</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas behind spectra-to-biology.</h2>
+    <p class="caption">From a finished MS run to a readable result is a short, assay-specific chain. These four ideas cover all of it.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · ISOBARIC LABEL</div><h4>The reporter ion</h4><p>TMT/iTRAQ tags let several samples pool into one run; each tag releases a distinct <b>reporter ion</b>, so one MS/MS spectrum carries abundance across every <b>channel</b> (6-, 10-, 11-, 16-, 18-plex).</p></div>
+            <div class="tile"><div class="n">2 · THE ASSAY</div><h4>The hinge</h4><p>TMT quant, PTM/phospho localization, or immunopeptidomics. This is what routes the run to a pipeline.</p></div>
+            <div class="tile"><div class="n">3 · THE PIPELINE</div><h4>A tested chain</h4><p>Not one tool: <code>msstatstmt</code>, <code>isobar</code> <code>ptm_localization_quant</code>, or <code>nf-core/mhcquant</code> — convert &rarr; summarize/localize &rarr; test/quantify.</p></div>
+            <div class="tile"><div class="n">4 · SITE &amp; BINDING</div><h4>Confidence, not just an ID</h4><p><b>PhosphoRS</b> localization probability says which residue carries the mod; <b>NetMHCpan %rank</b> says how strongly a peptide binds an HLA allele.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The assay is the hinge: an isobaric design routes to TMT quant, a phospho-enriched sample to site localization, HLA-eluted peptides to immunopeptidomics.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the vocabulary of advanced MS proteomics</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">Step 1</span> · What you provide</div>
+    <h2>Your MS files in BioMate, plus the one pair your assay needs.</h2>
+    <p class="caption">Once your <code>.raw</code>/<code>.d</code>/<code>.wiff</code> are converted to <code>.mzML</code> (or your search-engine exports are ready) and are <b>in BioMate</b> (connecting the instrument is Tutorial 6&rsquo;s job), each assay needs a specific pair of inputs.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · TMT / iTRAQ</div><h4>PSM export + annotation</h4><p>A search-engine PSM export (<code>raw.pd</code> — Proteome Discoverer / MaxQuant / SpectroMine / OpenMS / Philosopher) and a hand-built <code>annotation.pd</code> CSV: <code>Run</code>, <code>Fraction</code>, <code>Channel</code>, <code>Condition</code>, <code>BioReplicate</code>, <code>Mixture</code>.</p></div>
+            <div class="tile"><div class="n">2 · PTM / PHOSPHO</div><h4>IDs + peaklist</h4><p>The peptide identification file (<code>identifications.id.csv</code>) and the matching MS2 peaklist (<code>peaklist.mgf</code>); know your isobaric chemistry (<code>type</code>, e.g. <code>TMT6plexSpectra</code>).</p></div>
+            <div class="tile"><div class="n">3 · IMMUNOPEPTIDOMICS</div><h4>mzML + FASTA</h4><p><code>.mzML</code> from an <b>Orbitrap/timsTOF-class</b> instrument and a protein <b>FASTA</b>; for the full chain, sequencing reads for HLA typing.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">A single-run TMT experiment must set <code>reference_norm=FALSE</code> — reference normalization needs a <code>Norm</code> channel in each run.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Your MS files plus one assay-specific pair of inputs</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 2</span> · How a run works</div>
+    <h2>State the assay — or pick the card — then confirm.</h2>
+    <p class="caption">Describe the goal the way you would to a colleague — for example, <i>&ldquo;TMT differential abundance with MSstatsTMT on this Proteome Discoverer PSM export and my annotation, treated vs. control,&rdquo;</i> or <i>&ldquo;phospho site localization with isobar on these identifications and this mgf peaklist, TMT6plex.&rdquo;</i></p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:22px">
+            <span class="chip"><span class="i"></span>Assay stated / workflow card</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Assay routes the pipeline</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Review &amp; confirm</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Runs on cloud compute</span>
+          </div>
+          <ul class="points">
+            <li><span class="b"></span><span><b>The pipeline is chosen from the assay.</b> TMT &rarr; <code>msstatstmt</code>, phospho &rarr; <code>isobar</code> <code>ptm_localization_quant</code>, HLA-eluted &rarr; <code>nf-core/mhcquant</code> — a real named workflow, never &ldquo;undefined.&rdquo; If the card is wrong, restate the assay.</span></li>
+            <li><span class="b"></span><span><b>You review before anything runs.</b> Attach the inputs for your assay and set the key choices (<code>which.proteinid</code>, <code>method</code>, <code>global_norm</code>; or <code>type</code>, <code>min.delta.score</code>, <code>min.prob</code>) — for most runs the defaults are correct.</span></li>
+            <li><span class="b"></span><span><b>Then Confirm &amp; Run.</b> Expect a long cloud run (real MS compute) — phases move <i>pending &rarr; running &rarr; completed</i>.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Nothing runs until you confirm</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — RESULTS (figure placeholder + per-assay outputs) -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker"><span class="st">Step 3</span> · The result — matched to the assay</div>
+    <h2>One After-run report, shaped by what you measured.</h2>
+    <p class="caption">The run returns a report matched to the assay: differential abundance for TMT, localized site ratios for phospho, ranked antigens for immunopeptidomics.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">After run · TMT pipeline mid-run</span>
+        <div class="ph">
+          <div class="pht">Figure slot — Claude Design</div>
+          <div class="phd">Capture: the <code>msstatstmt</code> <code>tmt_differential_abundance_analysis</code> workflow panel running — the conversion / summarization / differential-testing phase cards with one phase in the <b>running</b> state and the overall <b>running</b> badge.</div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>TMT (<code>msstatstmt</code>):</b> <code>test_pairwise_results.csv</code> read by <b>log2 fold change</b> + <b>adjusted p-value</b> (a common cut is adj. p &lt; 0.05); plus <code>quant_msstats_protein_level.csv</code> and the ProfilePlot PDF.</span></li>
+          <li><span class="b"></span><span><b>Phospho (<code>isobar</code>):</b> <code>estimated_ratios.csv</code> (per-peptide reporter ratios), <code>ptm_info_phosphositeplus.csv</code> / <code>ptm_info_nextprot.csv</code> site annotations, and the noise-model MA-plot PDF.</span></li>
+          <li><span class="b"></span><span><b>Immunopeptidomics:</b> FDR-controlled MHC-peptide tables from <code>nf-core/mhcquant</code>, then <code>antigen_candidates.csv</code> ranked by <code>immunology/antigen_resolution</code>&rsquo;s fused score — class-II (DP/DQ/DR) coverage reported explicitly.</span></li>
+          <li><span class="b gr"></span><span><b>Downloadable</b> tables and reports for your figures and supplement.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>One report, shaped by the assay</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — READING / TRUSTING -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 4</span> · Reading and trusting it</div>
+    <h2>Reference packages, QC you must read, and a status you must respect.</h2>
+    <p class="caption">The workflows wrap reference Bioconductor and nf-core packages. What makes a result defensible is the QC you read, the localization probability you trust, and the honest status you keep in view.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>Read the QC first.</b> TMT: <code>qc_metrics.json</code> gate checks (missing-value fraction, library-size CV, retained-feature fraction) and a ProfilePlot with no single channel wildly offset. Immunopeptidomics: a sensible yield of <b>8&ndash;11-mer</b> (class I) peptides enriched for your HLA&rsquo;s motif.</span></li>
+            <li><span class="b am"></span><span><b>A result can be real or misleading.</b> Trust phospho sites with high localization probability (<b>PhosphoRS &ge; 0.9</b>) — an ambiguous site is a hypothesis about <i>where</i>, not a confirmed site. Be suspicious of a TMT result with almost no missing values <i>imputed</i> (often a mis-specified annotation).</span></li>
+            <li><span class="b rd"></span><span><b>TMT and PTM are experimental.</b> <code>msstatstmt</code> and <code>isobar</code> are real indexed workflows but thin single-package wrappers with no recorded real end-to-end run — do not report a TMT/PTM number as validated. Immunopeptidomics is best-in-class but <b>gated on an Orbitrap/timsTOF-class</b> instrument; confirm the model first.</span></li>
+            <li><span class="b gr"></span><span><b>A record you can defend.</b> Parameters, tool versions, and outputs are kept together as a reproducibility record.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>Real workflows, experimental results — read the status</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34">
+    <div class="kicker">The habit at a glance</div>
+    <h2 style="font-size:38px">State the assay → confirm it routed right → attach the inputs → run → read the quant, ratios, or antigens, treating TMT &amp; PTM as experimental.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The value is simple: MS spectra become biology with one request — multiplexed quant, localized phospho sites, or ranked HLA antigens — through a reference package on cloud compute, with a record you can defend in a paper or a submission.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Convert raw → <code>.mzML</code> / ready the PSM export (Tutorial 6 connects the instrument)</li>
+            <li><span class="k">2</span>State the assay (TMT / phospho / immunopeptidomics) or pick the card</li>
+            <li><span class="k">3</span>Confirm it routed to msstatstmt / isobar / mhcquant</li>
+            <li><span class="k">4</span>Attach the inputs, set key choices, then Confirm &amp; Run</li>
+            <li><span class="k">5</span>Read fold-change, site ratios, or antigens; treat TMT/PTM as experimental; keep the record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Input</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">PSM+annotation / id.csv+mgf / mzML+FASTA</span></td></tr>
+            <tr><td>Method (TMT)</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">msstatstmt — real, experimental</span></td></tr>
+            <tr><td>Method (PTM)</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">isobar ptm_localization_quant — real, experimental</span></td></tr>
+            <tr><td>Method (Immuno.)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">nf-core/mhcquant chain — best-in-class</span></td></tr>
+            <tr><td>Result</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Quant / site ratios / ranked antigens</span></td></tr>
+            <tr><td>Record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Reproducibility record</span></td></tr>
+          </table>
+          <p class="footnote">Heavy cloud runs — don&rsquo;t launch speculatively; check inputs and annotation first. TMT/PTM upgrades (<code>nf-core/quantms</code>; PTMShepherd/FragPipe) are planned, not shipped; immunopeptidomics needs an Orbitrap/timsTOF-class instrument.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

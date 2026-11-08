@@ -4,15 +4,19 @@ import type { StarredWorkflow } from '@shared/schema';
 class StarredWorkflowsService {
   private storageKey = 'biomate-starred-workflows';
   
-  // Get all starred workflows
+  // Get all starred workflows.
+  // Returns an empty list when the user has starred nothing — we never seed
+  // fabricated demo workflows, because the dialog renders these as the user's
+  // real stars. An empty account must show the honest "no starred workflows"
+  // empty state.
   getAllStarred(): StarredWorkflow[] {
     try {
       const stored = localStorage.getItem(this.storageKey);
-      if (!stored) return this.getDefaultStarred();
+      if (!stored) return [];
       return JSON.parse(stored);
     } catch (error) {
       console.error('Error loading starred workflows:', error);
-      return this.getDefaultStarred();
+      return [];
     }
   }
   
@@ -75,40 +79,8 @@ class StarredWorkflowsService {
     }
   }
   
-  private getDefaultStarred(): StarredWorkflow[] {
-    return [
-      {
-        id: 'starred-default-1',
-        workflowId: 'rna-seq-pipeline',
-        title: 'RNA-seq Analysis Pipeline',
-        description: 'Complete transcriptomic analysis from raw reads to differential expression',
-        workflowType: 'RNA-seq',
-        complexity: 'complex',
-        estimatedTime: '45 min',
-        starredAt: new Date(Date.now() - 86400000) // 1 day ago
-      },
-      {
-        id: 'starred-default-2',
-        workflowId: 'variant-calling-workflow',
-        title: 'Variant Calling Workflow',
-        description: 'SNP and indel discovery from sequencing data',
-        workflowType: 'Genomics',
-        complexity: 'complex',
-        estimatedTime: '35 min',
-        starredAt: new Date(Date.now() - 172800000) // 2 days ago
-      },
-      {
-        id: 'starred-default-3',
-        workflowId: 'qc-preprocessing',
-        title: 'Quality Control & Preprocessing',
-        description: 'Standard QC pipeline for sequencing data',
-        workflowType: 'Quality Control',
-        complexity: 'intermediate',
-        estimatedTime: '15 min',
-        starredAt: new Date(Date.now() - 259200000) // 3 days ago
-      }
-    ];
-  }
+  // NOTE: fabricated demo stars were removed — they were rendered as the user's
+  // own starred workflows. An empty account must show the honest empty state.
 }
 
 export const starredWorkflowsService = new StarredWorkflowsService();

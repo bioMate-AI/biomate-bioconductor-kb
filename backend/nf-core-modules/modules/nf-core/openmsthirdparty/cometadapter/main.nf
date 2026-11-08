@@ -1,0 +1,59 @@
+process OPENMSTHIRDPARTY_COMETADAPTER {
+    tag "$meta.id"
+    label 'process_high'
+
+    conda "${moduleDir}/environment.yml"
+    // Combined image (OpenMS+Sage+Mokapot) when set — required so the multi-engine
+    // proteomics_dda_search runs as ONE forced container under BioMate's executor.
+    // Falls back to the per-tool OpenMS-thirdparty biocontainer for standalone runs.
+    container "${
+        ( workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/openms-thirdparty:3.4.1--h9ee0642_1' :
+        'quay.io/biocontainers/openms-thirdparty:3.4.1--h9ee0642_1' ) }"
+
+    input:
+    tuple val(meta), path(mzml), path(fasta)
+
+    output:
+    tuple val(meta), path("*.idXML"), emit: idxml
+    tuple val(meta), path("*.tsv")  , emit: pin, optional: true
+    path "versions.yml"             , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+
+    """
+    CometAdapter \\
+        -in $mzml \\
+        -database $fasta \\
+        -out ${prefix}.idXML \\
+        -threads $task.cpus \\
+        $args
+
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        CometAdapter: \$(CometAdapter 2>&1 | grep -E '^Version(.*)' | sed 's/Version: //g' | cut -d ' ' -f 1 | cut -d '-' -f 1)
+        Comet: \$(comet 2>&1 | grep -E "Comet version.*" | sed 's/Comet version //g' | sed 's/"//g')
+    END_VERSIONS
+    """
+
+    stub:
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+
+    """
+    touch ${prefix}.idXML
+    touch ${prefix}_pin.tsv
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        CometAdapter: \$(CometAdapter 2>&1 | grep -E '^Version(.*)' | sed 's/Version: //g' | cut -d ' ' -f 1 | cut -d '-' -f 1)
+        Comet: \$(comet 2>&1 | grep -E "Comet version.*" | sed 's/Comet version //g' | sed 's/"//g')
+    END_VERSIONS
+    """
+}

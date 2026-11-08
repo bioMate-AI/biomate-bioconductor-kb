@@ -1,0 +1,126 @@
+BETA
+WORKSPACE
+New Chat
+Start a fresh AI conversation
+Workflows
+103
+Run history, browse & import pipelines
+Connectors
+Databases, LLMs & platform integrations
+Data
+Datasets, quality & lineage
+Models
+Train, adapt & run models · registry
+Design & Generate
+Generate candidates against property objectives
+Recent Tools
+Tools you have used recently
+PROJECTS
+IL-17A Cyclic Peptide Pilot
+IL-17A Cyclic Peptide Pilot
+IL-17A Cyclic Peptide Pilot
+IL-17A Cyclic Peptide Pilot
+New project
+CURRENT
+Run the Predict ADMET Properties workflow
+Co-design an in-vivo CD19 CAR-T for
+Co-design an in-vivo CD19 CAR-T for
+Screen these for ADMET and flag
+Screen terfenadine (OC(CCCN1CCC(CC1)(C(O)(c1ccc...
+Screen these SMILES for ADMET safety:
+RECENT
+Run DESeq2 differential expression on the
+Run DESeq2 differential expression on the
+We ran a qPCR plate in
+We ran a qPCR plate in
+We ran a qPCR plate in
+I uploaded our core-facility qPCR export
+Settings & API Keys
+WF
+WPM Fixture
+lifeifei163361@163.com
+Sign out
+Run the Predict ADMET Properties workflow
+Run Manager
+1
+BIOMATE
+FIND
+
+Predict ADMET Properties (AI) — complete. run finished.
+
+ADMET prediction completed for 3 compounds. Key ADMET properties assessed against standard thresholds.
+
+Key results:
+
+hERG inhibition: 0.003 — (Compound 1) Acceptable hERG (cardiac) liability risk (0.003)
+DILI probability: 0.855 — (Compound 1) Elevated drug-induced liver injury risk (0.855) — potential liability
+Oral bioavailability: 0.873 — (Compound 1) Acceptable oral bioavailability (0.873)
+
+Open the Findings panel for full results, tables, and the downloadable report.
+
+Instructions
+Experts
+DRUG DISCOVERY · WORKFLOW
+Predict ADMET Properties (AI)
+1 phase
+Completed
+Workflow settings
+4
+Phases
+1
+After run
+AFTER RUN
+↓ Download report
+Summary
+Outputs
+Reproducibility record
+↓ Download all (6) as ZIP
+↓ Reproducibility bundle
+📁 Save to Project
+EXPLORE IN
+⌥
+Jupyter
+Step	File	Type	
+run	
+{}
+pk_summary.json
+	JSON	
+view
+dl
+
+run	
+📁
+predict_admet_properties_output.txt
+	TXT	
+view
+dl
+
+run	
+{}
+predict_admet_properties_results.json
+	JSON	
+view
+dl
+
+run	
+{}
+qc_metrics.json
+	JSON	
+view
+dl
+
+run	
+{}
+toxicity_report.json
+	JSON	
+view
+dl
+
+run	
+{}
+versions.yml
+	YML	
+view
+dl
+Run again
+Reset to defaults

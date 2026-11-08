@@ -452,7 +452,7 @@ with open("track_immune_cells_under_flow_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("track_immune_cells_under_flow_output.txt", "w") as f:
-    f.write("Biomni: Track Immune Cells Under Flow" + NL)
+    f.write("BioMate: Track Immune Cells Under Flow" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,109 @@
+{
+  "artifact": "GATE_VERIFICATION",
+  "verifies": "LEAVE_HLA_OUT_RESULT.json (leave_hla_out_gate.py)",
+  "date": "2026-09-13",
+  "verifier": "adversarial independent recomputation from raw S3 deposit peptide tables",
+  "training_eligible": false,
+  "headline": "The FAIL verdict REPRODUCES, but it is FRAGILE, not robust: it is NOT driven by the A375 anomaly (excluding A375 still fails), it IS driven by a gene-identity MISLABEL of the HeLa background (TAPBPR editor labeled as TAPBP essential). Correcting that mislabel flips the single informative fold from rho=-0.92 to +0.92 and, with A375 also excluded, would PASS. All four per-background retention fractions reproduce exactly from raw data; the load-bearing HAP1(3%) vs A375(88%) B2M comparison is genuine and apples-to-apples.",
+
+  "1_apples_to_apples": {
+    "question": "Are HAP1 3% and A375 88% the SAME measure, normalization, peptide-set definition?",
+    "verdict": "YES - same measure, both genuine. NOT a definition mismatch.",
+    "measure": "within-deposit unique-peptide DETECTION-COUNT fraction of WT (peptide counted present in a condition if detected in >=1 run; 8-25mers over 20 canonical AAs). HLA-agnostic, batch-robust.",
+    "HAP1_B2M_recomputed_from_raw": {
+      "source": "PXD056426 Search.zip -> Search_results_DIA.tsv (DIA-NN Stripped.Sequence, Q.Value<=0.01)",
+      "WT_unique_peptides": 18624,
+      "B2M_unique_peptides": 520,
+      "retention": 0.0279,
+      "matches_reported": true,
+      "note": "Q.Value filter removed 0 rows (table is pre-filtered at 1% FDR); 2 runs unmapped to a condition (peptides seen only there dropped symmetrically). All 11 KO fractions reproduce to 4 decimals via the harness's own loader AND an independent re-parse."
+    },
+    "A375_B2M_recomputed_from_raw": {
+      "source": "PXD065279 MB_30_A375_WT_and_B2M-KO_MHC1-TIP_fragpipe_combined_peptide.tsv (FragPipe DDA)",
+      "WT_unique_peptides": 2410,
+      "B2M_unique_peptides": 2117,
+      "retention_detection_count": 0.8784,
+      "retention_summed_spectral": 0.8595,
+      "retention_intensity": 0.6462,
+      "shared_over_WT": 0.4855,
+      "MBR_check": "ALL 2117 B2M-KO detected peptides are Match Type = MS/MS (zero match-between-runs transfers). The 88% is NOT an MBR artifact.",
+      "matches_reported": true
+    },
+    "conclusion": "Both use detected-unique-peptide count / WT detected-unique-peptide count. HAP1 via DIA-NN presence, A375 via FragPipe spectral-count>0 presence - identical definition. Depth differs (DIA 18624 vs DDA 2410 WT peptides) but retention is a within-deposit ratio so depth cancels. The 3%-vs-88% B2M-KO discordance is a REAL biological/experimental discordance, not a computation artifact."
+  },
+
+  "2_pooled_rho_and_pvalue": {
+    "reproduced_pooled_transfer_spearman": -0.9312,
+    "reproduced_perm_pvalue_one_sided": 0.883,
+    "reproduced_null_band": {"n_perm": 3000, "mean": -0.4386, "p50": -0.1233, "p95": -0.0804},
+    "matches_reported": true,
+    "dominated_by_single_informative_fold": true,
+    "explanation": "Only the HAP1 fold has >=3 held-out KOs, so it is the ONLY per-fold Spearman that is computable (the other 3 folds are null by construction). Of the 15 pooled (pred,obs) points, 11 are HAP1's; the pooled -0.9312 is essentially HAP1's -0.9203 plus 4 minority points of scatter. The statistic is effectively 'can A375+THP-1+HeLa predict HAP1's KO->loss ordering'.",
+    "excluding_A375": {
+      "pooled_transfer_spearman": -0.9381,
+      "perm_pvalue_one_sided": 0.8657,
+      "HAP1_fold_rho": -0.9203,
+      "verdict": "STILL FAIL",
+      "finding": "The FAIL is NOT driven by the A375 B2M anomaly. Removing A375 entirely leaves the transfer strongly negative. A375 is a symptom, not the cause of the negative sign."
+    },
+    "permutation_null_validity": "Non-degenerate: 3000 permutations produce 3000 distinct fitted slopes (the null shuffles training labels, changing sign(slope)). Pooling into one Spearman (vs per-fold-mean) correctly avoids the p95=+/-1 degeneracy at small KO counts. The wide, negative-centered null (p=0.88) is the CORRECT behavior of an underpowered 1-informative-fold design: it can neither pass nor cleanly reject. NOT a bug."
+  },
+
+  "3_code_review": {
+    "head_exit_code_note": "No error found. Harness runs clean (exit 0) on the raw deposit; the DIA loader streams the 447MB tsv without truncation. 'head exit code' was likely a transient shell-pipe SIGPIPE during earlier exploration, not a harness fault.",
+    "loo_cv_off_by_one": "None. leave_hla_out_cv holds out each deposit, fits on the rest, predicts held-out KOs. Correct LOO. No index error.",
+    "leakage_feature": "Clean. The transfer feature is an HLA-agnostic machinery-severity PRIOR (gene identity only), never the held-out deposit's peptides. Not deposit-memorization leakage.",
+    "silent_nan_handling": "Acceptable. None/NA/empty quant values are skipped in both loaders; peptides failing 8-25mer/AA QC are dropped. No silent NaN propagates into a fraction. The DIA Q.Value try/except-pass tolerates non-numeric Q values (keeps them) - minor, immaterial here (0 rows filtered).",
+    "denominator_bug": "None. WT denominator is the WT condition's unique-peptide count (or max if no WT). Correct.",
+    "DISJOINT_ALLELE_CHECK_BUG": {
+      "severity": "CONFIRMED BUG, worse than the prior result admitted",
+      "prior_agent_diagnosis": "attributed to 2-field ('A*02') vs 1-field ('A*02:01') token mismatch",
+      "actual_root_cause": "hla_overlap_leakage.alleles() replaces only ',' with space before split, but the background strings are ';'-separated (e.g. 'HeLa;HLA-A*02;HLA-B*35;...'). So each ENTIRE background string becomes ONE glued token that can never equal another -> the check ALWAYS reports any_shared_alleles=false regardless of real sharing.",
+      "biological_truth": "A375, THP-1 and HeLa ALL carry HLA-A*02 (and A375+HeLa share C*06:02). The 3 public KO backgrounds are NOT allele-disjoint; only HAP1 (A*03:01/B*51:01/C*01:02) is disjoint from the rest.",
+      "impact_on_verdict": "The disjoint-alleles PASS criterion is genuinely NOT met, so this does not change the FAIL. But the check is non-functional and would ALSO wrongly wave through a real shared-allele leak in a future corpus. Must be fixed (split on [;, ] and normalize to 2-field before intersect)."
+    },
+    "GENE_MISLABEL_BUG": {
+      "severity": "CONFIRMED BUG - load-bearing; it determines the SIGN of the verdict",
+      "where": "gate/build_inventory.py maps HeLa's TAPBPR (gene TAPBPL) KO to the condition label 'TAPBP'.",
+      "why_wrong": "TAPBP (tasapin) is a hard essential in the peptide-loading complex (MACHINERY_SEVERITY=0.80, is_essential=true). TAPBPR/TAPBPL is a peptide EDITOR whose KO is expected to be weak or to INCREASE the repertoire. Labeling the editor as the essential assigns severity 0.80 to a data point whose observed loss is NEGATIVE (-0.1389; presentation rose to 114%).",
+      "mechanism": "The cross-fold fit is loss ~ severity over just 4 training points (A375 B2M, A375 ERAP1, THP-1 ERAP1, HeLa). With HeLa at (sev=0.80, loss=-0.14) the OLS slope is -0.0439 (inverted); relabeling HeLa as TAPBPR (sev=0.20) makes the slope +0.3088 (H4-consistent). Because prediction is monotonic in severity, sign(slope) flips the HAP1 held-out transfer Spearman from -0.9203 to +0.9203.",
+      "verified_hela_retention": "Independently recomputed from the raw PXD078020 .msf (Proteome Discoverer SQLite, ConfidenceLevel=3): WT=6377, KO=7258, retention=1.1382 (reported 1.1389). Confirmed - editor KO broadens the repertoire."
+    },
+    "class_mixing": "Correct in this run - all 4 backgrounds are class-I; class-II (PXD020079) correctly excluded.",
+    "n_backgrounds_check": "Correct - requires >=3 folds each carrying transfer>=0.3; here 0 do (3 folds uncomputable, 1 negative). Legitimately fails the >=3 criterion."
+  },
+
+  "4_sensitivity": {
+    "as_run_full4": {"pooled_rho": -0.9312, "p": 0.883, "HAP1_fold": -0.9203, "verdict": "FAIL"},
+    "as_run_no_A375": {"pooled_rho": -0.9381, "p": 0.8657, "HAP1_fold": -0.9203, "verdict": "FAIL"},
+    "corrected_HeLa_label_full4": {"pooled_rho": 0.0054, "p": 0.0113, "HAP1_fold": 0.9203, "verdict": "FAIL (rho<0.3; pulled to ~0 by the A375 B2M near-miss)"},
+    "corrected_HeLa_label_no_A375": {"pooled_rho": 0.729, "p": 0.0007, "HAP1_fold": 0.9203, "verdict": "PASS (rho>=0.3 AND p<=0.05)"},
+    "hard_essentials_only": {"note": "Dropping trimmer/editor KOs (ERAP1, TAPBPR) leaves only A375 B2M as a public hard-essential replicate; no fold is computable. Verdict: UNPROVEN/underpowered - the one hard-essential public replicate (A375 B2M) contradicts HAP1 (88% vs 3%).", "verdict": "FAIL/UNPROVEN"},
+    "within_HAP1_H4": {"severity_vs_loss_spearman": 0.9203, "note": "H4 holds STRONGLY within HAP1 (severity predicts loss). The question was only ever cross-HLA transfer."},
+    "interpretation": "The FAIL is robust to A375 exclusion but FRAGILE to the HeLa gene-label bug. The negative sign of the headline rho=-0.93 is an ARTIFACT of mislabeling the TAPBPR editor as the TAPBP essential, not of the biology. Once corrected, the SIGN of transfer is positive; whether it PASSES the full rule then hinges on the A375 B2M near-collapse (retains 88%), which drags the pooled rho back toward 0 in the 4-background case."
+  },
+
+  "final_verdict": {
+    "does_FAIL_reproduce": "YES - numerically the -0.9312 / p=0.883 / FAIL reproduce exactly.",
+    "is_it_correct_though": "The FAIL is DEFENSIBLE but for the wrong stated reason. The correct reasons to withhold a PASS are: (a) only 1 of 4 backgrounds (HAP1) has >=3 KOs, so the gate is structurally underpowered (only 1 informative fold); (b) the public backgrounds contribute almost no dynamic range (all their KOs retain 84-114% of presentation); (c) the ONE public hard-essential replicate (A375 B2M) genuinely retains 88% vs HAP1's 3% - a real, unexplained discordance; (d) alleles are NOT disjoint (A*02 shared). The STRONGER 'public data ACTIVELY CONTRADICTS HAP1 (transfer rho=-0.92)' claim is NOT supported - that negative sign is an artifact of the TAPBPR->TAPBP mislabel and vanishes (becomes +0.92) when corrected.",
+    "driven_by_A375": false,
+    "driven_by_HeLa_mislabel": true,
+    "robust_or_fragile": "FRAGILE on sign, ROBUST on 'cannot PASS'. The verdict should be UNPROVEN (underpowered + real A375 discordance + non-disjoint alleles), NOT 'contradicted'.",
+    "CRO_implication_unchanged": "Cross-HLA generalization of H4 remains NOT established on public KO-contrast data -> the CRO must still supply >=3 distinct HLA backgrounds x the hard-essential machinery-KO panel (B2M/TAP1/TAP2/TAPBP) with matched proteome. Priority remains resolving the A375 B2M-KO discordance (leaky/incomplete KO vs genuine A*02-background B2M-independent presentation vs DDA-depth artifact), since it is the real load-bearing signal - not the (artifactual) negative transfer."
+  },
+
+  "bugs_found": [
+    "GENE MISLABEL (load-bearing): HeLa TAPBPR/TAPBPL editor KO labeled as 'TAPBP' essential (severity 0.80) in build_inventory.py -> inverts the cross-fold slope sign -> turns a +0.92 transfer into -0.92. Fix: add TAPBPR/TAPBPL to MACHINERY roles as an EDITOR (low/negative expected loss), relabel the HeLa condition.",
+    "DISJOINT-ALLELE CHECK NON-FUNCTIONAL: hla_overlap_leakage() tokenizer splits on ',' only, not ';', so ';'-separated genotypes become single glued tokens -> always reports disjoint. Fix: split on [;,\\s] and normalize to 2-field.",
+    "STRUCTURAL UNDERPOWER (not a code bug, a design limit): only HAP1 has >=3 KO conditions -> only 1 computable fold -> the 'pooled' statistic and its null are effectively a single-fold sign test. Any cross-HLA PASS/FAIL is fragile until >=2 backgrounds carry >=3 KOs each."
+  ],
+  "reproduced_exactly_from_raw": {
+    "HAP1_all_11_KO_fractions": true,
+    "A375_B2M_0.8784": true,
+    "A375_ERAP1_0.9876": true,
+    "THP1_ERAP1_0.8451": true,
+    "HeLa_TAPBPR_1.1382_vs_1.1389": true,
+    "pooled_rho_-0.9312": true,
+    "perm_p_0.883": true
+  }
+}

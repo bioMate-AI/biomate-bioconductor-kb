@@ -1,0 +1,26 @@
+{
+ "target": "PADI4",
+ "n_unique": 370806,
+ "n_train": 296645,
+ "n_test": 74161,
+ "test_binders_with_train_binder_within_hamming1": 0.224,
+ "test_binders_with_train_binder_within_hamming2": 0.284,
+ "random_split_kmer_baseline": {
+  "auc": 0.865,
+  "lift_top5": 8.7,
+  "n_test": 74161,
+  "n_test_binders": 67
+ },
+ "binder_families": 314,
+ "binders": 394,
+ "top1_family_share_of_binders": 0.132,
+ "top10_family_share_of_binders": 0.228,
+ "singleton_binder_families": 308,
+ "n_families": 366591,
+ "family_disjoint_kmer_baseline": {
+  "auc": 0.864,
+  "lift_top5": 8.8,
+  "n_test": 74135,
+  "n_test_binders": 68
+ }
+}

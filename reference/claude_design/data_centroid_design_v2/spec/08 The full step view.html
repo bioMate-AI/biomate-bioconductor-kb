@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 08 — The full step view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>The full step view</h1>
+<p class="docmeta"><span>BioMate · Function-module spec 08</span><span>Status: for review</span><span>Surface: full window, or docked drawer</span></p>
+
+<p class="lede">One step of a run, opened as an object. This is the deepest surface in the product and the one the platform's central claim rests on: that a scientist can get all the way down to <strong>the bytes a step wrote and the parameters it actually ran with</strong>, without leaving the product or asking anyone. Everything above it — reports, findings, dataset lineage — is trustworthy only because this exists.</p>
+
+<h2><span class="num">8.1</span>Why a step is an object</h2>
+<table class="st">
+<thead><tr><th>Question</th><th>Without this view</th><th>With it</th></tr></thead>
+<tbody>
+<tr><td>"What did this step actually do?"</td><td>Read the pipeline source.</td><td>Tool, version, duration, inputs, outputs, on one row.</td></tr>
+<tr><td>"What parameters did it use?"</td><td>Trust the configuration screen, which shows intent, not what resolved.</td><td>The <em>resolved</em> values, each with its origin.</td></tr>
+<tr><td>"Is the summary right?"</td><td>Download the file and open it elsewhere.</td><td>Rendered and raw views of the same bytes, one toggle apart.</td></tr>
+<tr><td>"Where did this number come from?"</td><td>Unanswerable.</td><td>Click the number in the report; land on the output, in the step, with it in view.</td></tr>
+<tr><td>"What if this parameter were different?"</td><td>Re-run the whole pipeline.</td><td>Re-run from here; upstream comes from cache.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Terminal-surface rule</span><p>This view must never say "download to inspect" for anything it could render. A dead end here is a dead end for the whole product's auditability claim — the user's only remaining move is to leave, and once they are in a terminal with the file, nothing we assert about provenance is verifiable inside the product.</p></div>
+
+<h2><span class="num">8.2</span>Anatomy</h2>
+<figure>
+<div class="wire">+--------------------------------------------------------------+
+| [B]  step 7 of 22 - B phase                                  |
+|      Library-size and depth check     [dock right]     [x]   |
+|                                                              |
+| ran with  [counts.tsv v3]  ->  [MultiQC 1.21]  ->  [3 outs]  |
+|                                                    1m 12s    |
++--------------------------------------------------------------+
+| [img] libsize.png | [tbl] qc.tsv | [log] step.log            |
+|                                    [rendered|raw]  [down]    |
+|                                                              |
+|  ... viewer for the selected output ...                      |
+|                                                              |
+|  Parameters this step actually ran with     [2 not default]  |
+|  min_depth        5 M          [override]                    |
+|  ...                                                         |
++--------------------------------------------------------------+
+| [< previous step] [next step >]   [see in lineage] [re-run]  |
++--------------------------------------------------------------+</div>
+<figcaption>Step view. Head with provenance, output tabs with a rendered/raw switch, the resolved parameters, and a footer for traversal and re-run.</figcaption>
+</figure>
+<table class="el">
+<thead><tr><th>Element</th><th>Contents</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>.deephd</td><td>Phase letter, "step n of N", step name.</td><td>The position matters: a step is a place in a run, not a free-floating record.</td></tr>
+<tr><td>mode switch</td><td><em>full window</em> ⇄ <em>dock right</em>.</td><td>Full by default — the content is dense and the point is to see it. Docked keeps the run visible for comparing two steps.</td></tr>
+<tr><td>.provrow</td><td><code>ran with → tool version → n outputs</code>, plus duration.</td><td>Input chips are dataset objects and open as such (Spec 04). The whole causal chain of one step, in one line.</td></tr>
+<tr><td>.outtabs</td><td>One tab per output, each with its evidence badge and filename.</td><td>Selecting one changes the viewer. A step with one output still shows the tab, so the count is never ambiguous.</td></tr>
+<tr><td>rendered / raw</td><td>A two-position switch.</td><td>See §8.5. This is the most important control on the surface.</td></tr>
+<tr><td>.deepfoot</td><td>previous · next · see in lineage · re-run from here.</td><td>Traversal is first because auditing a run means reading several steps in sequence.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">8.3</span>Provenance</h2>
+<p>The head answers "what fed this and what came out" before any content loads. Input chips carry their quality dot and version, so an amber input is visible <em>here</em> and not only in Files — this is where inherited amber (Spec 04 §4.5.2) becomes legible on a specific result. Where a step's input is another step's output, the chip says so rather than naming a file the user never provided.</p>
+<p><em>See in lineage</em> exits into the dataset object's lineage view, which is the same graph read from the data's side rather than the step's.</p>
+
+<h2><span class="num">8.4</span>Resolved parameters</h2>
+<p>Not the configuration — <strong>what resolved</strong>. A count of non-default values sits in the header, because that count is the first thing a reviewer wants. Each row: name, an origin badge, the value as an editable field, and a reason where one exists.</p>
+<table class="st">
+<thead><tr><th>Origin</th><th>Style</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>default</td><td>Grey, quiet.</td><td>The workflow's own value.</td></tr>
+<tr><td>inherited</td><td>Accented.</td><td>From a project instruction — the origin users are most surprised by, so the loudest.</td></tr>
+<tr><td>recommended</td><td>Accented, with a <em>why</em>.</td><td>Proposed for this data, with a reason and a citation.</td></tr>
+<tr><td>confirmed</td><td>Marked.</td><td>Answered in a clarification card, bound to this field (Spec 06 §6.4).</td></tr>
+<tr><td>override</td><td>Marked.</td><td>Changed by hand, here or in configuration.</td></tr>
+</tbody>
+</table>
+<p>Editing a value is allowed in place, and the copy states the consequence before the action: "changed values re-run this step and everything downstream; upstream comes from cache". <em>Revert</em> appears per row as soon as a value diverges. The apply button is disabled until something actually changes — a re-run with no change is a bill with no question behind it.</p>
+
+<h2><span class="num">8.5</span>Outputs, rendered and raw</h2>
+<p>Each output renders by its evidence class, resolved from the output itself (Spec 00 §0.7):</p>
+<table class="st">
+<thead><tr><th>Class</th><th>Viewer</th><th>Controls</th></tr></thead>
+<tbody>
+<tr><td>Perceptual</td><td>Image stage.</td><td>fit / 100% / 200% / full-bleed. Never a thumbnail — a thumbnail of a micrograph is not evidence.</td></tr>
+<tr><td>Quantitative</td><td>Table plus <strong>column stats</strong>.</td><td>Sort, filter, page. Column stats give type, distinct count, and a flag on columns containing failing or missing values.</td></tr>
+<tr><td>Symbolic</td><td>Record browser.</td><td>Jump by identifier, or page. Excluded or flagged records are marked in the list.</td></tr>
+<tr><td>Procedural</td><td>Console.</td><td>Follow-tail while the step runs.</td></tr>
+</tbody>
+</table>
+<p>Domain-specific outputs use their own viewers within these classes — a predicted structure opens the 3D view <em>with</em> its per-residue confidence chart and pairwise-error heatmap; per-base scores open as tracks (Spec 03 §3.8).</p>
+<div class="rule"><span class="lbl">Rendered-from-bytes rule</span><p>The rendered view, the column stats and the raw view are three renderings of <strong>one string</strong>, so they cannot disagree. The summary sentence above the viewer is written from the artifact, not from a separate metadata record. When the raw view is open the copy says the quiet part out loud: <em>"Raw first: the summary above is derived from these bytes, and you can check it."</em></p></div>
+<p>An output that is itself a dataset offers <em>open as dataset →</em>, which is how lineage chains without a separate lineage tool: the counts matrix produced here is the same object Files shows, with its own versions and its own downstream runs.</p>
+
+<h2><span class="num">8.6</span>Number → source</h2>
+<p>The mechanism that makes the after-run report auditable by clicking rather than by reading. Every number in the Findings prose is a link. Clicking one opens a small card: the claim, how it was computed, the exact value, the output it is findable in with its evidence badge, and the step that produced it — then <em>Open the output it came from →</em>, which opens this view with that output selected.</p>
+<div class="rule"><span class="lbl">Claim rule</span><p>A number in a report that cannot resolve to an output is a defect, not a rounding of detail. If a figure is computed for the prose and exists in no artifact, it does not go in the prose.</p></div>
+
+<h2><span class="num">8.7</span>Re-run from here</h2>
+<p>Cache-aware branching, with the cost stated before the commitment.</p>
+<ul>
+<li><strong>Was → now</strong> as a diff, per parameter, with the parameter chosen from a chip row.</li>
+<li><strong>The cache arithmetic in words</strong>: "cached upstream: 4 steps · re-runs: this step and 3 downstream · est. 6 min instead of 41."</li>
+<li><strong>The alternate output appears beside the original</strong> rather than replacing it. A branch is a comparison; overwriting the original would destroy the reason for making it.</li>
+<li>A re-run appears in the run's trajectory and its audit trail (Spec 07 §7.7), with what changed.</li>
+</ul>
+
+<h2><span class="num">8.8</span>States</h2>
+<table class="st">
+<thead><tr><th>State</th><th>What the view shows</th></tr></thead>
+<tbody>
+<tr><td>Completed</td><td>Everything: provenance, outputs, resolved parameters, re-run.</td></tr>
+<tr><td>Running</td><td>Provenance and the log with follow-tail. Partial outputs appear as they are written.</td></tr>
+<tr><td>Pending</td><td>The parameters it <em>will</em> run with, editable. No outputs, and it says so.</td></tr>
+<tr><td>Skipped</td><td>"This step was skipped. Nothing ran, so there is no output to look at." Its last recorded outputs from the previous run stay readable, and re-running from here re-enables it. Neutral, never red.</td></tr>
+<tr><td>Failed</td><td>The error, the failing invocation, and the log positioned at the failure — not the top.</td></tr>
+<tr><td>Binary artifact</td><td>Says plainly that it is binary and offers download. The one honest exception to §8.1, and it names itself.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">8.9</span>Copy rules</h2>
+<ol>
+<li><strong>Say "actually ran with".</strong> The distinction between intended and resolved is the whole point of the section.</li>
+<li><strong>State the cost before a re-run</strong>, in minutes and steps.</li>
+<li><strong>Raw is never hidden behind a menu.</strong> One switch, always in the same place.</li>
+<li><strong>A skipped step is explained, not blamed.</strong></li>
+<li><strong>Never "download to inspect"</strong> unless the artifact is genuinely binary.</li>
+</ol>
+
+<h2><span class="num">8.10</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Whether two branches of a re-run should be comparable side by side <em>inside</em> this view, or in a dedicated comparison surface.</li>
+<li><span class="tag open">open</span> How far the raw view should page for a multi-gigabyte artifact — first bytes only, or a windowed reader.</li>
+<li><span class="tag open">open</span> Whether step-level parameter edits should be promotable into a project instruction from here.</li>
+<li><span class="tag open">open</span> Whether a failed step should offer an LLM-written diagnosis of the error, and how to keep that from reading as a certainty.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 08 · The full step view</span><span>End of the set — 00 through 08</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

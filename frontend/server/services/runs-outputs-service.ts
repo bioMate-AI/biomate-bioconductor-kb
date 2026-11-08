@@ -23,6 +23,13 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { storage } from "../storage";
 import { classifyFileType } from "../bioinformatics-parsers";
+import {
+  buildManifest,
+  readManifest,
+  entryToCanonical,
+  isTerminalStatus,
+  type OutputManifest,
+} from "./runs-outputs-manifest";
 
 const PRESIGN_TTL_SEC = 3600;
 const DEFAULT_NF_BUCKET =
@@ -167,37 +174,93 @@ export class RunsOutputsService {
   }
 
   /** List outputs for a run. Canonical, normalized, presigned. */
+  /**
+   * Persist a manifest of a terminal run's outputs into its (DB-backed)
+   * executionJson, so later reads never depend on re-deriving the S3 prefix or
+   * on a wiped in-memory store. The single writer for the output manifest (L1a).
+   */
+  async registerOutputs(anyId: string, outputs: CanonicalOutput[]): Promise<void> {
+    if (!outputs.length) return;
+    const run =
+      (await storage.getExecutionRun(anyId)) ||
+      (await storage.getExecutionRunByGalaxyId(anyId));
+    if (!run) return;
+    const exec: any = (run as any).execution || {};
+    const manifest = buildManifest(outputs, new Date().toISOString());
+    try {
+      await storage.updateExecutionRun(run.id, {
+        execution: { ...exec, outputManifest: manifest },
+      } as any);
+    } catch (e: any) {
+      console.warn(`[runs-outputs] registerOutputs persist failed for ${run.id}: ${e?.message || e}`);
+    }
+  }
+
+  /** Re-presign the stable manifest entries into full CanonicalOutputs. */
+  private async fromManifest(runId: string, manifest: OutputManifest): Promise<CanonicalOutput[]> {
+    const client = s3();
+    return Promise.all(
+      manifest.entries.map(async (entry) => {
+        let downloadUrl = "";
+        try {
+          downloadUrl = await getSignedUrl(
+            client,
+            new GetObjectCommand({ Bucket: entry.s3Bucket, Key: entry.s3Key }),
+            { expiresIn: PRESIGN_TTL_SEC },
+          );
+        } catch (e: any) {
+          console.warn(`[runs-outputs] manifest presign failed for ${entry.s3Key}: ${e?.message || e}`);
+        }
+        return entryToCanonical(entry, runId, downloadUrl);
+      }),
+    );
+  }
+
   async list(anyId: string): Promise<CanonicalOutput[]> {
     const meta = await this.resolve(anyId);
-    if (!meta || !meta.s3Outdir) return [];
+    if (!meta) return [];
 
-    const parsed = parseS3Uri(meta.s3Outdir);
-    if (!parsed) return [];
+    // Manifest-first: a terminal run that was listed once has its stable output
+    // set persisted in executionJson — rebuild from there (survives restarts and
+    // never re-derives the S3 prefix). Falls through to a live listing when no
+    // manifest exists yet (in-flight runs, or runs registered before this shipped).
+    const runForManifest =
+      (await storage.getExecutionRun(meta.runId)) ||
+      (await storage.getExecutionRunByGalaxyId(meta.runId));
+    const manifest = readManifest((runForManifest as any)?.execution);
+    if (manifest) {
+      return this.fromManifest(meta.runId, manifest);
+    }
 
     const client = s3();
     const items: S3Object[] = [];
-    let continuationToken: string | undefined = undefined;
-    try {
-      do {
-        const lr: any = await client.send(
-          new ListObjectsV2Command({
-            Bucket: parsed.bucket,
-            Prefix: `${parsed.prefix}/`,
-            ContinuationToken: continuationToken,
-            MaxKeys: 1000,
-          })
+    // Prefix listing (only when a prefix is derivable). NEVER early-return on an
+    // empty/absent prefix — the reliable-source recovery below must still run for
+    // runs whose s3Outdir can't be derived (the exact 0-outputs case).
+    const parsed = meta.s3Outdir ? parseS3Uri(meta.s3Outdir) : null;
+    if (parsed) {
+      let continuationToken: string | undefined = undefined;
+      try {
+        do {
+          const lr: any = await client.send(
+            new ListObjectsV2Command({
+              Bucket: parsed.bucket,
+              Prefix: `${parsed.prefix}/`,
+              ContinuationToken: continuationToken,
+              MaxKeys: 1000,
+            })
+          );
+          for (const obj of lr.Contents || []) {
+            if (!obj.Key || obj.Key.endsWith("/")) continue;
+            items.push(obj);
+          }
+          continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
+        } while (continuationToken);
+      } catch (e: any) {
+        console.warn(
+          `[runs-outputs] S3 list failed for ${meta.s3Outdir}: ${e?.message || e}`
         );
-        for (const obj of lr.Contents || []) {
-          if (!obj.Key || obj.Key.endsWith("/")) continue;
-          items.push(obj);
-        }
-        continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
-      } while (continuationToken);
-    } catch (e: any) {
-      console.warn(
-        `[runs-outputs] S3 list failed for ${meta.s3Outdir}: ${e?.message || e}`
-      );
-      return [];
+      }
     }
 
     // Task #16 fallback: when publishDir never ran (Nextflow JVM died mid-run
@@ -207,7 +270,7 @@ export class RunsOutputsService {
     // work prefix by translating ".../outputs/<domain>/<hash>" →
     // ".../work/<domain>/<nfRunId>/". Skip Nextflow control files (.command.*,
     // .exitcode, etc.) — they're not user outputs.
-    if (items.length === 0) {
+    if (items.length === 0 && parsed) {
       const m = parsed.prefix.match(/^(.*)\/outputs\/([^/]+)\/([^/]+)$/);
       const nfRunId = meta.nextflowRunId || meta.galaxyInvocationId || meta.runId;
       if (m && nfRunId) {
@@ -246,77 +309,157 @@ export class RunsOutputsService {
       }
     }
 
-    // General status reconcile: when real workflow outputs exist (anywhere:
-    // outputs/ or recovered from work/) but the stored status hasn't been
-    // updated to 'succeeded', upgrade it.
-    //
-    // Two cases handled:
-    //   (a) status='failed' — Nextflow monitor died after publishDir wrote
-    //       files but before Galaxy got a terminal event. The fix from
-    //       commit 941e72874.
-    //   (b) status='running' — Nextflow JVM exited cleanly + publishDir
-    //       completed to outputs/ but Galaxy hasn't polled the terminal
-    //       event yet (or never will, e.g. container restart). The frontend
-    //       UI shows 'running' forever even though all files are in S3.
-    //       Discovered 2026-06-02 in v21 pocket+pharma mock_mode runs.
-    //
-    // Safety for case (b): require startedAt > 90s ago (typical AWS Batch
-    // cold-start) to avoid false-upgrading runs that just submitted but
-    // haven't yet emitted any process output. We don't want partial
-    // intermediate outputs from a multi-process workflow to count as
-    // 'workflow succeeded' before all processes finish — but the
-    // no-downgrade-from-succeeded guard in routes.ts handles that: if a
-    // later process truly fails, status stays 'succeeded' incorrectly.
-    // Acceptable trade-off because: (1) the upgrade is reversible if a
-    // workflow author signals failure explicitly via process exit code,
-    // (2) the UI shows the outputs that DO exist either way, so the user
-    // can verify correctness, (3) the alternative is 'running forever'
-    // which is worse UX than 'incorrectly succeeded with outputs visible'.
-    //
-    // Filter excludes Nextflow auto-report files — they appear even on
-    // failures so we'd false-upgrade real failures otherwise.
-    const STARTUP_GRACE_MS = 90 * 1000;
-    const startedAtMs = meta.startedAt
-      ? new Date(meta.startedAt as any).getTime()
-      : 0;
-    const pastStartupGrace = startedAtMs > 0 && (Date.now() - startedAtMs) > STARTUP_GRACE_MS;
-    const shouldConsiderUpgrade =
-      (meta.status === "failed") ||
-      (meta.status === "running" && pastStartupGrace);
-    if (shouldConsiderUpgrade && items.length > 0) {
-      const autoReportNames = new Set([
-        "report.html", "timeline.html", "dag.dot", "versions.yml",
-      ]);
-      const realOutputs = items.filter((obj) => {
-        const name = obj.Key?.split("/").pop() || "";
-        return !autoReportNames.has(name) && !name.startsWith(".");
-      });
-      if (realOutputs.length > 0) {
-        try {
-          const run = await storage.getExecutionRun(meta.runId);
-          if (run) {
-            await storage.updateExecutionRun(run.id, {
-              execution: {
-                ...run.execution,
-                status: "succeeded" as any,
-                errorMessage: undefined,
-              },
+    // Listing artifacts is deliberately read-only. A workflow can publish
+    // intermediates before a later process fails; work/ recovery can likewise
+    // expose partial task files. Only the executor's explicit terminal signal
+    // (exit status, completed trace, or backend status) may change run state.
+    // This service must therefore never promote running/failed runs because
+    // objects happen to be present in S3.
+
+    // Reliable-source fallback (R0 subsumes R3): the derived prefix can be wrong
+    // for a run, but the executor's REPORTED file list
+    // (execution.nextflowStatus.s3_output_files, persisted in executionJson) has
+    // each output's real s3_uri — possibly in a different bucket than the derived
+    // prefix. Seed outputs from it, then register the manifest so future reads are
+    // prefix-independent. This is what lets a run whose R0 prefix is wrong (the
+    // exact 0-outputs bug) still resolve.
+    if (items.length === 0) {
+      let reported: any[] =
+        (runForManifest as any)?.execution?.nextflowStatus?.s3_output_files ||
+        (runForManifest as any)?.execution?.nextflowStatus?.output_files ||
+        [];
+      if (!reported.length) {
+        // Live recovery (R0 subsumes R3's Galaxy-status fallback): when nothing
+        // was persisted (no poll landed before a restart), ask the executor for
+        // the file list directly. This is the source R3 uses to recover 6
+        // outputs where R0's prefix listing sees none.
+        const nfRunId = meta.nextflowRunId || meta.galaxyInvocationId || meta.runId;
+        if (nfRunId) {
+          try {
+            const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+            const gResp: any = await fetch(`${galaxyUrl}/api/nextflow/status/${nfRunId}`, {
+              signal: AbortSignal.timeout(8000),
             });
-            console.info(
-              `[runs-outputs] status reconcile: ${meta.runId} ${meta.status} -> succeeded ` +
-              `(${realOutputs.length} real output files present)`
-            );
+            if (gResp.ok) {
+              const gData: any = await gResp.json();
+              if (Array.isArray(gData?.s3_output_files) && gData.s3_output_files.length) {
+                reported = gData.s3_output_files;
+              }
+            }
+          } catch (e: any) {
+            console.warn(`[runs-outputs] galaxy status recovery failed: ${e?.message || e}`);
+          }
+        }
+      }
+      if (reported.length) {
+        const seeded = (
+          await Promise.all(
+            reported.map(async (f: any): Promise<CanonicalOutput | null> => {
+              const s3Uri: string = f?.s3_uri || f?.s3Uri || "";
+              const mm = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+              if (!mm) return null;
+              const bucket = mm[1];
+              const key = mm[2];
+              const name = f?.name || key.split("/").pop() || key;
+              const extension = (name.includes(".") ? name.split(".").pop() || "" : "")
+                .toLowerCase()
+                .replace(/^\./, "");
+              let downloadUrl = "";
+              try {
+                downloadUrl = await getSignedUrl(
+                  client,
+                  new GetObjectCommand({ Bucket: bucket, Key: key }),
+                  { expiresIn: PRESIGN_TTL_SEC },
+                );
+              } catch (e: any) {
+                console.warn(`[runs-outputs] seed presign failed for ${key}: ${e?.message || e}`);
+              }
+              return {
+                id: `${meta.runId}:${key}`,
+                name,
+                extension,
+                size: f?.size || 0,
+                fileType: classifyFileType(extension),
+                downloadUrl,
+                s3Uri,
+                s3Bucket: bucket,
+                s3Key: key,
+                step: deriveStep(key),
+                previewable: VISUALIZABLE_EXTS.has(extension),
+                metadata: { s3Uri },
+              };
+            }),
+          )
+        ).filter((x): x is CanonicalOutput => x !== null);
+        if (seeded.length) {
+          if (isTerminalStatus(meta.status)) void this.registerOutputs(meta.runId, seeded);
+          return seeded;
+        }
+      }
+
+      // Local executor fallback (on-prem MinIO deployments): when S3 listing and
+      // s3_output_files both returned nothing, ask Galaxy for the local filesystem
+      // file listing. Galaxy's /api/nextflow/runs/{id}/output_files scans the run's
+      // output dir and returns {name, rel_path, local_path, size, download_url}.
+      // We proxy the download_url through /api/galaxy-proxy/... so the browser
+      // never touches Galaxy directly. Triggers when: (a) S3_ENDPOINT_URL is set
+      // (MinIO mode — the outdir is local, not s3://) OR (b) the stored outdir
+      // is a local path.
+      const _nfOutdir: string = (runForManifest as any)?.execution?.nextflowStatus?.outdir || "";
+      const _isLocalExecutor = !!process.env.S3_ENDPOINT_URL || (!_nfOutdir.startsWith("s3://") && _nfOutdir.startsWith("/"));
+      const nfRunId2 = meta.nextflowRunId || meta.galaxyInvocationId || meta.runId;
+      if (_isLocalExecutor && nfRunId2) {
+        try {
+          const galaxyUrl2 = process.env.GALAXY_URL || "http://localhost:8081";
+          const localResp: any = await fetch(
+            `${galaxyUrl2}/api/nextflow/runs/${nfRunId2}/output_files`,
+            { signal: AbortSignal.timeout(8000) },
+          );
+          if (localResp.ok) {
+            const localData: any = await localResp.json();
+            if (Array.isArray(localData.files) && localData.files.length > 0) {
+              const localOutputs: CanonicalOutput[] = localData.files.map((f: any) => {
+                const name: string = f.name || f.filename || "";
+                const relPath: string = f.rel_path || name;
+                const extension = (name.includes(".") ? name.split(".").pop() || "" : "")
+                  .toLowerCase()
+                  .replace(/^\./, "");
+                // Route downloads through the galaxy-proxy so the browser hits Node,
+                // not the Galaxy container host directly.
+                const downloadUrl = `/api/galaxy-proxy/api/nextflow/outputs/local-download` +
+                  `?run_id=${encodeURIComponent(nfRunId2)}&rel_path=${encodeURIComponent(relPath)}`;
+                // Use a synthetic s3Uri so the manifest can store these without breaking
+                // the manifest schema (bucket/key remain unused for local files).
+                const syntheticUri = `local://${nfRunId2}/${relPath}`;
+                return {
+                  id: `${meta.runId}:${relPath}`,
+                  name,
+                  extension,
+                  size: f.size || 0,
+                  fileType: classifyFileType(extension),
+                  downloadUrl,
+                  s3Uri: syntheticUri,
+                  s3Bucket: "",
+                  s3Key: relPath,
+                  step: deriveStep(relPath),
+                  previewable: VISUALIZABLE_EXTS.has(extension),
+                  metadata: { s3Uri: syntheticUri },
+                } satisfies CanonicalOutput;
+              });
+              console.info(`[runs-outputs] local executor recovery: ${localOutputs.length} files for run ${meta.runId}`);
+              return localOutputs;
+            }
           }
         } catch (e: any) {
-          console.warn(
-            `[runs-outputs] status upgrade failed (non-fatal): ${e?.message || e}`
-          );
+          console.warn(`[runs-outputs] local executor recovery failed: ${e?.message || e}`);
         }
       }
     }
 
-    // Presign + normalize in parallel
-    return Promise.all(
+    // Presign + normalize in parallel. (items is only populated from the prefix
+    // listing, so parsed is non-null whenever items is non-empty.)
+    if (!parsed) return [];
+    const outputs = await Promise.all(
       items.map(async (obj) => {
         const s3Key = obj.Key!;
         const name = s3Key.split("/").pop() || s3Key;
@@ -360,6 +503,16 @@ export class RunsOutputsService {
         } satisfies CanonicalOutput;
       })
     );
+
+    // Opportunistic manifest registration (L1a): once a TERMINAL run's outputs
+    // are successfully listed from S3, persist them so every future read — any
+    // surface, after any restart — rebuilds from the manifest instead of
+    // re-deriving the prefix. Fire-and-forget: never blocks or fails the read.
+    if (outputs.length && isTerminalStatus(meta.status)) {
+      void this.registerOutputs(meta.runId, outputs);
+    }
+
+    return outputs;
   }
 }
 

@@ -270,7 +270,7 @@ with open("simulate_renin_angiotensin_system_dynamics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("simulate_renin_angiotensin_system_dynamics_output.txt", "w") as f:
-    f.write("Biomni: Simulate Renin Angiotensin System Dynamics" + NL)
+    f.write("BioMate: Simulate Renin Angiotensin System Dynamics" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

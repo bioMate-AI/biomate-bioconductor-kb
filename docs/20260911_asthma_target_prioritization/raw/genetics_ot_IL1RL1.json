@@ -1,0 +1,34 @@
+{
+  "data": {
+    "target": {
+      "id": "ENSG00000115602",
+      "approvedSymbol": "IL1RL1",
+      "evidences": {
+        "count": 92,
+        "rows": [
+          {
+            "datasourceId": "gwas_credible_sets",
+            "disease": {
+              "id": "MONDO_0004979",
+              "name": "asthma"
+            }
+          },
+          {
+            "datasourceId": "gwas_credible_sets",
+            "disease": {
+              "id": "MONDO_0004979",
+              "name": "asthma"
+            }
+          },
+          {
+            "datasourceId": "gwas_credible_sets",
+            "disease": {
+              "id": "MONDO_0004979",
+              "name": "asthma"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

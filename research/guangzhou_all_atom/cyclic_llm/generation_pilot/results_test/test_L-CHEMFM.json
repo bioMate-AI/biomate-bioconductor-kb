@@ -1,0 +1,216 @@
+{
+ "gen": "L-CHEMFM",
+ "cfg": {
+  "prefix": 0.85,
+  "temp": 1.0
+ },
+ "runs": [
+  {
+   "n": 1000,
+   "validity": 0.985,
+   "uniqueness_of_valid": 0.9411,
+   "novelty_of_unique": 0.9924,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.3789,
+   "nme_TV": 0.3355,
+   "mean_nme": 2.941,
+   "n_constraint_satisfying": 289,
+   "Y": 289.0,
+   "Y_cluster": 171.0,
+   "internal_diversity": 0.61,
+   "seconds": 863.1
+  },
+  {
+   "n": 1000,
+   "validity": 0.98,
+   "uniqueness_of_valid": 0.9418,
+   "novelty_of_unique": 0.9913,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.4036,
+   "nme_TV": 0.3324,
+   "mean_nme": 3.064,
+   "n_constraint_satisfying": 295,
+   "Y": 295.0,
+   "Y_cluster": 177.0,
+   "internal_diversity": 0.6085,
+   "seconds": 849.3
+  },
+  {
+   "n": 1000,
+   "validity": 0.974,
+   "uniqueness_of_valid": 0.9415,
+   "novelty_of_unique": 0.9847,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.3937,
+   "nme_TV": 0.3424,
+   "mean_nme": 3.01,
+   "n_constraint_satisfying": 299,
+   "Y": 299.0,
+   "Y_cluster": 150.0,
+   "internal_diversity": 0.601,
+   "seconds": 889.9
+  }
+ ],
+ "summary": {
+  "validity": {
+   "mean": 0.9797,
+   "t_interval": [
+    0.966,
+    0.993
+   ],
+   "percentile_bootstrap": [
+    0.974,
+    0.985
+   ],
+   "per_seed": [
+    0.985,
+    0.98,
+    0.974
+   ]
+  },
+  "uniqueness_of_valid": {
+   "mean": 0.9415,
+   "t_interval": [
+    0.941,
+    0.942
+   ],
+   "percentile_bootstrap": [
+    0.941,
+    0.942
+   ],
+   "per_seed": [
+    0.9411,
+    0.9418,
+    0.9415
+   ]
+  },
+  "novelty_of_unique": {
+   "mean": 0.9895,
+   "t_interval": [
+    0.979,
+    1.0
+   ],
+   "percentile_bootstrap": [
+    0.985,
+    0.992
+   ],
+   "per_seed": [
+    0.9924,
+    0.9913,
+    0.9847
+   ]
+  },
+  "macro_fraction": {
+   "mean": 1.0,
+   "t_interval": [
+    1.0,
+    1.0
+   ],
+   "percentile_bootstrap": [
+    1.0,
+    1.0
+   ],
+   "per_seed": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "ring_TV": {
+   "mean": 0.3921,
+   "t_interval": [
+    0.361,
+    0.423
+   ],
+   "percentile_bootstrap": [
+    0.379,
+    0.404
+   ],
+   "per_seed": [
+    0.3789,
+    0.4036,
+    0.3937
+   ]
+  },
+  "nme_TV": {
+   "mean": 0.3368,
+   "t_interval": [
+    0.324,
+    0.349
+   ],
+   "percentile_bootstrap": [
+    0.332,
+    0.342
+   ],
+   "per_seed": [
+    0.3355,
+    0.3324,
+    0.3424
+   ]
+  },
+  "mean_nme": {
+   "mean": 3.005,
+   "t_interval": [
+    2.852,
+    3.158
+   ],
+   "percentile_bootstrap": [
+    2.941,
+    3.064
+   ],
+   "per_seed": [
+    2.941,
+    3.064,
+    3.01
+   ]
+  },
+  "Y": {
+   "mean": 294.3333,
+   "t_interval": [
+    281.83,
+    306.837
+   ],
+   "percentile_bootstrap": [
+    289.0,
+    299.0
+   ],
+   "per_seed": [
+    289.0,
+    295.0,
+    299.0
+   ]
+  },
+  "Y_cluster": {
+   "mean": 166.0,
+   "t_interval": [
+    130.781,
+    201.219
+   ],
+   "percentile_bootstrap": [
+    150.0,
+    177.0
+   ],
+   "per_seed": [
+    171.0,
+    177.0,
+    150.0
+   ]
+  },
+  "internal_diversity": {
+   "mean": 0.6065,
+   "t_interval": [
+    0.595,
+    0.618
+   ],
+   "percentile_bootstrap": [
+    0.601,
+    0.61
+   ],
+   "per_seed": [
+    0.61,
+    0.6085,
+    0.601
+   ]
+  }
+ }
+}

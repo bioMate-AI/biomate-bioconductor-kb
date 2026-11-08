@@ -1,0 +1,2 @@
+instance,name,type,az,launch,end,state,hours,avg_spot_price,cost_usd
+i-0b89a6856d62f490a,t2-evalc,c5.9xlarge,us-west-2a,2026-10-29T02:34+00:00,2026-10-29T05:22+00:00,terminated,2.811,0.6777,1.905

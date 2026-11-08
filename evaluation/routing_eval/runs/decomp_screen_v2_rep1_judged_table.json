@@ -1,0 +1,90 @@
+[
+ {
+  "model": "openai/gpt-5.6-terra",
+  "n": 23,
+  "failed": 1,
+  "node_f1": 0.6485507246376812,
+  "edge_f1": 0.3707384403036577,
+  "structure": 0.391304347826087,
+  "usd_per_call": 0.054821545454545456,
+  "median_secs": 11.522,
+  "chain_hint_acc": 0.7058823529411765
+ },
+ {
+  "model": "openai/gpt-6.1-terra",
+  "n": 23,
+  "failed": 3,
+  "node_f1": 0.5503105590062112,
+  "edge_f1": 0.3002070393374741,
+  "structure": 0.391304347826087,
+  "usd_per_call": 0.025915399999999998,
+  "median_secs": 13.597000000000001,
+  "chain_hint_acc": 0.29411764705882354
+ },
+ {
+  "model": "openai/gpt-6.1-sol",
+  "n": 23,
+  "failed": 3,
+  "node_f1": 0.5546583850931677,
+  "edge_f1": 0.3002070393374741,
+  "structure": 0.34782608695652173,
+  "usd_per_call": 0.0517488,
+  "median_secs": 12.028500000000001,
+  "chain_hint_acc": 0.47058823529411764
+ },
+ {
+  "model": "google/gemini-3.1-pro-preview",
+  "n": 23,
+  "failed": 1,
+  "node_f1": 0.5575569358178054,
+  "edge_f1": 0.3146997929606625,
+  "structure": 0.2608695652173913,
+  "usd_per_call": 0.06799909090909091,
+  "median_secs": 24.4085,
+  "chain_hint_acc": 0.7647058823529411
+ },
+ {
+  "model": "anthropic/claude-sonnet-5.5",
+  "n": 23,
+  "failed": 0,
+  "node_f1": 0.5459627329192547,
+  "edge_f1": 0.3002070393374741,
+  "structure": 0.21739130434782608,
+  "usd_per_call": 0.0809515652173913,
+  "median_secs": 8.825,
+  "chain_hint_acc": 0.5294117647058824
+ },
+ {
+  "model": "google/gemini-4-argon",
+  "n": 23,
+  "failed": 0,
+  "node_f1": 0.5495859213250518,
+  "edge_f1": 0.2386128364389234,
+  "structure": 0.21739130434782608,
+  "usd_per_call": 0.052259043478260866,
+  "median_secs": 15.473,
+  "chain_hint_acc": 0.4117647058823529
+ },
+ {
+  "model": "anthropic/claude-haiku-5.5",
+  "n": 23,
+  "failed": 4,
+  "node_f1": 0.45683229813664594,
+  "edge_f1": 0.2857142857142857,
+  "structure": 0.2608695652173913,
+  "usd_per_call": 0.0042390052631578945,
+  "median_secs": 7.333,
+  "chain_hint_acc": 0.35294117647058826
+ },
+ {
+  "model": "deepseek/deepseek-v4-pro",
+  "n": 23,
+  "failed": 5,
+  "node_f1": 0.35610766045548653,
+  "edge_f1": 0.24223602484472048,
+  "structure": 0.08695652173913043,
+  "usd_per_call": 0.024474398039999998,
+  "median_secs": 16.0575,
+  "chain_hint_acc": 0.4117647058823529
+ }
+]

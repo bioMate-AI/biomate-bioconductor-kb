@@ -20,7 +20,15 @@ auto_update/mcp_servers/AlphaFold-MCP-Server
 backend/<*>
 backend/dependencies/
 backend/instrument_parsers/
-backend/nf-core-modules/
+backend/nf-core-modules/*
+# keep BioMate-authored license-clean workflow capabilities version-controlled
+# (the bulk vendored module tree stays ignored above; our capability dirs are tracked)
+!backend/nf-core-modules/proteomics_dda_search/
+!backend/nf-core-modules/nf_encyclopedia/
+# vendored nf-core module deps (openms/*, openmsthirdparty/*, etc.) that the
+# capability subworkflows include by relative path — must ship or the workflow
+# registers but cannot compile (see docs/20260928_PROTEOMICS_DDA_VALIDATION.md).
+!backend/nf-core-modules/modules/
 backend/nf-core-workflows/
 backend/**/pkgs/cache/
 backend/tests/e2e_ui/test_videos/
@@ -86,6 +94,10 @@ logs/
 MANIFEST
 *.mkv
 models/
+# The broad models/ rule above targets ML model *artifact* dirs; it must not
+# swallow the frontend Models module source (React/TS components).
+!frontend/client/src/components/models/
+!frontend/client/src/components/models/**
 *.mov
 *.mp4
 .next/
@@ -172,3 +184,17 @@ data/validation/gwas/*.gz
 research/OM-TPS/
 research/mdgen/
 research/string-method/
+
+# Nextflow run artifacts (regenerable; never commit)
+backend/biomni_workflows/**/work/
+backend/biomni_workflows/**/results/
+
+# on-prem LLM corpus data artifacts — staged in S3, not git
+docs/20260912_onprem_llm/midtrain_corpus/*.jsonl
+
+# Live-UI focal stills for the drug-dev flagship video (regenerable:
+# capture-live-admet-focal.cjs -> build-live-focal.sh); do not commit the binaries.
+reference/claude_design/tutorials/assets/live/*.png
+
+# Tutorial redesign handoff — derived from tutorials_v2 (24MB assets dup); zip/share directly, reproducible via the handoff build.
+reference/claude_design/tutorials_handoff/

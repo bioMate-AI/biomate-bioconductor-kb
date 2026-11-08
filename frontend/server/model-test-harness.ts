@@ -1,3 +1,4 @@
+import { localOnly, localMessagesClient } from './local-llm.js';
 /**
  * Model Test Harness for Galaxy Assistant
  *
@@ -495,7 +496,7 @@ async function runTestHarness() {
     process.exit(1);
   }
 
-  const claude = new Anthropic({ apiKey });
+  const claude = (localOnly() ? localMessagesClient() as unknown as Anthropic : new Anthropic({ apiKey }));
   const results: TestResult[] = [];
   const evaluations: Array<{
     testId: string;

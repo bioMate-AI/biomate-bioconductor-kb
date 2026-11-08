@@ -1,0 +1,14 @@
+{
+  "run_id": "pepglad-pubmatch-20260914T043137Z",
+  "s3_prefix": "s3://knowledge-datasets-1759951976/cyclic_peptide/runs/pepglad-pubmatch-20260914T043137Z",
+  "code_sha256": "707447b7037e9681cc2b6ba738a35fb62d56a323bcafa9792eb71734167b3569",
+  "instance_id": "i-07ba867e364945554",
+  "instance_type": "g5.xlarge", "purchase_type": "spot", "ami": "ami-087122553ffdcc839",
+  "iam_instance_profile": "AutoimmuneCorpusProfile",
+  "config": {"autoencoder_epochs": 40, "ldm_epochs": 300, "ubound_per_batch": 60000},
+  "max_runtime": "16h",
+  "purpose": "Publication-matched run: fixes the undertrained bounded baseline (LDM 80/batch30000 -> 300/batch60000). Upstream LDM default is 500; 300 is a bounded step. See docs/TRAINING_DIAGNOSIS.md.",
+  "prior_bounded_run": "pepglad-long-20260913T222203Z (AE recon AAR ~0.72 healthy; LDM val AAR ~0.06 undertrained)",
+  "eta_hours": "~8-9 (spot; checkpoints to S3 every 2min; relaunch-from-checkpoint on interruption)",
+  "stage": "launched"
+}

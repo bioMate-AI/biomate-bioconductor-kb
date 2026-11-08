@@ -4,20 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Routing, Agent Evaluation &amp; Language Understanding — BioMate AI Benchmarks</title>
-  <meta name="description" content="How BioMate AI routes plain-language biology requests to the right pipeline out of 4,000+: 94.6% workflow routing accuracy (n=120, 36 domains), 100% cross-run stability (Cohen's Kappa=1.0), 92.7% BixBench vs Biomni Lab 88.7%, 84.8% parameter extraction. Full methodology." />
+  <meta name="description" content="How BioMate AI routes plain-language biology requests to the right pipeline out of 4,000+: 90.8% exact first-choice routing (n=120, Apr 2026; 94.6% including closely-related equivalent pipelines), 100% cross-run stability (Cohen's Kappa=1.0), 92.7% BixBench vs Biomni Lab 88.7%, 84.8% parameter extraction. Full methodology." />
   <link rel="canonical" href="https://biomate.ai/benchmarks-routing.html" />
   <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="AI Routing, Agent Evaluation &amp; Language Understanding — BioMate AI Benchmarks" />
-  <meta property="og:description" content="94.6% workflow routing accuracy across 36 biomedical domains, 100% cross-run stability, 92.7% BixBench vs Biomni Lab 88.7%, 84.8% parameter extraction from natural language. Detailed methodology and results." />
+  <meta property="og:description" content="90.8% exact first-choice routing (94.6% including closely-related equivalent pipelines, n=120, Apr 2026), 100% cross-run stability, 92.7% BixBench vs Biomni Lab 88.7%, 84.8% parameter extraction from natural language. Detailed methodology and results." />
   <meta property="og:url" content="https://biomate.ai/benchmarks-routing.html" />
   <meta property="og:image" content="https://biomate.ai/assets/logo.png" />
   <meta property="og:site_name" content="BioMate AI" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="AI Routing, Agent Evaluation &amp; Language Understanding — BioMate AI Benchmarks" />
-  <meta name="twitter:description" content="94.6% workflow routing, 100% stability, 92.7% BixBench, 84.8% parameter extraction. BioMate AI routing and agent evaluation benchmarks." />
+  <meta name="twitter:description" content="90.8% exact first-choice routing, 100% stability, 92.7% BixBench, 84.8% parameter extraction. BioMate AI routing and agent evaluation benchmarks." />
   <link rel="stylesheet" href="fonts/fonts.css" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20261010-ui2" />
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
   <script>
@@ -31,7 +31,7 @@
     "@context": "https://schema.org",
     "@type": "WebPage",
     "name": "AI Routing, Agent Evaluation & Language Understanding — BioMate AI Benchmarks",
-    "description": "Detailed benchmark results for BioMate AI workflow routing accuracy (94.6%, n=120), cross-run stability (100%, Cohen's Kappa=1.0), license gating (98.2%), prerequisite recovery (97.5%), BixBench bioinformatics agent score (92.7% vs Biomni Lab 88.7%), and parameter extraction from natural language (84.8% vs ~50% LLM-only baseline).",
+    "description": "Detailed benchmark results for BioMate AI exact first-choice workflow routing (90.8%, n=120, Apr 2026; 94.6% including closely-related equivalent pipelines), cross-run stability (100%, Cohen's Kappa=1.0), license gating (98.1%, 53/54), prerequisite recovery (97.5%), BixBench bioinformatics agent score (92.7% vs Biomni Lab 88.7%), and parameter extraction from natural language (mean per-case F1 0.848, v10, n=115; partial credit).",
     "url": "https://biomate.ai/benchmarks-routing.html",
     "isPartOf": { "@type": "WebSite", "url": "https://biomate.ai" },
     "breadcrumb": {
@@ -54,7 +54,7 @@
         "name": "What is workflow routing in BioMate AI?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Workflow routing is the process of matching a plain-language research request (e.g., 'run differential expression on my RNA-seq data') to the correct bioinformatics pipeline out of 4,000+ indexed workflows. BioMate achieves 94.6% first-pick routing accuracy across 120 held-out test cases spanning all 36 biomedical domains."
+          "text": "Workflow routing is the process of matching a plain-language research request (e.g., 'run differential expression on my RNA-seq data') to the correct bioinformatics pipeline out of 4,000+ indexed workflows. On an April 2026 held-out set of 120 test cases, BioMate selected the exact target workflow first in 90.8% of cases (109/120); counting closely-related equivalent pipelines as acceptable, the aggregate score was 94.6%."
         }
       },
       {
@@ -78,7 +78,7 @@
         "name": "How accurate is BioMate's parameter extraction from natural language?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "BioMate extracts workflow parameters from plain-language descriptions at 84.8% accuracy (v10, n=115), up from approximately 50% using LLM-only extraction. The improvement comes from a hybrid rule + LLM architecture: rules handle deterministic mappings like unit conversions (ns→n_steps), boolean flags (single-end→true), and canonical aliases (human→GRCh38), while the LLM handles free-text values like SMILES strings and gene names."
+          "text": "BioMate extracts workflow parameters from plain-language descriptions with a mean per-case F1 of 0.848 (v10, n=115; partial credit, not all-or-nothing), up from an LLM-only baseline. The improvement comes from a hybrid rule + LLM architecture: rules handle deterministic mappings like unit conversions (ns→n_steps), boolean flags (single-end→true), and canonical aliases (human→GRCh38), while the LLM handles free-text values like SMILES strings and gene names."
         }
       },
       {
@@ -86,7 +86,7 @@
         "name": "What is license gating and why does it matter?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "License gating prevents BioMate from routing a user to a workflow that requires a commercial license they do not hold. For example, Schrödinger Glide molecular docking requires a paid license — if a user without that license requests molecular docking, BioMate correctly routes them to an open-source alternative (AutoDock Vina) instead of silently failing mid-run. BioMate achieves 98.2% license gating accuracy across 54 test cases."
+          "text": "License gating prevents BioMate from routing a user to a workflow that requires a commercial license they do not hold. For example, Schrödinger Glide molecular docking requires a paid license — if a user without that license requests molecular docking, BioMate correctly routes them to an open-source alternative (AutoDock Vina) instead of silently failing mid-run. BioMate achieves 98.1% license gating accuracy (53 of 54 test cases)."
         }
       }
     ]
@@ -168,7 +168,9 @@
 </head>
 <body>
 
-  <div id="bm-nav"></div>
+  <!-- bm-static-nav:start -->
+<div id="bm-nav"><header class="bm-nav"> <div class="bm-nav-inner"> <a href="index.html" class="bm-brand" aria-label="BioMate AI"> <img src="assets/logo.png?v=3" alt="BioMate AI" /> </a> <nav aria-label="Primary navigation" class="bm-primary-nav"><ul class="bm-nav-links" id="bmNavLinks"> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-company">Company<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-company" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="about.html">About BioMate</a></h2><p>Our mission and approach to AI-powered science.</p><ul><li><a href="compare.html">BioMate vs. the alternatives &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="blog.html?cat=news">Newsroom</a></h2><p>Company news and the latest from our team.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="contact.html">Contact</a></h2><p>Discuss your research and working with BioMate.</p><ul></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-services">Services<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-services" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="features.html">Biomedical Research Platform</a></h2><p>From scientific questions to reproducible analyses.</p><ul><li><a href="services.html">Explore applications &rarr;</a></li><li><a href="connectors.html">Connectors & developer docs &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="drug-discovery.html">Drug Discovery</a></h2><p>Target intelligence, molecular design and candidate evaluation.</p><ul><li><a href="drug-discovery.html">Explore the workbench &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="tutorials.html">Getting Started</a></h2><p>Practical guidance for your research team.</p><ul><li><a href="tutorials.html">Tutorials &rarr;</a></li><li><a href="pricing.html">Pricing &rarr;</a></li></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-engines">Research Engines<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-engines" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="research-engines.html">Our Research Programs</a></h2><p>Advancing biological understanding and molecular design.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="research-engines.html#virtual-cell">Virtual Cell LLM</a></h2><p>Research into cellular states, responses and disease mechanisms.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="research-engines.html#cyclic-peptides">Cyclic-Peptide Generation</a></h2><p>Research into structure-aware generation and optimization.</p><ul></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger active" aria-expanded="false" aria-controls="bm-panel-research">Evidence<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-research" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="benchmarks.html">Benchmarks & Evaluations</a></h2><p>Inspect performance, methods and evaluation criteria.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="surveys.html">Research Perspectives</a></h2><p>Explore approaches, comparisons and scientific limitations.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="publications.html">Scientific Publishing</a></h2><p>Follow the research and its applications.</p><ul><li><a href="publications.html">Publications &rarr;</a></li><li><a href="blog.html?cat=science">Scientific articles &rarr;</a></li></ul></section> </div> </div> </div> </li> <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li> <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li> </ul></nav> <button class="bm-mobile-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="bmNavLinks" id="bmMobileToggle"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg> </button> </div> </header><noscript><style>.bm-nav{display:none}</style><nav class="bm-static-nav" aria-label="Primary navigation without JavaScript"><a href="index.html">BioMate AI</a><a href="about.html">Company</a><a href="features.html">Research Platform</a><a href="drug-discovery.html">Drug Discovery</a><a href="research-engines.html">Research Engines</a><a href="benchmarks.html">Evidence</a><a href="pricing.html">Pricing</a><a href="contact.html">Contact</a></nav></noscript></div>
+<!-- bm-static-nav:end -->
 
   <!-- Hero -->
   <section class="bm-topic-hero">
@@ -197,9 +199,9 @@
       <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--warm);margin-bottom:1rem;">Routing &amp; Agent Evaluation — At a Glance</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;">
         <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
-          <div style="font-size:2rem;font-weight:700;color:#fff;">94.6%</div>
-          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Workflow routing accuracy</div>
-          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">n=120 &middot; 36 biomedical domains</div>
+          <div style="font-size:2rem;font-weight:700;color:#fff;">90.8%</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Exact first-choice routing</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">n=120 &middot; Apr 2026 &middot; 94.6% incl. equivalents</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
           <div style="font-size:2rem;font-weight:700;color:#fff;">100%</div>
@@ -213,11 +215,11 @@
         </div>
         <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
           <div style="font-size:2rem;font-weight:700;color:#fff;">84.8%</div>
-          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Parameter extraction accuracy</div>
-          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">vs ~50% LLM-only baseline</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Parameter extraction (mean F1)</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">v10 &middot; n=115 &middot; partial credit</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
-          <div style="font-size:2rem;font-weight:700;color:#fff;">98.2%</div>
+          <div style="font-size:2rem;font-weight:700;color:#fff;">98.1%</div>
           <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">License gating accuracy</div>
           <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">n=54 &middot; blocks unlicensed pipelines</div>
         </div>
@@ -237,7 +239,7 @@
       <span class="bm-eyebrow">Background</span>
       <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.75rem;">What is workflow routing — and why is it hard?</h2>
       <p style="max-width:720px;color:var(--text-muted);font-size:1rem;line-height:1.7;">
-        Workflow routing is the process of matching a researcher&rsquo;s plain-language description of a task to the correct computational pipeline. BioMate indexes 4,000+ validated bioinformatics pipelines spanning 36 biomedical domains &mdash; from nf-core/rnaseq to CryoSPARC, from GATK variant calling to AlphaFold2 structure prediction. When a researcher submits a request in natural language, the routing system must select the single best-fit pipeline without access to a lookup key, explicit workflow name, or structured input form.
+        Workflow routing is the process of matching a researcher&rsquo;s plain-language description of a task to the correct computational pipeline. BioMate indexes 4,000+ bioinformatics pipelines spanning 36 biomedical domains &mdash; from nf-core/rnaseq to CryoSPARC, from GATK variant calling to AlphaFold2 structure prediction. When a researcher submits a request in natural language, the routing system must select the single best-fit pipeline without access to a lookup key, explicit workflow name, or structured input form.
       </p>
       <p style="max-width:720px;color:var(--text-muted);font-size:1rem;line-height:1.7;margin-top:1rem;">
         This is hard for three reasons. First, many workflows share overlapping purposes &mdash; DESeq2, edgeR, limma, and sleuth all perform differential expression but differ in model assumptions, input data type, and appropriate use case. Second, researchers describe tasks at varying levels of specificity, from &ldquo;analyze my sequencing data&rdquo; to &ldquo;run a paired-sample LRT with DESeq2 using shrunken log-fold changes.&rdquo; Third, the cost of a wrong route is high: sending a ChIP-seq sample through an RNA-seq pipeline produces silently wrong results with no error message.
@@ -252,21 +254,21 @@
   <section class="bm-section bm-bg-2">
     <div style="max-width:var(--maxw);margin:0 auto;">
       <span class="bm-eyebrow">Benchmark 1</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Workflow Routing Accuracy — 94.6%</h2>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Workflow Routing Accuracy — 90.8% Exact First-Choice</h2>
       <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
-        The routing benchmark evaluates BioMate&rsquo;s ability to match a plain-language research request to the correct pipeline as the first pick, without the researcher needing to know the pipeline name. Test cases are held-out queries not seen during system development, distributed evenly across all 36 supported biomedical domains.
+        The routing benchmark evaluates BioMate&rsquo;s ability to match a plain-language research request to the correct pipeline as the first pick, without the researcher needing to know the pipeline name. Test cases are held-out queries not seen during system development, drawn from a diverse range of biomedical domains. This result is from an April 2026 held-out set of 120 queries.
       </p>
 
       <div class="bm-metric-grid" style="max-width:860px;">
         <div class="bm-metric-card">
-          <div class="bm-metric-number">94.6%</div>
-          <div class="bm-metric-label">First-pick routing accuracy</div>
-          <div class="bm-metric-note">120 held-out test cases<br>36 biomedical domains &middot; Target &ge;80%</div>
+          <div class="bm-metric-number">90.8%</div>
+          <div class="bm-metric-label">Exact first-choice routing</div>
+          <div class="bm-metric-note">109/120 held-out cases (Apr 2026)<br>94.6% incl. equivalent pipelines &middot; Target &ge;80%</div>
           <span class="bm-pass-badge">PASS</span>
         </div>
         <div class="bm-metric-card">
           <div class="bm-metric-number">36</div>
-          <div class="bm-metric-label">Biomedical domains covered</div>
+          <div class="bm-metric-label">Biomedical domains in catalog</div>
           <div class="bm-metric-note">Transcriptomics, genomics, proteomics,<br>drug discovery, cryo-EM, epigenomics&hellip;</div>
         </div>
         <div class="bm-metric-card">
@@ -277,12 +279,12 @@
       </div>
 
       <div class="bm-explain-box" style="margin-top:2rem;">
-        <div class="bm-explain-label">What 94.6% means in practice</div>
-        <p>Out of every 100 research requests, BioMate selects the correct pipeline on the first try in ~95 cases. In the remaining ~5 cases, BioMate typically routes to a closely related workflow in the same domain (e.g., edgeR instead of DESeq2 for differential expression) &mdash; not to a completely unrelated pipeline. The 80% target was set based on the complexity of the routing problem; 94.6% substantially exceeds it.</p>
+        <div class="bm-explain-label">What the routing scores mean in practice</div>
+        <p>Out of every 100 held-out research requests, BioMate picks the exact target pipeline on the first try in ~91 cases (90.8%, 109/120). In about 3 more, it routes to a closely related equivalent workflow in the same domain (e.g., edgeR instead of DESeq2 for differential expression) &mdash; counted as acceptable, these lift the aggregate score to 94.6%. Only ~2 in 100 route to an unrelated pipeline. The 80% target was set based on the complexity of the routing problem; both the exact (90.8%) and aggregate (94.6%) scores exceed it.</p>
         <p>For context: a naive keyword-matching system on the same task set achieves approximately 55&ndash;60% accuracy. General-purpose LLMs asked to name a pipeline from plain language without a validated index achieve 60&ndash;70% but hallucinate pipeline names and parameter values at high rates, producing routes that do not correspond to real executable workflows.</p>
       </div>
 
-      <p class="bm-footnote" style="max-width:720px;">Benchmark methodology: 120 queries stratified across 36 domains &middot; 3 independent evaluation runs &middot; first-pick accuracy reported &middot; all test cases held out from development &middot; labeled by domain-expert bioinformatician.</p>
+      <p class="bm-footnote" style="max-width:720px;">Benchmark methodology: April 2026 held-out set of 120 queries across diverse biomedical domains &middot; 3 independent evaluation runs &middot; exact first-choice 90.8% (109/120); aggregate 94.6% counts closely-related equivalent pipelines as acceptable (partial credit) &middot; all test cases held out from development &middot; labeled by domain-expert bioinformatician.</p>
     </div>
   </section>
 
@@ -324,14 +326,14 @@
   <section class="bm-section bm-bg-2">
     <div style="max-width:var(--maxw);margin:0 auto;">
       <span class="bm-eyebrow">Benchmark 3</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">License Gating Accuracy — 98.2%</h2>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">License Gating Accuracy — 98.1%</h2>
       <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
         Several high-value bioinformatics tools require commercial licenses &mdash; Schr&ouml;dinger Glide and Prime (molecular docking and protein preparation), MOE, and GOLD are the most common examples. If BioMate routes a user without the required license to one of these tools, the run will fail mid-execution on AWS Batch, wasting compute time and returning a confusing error.
       </p>
 
       <div class="bm-metric-grid" style="max-width:720px;">
         <div class="bm-metric-card">
-          <div class="bm-metric-number">98.2%</div>
+          <div class="bm-metric-number">98.1%</div>
           <div class="bm-metric-label">License gating accuracy</div>
           <div class="bm-metric-note">54 test cases &middot; Target &ge;90%<br>Blocks unlicensed commercial workflows</div>
           <span class="bm-pass-badge">PASS</span>
@@ -346,10 +348,10 @@
       <div class="bm-explain-box" style="margin-top:2rem;">
         <div class="bm-explain-label">How license gating works</div>
         <p>Each workflow in BioMate&rsquo;s index carries a <code>license_required</code> field (open / academic / commercial). When a routing decision resolves to a licensed pipeline, BioMate checks the requesting user&rsquo;s license profile before confirming the route. If the license is absent, BioMate re-routes to the best available open-source alternative (e.g., AutoDock Vina for Glide, HMMER for commercial sequence search tools) and informs the researcher why.</p>
-        <p>The 98.2% accuracy means that in only 1 of 54 test cases did BioMate either fail to block an unlicensed route or incorrectly block a licensed user. The test set covers 8 commercially licensed tool families and their open-source counterparts.</p>
+        <p>The 98.1% accuracy means that in only 1 of 54 test cases did BioMate either fail to block an unlicensed route or incorrectly block a licensed user. The test set covers 8 commercially licensed tool families and their open-source counterparts.</p>
       </div>
 
-      <p class="bm-footnote" style="max-width:720px;">Test set composed of 54 routing decisions paired with user license profiles. Accuracy measures whether the final resolved route is appropriate for the user&rsquo;s license tier. Target was 90%; 98.2% substantially exceeds it.</p>
+      <p class="bm-footnote" style="max-width:720px;">Test set composed of 54 routing decisions paired with user license profiles. Accuracy measures whether the final resolved route is appropriate for the user&rsquo;s license tier. Target was 90%; 98.1% substantially exceeds it.</p>
     </div>
   </section>
 
@@ -426,7 +428,7 @@
   <section class="bm-section bm-bg-1">
     <div style="max-width:var(--maxw);margin:0 auto;">
       <span class="bm-eyebrow">Benchmark 6</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Parameter Extraction from Natural Language — 84.8%</h2>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Parameter Extraction from Natural Language — 0.848 F1</h2>
       <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
         Once the correct workflow is identified, BioMate must extract every parameter the pipeline needs &mdash; species, genome build, sequencing mode, read length, strandedness, concentration units, thresholds &mdash; directly from the researcher&rsquo;s plain-language description, without requiring them to fill out a form. This is parameter extraction.
       </p>
@@ -437,7 +439,7 @@
       <div class="bm-metric-grid" style="max-width:720px;">
         <div class="bm-metric-card">
           <div class="bm-metric-number">84.8%</div>
-          <div class="bm-metric-label">Parameter extraction accuracy</div>
+          <div class="bm-metric-label">Parameter extraction (mean F1)</div>
           <div class="bm-metric-note">v10 benchmark &middot; n=115 test cases<br>Hybrid rule + LLM architecture</div>
           <span class="bm-pass-badge">PASS</span>
         </div>
@@ -479,7 +481,7 @@
         Rules run first &mdash; they are deterministic, instant, and never hallucinate. The LLM only handles what rules cannot. After extraction, all values are validated against the per-workflow JSON schema (allowed_values, min/max, type). Values that fail validation are dropped or flagged rather than silently passed to the pipeline as invalid inputs.
       </p>
 
-      <p class="bm-footnote" style="max-width:720px;">v10 benchmark &middot; 115 held-out test cases across 12 workflow categories. A test case passes if all required parameters are extracted with correct values and types. Improvement from ~50% (LLM-only) to 84.8% (hybrid) documented across 6 benchmark versions. Target &ge;70%.</p>
+      <p class="bm-footnote" style="max-width:720px;">v10 benchmark &middot; 115 held-out test cases across 12 workflow categories. Score is the mean per-case F1 (partial credit per parameter), not an all-or-nothing pass rate. Improvement over an LLM-only baseline documented across 6 benchmark versions. Target &ge;70% (F1).</p>
     </div>
   </section>
 
@@ -494,7 +496,7 @@
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;max-width:860px;">
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
           <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">Routing benchmark</div>
-          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">120 queries &middot; 36 domains &middot; 3 independent runs &middot; first-pick accuracy &middot; Cohen&rsquo;s Kappa across runs</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">120 queries (Apr 2026) &middot; diverse biomedical domains &middot; 3 independent runs &middot; exact first-choice 90.8% / aggregate 94.6% (equivalents accepted) &middot; Cohen&rsquo;s Kappa across runs</div>
         </div>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
           <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">BixBench</div>
@@ -514,7 +516,7 @@
         </div>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;">
           <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:.5rem;">Cross-run stability</div>
-          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">Same 120-query set re-run 3 times &middot; Kappa computed between all run pairs &middot; flip rate tracked per query</div>
+          <div style="font-size:.875rem;color:var(--text-muted);line-height:1.55;">20% subsample (24 queries) of the routing set re-run 3 times &middot; Kappa computed between all run pairs &middot; flip rate tracked per query</div>
         </div>
       </div>
     </div>
@@ -536,7 +538,7 @@
         </div>
         <div class="bm-faq-item">
           <h3>How does BioMate compare to ChatGPT or Claude for bioinformatics routing?</h3>
-          <p>General-purpose LLMs (ChatGPT, Claude, Gemini) asked to name a bioinformatics pipeline from a plain-language request achieve approximately 60&ndash;70% accuracy on the same routing task &mdash; but the failures are qualitatively different. General LLMs often hallucinate pipeline names that do not exist, suggest pipelines with incorrect parameter defaults, or omit necessary upstream steps without warning. BioMate&rsquo;s routing failures (the 5.4% miss rate) are nearly all cases where it selects a closely-related correct pipeline rather than the single best fit. No routes resolve to non-existent pipelines because all candidate routes are validated against the indexed workflow knowledge base before being returned.</p>
+          <p>General-purpose LLMs (ChatGPT, Claude, Gemini) asked to name a bioinformatics pipeline from a plain-language request achieve approximately 60&ndash;70% accuracy on the same routing task &mdash; but the failures are qualitatively different. General LLMs often hallucinate pipeline names that do not exist, suggest pipelines with incorrect parameter defaults, or omit necessary upstream steps without warning. BioMate&rsquo;s exact-match misses (9.2% of the 120-query set &mdash; 9 closely-related equivalent pipelines plus 2 genuinely wrong) are nearly all cases where it selects a closely-related correct pipeline rather than the single best fit; only ~2% route to an unrelated pipeline. No routes resolve to non-existent pipelines because all candidate routes are validated against the indexed workflow knowledge base before being returned.</p>
         </div>
         <div class="bm-faq-item">
           <h3>Is the BixBench comparison against Biomni Lab fair?</h3>
@@ -561,12 +563,14 @@
         <a href="benchmarks.html">&larr; All benchmarks</a>
         <a href="benchmarks-drug.html">Drug discovery benchmarks &rarr;</a>
         <a href="benchmarks-biology.html">Biomedical knowledge benchmarks &rarr;</a>
-        <a href="features.html#platform-diagram">Platform diagram &rarr;</a>
+        <a href="features.html#domains">Workflow catalog &rarr;</a>
       </div>
     </div>
   </section>
 
-  <div id="bm-foot"></div>
+  <!-- bm-static-foot:start -->
+<div id="bm-foot"><footer class="bm-footer"> <div class="bm-footer-inner"> <div class="bm-footer-grid"> <div class="bm-footer-brand"> <a href="index.html" class="bm-brand"> <img src="assets/logo.png?v=3" alt="BioMate AI" /> </a> <p>A biomedical research platform for drug discovery.</p> </div> <div class="bm-footer-col"> <h4>Platform</h4> <ul> <li><a href="features.html">Research Workbench</a></li> <li><a href="drug-discovery.html">Drug Discovery</a></li> <li><a href="research-engines.html">Research Engines</a></li> <li><a href="features.html">Features</a></li> <li><a href="benchmarks.html">Benchmarks</a></li> <li><a href="pricing.html">Pricing</a></li> <li><a href="https://dev-public.biomate.ai/register">Start free</a></li> </ul> </div> <div class="bm-footer-col"> <h4>Science</h4> <ul> <li><a href="services.html#drug-discovery">Drug Discovery</a></li> <li><a href="services.html#genomics">Genomics &amp; Multi-Omics</a></li> <li><a href="services.html#structural-biology">Structural Biology</a></li> <li><a href="surveys.html">Research Perspectives</a></li> <li><a href="blog.html">Newsroom &rarr;</a></li> </ul> </div> <div class="bm-footer-col"> <h4>Company</h4> <ul> <li><a href="about.html">About</a></li> <li><a href="tutorials.html">Tutorials</a></li> <li><a href="glossary.html">Glossary</a></li> <li><a href="blog.html">Newsroom</a></li> <li><a href="contact.html">Contact</a></li> <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li> </ul> </div> </div> <div class="bm-footer-bottom"> <span>&copy; 2026 BioMate AI &middot; contact@biomate.ai</span> <span class="links"> <a href="privacy.html">Privacy</a> <a href="terms.html">Terms</a> </span> </div> </div> </footer></div>
+<!-- bm-static-foot:end -->
   <script src="shell.js?v=20260609b"></script>
   <script>renderShell({ active: 'benchmarks', cta: false });</script>
 

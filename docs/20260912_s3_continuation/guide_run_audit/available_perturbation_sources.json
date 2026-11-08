@@ -1,0 +1,56 @@
+[
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/_collect.log",
+    "LastModified": "2026-08-13 05:03:43+00:00",
+    "ETag": "\"8f28484489a2bdb383d0e4dcecbf27dc\"",
+    "ChecksumAlgorithm": [
+      "CRC64NVME"
+    ],
+    "ChecksumType": "FULL_OBJECT",
+    "Size": 760424,
+    "StorageClass": "STANDARD",
+    "type": "file",
+    "size": 760424,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/_collect.log"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide",
+    "Size": 0,
+    "StorageClass": "DIRECTORY",
+    "type": "directory",
+    "size": 0,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/immune",
+    "Size": 0,
+    "StorageClass": "DIRECTORY",
+    "type": "directory",
+    "size": 0,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/immune"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/jiang2025",
+    "Size": 0,
+    "StorageClass": "DIRECTORY",
+    "type": "directory",
+    "size": 0,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/jiang2025"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/reference",
+    "Size": 0,
+    "StorageClass": "DIRECTORY",
+    "type": "directory",
+    "size": 0,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/reference"
+  },
+  {
+    "Key": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb",
+    "Size": 0,
+    "StorageClass": "DIRECTORY",
+    "type": "directory",
+    "size": 0,
+    "name": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb"
+  }
+]

@@ -9,6 +9,7 @@ Pricing reference (update when model pricing changes):
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -24,6 +25,11 @@ log = logging.getLogger(__name__)
 _DEFAULT_DIR = Path(os.environ.get("BIOMATE_COST_LOG_DIR", "/tmp/biomate-cost-logs"))
 _WRITE_LOCK = threading.Lock()
 
+# Durable dead-letter for billing cost events whose primary (Redis) write failed.
+# Lives in the same durable dir as the file cost-log (BIOMATE_COST_LOG_DIR).
+# See docs/20261104_BILLING_DEADLETTER.md for schema + reconciliation plan.
+_DEADLETTER_FILE = "billing_deadletter.jsonl"
+
 # ---------------------------------------------------------------------------
 # Token pricing table (USD per 1 000 tokens)
 # ---------------------------------------------------------------------------
@@ -37,7 +43,7 @@ _PRICE_PER_1K: Dict[str, Dict[str, float]] = {
     "claude-3-haiku-20240307":            {"input": 0.00025,  "output": 0.00125},
     "claude-3-opus-20240229":             {"input": 0.015,    "output": 0.075},
     # Gemini models — GA pricing verified 2026-05-26 from ai.google.dev/gemini-api/docs/pricing
-    "gemini-3.5-flash":                   {"input": 0.0015,   "output": 0.009},   # GA, incl thinking tokens in output
+    "gemini-3.8-flash":                   {"input": 0.0015,   "output": 0.009},   # GA, incl thinking tokens in output
     "gemini-3-flash-preview":             {"input": 0.000075, "output": 0.00030}, # preview rate kept
     # OpenAI models
     "gpt-4o":                             {"input": 0.0025,   "output": 0.01},
@@ -147,8 +153,14 @@ def record(
     output_tokens: int,
     duration_ms: float = 0.0,
     extra: Optional[Dict[str, Any]] = None,
-) -> None:
-    """Append one cost record to the JSONL log file and forward to Lago. Thread-safe, never raises."""
+) -> bool:
+    """Append one cost record to the JSONL log file and forward to Lago.
+
+    Thread-safe, never raises. Returns True if the record was durably written
+    to the audit log, False if the write failed (callers can use this to decide
+    endpoint status codes). Lago forwarding is fire-and-forget and does not
+    affect the return value.
+    """
     try:
         _DEFAULT_DIR.mkdir(parents=True, exist_ok=True)
         cost_usd = compute_cost(model, input_tokens, output_tokens)
@@ -174,13 +186,98 @@ def record(
             "[CostLog] %s | %s | in=%d out=%d | $%.6f",
             user_id, model, input_tokens, output_tokens, cost_usd,
         )
-        # Forward to Lago in background — non-blocking, non-fatal.
-        # Skip spawning the thread at all when Lago is off (flat-tier default).
+    except Exception as exc:
+        log.warning("[CostLog] Failed to write cost entry: %s", exc)
+        return False
+
+    # The durable file write has succeeded at this point — the record is safe.
+    # Lago forwarding is fire-and-forget and MUST NOT affect the return value
+    # (a transient Lago-import/enable hiccup must not make callers think the
+    # durable audit write failed). Skip spawning the thread when Lago is off
+    # (flat-tier default).
+    try:
         from galaxy.ai.billing.core.lago_client import lago_enabled
         if lago_enabled():
             threading.Thread(target=_forward_to_lago, args=(entry,), daemon=True).start()
+    except Exception as lago_exc:
+        log.debug("[CostLog] Lago forward setup skipped (non-fatal): %s", lago_exc)
+    return True
+
+
+def _deterministic_txn_id(event_type: str, payload: Dict[str, Any], ts_ns: int) -> str:
+    """Stable idempotency id for a dead-lettered billing event.
+
+    Derived deterministically from the event type, its payload, and a
+    nanosecond capture timestamp. It is computed once, stored in the
+    dead-letter record, and read back verbatim on replay — so replaying the
+    same dead-letter line always yields the same id and a reconciliation
+    consumer can dedupe (e.g. use it as the Lago transaction_id or as a
+    processed-set member).
+    """
+    canonical = json.dumps(
+        {"event_type": event_type, "payload": payload, "ts_ns": ts_ns},
+        sort_keys=True, ensure_ascii=False, default=str,
+    )
+    return "dl_" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
+
+
+def record_deadletter(
+    event_type: str,
+    payload: Dict[str, Any],
+    reason: str = "",
+    txn_id: Optional[str] = None,
+) -> bool:
+    """Append a billing cost event that FAILED its primary (Redis) write to a
+    durable, append-only dead-letter log so it is never silently dropped.
+
+    Best-effort but LOUD: returns True if the event was durably persisted to
+    the dead-letter file, False if even that write failed (total loss — logged
+    at ERROR). Never raises.
+
+    See docs/20261104_BILLING_DEADLETTER.md for the JSONL schema, the
+    idempotency key, and the reconciliation (replay) plan.
+    """
+    ts_ns = time.time_ns()
+    ts = datetime.now(timezone.utc).isoformat()
+    tid = txn_id or _deterministic_txn_id(event_type, payload, ts_ns)
+    record = {
+        "txn_id":     tid,
+        "ts":         ts,
+        "ts_ns":      ts_ns,
+        "event_type": event_type,
+        "reason":     str(reason)[:1000],
+        "payload":    payload,
+        "replayed":   False,
+    }
+    try:
+        _DEFAULT_DIR.mkdir(parents=True, exist_ok=True)
+        line = json.dumps(record, ensure_ascii=False, default=str) + "\n"
+        path = _DEFAULT_DIR / _DEADLETTER_FILE
+        with _WRITE_LOCK:
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write(line)
+                fh.flush()
+                try:
+                    os.fsync(fh.fileno())
+                except OSError as sync_exc:
+                    # Bytes are already written + flushed to the OS; a failed
+                    # fsync must NOT flip this to a false "total loss" (that
+                    # would 5xx a record we actually kept and risk a retry
+                    # double-write). Warn and treat as persisted.
+                    log.warning("[billing][deadletter] fsync failed (data buffered): %s", sync_exc)
+        log.warning(
+            "[billing][deadletter] QUEUED %s event txn=%s reason=%s — Redis write "
+            "failed; event persisted to %s for reconciliation",
+            event_type, tid, reason, path,
+        )
+        return True
     except Exception as exc:
-        log.warning("[CostLog] Failed to write cost entry: %s", exc)
+        log.error(
+            "[billing][deadletter] TOTAL LOSS — could not persist %s event to "
+            "dead-letter (reason=%s): %s | payload=%s",
+            event_type, reason, exc, payload,
+        )
+        return False
 
 
 def query(

@@ -19,6 +19,15 @@
 import { test, expect } from "@playwright/test";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
 
+// Open the workflow dialog via the CURRENT entry point: sidebar "Workflows"
+// (button-workflows-nav) → WorkflowHistoryDialog. The dialog owns both the
+// "Import Workflow" (tab-upload) and "My Imports" (tab-my-imports) tabs.
+// (The old dedicated `button-import-workflow` button was removed.)
+async function openWorkflowDialog(page: import("@playwright/test").Page) {
+  await page.getByTestId("button-workflows-nav").click();
+  await expect(page.getByTestId("workflow-history-dialog")).toBeVisible({ timeout: 15_000 });
+}
+
 // ─── Shared state ────────────────────────────────────────────────────────────
 const TS = Date.now();
 const PROJECT_NAME = `RNA-seq Study ${TS}`;
@@ -173,8 +182,10 @@ test.describe("Researcher Journey", () => {
     await loginAsFixture(page);
 
     await page.goto(`${BASE_URL}/`);
-    await expect(page.getByTestId("button-import-workflow")).toBeVisible({ timeout: 10_000 });
-    await page.getByTestId("button-import-workflow").click();
+    await expect(page.getByTestId("button-workflows-nav")).toBeVisible({ timeout: 10_000 });
+    await openWorkflowDialog(page);
+    // Switch to the Import Workflow tab
+    await page.getByTestId("tab-upload").click();
 
     // Dialog opens on Import Workflow tab
     await expect(page.getByTestId("workflow-upload-modal")).toBeVisible({ timeout: 5_000 });
@@ -218,7 +229,7 @@ test.describe("Researcher Journey", () => {
     await page.goto(`${BASE_URL}/`);
 
     // Open dialog
-    await page.getByTestId("button-import-workflow").click();
+    await openWorkflowDialog(page);
 
     // Switch to My Imports tab
     await expect(page.getByTestId("tab-my-imports")).toBeVisible({ timeout: 8_000 });
@@ -264,7 +275,7 @@ test.describe("Researcher Journey", () => {
     await page.goto(`${BASE_URL}/`);
 
     // ── 7a: Reopen the uploaded workflow in the right panel ─────────────────
-    await page.getByTestId("button-import-workflow").click();
+    await openWorkflowDialog(page);
     await expect(page.getByTestId("tab-my-imports")).toBeVisible({ timeout: 8_000 });
     await page.getByTestId("tab-my-imports").click();
     await expect(page.locator(`text=${WORKFLOW_NAME}`)).toBeVisible({ timeout: 8_000 });
@@ -321,7 +332,7 @@ test.describe("Researcher Journey", () => {
     // Delete workflow (via UI to prove the delete endpoint round-trip)
     if (workflowId) {
       await page.goto(`${BASE_URL}/`);
-      await page.getByTestId("button-import-workflow").click();
+      await openWorkflowDialog(page);
       await expect(page.getByTestId("tab-my-imports")).toBeVisible({ timeout: 8_000 });
       await page.getByTestId("tab-my-imports").click();
       await expect(page.locator(`text=${WORKFLOW_NAME}`)).toBeVisible({ timeout: 8_000 });
@@ -390,7 +401,7 @@ test.describe("Researcher Journey — My Imports bulk lifecycle", () => {
   test("Bulk Step 2: open My Imports — all 3 workflows visible", async ({ page }) => {
     await loginAsFixture(page);
     await page.goto(`${BASE_URL}/`);
-    await page.getByTestId("button-import-workflow").click();
+    await openWorkflowDialog(page);
     await page.getByTestId("tab-my-imports").click();
 
     for (const name of B_NAMES) {
@@ -401,7 +412,7 @@ test.describe("Researcher Journey — My Imports bulk lifecycle", () => {
   test("Bulk Step 3: delete BulkA via UI — row disappears, BulkB+C remain", async ({ page }) => {
     await loginAsFixture(page);
     await page.goto(`${BASE_URL}/`);
-    await page.getByTestId("button-import-workflow").click();
+    await openWorkflowDialog(page);
     await page.getByTestId("tab-my-imports").click();
     await expect(page.locator(`text=${B_NAMES[0]}`)).toBeVisible({ timeout: 8_000 });
 
@@ -418,7 +429,7 @@ test.describe("Researcher Journey — My Imports bulk lifecycle", () => {
   test("Bulk Step 4: delete BulkB via UI — BulkC alone remains", async ({ page }) => {
     await loginAsFixture(page);
     await page.goto(`${BASE_URL}/`);
-    await page.getByTestId("button-import-workflow").click();
+    await openWorkflowDialog(page);
     await page.getByTestId("tab-my-imports").click();
     await expect(page.locator(`text=${B_NAMES[1]}`)).toBeVisible({ timeout: 8_000 });
 
@@ -434,11 +445,11 @@ test.describe("Researcher Journey — My Imports bulk lifecycle", () => {
     await page.goto(`${BASE_URL}/`);
 
     // Open, go to My Imports, close, reopen — forces a fresh fetchImports call
-    await page.getByTestId("button-import-workflow").click();
+    await openWorkflowDialog(page);
     await page.getByTestId("tab-my-imports").click();
     await page.keyboard.press("Escape");
 
-    await page.getByTestId("button-import-workflow").click();
+    await openWorkflowDialog(page);
     await page.getByTestId("tab-my-imports").click();
 
     // Only BulkC visible

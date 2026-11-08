@@ -1,0 +1,21 @@
+shuffle 0
+shuffle 5
+shuffle 10
+shuffle 15
+shuffle 20
+shuffle 25
+shuffle 30
+shuffle 35
+{
+ "n_shuffles": 40,
+ "rows_total": 840,
+ "rows_nonconstant": 55,
+ "shuffles_with_nonconstant": 11,
+ "mean_rho": 0.015379035755202776,
+ "mean_of_shuffle_means": -0.03345741780743514,
+ "ci95_over_shuffles": [
+  -0.08914239175338397,
+  0.01863100347457719
+ ],
+ "frac_rows_active": 0.06547619047619048
+}

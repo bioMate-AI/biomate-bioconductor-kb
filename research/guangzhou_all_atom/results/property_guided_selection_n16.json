@@ -1,0 +1,98 @@
+{
+  "n_targets": 68,
+  "n_designs": 1088,
+  "endpoint": "predicted blood-stability P[stable] (ranking-grade AUROC~0.84)",
+  "select_mechanism": "generate-and-select best-of-k per target (no sampler guidance)",
+  "best_of_k_curve": {
+    "1": {
+      "mean_best_of_k": 0.4729,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "2": {
+      "mean_best_of_k": 0.5633,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "3": {
+      "mean_best_of_k": 0.6102,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "4": {
+      "mean_best_of_k": 0.6467,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "5": {
+      "mean_best_of_k": 0.6695,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "6": {
+      "mean_best_of_k": 0.6883,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "7": {
+      "mean_best_of_k": 0.7012,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "8": {
+      "mean_best_of_k": 0.7114,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "9": {
+      "mean_best_of_k": 0.7222,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "10": {
+      "mean_best_of_k": 0.7332,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "11": {
+      "mean_best_of_k": 0.7408,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "12": {
+      "mean_best_of_k": 0.7462,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "13": {
+      "mean_best_of_k": 0.752,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "14": {
+      "mean_best_of_k": 0.7587,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "15": {
+      "mean_best_of_k": 0.7641,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    },
+    "16": {
+      "mean_best_of_k": 0.769,
+      "mean_random_pick": 0.4714,
+      "n_targets": 68
+    }
+  },
+  "lift_best_of_maxk_vs_random": 0.2976,
+  "designs_pred_stability_all": {
+    "mean": 0.4714,
+    "q90": 0.7276
+  },
+  "limits": [
+    "proxy: selecting by the same predictor we report (needs wet-lab for ground truth)",
+    "only 4 attempts/target \u2014 larger N needs a GPU generation run",
+    "differentiable sampler-guidance needs a latent property surrogate (next step)"
+  ]
+}

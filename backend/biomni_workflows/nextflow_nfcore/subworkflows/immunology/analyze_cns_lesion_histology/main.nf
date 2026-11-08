@@ -308,8 +308,17 @@ def analyze_cns_lesion_histology(image_path, output_dir="./output", stain_type="
             # Fall back to simulation
             HAS_SKIMAGE = False
 
-    # If image processing failed or dependencies are missing, use simulated results
+    # NO FABRICATION: the fallback below hardcoded fake metrics (cell_count=1250,
+    # damage_score=7.5, myelin_percent=65.0, …) and then rendered a clinical
+    # interpretation on top of them while reporting success — a severe violation of
+    # the no-fabrication policy. Honest-fail instead; never emit invented metrics.
+    # (The real scikit-image analysis above runs when the image loads.)
     if not HAS_SKIMAGE or not os.path.isfile(image_path):
+        raise RuntimeError(
+            "CNS lesion histology analysis could not run on a real image "
+            "(scikit-image unavailable, or image not found: %s). The simulated "
+            "fallback was removed because it fabricated cell counts / damage / "
+            "myelin scores. No fabricated metrics are emitted." % image_path)
         log.append("Performing simulated analysis...")
         # Create simulated results based on stain type
         if stain_type == "H&E":
@@ -468,7 +477,7 @@ with open("analyze_cns_lesion_histology_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_cns_lesion_histology_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cns Lesion Histology" + NL)
+    f.write("BioMate: Analyze Cns Lesion Histology" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

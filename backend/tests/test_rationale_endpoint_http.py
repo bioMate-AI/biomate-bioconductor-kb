@@ -5,6 +5,26 @@ router wiring, not just the function body. Covers:
   - GET /api/rationale/:rationale_id  (Phase 2 design-faithful)
   - GET /api/workflows/:name/phases/:phase_id/rationale  (legacy)
   - Missing rows → {}
+
+COVERAGE NOTE — real coverage, but gated on TWO preconditions; it silently
+SKIPS (not fails) when either is unmet:
+
+  1. The Galaxy runtime must be importable. The `client` fixture imports
+     galaxy.webapps.galaxy.api.nextflow_executor, which pulls in the full
+     a2wsgi/pulsar/webob chain. In a slim checkout lacking those deps (e.g.
+     this review checkout) the fixture raises at import — the tests error
+     honestly rather than fake-pass. (Collection itself succeeds here
+     because the heavy import lives inside the fixture, not at module top.)
+  2. Both rationale_registry AND workflow_phase_rationale must exist in
+     backend/database/galaxy_ai_tools.db. The canonical ~318MB DB ships
+     both populated (67 + 24 rows incl. bulk_rnaseq_consensus_de_bioc:B
+     with DOI 10.1186/s13059-014-0550-8), so the pytestmark below PASSES on
+     a real DB and the tests RUN. It only skips against a stub/rebuilt DB
+     that omits the rationale tables.
+
+We do NOT seed the shared canonical DB from a fixture: it holds curated
+rows a synthetic seed would fabricate or overwrite. Coverage depends on the
+DB shipping the real rows, which it does.
 """
 from __future__ import annotations
 
@@ -31,7 +51,12 @@ def _db_has_table(table: str) -> bool:
 pytestmark = pytest.mark.skipif(
     not (_db_has_table("rationale_registry")
          and _db_has_table("workflow_phase_rationale")),
-    reason="rationale tables not populated; run populate scripts first",
+    reason="rationale_registry/workflow_phase_rationale absent from "
+    "backend/database/galaxy_ai_tools.db — the canonical DB ships them "
+    "populated; this skip only fires against a stub/rebuilt DB. Repopulate "
+    "with scripts/populate_rationale_registry.py + "
+    "populate_workflow_phase_rationale.py --apply. (Coverage is gated on the "
+    "DB shipping the rationale tables — see module docstring.)",
 )
 
 

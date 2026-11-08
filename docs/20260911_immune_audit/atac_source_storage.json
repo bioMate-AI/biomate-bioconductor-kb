@@ -1,0 +1,7 @@
+{
+  "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/multiomic_v1/multiome/GSE269540.h5ad",
+  "stored_entries": 7841333,
+  "explicit_stored_zeros": 0,
+  "invalid_count_entries": 0,
+  "interpretation": "Sparse-zero bug does not alter these source peak counts"
+}

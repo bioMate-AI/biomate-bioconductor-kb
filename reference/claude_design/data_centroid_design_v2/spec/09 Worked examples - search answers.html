@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 09 — Worked examples: search answers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Worked examples: search answers</h1>
+<p class="docmeta"><span>BioMate · Spec 09 · addendum to Spec 01</span><span>Status: built</span><span>Lane: Instant</span></p>
+
+<p class="lede">Spec 01 said an answer carries its references. It did not say what happens when someone <em>clicks an example</em> on the cold-start card. This addendum specifies that path: a search example is a worked case, and clicking it opens a full answer surface — the retrieval, what was dropped, the claims with their sources, the boundary of the answer, and the two things that legitimately follow. No configuration screen, no run object.</p>
+
+<h2><span class="num">9.1</span>What changed</h2>
+<table class="st prose">
+<thead><tr><th>Before</th><th>Now</th></tr></thead>
+<tbody>
+<tr><td>An example seeded the composer; the user then sent it and waited for a chat answer.</td><td>An example opens its answer surface directly. Search is the instant lane — it answers, it does not configure.</td></tr>
+<tr><td>Each track listed three or four example phrasings, none of which was actually worked.</td><td>Each track lists <strong>one</strong> example, and that example is fully worked. Breadth moved into the track sentence.</td></tr>
+<tr><td>—</td><td>A typed question that resolves to a case says so plainly rather than silently substituting the case's subject.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Rule</span><p>An example on a card is a promise. If clicking it cannot produce the answer it names, it is not an example — it is decoration, and it belongs in the track sentence as prose instead.</p></div>
+
+<h2><span class="num">9.2</span>The four cases</h2>
+<table class="st prose">
+<thead><tr><th>Track</th><th>Worked question</th><th>Subject</th><th>Kept / found</th></tr></thead>
+<tbody>
+<tr><td>Literature</td><td>What is the evidence linking this target to disease?</td><td>IL-11 · idiopathic pulmonary fibrosis</td><td>12 of 764</td></tr>
+<tr><td>Databases</td><td>Pull every reported structure for this target.</td><td>IL-11 receptor α · experimental structures</td><td>18 of 39</td></tr>
+<tr><td>Patents</td><td>Who holds composition-of-matter claims on this scaffold?</td><td>2-aminopyrimidine-5-carboxamide core</td><td>24 of 426</td></tr>
+<tr><td>Internal</td><td>Have we assayed this scaffold before, and what did we conclude?</td><td>Our own run history and reports</td><td>13 of 269</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">9.3</span>Answer surface anatomy</h2>
+<figure>
+<div class="wire">┌───────────────────────────────────────────────────────────────┐
+│ Fibrosis target triage / Search & evidence / Literature       │
+│ What is the evidence linking this target to disease?   [Back] │
+│ ● Instant · cited answer   Literature   IL-11 · IPF           │
+│                              6.4 s · nothing ran on your data │
+├───────────────────────────────────────────────────────────────┤
+│ HOW THIS WAS SEARCHED                        12 of 764 kept   │
+│ PubMed        ▓▓▓▓▓▓▓▓▓▓  412 found · 7 kept                  │
+│ Europe PMC    ▓▓▓▓▓▓▓▓▓▓  288 found · 3 kept                  │
+│ bioRxiv       ▓▓▓▓▓▓▓▓▓▓   64 found · 2 kept                  │
+│ [Years 2015–2026] [Species human+mouse] [+ constraint]        │
+│ what was dropped, and why →                                   │
+├───────────────────────────────────────────────────────────────┤
+│ ANSWER                         ✓ every claim cited   [Copy]   │
+│ Direction of evidence · consistent                            │
+│ Human fibrotic lung tissue shows raised IL-11 …  [1][2]       │
+│ ┌ 1 · Ng B. et al · Sci Transl Med 2019 ──────────────────┐   │
+│ │ "IL-11 protein was elevated in IPF fibroblasts …"       │   │
+│ │ paper   open source →                                   │   │
+│ └─────────────────────────────────────────────────────────┘   │
+│ BOUNDARY  Association in human tissue plus causal evidence    │
+│ in mouse is not a validated human target.                     │
+├───────────────────────────────────────────────────────────────┤
+│ WHERE THE LITERATURE DISAGREES        [6][7] + evidence table │
+│ REFERENCES  7 · every link opened and confirmed to resolve    │
+│ WHAT TO DO NEXT  [Check against our own data] [Save as a doc] │
+└───────────────────────────────────────────────────────────────┘</div>
+<figcaption>Search answer surface. Sections in fixed order; a section with nothing to say is omitted, never padded.</figcaption>
+</figure>
+
+<table class="el">
+<thead><tr><th>Element</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>how this was searched</td><td>One row per source with <em>found</em> and <em>kept</em>. During retrieval the bars animate and the counts read "searching…"; they resolve together, never one source at a time.</td></tr>
+<tr><td>filter chips</td><td>The constraints the retrieval actually used (years, species, type, evidence class). Editable: changing one re-derives the answer and records the new retrieval alongside the old.</td></tr>
+<tr><td>what was dropped</td><td>Collapsed by default. Expands to a sentence accounting for every dropped record by reason — off-topic, review with no primary data, retracted, no accessible full text.</td></tr>
+<tr><td>lead</td><td>A short editorial label on a claim block ("Direction of evidence · consistent"), so a reader can see the shape of the answer before reading it.</td></tr>
+<tr><td>marks <span class="tag new">new</span></td><td>Numbered superscript buttons after each claim. Clicking one expands its reference card inline, under that claim, rather than scrolling away to a list.</td></tr>
+<tr><td>boundary</td><td>Always present. States what the answer is <em>not</em> evidence for, and names the index date.</td></tr>
+<tr><td>disagreement</td><td>Present when the corpus disagrees, with both positions and their references. Contradicting sources are kept in the shortlist rather than dropped — "a disagreement is a finding, not noise".</td></tr>
+<tr><td>evidence table</td><td>Study · system · finding · strength, with contradicting rows labelled as such.</td></tr>
+<tr><td>references</td><td>Every source as a card: title, authors, venue, year, the sentence relied on, kind, and an open-source link. A footer states that every link was opened and confirmed to resolve before the answer could use it.</td></tr>
+<tr><td>what to do next</td><td>Exactly two exits: turn it into a run on your own data, or save it as a document. Saving reveals the file name, an "Open it in Files" button, and the note that it is now editable, versioned and downloadable.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">9.4</span>Typed questions</h2>
+<p>A typed question is matched to a case by intent (<code>SEARCH_MATCH</code>), falling back to the case for the routed track. Because the shown retrieval is then <em>not</em> the user's, the surface says so: the page title is the question they typed, and a line under it reads "Answered here as the worked example '…' — the retrieval below is that one, not yours." When the typed text matches the case's own question, the note is absent.</p>
+<div class="rule"><span class="lbl">Rule</span><p>Never silently substitute one question for another. A demo that shows a worked example under someone else's question is indistinguishable from a system that misread them.</p></div>
+
+<h2><span class="num">9.5</span>Composer parity</h2>
+<p>The composer and the cards must reach the same surface for the same sentence. Sending text that routes to <em>Instant · search</em> opens the answer surface, exactly as clicking the example does; it does not open a run panel. The lane preview above the composer is keyed off the same router entry, so the chip, the sentence and the destination cannot disagree.</p>
+
+<h2><span class="num">9.6</span>Saved answers</h2>
+<p>Saving writes a document into the project (<code>evidence_IL11-fibrosis.md</code>) with the retrieval record attached, so the answer can be re-derived rather than only re-read. It is a file object like any other: quality badge, origin ("Saved from a search"), versions, download menu, hand editing and chat-based editing (Spec 12). Its quality notes state that every claim carries a reference and that contradicting evidence was kept.</p>
+
+<h2><span class="num">9.7</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Should an edited filter chip produce a new answer object, or a new version of the same one?</li>
+<li><span class="tag open">open</span> Whether "kept" counts should be exact or banded — an exact count invites a scrape of corpus size.</li>
+<li><span class="tag open">open</span> How an Internal-track answer should behave when the asker lacks entitlement to a run it would cite.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 09 · Worked examples: search answers</span><span>Amends: 01</span><span>Next: 10 — Model use cases</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

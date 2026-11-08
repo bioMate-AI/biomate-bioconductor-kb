@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { recommendViewers, VIEWER_META, VIEWER_TOOL_ID, type ViewerKey } from "@/lib/interactive-viewers"
+import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -22,7 +23,9 @@ import {
 interface OutputFile {
   id: string
   name: string
-  size: number
+  /** Byte size when known; omitted for sources (e.g. Nextflow S3 listings)
+   *  that don't report it — the row then shows no size rather than "0 B". */
+  size?: number
   type?: string
 }
 
@@ -84,6 +87,11 @@ export function InteractiveLauncher({
     state: string
   } | null>(null)
   const [copied, setCopied] = useState(false)
+  const { data: itAvail } = useInteractiveToolsAvailable()
+  // Known-unavailable only for the tools we actually probe (jupyter/rstudio/
+  // cellxgene); other tools stay optimistic and rely on the launch error path.
+  const probedTools = itAvail ? (itAvail.tools as Record<string, boolean>) : null
+  const selectedToolAvailable = !probedTools || !(selectedTool in probedTools) || probedTools[selectedTool]
   // The launch API returns the session URL as soon as the entry-point row exists (~1-2s),
   // but the container needs ~10-30s more to actually serve — the URL 503s until then.
   // Poll it to readiness so we don't hand the user a dead link. 'timeout' still lets them
@@ -116,42 +124,6 @@ export function InteractiveLauncher({
     const t = setTimeout(tick, 1000)
     return () => { cancelled = true; clearTimeout(t) }
   }, [session?.entryPointUrl])
-
-  // Galaxy launches interactive tools asynchronously: /api/interactive/launch
-  // returns { state: "queued", entry_point_url: null } immediately, and the
-  // real URL only appears once the session container starts. That URL surfaces
-  // on /api/interactive/sessions as the `target` field (rewritten server-side
-  // to the public proxy host). Poll for it until it's ready, then stop.
-  useEffect(() => {
-    if (!session?.jobId || session.entryPointUrl) return
-    let cancelled = false
-    let attempts = 0
-    const maxAttempts = 40 // ~2 min at 3s intervals
-    const timer = setInterval(async () => {
-      attempts += 1
-      if (cancelled) return
-      try {
-        const resp = await fetch('/api/interactive/sessions', { credentials: 'include' })
-        if (resp.ok) {
-          const data = await resp.json()
-          const match = (data.sessions || []).find((s: any) => s.job_id === session.jobId)
-          const url = match?.target || match?.entry_point_url || match?.url
-          if (url) {
-            if (!cancelled) {
-              setSession(prev => prev ? { ...prev, entryPointUrl: url, state: match?.state || 'running' } : prev)
-            }
-            clearInterval(timer)
-            return
-          }
-        }
-      } catch { /* keep polling */ }
-      if (attempts >= maxAttempts) {
-        clearInterval(timer)
-        if (!cancelled) setError('Session is taking longer than expected to start. Please try again.')
-      }
-    }, 3000)
-    return () => { cancelled = true; clearInterval(timer) }
-  }, [session?.jobId, session?.entryPointUrl])
 
   // Galaxy launches interactive tools asynchronously: /api/interactive/launch
   // returns { state: "queued", entry_point_url: null } immediately, and the
@@ -362,9 +334,14 @@ export function InteractiveLauncher({
                         />
                         <FileOutput className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm flex-1 truncate">{output.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatFileSize(output.size)}
-                        </span>
+                        {/* Only show a size when we actually know it — Nextflow S3
+                            output listings often carry no byte count, and a bogus
+                            "0 B" on a non-empty file is worse than no size. */}
+                        {typeof output.size === 'number' && output.size > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatFileSize(output.size)}
+                          </span>
+                        )}
                       </label>
                     ))}
                   </div>
@@ -390,11 +367,21 @@ export function InteractiveLauncher({
               </Alert>
             )}
 
+            {!selectedToolAvailable && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {toolInfo.name} isn’t enabled in this environment yet. Download the file(s) and
+                  analyze them locally, or ask an admin to provision interactive tools.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleLaunch} disabled={isLaunching}>
+              <Button onClick={handleLaunch} disabled={isLaunching || !selectedToolAvailable}>
                 {isLaunching ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

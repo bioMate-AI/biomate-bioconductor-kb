@@ -1,0 +1,296 @@
+[
+  {
+    "id": "ho_wf_01",
+    "gold": "workflow",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_wf_02",
+    "gold": "workflow",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_wf_03",
+    "gold": "workflow",
+    "pred": "workflow",
+    "ok": true
+  },
+  {
+    "id": "ho_wf_04",
+    "gold": "workflow",
+    "pred": "code_execution",
+    "ok": false
+  },
+  {
+    "id": "ho_wf_05",
+    "gold": "workflow",
+    "pred": "workflow",
+    "ok": true
+  },
+  {
+    "id": "ho_wf_06",
+    "gold": "workflow",
+    "pred": "workflow",
+    "ok": true
+  },
+  {
+    "id": "ho_wf_07",
+    "gold": "workflow",
+    "pred": "code_execution",
+    "ok": false
+  },
+  {
+    "id": "ho_ts_01",
+    "gold": "tool_search",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_ts_02",
+    "gold": "tool_search",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_ts_03",
+    "gold": "tool_search",
+    "pred": "knowledge_answer",
+    "ok": false
+  },
+  {
+    "id": "ho_ts_04",
+    "gold": "tool_search",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_ts_05",
+    "gold": "tool_search",
+    "pred": "knowledge_answer",
+    "ok": false
+  },
+  {
+    "id": "ho_ts_06",
+    "gold": "tool_search",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_ts_07",
+    "gold": "tool_search",
+    "pred": "tool_search",
+    "ok": true
+  },
+  {
+    "id": "ho_db_01",
+    "gold": "database_lookup",
+    "pred": "database_lookup",
+    "ok": true
+  },
+  {
+    "id": "ho_db_02",
+    "gold": "database_lookup",
+    "pred": "database_lookup",
+    "ok": true
+  },
+  {
+    "id": "ho_db_03",
+    "gold": "database_lookup",
+    "pred": "database_lookup",
+    "ok": true
+  },
+  {
+    "id": "ho_db_04",
+    "gold": "database_lookup",
+    "pred": "database_lookup",
+    "ok": true
+  },
+  {
+    "id": "ho_db_05",
+    "gold": "database_lookup",
+    "pred": "database_lookup",
+    "ok": true
+  },
+  {
+    "id": "ho_db_06",
+    "gold": "database_lookup",
+    "pred": "database_lookup",
+    "ok": true
+  },
+  {
+    "id": "ho_db_07",
+    "gold": "database_lookup",
+    "pred": "database_lookup",
+    "ok": true
+  },
+  {
+    "id": "ho_lr_01",
+    "gold": "literature_research",
+    "pred": "literature_research",
+    "ok": true
+  },
+  {
+    "id": "ho_lr_02",
+    "gold": "literature_research",
+    "pred": "literature_research",
+    "ok": true
+  },
+  {
+    "id": "ho_lr_03",
+    "gold": "literature_research",
+    "pred": "knowledge_answer",
+    "ok": false
+  },
+  {
+    "id": "ho_lr_04",
+    "gold": "literature_research",
+    "pred": "literature_research",
+    "ok": true
+  },
+  {
+    "id": "ho_lr_05",
+    "gold": "literature_research",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_lr_06",
+    "gold": "literature_research",
+    "pred": "literature_research",
+    "ok": true
+  },
+  {
+    "id": "ho_lr_07",
+    "gold": "literature_research",
+    "pred": "literature_research",
+    "ok": true
+  },
+  {
+    "id": "ho_ce_01",
+    "gold": "code_execution",
+    "pred": "code_execution",
+    "ok": true
+  },
+  {
+    "id": "ho_ce_02",
+    "gold": "code_execution",
+    "pred": "code_execution",
+    "ok": true
+  },
+  {
+    "id": "ho_ce_03",
+    "gold": "code_execution",
+    "pred": "code_execution",
+    "ok": true
+  },
+  {
+    "id": "ho_ce_04",
+    "gold": "code_execution",
+    "pred": "code_execution",
+    "ok": true
+  },
+  {
+    "id": "ho_ce_05",
+    "gold": "code_execution",
+    "pred": "code_execution",
+    "ok": true
+  },
+  {
+    "id": "ho_ce_06",
+    "gold": "code_execution",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_ce_07",
+    "gold": "code_execution",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_ka_01",
+    "gold": "knowledge_answer",
+    "pred": "knowledge_answer",
+    "ok": true
+  },
+  {
+    "id": "ho_ka_02",
+    "gold": "knowledge_answer",
+    "pred": "knowledge_answer",
+    "ok": true
+  },
+  {
+    "id": "ho_ka_03",
+    "gold": "knowledge_answer",
+    "pred": "workflow",
+    "ok": false
+  },
+  {
+    "id": "ho_ka_04",
+    "gold": "knowledge_answer",
+    "pred": "knowledge_answer",
+    "ok": true
+  },
+  {
+    "id": "ho_ka_05",
+    "gold": "knowledge_answer",
+    "pred": "knowledge_answer",
+    "ok": true
+  },
+  {
+    "id": "ho_ka_06",
+    "gold": "knowledge_answer",
+    "pred": "knowledge_answer",
+    "ok": true
+  },
+  {
+    "id": "ho_ka_07",
+    "gold": "knowledge_answer",
+    "pred": "knowledge_answer",
+    "ok": true
+  },
+  {
+    "id": "ho_dd_01",
+    "gold": "dataset_discovery",
+    "pred": "dataset_discovery",
+    "ok": true
+  },
+  {
+    "id": "ho_dd_02",
+    "gold": "dataset_discovery",
+    "pred": "dataset_discovery",
+    "ok": true
+  },
+  {
+    "id": "ho_dd_03",
+    "gold": "dataset_discovery",
+    "pred": "",
+    "ok": false
+  },
+  {
+    "id": "ho_dd_04",
+    "gold": "dataset_discovery",
+    "pred": "dataset_discovery",
+    "ok": true
+  },
+  {
+    "id": "ho_dd_05",
+    "gold": "dataset_discovery",
+    "pred": "database_lookup",
+    "ok": false
+  },
+  {
+    "id": "ho_dd_06",
+    "gold": "dataset_discovery",
+    "pred": "dataset_discovery",
+    "ok": true
+  },
+  {
+    "id": "ho_dd_07",
+    "gold": "dataset_discovery",
+    "pred": "dataset_discovery",
+    "ok": true
+  }
+]

@@ -1,0 +1,167 @@
+{
+  "workstream": "W4 \u2014 therapy-duration / treatment-withdrawal survival expansion",
+  "role": "VALIDATION",
+  "training_eligible": false,
+  "quarantine": "ImmPort \u2014 confirm not in knowledge-training before eval use",
+  "method": "from arm_or_cohort descriptions filtered to genuine treatment-withdrawal/taper/tolerance-induction designs; for each, endpoint built ONLY from a named documented outcome column (no wrong-column guessing).",
+  "candidate_studies_from_arm_search": 22,
+  "genuine_withdrawal_or_taper_designs": 15,
+  "newly_built_this_workstream": [
+    "SDY2195",
+    "SDY2274",
+    "SDY2275"
+  ],
+  "newly_built_tables": [
+    "immport_sdy2195_ale06_survival.csv",
+    "immport_sdy2274_pause_survival.csv",
+    "immport_sdy2275_calibrate_survival.csv"
+  ],
+  "newly_built_total_N": 253,
+  "newly_built_total_events": 48,
+  "including_iwith": {
+    "studies_with_usable_survival_endpoint": 4,
+    "total_N": 341,
+    "total_events": 87
+  },
+  "per_study": {
+    "SDY2195": {
+      "name": "ACE / ALE06 (ITN) \u2014 myasthenia gravis, mycophenolate mofetil withdrawal",
+      "constructible": true,
+      "endpoint": "time to clinical flare after MMF withdrawal (flarmstr FLAR_FLAROCC/MILDDIS/SEVDIS); time=FLAR_ASMTDY",
+      "file": "raw/SDY2195/SDY2195_flar.txt",
+      "N": 102,
+      "events": 31,
+      "arms": {
+        "Withdrawal": 52,
+        "Maintenance": 50
+      },
+      "covariates": [
+        "arm (Withdrawal vs Maintenance)",
+        "SEX"
+      ],
+      "output": "immport_sdy2195_ale06_survival.csv"
+    },
+    "SDY2274": {
+      "name": "ITN059AI PAUSE \u2014 plaque psoriasis, ustekinumab withdrawal",
+      "constructible": true,
+      "endpoint": "time to PASI relapse after UST withdrawal (ADRELAPSE 'Did PASI Score Meet Relapse Criterion'=Y); time=Study Day of Study Termination (relapse triggers early termination) else DISCDY",
+      "file": "raw/SDY2274/SDY2274_ADRELAPSE.txt",
+      "N": 108,
+      "events": 8,
+      "covariates": [
+        "SEX",
+        "age"
+      ],
+      "output": "immport_sdy2274_pause_survival.csv",
+      "caveat": "relapse date column present but not a clean study-day; termination day used as event time (tight coupling: relapse => early termination)"
+    },
+    "SDY2275": {
+      "name": "ITN055AI CALIBRATE \u2014 proliferative lupus nephritis, therapy taper (belimumab add-on RCT)",
+      "constructible": true,
+      "endpoint": "time to renal flare (dsmstr DSDECOD ~ 'renal flare'); time=DSSTDY (disposition study day)",
+      "file": "raw/SDY2275/SDY2275_ds.txt",
+      "N": 43,
+      "events": 9,
+      "arms": {
+        "Rituximab/Cyclophosphamide": 43
+      },
+      "covariates": [
+        "arm (RC vs RCB)",
+        "SEX"
+      ],
+      "output": "immport_sdy2275_calibrate_survival.csv",
+      "caveat": "renal flare is one of several disposition reasons; other early-withdrawal reasons treated as censoring"
+    },
+    "SDY1490": {
+      "name": "iWITH / ITN823ST \u2014 pediatric liver transplant IS withdrawal",
+      "constructible": true,
+      "already_built": true,
+      "output": "immport_iwith_survival.csv",
+      "N": 88,
+      "events": 39,
+      "endpoint": "time to on-study biopsy-proven rejection (liv3mstr positive REJDY)"
+    },
+    "SDY3265": {
+      "name": "abatacept + Euro-lupus, proliferative lupus nephritis",
+      "constructible": false,
+      "N_flare_status": 137,
+      "events_binary": 21,
+      "reason": "flare STATUS available (flarmstr FLAREYN) but ALL dates [Redacted]; only numeric field is a form/phase code \u2014 no time-to-event. Binary flare outcome only.",
+      "needed": "a study-day / relapse-day column (de-identified) \u2014 not present in released files"
+    },
+    "SDY1231": {
+      "name": "CTOT-09 \u2014 renal transplant, CNI (tacrolimus) withdrawal",
+      "constructible": "partial",
+      "reason": "standard-schema intervention timing present (START/END_DAY) giving therapy DURATION, but biopsy-proven-rejection / graft-loss EVENT not resolved from pulled tables",
+      "needed": "rejection/graft outcome file + data dictionary (grafmstr/his_r_ctot09 present in study dir; parse required)"
+    },
+    "SDY133": {
+      "name": "SW01 \u2014 pediatric renal transplant, steroid withdrawal",
+      "constructible": "partial",
+      "reason": "intervention timing present; rejection endpoint in study-specific files (SW01_rj1.txt / SW01_ptld.rej.txt) not yet parsed to a per-subject time",
+      "needed": "parse SW01_rj1.txt rejection dates + SW01_dt1/enr for follow-up window"
+    },
+    "SDY3271": {
+      "name": "A-WISH / ITN030ST \u2014 liver transplant IS withdrawal vs maintenance",
+      "constructible": "partial",
+      "reason": "intervention timing present + adsl3/ids1mstr/termmstr; rejection event day not resolved from pulled tables",
+      "needed": "parse ids1mstr / adsl3 for rejection + termmstr follow-up"
+    },
+    "SDY857": {
+      "name": "CTOT-11 \u2014 kidney transplant, rapid steroid taper (belatacept)",
+      "constructible": "partial",
+      "reason": "intervention timing present; rejection endpoint not resolved from pulled tables",
+      "needed": "rejection outcome file + dictionary"
+    },
+    "SDY662": {
+      "name": "liver transplant \u2014 gradual IS withdrawal (tolerance cohort)",
+      "constructible": false,
+      "N": 25,
+      "reason": "only 16 files in study dir; no per-subject outcome timing pulled; likely omics-only deposit",
+      "needed": "disposition/rejection file if it exists"
+    },
+    "SDY546": {
+      "name": "operationally tolerant liver transplant (cross-sectional 'Tolerant' cohort)",
+      "constructible": false,
+      "N": 32,
+      "reason": "cross-sectional tolerant-vs-not phenotype, not a withdrawal time-to-event design",
+      "needed": "n/a \u2014 not a longitudinal withdrawal endpoint"
+    },
+    "SDY3089": {
+      "name": "ATG+rituximab induction with staged IS withdrawal (transplant)",
+      "constructible": "partial",
+      "N": 14,
+      "reason": "disc/term/stermstr files present but event day not resolved; very small n=14",
+      "needed": "parse stermstr/termmstr for rejection + day"
+    },
+    "SDY3274": {
+      "name": "renal transplant recipients (cross-sectional, mixed IS regimens)",
+      "constructible": false,
+      "N": 250,
+      "reason": "only 6 files; cross-sectional enrollment 'regardless of regimen', not a withdrawal trial",
+      "needed": "n/a"
+    },
+    "SDY218": {
+      "name": "egg oral immunotherapy (food-allergy desensitization)",
+      "constructible": false,
+      "N": 55,
+      "reason": "0 clinical files in study dir; oral-immunotherapy tolerance, off-topic for IS-withdrawal duration",
+      "needed": "n/a"
+    },
+    "SDY2015": {
+      "name": "peanut-sensitized tolerant infants (cohort)",
+      "constructible": false,
+      "N": 36,
+      "reason": "0 clinical files; cross-sectional tolerance phenotype, not withdrawal time-to-event",
+      "needed": "n/a"
+    }
+  },
+  "verdict": "Therapy-duration is a REAL but SMALL, HETEROGENEOUS objective. Beyond iWITH, only 3 more ImmPort withdrawal studies yield a clean patient-level time-to-event with a documented endpoint (SDY2195, SDY2274, SDY2275): +253 subjects, +48 events. With iWITH: 4 studies, 341 subjects, 87 events. The events span DIFFERENT diseases/endpoints (liver-tx rejection, MG flare, psoriasis PASI relapse, lupus renal flare) \u2014 pooling requires a common 'sustained-response-after-withdrawal' abstraction, which is a modeling hypothesis, not a given. ~5 transplant CNI/steroid-withdrawal studies (SDY1231/133/3271/857/3089) are CONSTRUCTIBLE IN PRINCIPLE (intervention timing present) but need per-study rejection-outcome parsing + data dictionaries to resolve the event day \u2014 a bounded follow-up effort that could roughly double N. As a standalone FM-training target the N is far too small; as an EXTERNAL VALIDATION set for a derived durability/tolerance score it is usable but must stay study-held-out and disease-stratified.",
+  "caveats": [
+    "small n per study; endpoints are heterogeneous across diseases \u2014 do not silently pool",
+    "each endpoint built from a documented column; wrong-column guessing explicitly avoided (iWITH lesson)",
+    "SDY2275/SDY2195 have built-in control/maintenance arms \u2014 usable as within-study null baselines",
+    "partial-constructible transplant studies need outcome-file parsing, not yet done here",
+    "training_eligible=False; ImmPort quarantined"
+  ]
+}

@@ -26,7 +26,10 @@
 
 # All BioMate Nextflow/Batch containers MUST start from this base so that
 # nxf_s3_upload / nxf_s3_download shell functions have 'aws' on PATH.
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+ARG BASE_TAG=latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:${BASE_TAG}
+
+ARG TARGETARCH=amd64
 
 LABEL maintainer="BioMate Team"
 LABEL description="biomni-tools: ViennaRNA, AutoDock Vina, RDKit, Biopython, openbabel + pharmacology (statsmodels, scikit-image, DeepPurpose)"
@@ -47,6 +50,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     swig \
     && rm -rf /var/lib/apt/lists/*
+
+# arm64: vina 1.2.7 has no aarch64 PyPI wheel and builds from source;
+# its setup.py requires Boost headers and a C++ compiler (g++).
+# amd64 pulls a pre-built vina wheel so neither is needed there.
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libboost-all-dev \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # ── Layer 2: Domain-specific Python packages ───────────────────────────────
 # numpy/scipy/pandas/biopython/rdkit are already in biomate-nextflow-base.
@@ -85,15 +98,22 @@ RUN pip install --no-cache-dir \
 #                but should be present for full predictions.
 RUN pip install --no-cache-dir \
     statsmodels \
-    scikit-image
+    scikit-image \
+    opencv-python-headless \
+    PyPDF2
+# opencv (cv2, headless — no GUI libs): several biomni image-analysis workflows
+# (aortic geometry, mitochondrial morphology, cell morphology/cytoskeleton) import
+# cv2. It was MISSING, so those workflows failed at `import cv2` — previously hidden
+# by their dishonest-success bug, now an honest failure. Adding it makes them
+# runnable. Rebuild + push biomni-tools:x86 for this to take effect on Batch.
 
 # descriptastorus must be installed from GitHub — the PyPI package is stale.
 # biomni.tool.pharmacology.predict_admet_properties checks for the git version
-# at import time and returns an error dict if absent.
+# at import time and returns an error dict if absent. No `|| echo` fallback: a swallowed failure
+# ships an image whose ADMET tools no-op at runtime, so the build must fail loudly.
 RUN pip install --no-cache-dir \
     "git+https://github.com/bp-kelley/descriptastorus" \
-    pandas-flavor || \
-    echo "WARNING: descriptastorus install failed — DeepPurpose will be degraded"
+    pandas-flavor
 
 # DeepPurpose needs a (CPU) torch — install it explicitly so the resolve is deterministic.
 # The old `|| echo` swallowed build failures and shipped an image whose affinity/ADMET tools
@@ -126,6 +146,8 @@ import Bio; print('Biopython OK  version={}'.format(Bio.__version__))" && \
 import meeko; print('Meeko OK')" && \
     python3 -c "import statsmodels; print('statsmodels OK')" && \
     python3 -c "import skimage; print('scikit-image OK')" && \
+    python3 -c "import cv2; print('OpenCV OK  version={}'.format(cv2.__version__))" && \
+    python3 -c "import PyPDF2; print('PyPDF2 OK')" && \
     aws --version && \
     echo "All biomni-tools checks passed."
 

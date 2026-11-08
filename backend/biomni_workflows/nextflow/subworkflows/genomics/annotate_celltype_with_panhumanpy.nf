@@ -56,7 +56,7 @@ with open("annotate_celltype_with_panhumanpy_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("annotate_celltype_with_panhumanpy_output.txt", "w") as f:
-    f.write("Biomni: Annotate Celltype With Panhumanpy Results" + NL)
+    f.write("BioMate: Annotate Celltype With Panhumanpy Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

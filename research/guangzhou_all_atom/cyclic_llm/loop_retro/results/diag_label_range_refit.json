@@ -1,0 +1,197 @@
+{
+ "gbm_physchem|A": {
+  "loop": {
+   "n": 10,
+   "mean": 0.4099,
+   "ci": [
+    0.3754,
+    0.4445
+   ],
+   "ci_level_pct": 95.0
+  },
+  "random_fb": {
+   "n": 10,
+   "mean": 0.5775,
+   "ci": [
+    0.5467,
+    0.6138
+   ],
+   "ci_level_pct": 95.0
+  },
+  "loop_weighted": {
+   "n": 10,
+   "mean": 0.4455,
+   "ci": [
+    0.4102,
+    0.4801
+   ],
+   "ci_level_pct": 95.0
+  },
+  "recovered_fraction": {
+   "n": 10,
+   "mean": 0.2148,
+   "ci": [
+    0.0979,
+    0.3265
+   ],
+   "ci_level_pct": 95.0
+  },
+  "ess_fraction": {
+   "n": 10,
+   "mean": 0.5586,
+   "ci": [
+    0.5066,
+    0.6227
+   ],
+   "ci_level_pct": 95.0
+  },
+  "gap_random_minus_loop_refit": {
+   "n": 10,
+   "mean": 0.1677,
+   "ci": [
+    0.1337,
+    0.203
+   ],
+   "ci_level_pct": 95.0
+  },
+  "weighted_minus_loop": {
+   "n": 10,
+   "mean": 0.0356,
+   "ci": [
+    0.0181,
+    0.0526
+   ],
+   "ci_level_pct": 95.0
+  }
+ },
+ "gbm_physchem|B": {
+  "loop": {
+   "n": 10,
+   "mean": 0.4353,
+   "ci": [
+    0.4035,
+    0.4675
+   ],
+   "ci_level_pct": 95.0
+  },
+  "random_fb": {
+   "n": 10,
+   "mean": 0.5383,
+   "ci": [
+    0.5109,
+    0.5669
+   ],
+   "ci_level_pct": 95.0
+  },
+  "loop_weighted": {
+   "n": 10,
+   "mean": 0.4465,
+   "ci": [
+    0.4121,
+    0.4761
+   ],
+   "ci_level_pct": 95.0
+  },
+  "recovered_fraction": {
+   "n": 10,
+   "mean": 0.1235,
+   "ci": [
+    -0.1546,
+    0.3623
+   ],
+   "ci_level_pct": 95.0
+  },
+  "ess_fraction": {
+   "n": 10,
+   "mean": 0.7601,
+   "ci": [
+    0.7293,
+    0.792
+   ],
+   "ci_level_pct": 95.0
+  },
+  "gap_random_minus_loop_refit": {
+   "n": 10,
+   "mean": 0.1031,
+   "ci": [
+    0.0794,
+    0.1276
+   ],
+   "ci_level_pct": 95.0
+  },
+  "weighted_minus_loop": {
+   "n": 10,
+   "mean": 0.0112,
+   "ci": [
+    -0.0145,
+    0.0333
+   ],
+   "ci_level_pct": 95.0
+  }
+ },
+ "gbm_physchem|L": {
+  "loop": {
+   "n": 10,
+   "mean": 0.2763,
+   "ci": [
+    0.2222,
+    0.3366
+   ],
+   "ci_level_pct": 95.0
+  },
+  "random_fb": {
+   "n": 10,
+   "mean": 0.3525,
+   "ci": [
+    0.3114,
+    0.4019
+   ],
+   "ci_level_pct": 95.0
+  },
+  "loop_weighted": {
+   "n": 10,
+   "mean": 0.2718,
+   "ci": [
+    0.223,
+    0.3228
+   ],
+   "ci_level_pct": 95.0
+  },
+  "recovered_fraction": {
+   "n": 10,
+   "mean": -0.0694,
+   "ci": [
+    -0.5713,
+    0.468
+   ],
+   "ci_level_pct": 95.0
+  },
+  "ess_fraction": {
+   "n": 10,
+   "mean": 0.5158,
+   "ci": [
+    0.4989,
+    0.5329
+   ],
+   "ci_level_pct": 95.0
+  },
+  "gap_random_minus_loop_refit": {
+   "n": 10,
+   "mean": 0.0762,
+   "ci": [
+    0.016,
+    0.1234
+   ],
+   "ci_level_pct": 95.0
+  },
+  "weighted_minus_loop": {
+   "n": 10,
+   "mean": -0.0044,
+   "ci": [
+    -0.0604,
+    0.0585
+   ],
+   "ci_level_pct": 95.0
+  }
+ }
+}

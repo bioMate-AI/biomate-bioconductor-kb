@@ -1,0 +1,46 @@
+{
+  "passed": 8,
+  "cases": [
+    {
+      "case": "valid_raw_counts",
+      "expected": "accept",
+      "status": "pass"
+    },
+    {
+      "case": "reordered_genes",
+      "expected": "accept",
+      "status": "pass"
+    },
+    {
+      "case": "missing_gene",
+      "expected": "reject",
+      "status": "pass"
+    },
+    {
+      "case": "fractional_counts",
+      "expected": "reject",
+      "status": "pass"
+    },
+    {
+      "case": "nonfinite_counts",
+      "expected": "reject",
+      "status": "pass"
+    },
+    {
+      "case": "missing_raw_layer",
+      "expected": "reject",
+      "status": "pass"
+    },
+    {
+      "case": "duplicate_cell_ids",
+      "expected": "reject",
+      "status": "pass"
+    },
+    {
+      "case": "duplicate_gene_ids",
+      "expected": "reject",
+      "status": "pass"
+    }
+  ],
+  "saved_training_prediction_matches": true
+}

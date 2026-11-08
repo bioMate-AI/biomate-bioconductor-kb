@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { isDesktop, desktopPickAndUpload, desktopSaveFile } from "@/lib/desktop";
 import {
+  Search,
   Folder,
   FolderOpen,
   File,
@@ -24,6 +25,7 @@ import {
   ChevronDown,
   Copy,
   Check,
+  Plus,
   Image,
   Database,
   Code2,
@@ -33,8 +35,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
-interface ProjectFile {
+export interface ProjectFile {
   id: string;
   name: string;
   s3_key: string;
@@ -81,7 +84,7 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
   }
   for (const [runId, nodes] of Object.entries(outputsByRun)) {
     const firstFile = nodes[0]?.file;
-    const wfName = firstFile?.workflow_name ?? "Workflow";
+    const wfName = firstFile?.workflow_name ?? t('workflow.labels.workflow');
     // Format: "nf-core/rnaseq · Jul 11 14:23" — lets users distinguish multiple runs
     const ts = firstFile?.created_at
       ? new Date(firstFile.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
@@ -122,6 +125,68 @@ const PREVIEW_EXTS = new Set(["csv","tsv","txt","log","md","png","jpg","jpeg","g
 function canPreview(file: ProjectFile): boolean {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   return PREVIEW_EXTS.has(ext) && file.size < 1024 * 1024; // < 1 MB
+}
+
+// Extensions the perception profiler (backend data_perception.py) can read.
+const PROFILABLE_EXTS = new Set([
+  "csv","tsv","txt","tab","vcf","fastq","fq","gz",
+]);
+
+function isProfilable(file: ProjectFile): boolean {
+  const parts = file.name.toLowerCase().split(".");
+  // handle .fastq.gz etc — check the last two extension tokens.
+  const last = parts[parts.length - 1] ?? "";
+  const prev = parts.length > 2 ? parts[parts.length - 2] : "";
+  return PROFILABLE_EXTS.has(last) || PROFILABLE_EXTS.has(prev);
+}
+
+// Map a perception quality verdict to a dot colour. "unknown" is honest grey —
+// no profile has been computed, NOT a claim of good.
+const QUALITY_DOT: Record<string, string> = {
+  good: "bg-emerald-500",
+  watch: "bg-amber-500",
+  blocked: "bg-red-500",
+  unknown: "bg-muted-foreground/40",
+};
+
+/**
+ * QualityDot — a per-row ingest-quality indicator. Lazily profiles the file via
+ * POST /api/perception/profile the first time the row is rendered, but only for
+ * file types the profiler can read. Everything else stays honest grey/unknown.
+ */
+function QualityDot({ file }: { file: ProjectFile }) {
+  const [quality, setQuality] = useState<string>("unknown");
+  const profilable = isProfilable(file);
+
+  useEffect(() => {
+    if (!profilable) return;
+    let cancelled = false;
+    fetch("/api/perception/profile", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ datasetRef: file.s3_key, name: file.name }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d && typeof d.quality === "string") setQuality(d.quality);
+      })
+      .catch(() => { /* stay unknown */ });
+    return () => { cancelled = true; };
+  }, [file.s3_key, file.name, profilable]);
+
+  const cls = QUALITY_DOT[quality] ?? QUALITY_DOT.unknown;
+  const title = profilable
+    ? t('file_tree.quality', { quality })
+    : t('file_tree.quality_unprofiled');
+  return (
+    <span
+      className={cn("h-1.5 w-1.5 rounded-full shrink-0", cls)}
+      title={title}
+      data-testid={`file-quality-${file.id}`}
+      data-quality={quality}
+    />
+  );
 }
 
 function FilePreview({ url, name }: { url: string; name: string }) {
@@ -170,6 +235,7 @@ function FileRow({
   onDownload,
   copiedId,
   onCopy,
+  onOpenDataset,
   canEdit = true,
 }: {
   file: ProjectFile;
@@ -178,6 +244,8 @@ function FileRow({
   onDownload: (id: string) => void;
   copiedId: string | null;
   onCopy: (id: string, key: string) => void;
+  /** Open this file as a first-class DatasetObject (data hub). */
+  onOpenDataset?: (file: ProjectFile) => void;
   canEdit?: boolean;
 }) {
   const Icon = fileIcon(file.name, file.content_type);
@@ -204,7 +272,20 @@ function FileRow({
         title={file.s3_key}
       >
         <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="flex-1 truncate text-xs text-foreground">{file.name}</span>
+        <QualityDot file={file} />
+        {onOpenDataset ? (
+          <button
+            type="button"
+            onClick={() => onOpenDataset(file)}
+            className="flex-1 min-w-0 truncate text-left text-xs text-foreground hover:underline cursor-pointer"
+            title={t('file_tree.open_dataset')}
+            data-testid={`file-open-${file.id}`}
+          >
+            {file.name}
+          </button>
+        ) : (
+          <span className="flex-1 truncate text-xs text-foreground">{file.name}</span>
+        )}
         {file.step_name && (
           <span className="text-[10px] px-1 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0 font-mono" title={`Produced by step: ${file.step_name}`}>
             {file.step_name}
@@ -213,7 +294,7 @@ function FileRow({
         <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>
         {showPreview && (
           <button
-            title={previewOpen ? "Hide preview" : "Preview"}
+            title={previewOpen ? t('file_tree.hide_preview') : t('file_tree.preview')}
             onClick={handleTogglePreview}
             className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
           >
@@ -221,7 +302,7 @@ function FileRow({
           </button>
         )}
         <button
-          title="Copy S3 path"
+          title={t('file_tree.copy_s3')}
           onClick={() => onCopy(file.id, file.s3_key)}
           className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
           data-testid={`file-copy-${file.id}`}
@@ -229,7 +310,7 @@ function FileRow({
           {isCopied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
         </button>
         <button
-          title="Download"
+          title={t('actions.download')}
           onClick={() => onDownload(file.id)}
           className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
           data-testid={`file-download-${file.id}`}
@@ -238,7 +319,7 @@ function FileRow({
         </button>
         {file.source === "upload" && canEdit && (
           <button
-            title="Delete"
+            title={t('actions.delete')}
             onClick={() => onDelete(file.id)}
             className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 hover:text-red-600"
             data-testid={`file-delete-${file.id}`}
@@ -294,18 +375,30 @@ export interface ProjectFileTreeProps {
   onPickFile?: (s3Key: string, fileName: string) => void;
   /** Called whenever the file list changes (load, upload, delete) */
   onFilesChanged?: (files: { name: string; size?: number }[]) => void;
+  /** Open a file row as a first-class DatasetObject (data hub). When set, the
+   *  file name becomes a button that opens the dataset instead of only the
+   *  inline preview. */
+  onOpenDataset?: (file: ProjectFile) => void;
   /** When false, hide upload/delete controls (read-only viewers). Default true. */
   canEdit?: boolean;
+  /** Deep-link target: when this file id is present in the loaded list, open it
+   *  as an object once (used by `/files?file=<id>` links from other surfaces). */
+  selectFileId?: string;
 }
 
-export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit = true }: ProjectFileTreeProps) {
+export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenDataset, canEdit = true, selectFileId }: ProjectFileTreeProps) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
+  // Fire onOpenDataset at most once per deep-link target, so a `?file=<id>`
+  // link (from a composer/output/report chip) opens the same object without
+  // re-opening it on every re-render.
+  const openedSelectRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["inputs"]));
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -319,13 +412,26 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
       setFiles(loaded);
       onFilesChanged?.(loaded.filter(f => f.source === "upload").map(f => ({ name: f.name, size: f.size })));
     } catch (e: any) {
-      setError(e?.message ?? "Failed to load files");
+      setError(e?.message ?? t('file_tree.err_load'));
     } finally {
       setLoading(false);
     }
   }, [projectId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep-link: when a `selectFileId` is supplied and its file has loaded, open
+  // it as an object exactly once. This is what makes a dataset reference in the
+  // composer/outputs/report resolve to the same object here.
+  useEffect(() => {
+    if (!selectFileId || !onOpenDataset) return;
+    if (openedSelectRef.current === selectFileId) return;
+    const match = files.find(f => f.id === selectFileId);
+    if (match) {
+      openedSelectRef.current = selectFileId;
+      onOpenDataset(match);
+    }
+  }, [selectFileId, files, onOpenDataset]);
 
   // Refresh when another component saves run outputs to this project.
   useEffect(() => {
@@ -350,14 +456,14 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
       }
       await load();
     } catch (e: any) {
-      setError(e?.message ?? "Upload failed");
+      setError(e?.message ?? t('file_tree.err_upload'));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (fileId: string) => {
-    if (!confirm("Delete this file?")) return;
+    if (!confirm(t('file_tree.confirm_delete'))) return;
     try {
       const res = await fetch(`/api/projects/${projectId}/files/${fileId}`, {
         method: "DELETE",
@@ -370,7 +476,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
         return next;
       });
     } catch (e: any) {
-      setError(e?.message ?? "Delete failed");
+      setError(e?.message ?? t('file_tree.err_delete'));
     }
   };
 
@@ -391,7 +497,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
       a.download = data.name;
       a.click();
     } catch (e: any) {
-      setError(e?.message ?? "Download failed");
+      setError(e?.message ?? t('file_tree.err_download'));
     }
   };
 
@@ -405,7 +511,8 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
     }
   };
 
-  const tree = buildTree(files);
+  const q = search.trim().toLowerCase();
+  const tree = buildTree(q ? files.filter((f) => f.name.toLowerCase().includes(q)) : files);
 
   return (
     <div
@@ -424,7 +531,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
     >
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 shrink-0">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex-1">Files</span>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex-1">{t('file_tree.files')}</span>
         {/* Desktop: native file picker. Browser: standard input. Owner/editor only. */}
         {canEdit && (isDesktop() ? (
           <Button
@@ -439,14 +546,14 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
                 await desktopPickAndUpload(projectId);
                 await load();
               } catch (e: any) {
-                setError(e?.message ?? "Upload failed");
+                setError(e?.message ?? t('file_tree.err_upload'));
               } finally {
                 setUploading(false);
               }
             }}
           >
             {uploading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-            Upload
+            {t('file_tree.add')}
           </Button>
         ) : (
           <Button
@@ -460,9 +567,9 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
             {uploading ? (
               <RefreshCw className="h-3 w-3 animate-spin" />
             ) : (
-              <Upload className="h-3 w-3" />
+              <Plus className="h-3 w-3" />
             )}
-            Upload
+            {t('file_tree.add')}
           </Button>
         ))}
         <Button
@@ -471,7 +578,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
           className="h-6 w-6 p-0"
           onClick={load}
           disabled={loading}
-          title="Refresh"
+          title={t('file_tree.refresh')}
           data-testid="project-files-refresh-btn"
         >
           <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
@@ -486,6 +593,22 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
         />
       </div>
 
+      {/* Scope hint + search (design §4.2.2) */}
+      <div className="px-3 pt-1.5 pb-1 space-y-1.5 border-b">
+        <p className="text-[11px] text-muted-foreground">{t('file_tree.scope_hint')}</p>
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('file_tree.search_files')}
+            aria-label={t('file_tree.search_files')}
+            data-testid="project-files-search"
+            className="w-full h-7 pl-7 pr-2 text-xs rounded border bg-background"
+          />
+        </div>
+      </div>
+
       {/* Tree body */}
       <div className="flex-1 overflow-y-auto py-1">
         {error && (
@@ -494,8 +617,8 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
         {!loading && tree.length === 0 && !error && (
           <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
             <Folder className="h-8 w-8 opacity-30" />
-            <p className="text-xs">No files yet</p>
-            <p className="text-xs opacity-70">Drag & drop or click Upload</p>
+            <p className="text-xs">{t('file_tree.no_files')}</p>
+            <p className="text-xs opacity-70">{t('file_tree.drop_hint')}</p>
           </div>
         )}
         {tree.map((node) => {
@@ -527,6 +650,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, canEdit
                           onDownload={handleDownload}
                           copiedId={copiedId}
                           onCopy={handleCopy}
+                          onOpenDataset={onOpenDataset}
                           canEdit={canEdit}
                         />
                       );

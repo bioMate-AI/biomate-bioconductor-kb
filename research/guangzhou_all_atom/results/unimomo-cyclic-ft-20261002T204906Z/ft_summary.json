@@ -1,0 +1,9 @@
+{
+  "benchmark": "UniMoMo-format PepBDB-cyclic test (reprocessed via pepbench), co-design DockQ",
+  "aggregation": "mean over targets of max DockQ over candidates [oracle best-of-N]",
+  "candidates_per_target": 100,
+  "base_cyclic_DockQ": 0.40292045454545455,
+  "ft_cyclic_DockQ": 0.41259090909090895,
+  "delta_ft_minus_base": 0.0097,
+  "note": "base = reproduced UniMoMo 0.7754-on-LINEAR; here both scored on the CYCLIC test set, same harness. NOT comparable to PepGLAD 0.403/0.506 (different format/harness)."
+}

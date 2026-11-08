@@ -1,0 +1,191 @@
+{
+  "model": "original",
+  "tier": "generated",
+  "n": 20,
+  "outcome": 0.3,
+  "safety": 0.85,
+  "fidelity": 0.13,
+  "empties": 0,
+  "per_item": [
+    {
+      "id": "CT-G01",
+      "pred_mtd": 2,
+      "gold_mtd": 5,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G02",
+      "pred_mtd": 100,
+      "gold_mtd": 100,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G03",
+      "pred_mtd": 100,
+      "gold_mtd": 100,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G04",
+      "pred_mtd": 2,
+      "gold_mtd": 20,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G05",
+      "pred_mtd": 10,
+      "gold_mtd": 10,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G06",
+      "pred_mtd": 200,
+      "gold_mtd": 100,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.5,
+      "empty": false
+    },
+    {
+      "id": "CT-G07",
+      "pred_mtd": 600,
+      "gold_mtd": 600,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G08",
+      "pred_mtd": 1,
+      "gold_mtd": 30,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.4,
+      "empty": false
+    },
+    {
+      "id": "CT-G09",
+      "pred_mtd": 600,
+      "gold_mtd": 200,
+      "outcome": 0.0,
+      "safety": 0.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G10",
+      "pred_mtd": 200,
+      "gold_mtd": 200,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 0.4,
+      "empty": false
+    },
+    {
+      "id": "CT-G11",
+      "pred_mtd": 10,
+      "gold_mtd": 10,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G12",
+      "pred_mtd": 1,
+      "gold_mtd": 30,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.2,
+      "empty": false
+    },
+    {
+      "id": "CT-G13",
+      "pred_mtd": 1,
+      "gold_mtd": 3,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G14",
+      "pred_mtd": 50,
+      "gold_mtd": 200,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G15",
+      "pred_mtd": 5,
+      "gold_mtd": 100,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.333,
+      "empty": false
+    },
+    {
+      "id": "CT-G16",
+      "pred_mtd": 2,
+      "gold_mtd": 80,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.167,
+      "empty": false
+    },
+    {
+      "id": "CT-G17",
+      "pred_mtd": 1,
+      "gold_mtd": 30,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G18",
+      "pred_mtd": 1600,
+      "gold_mtd": 400,
+      "outcome": 0.0,
+      "safety": 0.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-G19",
+      "pred_mtd": 60,
+      "gold_mtd": 10,
+      "outcome": 0.0,
+      "safety": 0.0,
+      "fidelity": 0.6,
+      "empty": false
+    },
+    {
+      "id": "CT-G20",
+      "pred_mtd": 100,
+      "gold_mtd": 200,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.0,
+      "empty": false
+    }
+  ]
+}

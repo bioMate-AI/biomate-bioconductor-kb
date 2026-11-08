@@ -1,0 +1,5 @@
+{
+  "commands": [
+    "/opt/guangzhou-peptide/venv/bin/python - <<'PY'\nimport json\nfrom pathlib import Path\np=Path('/opt/guangzhou-peptide/PepGLAD/datasets/train_valid')\nsets={n:{l.split()[0] for l in (p/(n+'.txt')).read_text().splitlines() if l.strip()} for n in ['train','valid','all']}\npdbs={n:{x.rsplit('pdb',1)[-1] for x in v} for n,v in sets.items()}\nr={'complex_counts':{n:len(v) for n,v in sets.items()},'train_valid_exact_overlap':len(sets['train']&sets['valid']),'train_valid_pdb_accession_overlap':len(pdbs['train']&pdbs['valid']),'notes':'Published split; sequence-family and pocket-homology audit still required before claiming OOD generalization.'}\nprint(json.dumps(r))\nPath('/opt/guangzhou-peptide/status/published_split_preview.json').write_text(json.dumps(r,indent=2))\nPY"
+  ]
+}

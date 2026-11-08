@@ -1,16 +1,44 @@
 /**
- * Evidence Search source-level contract tests.
+ * Evidence Search route tests.
  *
- * Same shape as notes-routes.test.ts —
- * lock in the policy invariants (auth, validation, caching, cost
- * caps, failure containment) without booting Postgres or making
- * real HTTP calls. The dispatcher functions (queryPubMed,
- * queryOpenTargets, queryStringDb) are also exercised directly with
- * an injected fetch mock so cap enforcement + URL shape are real.
+ * Two halves:
+ *   1. ROUTE BEHAVIOUR (new) — mounts the real `registerEvidenceRoutes`
+ *      handler on an express app and drives it over loopback HTTP with
+ *      the auth + LLM seams faked and global fetch stubbed for the
+ *      dataset adapters. Asserts STATUS + BODY: 400 on missing claim,
+ *      502 when the rerank LLM throws, 200 with a populated
+ *      `source_errors` map when one adapter rejects (Promise.allSettled
+ *      containment), and a `cached:true` short-circuit on cache hit.
+ *      (Replaces the old 100%-source-grep "contract (source)" block that
+ *      also grepped dead-code 401 branches — see
+ *      docs/20260909_UPGRADE_TEST_QUALITY_AUDIT.md gap #3.)
+ *   2. ADAPTER BEHAVIOUR (unchanged) — exercises queryPubMed /
+ *      queryOpenTargets / queryStringDb directly with an injected fetch.
+ *
+ * Note: the route handler calls the REAL adapter functions with the
+ * global fetch, so we mock the ./auth-middleware and ./gemini-flash
+ * modules (separate files — the adapters live in evidence-routes.ts and
+ * must stay real) and stub globalThis.fetch per test.
  */
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import * as fs from "fs";
-import * as path from "path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AddressInfo } from "net";
+import express, { type Express } from "express";
+import type { Server } from "http";
+
+// Real fetch, captured before any stubbing — used to call our own
+// test server. The adapters use globalThis.fetch, which we stub below.
+const httpFetch = globalThis.fetch;
+
+const callGeminiFlash = vi.fn();
+
+vi.mock("./auth-middleware", () => ({
+  authenticateToken: (_req: any, _res: any, next: any) => next(),
+}));
+vi.mock("./gemini-flash", () => ({
+  callGeminiFlash: (...args: any[]) => callGeminiFlash(...args),
+}));
+
+// Imported after the mocks are declared (vi.mock is hoisted anyway).
 import {
   queryPubMed,
   queryOpenTargets,
@@ -18,88 +46,163 @@ import {
   _evidenceCache,
 } from "./evidence-routes";
 
-const SRC = fs.readFileSync(path.join(__dirname, "evidence-routes.ts"), "utf-8");
+let app: Express;
+let server: Server;
+let baseUrl = "";
+let currentUser: { id: string } | null = null;
 
-describe("evidence-routes — contract (source)", () => {
-  it("registers both endpoints", () => {
-    expect(SRC.match(/app\.post\(\s*"\/api\/evidence\/search"/)?.length).toBe(1);
-    expect(SRC.match(/app\.get\(\s*"\/api\/evidence\/sources"/)?.length).toBe(1);
+beforeAll(async () => {
+  const { registerEvidenceRoutes } = await import("./evidence-routes");
+  app = express();
+  app.use(express.json());
+  app.use((req, _res, next) => {
+    if (currentUser) (req as any).user = currentUser;
+    next();
   });
-
-  it("both endpoints go through authenticateToken", () => {
-    const handlers =
-      SRC.match(
-        /app\.(get|post)\(\s*"\/api\/evidence\/[^"]*",\s*\n?\s*authenticateToken/g,
-      ) ?? [];
-    expect(handlers.length).toBe(2);
+  registerEvidenceRoutes(app);
+  await new Promise<void>((r) => {
+    server = app.listen(0, "127.0.0.1", () => r());
   });
-
-  it("unauthenticated request short-circuits with 401", () => {
-    const matches = SRC.match(/if\s*\(!uid\)\s*return\s+res\.status\(401\)/g) ?? [];
-    expect(matches.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it("missing claim returns 400", () => {
-    expect(/Missing required field: claim/.test(SRC)).toBe(true);
-    expect(/res\.status\(400\)/.test(SRC)).toBe(true);
-  });
-
-  it("response shape includes claim + parsed_entities + evidence", () => {
-    expect(/claim,\s*\n\s*parsed_entities/.test(SRC)).toBe(true);
-    expect(/evidence:\s*ranked/.test(SRC)).toBe(true);
-  });
-
-  it("uses Promise.allSettled so one source failure does not poison the others", () => {
-    expect(/Promise\.allSettled/.test(SRC)).toBe(true);
-    expect(/sourceErrors/.test(SRC)).toBe(true);
-  });
-
-  it("LLM rerank failure surfaces as 502, not 500", () => {
-    expect(/LLM rerank failed/.test(SRC)).toBe(true);
-    expect(/return\s+res\.status\(502\)/.test(SRC)).toBe(true);
-  });
-
-  it("uses callGeminiFlash with bounded maxTokens=2048 for the rerank", () => {
-    expect(SRC.includes("callGeminiFlash")).toBe(true);
-    expect(/LLM_MAX_TOKENS\s*=\s*2048/.test(SRC)).toBe(true);
-    expect(/maxTokens:\s*LLM_MAX_TOKENS/.test(SRC)).toBe(true);
-  });
-
-  it("hard cap constants are present (10 / 5 / 5)", () => {
-    expect(/MAX_PUBMED_RESULTS\s*=\s*10/.test(SRC)).toBe(true);
-    expect(/MAX_OPENTARGETS_RESULTS\s*=\s*5/.test(SRC)).toBe(true);
-    expect(/MAX_STRING_RESULTS\s*=\s*5/.test(SRC)).toBe(true);
-  });
-
-  it("caches search results in _evidenceCache with 1-hour TTL", () => {
-    expect(/_evidenceCache\s*=\s*new Map/.test(SRC)).toBe(true);
-    expect(/EVIDENCE_CACHE_TTL_MS\s*=\s*60\s*\*\s*60\s*\*\s*1000/.test(SRC)).toBe(true);
-  });
-
-  it("sources endpoint caches for 5 minutes", () => {
-    expect(/SOURCES_CACHE_TTL_MS\s*=\s*5\s*\*\s*60\s*\*\s*1000/.test(SRC)).toBe(true);
-  });
-
-  it("sources are derived from reference_data_complete.json (api / api_and_download)", () => {
-    expect(/reference_data_complete\.json/.test(SRC)).toBe(true);
-    expect(/integration_mode/.test(SRC)).toBe(true);
-    expect(/api_and_download/.test(SRC)).toBe(true);
-  });
+  const { port } = server.address() as AddressInfo;
+  baseUrl = `http://127.0.0.1:${port}`;
 });
 
-describe("evidence-routes — registered into main router", () => {
-  const ROUTES = fs.readFileSync(path.join(__dirname, "routes.ts"), "utf-8");
-  it("the main router imports + calls registerEvidenceRoutes", () => {
-    expect(
-      /registerEvidenceRoutes\s*\}\s*=\s*await\s+import\("\.\/evidence-routes"\)/.test(
-        ROUTES,
-      ),
-    ).toBe(true);
-    expect(/registerEvidenceRoutes\(app\)/.test(ROUTES)).toBe(true);
+afterAll(() => {
+  server?.close();
+});
+
+async function postSearch(payload: unknown) {
+  const r = await httpFetch(`${baseUrl}/api/evidence/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const body = await r.json().catch(() => ({}));
+  return { status: r.status, body };
+}
+
+// A stub `fetch` for the adapters. Each adapter makes 1-2 calls; we key
+// deterministic behaviour off the URL so we can make ONE source fail
+// while the others succeed.
+function stubAdapterFetch(opts: {
+  pubmed?: "ok" | "fail";
+  opentargets?: "ok" | "fail";
+  string?: "ok" | "fail";
+} = {}) {
+  vi.stubGlobal("fetch", (async (url: any) => {
+    const u = String(url);
+    const jsonRes = (json: any, ok = true, status = 200) =>
+      ({ ok, status, json: async () => json }) as any;
+
+    if (u.includes("eutils.ncbi.nlm.nih.gov")) {
+      if (opts.pubmed === "fail") return jsonRes({}, false, 503);
+      if (u.includes("esearch")) {
+        return jsonRes({ esearchresult: { idlist: ["111"] } });
+      }
+      return jsonRes({
+        result: { "111": { title: "PubMed hit", articleids: [] } },
+      });
+    }
+    if (u.includes("api.platform.opentargets.org")) {
+      if (opts.opentargets === "fail") return jsonRes({}, false, 500);
+      return jsonRes({ data: { search: { hits: [{ id: "ENSG1", name: "TP53" }] } } });
+    }
+    if (u.includes("string-db.org")) {
+      if (opts.string === "fail") return jsonRes({}, false, 502);
+      return jsonRes([{ preferredName_A: "TP53", preferredName_B: "MDM2", score: 0.9 }]);
+    }
+    return jsonRes({}, false, 404);
+  }) as any);
+}
+
+describe("evidence-routes — POST /api/evidence/search (behaviour)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    _evidenceCache.clear();
+    currentUser = { id: "u-1" };
+  });
+
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("missing claim → 400", async () => {
+    const { status, body } = await postSearch({ context: { genes: ["TP53"] } });
+    expect(status).toBe(400);
+    expect(body.error).toMatch(/claim/i);
+  });
+
+  it("blank/whitespace claim → 400", async () => {
+    const { status } = await postSearch({ claim: "   " });
+    expect(status).toBe(400);
+  });
+
+  it("rerank LLM throws → 502 (upstream failure, not 500)", async () => {
+    stubAdapterFetch({}); // all sources ok → we get evidence to rerank
+    callGeminiFlash.mockRejectedValue(new Error("gemini 500"));
+
+    // Supply context so parseClaimEntities (also an LLM call) is skipped;
+    // the ONLY LLM call left is the rerank, so its failure is isolated.
+    const { status, body } = await postSearch({
+      claim: "TP53 drives tumour growth",
+      context: { genes: ["TP53"] },
+    });
+
+    expect(status).toBe(502);
+    expect(body.error).toMatch(/rerank/i);
+  });
+
+  it("one adapter rejects → 200 with source_errors populated (allSettled containment)", async () => {
+    // OpenTargets fails; PubMed + STRING succeed. The request must still
+    // succeed with the surviving evidence, recording the failure.
+    stubAdapterFetch({ opentargets: "fail" });
+    callGeminiFlash.mockResolvedValue(JSON.stringify([])); // rerank returns [] → keeps input order
+
+    const { status, body } = await postSearch({
+      claim: "TP53 and MDM2 interact",
+      context: { genes: ["TP53"] },
+    });
+
+    expect(status).toBe(200);
+    expect(body.source_errors).toBeTruthy();
+    // The failing source is recorded; the healthy ones are not.
+    expect(body.source_errors.opentargets_platform_v24).toBeTruthy();
+    expect(body.source_errors.pubmed_eutils).toBeUndefined();
+    expect(body.source_errors.string_db_v12).toBeUndefined();
+    // Surviving evidence still came through (containment worked).
+    expect(Array.isArray(body.evidence)).toBe(true);
+    expect(body.evidence.length).toBeGreaterThan(0);
+  });
+
+  it("cache hit → short-circuits with cached:true and skips the LLM", async () => {
+    stubAdapterFetch({});
+    callGeminiFlash.mockResolvedValue(JSON.stringify([]));
+
+    const payload = { claim: "cached claim", context: { genes: ["TP53"] } };
+
+    const first = await postSearch(payload);
+    expect(first.status).toBe(200);
+    expect(first.body.cached).toBeUndefined(); // fresh: no cached flag
+
+    const llmCallsAfterFirst = callGeminiFlash.mock.calls.length;
+
+    // Identical request → served from _evidenceCache, no new LLM call.
+    const second = await postSearch(payload);
+    expect(second.status).toBe(200);
+    expect(second.body.cached).toBe(true);
+    expect(callGeminiFlash.mock.calls.length).toBe(llmCallsAfterFirst);
+  });
+
+  it("unauthenticated → 401", async () => {
+    currentUser = null;
+    const { status } = await postSearch({ claim: "x", context: { genes: ["TP53"] } });
+    expect(status).toBe(401);
   });
 });
 
 // ─── Adapter behaviour with injected fetch (real cap + URL shape) ────
+// UNCHANGED from the original suite — this half was already good.
 function makeFetch(responses: Array<{ ok?: boolean; status?: number; json: any }>): typeof fetch {
   let i = 0;
   return (async (_url: any, _init?: any) => {

@@ -1,0 +1,620 @@
+{
+ "edit": "nme",
+ "n_pairs": 4153,
+ "n_excluded_small_label_sources": 13,
+ "qualifying_sources": [
+  "2015_Wang",
+  "2016_Furukawa",
+  "2020_Le Roux",
+  "2020_Townsend",
+  "2021_Kelly"
+ ],
+ "tiny_sources": [
+  "2013_CHUGAI",
+  "2015_Ahlbach",
+  "2020_Barlow",
+  "2021_Comeau",
+  "2021_Golosov",
+  "2022_Bhardwaj",
+  "2024_Ly"
+ ],
+ "B_loso_primary": {
+  "n_pairs": 4121,
+  "sources": [
+   "2015_Wang",
+   "2016_Furukawa",
+   "2020_Le Roux",
+   "2020_Townsend",
+   "2021_Kelly"
+  ],
+  "n_sources": 5,
+  "point": {
+   "const": {
+    "spearman": 0.0,
+    "rmse": 0.9617,
+    "sign_acc": 0.7491
+   },
+   "pair_nn": {
+    "spearman": 0.0851,
+    "rmse": 1.0191,
+    "sign_acc": 0.7001
+   },
+   "gbm_fp": {
+    "spearman": 0.1165,
+    "rmse": 0.9902,
+    "sign_acc": 0.7328
+   },
+   "ridge_emb": {
+    "spearman": -0.0217,
+    "rmse": 2.3104,
+    "sign_acc": 0.6091
+   },
+   "gbm_emb": {
+    "spearman": 0.0034,
+    "rmse": 1.1007,
+    "sign_acc": 0.7105
+   },
+   "ours_mlp": {
+    "spearman": -0.0033,
+    "rmse": 1.1814,
+    "sign_acc": 0.6321
+   },
+   "baseline": {
+    "spearman": 0.1165,
+    "rmse": 0.9902,
+    "sign_acc": 0.7328
+   }
+  },
+  "diff_spearman_point": -0.1198,
+  "diff_spearman_ci": [
+   -0.1758,
+   0.022
+  ],
+  "ours_spearman_ci": [
+   -0.0156,
+   0.3173
+  ],
+  "baseline_spearman_ci": [
+   0.0958,
+   0.3971
+  ],
+  "mse_ours_minus_const_ci": [
+   -0.0264,
+   0.5983
+  ],
+  "boot_sd_diff": 0.0681,
+  "MDE_80pct_power": 0.1906,
+  "per_source_spearman(n>=30)": {
+   "2016_Furukawa": {
+    "ours_mlp": 0.429,
+    "baseline": 0.44,
+    "n": 143
+   },
+   "2020_Townsend": {
+    "ours_mlp": 0.054,
+    "baseline": 0.23,
+    "n": 2851
+   },
+   "2021_Kelly": {
+    "ours_mlp": 0.17,
+    "baseline": 0.153,
+    "n": 1107
+   }
+  },
+  "baseline_chosen_per_fold": {
+   "2015_Wang": "gbm_fp",
+   "2016_Furukawa": "gbm_fp",
+   "2020_Le Roux": "gbm_fp",
+   "2020_Townsend": "gbm_fp",
+   "2021_Kelly": "gbm_fp"
+  },
+  "train_sizes": {
+   "2015_Wang": 4143,
+   "2016_Furukawa": 4010,
+   "2020_Le Roux": 4143,
+   "2020_Townsend": 1302,
+   "2021_Kelly": 3046
+  },
+  "criteria": {
+   "c1_spearman_margin_and_ci": false,
+   "c2_rmse_beats_constant": false,
+   "c4_at_least_5_qualifying": true,
+   "mde_le_margin": false,
+   "c3_controls_ok": true
+  }
+ },
+ "B_controls": {
+  "planted_context": {
+   "n_pairs": 4121,
+   "sources": [
+    "2015_Wang",
+    "2016_Furukawa",
+    "2020_Le Roux",
+    "2020_Townsend",
+    "2021_Kelly"
+   ],
+   "n_sources": 5,
+   "point": {
+    "const": {
+     "spearman": 0.0,
+     "rmse": 1.4849,
+     "sign_acc": 0.2451
+    },
+    "pair_nn": {
+     "spearman": 0.4534,
+     "rmse": 0.8971,
+     "sign_acc": 0.7212
+    },
+    "gbm_fp": {
+     "spearman": 0.6095,
+     "rmse": 0.7712,
+     "sign_acc": 0.8289
+    },
+    "ridge_emb": {
+     "spearman": 0.5228,
+     "rmse": 1.8584,
+     "sign_acc": 0.7241
+    },
+    "gbm_emb": {
+     "spearman": 0.5816,
+     "rmse": 0.861,
+     "sign_acc": 0.7777
+    },
+    "ours_mlp": {
+     "spearman": 0.5414,
+     "rmse": 1.4066,
+     "sign_acc": 0.7275
+    },
+    "baseline": {
+     "spearman": 0.6095,
+     "rmse": 0.7712,
+     "sign_acc": 0.8289
+    }
+   },
+   "diff_spearman_point": -0.0681,
+   "diff_spearman_ci": [
+    -0.1813,
+    0.0648
+   ],
+   "ours_spearman_ci": [
+    0.0482,
+    0.5884
+   ],
+   "baseline_spearman_ci": [
+    0.0377,
+    0.6434
+   ],
+   "mse_ours_minus_const_ci": [
+    -1.0814,
+    1.9757
+   ],
+   "boot_sd_diff": 0.0819,
+   "MDE_80pct_power": 0.2292,
+   "per_source_spearman(n>=30)": {
+    "2016_Furukawa": {
+     "ours_mlp": 0.626,
+     "baseline": 0.565,
+     "n": 143
+    },
+    "2020_Townsend": {
+     "ours_mlp": 0.253,
+     "baseline": 0.432,
+     "n": 2851
+    },
+    "2021_Kelly": {
+     "ours_mlp": 0.026,
+     "baseline": 0.016,
+     "n": 1107
+    }
+   }
+  },
+  "null_edit": {
+   "n_pairs": 4121,
+   "sources": [
+    "2015_Wang",
+    "2016_Furukawa",
+    "2020_Le Roux",
+    "2020_Townsend",
+    "2021_Kelly"
+   ],
+   "n_sources": 5,
+   "point": {
+    "const": {
+     "spearman": 0.0,
+     "rmse": 1.0195,
+     "sign_acc": 0.511
+    },
+    "pair_nn": {
+     "spearman": 0.0182,
+     "rmse": 1.0532,
+     "sign_acc": 0.5103
+    },
+    "gbm_fp": {
+     "spearman": 0.0254,
+     "rmse": 1.0389,
+     "sign_acc": 0.5042
+    },
+    "ridge_emb": {
+     "spearman": -0.0122,
+     "rmse": 2.3766,
+     "sign_acc": 0.5059
+    },
+    "gbm_emb": {
+     "spearman": -0.0087,
+     "rmse": 1.0568,
+     "sign_acc": 0.495
+    },
+    "ours_mlp": {
+     "spearman": 0.0154,
+     "rmse": 1.1362,
+     "sign_acc": 0.496
+    },
+    "baseline": {
+     "spearman": 0.0254,
+     "rmse": 1.0389,
+     "sign_acc": 0.5042
+    }
+   },
+   "diff_spearman_point": -0.01,
+   "diff_spearman_ci": [
+    -0.0532,
+    0.0249
+   ],
+   "ours_spearman_ci": [
+    -0.0886,
+    0.0281
+   ],
+   "baseline_spearman_ci": [
+    -0.05,
+    0.0369
+   ],
+   "mse_ours_minus_const_ci": [
+    0.2068,
+    0.2713
+   ],
+   "boot_sd_diff": 0.0247,
+   "MDE_80pct_power": 0.0691,
+   "per_source_spearman(n>=30)": {
+    "2016_Furukawa": {
+     "ours_mlp": -0.079,
+     "baseline": -0.041,
+     "n": 143
+    },
+    "2020_Townsend": {
+     "ours_mlp": 0.029,
+     "baseline": 0.037,
+     "n": 2851
+    },
+    "2021_Kelly": {
+     "ours_mlp": 0.002,
+     "baseline": -0.023,
+     "n": 1107
+    }
+   }
+  },
+  "shuffled_within_source": {
+   "n_pairs": 4121,
+   "sources": [
+    "2015_Wang",
+    "2016_Furukawa",
+    "2020_Le Roux",
+    "2020_Townsend",
+    "2021_Kelly"
+   ],
+   "n_sources": 5,
+   "point": {
+    "const": {
+     "spearman": 0.0,
+     "rmse": 0.9617,
+     "sign_acc": 0.7491
+    },
+    "pair_nn": {
+     "spearman": -0.0152,
+     "rmse": 1.0036,
+     "sign_acc": 0.7365
+    },
+    "gbm_fp": {
+     "spearman": -0.0137,
+     "rmse": 0.9686,
+     "sign_acc": 0.7496
+    },
+    "ridge_emb": {
+     "spearman": 0.0179,
+     "rmse": 2.238,
+     "sign_acc": 0.6062
+    },
+    "gbm_emb": {
+     "spearman": -0.0547,
+     "rmse": 0.995,
+     "sign_acc": 0.7379
+    },
+    "ours_mlp": {
+     "spearman": -0.025,
+     "rmse": 1.0067,
+     "sign_acc": 0.7345
+    },
+    "baseline": {
+     "spearman": -0.0137,
+     "rmse": 0.9686,
+     "sign_acc": 0.7496
+    }
+   },
+   "diff_spearman_point": -0.0113,
+   "diff_spearman_ci": [
+    -0.0192,
+    0.032
+   ],
+   "ours_spearman_ci": [
+    -0.07,
+    0.0091
+   ],
+   "baseline_spearman_ci": [
+    -0.0909,
+    0.0108
+   ],
+   "mse_ours_minus_const_ci": [
+    0.0636,
+    0.4083
+   ],
+   "boot_sd_diff": 0.0175,
+   "MDE_80pct_power": 0.0489,
+   "per_source_spearman(n>=30)": {
+    "2016_Furukawa": {
+     "ours_mlp": -0.033,
+     "baseline": -0.039,
+     "n": 143
+    },
+    "2020_Townsend": {
+     "ours_mlp": 0.009,
+     "baseline": 0.013,
+     "n": 2851
+    },
+    "2021_Kelly": {
+     "ours_mlp": -0.007,
+     "baseline": 0.007,
+     "n": 1107
+    }
+   }
+  }
+ },
+ "C_repeated_halves": {
+  "n_splits": 10,
+  "splits": [
+   {
+    "split": 0,
+    "test_side": [
+     "2015_Wang",
+     "2016_Furukawa",
+     "2020_Townsend"
+    ],
+    "n_test": 3004,
+    "baseline": "gbm_fp",
+    "ours": -0.0194,
+    "base": 0.1887,
+    "diff": -0.2081,
+    "rmse_skill_vs_const": -0.1701,
+    "passes": false
+   },
+   {
+    "split": 1,
+    "test_side": [
+     "2015_Wang",
+     "2016_Furukawa",
+     "2021_Kelly"
+    ],
+    "n_test": 1260,
+    "baseline": "gbm_fp",
+    "ours": 0.1707,
+    "base": 0.1584,
+    "diff": 0.0123,
+    "rmse_skill_vs_const": -0.4321,
+    "passes": false
+   },
+   {
+    "split": 2,
+    "test_side": [
+     "2015_Wang",
+     "2020_Le Roux"
+    ],
+    "n_test": 20,
+    "baseline": "gbm_fp",
+    "ours": 0.0143,
+    "base": 0.08,
+    "diff": -0.0657,
+    "rmse_skill_vs_const": -4.9011,
+    "passes": false
+   },
+   {
+    "split": 3,
+    "test_side": [
+     "2015_Wang",
+     "2020_Le Roux",
+     "2020_Townsend"
+    ],
+    "n_test": 2871,
+    "baseline": "gbm_fp",
+    "ours": 0.1137,
+    "base": 0.1887,
+    "diff": -0.075,
+    "rmse_skill_vs_const": -0.4003,
+    "passes": false
+   },
+   {
+    "split": 4,
+    "test_side": [
+     "2015_Wang",
+     "2020_Le Roux",
+     "2021_Kelly"
+    ],
+    "n_test": 1127,
+    "baseline": "gbm_fp",
+    "ours": 0.1434,
+    "base": 0.159,
+    "diff": -0.0155,
+    "rmse_skill_vs_const": -0.465,
+    "passes": false
+   },
+   {
+    "split": 5,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2020_Townsend"
+    ],
+    "n_test": 3004,
+    "baseline": "gbm_fp",
+    "ours": 0.0056,
+    "base": 0.1416,
+    "diff": -0.136,
+    "rmse_skill_vs_const": -0.2901,
+    "passes": false
+   },
+   {
+    "split": 6,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2021_Kelly"
+    ],
+    "n_test": 1260,
+    "baseline": "gbm_fp",
+    "ours": 0.1894,
+    "base": 0.1834,
+    "diff": 0.0059,
+    "rmse_skill_vs_const": -0.5227,
+    "passes": false
+   },
+   {
+    "split": 7,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Townsend"
+    ],
+    "n_test": 2994,
+    "baseline": "gbm_fp",
+    "ours": -0.017,
+    "base": 0.0947,
+    "diff": -0.1118,
+    "rmse_skill_vs_const": -0.1463,
+    "passes": false
+   },
+   {
+    "split": 8,
+    "test_side": [
+     "2016_Furukawa",
+     "2021_Kelly"
+    ],
+    "n_test": 1250,
+    "baseline": "gbm_fp",
+    "ours": 0.1898,
+    "base": 0.167,
+    "diff": 0.0228,
+    "rmse_skill_vs_const": -0.2451,
+    "passes": false
+   },
+   {
+    "split": 9,
+    "test_side": [
+     "2020_Le Roux",
+     "2020_Townsend"
+    ],
+    "n_test": 2861,
+    "baseline": "gbm_fp",
+    "ours": 0.0502,
+    "base": 0.2181,
+    "diff": -0.1679,
+    "rmse_skill_vs_const": -0.4735,
+    "passes": false
+   }
+  ],
+  "frac_pass": 0.0,
+  "diff_quantiles": {
+   "5": -0.19,
+   "25": -0.13,
+   "50": -0.0703,
+   "75": 0.0006,
+   "95": 0.0181
+  },
+  "rmse_skill_median": -0.4162
+ },
+ "A_single_split": {
+  "n_pairs": 1260,
+  "sources": [
+   "2015_Wang",
+   "2016_Furukawa",
+   "2021_Kelly"
+  ],
+  "n_sources": 3,
+  "point": {
+   "const": {
+    "spearman": 0.0,
+    "rmse": 0.868,
+    "sign_acc": 0.727
+   },
+   "pair_nn": {
+    "spearman": 0.174,
+    "rmse": 0.8943,
+    "sign_acc": 0.7222
+   },
+   "gbm_fp": {
+    "spearman": 0.1713,
+    "rmse": 0.8727,
+    "sign_acc": 0.7206
+   },
+   "ridge_emb": {
+    "spearman": 0.1948,
+    "rmse": 0.9621,
+    "sign_acc": 0.731
+   },
+   "gbm_emb": {
+    "spearman": 0.0916,
+    "rmse": 1.012,
+    "sign_acc": 0.727
+   },
+   "ours_mlp": {
+    "spearman": 0.1909,
+    "rmse": 1.0992,
+    "sign_acc": 0.727
+   },
+   "baseline": {
+    "spearman": 0.1713,
+    "rmse": 0.8727,
+    "sign_acc": 0.7206
+   }
+  },
+  "diff_spearman_point": 0.0196,
+  "diff_spearman_ci": [
+   -0.4485,
+   0.0209
+  ],
+  "ours_spearman_ci": [
+   0.1653,
+   0.3568
+  ],
+  "baseline_spearman_ci": [
+   0.1532,
+   0.6364
+  ],
+  "mse_ours_minus_const_ci": [
+   -0.323,
+   0.5613
+  ],
+  "boot_sd_diff": 0.0976,
+  "MDE_80pct_power": 0.2732,
+  "per_source_spearman(n>=30)": {
+   "2016_Furukawa": {
+    "ours_mlp": 0.357,
+    "baseline": 0.44,
+    "n": 143
+   },
+   "2021_Kelly": {
+    "ours_mlp": 0.165,
+    "baseline": 0.153,
+    "n": 1107
+   }
+  },
+  "note": "original registered split (dev half tuning); tiny test sources not scored here"
+ },
+ "verdict_A1": "UNDERPOWERED",
+ "verdict_wording": "no gain detectable above MDE=0.191"
+}

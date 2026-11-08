@@ -20,7 +20,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -30,6 +32,51 @@ from typing import Any, Dict, List, Optional, Tuple
 log = logging.getLogger(__name__)
 
 _TIMEOUT = 10  # seconds per external call
+
+# ── Air-gap / offline mode ──────────────────────────────────────────────────────
+# In a no-egress (air-gapped) on-prem deployment, every external resolver call would
+# hang for _TIMEOUT before failing. BIOMATE_OFFLINE_MODE short-circuits them: a registered
+# local mirror (e.g. a ChEMBL SQLite for name→SMILES) answers if present, else we fast-fail
+# to None so the harness degrades gracefully instead of stalling. A local-mirror module
+# wires itself in via set_local_resolver(). Default (unset) = unchanged cloud behavior.
+_OFFLINE = os.environ.get("BIOMATE_OFFLINE_MODE", "").lower() in ("1", "true", "yes")
+_LOCAL_RESOLVER = None  # Optional[Callable[[str, Optional[Dict]], Optional[Any]]]
+
+
+def set_local_resolver(fn) -> None:
+    """Register a local-mirror resolver for air-gap: fn(url, payload=None) -> dict|None."""
+    global _LOCAL_RESOLVER
+    _LOCAL_RESOLVER = fn
+
+
+def _offline_lookup(url: str, payload: Optional[Dict] = None) -> Optional[Any]:
+    if _LOCAL_RESOLVER is not None:
+        try:
+            r = _LOCAL_RESOLVER(url, payload)
+            if r is not None:
+                return r
+        except Exception as e:
+            log.debug("[federated_query] local resolver failed for %s → %s", url, e)
+    chembl_path = os.environ.get("BIOMATE_CHEMBL_SQLITE")
+    if chembl_path:
+        try:
+            from .local_compound_resolver import resolve
+            result = resolve(chembl_path, url, payload)
+            if result is not None:
+                return result
+        except Exception as e:
+            log.warning("[federated_query] local ChEMBL mirror unavailable: %s", e)
+    literature_path = os.environ.get("BIOMATE_LITERATURE_SQLITE")
+    if literature_path:
+        try:
+            from .local_literature import resolve
+            result = resolve(literature_path, url, payload)
+            if result is not None:
+                return result
+        except Exception as e:
+            log.warning("[federated_query] local literature mirror unavailable: %s", e)
+    log.debug("[federated_query] OFFLINE_MODE — skipping external call %s", url)
+    return None
 _POOL_SIZE = 12
 _CACHE_TTL_STABLE = 86400   # 24h — UniProt, PDB, AlphaFold, etc.
 _CACHE_TTL_LITERATURE = 3600  # 1h — PubMed, EuropePMC, Semantic Scholar
@@ -43,12 +90,12 @@ ENTITY_SOURCES: Dict[str, List[str]] = {
                    "go", "gnomad", "pubmed", "semantic_scholar"],
     "protein":    ["uniprot", "pdb", "alphafold", "interpro", "string",
                    "go", "chembl", "pubmed", "semantic_scholar"],
-    "compound":   ["chembl", "pubchem", "chebi", "kegg", "pubmed", "semantic_scholar"],
+    "compound":   ["chembl", "pubchem", "chebi", "kegg", "clinicaltrials", "pubmed", "semantic_scholar"],
     "variant":    ["dbsnp", "clinvar", "gnomad", "pubmed", "semantic_scholar"],
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
     "structure":  ["pdb", "alphafold", "interpro"],
-    "disease":    ["hpo", "clinvar", "pubmed", "europepmc", "semantic_scholar"],
-    "literature": ["pubmed", "europepmc", "semantic_scholar", "openalex"],
+    "disease":    ["hpo", "clinvar", "clinicaltrials", "pubmed", "europepmc", "semantic_scholar"],
+    "literature": ["corpus_fs", "paperclip", "pubmed", "europepmc", "biorxiv", "semantic_scholar", "openalex", "crossref"],
 }
 
 # ── Redis cache ────────────────────────────────────────────────────────────────
@@ -91,7 +138,32 @@ def _cache_set(key: str, value: Dict, ttl: int) -> None:
 
 # ── HTTP helper ────────────────────────────────────────────────────────────────
 
+_tls = threading.local()   # last HTTP failure seen by the current fetcher thread (so a failure is not reported as "no results")
+
+
+def _note_failure(url: str, exc: Exception) -> None:
+    code = getattr(exc, "code", None)
+    host = urllib.parse.urlparse(url).netloc
+    _tls.last_error = ("HTTP %s from %s" % (code, host)) if code else ("%s from %s: %s" % (type(exc).__name__, host, str(exc)[:120]))
+
+
+def _run_fetcher(fn, query: str) -> Dict:
+    """Run one fetcher and surface HTTP failures. A fetcher that swallowed an error and found nothing is an ERROR
+    (rate limit, timeout, outage), never "ok, 0 results". If it found something, the failure is kept as a warning."""
+    _tls.last_error = None
+    res = fn(query)
+    err = getattr(_tls, "last_error", None)
+    if err and isinstance(res, dict):
+        if res.get("results"):
+            res = {**res, "warnings": (res.get("warnings") or []) + [err]}
+        else:
+            res = {**res, "error": err, "status": "error"}
+    return res
+
+
 def _get(url: str, headers: Optional[Dict] = None) -> Optional[Any]:
+    if _OFFLINE:
+        return _offline_lookup(url)
     h = {"User-Agent": "BioMate/1.0 (biomate.ai; federated-query)"}
     if headers:
         h.update(headers)
@@ -101,9 +173,12 @@ def _get(url: str, headers: Optional[Dict] = None) -> Optional[Any]:
             return json.loads(resp.read().decode())
     except Exception as e:
         log.debug("[federated_query] GET %s → %s", url, e)
+        _note_failure(url, e)
         return None
 
 def _post_json(url: str, payload: Dict) -> Optional[Any]:
+    if _OFFLINE:
+        return _offline_lookup(url, payload)
     body = json.dumps(payload).encode()
     req = urllib.request.Request(
         url, data=body,
@@ -115,6 +190,7 @@ def _post_json(url: str, payload: Dict) -> Optional[Any]:
             return json.loads(resp.read().decode())
     except Exception as e:
         log.debug("[federated_query] POST %s → %s", url, e)
+        _note_failure(url, e)
         return None
 
 # ── Entity type detection ──────────────────────────────────────────────────────
@@ -256,10 +332,15 @@ def _fetch_string(query: str) -> Dict:
 
 def _fetch_kegg(query: str) -> Dict:
     q = urllib.parse.quote(query)
+    # KEGG's find endpoint returns TAB-separated text, not JSON, so it can't go
+    # through _get(). It must still record a transport failure via _note_failure
+    # so _run_fetcher distinguishes "KEGG errored (429/timeout/outage)" from a
+    # genuine "0 pathways" — otherwise a rate-limit is reported as "ok, 0 results".
+    url = f"https://rest.kegg.jp/find/pathway/{q}"
+    if _OFFLINE:
+        return {"source": "kegg", "results": []}
     try:
-        with urllib.request.urlopen(
-            f"https://rest.kegg.jp/find/pathway/{q}", timeout=_TIMEOUT
-        ) as resp:
+        with urllib.request.urlopen(url, timeout=_TIMEOUT) as resp:
             text = resp.read().decode()
             results = []
             for line in text.strip().split("\n")[:5]:
@@ -267,7 +348,9 @@ def _fetch_kegg(query: str) -> Dict:
                     pid, name = line.split("\t", 1)
                     results.append({"pathway_id": pid, "name": name})
             return {"source": "kegg", "results": results}
-    except Exception:
+    except Exception as e:
+        log.debug("[federated_query] GET %s → %s", url, e)
+        _note_failure(url, e)
         return {"source": "kegg", "results": []}
 
 def _fetch_reactome(query: str) -> Dict:
@@ -321,7 +404,8 @@ def _fetch_chembl(query: str) -> Dict:
         results.append({"chembl_id": m.get("molecule_chembl_id"),
                         "name": m.get("pref_name"),
                         "formula": props.get("full_molformula"),
-                        "mw": props.get("full_mwt")})
+                        "mw": props.get("full_mwt"),
+                        "smiles": (m.get("molecule_structures") or {}).get("canonical_smiles")})
     return {"source": "chembl", "results": results}
 
 def _fetch_pubchem(query: str) -> Dict:
@@ -397,15 +481,79 @@ def _fetch_europepmc(query: str) -> Dict:
             "is_open_access": p.get("isOpenAccess") == "Y",
             "full_text_url": p.get("fullTextUrlList", {}).get("fullTextUrl", [{}])[0].get("url"),
             "abstract": (p.get("abstractText") or "")[:500],
+            "evidence_kind": p.get("evidence_kind", "abstract"),
+            "pmcid": p.get("pmcid"),
+            "licence": p.get("licence"),
         })
     return {"source": "europepmc", "results": results}
+
+def _fetch_biorxiv(query: str) -> Dict:
+    """bioRxiv + medRxiv preprints, searched through Europe PMC (which indexes every bioRxiv/medRxiv preprint and,
+    unlike the bioRxiv API, supports keyword search). Preprints are NOT peer reviewed; each row says so."""
+    scoped = f'({query}) AND SRC:PPR AND (PUBLISHER:"bioRxiv" OR PUBLISHER:"medRxiv")'
+    q = urllib.parse.quote(scoped)
+    data = _get(f"https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+                f"?query={q}&format=json&pageSize=5&resultType=core")
+    results = []
+    for p in (data or {}).get("resultList", {}).get("result", [])[:5]:
+        doi = p.get("doi")
+        server = ((p.get("bookOrReportDetails") or {}).get("publisher") or "bioRxiv/medRxiv")
+        if not doi or not p.get("title"):
+            continue
+        results.append({
+            "doi": doi,
+            "title": p.get("title"),
+            "authors": p.get("authorString"),
+            "year": (p.get("firstPublicationDate") or "")[:4] or p.get("pubYear"),
+            "published": p.get("firstPublicationDate"),
+            "server": server,
+            "url": f"https://doi.org/{doi}",
+            "abstract": (p.get("abstractText") or "")[:500],
+            "evidence_kind": "preprint_abstract",
+            "peer_reviewed": False,
+            "europepmc_id": p.get("id"),
+        })
+    return {"source": "biorxiv", "results": results}
+
+
+def _fetch_clinicaltrials(query: str) -> Dict:
+    """ClinicalTrials.gov (official API v2, keyless): registered trials matching a disease, drug, target or free-text
+    query. Registry records, not results: status, phase, sponsor and (when stopped) the stated reason."""
+    q = urllib.parse.quote(query)
+    fields = ("NCTId,BriefTitle,OverallStatus,Phase,Condition,InterventionName,LeadSponsorName,"
+              "StartDate,WhyStopped,HasResults")
+    data = _get(f"https://clinicaltrials.gov/api/v2/studies?query.term={q}&pageSize=8&format=json&fields={fields}")
+    results = []
+    for st in (data or {}).get("studies", [])[:8]:
+        ps = st.get("protocolSection") or {}
+        nct = (ps.get("identificationModule") or {}).get("nctId")
+        if not nct:
+            continue
+        status = ps.get("statusModule") or {}
+        results.append({
+            "nct_id": nct,
+            "title": (ps.get("identificationModule") or {}).get("briefTitle"),
+            "status": status.get("overallStatus"),
+            "why_stopped": status.get("whyStopped"),
+            "start": (status.get("startDateStruct") or {}).get("date"),
+            "phases": (ps.get("designModule") or {}).get("phases"),
+            "conditions": ((ps.get("conditionsModule") or {}).get("conditions") or [])[:6],
+            "interventions": [i.get("name") for i in ((ps.get("armsInterventionsModule") or {}).get("interventions") or [])[:6]],
+            "sponsor": ((ps.get("sponsorCollaboratorsModule") or {}).get("leadSponsor") or {}).get("name"),
+            "has_results": bool(st.get("hasResults")),
+            "url": f"https://clinicaltrials.gov/study/{nct}",
+            "evidence_kind": "registry_record",
+        })
+    return {"source": "clinicaltrials", "results": results}
+
 
 def _fetch_semantic_scholar(query: str) -> Dict:
     """Semantic Scholar — citation graph, influential papers, open-access PDFs."""
     q = urllib.parse.quote(query)
     fields = "title,authors,year,citationCount,openAccessPdf,abstract"
+    key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY", "").strip()   # without a key the shared limit often returns HTTP 429
     data = _get(f"https://api.semanticscholar.org/graph/v1/paper/search"
-                f"?query={q}&limit=5&fields={fields}")
+                f"?query={q}&limit=5&fields={fields}", headers=({"x-api-key": key} if key else None))
     results = []
     for p in (data or {}).get("data", [])[:5]:
         results.append({
@@ -418,6 +566,72 @@ def _fetch_semantic_scholar(query: str) -> Dict:
             "abstract": (p.get("abstract") or "")[:500],
         })
     return {"source": "semantic_scholar", "results": results}
+
+def _fetch_corpus_fs(query: str) -> Dict:
+    """Grounded local corpus-as-filesystem source (Option B).
+
+    SAFE / opt-in by design: this joins the literature fan-out only when a local
+    corpus index is explicitly configured AND present on disk. With no corpus
+    configured it returns ``[]`` immediately -- it never errors, never performs a
+    network call, and never blocks the rest of the fan-out. Every returned result
+    is grounded by construction (a literal snippet that exists in the store, with
+    full provenance), so this source cannot confabulate citations.
+    """
+    import os
+
+    db = os.environ.get("CORPUS_INDEX_DB")
+    backend = (os.environ.get("CORPUS_INDEX_BACKEND") or "fts5").strip().lower()
+    # Only the embedded fts5 backend is file-backed + opt-in here; without an
+    # explicit, existing DB path there is no in-perimeter corpus to query.
+    if backend != "fts5" or not db or not os.path.exists(db):
+        return {"source": "corpus_fs", "results": []}
+
+    try:
+        from .corpus_fs import get_corpus_index, key_terms  # lazy, additive
+    except Exception:
+        try:  # loose/script import context (ai dir on sys.path)
+            from corpus_fs import get_corpus_index, key_terms  # type: ignore
+        except Exception as e:  # pragma: no cover - import guard
+            log.debug("[federated_query] corpus_fs unavailable: %s", e)
+            return {"source": "corpus_fs", "results": []}
+
+    try:
+        index = get_corpus_index(db)
+        terms = key_terms(query) or [query.strip()]
+        results: List[Dict] = []
+        seen = set()
+        for term in terms:
+            if not term:
+                continue
+            for hit in index.grep(term, limit=10):
+                dedup = (hit.get("doc_id"), hit.get("path"), hit.get("line_start"))
+                if dedup in seen:
+                    continue
+                seen.add(dedup)
+                meta = {}
+                try:
+                    meta = index.doc_meta(hit.get("doc_id")) or {}
+                except Exception:
+                    meta = {}
+                results.append({
+                    "doc_id": hit.get("doc_id"),
+                    "title": meta.get("title"),
+                    "year": meta.get("year"),
+                    "section": hit.get("section"),
+                    "path": hit.get("path"),
+                    "line_start": hit.get("line_start"),
+                    "line_end": hit.get("line_end"),
+                    "snippet": hit.get("snippet"),
+                    "url": meta.get("url"),
+                    "licence": meta.get("licence"),
+                    "_grounded": True,
+                    "_term": term,
+                })
+        return {"source": "corpus_fs", "results": results}
+    except Exception as e:  # must never break the fan-out
+        log.debug("[federated_query] corpus_fs query failed: %s", e)
+        return {"source": "corpus_fs", "results": []}
+
 
 def _fetch_openalex(query: str) -> Dict:
     """OpenAlex — 250M works, concept tagging, institution filtering."""
@@ -441,9 +655,53 @@ def _fetch_openalex(query: str) -> Dict:
         })
     return {"source": "openalex", "results": results}
 
+def _fetch_crossref(query: str) -> Dict:
+    """Crossref — cross-publisher scholarly metadata (~150M works across all
+    journals/publishers). Broadens peer-reviewed coverage well beyond the
+    bibliographic trio (EuropePMC/Semantic Scholar/OpenAlex); JSON REST."""
+    q = urllib.parse.quote(query)
+    data = _get(
+        f"https://api.crossref.org/works?query={q}&rows=5"
+        f"&select=title,author,issued,abstract,DOI,URL,container-title"
+    )
+    results = []
+    for it in (((data or {}).get("message") or {}).get("items") or [])[:5]:
+        title = (it.get("title") or [""])[0]
+        if not title:
+            continue
+        authors = ", ".join(
+            " ".join(p for p in [a.get("given"), a.get("family")] if p)
+            for a in (it.get("author") or [])[:3]
+        )
+        date_parts = ((it.get("issued") or {}).get("date-parts") or [[None]])
+        year = date_parts[0][0] if date_parts and date_parts[0] else None
+        journal = (it.get("container-title") or [""])[0]
+        # Crossref abstracts are JATS-XML fragments — strip tags for a clean snippet.
+        abstract = re.sub(r"<[^>]+>", "", it.get("abstract") or "")[:500]
+        results.append({
+            "title": title,
+            "authors": authors,
+            "year": year,
+            "journal": journal,
+            "doi": it.get("DOI"),
+            "url": it.get("URL") or (f"https://doi.org/{it.get('DOI')}" if it.get("DOI") else None),
+            "abstract": abstract,
+        })
+    return {"source": "crossref", "results": results}
+
+def _fetch_paperclip(query: str) -> Dict:
+    """Paperclip (8M+ papers/preprints/FDA/ClinicalTrials.gov as a searchable filesystem). Hosted third-party service:
+    returns an empty, labelled result unless PAPERCLIP_API_KEY is set and the deployment is not offline."""
+    from galaxy.ai.paperclip_client import fetch_for_federation
+    return fetch_for_federation(query)
+
+
 # ── Source dispatch table ──────────────────────────────────────────────────────
 
 _FETCHERS = {
+    "paperclip":        _fetch_paperclip,
+    "biorxiv":          _fetch_biorxiv,
+    "clinicaltrials":   _fetch_clinicaltrials,
     "ncbi_gene":        _fetch_ncbi_gene,
     "uniprot":          _fetch_uniprot,
     "pdb":              _fetch_pdb,
@@ -466,9 +724,13 @@ _FETCHERS = {
     "europepmc":        _fetch_europepmc,
     "semantic_scholar": _fetch_semantic_scholar,
     "openalex":         _fetch_openalex,
+    "crossref":         _fetch_crossref,
+    # Grounded local corpus-as-filesystem (Option B). Opt-in: returns [] unless
+    # a local corpus index is configured + present (see _fetch_corpus_fs).
+    "corpus_fs":        _fetch_corpus_fs,
 }
 
-_LITERATURE_SOURCES = {"pubmed", "europepmc", "semantic_scholar", "openalex"}
+_LITERATURE_SOURCES = {"corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"}
 
 # ── Main entry point ───────────────────────────────────────────────────────────
 
@@ -518,7 +780,7 @@ def federated_query(
 
     with ThreadPoolExecutor(max_workers=_POOL_SIZE) as pool:
         future_to_source = {
-            pool.submit(_FETCHERS[src], query): src
+            pool.submit(_run_fetcher, _FETCHERS[src], query): src
             for src in target_sources
         }
         try:
@@ -530,7 +792,10 @@ def federated_query(
                     if "results" in result and isinstance(result["results"], list):
                         result["results"] = result["results"][:max_results_per_source]
                     results[src] = result
-                    succeeded.append(src)
+                    if isinstance(result, dict) and result.get("error") and not result.get("results"):
+                        failed.append(src)
+                    else:
+                        succeeded.append(src)
                 except Exception as e:
                     log.warning("[federated_query] %s failed: %s", src, e)
                     failed.append(src)
@@ -555,7 +820,8 @@ def federated_query(
     }
 
     ttl = _CACHE_TTL_LITERATURE if detected == "literature" else _CACHE_TTL_STABLE
-    _cache_set(cache_key, out, ttl)
+    if not failed:   # never cache a partial answer: a rate limit would persist for the whole TTL
+        _cache_set(cache_key, out, ttl)
     return out
 
 # ── Result merging ─────────────────────────────────────────────────────────────
@@ -579,7 +845,7 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
         "pathway":    ["reactome", "kegg", "go", "pubmed"],
         "structure":  ["pdb", "alphafold", "interpro"],
         "disease":    ["hpo", "clinvar", "europepmc", "pubmed", "semantic_scholar"],
-        "literature": ["pubmed", "europepmc", "semantic_scholar", "openalex"],
+        "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"],
     }
     ordered = priority.get(entity_type, list(results.keys()))
     remaining = [s for s in results if s not in ordered]
@@ -591,7 +857,7 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
             # Dedup key: prefer explicit id fields, fall back to name/title
             dedup_key = (
                 item.get("accession") or item.get("gene_id") or item.get("pdb_id") or
-                item.get("pmid") or item.get("chembl_id") or item.get("paper_id") or
+                item.get("pmid") or item.get("chembl_id") or item.get("paper_id") or item.get("nct_id") or
                 (item.get("title") or item.get("name") or "").lower()[:60]
             )
             if not dedup_key or dedup_key in seen_names:

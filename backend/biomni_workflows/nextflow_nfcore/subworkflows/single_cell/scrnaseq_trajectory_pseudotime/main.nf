@@ -3,8 +3,8 @@
  * single_cell/scrnaseq_trajectory_pseudotime
  *
  * Trajectory inference + pseudotime + trajectory-DE for clustered + annotated
- * scRNA-seq data. Takes the output of scrnaseq_standard_endtoend (or any
- * h5ad with clusters + UMAP) and identifies lineages with Slingshot, fits
+ * scRNA-seq data. Takes any clustered + annotated h5ad (with clusters + UMAP)
+ * and identifies lineages with Slingshot, fits
  * gene-expression GAMs along each lineage with tradeSeq, and optionally
  * tests trajectory differences across conditions via condiments.
  *

@@ -1,0 +1,34 @@
+[
+  {
+    "file": "recording/output/series-review/result-downloads/result-downloads-en-NARRATED-REVIEW.mp4",
+    "seconds": 95.52,
+    "integratedLUFS": -15.82,
+    "truePeakDBTP": -4.5,
+    "sceneCharactersPerSecond": [
+      16.3,
+      16.2,
+      15.1,
+      16.8,
+      17.1
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  },
+  {
+    "file": "recording/output/series-review/result-downloads/result-downloads-zh-NARRATED-REVIEW.mp4",
+    "seconds": 98.04,
+    "integratedLUFS": -16.59,
+    "truePeakDBTP": -4.47,
+    "sceneCharactersPerSecond": [
+      4.9,
+      5.3,
+      4.7,
+      4.9,
+      4.7
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  }
+]

@@ -1,0 +1,23 @@
+; npt.mdp — 500 ps NPT equilibration (Parrinello-Rahman; restraints released).
+integrator      = md
+dt              = 0.002
+nsteps          = 250000          ; 500 ps
+nstlist         = 20
+cutoff-scheme   = Verlet
+coulombtype     = PME
+rcoulomb        = 1.2
+rvdw            = 1.2
+vdw-modifier    = Potential-shift
+constraints     = h-bonds
+constraint-algorithm = lincs
+tcoupl          = V-rescale
+tc-grps         = System
+tau-t           = 0.1
+ref-t           = 300
+pcoupl          = Parrinello-Rahman
+pcoupltype      = isotropic
+tau-p           = 2.0
+ref-p           = 1.0
+compressibility = 4.5e-5
+gen-vel         = no
+pbc             = xyz

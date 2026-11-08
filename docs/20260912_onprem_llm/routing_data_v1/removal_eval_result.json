@@ -1,0 +1,491 @@
+{
+  "summary": {
+    "model": "gpt-5-mini",
+    "n": 80,
+    "composed_rate": 1.0,
+    "validity_rate": 1.0,
+    "mean_step_coverage": 0.54
+  },
+  "details": [
+    {
+      "W": "signer_exposure_estimation_to_known_signatures",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.6
+    },
+    {
+      "W": "milor_da_contrasts",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.17
+    },
+    {
+      "W": "rgsea",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "coveb",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.5
+    },
+    {
+      "W": "oncomix",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.0
+    },
+    {
+      "W": "appreci8r",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.78
+    },
+    {
+      "W": "htqpcr",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.83
+    },
+    {
+      "W": "m6aboost",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.4
+    },
+    {
+      "W": "cellid_functional_annotation",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.33
+    },
+    {
+      "W": "snifter",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "magrene",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.12
+    },
+    {
+      "W": "mmdiff2",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.78
+    },
+    {
+      "W": "projectr_differential_feature_drivers",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.25
+    },
+    {
+      "W": "peakpanther",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.6
+    },
+    {
+      "W": "seqgate",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.25
+    },
+    {
+      "W": "icnv_ngs_only_cnv_detection",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "rgadem",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.0
+    },
+    {
+      "W": "ldblock",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "methylgsa_custom_annotation_analysis",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.5
+    },
+    {
+      "W": "difflogo_multiple_motif_comparison_table",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "genestructuretools",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.78
+    },
+    {
+      "W": "omicrexposome_integration_analysis",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.29
+    },
+    {
+      "W": "rgsea_sd_features",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "massarray_data_analysis",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "ebseq",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.29
+    },
+    {
+      "W": "pipecomp",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.38
+    },
+    {
+      "W": "annaffy_metadata_search",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.0
+    },
+    {
+      "W": "rcy3_igraph_interoperability",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.0
+    },
+    {
+      "W": "mlseq",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.56
+    },
+    {
+      "W": "hoodscanr",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.36
+    },
+    {
+      "W": "atena_telescope_quantification",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "mina",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "rankprod_multi_condition_contrast",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.0
+    },
+    {
+      "W": "reconsi",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.0
+    },
+    {
+      "W": "ancombc_secom_correlation_analysis",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.25
+    },
+    {
+      "W": "mastr_multi_dataset_signature_aggregation",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.75
+    },
+    {
+      "W": "epinem_systematic_modulator_screening",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "peakpanther",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.5
+    },
+    {
+      "W": "scbubbletree_sc_bubbletree_comparison",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.33
+    },
+    {
+      "W": "rontotools",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.75
+    },
+    {
+      "W": "monocle",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "packfinder_step_wise_transposon_search",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "biocor_wgcna_integration",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.33
+    },
+    {
+      "W": "methylpipe",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.33
+    },
+    {
+      "W": "mixomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "knowseq",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.42
+    },
+    {
+      "W": "rmagpie_nsc_classification",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.88
+    },
+    {
+      "W": "diffustats_grid_diffusion_and_benchmarking",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.33
+    },
+    {
+      "W": "methylimp2",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "synergyfinder_higher_order_combinations",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "acde_time_course_analysis",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.75
+    },
+    {
+      "W": "netresponse",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.75
+    },
+    {
+      "W": "damirseq_cross_validation_and_independent_prediction",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.29
+    },
+    {
+      "W": "netboost",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.2
+    },
+    {
+      "W": "structtoolbox",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.7
+    },
+    {
+      "W": "miaviz",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.5
+    },
+    {
+      "W": "compspot",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "scmerge_sc_merge_v2_hierarchical",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.5
+    },
+    {
+      "W": "loci2path",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.6
+    },
+    {
+      "W": "htsfilter",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.75
+    },
+    {
+      "W": "mbkmeans_bluster_mbkmeans_clustering",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.25
+    },
+    {
+      "W": "cnvrd2_complex_locus_bayesian_clustering",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.83
+    },
+    {
+      "W": "excluster",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "phenopath",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.33
+    },
+    {
+      "W": "topconfects_edger_confects",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.75
+    },
+    {
+      "W": "nanostringdiff_matrix_input_workflow",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.6
+    },
+    {
+      "W": "scater",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.62
+    },
+    {
+      "W": "roseq",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.2
+    },
+    {
+      "W": "synmut",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.5
+    },
+    {
+      "W": "geneplast",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.0
+    },
+    {
+      "W": "ebseq_isoform_de_multi_conditions",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.75
+    },
+    {
+      "W": "blma",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "glmsparsenet",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.4
+    },
+    {
+      "W": "hdtd",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.0
+    },
+    {
+      "W": "multibac",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "edger_classic_pipeline",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "pmp_signal_drift_and_batch_correction",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.0
+    },
+    {
+      "W": "tomoseqr",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "piuma_seurat_integrated_tda",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.71
+    },
+    {
+      "W": "rdrtoolbox",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "document": "Updated knowledge-grounded pdl1 candidates v2 (edit-guideline fixes of v1 flags)",
+  "date": "2026-10-13",
+  "note": "Tier-1 pharmacophore preserved; each edit fixes a v1 liability/FTO flag; re-gated below. Design hypotheses \u2014 physics (MM-GBSA on 9xmm/5O45) + wet-lab still required.",
+  "candidates": [
+    {
+      "id": "PDL1-K-01",
+      "helm": "cyclo(F-W-L-[dP]-Y-S-[NMeF]-D-T-K)",
+      "edit": "(unchanged \u2014 v1 PASS)",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
+    },
+    {
+      "id": "PDL1-K-02",
+      "helm": "cyclo(W-L-F-[dP]-I-[NMeL]-S-E-K-G)",
+      "edit": "OXIDATION: Met -> Leu (non-oxidisable; prod = Nle isostere)",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
+    },
+    {
+      "id": "PDL1-K-03",
+      "helm": "cyclo(Y-F-[dP]-W-L-[NMeA]-S-D-R-T-G)",
+      "edit": "ISOMERISATION: swap Asp-Ser -> Ser-Asp (removes the D-S isoAsp hotspot)",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
+    },
+    {
+      "id": "PDL1-K-04",
+      "helm": "cyclo(F-L-W-[dP]-L-Y-[NMeS]-K-G-D)",
+      "edit": "HOLD-FIX: reorder tail K-D-G -> K-G-D (removes fastest Asp-Gly hotspot) + Met->Leu",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
+    },
+    {
+      "id": "PDL1-K-05",
+      "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G)",
+      "edit": "(unchanged \u2014 v1 PASS)",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
+    },
+    {
+      "id": "PDL1-K-06",
+      "helm": "cyclo(F-W-L-Y-[dP]-L-S-D-K-T)",
+      "edit": "OXIDATION: Met -> Leu",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
+    },
+    {
+      "id": "PDL1-K-07",
+      "helm": "cyclo(F-W-[dP]-Y-I-L-[NMeF]-E-R-S)",
+      "edit": "(unchanged \u2014 v1 PASS)",
+      "tier": "WATCH",
+      "net_charge": 0,
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
+    },
+    {
+      "id": "PDL1-K-08",
+      "helm": "C-F-W-T-Y-[NMeF]-L-S-D-C (disulfide C1-C10)",
+      "edit": "OXIDATION Met->Leu + AGGREGATION: one aromatic Trp-adjacent L->T to lower hydrophobic fraction 0.80 -> 0.70",
+      "tier": "WATCH",
+      "net_charge": -1,
+      "flags": [
+        "[soft] cmc:Trp-ox",
+        "[soft] sar:aggregation"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "audit_date": "2026-10-09",
+  "checkout_head": "53d09e07c",
+  "orchestration_worktree_head": "6f4da7a04",
+  "scope": "Local component execution and static source audit; no live application or scientific workflow execution",
+  "reproduction_inputs": {
+    "step": {
+      "nextflow_path": "same.nf",
+      "params": {
+        "input": "example"
+      },
+      "depends_on": [],
+      "dimensions": {
+        "inhibitor": "A",
+        "target": "X"
+      }
+    },
+    "connection_note": "Connection included context_params; serializer omitted it. See source and audit for semantics.",
+    "benchmark_note": "One shared sample; no valid ARI/NMI can support ranking."
+  },
+  "observed_outputs": {
+    "serialized_steps": [
+      {
+        "nextflow_path": "same.nf",
+        "params": {
+          "input": "example"
+        }
+      }
+    ],
+    "serialized_connections": [
+      {
+        "from_step": 1,
+        "from_output": "counts.tsv",
+        "to_step": 2,
+        "to_input": "counts"
+      }
+    ],
+    "insufficient_sample_benchmark": {
+      "mode": "ground_truth",
+      "report": [
+        {
+          "method": "onlyMethod",
+          "ARI": null,
+          "NMI": null,
+          "n": 1,
+          "rank": 1
+        }
+      ],
+      "winner": "onlyMethod"
+    }
+  },
+  "status_mapping": {
+    "blocked": "pending",
+    "submitting": "pending",
+    "partial_parent": "running"
+  },
+  "existing_frontend_tests": {
+    "files": [
+      "client/src/lib/chain-execution.test.ts",
+      "client/src/lib/chain-pipeline-sync.test.ts"
+    ],
+    "passed": 11,
+    "failed": 0
+  },
+  "limitations": [
+    "NaN metric values serialize as JSON null.",
+    "Existing passing tests do not establish coverage of the reproduced gaps.",
+    "Branch code is not proof of deployed behavior."
+  ]
+}

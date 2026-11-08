@@ -1,7 +1,7 @@
-import React from "react";
+import React, { act } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer";
+import { NextflowWorkflowViewer, buildStepDetailStep, deriveRunKind } from "./nextflow-workflow-viewer";
 
 vi.mock("./chat-output-attachments", () => ({
   ChatOutputAttachments: () => <div data-testid="mock-chat-output-attachments" />,
@@ -15,124 +15,114 @@ vi.mock("./feedback/download-outcome-prompt", () => ({
   DownloadOutcomePrompt: () => null,
 }));
 
-// These three tests assert a step-level "Run Step / Rerun Step" affordance
-// per step that was removed from the viewer: today only a "Rerun" button
-// renders, and only when the step is in a terminal status (isDone || isFailed,
-// see nextflow-workflow-viewer.tsx:656). The tests still cover a meaningful
-// behavior — if/when per-step controls return, repair the fixtures to set
-// step status='completed' so the button renders, then refresh the assertions
-// against the current Rerun label + onRun handler shape. Skipped (not deleted)
-// to preserve the intent.
-describe.skip("NextflowWorkflowViewer step execution controls", () => {
+// Per-step execution controls — CURRENT behavior (rewritten 2026-09-11, was
+// describe.skip). The old suite asserted an always-visible "Run Step / Rerun
+// Step" affordance that was removed: today the per-step Rerun button
+// (button-run-step-<id>) + full-view button render ONLY when the step is in a
+// terminal status (isDone || isFailed, nextflow-workflow-viewer.tsx:768-781),
+// and clicking Rerun POSTs /api/workflows/runs/<runId>/rerun (handleRunStep,
+// L1389). These tests drive a step to terminal state via a live step_state SSE
+// event (the real product path) and assert the affordance matrix + the rerun
+// call — real coverage, no skip.
+describe("NextflowWorkflowViewer — per-step execution controls (current affordance)", () => {
+  let esHandlers: Record<string, (ev: MessageEvent) => void> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let fetchSpy: any;
+
+  const dispatchSSE = (type: string, payload: unknown) => {
+    const handler = esHandlers[type];
+    if (!handler) throw new Error(`No SSE handler registered for "${type}"`);
+    act(() => {
+      handler({ data: JSON.stringify(payload) } as MessageEvent);
+    });
+  };
+
+  const runningProps = {
+    workflowId: "wf-step-1",
+    workflowDefinition: {
+      id: "wf-step-1",
+      name: "Stepwise Workflow",
+      // step keys become step ids; s2 is the later phase so it starts
+      // genuinely pending under the running-status progress heuristic.
+      steps: {
+        s1: { name: "Align reads", tool_id: "t1" },
+        s2: { name: "Quantify", tool_id: "t2", parameters: { threads: 4 } },
+      },
+      required_params: [],
+      optional_params: [],
+      inline_parameters: {},
+    },
+    invocationId: "inv-step-1", // SSE effect is gated on invocationId
+    runId: "run-step-1",
+    progress: 0,
+    onExecute: vi.fn(),
+  };
+
   beforeEach(() => {
     vi.restoreAllMocks();
+    esHandlers = {};
+    (global as any).EventSource = class {
+      url: string;
+      onopen: (() => void) | null = null;
+      onmessage: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      readyState = 1;
+      constructor(url: string) { this.url = url; }
+      addEventListener(type: string, cb: (ev: MessageEvent) => void) { esHandlers[type] = cb; }
+      removeEventListener = vi.fn();
+      close = vi.fn();
+    };
+    fetchSpy = vi.spyOn(global, "fetch").mockImplementation(async () => ({
+      ok: true, status: 200, json: async () => ({ run_id: "run-step-1" }), text: async () => "",
+    } as Response));
+  });
+  afterEach(() => { vi.clearAllMocks(); });
+
+  it("shows step details while pending, without allowing a rerun", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    // Phases tab auto-selected for running; s2 starts genuinely pending.
+    const card = await screen.findByTestId("phase-card-s2");
+    expect(card).toHaveAttribute("data-status", "pending");
+    // The terminal-only affordances must be absent on a pending step.
+    expect(screen.queryByTestId("button-run-step-s2")).toBeNull();
+    expect(screen.getByTestId("button-full-step-view-s2")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("button-full-step-view-s2"));
+    expect(await screen.findByTestId("step-detail")).toBeInTheDocument();
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
+  it("reveals the Rerun + full-view affordance once a step reaches a terminal state", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    await screen.findByTestId("phase-card-s2");
+    await waitFor(() => expect(typeof esHandlers["step_state"]).toBe("function"));
+
+    // Live event drives s2 to completed — the only thing that moves it.
+    dispatchSSE("step_state", { step_id: "s2", step_state: "completed" });
+
+    const rerun = await screen.findByTestId("button-run-step-s2");
+    expect(rerun).toHaveTextContent("Rerun");
+    expect(rerun).toBeEnabled();
+    expect(screen.getByTestId("button-full-step-view-s2")).toBeInTheDocument();
   });
 
-  it("runs and reruns a step while updating status metadata", async () => {
-    const RERUN_URL = "/api/workflows/runs/test-run-1/rerun";
-    const fetchSpy = vi.spyOn(global, "fetch").mockImplementation(async (input) => {
-      const url = String(input);
-      if (url === RERUN_URL) {
-        return {
-          ok: true,
-          json: async () => ({ run_id: "test-run-1" }),
-        } as Response;
-      }
-      throw new Error(`Unexpected fetch URL: ${url}`);
-    });
+  it("clicking Rerun on a terminal step POSTs /rerun exactly once", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    await screen.findByTestId("phase-card-s2");
+    await waitFor(() => expect(typeof esHandlers["step_state"]).toBe("function"));
+    dispatchSSE("step_state", { step_id: "s2", step_state: "completed" });
 
-    render(
-      <NextflowWorkflowViewer
-        workflowId="wf-1"
-        runId="test-run-1"
-        workflowDefinition={{
-          name: "Stepwise Workflow",
-          steps: {
-            "0": {
-              id: "s1",
-              name: "Trim reads",
-              tool_id: "toolshed.g2.bx.psu.edu/repos/devteam/trimmomatic/trimmomatic/0.38.0",
-              parameters: { quality: 20 },
-            },
-          },
-        }}
-        status="idle"
-        progress={0}
-      />
-    );
-
-    expect(screen.getByTestId("button-run-workflow-panel")).toBeInTheDocument();
-    const runStepButton = screen.getByTestId("button-run-step-s1");
-    expect(runStepButton).toHaveTextContent("Run Step");
-
-    fireEvent.click(runStepButton);
-
+    const rerun = await screen.findByTestId("button-run-step-s2");
+    const RERUN_URL = "/api/workflows/runs/run-step-1/rerun";
+    // Ignore SSE/other fetches the component made on mount; count only /rerun.
+    const before = fetchSpy.mock.calls.filter(([u]: any[]) => String(u) === RERUN_URL).length;
+    fireEvent.click(rerun);
     await waitFor(() =>
       expect(fetchSpy).toHaveBeenCalledWith(
         RERUN_URL,
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        })
+        expect.objectContaining({ method: "POST" })
       )
     );
-    // After fetch resolves, run count increments and label becomes "Rerun Step"
-    await waitFor(() => expect(screen.getByTestId("button-run-step-s1")).toHaveTextContent("Rerun Step"));
-    // Button is loading (isExecuting=true) until the global run reaches a terminal state
-    expect(screen.getByTestId("button-run-step-s1")).toBeDisabled();
-    // Exactly one rerun call was made
-    const rerunCalls = fetchSpy.mock.calls.filter(([url]) => String(url) === RERUN_URL);
-    expect(rerunCalls.length).toBe(1);
-  });
-
-  it("disables step run control when a step has no tool id", () => {
-    render(
-      <NextflowWorkflowViewer
-        workflowDefinition={{
-          name: "Missing Tool Workflow",
-          steps: {
-            "0": { id: "s-missing", name: "Untyped step" },
-          },
-        }}
-      />
-    );
-
-    const button = screen.getByTestId("button-run-step-s-missing");
-    expect(button).toBeDisabled();
-  });
-
-  it("keeps full workflow controls operational alongside step controls", () => {
-    const onExecute = vi.fn();
-    render(
-      <NextflowWorkflowViewer
-        workflowDefinition={{
-          name: "Workflow With Full Controls",
-          parameters: { threads: 4 },
-          steps: {
-            "0": {
-              id: "s1",
-              name: "QC step",
-              tool_id: "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.75",
-            },
-          },
-        }}
-        onExecute={onExecute}
-        status="idle"
-        runId="test-run-1"
-      />
-    );
-
-    fireEvent.click(screen.getByTestId("button-run-workflow-panel"));
-    expect(onExecute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        threads: 4,
-      })
-    );
-    expect(screen.getByTestId("button-run-step-s1")).toBeEnabled();
+    const after = fetchSpy.mock.calls.filter(([u]: any[]) => String(u) === RERUN_URL).length;
+    expect(after - before).toBe(1);
   });
 });
 
@@ -366,5 +356,252 @@ describe("NextflowWorkflowViewer — run-button hard gate", () => {
     // sticky footer button. Verify the action-bar Run-again is enabled.
     await waitFor(() => expect(screen.getByTestId("panel-run-again-cta")).toBeInTheDocument());
     expect(screen.getByTestId("panel-run-again-cta")).not.toBeDisabled();
+  });
+});
+
+// Full step view wiring (spec-08). buildStepDetailStep maps the viewer's real
+// step objects onto StepDetailStep. The contract that matters: it passes real
+// data through and OMITS fields the run does not report (rather than inventing
+// them), so StepDetail can show its honest empty states.
+describe("buildStepDetailStep — real-data mapping, no fabrication", () => {
+  it("maps id/name/processName, scalar params, and outputFiles through unchanged", () => {
+    const step = {
+      id: "s1",
+      name: "salmon_quant",
+      processName: "NFCORE_RNASEQ:SALMON_QUANT",
+      status: "completed",
+      parameters: { libType: "A", numBootstraps: 100, threads: 4 },
+      outputFiles: [
+        { name: "quant.sf", path: "s1/quant.sf", extension: "tsv" },
+        { name: "logs.txt", path: "s1/logs.txt", extension: "txt" },
+      ],
+    };
+    const mapped = buildStepDetailStep(step);
+    expect(mapped.id).toBe("s1");
+    expect(mapped.name).toBe("salmon_quant");
+    expect(mapped.processName).toBe("NFCORE_RNASEQ:SALMON_QUANT");
+    expect(mapped.parameters).toEqual({ libType: "A", numBootstraps: 100, threads: 4 });
+    expect(mapped.outputs).toEqual([
+      { name: "quant.sf", path: "s1/quant.sf", extension: "tsv" },
+      { name: "logs.txt", path: "s1/logs.txt", extension: "txt" },
+    ]);
+  });
+
+  it("omits tool/toolVersion/duration/inputs — never fabricated (honest empty state)", () => {
+    const mapped = buildStepDetailStep({ id: "s2", name: "step2", status: "failed" });
+    expect(mapped.tool).toBeUndefined();
+    expect(mapped.toolVersion).toBeUndefined();
+    expect(mapped.duration).toBeUndefined();
+    expect(mapped.inputs).toBeUndefined();
+  });
+
+  it("drops object-typed param metadata placeholders, keeping scalar runtime values", () => {
+    const mapped = buildStepDetailStep({
+      id: "s3",
+      name: "step3",
+      parameters: {
+        threads: 8,                                   // scalar → kept
+        keep: true,                                   // scalar → kept
+        schemaMeta: { type: "integer", default: 30 }, // object placeholder → dropped
+      },
+    });
+    expect(mapped.parameters).toEqual({ threads: 8, keep: true });
+  });
+
+  it("yields empty outputs and undefined parameters when the step reported neither", () => {
+    const mapped = buildStepDetailStep({ id: "s4", name: "step4" });
+    expect(mapped.outputs).toEqual([]);
+    expect(mapped.parameters).toBeUndefined();
+  });
+
+  it("derives a missing extension from the file name rather than inventing one", () => {
+    const mapped = buildStepDetailStep({
+      id: "s5",
+      name: "step5",
+      outputFiles: [{ name: "report.html", path: "s5/report.html" }],
+    });
+    expect(mapped.outputs?.[0]?.extension).toBe("html");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Real-time SSE status tracking (CLAUDE.md CRITICAL; audit gap #2, 2026-09-09).
+//
+// The other suites above stub EventSource as an INERT object (addEventListener =
+// vi.fn()) and hand the component a static `status`/step-`status` prop, then
+// assert the final render. That cannot catch a stuck spinner or a missed
+// terminal transition — a broken step_state handler ships green.
+//
+// This suite installs a LIVE-DISPATCH MockEventSource that stores each
+// addEventListener handler by event type. A test then dispatches a real
+// "step_state" MessageEvent and asserts the phase card's data-status attribute
+// actually FLIPS pending → running (a real transition observed in the DOM, not
+// a final-state prop). The step never starts running — the SSE event is the
+// only thing that moves it — so if the step_state → setStepExecutionById →
+// phase.status wiring breaks, this test fails.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("NextflowWorkflowViewer — real-time SSE status transitions (live dispatch)", () => {
+  // Captures the handlers registered on the EventSource the component opens.
+  let esHandlers: Record<string, (ev: MessageEvent) => void> = {};
+  let esInstances = 0;
+
+  // Dispatch an SSE event to the component exactly the way the browser would:
+  // the backend emits a named event, the browser invokes the matching
+  // addEventListener handler with a MessageEvent whose `data` is a JSON string.
+  const dispatchSSE = (type: string, payload: unknown) => {
+    const handler = esHandlers[type];
+    if (!handler) throw new Error(`No SSE handler registered for "${type}"`);
+    act(() => {
+      handler({ data: JSON.stringify(payload) } as MessageEvent);
+    });
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    esHandlers = {};
+    esInstances = 0;
+    (global as any).EventSource = class {
+      url: string;
+      onopen: (() => void) | null = null;
+      onmessage: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      readyState = 1;
+      constructor(url: string) {
+        this.url = url;
+        esInstances += 1;
+      }
+      // Store the real handler so the test can dispatch to it later.
+      addEventListener(type: string, cb: (ev: MessageEvent) => void) {
+        esHandlers[type] = cb;
+      }
+      removeEventListener = vi.fn();
+      close = vi.fn();
+    };
+    vi.spyOn(global, "fetch").mockImplementation(async () => ({
+      ok: true, status: 200, json: async () => ({}), text: async () => "",
+    } as Response));
+  });
+  afterEach(() => { vi.clearAllMocks(); });
+
+  // Two steps + progress=0. The viewer's progress heuristic (nextflow-workflow-
+  // viewer.tsx L1472-1477) makes the FIRST phase "running" and every later phase
+  // "pending" when status=running. So s2 starts genuinely pending — the ONLY
+  // thing that can move it to "running" is a step_state SSE event for s2. That
+  // makes the flip a real SSE-driven transition, not the status prop.
+  const runningProps = {
+    workflowId: "wf-sse-1",
+    workflowDefinition: {
+      id: "wf-sse-1",
+      name: "SSE Workflow",
+      // stepKeys become step ids (no explicit step.id) → step_state must
+      // reference step_id "s2" to move the second card.
+      steps: {
+        s1: { name: "Align reads", tool_id: "t1" },
+        s2: { name: "Quantify", tool_id: "t2" },
+      },
+      required_params: [],
+      optional_params: [],
+      inline_parameters: {},
+    },
+    invocationId: "inv-sse-1", // REQUIRED — SSE effect is gated on invocationId
+    runId: "run-sse-1",
+    progress: 0,
+    onExecute: vi.fn(),
+  };
+
+  it("opens the SSE stream and registers a step_state listener", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    await waitFor(() => {
+      expect(esInstances).toBeGreaterThan(0);
+      expect(typeof esHandlers["step_state"]).toBe("function");
+    });
+  });
+
+  it("flips a phase card data-status pending → running when a step_state SSE event arrives", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+
+    // Phases tab is auto-selected for running status. s2 (the later phase) starts
+    // genuinely pending — nothing but an SSE event can move it.
+    const card = await screen.findByTestId("phase-card-s2");
+    expect(card).toHaveAttribute("data-status", "pending");
+
+    // Wait for the SSE listener to be wired before dispatching.
+    await waitFor(() => expect(typeof esHandlers["step_state"]).toBe("function"));
+
+    // Live event: backend reports step s2 has started running.
+    dispatchSSE("step_state", { step_id: "s2", step_state: "running" });
+
+    // The card must reflect the live transition — this is the assertion the
+    // static-prop tests could never make.
+    await waitFor(() => {
+      expect(screen.getByTestId("phase-card-s2")).toHaveAttribute("data-status", "running");
+    });
+  });
+
+  it("advances the same card running → completed on a terminal step_state event", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
+    const card = await screen.findByTestId("phase-card-s2");
+    expect(card).toHaveAttribute("data-status", "pending");
+    await waitFor(() => expect(typeof esHandlers["step_state"]).toBe("function"));
+
+    dispatchSSE("step_state", { step_id: "s2", step_state: "running" });
+    await waitFor(() =>
+      expect(screen.getByTestId("phase-card-s2")).toHaveAttribute("data-status", "running")
+    );
+
+    dispatchSSE("step_state", { step_id: "s2", step_state: "completed" });
+    await waitFor(() =>
+      expect(screen.getByTestId("phase-card-s2")).toHaveAttribute("data-status", "completed")
+    );
+  });
+
+  it("shows the Restart CTA and a failed overall badge when status=failed", async () => {
+    render(<NextflowWorkflowViewer {...(runningProps as any)} status="failed" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workflow-overall-status-badge")).toHaveAttribute(
+        "data-status",
+        "failed"
+      );
+    });
+    // No cached-failure metadata → not resumable → footer CTA reads "Restart".
+    const cta = screen.getByTestId("button-run-workflow-panel");
+    expect(cta).toHaveTextContent("Restart");
+    // A failed run must NOT surface a "Run again" success CTA.
+    expect(screen.queryByTestId("panel-run-again-cta")).not.toBeInTheDocument();
+  });
+});
+
+// Spec 13 §13.4: the kicker's run KIND word must reflect what the run actually
+// is — "Design run" / "Ad-hoc · sandbox" / "Training run" — and never read
+// "Workflow" for a run that is not one. A genuine pipeline defaults to Workflow.
+describe("deriveRunKind — run card kind by domain / mode (Spec 13 §13.4)", () => {
+  it("defaults a routed pipeline to 'Workflow'", () => {
+    expect(deriveRunKind({ domain: "transcriptomics" })).toBe("Workflow");
+    expect(deriveRunKind({ domain: "genomics" })).toBe("Workflow");
+    expect(deriveRunKind({ domain: "drug_discovery" })).toBe("Workflow");
+    expect(deriveRunKind({})).toBe("Workflow");
+    expect(deriveRunKind(undefined)).toBe("Workflow");
+  });
+
+  it("labels a design domain as 'Design run', not 'Workflow'", () => {
+    expect(deriveRunKind({ domain: "design_generate" })).toBe("Design run");
+    expect(deriveRunKind({ domain: "molecular_design" })).toBe("Design run");
+  });
+
+  it("labels an ad-hoc / data-analysis sandbox as 'Ad-hoc · sandbox'", () => {
+    expect(deriveRunKind({ domain: "data_analysis" })).toBe("Ad-hoc · sandbox");
+    expect(deriveRunKind({ mode: "sandbox" })).toBe("Ad-hoc · sandbox");
+  });
+
+  it("labels a model-training harness as 'Training run'", () => {
+    expect(deriveRunKind({ domain: "model_training" })).toBe("Training run");
+    expect(deriveRunKind({ run_kind: "training" })).toBe("Training run");
+  });
+
+  it("honours an explicit run_kind / kind / mode field over the domain", () => {
+    // A design run filed under a chemistry domain must still read "Design run".
+    expect(deriveRunKind({ domain: "drug_discovery", run_kind: "design" })).toBe("Design run");
+    expect(deriveRunKind({ domain: "transcriptomics", kind: "sandbox" })).toBe("Ad-hoc · sandbox");
   });
 });

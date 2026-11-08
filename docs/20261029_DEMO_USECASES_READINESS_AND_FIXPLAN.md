@@ -1,0 +1,295 @@
+# Demo use-cases — readiness audit + fix plan (2026-10-29)
+
+Three demo use cases set as highest priority (2026-10-29): **(1) drug-dev DBTL loop
+(dry-dry + dry-wet)**, **(2) multi-agent fast search**, **(3) public-model fine-tuning**,
+plus the ongoing dataset-panel UI work. This doc = the synthesized readiness from three
+parallel audits + the fix plan. Living doc — update as fixes land.
+
+## Legend
+CODE = fixable in-repo (doing autonomously). OPS = dev env/AWS, cannot do from this
+machine (flag for user). INTENTIONAL = deliberately as-is, do NOT change.
+
+---
+
+## 1. Drug-dev DBTL loop
+**Verdict:** dry-dry single-gate loop WORKS (needs toggle ON); full campaign + dry-wet PARTIAL.
+Cyclic-peptide loop is a research harness, NOT a product demo → demo with **small molecules**.
+
+Demo flow (lowest risk): Mode-1 single-gate on dev —
+- Docking: erlotinib vs EGFR (PDB 1M17), exhaustiveness=4 → gate HALT at −5.2 (thr −7.0)
+  → auto-remediate exhaustiveness 4→16, box 20→25Å → rerun → −8.4 PASS.
+- OR ADMET terfenadine (known hERG blocker) → hERG gate HALT → remediate logp/mw → pass.
+  (Gate-fire proven live: run d0ff684b, docs/20261004_AUTOLOOP_LIVE_PROOF.md.)
+
+Gaps:
+- **#1 CODE** — auto-loop self-correct toggle defaults OFF (`nextflow-workflow-viewer.tsx`
+  autoloopMap `{}` ~:1400; locked unless profile.autoloop===true ~:3627). Out-of-box a halt
+  gate just PAUSES for a human; the autonomous loop never fires. FIX: autoloop-capable profiles (profile.autoloop===true) now default the toggle ON
+  (commit 3a7464d46). [STATUS: DONE]
+- **#6 CODE** — demo harnesses (demo-01/05/06.demo.ts) use `demo_*@biomate.test` which bounce
+  + degrade the account; must use fixture lifeifei163361@163.com. [STATUS: DONE demo-01/05/06]
+- **#2 OPS** — `RUN_STATE_STORE=redis` on dev UNVERIFIED. Without it, autoloop SSE is
+  cross-worker-blind and Batch runs can orphan (status:running forever).
+  → `docker exec biomate-galaxy-dev printenv RUN_STATE_STORE` must == `redis` before demo.
+- **#3 OPS** — SSE is environment-coupled; run the demo entirely on dev-public.biomate.ai
+  (not a localhost browser against dev Galaxy) or events drop.
+- **#4 INTENTIONAL** — CRO Library route + IND nav hidden (project_billing_hidden). Dry-wet
+  demo goes via campaign REST API, not nav. Do NOT un-hide without the user's say.
+- **#5 (known)** — dry-wet Make/Test is SimAssaySource (simulated); narrate as "simulated wet
+  return" via a pre-staged assay CSV → `POST /ingest-assay` → GP refit → new auto-proposal.
+- **#8 (known)** — QC events not durably persisted per run; show the gate LIVE, never by
+  reopening history (reopen shows "all passed" fallback).
+
+---
+
+## 2. Multi-agent fast search
+**Verdict:** engine LIVE + correct (parallel asyncio.gather fan-out over PubMed/EuropePMC/
+Semantic Scholar/OpenAlex, grounded citations). PMID confabulation + Gemini tool-firing both
+FIXED. Dev runs gpt-5.6-luna; research path is a direct endpoint call (backbone-independent).
+The gap is pure PRESENTATION — it doesn't LOOK multi-agent.
+
+Demo flow: a pure literature/evidence question (no "run/analyze" verbs, no pasted data).
+Example: "Summarize the current published evidence on whether KRAS G12C inhibitors improve
+overall survival in NSCLC, with citations to the key trials."
+
+Gaps:
+- **G1 CODE (highest)** — parallel fan-out invisible in chat (the parallel Plan-Checklist
+  surface is dormant in an un-promoted sandbox). FIX (cheapest): emit a per-sub-query status/
+  AGENT SSE event so the chat shows the concurrent source searches. [STATUS: PARTIAL — status line now names the 4 parallel sources (commit); full fan-out animation = design decision, deferred]
+- **G2 CODE** — citations panel collapsed by default (benchmark-evidence.tsx ~:487). FIX:
+  default-expand on research turns. [STATUS: DONE]
+- **G3 CODE** — chat re-synthesizes the research answer (prose can drift from the grounded
+  set); structured citations panel stays faithful. FIX: preserve the evidence-boundary note /
+  pass grounded answer through more directly. [STATUS: consider]
+- **G4 (demo scripting)** — route the demo query as a pure literature question to avoid
+  workflow_generation misrouting.
+- **G5/G6 (out of scope)** — no single turn fans out to catalog too; hierarchical Pattern
+  Router dormant (governs workflow-gen, not search) — do NOT enable for this demo.
+
+---
+
+## 3. Public-model fine-tuning
+**Verdict:** backend engine real (ml_training/: LoRA/QLoRA, TRL DPO/GRPO, chemprop) but NOT
+demo-ready E2E. EPERM `/data` bug RESOLVED+verified live (adapt/retrain returns succeeded).
+
+Demo flow (asked): pick public base model → attach data → launch FT → fine-tuned model as a
+first-class object with "Built from" lineage. Only launch path today = a chat message
+("fine-tune SmolLM2 on my instruction data") → route_ml_training_result → training workflow
+card → Confirm&Run → /api/nextflow/execute → AWS Batch.
+
+Gaps:
+- **#1 OPS (top blocker)** — `ML_TRAINING_ROUTING` flag OFF on dev (routing.py ~:205); not in
+  any committed env. The chat launch route is DEAD until set. → set `ML_TRAINING_ROUTING=1` on
+  biomate-galaxy-dev + restart. Until then, fine-tune cannot be triggered at all.
+- **#2 CODE** — no UI affordance to launch a fine-tune (Train track + Supersede/Use-in-run are
+  read-only; model-case `tune_on_our_data` page not mounted). Only chat free-text works.
+- **#3 CODE** — fine-tuned result does not round-trip into a /api/models object with populated
+  Built-from lineage (trainingRunId/datasetVersion).
+- **#4/#5 OPS** — GPU path not wired (chemprop_train.nf is process_low/CPU); ECR
+  ml-training/trl-training :latest images push status unverified (`aws ecr describe-images`).
+- **#7 CODE (hygiene)** — two latent `parents[5]/data` fallbacks (training_job.py ~:49,
+  models_inference.py ~:638) — same bug class as the resolved EPERM; shadowed by overrides
+  today. Migrate to `_data_root.data_root()`. [STATUS: DEFERRED — hygiene only, shadowed by env overrides, not demo-blocking; FT demo is ops-gated on #1 regardless]
+
+NOTE: FT demo is OPS-gated (#1) regardless of UI work — building the launch UI is only useful
+once the flag is confirmed on dev. So do the safe hygiene fix (#7) now; defer the UI build
+(#2/#3) until #1 is confirmed, to avoid building against a dead route.
+
+---
+
+## Autonomous execution order (code fixes)
+1. [done] MAS G2 — default-expand citations.
+2. Loop #1 — autoloop default-on for autoloop-capable profiles.
+3. MAS G1 — per-sub-query parallel fan-out narration (investigate feasibility first).
+4. Loop #6 — demo harness fixture emails.
+5. FT #7 — data_root hygiene (test module import per pre-sync step 3).
+6. tsc + vitest gate → batch sync → live verify each demo flow on dev.
+
+## OPS checklist for the user (cannot do from this machine)
+- [ ] `ML_TRAINING_ROUTING=1` on biomate-galaxy-dev (+ restart) — unblocks fine-tune route.
+- [ ] `RUN_STATE_STORE=redis` confirmed on biomate-galaxy-dev — unblocks autoloop SSE.
+- [ ] ECR `ml-training:latest` + `trl-training:latest` pushed (`aws ecr describe-images`).
+- [ ] Run the demos on dev-public.biomate.ai (not localhost) so SSE delivers.
+
+
+## Verification results (live dev, 2026-10-29)
+- **Multi-agent search: ✅ VERIFIED PASS** on dev — parallel-source status line, cited
+  answer with [N], citations panel expanded by default (G2), real DOI + evidence boundary,
+  no workflow card. First answer ~54s.
+- **DBTL loop: blocked by a separate bug, now FIXED.** The ADMET terfenadine run died at
+  Nextflow launch (~17s) — `smiles_list` reached the pipeline as a bare SMILES, not a
+  JSON-array string, aborting the session at JSON parse. NOT redis/SSE. Fixed:
+  `_normalize_smiles_list_param` at the pre-launch chokepoint (commit). The autoloop
+  default-on fix (gap #1) remains UNVERIFIED e2e until the ADMET run can launch — re-run
+  PART B (terfenadine) after this backend deploy. run_id of the failed attempt:
+  60a3e843-0d44-4bb8-8445-e8fe44ec7aef.
+
+## Loop autoloop-trigger root cause (2026-10-29, after launch fix)
+Re-run under the launch fix: terfenadine ADMET now COMPLETES (run 486bb38d, 159s, 2
+processes) — but produced `qc_gates: []` / `qc_report: null`, so no HALT gate → the
+autoloop had no trigger (autoloop-default-on fix still unexercised, not disproven).
+
+Root cause chain (code-confirmed, read-only):
+- `qc_evidence.yaml:123` — **admet_standard HALTS at hERG IC50 ≤ 10 µM**. Terfenadine
+  IC50 ≈ 0.01 µM → should HALT.
+- `qc_trace_monitor.py:1090 infer_qc_profile()` auto-binds **admet_standard** for any
+  path containing "admet" (line 1107-1108), and the comment there explicitly notes
+  admet_standard is "the ONLY profile carrying the cardiotox (hERG) gate".
+- BUT the verify run explicitly requested a **"cipa/hERG" profile**, which overrode the
+  inference and produced no halt (loop-audit gap #7: "a request for admet_standard ran
+  under a different profile"). → the halt the config promises never fired.
+
+Decisive experiment (in flight): re-run terfenadine under **admet_standard** (no "cipa"
+override). Expected: hERG HALT fires → autoloop (admet_standard is autoloop:true) auto-
+remediates without a manual toggle → the autoloop-default-on fix is finally exercised.
+If admet_standard STILL yields `qc_gates: []`, the gate evaluation isn't wired for this
+ADMET execution path (deeper) — trace qc_trace_monitor wiring in the Node→Galaxy execute.
+
+### Demo-path recommendation
+- **ADMET loop**: works once the demo binds **admet_standard** (do NOT request "cipa").
+- **Docking loop (erlotinib/EGFR, demo-05)**: the loop audit called this "the tightest
+  gate→remediate→rerun story" with a clear HALT (−5.2 vs −7.0) — likely the cleaner demo
+  path; verify it binds its halt gate too. Pick one as the canonical loop demo.
+
+## DEFINITIVE loop finding (2026-10-29, admet_standard run 82c1245a)
+Re-run under **admet_standard** (no "cipa"): produced **qc_gates=2 blocking** — hERG
+IC50 0.01<1.0 µM FAIL + DILI high FAIL (GOLD rationale). So:
+- The QC gate EVALUATION is correctly wired; the earlier `qc_gates:[]` was caused by the
+  demo goal forcing the **"cipa" profile**, which overrode inference. FIX FOR DEMO: don't
+  name cipa — let inference bind admet_standard (or pick it in the panel).
+- **Autoloop still does NOT engage**, two independent downstream causes:
+  (a) **Delivery**: the blocking gate lands in the completed run record, NOT as a live
+      mid-run `qc_gate_triggered` halt SSE event — ADMET is single-phase and finishes in
+      the same step, so the client-side autoloop (which only triggers on a live event)
+      never fires. Levers: confirm RUN_STATE_STORE=redis on dev AND/OR make the ADMET
+      executor emit a mid-run halt event (not only at completion).
+  (b) **Actionability**: terfenadine hERG/DILI are REGULATORY, non-tunable failures →
+      they route to the regulatory-action card ("structural optimisation required"), NOT
+      the was→now tunable-param auto-remediate+rerun path. A tunable gate is required to
+      demo auto-rerun.
+
+### FINAL demo-path recommendation for the loop
+Use the **DOCKING loop (erlotinib/EGFR, demo-05)**: its halt is a TUNABLE param
+(exhaustiveness 4→16, box 20→25 Å) → the was→now remediation + auto-rerun path the
+autoloop-default-on fix targets. ADMET is the wrong vehicle for the *auto-remediation*
+loop (its safety gates are non-tunable regulatory halts) — though it's an excellent
+"gate fires, blocks progression" safety story on its own.
+Open item before the docking loop demo: verify docking ALSO surfaces its halt as a LIVE
+mid-run event (the delivery gap (a) may be general to single-phase workflows) — i.e.
+confirm RUN_STATE_STORE=redis and that the executor emits a live qc_gate_triggered.
+
+### Autoloop-default-on fix (commit 3a7464d4) status
+Shipped + deployed; UNVERIFIED end-to-end because no live TUNABLE halt gate has yet
+fired on dev to trigger it. Verify via the docking loop once (a) is confirmed.
+
+## UPDATE 2026-10-29 (late) — chained-loop demos: dev-state blocker + peptide routing UNRESOLVED
+The "loop" use case = the LONG CHAINED multi-step DBTL demo (not the QC auto-loop).
+
+**Small-molecule chain (demo-01: ADMET→docking→ranking):** structurally works — ADMET runs
+COMPLETED earlier today (06:06–06:54 UTC, AWS Batch succeeded). But a full re-run now FAILS
+at workflow generation: the fixture user's per-user Galaxy API key is invalid/rotated on dev
+→ `POST /api/ai_assistant/generate_workflow` → `401001 "Provided API key is not valid"`
+(reproduced for ADMET AND RNA-seq → not query-specific; generate_workflow uses the user's
+Galaxy key with no admin fallback, routes.ts:7020). **This is a dev-state regression, not a
+code bug, and it blocks BOTH demos' chat/UI path.** OPS: re-provision the fixture
+(lifeifei163361@163.com) Galaxy api_keys row.
+
+**Peptide chain (cyclic_peptide_design):** the 5-phase design loop workflow exists + ranks #1
+(score 114) but the router selects the lower-scored cyclic_peptide_cofold (44) as PRIMARY.
+NOT YET FIXED. Two backend edits were made chasing it, NEITHER verified to affect the live path:
+ - `_find_nf_file` path-doubling (lib/galaxy/ai/ai_assistant.py): a GENUINE bug (a filename
+   stored WITH the biomate-ai-tools/ prefix doubled to .../modules/biomate-ai-tools/biomate-ai-tools/...
+   → None resolution). Worth keeping (fixes param-extraction/execution resolution for prefixed
+   biomate-ai-tools workflows) — but does NOT change primary selection.
+ - runnable-bypass in `search_nextflow_workflow` (webapps ai_assistant.py:2549): adds a
+   biomate-ai-tools/ runnable bypass. Correct in intent (these ARE Batch-runnable) BUT that
+   function is a DIFFERENT path than the live `generate_workflow_unified` (:3914) → the MCP/chat
+   route is unaffected. Likely dead for this symptom (harmless; keep or revert).
+Re-query via MCP search_workflow still selects cofold after both edits.
+
+**Real next step (needs a proper trace + repro, NOT more blind edits):** the live primary
+selection is `generate_workflow_unified` (:3914) → `UnifiedWorkflowSearch` (unified_workflow_search.py).
+Trace where IT picks the primary from candidates and why cyclic_peptide_design (biomate-ai-tools/,
+score 114) is dropped vs cyclic_peptide_cofold (nextflow_nfcore/subworkflows/, 44). Confirm the
+dev backend actually reloads Python changes (healthy-sync-can-leave-backend-stale caveat). Then
+fix at that path and re-verify. Also restore the fixture Galaxy key so the chat demo is testable.
+
+**Side issues (flag, not fixed):** (1) when generation 401s, the error narration CONFABULATES
+specific causes + emits contradictory "likely reasons" (routes.ts:6647) — should state the true
+single Galaxy 401. (2) A prior ADMET run reported "completed for 1 compound" on a 5-compound
+query — possible multi-compound handling bug; recheck once generation is restored.
+
+## VERIFIED on dev via a FRESH user (2026-10-29) — 401 sidestepped
+Registered demo-verify-<ts>@example.com → galaxyUserId:22, valid Galaxy key, NO 401.
+Provisioning is healthy for new users; the 401 was only the old fixture's rotated key.
+
+- **PEPTIDE routing: VERIFIED CORRECT ✅** — chat path (generate_workflow_unified) routes the
+  IL-17A peptide-design query to **cyclic_peptide_design** (5-phase chained design loop,
+  confidence 146), NOT cofold. The chat path (the demo path) was always selecting the top
+  candidate; the cofold misroute was specific to the MCP search_workflow ranked-search path.
+  My routing edits are verified live on the chat path for a fresh user. (5-phase run not
+  executed — routing was the deliverable.)
+- **SMALL-MOLECULE chain (demo-01):**
+  - Turn 1 ADMET: correct card + **COMPLETED (exit 0)**; smiles_list launch fix CONFIRMED (all
+    5 SMILES populated). run 7580ee98. Minor gap: registeredOutputCount=0 despite S3 outputs
+    (meetsContract=false) — a run-manager OUTPUTS-REGISTRATION bug (not launch/compute).
+  - Turn 2 Docking: correct card (docking_autodock_vina) + launched + reached process, but
+    **process FAILED** — receptor_pdb_file was the placeholder 'mock_receptor.pdb' and box
+    defaulted to [0,0,0]. PDB 1IEP in the query is never fetched into a real receptor. run d055fb64.
+  - Turn 3 ranking: mild misroute back to predict_admet_properties (should be a ranking/no-wf
+    analysis).
+
+## Remaining real bugs (ranked) — small-molecule chain
+1. **Docking receptor provisioning (FEATURE-sized)** — a PDB ID ("1IEP") in the query is not
+   materialized into receptor_pdb_file. docking .nf defaults it to '' → "no receptor" → fail.
+   Pieces exist but unwired: RCSB fetch (ai_assistant.py:6128), .pdb→receptor_pdb mapping (:3243).
+   Fix = extract PDB id → fetch from RCSB → stage to S3 → set receptor_pdb_file. Needed for the
+   docking step of the SM-chain demo (or the demo supplies a receptor file / uses a pre-staged one).
+2. **ADMET outputs-registration gap** — registeredOutputCount=0 / meetsContract=false though S3
+   outputs exist + downloadable. Findings/outputs may not surface. Run-manager registration path.
+3. **Turn-3 ranking misroute** — synthesis/ranking turn routes to predict_admet_properties.
+
+## Net demo status
+- Peptide chained loop: routing ✅ verified (chat path). Full 5-phase run = next (heavy).
+- Small-molecule chain: ADMET ✅; docking blocked on receptor provisioning (#1); ranking misroute (#3).
+- Multi-agent search ✅; dataset panel ✅; fine-tuning ops-blocked (ML_TRAINING_ROUTING).
+- Fresh-user strategy is the way to run demos until the fixture key is restored.
+
+## 2026-10-29 PM — three fixes INTEGRATED + synced + verified on dev
+
+Central integration of three worktree-isolated commits (cherry-picked onto the branch,
+all additive conflicts resolved by combining both sides — never dropping concurrent-session
+work). Single pre-sync gate: `tsc` 0 errors, `vitest` 1951 passed / 0 failed, py_compile OK,
+`test_nextflow_executor_docking_params.py` 7/7. One `sync_to_dev.sh` (result=healthy, built-in
+smoke passed). Deploy landed confirmed via SSM grep of the running containers.
+
+1. **Docking param-provisioning class CLOSED** (`229f745d2`). Bug #1 above is FIXED at the
+   root: a single executor chokepoint `_normalize_docking_params(params)` (runs for every launch,
+   no-op off-docking) does — box_center/box_size → JSON numeric vectors (scalar box_size → cube),
+   smiles_list compound NAMES → SMILES via the shared PubChem resolver (hard 422 if unresolvable,
+   so docking never runs on garbage). Receptor PDB id now flows end-to-end: the accession chain
+   SKIPS host-prefetch on Batch for a structure-native workflow (`_workflow_fetches_structure_natively`,
+   already in HEAD) → the bare id "1IEP" reaches the docking `.nf`, which self-fetches it from
+   `files.rcsb.org`. Guarded by a hard test (7 cases). Verified DEPLOYED (SSM grep of
+   `/app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py` in `biomate-galaxy-dev`). NOT launched
+   on Batch — that would be a ~$1.50/35-min speculative run; logic is unit-proven + code-landed.
+   (Supersedes "Remaining real bug #1".)
+2. **`search_workflows` chat tool** (`a238f66d3`) — the catalog is now reachable on ANY turn, not
+   only inside workflow_generation. VERIFIED LIVE on dev (fixture login): asked "does your catalog
+   include a Sarek somatic variant-calling pipeline?" → model called `search_workflows`
+   {query:"Sarek somatic variant calling", domain:"variant_calling"} → got 10 REAL ranked entries,
+   #1 `nf-core/sarek`; state stayed `chat_only` (no spurious generation). Also removed the DEAD
+   `<compound_lookup_results>` prompt channel (was referenced 4× but never populated → hallucination
+   risk). Closes the "capability awareness = COUNTS ONLY" world-model gap.
+3. **`request_new_tool` — gated on-demand GitHub tool discovery** (`4817c235b`). Wires the existing
+   `auto_update/` ingest pipeline (`auto_update/scripts/request_single_tool.py`) to chat via a
+   single gate `server/tool-discovery.ts`. Default OFF (`BIOMATE_TOOL_DISCOVERY_ENABLED`) + explicit
+   user confirm required. VERIFIED LIVE: asked to fetch `nanoporetech/readfish` → model called
+   `request_new_tool`(confirm:false) → returned `{"status":"disabled", "...No external tool was
+   fetched..."}`, duration_ms:0 (no GitHub call). Operator can enable on dev by setting the env flag
+   + co-locating `auto_update/` next to the Node server.
+
+**Ops still outstanding (unchanged):** restore fixture Galaxy key (401 on generate_workflow →
+use a fresh registered user meanwhile); `ML_TRAINING_ROUTING=1` for fine-tuning; confirm
+`RUN_STATE_STORE=redis`; `BIOMATE_TOOL_DISCOVERY_ENABLED=true` only if the tool-discovery demo is
+wanted.

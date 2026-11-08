@@ -1,0 +1,154 @@
+{
+  "target": "PD-L1",
+  "modality": "blockade (PD-1/PD-L1 PPI block)",
+  "generation": "G1",
+  "status": "PRE-DOCKING design candidates - require docking + PD-1/PD-L1 competition assay before validated-binder claim",
+  "design": "amphipathic head-to-tail macrocycle, 11-13 aa, aromatic/hydrophobic face for PD-1 cleft, 1 D-Pro turn + 1 N-methyl for rigidity/stability, NO chelator handle, liability-filtered",
+  "new_candidates": [
+    {
+      "helm": "cyclo(V-N-[2Nal]-K-W-R-[2Nal]-[NMeF]-N-[dP]-[2Nal]-T)",
+      "len": 12,
+      "aromatic": 5,
+      "hydrophobic": 6,
+      "polar": 5,
+      "balance": 0.92,
+      "net_charge": 2.0,
+      "liabilities": "none",
+      "id": "PDL1-G1-01"
+    },
+    {
+      "helm": "cyclo(L-[dP]-R-Y-E-F-N-V-R-[2Nal]-[NMeF]-Q)",
+      "len": 12,
+      "aromatic": 4,
+      "hydrophobic": 6,
+      "polar": 5,
+      "balance": 0.92,
+      "net_charge": 1.0,
+      "liabilities": "none",
+      "id": "PDL1-G1-02"
+    },
+    {
+      "helm": "cyclo(V-Q-Y-D-L-R-[2Nal]-[NMeW]-D-V-[dP]-H-[2Nal])",
+      "len": 13,
+      "aromatic": 4,
+      "hydrophobic": 7,
+      "polar": 5,
+      "balance": 0.85,
+      "net_charge": -0.5,
+      "liabilities": "none",
+      "id": "PDL1-G1-03"
+    },
+    {
+      "helm": "cyclo(W-H-L-R-[2Nal]-[dP]-S-V-E-[NMeI]-[2Nal]-Q-Y)",
+      "len": 13,
+      "aromatic": 4,
+      "hydrophobic": 7,
+      "polar": 5,
+      "balance": 0.85,
+      "net_charge": 0.5,
+      "liabilities": "none",
+      "id": "PDL1-G1-04"
+    },
+    {
+      "helm": "cyclo([2Nal]-Q-F-H-[dP]-F-E-V-[NMeL]-S-Y)",
+      "len": 11,
+      "aromatic": 4,
+      "hydrophobic": 6,
+      "polar": 4,
+      "balance": 0.82,
+      "net_charge": -0.5,
+      "liabilities": "none",
+      "id": "PDL1-G1-05"
+    },
+    {
+      "helm": "cyclo(Y-S-[NMeW]-F-D-I-[dP]-T-W-H-L)",
+      "len": 11,
+      "aromatic": 4,
+      "hydrophobic": 6,
+      "polar": 4,
+      "balance": 0.82,
+      "net_charge": -0.5,
+      "liabilities": "none",
+      "id": "PDL1-G1-06"
+    },
+    {
+      "helm": "cyclo([NMeF]-L-Q-I-D-L-T-L-S-[2Nal]-[dP]-Q-[2Nal])",
+      "len": 13,
+      "aromatic": 3,
+      "hydrophobic": 7,
+      "polar": 5,
+      "balance": 0.85,
+      "net_charge": -1.0,
+      "liabilities": "none",
+      "id": "PDL1-G1-07"
+    },
+    {
+      "helm": "cyclo(V-K-[NMeF]-[dP]-F-Q-I-N-Y-H-L)",
+      "len": 11,
+      "aromatic": 3,
+      "hydrophobic": 6,
+      "polar": 4,
+      "balance": 0.82,
+      "net_charge": 1.5,
+      "liabilities": "none",
+      "id": "PDL1-G1-08"
+    },
+    {
+      "helm": "cyclo(V-K-W-[NMeI]-N-I-D-I-E-Y-[dP]-Q)",
+      "len": 12,
+      "aromatic": 2,
+      "hydrophobic": 6,
+      "polar": 5,
+      "balance": 0.92,
+      "net_charge": -1.0,
+      "liabilities": "none",
+      "id": "PDL1-G1-09"
+    },
+    {
+      "helm": "cyclo(I-H-[2Nal]-T-I-[dP]-R-[2Nal]-[NMeI]-T-L)",
+      "len": 11,
+      "aromatic": 2,
+      "hydrophobic": 6,
+      "polar": 4,
+      "balance": 0.82,
+      "net_charge": 1.5,
+      "liabilities": "none",
+      "id": "PDL1-G1-10"
+    }
+  ],
+  "prior_round3": [
+    {
+      "id": "PDL1-K-01",
+      "helm": "cyclo(F-W-L-[dP]-Y-S-[NMeF]-D-T-K)",
+      "len": 10,
+      "aromatic": 4,
+      "hydrophobic": 5,
+      "polar": 4,
+      "balance": 0.9,
+      "net_charge": 0.0,
+      "liabilities": "none"
+    },
+    {
+      "id": "PDL1-K-02",
+      "helm": "cyclo(W-[Nle]-F-[dP]-I-[NMeL]-S-E-K-G)",
+      "len": 10,
+      "aromatic": 2,
+      "hydrophobic": 4,
+      "polar": 3,
+      "balance": 0.9,
+      "net_charge": 0.0,
+      "liabilities": "none"
+    },
+    {
+      "id": "PDL1-K-05",
+      "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G)",
+      "len": 12,
+      "aromatic": 3,
+      "hydrophobic": 5,
+      "polar": 5,
+      "balance": 1.0,
+      "net_charge": 0.0,
+      "liabilities": "none"
+    }
+  ]
+}

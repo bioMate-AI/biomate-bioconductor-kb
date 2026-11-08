@@ -50,7 +50,7 @@ with open("analyze_radiolabeled_antibody_biodistribution_results.json", "w") as 
 # Create human-readable output
 NL = chr(10)
 with open("analyze_radiolabeled_antibody_biodistribution_output.txt", "w") as f:
-    f.write("Biomni: Analyze Radiolabeled Antibody Biodistribution Results" + NL)
+    f.write("BioMate: Analyze Radiolabeled Antibody Biodistribution Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

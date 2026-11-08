@@ -1,0 +1,41 @@
+[
+  {
+    "model": "anthropic/claude-opus-5",
+    "bare_n": 32,
+    "bare_decision_acc": 0.969,
+    "bare_over_clarify": 0.0,
+    "bare_under_clarify": 0.062,
+    "bare_outcome": 0.969,
+    "harness_n": 32,
+    "harness_decision_acc": 0.969,
+    "harness_over_clarify": 0.0,
+    "harness_under_clarify": 0.062,
+    "harness_outcome": 0.938
+  },
+  {
+    "model": "openai/gpt-6.1-sol-pro",
+    "bare_n": 32,
+    "bare_decision_acc": 0.969,
+    "bare_over_clarify": 0.062,
+    "bare_under_clarify": 0.0,
+    "bare_outcome": 0.906,
+    "harness_n": 32,
+    "harness_decision_acc": 0.969,
+    "harness_over_clarify": 0.062,
+    "harness_under_clarify": 0.0,
+    "harness_outcome": 0.969
+  },
+  {
+    "model": "anthropic/claude-opus-5.5",
+    "bare_n": 32,
+    "bare_decision_acc": 0.938,
+    "bare_over_clarify": 0.0,
+    "bare_under_clarify": 0.125,
+    "bare_outcome": 0.938,
+    "harness_n": 32,
+    "harness_decision_acc": 0.938,
+    "harness_over_clarify": 0.062,
+    "harness_under_clarify": 0.062,
+    "harness_outcome": 0.938
+  }
+]

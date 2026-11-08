@@ -1,0 +1,172 @@
+{
+  "run": "full_concept_recovery2_20261003",
+  "scope": "Downloaded adapter tensor integrity and merged-base header compatibility; not full model inference or optimizer resume",
+  "base": {
+    "tensor_count": 398,
+    "file_bytes": 8044982080,
+    "contiguous_offsets_valid": true
+  },
+  "stages": {
+    "midtrain": {
+      "global_step": 50,
+      "sha256": "24373b5fc4a094cff8617a95785b964371ba16c0c48a829823ce3c6af032feca",
+      "final_equals_step_checkpoint": true,
+      "tensor_count": 504,
+      "all_tensors_finite": true,
+      "nonzero_lora_B_tensors": 252,
+      "all_adapter_shapes_match_base": true,
+      "first_logged_loss": 2.2983705520629885,
+      "last_logged_loss": 2.008782958984375,
+      "finite_positive_logged_gradients": true
+    },
+    "sft": {
+      "global_step": 10,
+      "sha256": "d88e804dbd5165406fc7a0200789a3ee3b213160f20f5e8394fccdf3c255cf2d",
+      "final_equals_step_checkpoint": true,
+      "tensor_count": 504,
+      "all_tensors_finite": true,
+      "nonzero_lora_B_tensors": 252,
+      "all_adapter_shapes_match_base": true,
+      "first_logged_loss": 3.652310371398926,
+      "last_logged_loss": 1.6258209943771362,
+      "finite_positive_logged_gradients": true
+    }
+  },
+  "adapter_integrity_passed": true,
+  "checked_at_utc": "2026-10-03T19:49:17.645375+00:00",
+  "limitations": [
+    "Merged base checked by header and S3 object length only; full base tensor read and forward inference pending.",
+    "Training loss is not held-out quality evidence."
+  ],
+  "optimizer_verification": {
+    "run_id": "full_concept_recovery2_20261003",
+    "load_mode": "torch.load(weights_only=True, map_location=cpu)",
+    "stages": {
+      "midtrain": {
+        "expected_updates": 50,
+        "parameter_states": 504,
+        "optimizer_step_counts": {
+          "50.0": 504
+        },
+        "optimizer_tensor_count": 3024,
+        "optimizer_tensor_elements": 66576384,
+        "nonfinite_tensor_paths": [],
+        "optimizer_format": "bitsandbytes quantized state",
+        "moment_tensors": 1008,
+        "nonzero_moment_tensors": 1008,
+        "scheduler_state": {
+          "base_lrs": [
+            0.0001,
+            0.0001
+          ],
+          "last_epoch": 50,
+          "_step_count": 51,
+          "_is_initial": false,
+          "_get_lr_called_within_step": false,
+          "_last_lr": [
+            0.0,
+            0.0
+          ],
+          "lr_lambdas": [
+            {},
+            {}
+          ]
+        },
+        "optimizer_group_lrs": [
+          0.0,
+          0.0
+        ],
+        "sha256": {
+          "optimizer.pt": "a8c509d56eef3cbee1032df8821d9cc4381578b4d8040065fec91795ace1e7bf",
+          "scheduler.pt": "6c183a536171711b370089428c364b2fc139ad1b39e0a15abf47a1eb168d1f00"
+        },
+        "scale_tensors": 1008,
+        "checks": {
+          "optimizer_states_present": true,
+          "all_optimizer_tensors_finite": true,
+          "all_optimizer_steps_match": true,
+          "all_quantized_moment_tensors_nonzero": true,
+          "all_scales_positive_finite": true,
+          "scheduler_last_epoch_matches": true,
+          "scheduler_step_count_matches": true
+        },
+        "passed": true
+      },
+      "sft": {
+        "expected_updates": 10,
+        "parameter_states": 504,
+        "optimizer_step_counts": {
+          "10.0": 504
+        },
+        "optimizer_tensor_count": 3024,
+        "optimizer_tensor_elements": 66576384,
+        "nonfinite_tensor_paths": [],
+        "optimizer_format": "bitsandbytes quantized state",
+        "moment_tensors": 1008,
+        "nonzero_moment_tensors": 1008,
+        "scheduler_state": {
+          "base_lrs": [
+            0.0002,
+            0.0002
+          ],
+          "last_epoch": 10,
+          "_step_count": 11,
+          "_is_initial": false,
+          "_get_lr_called_within_step": false,
+          "_last_lr": [
+            0.0,
+            0.0
+          ],
+          "lr_lambdas": [
+            {},
+            {}
+          ]
+        },
+        "optimizer_group_lrs": [
+          0.0,
+          0.0
+        ],
+        "sha256": {
+          "optimizer.pt": "ff556edbc16d7ade7f42c20a48ed359893565847363bbc50f6dde6cb0a9d1e33",
+          "scheduler.pt": "efcb4241b4c75d4574a10b26eba085123f4f14c3134fa80efa870cdecb289b7f"
+        },
+        "scale_tensors": 1008,
+        "checks": {
+          "optimizer_states_present": true,
+          "all_optimizer_tensors_finite": true,
+          "all_optimizer_steps_match": true,
+          "all_quantized_moment_tensors_nonzero": true,
+          "all_scales_positive_finite": true,
+          "scheduler_last_epoch_matches": true,
+          "scheduler_step_count_matches": true
+        },
+        "passed": true
+      }
+    },
+    "passed": true
+  },
+  "initial_gpu_attempt": {
+    "scope": "S3 restore and synthetic-prompt numerical validation; not scientific quality evaluation",
+    "checks": {
+      "cuda_available": true
+    },
+    "started": 1791057326.866201,
+    "complete": false,
+    "error": "AttributeError(\"module 'hashlib' has no attribute 'file_digest'\")",
+    "finished": 1791057327.3049624
+  },
+  "separate_9b_snapshot": {
+    "run": "full_today_20261003",
+    "instance": "i-0e80fb51b235fff89",
+    "model": "Qwen/Qwen3.5-9B",
+    "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+    "log_uploaded_utc": "2026-10-03T19:59:07Z",
+    "latest_logged_step": 214,
+    "durable_checkpoint_step": 200,
+    "target_cpt_steps": 300,
+    "checkpoint_loss": 1.7355066,
+    "checkpoint_grad_norm": 0.236752,
+    "scope": "S3 log, object listing and trainer-state inspection only; tensor integrity and full restoration not checked",
+    "completed_cpt_or_sft_artifacts_found": false
+  }
+}

@@ -582,7 +582,7 @@ test.describe.serial("conference-project-collab", () => {
       await shot(page, "CC6_02_runs_list");
       await runRow.click();
       await pause(page, 1_500);
-      const viewer = page.locator('[data-testid="nextflow-workflow-viewer"]');
+      const viewer = page.locator('[data-testid="workflow-artifact-panel"]');
       if (await viewer.isVisible({ timeout: 8_000 }).catch(() => false)) {
         await shot(page, "CC6_03_viewer_from_runs_tab");
         console.log("[CC6] ✅ run entry opens viewer");

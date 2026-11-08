@@ -1,0 +1,13 @@
+{
+  "train_rows": 534,
+  "test_rows": 300,
+  "train_source_units": 43,
+  "test_source_units": 69,
+  "source_unit_overlap": [],
+  "source_unit_overlap_count": 0,
+  "capability_combo_overlap_count": 0,
+  "capability_combo_overlap": [],
+  "tool_id_overlap_count": 711,
+  "tool_id_overlap_note": "EXPECTED > 0 \u2014 both draw one catalog; structure/combo is the held-out axis, not tool vocabulary (see README).",
+  "zero_source_overlap": true
+}

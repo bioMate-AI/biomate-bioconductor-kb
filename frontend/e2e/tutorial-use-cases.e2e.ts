@@ -218,7 +218,7 @@ test('Tutorial workflow routing — all 7 domain scenarios', async () => {
 
     // Also grab the panel if it's open
     const panelVisible = await sharedPage
-      .locator('[data-testid="nextflow-workflow-viewer"]')
+      .locator('[data-testid="workflow-artifact-panel"]')
       .isVisible({ timeout: 2_000 }).catch(() => false);
     if (panelVisible) {
       await shot(sharedPage, 'tutorial-cases', `${tc.id}_${tc.domain}_panel`);

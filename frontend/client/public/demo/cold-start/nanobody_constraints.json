@@ -1,0 +1,9 @@
+{
+  "pdb": "6Z43",
+  "target_author_chain": "A",
+  "nanobody_author_chain": "X",
+  "human_framework_source": "1HZH.fasta, human IgG b12 heavy chain; variable domain framework after IMGT numbering",
+  "numbering": "Annotate donor and human framework with IMGT numbering before CDR grafting. Preserve donor CDRs; do not invent boundaries.",
+  "epitope": "Spike residues within 5 angstrom of nanobody chain X in 6Z43",
+  "candidate_status": "Unmeasured substitutions only within N-terminal framework; not trained or assayed antibodies"
+}

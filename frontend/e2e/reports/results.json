@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/Users/kky/biomate/frontend/playwright.config.ts",
-    "rootDir": "/Users/kky/biomate/frontend/e2e",
+    "configFile": "/Users/kky/biomate-review/frontend/playwright.config.ts",
+    "rootDir": "/Users/kky/biomate-review/frontend/e2e",
     "forbidOnly": false,
     "fullyParallel": false,
     "globalSetup": null,
@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 2
+      "actualWorkers": 1
     },
     "preserveOutput": "always",
     "reporter": [
@@ -39,15 +39,15 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/Users/kky/biomate/frontend/e2e/test-results",
+        "outputDir": "/Users/kky/biomate-review/frontend/e2e/test-results",
         "repeatEach": 1,
         "retries": 1,
         "metadata": {
-          "actualWorkers": 2
+          "actualWorkers": 1
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/Users/kky/biomate/frontend/e2e",
+        "testDir": "/Users/kky/biomate-review/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.e2e.ts"
@@ -55,15 +55,15 @@
         "timeout": 2700000
       },
       {
-        "outputDir": "/Users/kky/biomate/frontend/e2e/demo-artifacts",
+        "outputDir": "/Users/kky/biomate-review/frontend/e2e/demo-artifacts",
         "repeatEach": 1,
         "retries": 1,
         "metadata": {
-          "actualWorkers": 2
+          "actualWorkers": 1
         },
         "id": "demo",
         "name": "demo",
-        "testDir": "/Users/kky/biomate/frontend/e2e",
+        "testDir": "/Users/kky/biomate-review/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.demo.ts"
@@ -71,15 +71,15 @@
         "timeout": 2700000
       },
       {
-        "outputDir": "/Users/kky/biomate/frontend/e2e/test-results",
+        "outputDir": "/Users/kky/biomate-review/frontend/e2e/test-results",
         "repeatEach": 1,
         "retries": 1,
         "metadata": {
-          "actualWorkers": 2
+          "actualWorkers": 1
         },
         "id": "firefox",
         "name": "firefox",
-        "testDir": "/Users/kky/biomate/frontend/e2e",
+        "testDir": "/Users/kky/biomate-review/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.e2e.ts"
@@ -92,23 +92,23 @@
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
     "version": "1.57.0",
-    "workers": 2,
+    "workers": 1,
     "webServer": null
   },
   "suites": [
     {
-      "title": "routing-parallel-e2e.e2e.ts",
-      "file": "routing-parallel-e2e.e2e.ts",
+      "title": "project-file-chat-selection.e2e.ts",
+      "file": "project-file-chat-selection.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "routing-rna_007: \"nf-core/rnaseq\"",
+          "title": "chat can select two exact files from the active project",
           "ok": false,
           "tags": [],
           "tests": [
             {
-              "timeout": 600000,
+              "timeout": 2700000,
               "annotations": [],
               "expectedStatus": "passed",
               "projectId": "chromium",
@@ -118,788 +118,127 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "failed",
-                  "duration": 380104,
+                  "duration": 64879,
                   "error": {
-                    "message": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered an internal error while mapping the mouse GRCm38 reference genome parameters to the standard alignment and track-generation pipeline.\nClosest available option: nf-core/rnaseq — A comprehensive RNA-seq analysis pipeline that performs raw rea\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
-                    "stack": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered an internal error while mapping the mouse GRCm38 reference genome parameters to the standard alignment and track-generation pipeline.\nClosest available option: nf-core/rnaseq — A comprehensive RNA-seq analysis pipeline that performs raw rea\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7",
+                    "message": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n",
+                    "stack": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n\n    at /Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts:28:95",
                     "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                      "column": 7,
-                      "line": 343
+                      "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
+                      "column": 95,
+                      "line": 28
                     },
-                    "snippet": "  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |"
+                    "snippet": "  26 |   await page.getByRole('button', { name: 'Project files' }).click();\n  27 |   await expect(page.getByText('comparison-a.csv')).toBeVisible();\n> 28 |   await page.getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' }).click();\n     |                                                                                               ^\n  29 |   await browse.click();\n  30 |   await page.getByRole('button', { name: 'Project files' }).click();\n  31 |   await expect(page.getByText('comparison-b.csv')).toBeVisible();"
                   },
                   "errors": [
                     {
                       "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                        "column": 7,
-                        "line": 343
+                        "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
+                        "column": 95,
+                        "line": 28
                       },
-                      "message": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered an internal error while mapping the mouse GRCm38 reference genome parameters to the standard alignment and track-generation pipeline.\nClosest available option: nf-core/rnaseq — A comprehensive RNA-seq analysis pipeline that performs raw rea\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7"
+                      "message": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n\n\n  26 |   await page.getByRole('button', { name: 'Project files' }).click();\n  27 |   await expect(page.getByText('comparison-a.csv')).toBeVisible();\n> 28 |   await page.getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' }).click();\n     |                                                                                               ^\n  29 |   await browse.click();\n  30 |   await page.getByRole('button', { name: 'Project files' }).click();\n  31 |   await expect(page.getByText('comparison-b.csv')).toBeVisible();\n    at /Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts:28:95"
                     }
                   ],
-                  "stdout": [
-                    {
-                      "text": "[chat] → \"Generate BigWig coverage tracks from my RNA-seq experiment for genome browser vi\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T1 (815c): \"BioMateMissing: Input sequencing data\nTo generate BigWig coverage tracks from your RNA-seq experimen\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T2: answering clarification round 1\n"
-                    },
-                    {
-                      "text": "[chat] → \"s3://mybucket/rnaseq/sample1_R1.fastq.gz and s3://mybucket/rnaseq/sample1_R2.fas\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T2 reply: \"BioMateCould not generate workflow — The system encountered an internal error while mapping the mous\"\n"
-                    },
-                    {
-                      "text": "[rna_007] After T2 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T3: answering clarification round 2\n"
-                    },
-                    {
-                      "text": "[chat] → \"Please proceed with nf-core/rnaseq, genome GRCm38, paired-end mode.\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T3 reply: \"BioMateCould not generate workflow — The system encountered an internal error while mapping the mous\"\n"
-                    },
-                    {
-                      "text": "[rna_007] After T3 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[rna_007] ✗ FAIL — got=\"\" expected=\"nf-core/rnaseq\"\n"
-                    }
-                  ],
+                  "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-07-21T04:17:19.094Z",
+                  "startTime": "2026-09-12T20:04:49.779Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "screenshot",
                       "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--chromium/test-failed-1.png"
+                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium/test-failed-1.png"
                     },
                     {
                       "name": "error-context",
                       "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--chromium/error-context.md"
+                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium/error-context.md"
                     },
                     {
                       "name": "trace",
                       "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--chromium/trace.zip"
+                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium/trace.zip"
                     }
                   ],
                   "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                    "column": 7,
-                    "line": 343
+                    "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
+                    "column": 95,
+                    "line": 28
                   }
                 },
-                {
-                  "workerIndex": 2,
-                  "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 373828,
-                  "error": {
-                    "message": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered an internal error while compiling the specific nf-core/rnaseq pipeline configuration for GRCm38.\nClosest available option: nf-core/rnaseq — A standard RNA-seq analysis pipeline that performs quality control, STAR alignment, and automaticall\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
-                    "stack": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered an internal error while compiling the specific nf-core/rnaseq pipeline configuration for GRCm38.\nClosest available option: nf-core/rnaseq — A standard RNA-seq analysis pipeline that performs quality control, STAR alignment, and automaticall\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7",
-                    "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                      "column": 7,
-                      "line": 343
-                    },
-                    "snippet": "  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                        "column": 7,
-                        "line": 343
-                      },
-                      "message": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered an internal error while compiling the specific nf-core/rnaseq pipeline configuration for GRCm38.\nClosest available option: nf-core/rnaseq — A standard RNA-seq analysis pipeline that performs quality control, STAR alignment, and automaticall\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7"
-                    },
-                    {
-                      "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-2/traces/579d5317c4209c592595-1b451049dd9f6da3a469-retry1.trace'"
-                    },
-                    {
-                      "message": "Error: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-2/c57fbe26a89da6e8cdad92f50512454c.zip'"
-                    },
-                    {
-                      "message": "\u001b[31mTest timeout of 2700000ms exceeded.\u001b[39m"
-                    }
-                  ],
-                  "stdout": [
-                    {
-                      "text": "[chat] → \"Generate BigWig coverage tracks from my RNA-seq experiment for genome browser vi\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T1 (796c): \"BioMateMissing: Input RNA-seq data\nTo generate BigWig coverage tracks, I need your sequencing data. \"\n"
-                    },
-                    {
-                      "text": "[rna_007] T2: answering clarification round 1\n"
-                    },
-                    {
-                      "text": "[chat] → \"s3://mybucket/rnaseq/sample1_R1.fastq.gz and s3://mybucket/rnaseq/sample1_R2.fas\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T2 reply: \"BioMateCould not generate workflow — The system encountered an internal error while compiling the sp\"\n"
-                    },
-                    {
-                      "text": "[rna_007] After T2 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T3: answering clarification round 2\n"
-                    },
-                    {
-                      "text": "[chat] → \"Please proceed with nf-core/rnaseq, genome GRCm38, paired-end mode.\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T3 reply: \"BioMateCould not generate workflow — The system encountered an internal error while compiling the sp\"\n"
-                    },
-                    {
-                      "text": "[rna_007] After T3 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[rna_007] ✗ FAIL — got=\"\" expected=\"nf-core/rnaseq\"\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 1,
-                  "startTime": "2026-07-21T04:23:45.720Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--chromium-retry1/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--chromium-retry1/error-context.md"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                    "column": 7,
-                    "line": 343
-                  }
-                }
-              ],
-              "status": "unexpected"
-            }
-          ],
-          "id": "579d5317c4209c592595-1b451049dd9f6da3a469",
-          "file": "routing-parallel-e2e.e2e.ts",
-          "line": 293,
-          "column": 3
-        },
-        {
-          "title": "routing-sc_003: \"nf-core/scrnaseq\"",
-          "ok": false,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 600000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
                 {
                   "workerIndex": 1,
-                  "parallelIndex": 1,
-                  "status": "failed",
-                  "duration": 380102,
-                  "error": {
-                    "message": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The Kallisto BUStools aligner option within the single-cell pipeline is currently unavailable due to a backend dependency conflict.\nClosest available option: scrnaseq_standard_endtoend (id 14435) — This pipeline runs the standard nf-core/scrnaseq workflow using S\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
-                    "stack": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The Kallisto BUStools aligner option within the single-cell pipeline is currently unavailable due to a backend dependency conflict.\nClosest available option: scrnaseq_standard_endtoend (id 14435) — This pipeline runs the standard nf-core/scrnaseq workflow using S\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7",
-                    "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                      "column": 7,
-                      "line": 343
-                    },
-                    "snippet": "  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                        "column": 7,
-                        "line": 343
-                      },
-                      "message": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The Kallisto BUStools aligner option within the single-cell pipeline is currently unavailable due to a backend dependency conflict.\nClosest available option: scrnaseq_standard_endtoend (id 14435) — This pipeline runs the standard nf-core/scrnaseq workflow using S\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7"
-                    }
-                  ],
-                  "stdout": [
-                    {
-                      "text": "[chat] → \"Run Kallisto BUStools pipeline on my droplet-based single-cell sequencing data\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T1 (978c): \"BioMateMissing: Input sequencing reads and technology specifications\nTo run the Kallisto BUStools pi\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T2: answering clarification round 1\n"
-                    },
-                    {
-                      "text": "[chat] → \"s3://mybucket/scrnaseq/sample_R1.fastq.gz and s3://mybucket/scrnaseq/sample_R2.f\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T2 reply: \"BioMateCould not generate workflow — The specific Kallisto BUStools pipeline is currently unavailabl\"\n"
-                    },
-                    {
-                      "text": "[sc_003] After T2 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T3: answering clarification round 2\n"
-                    },
-                    {
-                      "text": "[chat] → \"Use nf-core/scrnaseq with Kallisto BUStools aligner, 10x Chromium chemistry.\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T3 reply: \"BioMateCould not generate workflow — The Kallisto BUStools aligner option within the single-cell pip\"\n"
-                    },
-                    {
-                      "text": "[sc_003] After T3 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[sc_003] ✗ FAIL — got=\"\" expected=\"nf-core/scrnaseq\"\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-07-21T04:17:19.091Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--chromium/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--chromium/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--chromium/trace.zip"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                    "column": 7,
-                    "line": 343
-                  }
-                },
-                {
-                  "workerIndex": 3,
-                  "parallelIndex": 1,
-                  "status": "failed",
-                  "duration": 373816,
-                  "error": {
-                    "message": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMateMissing: Samplesheet CSV file\nTo run the nf-core/scrnaseq pipeline with the Kallisto BUStools aligner on your 10x Chromium v3 data, a samplesheet is required to map your FASTQ files to their respective sample IDs. Please provide a CSV samplesheet (e.g., containing columns for sample, fastq_1,\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
-                    "stack": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMateMissing: Samplesheet CSV file\nTo run the nf-core/scrnaseq pipeline with the Kallisto BUStools aligner on your 10x Chromium v3 data, a samplesheet is required to map your FASTQ files to their respective sample IDs. Please provide a CSV samplesheet (e.g., containing columns for sample, fastq_1,\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7",
-                    "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                      "column": 7,
-                      "line": 343
-                    },
-                    "snippet": "  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                        "column": 7,
-                        "line": 343
-                      },
-                      "message": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMateMissing: Samplesheet CSV file\nTo run the nf-core/scrnaseq pipeline with the Kallisto BUStools aligner on your 10x Chromium v3 data, a samplesheet is required to map your FASTQ files to their respective sample IDs. Please provide a CSV samplesheet (e.g., containing columns for sample, fastq_1,\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7"
-                    },
-                    {
-                      "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-3/traces/579d5317c4209c592595-b1ba394ef432e4c7d780-retry1.trace'"
-                    },
-                    {
-                      "message": "Error: ENOENT: no such file or directory, open '/Users/kky/biomate/frontend/e2e/test-results/.playwright-artifacts-3/e5f0128319d42167215d17b6c04ee507.zip'"
-                    },
-                    {
-                      "message": "\u001b[31mTest timeout of 2700000ms exceeded.\u001b[39m"
-                    }
-                  ],
-                  "stdout": [
-                    {
-                      "text": "[chat] → \"Run Kallisto BUStools pipeline on my droplet-based single-cell sequencing data\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T1 (980c): \"BioMateMissing: Input sequencing reads and technology specifications\nTo run the Kallisto BUStools pi\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T2: answering clarification round 1\n"
-                    },
-                    {
-                      "text": "[chat] → \"s3://mybucket/scrnaseq/sample_R1.fastq.gz and s3://mybucket/scrnaseq/sample_R2.f\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T2 reply: \"BioMateCould not generate workflow — The specific Kallisto BUStools pipeline is currently unavailabl\"\n"
-                    },
-                    {
-                      "text": "[sc_003] After T2 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T3: answering clarification round 2\n"
-                    },
-                    {
-                      "text": "[chat] → \"Use nf-core/scrnaseq with Kallisto BUStools aligner, 10x Chromium chemistry.\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T3 reply: \"BioMateMissing: Samplesheet CSV file\nTo run the nf-core/scrnaseq pipeline with the Kallisto BUStools\"\n"
-                    },
-                    {
-                      "text": "[sc_003] After T3 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[sc_003] ✗ FAIL — got=\"\" expected=\"nf-core/scrnaseq\"\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 1,
-                  "startTime": "2026-07-21T04:23:45.721Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--chromium-retry1/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--chromium-retry1/error-context.md"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                    "column": 7,
-                    "line": 343
-                  }
-                }
-              ],
-              "status": "unexpected"
-            }
-          ],
-          "id": "579d5317c4209c592595-b1ba394ef432e4c7d780",
-          "file": "routing-parallel-e2e.e2e.ts",
-          "line": 293,
-          "column": 3
-        },
-        {
-          "title": "routing-rna_007: \"nf-core/rnaseq\"",
-          "ok": false,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 600000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "firefox",
-              "projectName": "firefox",
-              "results": [
-                {
-                  "workerIndex": 4,
                   "parallelIndex": 0,
                   "status": "failed",
-                  "duration": 378075,
+                  "duration": 64503,
                   "error": {
-                    "message": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered an internal error while attempting to compile the specific nf-core/rnaseq pipeline configuration for GRCm38.\nClosest available option: nf-core/rnaseq (A comprehensive RNA-seq analysis pipeline that performs QC, alignment using STAR, and aut\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
-                    "stack": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered an internal error while attempting to compile the specific nf-core/rnaseq pipeline configuration for GRCm38.\nClosest available option: nf-core/rnaseq (A comprehensive RNA-seq analysis pipeline that performs QC, alignment using STAR, and aut\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7",
+                    "message": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n",
+                    "stack": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n\n    at /Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts:28:95",
                     "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                      "column": 7,
-                      "line": 343
+                      "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
+                      "column": 95,
+                      "line": 28
                     },
-                    "snippet": "  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |"
+                    "snippet": "  26 |   await page.getByRole('button', { name: 'Project files' }).click();\n  27 |   await expect(page.getByText('comparison-a.csv')).toBeVisible();\n> 28 |   await page.getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' }).click();\n     |                                                                                               ^\n  29 |   await browse.click();\n  30 |   await page.getByRole('button', { name: 'Project files' }).click();\n  31 |   await expect(page.getByText('comparison-b.csv')).toBeVisible();"
                   },
                   "errors": [
                     {
                       "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                        "column": 7,
-                        "line": 343
+                        "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
+                        "column": 95,
+                        "line": 28
                       },
-                      "message": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered an internal error while attempting to compile the specific nf-core/rnaseq pipeline configuration for GRCm38.\nClosest available option: nf-core/rnaseq (A comprehensive RNA-seq analysis pipeline that performs QC, alignment using STAR, and aut\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7"
+                      "message": "TimeoutError: locator.click: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' })\u001b[22m\n\n\n  26 |   await page.getByRole('button', { name: 'Project files' }).click();\n  27 |   await expect(page.getByText('comparison-a.csv')).toBeVisible();\n> 28 |   await page.getByText('comparison-a.csv').locator('..').getByRole('button', { name: 'Use' }).click();\n     |                                                                                               ^\n  29 |   await browse.click();\n  30 |   await page.getByRole('button', { name: 'Project files' }).click();\n  31 |   await expect(page.getByText('comparison-b.csv')).toBeVisible();\n    at /Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts:28:95"
                     }
                   ],
-                  "stdout": [
-                    {
-                      "text": "[chat] → \"Generate BigWig coverage tracks from my RNA-seq experiment for genome browser vi\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T1 (815c): \"BioMateMissing: Input sequencing data\nTo generate BigWig coverage tracks from your RNA-seq experimen\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T2: answering clarification round 1\n"
-                    },
-                    {
-                      "text": "[chat] → \"s3://mybucket/rnaseq/sample1_R1.fastq.gz and s3://mybucket/rnaseq/sample1_R2.fas\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T2 reply: \"BioMateCould not generate workflow — The system encountered an internal error while attempting to co\"\n"
-                    },
-                    {
-                      "text": "[rna_007] After T2 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T3: answering clarification round 2\n"
-                    },
-                    {
-                      "text": "[chat] → \"Please proceed with nf-core/rnaseq, genome GRCm38, paired-end mode.\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T3 reply: \"BioMateCould not generate workflow — The system encountered an internal error while attempting to co\"\n"
-                    },
-                    {
-                      "text": "[rna_007] After T3 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[rna_007] ✗ FAIL — got=\"\" expected=\"nf-core/rnaseq\"\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-07-21T05:15:03.422Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--firefox/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--firefox/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--firefox/trace.zip"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                    "column": 7,
-                    "line": 343
-                  }
-                },
-                {
-                  "workerIndex": 7,
-                  "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 380086,
-                  "error": {
-                    "message": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered a validation error while compiling the specific Nextflow configuration for this run.\nClosest available option: nf-core/rnaseq — This pipeline aligns your paired-end mouse reads to the GRCm38 genome using STAR and outputs normalized BigWig c\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
-                    "stack": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered a validation error while compiling the specific Nextflow configuration for this run.\nClosest available option: nf-core/rnaseq — This pipeline aligns your paired-end mouse reads to the GRCm38 genome using STAR and outputs normalized BigWig c\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7",
-                    "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                      "column": 7,
-                      "line": 343
-                    },
-                    "snippet": "  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                        "column": 7,
-                        "line": 343
-                      },
-                      "message": "Error: [rna_007] Expected \"nf-core/rnaseq\" but got \"\"\nLast reply: \"BioMateCould not generate workflow — The system encountered a validation error while compiling the specific Nextflow configuration for this run.\nClosest available option: nf-core/rnaseq — This pipeline aligns your paired-end mouse reads to the GRCm38 genome using STAR and outputs normalized BigWig c\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7"
-                    }
-                  ],
-                  "stdout": [
-                    {
-                      "text": "[chat] → \"Generate BigWig coverage tracks from my RNA-seq experiment for genome browser vi\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T1 (796c): \"BioMateMissing: Input RNA-seq data\nTo generate BigWig coverage tracks, I need your sequencing data. \"\n"
-                    },
-                    {
-                      "text": "[rna_007] T2: answering clarification round 1\n"
-                    },
-                    {
-                      "text": "[chat] → \"s3://mybucket/rnaseq/sample1_R1.fastq.gz and s3://mybucket/rnaseq/sample1_R2.fas\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T2 reply: \"BioMateCould not generate workflow — The exact end-to-end pipeline for direct FASTQ-to-BigWig genera\"\n"
-                    },
-                    {
-                      "text": "[rna_007] After T2 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T3: answering clarification round 2\n"
-                    },
-                    {
-                      "text": "[chat] → \"Please proceed with nf-core/rnaseq, genome GRCm38, paired-end mode.\"\n"
-                    },
-                    {
-                      "text": "[rna_007] T3 reply: \"BioMateCould not generate workflow — The system encountered a validation error while compiling the s\"\n"
-                    },
-                    {
-                      "text": "[rna_007] After T3 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[rna_007] ✗ FAIL — got=\"\" expected=\"nf-core/rnaseq\"\n"
-                    }
-                  ],
+                  "stdout": [],
                   "stderr": [],
                   "retry": 1,
-                  "startTime": "2026-07-21T05:21:28.410Z",
+                  "startTime": "2026-09-12T20:05:57.933Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "screenshot",
                       "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--firefox-retry1/test-failed-1.png"
+                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium-retry1/test-failed-1.png"
                     },
                     {
                       "name": "error-context",
                       "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--firefox-retry1/error-context.md"
+                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium-retry1/error-context.md"
                     },
                     {
                       "name": "trace",
                       "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-rna-007-nf-core-rnaseq--firefox-retry1/trace.zip"
+                      "path": "/Users/kky/biomate-review/frontend/e2e/test-results/project-file-chat-selectio-ee352-les-from-the-active-project-chromium-retry1/trace.zip"
                     }
                   ],
                   "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                    "column": 7,
-                    "line": 343
+                    "file": "/Users/kky/biomate-review/frontend/e2e/project-file-chat-selection.e2e.ts",
+                    "column": 95,
+                    "line": 28
                   }
                 }
               ],
               "status": "unexpected"
             }
           ],
-          "id": "579d5317c4209c592595-7f93d1879e7c2056c461",
-          "file": "routing-parallel-e2e.e2e.ts",
-          "line": 293,
-          "column": 3
-        },
-        {
-          "title": "routing-sc_003: \"nf-core/scrnaseq\"",
-          "ok": false,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 600000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "firefox",
-              "projectName": "firefox",
-              "results": [
-                {
-                  "workerIndex": 5,
-                  "parallelIndex": 1,
-                  "status": "failed",
-                  "duration": 378149,
-                  "error": {
-                    "message": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMatenf-core/scrnaseq (Kallisto BUStools) — End-to-end single-cell RNA-seq pipeline using the Kallisto BUStools aligner for high-speed pseudo-alignment, barcode processing, and UMI deduplication.\n\nInput:\n\nRead 1: s3://mybucket/scrnaseq/sample_R1.fastq.gz\nRead 2: s3://mybucket/scrnaseq/sample_R2.fa\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
-                    "stack": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMatenf-core/scrnaseq (Kallisto BUStools) — End-to-end single-cell RNA-seq pipeline using the Kallisto BUStools aligner for high-speed pseudo-alignment, barcode processing, and UMI deduplication.\n\nInput:\n\nRead 1: s3://mybucket/scrnaseq/sample_R1.fastq.gz\nRead 2: s3://mybucket/scrnaseq/sample_R2.fa\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7",
-                    "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                      "column": 7,
-                      "line": 343
-                    },
-                    "snippet": "  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                        "column": 7,
-                        "line": 343
-                      },
-                      "message": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMatenf-core/scrnaseq (Kallisto BUStools) — End-to-end single-cell RNA-seq pipeline using the Kallisto BUStools aligner for high-speed pseudo-alignment, barcode processing, and UMI deduplication.\n\nInput:\n\nRead 1: s3://mybucket/scrnaseq/sample_R1.fastq.gz\nRead 2: s3://mybucket/scrnaseq/sample_R2.fa\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7"
-                    }
-                  ],
-                  "stdout": [
-                    {
-                      "text": "[chat] → \"Run Kallisto BUStools pipeline on my droplet-based single-cell sequencing data\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T1 (978c): \"BioMateMissing: Input sequencing reads and technology specifications\nTo run the Kallisto BUStools pi\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T2: answering clarification round 1\n"
-                    },
-                    {
-                      "text": "[chat] → \"s3://mybucket/scrnaseq/sample_R1.fastq.gz and s3://mybucket/scrnaseq/sample_R2.f\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T2 reply: \"BioMateCould not generate workflow — The exact Kallisto BUStools pipeline template is currently unav\"\n"
-                    },
-                    {
-                      "text": "[sc_003] After T2 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T3: answering clarification round 2\n"
-                    },
-                    {
-                      "text": "[chat] → \"Use nf-core/scrnaseq with Kallisto BUStools aligner, 10x Chromium chemistry.\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T3 reply: \"BioMatenf-core/scrnaseq (Kallisto BUStools) — End-to-end single-cell RNA-seq pipeline using the Kall\"\n"
-                    },
-                    {
-                      "text": "[sc_003] After T3 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[sc_003] ✗ FAIL — got=\"\" expected=\"nf-core/scrnaseq\"\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-07-21T05:15:03.423Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--firefox/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--firefox/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--firefox/trace.zip"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                    "column": 7,
-                    "line": 343
-                  }
-                },
-                {
-                  "workerIndex": 6,
-                  "parallelIndex": 1,
-                  "status": "failed",
-                  "duration": 379556,
-                  "error": {
-                    "message": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMatescrnaseq_standard_endtoend — End-to-end standard single-cell RNA-seq processing pipeline from raw FASTQs to annotated cell types.\n\nInput:\n\nr1_fastq: s3://mybucket/scrnaseq/sample_R1.fastq.gz\nr2_fastq: s3://mybucket/scrnaseq/sample_R2.fastq.gz\nchemistry: 10xv3\norganism: human\nreference_genome:\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
-                    "stack": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMatescrnaseq_standard_endtoend — End-to-end standard single-cell RNA-seq processing pipeline from raw FASTQs to annotated cell types.\n\nInput:\n\nr1_fastq: s3://mybucket/scrnaseq/sample_R1.fastq.gz\nr2_fastq: s3://mybucket/scrnaseq/sample_R2.fastq.gz\nchemistry: 10xv3\norganism: human\nreference_genome:\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7",
-                    "location": {
-                      "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                      "column": 7,
-                      "line": 343
-                    },
-                    "snippet": "  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                        "column": 7,
-                        "line": 343
-                      },
-                      "message": "Error: [sc_003] Expected \"nf-core/scrnaseq\" but got \"\"\nLast reply: \"BioMatescrnaseq_standard_endtoend — End-to-end standard single-cell RNA-seq processing pipeline from raw FASTQs to annotated cell types.\n\nInput:\n\nr1_fastq: s3://mybucket/scrnaseq/sample_R1.fastq.gz\nr2_fastq: s3://mybucket/scrnaseq/sample_R2.fastq.gz\nchemistry: 10xv3\norganism: human\nreference_genome:\"\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  341 |       passed,\n  342 |       `[${tc.id}] Expected \"${tc.expected}\" but got \"${wfName}\"\\nLast reply: \"${reply.slice(0, 300)}\"`\n> 343 |     ).toBeTruthy();\n      |       ^\n  344 |   });\n  345 | }\n  346 |\n    at /Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts:343:7"
-                    }
-                  ],
-                  "stdout": [
-                    {
-                      "text": "[chat] → \"Run Kallisto BUStools pipeline on my droplet-based single-cell sequencing data\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T1 (978c): \"BioMateMissing: Input sequencing reads and technology specifications\nTo run the Kallisto BUStools pi\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T2: answering clarification round 1\n"
-                    },
-                    {
-                      "text": "[chat] → \"s3://mybucket/scrnaseq/sample_R1.fastq.gz and s3://mybucket/scrnaseq/sample_R2.f\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T2 reply: \"BioMateCould not generate workflow — The specific Kallisto BUStools pipeline is currently unavailabl\"\n"
-                    },
-                    {
-                      "text": "[sc_003] After T2 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T3: answering clarification round 2\n"
-                    },
-                    {
-                      "text": "[chat] → \"Use nf-core/scrnaseq with Kallisto BUStools aligner, 10x Chromium chemistry.\"\n"
-                    },
-                    {
-                      "text": "[sc_003] T3 reply: \"BioMatescrnaseq_standard_endtoend — End-to-end standard single-cell RNA-seq processing pipeline from\"\n"
-                    },
-                    {
-                      "text": "[sc_003] After T3 — card: \"\"\n"
-                    },
-                    {
-                      "text": "[sc_003] ✗ FAIL — got=\"\" expected=\"nf-core/scrnaseq\"\n"
-                    }
-                  ],
-                  "stderr": [],
-                  "retry": 1,
-                  "startTime": "2026-07-21T05:21:28.411Z",
-                  "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--firefox-retry1/test-failed-1.png"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--firefox-retry1/error-context.md"
-                    },
-                    {
-                      "name": "trace",
-                      "contentType": "application/zip",
-                      "path": "/Users/kky/biomate/frontend/e2e/test-results/routing-parallel-e2e.e2e.ts-routing-sc-003-nf-core-scrnaseq--firefox-retry1/trace.zip"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "/Users/kky/biomate/frontend/e2e/routing-parallel-e2e.e2e.ts",
-                    "column": 7,
-                    "line": 343
-                  }
-                }
-              ],
-              "status": "unexpected"
-            }
-          ],
-          "id": "579d5317c4209c592595-b11267ddf680744b76bd",
-          "file": "routing-parallel-e2e.e2e.ts",
-          "line": 293,
-          "column": 3
+          "id": "1e0cf3f8ad486968ce58-9ed6a0627c8d717075a3",
+          "file": "project-file-chat-selection.e2e.ts",
+          "line": 4,
+          "column": 1
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-07-21T04:17:18.484Z",
-    "duration": 4235741.522,
+    "startTime": "2026-09-12T20:04:49.294Z",
+    "duration": 135357.488,
     "expected": 0,
     "skipped": 0,
-    "unexpected": 4,
+    "unexpected": 1,
     "flaky": 0
   }
 }

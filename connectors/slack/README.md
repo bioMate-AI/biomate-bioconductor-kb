@@ -32,7 +32,7 @@ The bot replies in-thread with phase/step updates as the workflow runs, and post
 
 ## Tools available
 
-The Slack bot exposes the same 14-tool BioMate surface — see [`../claude-code/README.md`](../claude-code/README.md). Plus four Slack-specific slash subcommands:
+The Slack bot exposes the same 19-tool BioMate surface — see [`../claude-code/README.md`](../claude-code/README.md). Plus four Slack-specific slash subcommands:
 
 | Command | Maps to |
 |---|---|

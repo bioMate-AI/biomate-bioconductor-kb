@@ -1,0 +1,97 @@
+0 done, 2940 to run, workers 34
+50 complete; elapsed 81s
+100 complete; elapsed 125s
+150 complete; elapsed 194s
+200 complete; elapsed 243s
+250 complete; elapsed 306s
+300 complete; elapsed 357s
+350 complete; elapsed 413s
+400 complete; elapsed 473s
+450 complete; elapsed 569s
+500 complete; elapsed 641s
+550 complete; elapsed 716s
+600 complete; elapsed 765s
+650 complete; elapsed 851s
+700 complete; elapsed 929s
+750 complete; elapsed 1012s
+800 complete; elapsed 1045s
+850 complete; elapsed 1072s
+900 complete; elapsed 1098s
+950 complete; elapsed 1125s
+1000 complete; elapsed 1152s
+1050 complete; elapsed 1179s
+1100 complete; elapsed 1203s
+1150 complete; elapsed 1225s
+1200 complete; elapsed 1231s
+1250 complete; elapsed 1235s
+1300 complete; elapsed 1238s
+1350 complete; elapsed 1241s
+1400 complete; elapsed 1275s
+1450 complete; elapsed 1299s
+1500 complete; elapsed 1325s
+1550 complete; elapsed 1354s
+1600 complete; elapsed 1380s
+1650 complete; elapsed 1406s
+1700 complete; elapsed 1432s
+1750 complete; elapsed 1459s
+1800 complete; elapsed 1489s
+1850 complete; elapsed 1518s
+1900 complete; elapsed 1541s
+1950 complete; elapsed 1567s
+2000 complete; elapsed 1590s
+2050 complete; elapsed 1620s
+2100 complete; elapsed 1649s
+2150 complete; elapsed 1679s
+2200 complete; elapsed 1699s
+2250 complete; elapsed 1721s
+2300 complete; elapsed 1740s
+2350 complete; elapsed 1760s
+2400 complete; elapsed 1779s
+2450 complete; elapsed 1799s
+2500 complete; elapsed 1820s
+2550 complete; elapsed 1839s
+2600 complete; elapsed 1865s
+2650 complete; elapsed 1893s
+2700 complete; elapsed 1922s
+2750 complete; elapsed 1941s
+2800 complete; elapsed 1962s
+2850 complete; elapsed 1987s
+2900 complete; elapsed 2020s
+ALL DONE
+OUTCOME FAILURE | A False B True C True
+A VI|26|None|None None
+A V3|20|None|None (0.083, [0.057, 0.114], True, 'reg', 0.338, 'P(VALID)', 0.917)
+A V3|26|None|None (0.043, [0.025, 0.067], True, 'reg', 0.223, 'P(VALID)', 0.958)
+A V3|47|None|None (0.03, [0.016, 0.052], True, 'reg', 0.172, 'P(VALID)', 0.97)
+B S|25|S-cens|0.65 1.0 need 0.8 True reg 1.0
+B S|25|S-diffuse|0.65 1.0 need 0.8 True reg 1.0
+B S|25|S-diffuse|0.7 1.0 need 0.9 True reg 1.0
+B S|25|S-tpsa|0.65 1.0 need 0.8 True reg 1.0
+B S|25|S-tpsa|0.7 1.0 need 0.9 True reg 1.0
+B S|25|S-typ|0.65 1.0 need 0.8 True reg 1.0
+B S|25|S-typ|0.7 1.0 need 0.9 True reg 1.0
+B SS|20|S-diffuse|0.65 1.0 need 0.8 True reg 1.0
+B SS|20|S-diffuse|0.7 1.0 need 0.9 True reg 1.0
+B SS|20|S-tpsa|0.65 1.0 need 0.8 True reg 1.0
+B SS|20|S-tpsa|0.7 1.0 need 0.9 True reg 1.0
+B SS|20|S-typ|0.65 1.0 need 0.8 True reg 1.0
+B SS|20|S-typ|0.7 1.0 need 0.9 True reg 1.0
+B SS|47|S-diffuse|0.65 1.0 need 0.8 True reg 1.0
+B SS|47|S-diffuse|0.7 1.0 need 0.9 True reg 1.0
+B SS|47|S-tpsa|0.65 1.0 need 0.8 True reg 1.0
+B SS|47|S-tpsa|0.7 1.0 need 0.9 True reg 1.0
+B SS|47|S-typ|0.65 1.0 need 0.8 True reg 1.0
+B SS|47|S-typ|0.7 1.0 need 0.9 True reg 1.0
+C S|25|S-cens|0.65 0.0 True
+C S|25|S-diffuse|0.65 0.0 True
+C S|25|S-tpsa|0.65 0.0 True
+C S|25|S-typ|0.65 0.0 True
+C SS|20|S-diffuse|0.65 0.0 True
+C SS|20|S-tpsa|0.65 0.0 True
+C SS|20|S-typ|0.65 0.0 True
+C SS|47|S-diffuse|0.65 0.0 True
+C SS|47|S-tpsa|0.65 0.0 True
+C SS|47|S-typ|0.65 0.0 True
+REAL I BIASED T 10.82 q 3.14 flagged ['C4_censored_label', 'C5_assay_has_Ki_or_Kd', 'o_frac'] reg NOT_VALID_BIASED perm_p 0.0025
+REAL M2 BIASED T 5.06 q 3.05 flagged ['fsp3', 'has_halogen'] reg NOT_VALID_BIASED perm_p 0.005
+rc=0

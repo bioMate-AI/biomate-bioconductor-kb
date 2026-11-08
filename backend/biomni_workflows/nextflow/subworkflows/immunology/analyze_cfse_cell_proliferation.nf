@@ -52,7 +52,7 @@ with open("analyze_cfse_cell_proliferation_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_cfse_cell_proliferation_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cfse Cell Proliferation Results" + NL)
+    f.write("BioMate: Analyze Cfse Cell Proliferation Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

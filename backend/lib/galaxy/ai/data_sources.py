@@ -1,6 +1,7 @@
 """Canonical BioMate data-source registry — the single source of truth.
 
-BioMate integrates 60+ external data sources, historically spread across four
+BioMate integrates external data sources (the counts are generated, see ``summary()`` and
+``scripts/source_registry_report.py``; do not quote a hand-typed number), historically spread across four
 disconnected lists that drifted apart:
 
   1. ``federated_query._FETCHERS``            — the parallel fan-out (chat / research agent)
@@ -27,6 +28,7 @@ SURFACE_FEDERATION = "federation"       # federated_query fan-out (chat + resear
 SURFACE_SINGLE = "single_source"        # ai_assistant.query_database single handler
 SURFACE_MCP = "mcp"                     # MCP query_database enum (external clients)
 SURFACE_GALAXY_TOOL = "galaxy_tool"     # Galaxy native data_source XML tool (UI)
+SURFACE_DEDICATED = "dedicated_tool"   # reached through its own chat/MCP tool or agent (not the generic fan-out)
 
 
 class DataSource:
@@ -106,14 +108,36 @@ _REST: List[DataSource] = [
                [SURFACE_FEDERATION, SURFACE_SINGLE]),
     DataSource("openalex", "OpenAlex", "literature", ["literature"],
                [SURFACE_FEDERATION, SURFACE_SINGLE]),
+    DataSource("crossref", "Crossref", "literature", ["literature"],
+               [SURFACE_FEDERATION],
+               note="Publisher metadata for ~150M works; also used to check that a cited DOI exists. Declared 2026-11-02: the fetcher was already wired."),
+    DataSource("corpus_fs", "Local corpus index (corpus_fs)", "literature", ["literature"],
+               [SURFACE_FEDERATION],
+               note="Grounded SQLite FTS5 index over documents ingested into this deployment. Returns nothing until a corpus is ingested "
+                    "(none is loaded by default). Declared 2026-11-02: the fetcher was already wired."),
     # ── Known gaps — declared as planned so they are visible, not forgotten ──
+    DataSource("clinicaltrials", "ClinicalTrials.gov", "clinical", ["disease", "compound"],
+               [SURFACE_FEDERATION],
+               note="Official API v2 (keyless). Registry records: status, phase, sponsor, stated stop reason; not trial results or outcomes. "
+                    "A full local mirror (609,551 studies) also exists in S3 for analysis."),
     DataSource("biorxiv", "bioRxiv / medRxiv", "literature", ["literature"],
-               [], status="planned",
-               note="Preprint gap behind the PEX literature miss (long_query.md). Keyless API."),
+               [SURFACE_FEDERATION],
+               note="Preprints (not peer reviewed), keyword-searched through Europe PMC with a publisher filter; "
+                    "the bioRxiv API itself has no keyword search. Rows carry peer_reviewed=false."),
     DataSource("opentargets", "Open Targets", "gene", ["gene", "disease"],
-               [], status="planned", note="Gene-disease target evidence. Keyless GraphQL."),
+               [SURFACE_DEDICATED],
+               note="Live, but not a federated fetcher: the GraphQL platform API is the primary channel of the target-ID engine "
+                    "(identify_targets, target_id/data_channels.py OpenTargetsGeneticsChannel) and supplies gene-disease association and "
+                    "locus-to-gene scores to the research agent."),
     DataSource("geo", "NCBI GEO", "dataset", ["dataset"],
-               [], status="planned", note="Reusable expression dataset discovery."),
+               [SURFACE_DEDICATED],
+               note="Accession retrieval is live: resolve_accession (GSE/GSM/GDS -> Geo Data Connector workflow with pre-filled params) and the "
+                    "GEO fast paths in ai_assistant (platform detection, bulk and scRNA connectors). Keyword search for datasets "
+                    "(discovery) is NOT implemented."),
+    DataSource("paperclip", "Paperclip (8M+ papers, preprints, FDA, ClinicalTrials.gov)", "literature", ["literature", "gene", "disease"],
+               [SURFACE_FEDERATION], status="key_required",
+               note="Hosted service (paperclip.gxl.ai); needs PAPERCLIP_API_KEY; disabled in offline/on-prem mode. "
+                    "Client: galaxy/ai/paperclip_client.py (MCP over HTTP)."),
     DataSource("omim", "OMIM", "disease", ["disease"],
                [], status="key_required",
                note="MCP enum advertised omim with NO handler — removed 2026-07-28. "
@@ -201,6 +225,7 @@ def summary() -> Dict:
             SURFACE_SINGLE: len([s for s in live if SURFACE_SINGLE in s.surfaces]),
             SURFACE_MCP: len([s for s in live if SURFACE_MCP in s.surfaces]),
             SURFACE_GALAXY_TOOL: len([s for s in live if SURFACE_GALAXY_TOOL in s.surfaces]),
+            SURFACE_DEDICATED: len([s for s in live if SURFACE_DEDICATED in s.surfaces]),
         },
     }
 

@@ -1,0 +1,800 @@
+[
+ {
+  "kb": "product.ADMET",
+  "id": "herg",
+  "cited": "Aronov Drug Discov Today 2005;10:149",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2005,
+   "10",
+   "149",
+   "Predictive in silico modeling for hERG channel blockers",
+   "10.1016/s1359-6446(04)03278-7"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "cyp*",
+  "cited": "Veith Nat Biotechnol 2009;27:1050",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2009,
+   "27",
+   "1050",
+   "Comprehensive characterization of cytochrome P450 isozyme selectivity across chemical libr",
+   "10.1038/nbt.1581"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "ames",
+  "cited": "Benigni Chem Rev 2011;111:2507",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2011,
+   "111",
+   "2507",
+   "Mechanisms of Chemical Carcinogenicity and Mutagenicity: A Review with Implications for Pr",
+   "10.1021/cr100222q"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "ames2",
+  "cited": "Xu J Chem Inf Model 2012;52:2840",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2012,
+   "52",
+   "2840",
+   "In silico Prediction of Chemical Ames Mutagenicity",
+   "10.1021/ci300400a"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "dili",
+  "cited": "Chen Drug Discov Today 2016;21:648",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2016,
+   "21",
+   "648",
+   "DILIrank: the largest reference drug list ranked by the risk for developing drug-induced l",
+   "10.1016/j.drudis.2016.02.015"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "dili2",
+  "cited": "Greene Chem Res Toxicol 2010;23:1215",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2010,
+   "23",
+   "1215",
+   "Developing Structure\u2212Activity Relationships for the Prediction of Hepatotoxicity",
+   "10.1021/tx1000865"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "bbb",
+  "cited": "Daina ChemMedChem 2016;11:1117",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2016,
+   "11",
+   "1117",
+   "A BOILED\u2010Egg To Predict Gastrointestinal Absorption and Brain Penetration of Small Molecul",
+   "10.1002/cmdc.201600182"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "bbb2",
+  "cited": "Wager ACS Chem Neurosci 2010;1:435",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2010,
+   "1",
+   "435",
+   "Moving beyond Rules: The Development of a Central Nervous System Multiparameter Optimizati",
+   "10.1021/cn100008c"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "pgp",
+  "cited": "Broccatelli J Med Chem 2011;54:1740",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2011,
+   "54",
+   "1740",
+   "A Novel Approach for Predicting P-Glycoprotein (ABCB1) Inhibition Using Molecular Interact",
+   "10.1021/jm101421d"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "caco2",
+  "cited": "Hou J Chem Inf Model 2007;47:208",
+  "verdict": "MATCH_3of4",
+  "found": [
+   3,
+   2006,
+   "47",
+   "208",
+   "ADME Evaluation in Drug Discovery. 7. Prediction of Oral Absorption by Correlation and Cla",
+   "10.1021/ci600343x"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "solubility",
+  "cited": "Delaney J Chem Inf Comput Sci 2004;44:1000",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2004,
+   "44",
+   "1000",
+   "ESOL:\u2009 Estimating Aqueous Solubility Directly from Molecular Structure",
+   "10.1021/ci034243x"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "ppb",
+  "cited": "Votano J Med Chem 2006;49:7169",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2006,
+   "49",
+   "7169",
+   "QSAR Modeling of Human Serum Protein Binding with Several Modeling Techniques Utilizing St",
+   "10.1021/jm051245v"
+  ]
+ },
+ {
+  "kb": "product.ADMET",
+  "id": "clearance",
+  "cited": "Di Drug Metab Dispos 2013;41:1975",
+  "verdict": "NOMATCH",
+  "found": [
+   1,
+   2006,
+   "34",
+   "504",
+   "COMMENTS ON HOSKINS ET AL. [(2005) DRUG METAB DISPOS 33:1564\u20131565]",
+   "10.1124/dmd.105.007799"
+  ]
+ },
+ {
+  "kb": "product.PHYSEXT",
+  "id": "egan",
+  "cited": "Egan J Med Chem 2000;43:3867",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2000,
+   "43",
+   "3867",
+   "Prediction of Drug Absorption Using Multivariate Statistics",
+   "10.1021/jm000292e"
+  ]
+ },
+ {
+  "kb": "product.PHYSEXT",
+  "id": "ghose",
+  "cited": "Ghose J Comb Chem 1999;1:55",
+  "verdict": "MATCH_3of4",
+  "found": [
+   3,
+   1998,
+   "1",
+   "55",
+   "A Knowledge-Based Approach in Designing Combinatorial or Medicinal Chemistry Libraries for",
+   "10.1021/cc9800071"
+  ]
+ },
+ {
+  "kb": "product.PHYSEXT",
+  "id": "pfizer",
+  "cited": "Hughes Bioorg Med Chem Lett 2008;18:4872",
+  "verdict": "PARTIAL",
+  "found": [
+   2,
+   2008,
+   "18",
+   "2228",
+   "Corrigendum to \u201cDiscovery of potent HIV-1 protease inhibitors incorporating sulfoximine fu",
+   "10.1016/j.bmcl.2008.02.004"
+  ]
+ },
+ {
+  "kb": "product.PHYSEXT",
+  "id": "gsk",
+  "cited": "Gleeson J Med Chem 2008;51:817",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2008,
+   "51",
+   "817",
+   "Generation of a Set of Simple, Interpretable ADMET Rules of Thumb",
+   "10.1021/jm701122q"
+  ]
+ },
+ {
+  "kb": "product.PHYSEXT",
+  "id": "lead_like",
+  "cited": "Teague Angew Chem Int Ed 1999;38:3743",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   1999,
+   "38",
+   "3743",
+   "The Design of Leadlike Combinatorial Libraries",
+   "10.1002/(sici)1521-3773(19991216)38:24<3743::aid-anie3743>3.0.co;2-u"
+  ]
+ },
+ {
+  "kb": "product.PHYSEXT",
+  "id": "qed",
+  "cited": "Bickerton Nat Chem 2012;4:90",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2012,
+   "4",
+   "90",
+   "Quantifying the chemical beauty of drugs",
+   "10.1038/nchem.1243"
+  ]
+ },
+ {
+  "kb": "product.PHYSEXT",
+  "id": "muegge",
+  "cited": "Muegge J Med Chem 2001;44:1841",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2001,
+   "44",
+   "1841",
+   "Simple Selection Criteria for Drug-like Chemical Matter",
+   "10.1021/jm015507e"
+  ]
+ },
+ {
+  "kb": "product.PHYSEXT",
+  "id": "le",
+  "cited": "Hopkins Nat Rev Drug Discov 2014;13:105",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2014,
+   "13",
+   "105",
+   "The role of ligand efficiency metrics in drug discovery",
+   "10.1038/nrd4163"
+  ]
+ },
+ {
+  "kb": "product.MODEXT",
+  "id": "stapled",
+  "cited": "Walensky J Med Chem 2014;57:6275",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2014,
+   "57",
+   "6275",
+   "Hydrocarbon-Stapled Peptides:\nPrinciples, Practice,\nand Progress",
+   "10.1021/jm4011675"
+  ]
+ },
+ {
+  "kb": "product.MODEXT",
+  "id": "protac",
+  "cited": "Bekes Nat Rev Drug Discov 2022;21:181",
+  "verdict": "MATCH_3of4",
+  "found": [
+   3,
+   2022,
+   "21",
+   "181",
+   "PROTAC targeted protein degraders: the past is prologue",
+   "10.1038/s41573-021-00371-6"
+  ]
+ },
+ {
+  "kb": "product.MODEXT",
+  "id": "glue",
+  "cited": "Schreiber Cell 2021;184:3",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2021,
+   "184",
+   "3",
+   "The Rise of Molecular Glues",
+   "10.1016/j.cell.2020.12.020"
+  ]
+ },
+ {
+  "kb": "product.MODEXT",
+  "id": "covalent",
+  "cited": "Singh Nat Rev Drug Discov 2011;10:307",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2011,
+   "10",
+   "307",
+   "The resurgence of covalent drugs",
+   "10.1038/nrd3410"
+  ]
+ },
+ {
+  "kb": "product.MODEXT",
+  "id": "oligo",
+  "cited": "Roberts Nat Rev Drug Discov 2020;19:673",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2020,
+   "19",
+   "673",
+   "Advances in oligonucleotide drug delivery",
+   "10.1038/s41573-020-0075-7"
+  ]
+ },
+ {
+  "kb": "product.MODEXT",
+  "id": "adc",
+  "cited": "Beck Nat Rev Drug Discov 2017;16:315",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2017,
+   "16",
+   "315",
+   "Strategies and challenges for the next generation of antibody\u2013drug conjugates",
+   "10.1038/nrd.2016.268"
+  ]
+ },
+ {
+  "kb": "product.MODEXT",
+  "id": "radioligand",
+  "cited": "Sgouros Nat Rev Drug Discov 2020;19:589",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2020,
+   "19",
+   "589",
+   "Radiopharmaceutical therapy in cancer: clinical advances and challenges",
+   "10.1038/s41573-020-0073-9"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "kinase",
+  "cited": "Roskoski Pharmacol Res 2016;103:26",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2016,
+   "103",
+   "26",
+   "Classification of small molecule protein kinase inhibitors based upon the structures of th",
+   "10.1016/j.phrs.2015.10.021"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "gpcr",
+  "cited": "Congreve Cell 2020;181:81",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2020,
+   "181",
+   "81",
+   "Impact of GPCR Structures on Drug Discovery",
+   "10.1016/j.cell.2020.03.003"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "ppi",
+  "cited": "Arkin Chem Biol 2014;21:1102",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2014,
+   "21",
+   "1102",
+   "Small-Molecule Inhibitors of Protein-Protein Interactions: Progressing toward the Reality",
+   "10.1016/j.chembiol.2014.09.001"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "integrin",
+  "cited": "Kapp Sci Rep 2017;7:39805",
+  "verdict": "PARTIAL",
+  "found": [
+   2,
+   2017,
+   "",
+   "17",
+   "Pref\u00e1cio",
+   "10.7476/9788542302899.0001"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "nr",
+  "cited": "Gronemeyer Nat Rev Drug Discov 2004;3:950",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2004,
+   "3",
+   "950",
+   "Principles for modulation of the nuclear receptor superfamily",
+   "10.1038/nrd1551"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "brd",
+  "cited": "Filippakopoulos Nat Rev Drug Discov 2014;13:337",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2014,
+   "13",
+   "337",
+   "Targeting bromodomains: epigenetic readers of lysine acetylation",
+   "10.1038/nrd4286"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "ionch",
+  "cited": "Bagal Nat Rev Drug Discov 2013;12:35",
+  "verdict": "PARTIAL",
+  "found": [
+   2,
+   2013,
+   "12",
+   "900",
+   "Charles Hugh-Jones",
+   "10.1038/nrd4190"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "phosphatase",
+  "cited": "Barr Future Med Chem 2010;2:1563",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2010,
+   "2",
+   "1563",
+   "Protein Tyrosine Phosphatases as Drug Targets: Strategies and Challenges of Inhibitor Deve",
+   "10.4155/fmc.10.241"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "hdac",
+  "cited": "Falkenberg Nat Rev Drug Discov 2014;13:673",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2014,
+   "13",
+   "673",
+   "Histone deacetylases and their inhibitors in cancer, neurological diseases and immune diso",
+   "10.1038/nrd4360"
+  ]
+ },
+ {
+  "kb": "product.PHARMEXT",
+  "id": "protease",
+  "cited": "Schechter Biochem Biophys Res Commun 1967;27:157",
+  "verdict": "NOMATCH",
+  "found": [
+   0,
+   1964,
+   "190",
+   "181",
+   "Biochem &amp;amp; Biophys Res Commun, New York",
+   "10.1001/jama.1964.03070260101061"
+  ]
+ },
+ {
+  "kb": "medchem.METAL",
+  "id": "harding",
+  "cited": "Harding Acta Crystallogr D 2006;62:678",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2006,
+   "62",
+   "678",
+   "Small revisions to predicted distances around metal sites in proteins",
+   "10.1107/s0907444906014594"
+  ]
+ },
+ {
+  "kb": "medchem.METAL",
+  "id": "metalpdb",
+  "cited": "Putignano Nucleic Acids Res 2018;46:D459",
+  "verdict": "MATCH_3of4",
+  "found": [
+   3,
+   2017,
+   "46",
+   "D459",
+   "MetalPDB in 2018: a database of metal sites in biological macromolecular structures",
+   "10.1093/nar/gkx989"
+  ]
+ },
+ {
+  "kb": "medchem.METAL",
+  "id": "checkmymetal",
+  "cited": "Zheng Acta Crystallogr D 2017;73:223",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2017,
+   "73",
+   "223",
+   "<i>CheckMyMetal</i>\n                    : a macromolecular metal-binding validation tool",
+   "10.1107/s2059798317001061"
+  ]
+ },
+ {
+  "kb": "medchem.METAL",
+  "id": "limerz",
+  "cited": "Li Chem Rev 2017;117:1564",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2017,
+   "117",
+   "1564",
+   "Metal Ion Modeling Using Classical Mechanics",
+   "10.1021/acs.chemrev.6b00440"
+  ]
+ },
+ {
+  "kb": "medchem.METAL",
+  "id": "duarte",
+  "cited": "Duarte J Phys Chem B 2014;118:4351",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2014,
+   "118",
+   "4351",
+   "Force Field Independent Metal Parameters Using a Nonbonded Dummy Model",
+   "10.1021/jp501737x"
+  ]
+ },
+ {
+  "kb": "medchem.PHARM",
+  "id": "xiong",
+  "cited": "Xiong Science 2002;296:151",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2002,
+   "296",
+   "151",
+   "Crystal Structure of the Extracellular Segment of Integrin \u03b1V\u03b23 in Complex with an Arg-Gly",
+   "10.1126/science.1069040"
+  ]
+ },
+ {
+  "kb": "medchem.PHARM",
+  "id": "dong",
+  "cited": "Dong Nat Struct Mol Biol 2014;21:1091",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2014,
+   "21",
+   "1091",
+   "Structural determinants of integrin \u03b2-subunit specificity for latent TGF-\u03b2",
+   "10.1038/nsmb.2905"
+  ]
+ },
+ {
+  "kb": "medchem.PHARM",
+  "id": "clackson",
+  "cited": "Clackson Science 1995;267:383",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   1995,
+   "267",
+   "383",
+   "A Hot Spot of Binding Energy in a Hormone-Receptor Interface",
+   "10.1126/science.7529940"
+  ]
+ },
+ {
+  "kb": "medchem.PHYS",
+  "id": "lipinski",
+  "cited": "Lipinski Adv Drug Deliv Rev 1997;23:3",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   1997,
+   "23",
+   "3",
+   "Experimental and computational approaches to estimate solubility and permeability in drug ",
+   "10.1016/s0169-409x(96)00423-1"
+  ]
+ },
+ {
+  "kb": "medchem.PHYS",
+  "id": "veber",
+  "cited": "Veber J Med Chem 2002;45:2615",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2002,
+   "45",
+   "2615",
+   "Molecular Properties That Influence the Oral Bioavailability of Drug Candidates",
+   "10.1021/jm020017n"
+  ]
+ },
+ {
+  "kb": "medchem.PHYS",
+  "id": "doak",
+  "cited": "Doak Chem Biol 2014;21:1115",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2014,
+   "21",
+   "1115",
+   "Oral Druggable Space beyond the Rule of 5: Insights from Drugs and Clinical Candidates",
+   "10.1016/j.chembiol.2014.08.013"
+  ]
+ },
+ {
+  "kb": "medchem.PHYS",
+  "id": "rezai",
+  "cited": "Rezai J Am Chem Soc 2006;128:14073",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2006,
+   "128",
+   "14073",
+   "Conformational Flexibility, Internal Hydrogen Bonding, and Passive Membrane Permeability:\u2009",
+   "10.1021/ja063076p"
+  ]
+ },
+ {
+  "kb": "medchem.PHYS",
+  "id": "over",
+  "cited": "Over Nat Chem Biol 2016;12:1065",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2016,
+   "12",
+   "1065",
+   "Structural and conformational determinants of macrocycle cell permeability",
+   "10.1038/nchembio.2203"
+  ]
+ },
+ {
+  "kb": "medchem.PHYS",
+  "id": "daina2017",
+  "cited": "Daina Sci Rep 2017;7:42717",
+  "verdict": "MATCH_3of4",
+  "found": [
+   3,
+   2017,
+   "7",
+   "",
+   "SwissADME: a free web tool to evaluate pharmacokinetics, drug-likeness and medicinal chemi",
+   "10.1038/srep42717"
+  ]
+ },
+ {
+  "kb": "medchem.PHYS",
+  "id": "xiong2021",
+  "cited": "Xiong Nucleic Acids Res 2021;49:W5",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2021,
+   "49",
+   "W5",
+   "ADMETlab 2.0: an integrated online platform for accurate and comprehensive predictions of ",
+   "10.1093/nar/gkab255"
+  ]
+ },
+ {
+  "kb": "medchem.MOD",
+  "id": "driggers",
+  "cited": "Driggers Nat Rev Drug Discov 2008;7:608",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2008,
+   "7",
+   "608",
+   "The exploration of macrocycles for drug discovery \u2014 an underexploited structural class",
+   "10.1038/nrd2590"
+  ]
+ },
+ {
+  "kb": "medchem.MOD",
+  "id": "biron",
+  "cited": "Biron Angew Chem Int Ed 2008;47:2595",
+  "verdict": "PARTIAL",
+  "found": [
+   2,
+   2008,
+   "47",
+   "8973",
+   "Graphical Abstract: Angew. Chem. Int. Ed. 47/2008",
+   "10.1002/anie.200890240"
+  ]
+ },
+ {
+  "kb": "medchem.MOD",
+  "id": "chatterjee",
+  "cited": "Chatterjee Acc Chem Res 2008;41:1331",
+  "verdict": "MATCH",
+  "found": [
+   4,
+   2008,
+   "41",
+   "1331",
+   "N-Methylation of Peptides: A New Perspective in Medicinal Chemistry",
+   "10.1021/ar8000603"
+  ]
+ },
+ {
+  "kb": "experience.sar",
+  "id": "kapp?",
+  "cited": "Kapp Sci Rep 2017;7:39805",
+  "verdict": "PARTIAL",
+  "found": [
+   2,
+   2017,
+   "",
+   "17",
+   "Pref\u00e1cio",
+   "10.7476/9788542302899.0001"
+  ]
+ }
+]

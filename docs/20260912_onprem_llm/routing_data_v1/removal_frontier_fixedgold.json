@@ -1,0 +1,588 @@
+{
+  "summary": {
+    "model": "gpt-5-mini",
+    "n": 80,
+    "composed_rate": 1.0,
+    "validity_rate": 1.0,
+    "micro_step_coverage": 0.874,
+    "macro_step_coverage": 0.909,
+    "nonzero_mean_coverage": 0.875,
+    "nonzero_frac": 1.0,
+    "per_domain": {
+      "genomics": 0.783,
+      "single_cell": 0.822,
+      "transcriptomics": 0.871,
+      "variant_calling": 0.917,
+      "epigenomics": 0.912,
+      "genetics": 1.0,
+      "systems_biology": 0.81,
+      "metagenomics": 0.953,
+      "proteomics": 0.835,
+      "pharmacology": 1.0,
+      "metabolomics": 1.0,
+      "synthetic_biology": 1.0
+    }
+  },
+  "details": [
+    {
+      "W": "signer_exposure_estimation_to_known_signatures",
+      "domain": "genomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "milor_da_contrasts",
+      "domain": "single_cell",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.6
+    },
+    {
+      "W": "rgsea",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "coveb",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "oncomix",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.88
+    },
+    {
+      "W": "appreci8r",
+      "domain": "variant_calling",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "htqpcr",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "m6aboost",
+      "domain": "epigenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "cellid_functional_annotation",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "snifter",
+      "domain": "single_cell",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "magrene",
+      "domain": "genomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.78
+    },
+    {
+      "W": "mmdiff2",
+      "domain": "epigenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "projectr_differential_feature_drivers",
+      "domain": "single_cell",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.71
+    },
+    {
+      "W": "peakpanther",
+      "domain": "epigenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.86
+    },
+    {
+      "W": "seqgate",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "icnv_ngs_only_cnv_detection",
+      "domain": "variant_calling",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "rgadem",
+      "domain": "epigenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.75
+    },
+    {
+      "W": "ldblock",
+      "domain": "genetics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "methylgsa_custom_annotation_analysis",
+      "domain": "epigenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "difflogo_multiple_motif_comparison_table",
+      "domain": "genomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "genestructuretools",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "omicrexposome_integration_analysis",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "rgsea_sd_features",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.83
+    },
+    {
+      "W": "massarray_data_analysis",
+      "domain": "variant_calling",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "ebseq",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "pipecomp",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.88
+    },
+    {
+      "W": "annaffy_metadata_search",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.83
+    },
+    {
+      "W": "rcy3_igraph_interoperability",
+      "domain": "systems_biology",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.6
+    },
+    {
+      "W": "mlseq",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.86
+    },
+    {
+      "W": "hoodscanr",
+      "domain": "single_cell",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "atena_telescope_quantification",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "mina",
+      "domain": "metagenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "rankprod_multi_condition_contrast",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "reconsi",
+      "domain": "metagenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "ancombc_secom_correlation_analysis",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "mastr_multi_dataset_signature_aggregation",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "epinem_systematic_modulator_screening",
+      "domain": "systems_biology",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.83
+    },
+    {
+      "W": "peakpanther",
+      "domain": "epigenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "scbubbletree_sc_bubbletree_comparison",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "rontotools",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.85
+    },
+    {
+      "W": "monocle",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.83
+    },
+    {
+      "W": "packfinder_step_wise_transposon_search",
+      "domain": "genomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.78
+    },
+    {
+      "W": "biocor_wgcna_integration",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.6
+    },
+    {
+      "W": "methylpipe",
+      "domain": "epigenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "mixomics",
+      "domain": "proteomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "knowseq",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "rmagpie_nsc_classification",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "diffustats_grid_diffusion_and_benchmarking",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "methylimp2",
+      "domain": "epigenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "synergyfinder_higher_order_combinations",
+      "domain": "pharmacology",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "acde_time_course_analysis",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.75
+    },
+    {
+      "W": "netresponse",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.78
+    },
+    {
+      "W": "damirseq_cross_validation_and_independent_prediction",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "netboost",
+      "domain": "systems_biology",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "structtoolbox",
+      "domain": "metabolomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "miaviz",
+      "domain": "metagenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.86
+    },
+    {
+      "W": "compspot",
+      "domain": "genomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "scmerge_sc_merge_v2_hierarchical",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.86
+    },
+    {
+      "W": "loci2path",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.83
+    },
+    {
+      "W": "htsfilter",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.83
+    },
+    {
+      "W": "mbkmeans_bluster_mbkmeans_clustering",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.67
+    },
+    {
+      "W": "cnvrd2_complex_locus_bayesian_clustering",
+      "domain": "variant_calling",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "excluster",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "phenopath",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "topconfects_edger_confects",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "nanostringdiff_matrix_input_workflow",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.86
+    },
+    {
+      "W": "scater",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "roseq",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.5
+    },
+    {
+      "W": "synmut",
+      "domain": "synthetic_biology",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "geneplast",
+      "domain": "genomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "ebseq_isoform_de_multi_conditions",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.8
+    },
+    {
+      "W": "blma",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.6
+    },
+    {
+      "W": "glmsparsenet",
+      "domain": "proteomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "hdtd",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "multibac",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.83
+    },
+    {
+      "W": "edger_classic_pipeline",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "pmp_signal_drift_and_batch_correction",
+      "domain": "epigenomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "tomoseqr",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "piuma_seurat_integrated_tda",
+      "domain": "single_cell",
+      "plan": true,
+      "valid": true,
+      "coverage": 1.0
+    },
+    {
+      "W": "rdrtoolbox",
+      "domain": "transcriptomics",
+      "plan": true,
+      "valid": true,
+      "coverage": 0.71
+    }
+  ]
+}

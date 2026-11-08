@@ -1,0 +1,10 @@
+{
+  "input_source": "GSE227835 curated MG PBMC tutorial",
+  "files": [
+    "submission_counts_matrix.csv",
+    "submission_sample_metadata.csv",
+    "submission_contrasts.csv"
+  ],
+  "design": "10 MG_AChR_pos vs 10 HC; condition column",
+  "prerequisite": "First execute differential expression using these inputs, then write an analysis section from that actual completed run and its recorded outputs. No existing run is fabricated."
+}

@@ -1,0 +1,6 @@
+name: sage
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - bioconda::sage-proteomics=0.14.7

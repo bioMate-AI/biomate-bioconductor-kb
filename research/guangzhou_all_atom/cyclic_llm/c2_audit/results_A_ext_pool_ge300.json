@@ -1,0 +1,93 @@
+{
+ "learn-random|full": {
+  "mean": 0.165,
+  "ci95_family": [
+   0.063,
+   0.166
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "fixed-random|full": {
+  "mean": 0.106,
+  "ci95_family": [
+   -0.033,
+   0.107
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "learn-fixed|full": {
+  "mean": 0.06,
+  "ci95_family": [
+   0.054,
+   0.104
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "learn-random|famdisjoint": {
+  "mean": 0.125,
+  "ci95_family": [
+   0.052,
+   0.149
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "fixed-random|famdisjoint": {
+  "mean": 0.048,
+  "ci95_family": [
+   -0.012,
+   0.064
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "learn-fixed|famdisjoint": {
+  "mean": 0.077,
+  "ci95_family": [
+   0.048,
+   0.089
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "learn-nn|famdisjoint": {
+  "mean": 0.001,
+  "ci95_family": [
+   -0.034,
+   0.022
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "learn-nn|none": {
+  "mean": -0.091,
+  "ci95_family": [
+   -0.099,
+   -0.05
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "nn-random": {
+  "mean": 0.124,
+  "ci95_family": [
+   0.085,
+   0.129
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "desc-random|famdisjoint": {
+  "mean": 0.101,
+  "ci95_family": [
+   0.086,
+   0.116
+  ],
+  "n_targets": 15,
+  "n_families": 4
+ },
+ "H_leak_ratio": 0.453
+}

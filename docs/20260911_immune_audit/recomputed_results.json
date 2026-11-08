@@ -1,0 +1,3072 @@
+{
+  "source_inventory": [
+    {
+      "path": "research/immune_llm_baseline/.gitignore",
+      "bytes": 20,
+      "sha256": "7ff0aa565769611666b251a3b5a5e49409e7805c50cf342e6ed8b3770ca08690"
+    },
+    {
+      "path": "research/immune_llm_baseline/L1_fusion.py",
+      "bytes": 35185,
+      "sha256": "506c30c924ad30076b9edcb4ab1f218e39c955ea35c6bf4d6e0d33f273701353",
+      "syntax": "pass",
+      "broad_exception_handlers": 11
+    },
+    {
+      "path": "research/immune_llm_baseline/L2_knowledge.py",
+      "bytes": 30871,
+      "sha256": "5dfc60ed9c1d8c28a4f88fc10ab846cecfd94c0fbd6bfccd48fe3cbab5b7bc35",
+      "syntax": "pass",
+      "broad_exception_handlers": 6
+    },
+    {
+      "path": "research/immune_llm_baseline/L3_llm.py",
+      "bytes": 29932,
+      "sha256": "0d6c0c170d2f80bda2e7fa98e5a26b9eb44f4046e0d0626648dbec49bf09c4fa",
+      "syntax": "pass",
+      "broad_exception_handlers": 7
+    },
+    {
+      "path": "research/immune_llm_baseline/README.md",
+      "bytes": 6378,
+      "sha256": "60366937ec24489a59887e98f3b10571169779c2bc08e61175c18ae1bcc4872f"
+    },
+    {
+      "path": "research/immune_llm_baseline/acquire_immunopeptidome_h4.py",
+      "bytes": 17404,
+      "sha256": "2637761397520144bf1cb369d168248aa02eec12a1082d7b0c687cf67f2acc87",
+      "syntax": "pass",
+      "broad_exception_handlers": 8
+    },
+    {
+      "path": "research/immune_llm_baseline/acquire_proteome_h3.py",
+      "bytes": 9821,
+      "sha256": "94af2862ac1ffc7424d7fa16ed81a30fcd981b89f2e7a6185b6a5d27c628824a",
+      "syntax": "pass",
+      "broad_exception_handlers": 4
+    },
+    {
+      "path": "research/immune_llm_baseline/acquire_proteome_h3_v2.py",
+      "bytes": 17444,
+      "sha256": "9d61c9bafb99271d9dadd09b57b17d54aebdd50cec723e0129c047997eb14a83",
+      "syntax": "pass",
+      "broad_exception_handlers": 10
+    },
+    {
+      "path": "research/immune_llm_baseline/acquire_riboseq_h2.py",
+      "bytes": 13374,
+      "sha256": "d103e5a9386891c91ea6fd16cf1b40682e8a91f65badb990a1404647b3a35f9c",
+      "syntax": "pass",
+      "broad_exception_handlers": 6
+    },
+    {
+      "path": "research/immune_llm_baseline/anchor_integrated_ablation.py",
+      "bytes": 33927,
+      "sha256": "d942d5b698338d5d0953a40dd55de46a7ecd0af598dc52de17d2d39ae5b2d001",
+      "syntax": "pass",
+      "broad_exception_handlers": 5
+    },
+    {
+      "path": "research/immune_llm_baseline/audit_shared_omic_use_cases.py",
+      "bytes": 10150,
+      "sha256": "ef2ce3fe7e22caf2d9c9ed96a975ea8c280ce3055e1a9524f2ba2592de199f11",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/b2_1_xverse_encoder.py",
+      "bytes": 23888,
+      "sha256": "ad2edf0ce952aff07b57853b0246763b636a558da3d431b5defe640dc076d5c8",
+      "syntax": "pass",
+      "broad_exception_handlers": 9
+    },
+    {
+      "path": "research/immune_llm_baseline/b2_train_encoder.py",
+      "bytes": 33316,
+      "sha256": "df7de3e7be6ee185996f35454550a968c20667594737c788bb65c07a9c44d1b1",
+      "syntax": "pass",
+      "broad_exception_handlers": 14
+    },
+    {
+      "path": "research/immune_llm_baseline/baselines.py",
+      "bytes": 15560,
+      "sha256": "595d359343d84c19a35b11bea466860d2626b78bc3cde546b7cb8c0dac0d613a",
+      "syntax": "pass",
+      "broad_exception_handlers": 6
+    },
+    {
+      "path": "research/immune_llm_baseline/baselines_annotation.py",
+      "bytes": 9915,
+      "sha256": "615d0eba341631cb0aacc0bbd4f8e547d271b6c14384be558196475ccd1c5169",
+      "syntax": "pass",
+      "broad_exception_handlers": 3
+    },
+    {
+      "path": "research/immune_llm_baseline/build_rag_index.py",
+      "bytes": 4091,
+      "sha256": "a968dc489fc1a3a734f19ebd88e8bfe275cfdcbbe8aa2463be2e93565e8c7f98",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/cell2sentence.py",
+      "bytes": 12209,
+      "sha256": "89dade34c433ffae7e7703e9fb1bec5e062bf3c502e3876b586fbcbd9ee7259e",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/census_acquisition_manifest.py",
+      "bytes": 18595,
+      "sha256": "a6d0ab68c302c03a2c711b4bd1cdb77bb10094fc37a34454bbddacbac8e4f84c",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/cross3_stratify.py",
+      "bytes": 8285,
+      "sha256": "037cef1491497cf8fc185d4a03776014191c204f6f76e95b293fd6915fbcbe6b",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/cross_axis_combiner.py",
+      "bytes": 12125,
+      "sha256": "d6a96dde1ee9f39c2bf3a4616dfb099feca37c5e9e1251f76ad23f7f411b948f",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/cross_axis_combiner_v2.py",
+      "bytes": 10679,
+      "sha256": "9968b43556f142f4242409af3aee15183867cbf647c3ce315556ea6a3394d774",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/cross_axis_complementarity.py",
+      "bytes": 10287,
+      "sha256": "7e7ce14ee8b301ba97765956b58129fd227ebfcadc79a069860d8f579a0af9d3",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/cross_axis_gate1.py",
+      "bytes": 23057,
+      "sha256": "16324d80377e338a5c72844a568941e3a7554fa868918fedb836280308bc0016",
+      "syntax": "pass",
+      "broad_exception_handlers": 5
+    },
+    {
+      "path": "research/immune_llm_baseline/cross_axis_scvi.py",
+      "bytes": 7229,
+      "sha256": "f358fb81b8315dcd02c174d0aaa928f48840c42612a4ba6c38b52fdd7b285464",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/cross_axis_state_transfer.py",
+      "bytes": 14021,
+      "sha256": "4b4a759d40ef5325a193583e53f536e07e22ed56dbc06f6a9971ac572cfc1db1",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/cross_axis_transfer.py",
+      "bytes": 6486,
+      "sha256": "031c92555e478e1f9ef76191bdc5201f9c46ff5a744bcf32fa94a951488d3a7f",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/cross_type_transfer.py",
+      "bytes": 7292,
+      "sha256": "94f6034f5f8375a7d69b319eea451befb88696c1c8439fac464c6a1717a5c790",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/curate_immune_targets.py",
+      "bytes": 23139,
+      "sha256": "e2eea7ad6ff47ab186d3e7f80dbf1a0c84ccf82edd5bea3357929b6f6f8c3860",
+      "syntax": "pass",
+      "broad_exception_handlers": 4
+    },
+    {
+      "path": "research/immune_llm_baseline/czi_irm_head.py",
+      "bytes": 8655,
+      "sha256": "412f4881cdcbb0c15e254cbe5bc0b15ea25cfc596e39fe45d6effb6caf26a45d",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/czi_leave_ko_out_baselines.py",
+      "bytes": 10367,
+      "sha256": "c862eeb475fcfba69981d5c5fc99ae14809f331a5d1166dfab367d637e23ff2e",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/data/.gitignore",
+      "bytes": 74,
+      "sha256": "25483127177c45b4335825c07148c32d2b87ed93ab76424d7e2b7d5ef1fac74a"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/ccle/tpm.csv.gz",
+      "bytes": 241530115,
+      "sha256": "b29e5ea72687e1e0532cd06152fef138ae3ca668a0fe81dd8120e36afda0b691"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/depmap_meta/Model.csv.gz",
+      "bytes": 125259,
+      "sha256": "c64a4f9a2459b9538cc812d4b399388d372880ce0be81776e2c5252de42ceab5"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/genetics/coverage_report.json",
+      "bytes": 1753,
+      "sha256": "3b670bbe27b6c2044e163ed4ba50c530c4109b78d45b2e002de6e2f205663679"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/lincs/lincs_cgs_sig_ids.txt",
+      "bytes": 26489,
+      "sha256": "0881abba5982ebece4d6a698f7d2f017b11530a243650ef2497970804c5fcacd"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/lincs/lincs_cgs_sig_manifest.tsv",
+      "bytes": 38386,
+      "sha256": "ad0e7af1d793e296f09f13547b602b3f6007a04a913cba4800b001d23e79f250"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/lincs/lincs_coverage_detail.json",
+      "bytes": 115186,
+      "sha256": "ef15c524c8dfcbae15ee1036d4f5b8ffc35d264abc414385808089900b289eca"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/lincs/lincs_prep_summary.json",
+      "bytes": 745,
+      "sha256": "68e188160efb8e6c69325aa79567586f42011056662dfb0b550bdaee7c005c5f"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/pbmc_10k_protein_v3.h5ad",
+      "bytes": 24937137,
+      "sha256": "5f08b8575febf9e04b209b94eb43f6335f1e33b0985cdcf44adf7320f6243c69"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/pbmc_5k_protein_v3.h5ad",
+      "bytes": 18294964,
+      "sha256": "a1bf51e070d24b39627ea4de9b3e489a4637ff795e1061e0733e26c3baec8847"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/replogle_nadig_meta/README.md",
+      "bytes": 2963,
+      "sha256": "c9cfc4ff17d802a539061fdb683fa37557da442c13f2b0d14a39b8ec0840346a"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/replogle_nadig_meta/dataset.toml",
+      "bytes": 1132,
+      "sha256": "a86272f67b093067a58a933643d976ff5a3ec189fc5be3515efdbb5a66e64fb9"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/replogle_nadig_meta/feature_names.json",
+      "bytes": 61061,
+      "sha256": "1827304d955634e7f41aecc8d56de422a48213d99695189158133aa7b63028fe"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/replogle_nadig_meta/hvg_2k_genes.json",
+      "bytes": 18633,
+      "sha256": "6a67edbeede38c63604ec06c989b798e89370106f5eb0a3129efa3d720558df1"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/replogle_nadig_meta/split_0/split.toml",
+      "bytes": 9122,
+      "sha256": "7f8d5df29942f7532fef09b23a0a8deec7b8339bfe7817505b977bd894813962"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/scperturb_vcc_coverage.json",
+      "bytes": 14049,
+      "sha256": "b690a4aed2985ffbaf746a2d16be80d741205f618263350143074f7d9758958e"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc2025_meta/gene_names.csv",
+      "bytes": 116023,
+      "sha256": "e29ff3512b4c2440759bfb2a34577049b2f49df786b3e19c2a91b565de47b38e"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc2025_meta/pert_counts_Test.csv",
+      "bytes": 1894,
+      "sha256": "c4f0ba439d7c3121562ca1f79fa3854d8f96fc7c3de24dca23eb9e7c41c8923a"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc2025_meta/pert_counts_Training.csv",
+      "bytes": 2824,
+      "sha256": "633d202be221418bdbac16efd8cb169666de0ef6469a4e9bfdfb64666ea81a89"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc2025_meta/pert_counts_Validation.csv",
+      "bytes": 978,
+      "sha256": "9da5dec8c25aff1bddc01cf76897cf94ec65f8f877beee29482c543bf1e7e43b"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc2026_meta/gene_names.csv",
+      "bytes": 119295,
+      "sha256": "25bfa66715e186bebabce7ac788bbcea47e2bf59ca70be1f8f3a06f2f0e47201"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc2026_meta/manifest.json",
+      "bytes": 715,
+      "sha256": "2c2b5d425df817ca35e9edf08282d12494ce42913ba824375bf0f98a1cc676f5"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc2026_meta/pert_counts.csv",
+      "bytes": 1906,
+      "sha256": "f57edd7b912ebd718efc7ee9d0f334772513e7cc418d133ce525470e373b3276"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc_ext/9606.protein.info.v12.0.txt.gz",
+      "bytes": 1970090,
+      "sha256": "144de4b0d98c6a7dfde6ddc2591cf88657f27b989eadff4f501450c3ed1f0f1c"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc_ext/GSE70138_cell_info.txt.gz",
+      "bytes": 2528,
+      "sha256": "88c6ca5ff8bb3cf3af22c2eb8cbe769f9ae8e305a760959b18711877d730d61c"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc_ext/GSE70138_gene_info.txt.gz",
+      "bytes": 216692,
+      "sha256": "741216ccc53320119b47ab006de3bcad48963c57087c9e07f50f0d6cd088711a"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc_ext/GSE70138_sig_info.txt.gz",
+      "bytes": 1943865,
+      "sha256": "b78284478d62029f600d4397334c538d363123110affd2454bf0055bd0678e01"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc_ext/GSE92742_cell_info.txt.gz",
+      "bytes": 2528,
+      "sha256": "88c6ca5ff8bb3cf3af22c2eb8cbe769f9ae8e305a760959b18711877d730d61c"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc_ext/GSE92742_gene_info.txt.gz",
+      "bytes": 216692,
+      "sha256": "741216ccc53320119b47ab006de3bcad48963c57087c9e07f50f0d6cd088711a"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc_ext/GSE92742_pert_info.txt.gz",
+      "bytes": 1138509,
+      "sha256": "b1945b3fde51021865b12269929cc78ccf2665be27f53a4da9336e4ddcf4b42f"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc_ext/GSE92742_sig_info.txt.gz",
+      "bytes": 11124404,
+      "sha256": "19da29c0ee12ddf27f9698cd0da40beaff58657dcde9d382aae068737e831299"
+    },
+    {
+      "path": "research/immune_llm_baseline/data/vcc_ext/collectri_human.tsv",
+      "bytes": 2457362,
+      "sha256": "9fc7fdbf6d701c186a62c94dc126bf74ccd824a4160c15b332a0bb9d95584ede"
+    },
+    {
+      "path": "research/immune_llm_baseline/data_inventory_augment.py",
+      "bytes": 13414,
+      "sha256": "bf452ef13e4c15585db0cf178359f2a17aa8f26bdaa15cb182e479d122d0d84b",
+      "syntax": "pass",
+      "broad_exception_handlers": 4
+    },
+    {
+      "path": "research/immune_llm_baseline/deconfound_test.py",
+      "bytes": 5903,
+      "sha256": "46be407802eb7b5b4d8e2861f51b541faeb7ff85856003cec7dd13c0253e07de",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/direct_download_h234.py",
+      "bytes": 13298,
+      "sha256": "d675590e3e3690798952095e65c3312c83ff21f2a8681103b57e5daef8c9cb6f",
+      "syntax": "pass",
+      "broad_exception_handlers": 8
+    },
+    {
+      "path": "research/immune_llm_baseline/durability_condition_aware.py",
+      "bytes": 3546,
+      "sha256": "d011e8a8abffdf0bb8a1ca032aebf82eac8c596f6fc771084b32dc521495da24",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/durability_frangieh.py",
+      "bytes": 14596,
+      "sha256": "d05218ab6044fc86f285967c87ab6424589844b761db0d0bb01e2f0f38750269",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/eval.py",
+      "bytes": 10516,
+      "sha256": "be3fb3bec4c8902dc423bb44cd38d715ad1d5e0bb492260cd9ea8cebb32fa3f1",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/f1_inventory_gates.py",
+      "bytes": 9661,
+      "sha256": "45523ae0d3c1adb1aaf19dde7c336ef5eb9a00771389ea6fda20a4d9b0698391",
+      "syntax": "pass",
+      "broad_exception_handlers": 3
+    },
+    {
+      "path": "research/immune_llm_baseline/fm_embed_baseline.py",
+      "bytes": 11020,
+      "sha256": "297a1826397340c55611b0f11d6eb26df2a1eeb90d740313f09ab2c830444c68",
+      "syntax": "pass",
+      "broad_exception_handlers": 3
+    },
+    {
+      "path": "research/immune_llm_baseline/functional_response.py",
+      "bytes": 14596,
+      "sha256": "f121690cbdb745b184218300b8ed761af03aff78f5f0a5c4d4621c64e8840008",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/gene_crosswalk.pkl",
+      "bytes": 3344479,
+      "sha256": "3890f9461c210cb80b12763c6ffebf3d990192fd20056f2ea4c136af5ec631ae"
+    },
+    {
+      "path": "research/immune_llm_baseline/gene_crosswalk.py",
+      "bytes": 8169,
+      "sha256": "ffb75f7ac38e1d241c3616892972a26bbef6a7badfc9f0982922f7487c2b1d83",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/genetics_anchored_baseline.py",
+      "bytes": 9632,
+      "sha256": "024908e76c7579cdf11a0f3ac2ab0b6a715de26f8879b971b6b4ac075185d40e",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/genetics_priors.py",
+      "bytes": 7962,
+      "sha256": "1333bfbdc7ffa03a0668d00dafd96262324ee02ccc3d187b1bbe10021a6b81b2",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/gold_standard.py",
+      "bytes": 28589,
+      "sha256": "87097b5fb454ef91eddbe08c05f5e879722a6a8bc26646035acc53cf827a9806",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/h1_pilot_inference.py",
+      "bytes": 2252,
+      "sha256": "6b05c41e22d0da1e9fbcf2715335eceefa88b7edd80b72de097eacbf99198baf",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/h4_discriminative_hap1.py",
+      "bytes": 5466,
+      "sha256": "59304a21ca6a6fb262e0800a013983e95cc0e11ccd285c9b3492cb5b842eb564",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/h4_killgate_extend.py",
+      "bytes": 9115,
+      "sha256": "4bfc7fae3e4d42bc8dc8f3eef4631c0d2ecdcb44055116cdf92501d46a0d5e24",
+      "syntax": "pass",
+      "broad_exception_handlers": 3
+    },
+    {
+      "path": "research/immune_llm_baseline/h4_killtest.py",
+      "bytes": 14072,
+      "sha256": "9be3681f710e455e5c7d16025d718b359cf03cfd76a436fda38b727b7b4a6637",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/h4_killtest_hap1.py",
+      "bytes": 4810,
+      "sha256": "fb78c3708e289ac5a1c20ea66ca0d50673c90405437cc76d5bee9870ae085412",
+      "syntax": "pass",
+      "broad_exception_handlers": 2
+    },
+    {
+      "path": "research/immune_llm_baseline/h4_trained_head.py",
+      "bytes": 34902,
+      "sha256": "dda0a2205bf73d630d7ace8546bf81894cc0537b7e97a7ef0d72c3bedda25c29",
+      "syntax": "pass",
+      "broad_exception_handlers": 8
+    },
+    {
+      "path": "research/immune_llm_baseline/immune_hybrid_llm.py",
+      "bytes": 70292,
+      "sha256": "59dad66ad32ca8aae836518ffcaf7ab0bef4289ab3bcadbe5d9c57bf42c5bc95",
+      "syntax": "pass",
+      "broad_exception_handlers": 7
+    },
+    {
+      "path": "research/immune_llm_baseline/immune_model_readiness.json",
+      "bytes": 1808,
+      "sha256": "9e5f3bb2a99adfbac211d90ba4b9c1d3fbea602c13d0facfb020c38a7ea0c9b0"
+    },
+    {
+      "path": "research/immune_llm_baseline/immune_mosaic_inference.py",
+      "bytes": 4472,
+      "sha256": "24a4ec1e0a2504d50d59410826982329bfac2340bc8619df0cb37f8fa59e954f",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/immune_named_inference.py",
+      "bytes": 7403,
+      "sha256": "ca388ba64305923ae1f9b0c70c9d555bea33b4c473d6148c7b6c01d67ab39248",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/integrated_multiomic_ablation.py",
+      "bytes": 24455,
+      "sha256": "de1afb30c31a3bf117412ff05aa37638ce8b5d484c21a0508cc47eb487ad5533",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/irm_loss.py",
+      "bytes": 4226,
+      "sha256": "92e1f5ef0ca249c9806f95c156b47e78186dbe519b72b2803cb673b794a5ebac",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/label_crosswalk.py",
+      "bytes": 3388,
+      "sha256": "504c6e128277ebd828ed3e566360d2489e424af839da4fd0fb15ae2847aa9f59",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/leakage_diagnostic.py",
+      "bytes": 4048,
+      "sha256": "938c7f67e182ffa04469e3241188a2384f10275b234629ebf897866495503dbe",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/lincs_slice_prior.py",
+      "bytes": 5763,
+      "sha256": "bc868d3d71b116de640f23f85a6b4fcc14bb91f849f44454c10e43fc46de9cd7",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/load_czi_perturbseq.py",
+      "bytes": 11850,
+      "sha256": "5d595fc0f3fcf83901aa297d1cf495a2ae9da118a542d268784a1ed1ecbe82dc",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/mapkg_smoke.py",
+      "bytes": 925,
+      "sha256": "92a5ddd520e15b691c6c584df6f52b9bde144cd15bda74e36c3772eb03913dfe",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/multiomics_vs_rna_bmmc.py",
+      "bytes": 10942,
+      "sha256": "3d1e45abc34aac3db90fd4db666e54b9c22b184f141f6cee93802cb13500edbc",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/nsclc_stratify.py",
+      "bytes": 7824,
+      "sha256": "b5658be2628a3ba27cafc381656e1d78f57efca43cc2f9aa84ae9076ef91e318",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_integration_use_cases/audit.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_integration_use_cases/audit.stdout.log",
+      "bytes": 3833,
+      "sha256": "19225da297397edc59ccf675eb1e64399d7b3718f2dd9983e84d788fd5fd0802"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_integration_use_cases/data_regression.log",
+      "bytes": 109,
+      "sha256": "f19207a50aa593a6964229ca2186be9c36904ef048369013e957b0da0a202923"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_integration_use_cases/model_regression.log",
+      "bytes": 113,
+      "sha256": "8f4d9b10ed546d9514699cdcc9214d00b6600be1f046ac09b028cda200a68c15"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_integration_use_cases/results.json",
+      "bytes": 3832,
+      "sha256": "c05c4892cd0e7a8cdb01d0993c957efbefff256c3732f22b308338f8618e34f2"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_shared_omic_review/data_environment.txt",
+      "bytes": 391,
+      "sha256": "3b4a2421fc52d2385bd7337a79538879dbcd93edfce8da70af0b3f252d1c1193"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_shared_omic_review/input.json",
+      "bytes": 907690,
+      "sha256": "a2c951e78cd9ff29a795ad7bcfef6ac5c5a2baceeabf8a7f0bd51beae954e2f3"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_shared_omic_review/result.json",
+      "bytes": 2306,
+      "sha256": "4b091f32a84654e0bf3e2a41e13c05e4e3c37f0ddbd5d8731e9bd3449d8c050d"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_shared_omic_review/result.json.pt",
+      "bytes": 480025,
+      "sha256": "0620a68dbaa9e00becbec581a0ac4daf226b252067454af23f80ced3f3968669"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_shared_omic_wiring/immune-b21-summary.json",
+      "bytes": 4693,
+      "sha256": "6c6f51c6db96877ace069cbd31d165d4aae727d3047253b648225089c9d64985"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_shared_omic_wiring/immune_shared_smoke_input.json",
+      "bytes": 941904,
+      "sha256": "35c97c92e13a8f7e87327a8f7ea69c5e96162a5f4aa508dcc4d33aa0fd504c9b"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_shared_omic_wiring/immune_shared_smoke_result.json",
+      "bytes": 1138,
+      "sha256": "3921c9d849b1f2f787c5fd90351348b4658fb84062730a065686d7b3ee2d71ef"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/20260911_shared_omic_wiring/immune_shared_smoke_result.json.pt",
+      "bytes": 712440,
+      "sha256": "823770e352cdba4ec40a9b0de6bba0cda4417a3a1e2093f604c730fd70eca7f7"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/vcc2026_geneloo_k562_hvg2000.json",
+      "bytes": 1798,
+      "sha256": "86fa54205968d715e0b5a9cfc49e2d4c8498c3beb9fa69d87bad5a29a86b2891"
+    },
+    {
+      "path": "research/immune_llm_baseline/out/vcc2026_loo_rpe1_hvg2000.json",
+      "bytes": 1767,
+      "sha256": "4f722a9165800954515f6b102fa3c7fb735b2118c4bfe0e2062f8e4faf4d382e"
+    },
+    {
+      "path": "research/immune_llm_baseline/p1b_target_id_ranking.py",
+      "bytes": 13462,
+      "sha256": "d06ec7192e340c7a1f5e4946d47673354b3d3277d9c5e9ba7d72f82cb80ac6b6",
+      "syntax": "pass",
+      "broad_exception_handlers": 2
+    },
+    {
+      "path": "research/immune_llm_baseline/p1b_v2_learned_generalization.py",
+      "bytes": 11866,
+      "sha256": "fcff2d085b0be747be4e6683192093e353eb79e9106be4193675b912211335b3",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/p1c_priors_target_id.py",
+      "bytes": 7295,
+      "sha256": "caf99b3ad73c3daebf7db16ee8a2499ae3640982df269d58258393f8dac5d30e",
+      "syntax": "pass",
+      "broad_exception_handlers": 2
+    },
+    {
+      "path": "research/immune_llm_baseline/p4_fold_cache.py",
+      "bytes": 18691,
+      "sha256": "908d26b8b438e7e3e0c98ce528e795c5de24153ff158cb1c9d6adba7cf8c1f45",
+      "syntax": "pass",
+      "broad_exception_handlers": 6
+    },
+    {
+      "path": "research/immune_llm_baseline/p4_linear_advantage.py",
+      "bytes": 29207,
+      "sha256": "b56e836c91953a52fd1ab306dd93836271bc926ebec536ffaf4419fae222aebd",
+      "syntax": "pass",
+      "broad_exception_handlers": 6
+    },
+    {
+      "path": "research/immune_llm_baseline/p5b_protein_advantaged.py",
+      "bytes": 19967,
+      "sha256": "33122066913f6691f6c4299abf212d83796be3d428a843f09d5e4bcf07b1000e",
+      "syntax": "pass",
+      "broad_exception_handlers": 6
+    },
+    {
+      "path": "research/immune_llm_baseline/p5c_scipenn_bmmc.py",
+      "bytes": 9690,
+      "sha256": "974abf9a81e3fc8b8bfa62e85f886743d12ab099ab4cbce5834bf624fc242446",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/p5d_multianchor_leavedataset.py",
+      "bytes": 15615,
+      "sha256": "66b4c33cd2bdce489d2dfcb6d910814c5acb36d87c7eb87b606278304bf696ea",
+      "syntax": "pass",
+      "broad_exception_handlers": 3
+    },
+    {
+      "path": "research/immune_llm_baseline/paired_anchor_io.py",
+      "bytes": 3192,
+      "sha256": "30beffb316fc122d96fff9b93464a869fa023a592a0a593695478de0d5ddc6b8",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/prepare_donor_pilot.py",
+      "bytes": 5202,
+      "sha256": "242887cd90a3658a55f24586fbb261e70d59be8aab0d53e6486cd5e8895ca3f7",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/prepare_h1_pilot.py",
+      "bytes": 3653,
+      "sha256": "3c5f9baadbdd6b73dfb09060e6e5484699ba8320bd98fa0d596a8f0261d2e303",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/prepare_mosaic_pilot.py",
+      "bytes": 3544,
+      "sha256": "3d78ff2bb692cd53ce0771be85c2287c4d2489ba4f57763fc357e85e5b33dd3c",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/prepare_shared_omic_smoke.py",
+      "bytes": 2661,
+      "sha256": "2e0ee796811d31ea11ee49232dbd31393078490805b586a07c62d2ec04fdefa4",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/program_baseline.py",
+      "bytes": 9743,
+      "sha256": "88a48a516a842b119c62fe75eb813c995784db0baf46f19e85d861ce6cc9d082",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/qc.py",
+      "bytes": 4714,
+      "sha256": "e8a928dae34c6fb75122fb88b9b046a832dd48d778248716a67dbedddcdeadc7",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/qc_preprocess.py",
+      "bytes": 4924,
+      "sha256": "6e8090818a5b8626e8c8b50c3f8756f6fa8bdfa3b33718efa2d7a646b6afca9e",
+      "syntax": "pass",
+      "broad_exception_handlers": 2
+    },
+    {
+      "path": "research/immune_llm_baseline/rag_query.py",
+      "bytes": 4766,
+      "sha256": "48783b3d5847f7f804989cf9ffa3abb4ce5ce4197be074a8df27c233317cc02c",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/real_baselines.py",
+      "bytes": 5693,
+      "sha256": "83e96b92414d64d5d53ee6c450811e43bf8a0b5933ee70762a5791f3f950691e",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/real_fusion.py",
+      "bytes": 6180,
+      "sha256": "54c835f6fce83ad133a8fb2224df06d1c284ea88fda55b3f0a7fd0e33f88a0d8",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/leaderboard.jsonl",
+      "bytes": 233553,
+      "sha256": "801c453cd096e3f5b432dcae0420392e3c88e359fd6be3564c989ac317c59bf4"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_hepg2_0.npz",
+      "bytes": 14388,
+      "sha256": "707725e576d72b12d279fc3d89e2385a40f587550d0a7171ff53819a52e666ec"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_hepg2_1.npz",
+      "bytes": 14381,
+      "sha256": "afd10f888e4ea36448afcbde3967a86b1db2411026910ef01067b20d1e48f3ce"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_hepg2_2.npz",
+      "bytes": 14366,
+      "sha256": "89f5d94d1e3b2f918e8cf3e4e34b3b0108769f0098660ae54a17dad517ecf909"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_jurkat_0.npz",
+      "bytes": 14377,
+      "sha256": "6b5a3637b6217ae62c8b7ebc482f6d8206e077281e181f211a606a5e6f58d6eb"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_jurkat_1.npz",
+      "bytes": 14366,
+      "sha256": "55cdb9ca8bf0017211e4c8e48e478ca797db3016e458e660a7ff74533079bd53"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_jurkat_2.npz",
+      "bytes": 14371,
+      "sha256": "1ab26151da4057b9bcb7a367238eec02d6fae3b49b3bc5bd1a0b4afc2d871a82"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_k562_0.npz",
+      "bytes": 14394,
+      "sha256": "fe6567e52bd6070c39f9e6951640020d137a600f06a7f6c66f013fdc0e0628af"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_k562_1.npz",
+      "bytes": 14385,
+      "sha256": "d3737c39c1fe1908a4eb8cbf3c7fe0d3d1a411b7d58f93fc51fe05d76e60aed4"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_k562_2.npz",
+      "bytes": 14374,
+      "sha256": "c874a9fc6088d084adf4ad342b822242f8bc89d38275803bb2fba1d7336c625c"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_rpe1_0.npz",
+      "bytes": 14355,
+      "sha256": "27b162a3ab369463f74fc34f894a3001b76d77243c66a966b6c876f342b9c618"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_rpe1_1.npz",
+      "bytes": 14358,
+      "sha256": "da3111ce824836ea9b3d54ce48f6bc1ae7faed0c5b269482dd6fb0038923e598"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A0_control_floor_rpe1_2.npz",
+      "bytes": 14365,
+      "sha256": "15a94b39f5fc175879d06765f58c34478af59daad5aa24a8a88fdc0595e6e7c4"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_hepg2_0.npz",
+      "bytes": 25969,
+      "sha256": "30ae74184e20ecd53fa7d808329995eb849aea3bcc91f113e218f371fbf5eef7"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_hepg2_1.npz",
+      "bytes": 25951,
+      "sha256": "4a3cad0b403b7168ec02b0124a24f0c165c9dc388b1ce145c39a7b06897da4aa"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_hepg2_2.npz",
+      "bytes": 25932,
+      "sha256": "28db33048150c46b8f3845db67108eac00b51a5eb85f219b20aa466041d60364"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_jurkat_0.npz",
+      "bytes": 25937,
+      "sha256": "0f44c85e53724799c0d9ecfe39830a8f8e545ff6f691b9b26218bed64b5f17e5"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_jurkat_1.npz",
+      "bytes": 25925,
+      "sha256": "9619c5669668e94ed6e5c0a7f8b097b8499f0a564f655e9a7eb9c58f270fd4a8"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_jurkat_2.npz",
+      "bytes": 25908,
+      "sha256": "5d92663afab7c8c86c06eb4979cdca90de6dcf5c2e7a01be4a6fb95400dd8bce"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_k562_0.npz",
+      "bytes": 25933,
+      "sha256": "2bb4ab751375c35745d4c25f81ccf537939db1bb70250462b0b13176ec18ae97"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_k562_1.npz",
+      "bytes": 25932,
+      "sha256": "c464915bf82db76868686ecd0c8cd46b2762b7707c178e5906d6ced745ebfbc4"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_k562_2.npz",
+      "bytes": 25920,
+      "sha256": "57c0b07a1ef85c0bf7a1f94b7c046d1d480db82f023e9daf2a5fc32424ab1ff8"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_rpe1_0.npz",
+      "bytes": 25934,
+      "sha256": "c5b4609ad743a56e7df71a530735ac2e2b5f336190a3ffd95bc9ea311081851e"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_rpe1_1.npz",
+      "bytes": 25945,
+      "sha256": "aa556463ae900817afe1c11011d3fa21ba48b3d41eb0f6f60a03cdbc50d07b39"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A1_global_mean_rpe1_2.npz",
+      "bytes": 25928,
+      "sha256": "19422083637114dfdde0f1ec5c0702a1a279d297f25272b6375f49ff163fa20e"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_hepg2_0.npz",
+      "bytes": 576780,
+      "sha256": "7171796d3bb5bb83ee5dfab3812b9087b9fd9104e327a68990d77e3610cdf5f0"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_hepg2_1.npz",
+      "bytes": 592031,
+      "sha256": "7891d79811ee59b8fe458c4814c3361c269cd042a8c1d0ce72f747999ff28282"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_hepg2_2.npz",
+      "bytes": 584465,
+      "sha256": "f47af90531fd8e8fc0f5febe95bfd2b9f30c4cb8b94a09a018cc9d2d5d90e62f"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_jurkat_0.npz",
+      "bytes": 598106,
+      "sha256": "7aa071ad5255f4d52c585dfdfb697b0c4871dab7802157bf85314dac3e6b632e"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_jurkat_1.npz",
+      "bytes": 568225,
+      "sha256": "0ea23c0e25929be152b0a162b19393eac1b222b92d43bc49891b5e1ffa9f3519"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_jurkat_2.npz",
+      "bytes": 590343,
+      "sha256": "2f46e3c063e6bf7d5f528e260891a5c4fb1f6973e879f7d551293645af063caf"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_k562_0.npz",
+      "bytes": 560104,
+      "sha256": "2a13076db9158d27f7834c9a53619a7e9b6dad811a5ecb779ef26d39164a2ed5"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_k562_1.npz",
+      "bytes": 575126,
+      "sha256": "3327bf79095ca8fc015a27abb5cc0717d512b61953c2b2354a17cf6e5abccb40"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_k562_2.npz",
+      "bytes": 589881,
+      "sha256": "83dbe0b81f37495c2f4acfa13d8f5505301f8a594bb590302f2df2496904dc52"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_rpe1_0.npz",
+      "bytes": 584914,
+      "sha256": "f965ba0935b0e794facaf35c1821dd96dbc459643182cef15e0489a5fa5516c4"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_rpe1_1.npz",
+      "bytes": 584720,
+      "sha256": "aad21791ae0c028ef14410c8fcc064e348453699555582e6129c158895189b87"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_cal_rpe1_2.npz",
+      "bytes": 592278,
+      "sha256": "b79e24e229349ca84a8d89af347f7b6ea6442aa3c18343c42e163d0f58d85d50"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_hepg2_0.npz",
+      "bytes": 576902,
+      "sha256": "bb4ff326cfc0f43ec649c4caf59cab2177cdade25165fc5316cbdb6e59049668"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_hepg2_1.npz",
+      "bytes": 592056,
+      "sha256": "8eb08aa378cec9e60b0167c7363bed65c4d58ec6d8a970aef0321a4872df054f"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_hepg2_2.npz",
+      "bytes": 584440,
+      "sha256": "3007f7e6ca05d8466c5c2514ad1b33e7e9ed63161c855c0b8dd3c01cf5de6f07"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_jurkat_0.npz",
+      "bytes": 597981,
+      "sha256": "da697c29328bdaf747cd464e247abc6cf1942cdf454d1d8b0b7f6bd89f034091"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_jurkat_1.npz",
+      "bytes": 568275,
+      "sha256": "dbac70705bafb7fa690992b4cce7682b7711eff0d5aa1d06c742ed924972f2d5"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_jurkat_2.npz",
+      "bytes": 590419,
+      "sha256": "accfe6fd032b27d6c28f5f63f9430d2ce2f458c96353870f0dfcc9a4a60e77fb"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_k562_0.npz",
+      "bytes": 560112,
+      "sha256": "503e97d997ccfa54bd1d0b5ac8b733e07a80e947b887fd864e274600795edf50"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_k562_1.npz",
+      "bytes": 575125,
+      "sha256": "da568efcd4332f308df5f1ae6145e8834edc7cd93ccb9f3fdf40a3e27418a6f2"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_k562_2.npz",
+      "bytes": 589868,
+      "sha256": "5067a25093dafe987fab1be07975d8969f12c200cef22bc00bf0e6c119db89bd"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_rpe1_0.npz",
+      "bytes": 584904,
+      "sha256": "76be7b925c8462f442f4968d3b233a8842225ff85b34d2937c4ef59b1f6d927f"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_rpe1_1.npz",
+      "bytes": 584737,
+      "sha256": "b9ac400afc0a2cd8bb5f25b8f088be11886acd984253a224ff7a37dc7907dea9"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_coresp_knn_rpe1_2.npz",
+      "bytes": 592278,
+      "sha256": "b79e24e229349ca84a8d89af347f7b6ea6442aa3c18343c42e163d0f58d85d50"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_hepg2_0.npz",
+      "bytes": 613359,
+      "sha256": "5c2a52cc18a43909605de3a43bf0288999100557e977587aaf18910bb5b02914"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_hepg2_1.npz",
+      "bytes": 613511,
+      "sha256": "5fc88fa4100386851951bb76881f15b3ef96a7afa6c1044a7c89435514627f6c"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_hepg2_2.npz",
+      "bytes": 613589,
+      "sha256": "5991c2dc1f221a7107dfbf350642509561503805553b1fbb3f7c7a6948f21d80"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_jurkat_0.npz",
+      "bytes": 614197,
+      "sha256": "f326914207183ec3c9236189dd5ddf82c0f93b049fe0569a38732c7927def5da"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_jurkat_1.npz",
+      "bytes": 614294,
+      "sha256": "e2e7258115e82e339522fefff237e11478b5857ff9654d242f34555d0ef722df"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_jurkat_2.npz",
+      "bytes": 614182,
+      "sha256": "c26b87acf62b22a419932fcdb9c9a6cbf91b6e5ed81b79e46f1788aadef83a35"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_k562_0.npz",
+      "bytes": 613871,
+      "sha256": "37e5b66fa56f530ad30963372e146b883ade9868d506b2fe29c22dbb7c30a6c6"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_k562_1.npz",
+      "bytes": 614038,
+      "sha256": "bf9561ac0d50bf8aa38a5f97b89bfdb595ffea50b18a30461db7157b4fcc14c1"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_k562_2.npz",
+      "bytes": 614128,
+      "sha256": "8d41f5e0ee77acc598c9146103f1f2dd4eca85a7924cd27b2b12edb5e5f43cc5"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_rpe1_0.npz",
+      "bytes": 613107,
+      "sha256": "983a29c0c527488ccb20095d8094947892b3683b4b3be4a7a4eca90623daed38"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_rpe1_1.npz",
+      "bytes": 613179,
+      "sha256": "83bf5558d086de99b14caf3042d9828a0b56723443f36b79334e630fd2a0b93a"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2_llo_rpe1_2.npz",
+      "bytes": 613075,
+      "sha256": "80ddce9c5f699075f2ed684cf58f81eb62c3db2cb0c8faa50180a78ded519f36"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2b_depmap_knn_k562_0.npz",
+      "bytes": 603985,
+      "sha256": "ad9415fbf804a09fc544d4736608162349ea33a7a6d2a6cd07eea792c8bacef2"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2c_combo_knn_k562_0.npz",
+      "bytes": 560154,
+      "sha256": "a95ec91c9acb65f4d2f55612b45ef8f0dd9f139af3b10b69f80bdb6f4d89467c"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2d_go_knn_k562_0.npz",
+      "bytes": 604067,
+      "sha256": "80bef4c6b45504a36cc520c1827c5a9dd28f9ab5db6f36028c3e511d5bad0ed3"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A2e_combo_go_knn_k562_0.npz",
+      "bytes": 560026,
+      "sha256": "9f4c71bcb4b92f956fa2a2edc4f15d6d840673d04dda33a1b5e88d3803a3dd18"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A3_ridge_depmap_cal_k562_0.npz",
+      "bytes": 602350,
+      "sha256": "bc80ea5955666da772fbf5393bad61af277af1ba0abe32a861ab5066c7521da4"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A3_ridge_depmap_k562_0.npz",
+      "bytes": 602262,
+      "sha256": "9852f60b93efaa98baa8627a4c82d489bb9998c30ad2f2a02a1b224cdac53e9e"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A3b_ridge_split_cal_k562_0.npz",
+      "bytes": 603231,
+      "sha256": "6733511cd677c0d06313039f6ba4b4562281ae38539a54afee5d1a03c97da7a3"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A3b_ridge_split_k562_0.npz",
+      "bytes": 603422,
+      "sha256": "f97337ef288c9e8c3a41e0a6704c20f4bce9b105c47cf1823d8788c5a8d9f6b1"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_hepg2_0.npz",
+      "bytes": 576225,
+      "sha256": "f816fe8bea6c253d74b556076776aba0c278213ac4a082b7cf47080a1840e41d"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_hepg2_1.npz",
+      "bytes": 591271,
+      "sha256": "480185b2c20a278c7ba04826b724ec3e879fd49649e45ef4d694cc4104f687d6"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_hepg2_2.npz",
+      "bytes": 584007,
+      "sha256": "d853d8297509717ae97e6987fb6c827dbd862bb11c081336aa6f53883ae88cf5"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_jurkat_0.npz",
+      "bytes": 597238,
+      "sha256": "f6f8928cd44e81b4b421dba0403259da72c9a09763950488a21af7a29b33ef96"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_jurkat_1.npz",
+      "bytes": 567404,
+      "sha256": "8f4836a4f1b6668dd7e2d35c5965039ed263795ff99025c80d8eb3c5749e48ea"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_jurkat_2.npz",
+      "bytes": 589779,
+      "sha256": "e131fa5fd0065b869f57726fbb203f581cf8242e81de356eb13c24c6904d6b5a"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_k562_0.npz",
+      "bytes": 559796,
+      "sha256": "8b4c8242798f4ea10d9035bbdad87399b21691be8edeeeb6cd50484d9cd91682"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_k562_1.npz",
+      "bytes": 574373,
+      "sha256": "2d38682a18198e3c024f7cba32215f216c50f4ba71f8a9f7085324fbb8d1e52e"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_k562_2.npz",
+      "bytes": 589501,
+      "sha256": "0cc9636afa75d7a636edcec06f92e6c3b37efce96a2248e9c99d003362ff651a"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_rpe1_0.npz",
+      "bytes": 584613,
+      "sha256": "586afd93e72878cbb5bdab88e48a9d4ea8f755c5955dd8af5649168c8923dc1c"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_rpe1_1.npz",
+      "bytes": 584481,
+      "sha256": "ee0a319e3e4aa680f6c34071428204c15000296975113313214dab865f1579de"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_learned_temp_rpe1_2.npz",
+      "bytes": 591753,
+      "sha256": "3ece2cf522d1eae5bc3892aa0b2b16f5c10f98dd392e026c261d2604e2e509b2"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_hepg2_0.npz",
+      "bytes": 612704,
+      "sha256": "ee69478c9780af2a3d2a69fa2239f63aa1efc870c84d9ce8e1cd2d05ca14ba61"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_hepg2_1.npz",
+      "bytes": 613016,
+      "sha256": "7d6c70a6704ff1fca5945b5c469a25d31491821d7f7c86ed67ba9dd0cfbde61b"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_hepg2_2.npz",
+      "bytes": 612994,
+      "sha256": "60a19efea3ea160431d34b65e0d50836b03b4bb061e9ea633e790f1bb5632f68"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_jurkat_0.npz",
+      "bytes": 613423,
+      "sha256": "6bf4ae9006492a1c502586ce7316a17696491c8d47538c83d34d05ab595dc262"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_jurkat_1.npz",
+      "bytes": 613672,
+      "sha256": "966555fdc74c31330209745671db3754ce877b7a030e0c3742c0adb1dcc4c308"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_jurkat_2.npz",
+      "bytes": 613543,
+      "sha256": "f11e9572aa67737ac7435a25e3b6656ba49591091f92453196472ce38a5e494e"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_k562_0.npz",
+      "bytes": 613239,
+      "sha256": "61d4e1ffdaad8e17404405f09060a4279d7985cabab44396938a7361b709a84a"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_k562_1.npz",
+      "bytes": 613606,
+      "sha256": "219c3b15de787375be2132f35075abc2be2d3ea46b54501e50bb0e10928918bd"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_k562_2.npz",
+      "bytes": 613637,
+      "sha256": "cecba270a54d0ba6ab246ea51f5818dde4f7f47e2dd7360e9b0dc6d02219814f"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_rpe1_0.npz",
+      "bytes": 612610,
+      "sha256": "9d896d11704598e6d7e8ada42546404a978a9c31d0bf289b9d13ba8203d72bc2"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_rpe1_1.npz",
+      "bytes": 612603,
+      "sha256": "c86e0dcf3c28d5adccc7ee2fc9f22d24029d85dcbc4f310f6ee859268f88746f"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_llo_rpe1_2.npz",
+      "bytes": 612590,
+      "sha256": "0079189480c1dc994a736fa861d9e0a163fd668e8a08128bb7113c9f9718d9f3"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_hepg2_0.npz",
+      "bytes": 617700,
+      "sha256": "e9d0aff7f1a4d77182efa3c339bbf56dda5b047c5e5cc0da2f629c802aa216f2"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_hepg2_1.npz",
+      "bytes": 617627,
+      "sha256": "4c042dcc1b598837d9dc45e7bf71cb93d4d61fca845c49e55134f67e760db388"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_hepg2_2.npz",
+      "bytes": 617561,
+      "sha256": "152bb72ee87731c085e9899151fc08b8bc318e5f7d26120a3610e54def02c818"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_jurkat_0.npz",
+      "bytes": 618521,
+      "sha256": "7b916c120c0b3b118d1e6c62ca3bf1b318784f60d08c15a6fe0db5ac3b06b5ef"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_jurkat_1.npz",
+      "bytes": 618418,
+      "sha256": "3831f1041d65a8e98f617dae515b2393b1319725c189b721d919079d462c35a0"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_jurkat_2.npz",
+      "bytes": 618639,
+      "sha256": "91fc9d4876badba86269d09f8bd4955a203a4e3d506abd9a294f7aff60c62aba"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_k562_0.npz",
+      "bytes": 617527,
+      "sha256": "90401adae4c256994c56a1f7385c092e232287ec774500211cba4112d6a41ddd"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_k562_1.npz",
+      "bytes": 617500,
+      "sha256": "7cf1e63d4f63c567418108c28c6643ee4d662569e20742dbcf70d7e783aff519"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_k562_2.npz",
+      "bytes": 617421,
+      "sha256": "c230363b536560c815fb4d38f16c8f7aeec9f35b4d9e78e8b1a835769c5723a0"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_rpe1_0.npz",
+      "bytes": 618421,
+      "sha256": "fc9dce284cc061ffea45efe605095d550ebbea13692997830e5fc70cc0710dc4"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_rpe1_1.npz",
+      "bytes": 618481,
+      "sha256": "5987e5ab626b862a989b3881d1c6c6314e97157e077b154802391cedc062097c"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrl_rpe1_2.npz",
+      "bytes": 618686,
+      "sha256": "b2a28fd17216474ac864a992aa9d2f8514de51a7db1dc07d6dbf7e6abf92805c"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_hepg2_0.npz",
+      "bytes": 615797,
+      "sha256": "eb209f37aabd3a326f02e9c3a7b7691b2b1cc236e391566a7a0d5102f2615710"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_hepg2_1.npz",
+      "bytes": 616109,
+      "sha256": "0ad84ec661c0f8fa12fed41606478c4a67a0aa964e7af9a1a3e4cd9786dde64e"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_hepg2_2.npz",
+      "bytes": 616087,
+      "sha256": "3f3ba7e81925dead08dd37eb63150cdb9c6ec247da32c0249cc0cbc25a4c84dd"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_jurkat_0.npz",
+      "bytes": 619362,
+      "sha256": "d9a93b5ab3676e9b2085c0fb88501a51807b6f6805d778e82ae2d081b5fc2258"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_jurkat_1.npz",
+      "bytes": 619611,
+      "sha256": "c62f03b441c80edce6f92bf41237a0d3422270c0cce6b855df7aadd378f1b128"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_jurkat_2.npz",
+      "bytes": 619482,
+      "sha256": "3e3bda3df33476990c59214920cbdea7a6683a20029dce84c6c673bd8cbdb8e8"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_k562_0.npz",
+      "bytes": 618255,
+      "sha256": "f685d19f0cd94c4e9ebb806cd5969dc475211047c96225d2035de391fe00bf7a"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_k562_1.npz",
+      "bytes": 618622,
+      "sha256": "8bdaa96f8c0572ab1032aeec824f7b5f740ec08fb5c178a344eb64f3291bfcd8"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_k562_2.npz",
+      "bytes": 618653,
+      "sha256": "081eb41c3825c9b8aa9178d91c045626449ba9352ac1d36ebd9c1ea5850f0583"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_rpe1_0.npz",
+      "bytes": 617702,
+      "sha256": "c98512ab414431fc9f113ecd81a00fc9fe5f9204df0a20e950f21df1837e8fad"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_rpe1_1.npz",
+      "bytes": 617695,
+      "sha256": "d7170d88d26acda8d35504482fa580d022ae3ed7ba1f91c35f3962ed9c4bfe9c"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_ctrlonly_rpe1_2.npz",
+      "bytes": 617682,
+      "sha256": "0701764e90532e8b9a9dd8b46ce15b18cc0979ce352d1d2b116d5d0c174286cb"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_hepg2_0.npz",
+      "bytes": 616470,
+      "sha256": "69abd248704bfc6c33992294a392343b476989e354b117b843680a2664b527dd"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_hepg2_1.npz",
+      "bytes": 616481,
+      "sha256": "0000617f825db4fc36d28b62a68a7bc1a359c8f8d3c3acaacdce18969ffd57d9"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_hepg2_2.npz",
+      "bytes": 616713,
+      "sha256": "31a78fc0707147653355e891a55e4c4d9f6df0f170d2651cb18edef1d498e933"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_jurkat_0.npz",
+      "bytes": 618807,
+      "sha256": "f12c42cfce71f42d652dd30ad3ff813fc2d30682cf4e7544fe43048d557e745d"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_jurkat_1.npz",
+      "bytes": 618913,
+      "sha256": "a2ff0a8101bf104c956a19bc769b9b732dd4995d21ce5b068b891354803eeab0"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_jurkat_2.npz",
+      "bytes": 618946,
+      "sha256": "47e70819ba2e5a313ce0f326558c6d1d708f35ad1a556331156ab773520a2476"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_k562_0.npz",
+      "bytes": 617749,
+      "sha256": "5667056b2475dca456effd239982b0768ea45acd8cfb545cdbafa5f636e6bdeb"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_k562_1.npz",
+      "bytes": 617843,
+      "sha256": "679ca9dba77e84a45861fb5f1d5103d940fb4bb3f200b75c68cfaf6e443a8cca"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_k562_2.npz",
+      "bytes": 618082,
+      "sha256": "1efd97c205ec3cedbac3b1b82f5e362ee54738ec3af7daa46bea9edd94d1a023"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_rpe1_0.npz",
+      "bytes": 617863,
+      "sha256": "d25962cd0d01a588e051ecd4096d62a32b29762648a2cdf8538fab1d3e1a756f"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_rpe1_1.npz",
+      "bytes": 617980,
+      "sha256": "fe2e7eced0753cc1b6760aaa32c31f6dc2ce8d17e96fa7649a0956557547c2e3"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6a_v2_softw_rpe1_2.npz",
+      "bytes": 618127,
+      "sha256": "152c24a84a4bf3ed3110c5b9fe23d07deb1718a6bb084316b1db663fec72ff4f"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6b_contrastive_k562_0.npz",
+      "bytes": 560158,
+      "sha256": "2cad6b5e74ee7a199cfb0226af3bc1c99152894e28e11962743b66b1cb9fe8fc"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6b_contrastive_k562_1.npz",
+      "bytes": 575310,
+      "sha256": "664302d4c5feddf386511a97dd66f02117b4e9cb79ae8e82559a79b7f3b2e77f"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6b_contrastive_k562_2.npz",
+      "bytes": 589833,
+      "sha256": "6bdf9a869de20d6a7bf17e8df4f4dd18cd23e32f52c6c5bfe20ae3dcfb031c82"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6c_biomap_residual_k562_0.npz",
+      "bytes": 559796,
+      "sha256": "8b4c8242798f4ea10d9035bbdad87399b21691be8edeeeb6cd50484d9cd91682"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6c_biomap_residual_k562_1.npz",
+      "bytes": 574373,
+      "sha256": "2d38682a18198e3c024f7cba32215f216c50f4ba71f8a9f7085324fbb8d1e52e"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A6c_biomap_residual_k562_2.npz",
+      "bytes": 589501,
+      "sha256": "0cc9636afa75d7a636edcec06f92e6c3b37efce96a2248e9c99d003362ff651a"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_hepg2_0.npz",
+      "bytes": 614991,
+      "sha256": "ed053b695b3423faa10bbcaca8721c1d6809e0dad3ad688ba3dae6124a684b2b"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_hepg2_1.npz",
+      "bytes": 615101,
+      "sha256": "ad9088a699412a4540de727485b66d53f88ee224358a5d65a935f4050ff5e5ef"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_hepg2_2.npz",
+      "bytes": 615143,
+      "sha256": "4deea5510800c0a24e002a47f06238895d607a1dc4c37f5823be255e91460845"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_jurkat_0.npz",
+      "bytes": 618265,
+      "sha256": "8110ef35b1211286c75ffbb90287f9ca5e7fb731cc1c81e2a3637c9aff3082ca"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_jurkat_1.npz",
+      "bytes": 618330,
+      "sha256": "15c69de289de4b97cc9d2416116f4dd2c5f158f80178138fe1193862e0464de3"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_jurkat_2.npz",
+      "bytes": 618337,
+      "sha256": "60336c30b91fa49e2a4e0994c3dbd043208b471d02f0d0640936440299e9f47e"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_k562_0.npz",
+      "bytes": 617118,
+      "sha256": "8754a94a7daf15aa740b93a5eab01f6667dadfc0119f43d1da7ed61fa904bc2b"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_k562_1.npz",
+      "bytes": 617607,
+      "sha256": "c3a0964512addcb0af2f0940ee1de1e8f5d78ae4ccc32dbb36bf2031175d08a8"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_k562_2.npz",
+      "bytes": 617599,
+      "sha256": "791c906ff6be42245635aba9221e18ba50c0d5d4372231f6590d7da532b82e32"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_rpe1_0.npz",
+      "bytes": 615925,
+      "sha256": "0e3d2038e652d7598b1d5150491710191e4dc5bfd996d72083e76160551cf844"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_rpe1_1.npz",
+      "bytes": 616197,
+      "sha256": "10c7de86b8b17796554cf22bef4bfbc075286f1fd74f9b0590a4aa02d66d162b"
+    },
+    {
+      "path": "research/immune_llm_baseline/results/vcc2026/preds/A_identity_llo_rpe1_2.npz",
+      "bytes": 616215,
+      "sha256": "f5a48060beb62cd0fc01ba2f58fcb9b41ccc4a83fb72354fecd38e946abb9fef"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_L1_ec2.sh",
+      "bytes": 6411,
+      "sha256": "0123e068a9d0d37904f963a4b6ac23fb7306151412df5b2a1a2078a1922a9790"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_L2_ec2.sh",
+      "bytes": 5168,
+      "sha256": "5cbead706a5a2840a5d7d713b2ea2e7967fa49dbcdf6d6f7d8343be7dce2c99e"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_L3_ec2.sh",
+      "bytes": 6957,
+      "sha256": "243e2481c4f350617be44da5fe0afcb09d9e9441356ee7e9490c3e467d588382"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_W2_combiner_ec2.sh",
+      "bytes": 3212,
+      "sha256": "ad8238b7a7a02459b9712cce7975fd3938a46d4c808c048df4d1f58b702136d3"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_acquire_census_ec2.sh",
+      "bytes": 6017,
+      "sha256": "573c93c594f702ac34199345b2acee05f44cf3a45d6c61cf1d1c33bb873797d5"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_acquire_immunopeptidome_ec2.sh",
+      "bytes": 2432,
+      "sha256": "c4bf7fa638d64643697716df233f85a6284be329ccd2d5d325c040accac9f6f3"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_acquire_modalities_ec2.sh",
+      "bytes": 2292,
+      "sha256": "889ba4265d136ee397ca98fedfd6d5f93aca7ffd2cb643ba9817c952bf4ac16a"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_acquire_open_ec2.sh",
+      "bytes": 5162,
+      "sha256": "56196a0a39671531f1a37f539cc5ad932afc90087c316b1a8c628639fc1e515a"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_acquire_proteome_ec2.sh",
+      "bytes": 2419,
+      "sha256": "ce547b75d7ef30cb142d49665cbf39ff8ef8ef0c2a9258b0dc3d192b65892114"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_acquire_proteome_h3v2_ec2.sh",
+      "bytes": 1835,
+      "sha256": "74d54283724fae57999a38bde70d1b7f92adef27292fbc2bbc9f092605e445fa"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_acquire_riboseq_ec2.sh",
+      "bytes": 2269,
+      "sha256": "f94bb6deed469f0b9321a3e6de3972e20543c5be8fd6cff37a407b310348732c"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_aligned_spot.sh",
+      "bytes": 2389,
+      "sha256": "364492f490694c856b0f5bf4c9f9964cd7ea78f8225a89798919f2bd543dbf7e"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_anchor_ablation_cpu_ec2.sh",
+      "bytes": 6015,
+      "sha256": "bf4174a6a1d62c46b238ad7c7a54ebb2a735911cf30ff96c2c27e12e8959e85f"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_anchor_ablation_ec2.sh",
+      "bytes": 5991,
+      "sha256": "f3030dd6dd2b75cf61d0f39720d61dff171fcc9a990d2e0545c22ba3afc32adf"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_b21_full_corpus_ablation_ec2.sh",
+      "bytes": 3814,
+      "sha256": "147013254d6f2df0b5f030863ef8f40c9c323b1da3e3a6c64b18f9ba162bddcb"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_b2_1_xverse_ec2.sh",
+      "bytes": 2324,
+      "sha256": "cf73026a1ba1b3c32934a6925807ec0c2caa10622d60b6043e0c9f7269d73972"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_b2_encoder_ec2.sh",
+      "bytes": 3045,
+      "sha256": "d28b7c429b94495032e4359d0c0dad5cab0b368619707144445ef947f8eaa229"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_batch_metric_recheck_ec2.sh",
+      "bytes": 2064,
+      "sha256": "b3526567b4613e28e1f10e0b7ce00497dd64a93d5ecf5b99ee29ab7c6c8f1cbc"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_cax_combiner_ec2.sh",
+      "bytes": 3251,
+      "sha256": "2c36c432a0853c27805e12ed6fa69a30a32b5ed03a3068b549a5c73cc579137b"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_cax_combiner_v2_ec2.sh",
+      "bytes": 3278,
+      "sha256": "69e85ff1ccbd74cbb20568db8e0f3a2e9f72be9ba3a2278180c5be71881f31a8"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_cax_comp_ec2.sh",
+      "bytes": 3122,
+      "sha256": "1d67eb9faa3f4d2f190f4e2a4e112da2230d5f1da8e4137048fc273a9568799a"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_cax_gate1_ec2.sh",
+      "bytes": 3134,
+      "sha256": "e5115219a2e2214b814d54c0547e2cc2143032ab5f0269d692ff6b2872366dac"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_cax_scvi_ec2.sh",
+      "bytes": 3259,
+      "sha256": "3d4dfdead34192d2a21ebaade03b8c002179015a18a718f2c3e4dd681e04de73"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_cax_state_ec2.sh",
+      "bytes": 3118,
+      "sha256": "9a2fa11ade3fd35be718818305cbea7fd94ab1bcdb273c131a846e85a79a9f67"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_clean_baseline_ec2.sh",
+      "bytes": 2061,
+      "sha256": "d0d7900aea48700680eeca624d6b2e017c2a98606fc260d07b6174dabea51767"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_clean_baseline_spot.sh",
+      "bytes": 2256,
+      "sha256": "c7853e17817cb7050b46e9300854bc8b6b27760baef30e4d5ed489655ed4ad81"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_curate_targets_ec2.sh",
+      "bytes": 2407,
+      "sha256": "39bf858513d3055c47d7e8ddedd039d2ba182ebe4f6f612d859d5046099eebd3"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_czi_causal_baselines_ec2.sh",
+      "bytes": 5945,
+      "sha256": "5290cf8b1b5356c7afdbab2e185e989036596c1f9634bdab3dba8480327b445d"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_czi_irm_head_ec2.sh",
+      "bytes": 7824,
+      "sha256": "10d267bd544902f453d02deea559fb97c044bdb7c7ca9643930582707a3ae40f"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_data_inventory_ec2.sh",
+      "bytes": 2471,
+      "sha256": "a8da1436561852b2ee0224f65ac116fdb0a4d52108e039182dad81bd382e4444"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_direct_download_ec2.sh",
+      "bytes": 2260,
+      "sha256": "7740193fbc7741679ecff410db113a2e4c6d1dcaebb8fa5410fa2bec33f7f8e6"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_f1_inventory_ec2.sh",
+      "bytes": 1390,
+      "sha256": "e84ab8d37cb9d6add0061438816b40cf75f70ad5b2cd0057a169b0cb4b495ca0"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_fm_baseline_ec2.sh",
+      "bytes": 9193,
+      "sha256": "f096c02926aee95afae74cc0b6d3d5bf750644546e9bddbf400f106f55507cd4"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_gold_tier2_ec2.sh",
+      "bytes": 5769,
+      "sha256": "5b9eabaf72a088363d405c0b0de6941eb3a84c8d78b9b9bb0eb3aed008650405"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_gpu_ec2.sh",
+      "bytes": 6656,
+      "sha256": "69060242e4cfa972bca11e8c49184a49bbf6412b7e72652928452de8a5d61045"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_h4_killgate_ec2.sh",
+      "bytes": 2097,
+      "sha256": "c89818df1e68a5fcebcdb618039e2cb13b18e51f04c6556f14d65ee9ba29f148"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_h4_trained_head_ec2.sh",
+      "bytes": 4032,
+      "sha256": "91082ce2403368f7af7209ada1f8cf6991c9a42ce7a047f3fa8e07108bbf0a45"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_hybrid_ablation_ec2.sh",
+      "bytes": 3841,
+      "sha256": "a5a48c84dbc0a9580ceef9ea8c9ec93648bcb671027ff3e159c1694724afd0af"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_hybrid_train_ec2.sh",
+      "bytes": 3454,
+      "sha256": "b0171873306cc60f77be0ed49412df2ccd701056861323c92d42874edba8cbc3"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_immuno_llm_ec2.sh",
+      "bytes": 9284,
+      "sha256": "c90402a99220f7ca88ee233c2dd9b966eef15d6d3c458eeebca4d3dca51bec3c"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_ingest_cohorts_ec2.sh",
+      "bytes": 4765,
+      "sha256": "e5ce7cf5a82a3e8f131016c406eaf4f4a58ee9c421a091fdca5067de7b312755"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_integrated_ablation_ec2.sh",
+      "bytes": 7694,
+      "sha256": "a8155d67eab06ca041408423ce3a767ebd0cde3fc1e8c840c007bd8c146fd509"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_kn2v3_ec2.sh",
+      "bytes": 1834,
+      "sha256": "520fd470ff32c40c9fde4db0ca0d77ee39fa2b6d02a9d4ad54b488dc4355d704"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_knowledge2_ec2.sh",
+      "bytes": 1887,
+      "sha256": "033b7ea78b11032c7b3d2179c2dd8cb43850498480508b87350b12fa3b1c0180"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_knowledge_bottleneck_ec2.sh",
+      "bytes": 2998,
+      "sha256": "d1bc6b82042447758c1052861dea921aa7a2263621f4aeb78c8e116d193165a9"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_leakage_diagnostic_ec2.sh",
+      "bytes": 1713,
+      "sha256": "3edb22e66fdf720e43a2ecdc2a212d22d64c1a1cc12a440d932d088b2ecdc11f"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_lincs_slice_ec2.sh",
+      "bytes": 4078,
+      "sha256": "7d5af1f3503e780ab0cea730a85ded557b65d58aae3449c13eccf7494d024210"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_mirror_czi_tcell_ec2.sh",
+      "bytes": 3577,
+      "sha256": "e66133d4e0a8a5665c38a8001b54bb9b268962846edb036bca8e87e43ed63216"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_multiomics_ec2.sh",
+      "bytes": 1897,
+      "sha256": "4bb8ee4cfbfa2a1871b7f7dfa116719b6cb45c3a24623f84c84d370039d59b4f"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_p1b_ranking_ec2.sh",
+      "bytes": 3635,
+      "sha256": "b9127af9a6ffd021be1cddadaf0af07f0fc3eac238594fba1027a43e214c4c27"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_p1b_v2_ec2.sh",
+      "bytes": 3793,
+      "sha256": "bbcf5f42de8c936d638563b0eaa971855d7ba85a23036b6f071a73b34ddc03e5"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_p1c_ec2.sh",
+      "bytes": 2430,
+      "sha256": "4905da4a1768712a7cdb17632820451df56527c05b178a89643f1db1e6c560a0"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_p4_linadv_ec2.sh",
+      "bytes": 6554,
+      "sha256": "fb159cc66615b870965d62d2093c6017f9706a6dc2e28eb2271bd03315826af6"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_p5b_ec2.sh",
+      "bytes": 4173,
+      "sha256": "5d66d7d33cf3519b50d244a35a7dc5e8a30a0b1a975952b448bc4044754ef869"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_p5c_ec2.sh",
+      "bytes": 2915,
+      "sha256": "a6b3f9e3e65873998a098caa8ff20f2e31286c4567167813da2904d736273174"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_p5d_ec2.sh",
+      "bytes": 2837,
+      "sha256": "a31cacab59598626c7a90b9384eaf95f3844185e400aafc16bd7aacc3571ca91"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_presentation_frangieh_ec2.sh",
+      "bytes": 1855,
+      "sha256": "7559e3965a269765daaf7bcd67e24409b04e1f706746933b874239c12d516b9b"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_proto_kn2v21_ec2.sh",
+      "bytes": 2279,
+      "sha256": "f47b8d80c5749e011cf02938592bbef5cf76b611d0eac5ea2cf4b4c34a0fcf15"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_proto_vs_rank_ec2.sh",
+      "bytes": 2945,
+      "sha256": "0095c07c0177d3f4e45d30f57d7923ce92d7a6c1b5cda866abc6def414c8b750"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_shared_omic_smoke.py",
+      "bytes": 4049,
+      "sha256": "04b60bf8bae714c4d7860b21b2cf3e2744b92e5c3d7fd66b208cdc6f639de1cb",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/run_stage0_ec2.sh",
+      "bytes": 2405,
+      "sha256": "7d4e448b9e074c4597c05171ad4bd4c5a26269aad3e59398989484c3ec8cd9a3"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_stage0b_ec2.sh",
+      "bytes": 2418,
+      "sha256": "3271d25dfd0c1313fa5d806f27df812afc4e0ec83cb6e236df262c4bd4843b49"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_stage0c_ec2.sh",
+      "bytes": 2337,
+      "sha256": "b4ff87a8aa81bf585f34ecd06cd072a598734cb42e8f3a075eaef097447bb5b6"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_stratification_icb_ec2.sh",
+      "bytes": 2621,
+      "sha256": "be811b108f69469950aca1a7fe46abde4e603a14705b9e0f4e8981c95e62f76c"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_target_selection_ec2.sh",
+      "bytes": 3180,
+      "sha256": "f76ce60feb8fe842a48e850b01f0c29ae7012259d730281037f209a229c48ed7"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_unipert_bridge_ec2.sh",
+      "bytes": 6964,
+      "sha256": "09a02984e024a38d10ea90bc405a6ed01bd7d1bc92a684e8b063ddc537554d49"
+    },
+    {
+      "path": "research/immune_llm_baseline/run_vcc_v2_ec2.sh",
+      "bytes": 4735,
+      "sha256": "00f4646e4a89b0581d7ce6251f3848d961f084e6b25c458398a141abfc88fced"
+    },
+    {
+      "path": "research/immune_llm_baseline/scib_eval.py",
+      "bytes": 3116,
+      "sha256": "326bd936bba3f83e1f4dfb7e01222e8d7303075a35110e1cc4d6590938dfbd8b",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/shared_omic_context.py",
+      "bytes": 3891,
+      "sha256": "3fa9b31b102d4051a5c1304e5b83c92db86d8173314c3013ac0e314f287be6ff",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/target_gold.py",
+      "bytes": 8056,
+      "sha256": "b4b75c2b3ab865ca670d3132fd95cdc87d98b5cbe16e8aefd20d8bc1f3513bfc",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/target_id_generep.py",
+      "bytes": 5595,
+      "sha256": "af789b87c12913f740b862f96f436e551894f92abf86feb31a9d5ed5d9c1d8bf",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/target_selection.py",
+      "bytes": 28172,
+      "sha256": "11d5035e427c4689b5b320ebfb2fa559e0fda7d77bec9ee91e893a8aba748e99",
+      "syntax": "pass",
+      "broad_exception_handlers": 11
+    },
+    {
+      "path": "research/immune_llm_baseline/test_batch_tools.py",
+      "bytes": 19878,
+      "sha256": "3a973d6de95906e6c5668a3a2377f9460a63f3e20df30d964f401f089053ac02",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_donor_pilot.py",
+      "bytes": 1614,
+      "sha256": "033c2f43fc9adbda8238af3fcba31cac46a94ffade565f11adb0d795e49484a5",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_h1_pilot.py",
+      "bytes": 1165,
+      "sha256": "449562e64f315b9c9badff9b82da60b8e53de1d47b2534349b24f1452b6ec774",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_hvg_library.py",
+      "bytes": 1023,
+      "sha256": "e63d596c1982c16cc50494d60b4aba116ff048ef17375a7ba50603da45cc3059",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_integration_train.py",
+      "bytes": 3516,
+      "sha256": "839dd836e4832ccafd215b394e7eea2c764ae64bbcfc93565661864791c6794d",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_mapkg_smoke.py",
+      "bytes": 1015,
+      "sha256": "ce486b23766ef7b36e3dd9519f8d57b84384836da2d433bff2979522a61532ae",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_named_pipeline_e2e.py",
+      "bytes": 4452,
+      "sha256": "e86cb8d9dd2294ee53a915e8bf2d257479fb1a458e0872fe583fa2e8376ab981",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_paired_anchor_io.py",
+      "bytes": 2362,
+      "sha256": "968eaae99fc5bafc8a91be8029bd5b68cf457a1c7ba80ae5e9a3888084dc8cae",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_prototype_tokenizer.py",
+      "bytes": 5954,
+      "sha256": "1377564139fa78e2e77572d37154f7269e7c7d80f77734c9afcf60a6d493cab1",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_qc.py",
+      "bytes": 3419,
+      "sha256": "5ca81082fac120a47b9ddaa85fcbc31cc403dbe8f0b86636f382d388b510a27c",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_shared_omic_context.py",
+      "bytes": 4057,
+      "sha256": "8bdd6ae4db8ef92dac2f6f16ae8c85d8e5c10152a1d833429cc1dfbac741cf0e",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_shared_omic_pilot.py",
+      "bytes": 2431,
+      "sha256": "426ee50dbdb951e03af21f75f810ebfba2ccec40108c07a49cee876e4d1af29b",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/test_virtual_ko.py",
+      "bytes": 2636,
+      "sha256": "fab07a054d5aa25c40c99632118e90fee4206d0667a8443cfbe62fa1d782d672",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/train_czi_irm.py",
+      "bytes": 10818,
+      "sha256": "8ab3162bc87d3b8438773f4a9c457faa9de0af2ac83b72f2eda2a5ee4a2eeb3c",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/train_donor_pilot.py",
+      "bytes": 7879,
+      "sha256": "c46ae10861e80433ccb7ffae6d73a820dec6b0a4fdb7d98c6acaa67ee4ec54cf",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/train_h1_pilot.py",
+      "bytes": 8419,
+      "sha256": "16de20b8b2de605551aa2e047303d127f2e2af5c97b9fdc08bdd9c1607e094b9",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/train_immune_fm.py",
+      "bytes": 11368,
+      "sha256": "b20cdb1daca0d04d3007069b289aec7decd1d28b433a2eff59bb6e6aa9526e82",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/train_immuno_llm.py",
+      "bytes": 34808,
+      "sha256": "2cea6333c12485dbac657a240c55eb0d72f4fde5956fdf64d0a6d8df70026ae7",
+      "syntax": "pass",
+      "broad_exception_handlers": 3
+    },
+    {
+      "path": "research/immune_llm_baseline/train_mosaic_pilot.py",
+      "bytes": 8208,
+      "sha256": "edc16fddef39e9c9bda11519b2a3c1fb40021c92315ee5eef2221d501316c5c5",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/train_presentation_frangieh.py",
+      "bytes": 4525,
+      "sha256": "e12996f492920a9af4fe8fcf12d122bbd865614ca9f48a1354eff34761ced22e",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/train_qwen.py",
+      "bytes": 10722,
+      "sha256": "1a962ce33710e540cf93af225ee8183d3d54b318094b6b2c97dbf7ccd8a6d57e",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/train_shared_omic_pilot.py",
+      "bytes": 13510,
+      "sha256": "b142ed92fc7d86e7cc9c74434807c864f64c168a90db7e948baf40a8f53a104e",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/train_stratification_icb.py",
+      "bytes": 17884,
+      "sha256": "b91d31ad00f47ed20f5b1500e3e6f8ebdd088d321d9f0e3ddefbd7bc10389531",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/unipert_bridge_spike.py",
+      "bytes": 11539,
+      "sha256": "230838a9e6892aa5447d861b63768a7a042eeee4677890b0787d90f3895c264b",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/v0/V0_3_DESIGN.md",
+      "bytes": 4113,
+      "sha256": "76c4a47fa3f556278151a081e06c4f35363f902c94f8177b980d03d93a251ecd"
+    },
+    {
+      "path": "research/immune_llm_baseline/v0/run_v0_1_spot.sh",
+      "bytes": 1333,
+      "sha256": "c0b4dde7ffcbc8d5100030229fb0f2118389daf8df37f417d9f484f5433d1679"
+    },
+    {
+      "path": "research/immune_llm_baseline/v0/run_v0_2_spot.sh",
+      "bytes": 1331,
+      "sha256": "00dbae289a08d1b3f2c78dcf7260f31da687fae6378c5bf894f77f29b551f448"
+    },
+    {
+      "path": "research/immune_llm_baseline/v0/run_v0_3_spot.sh",
+      "bytes": 2039,
+      "sha256": "a06af5f0d7d3cacd4c064d14e26502b67d7c08ce24106019f2471d4509c1f8e2"
+    },
+    {
+      "path": "research/immune_llm_baseline/v0/run_v0_spot.sh",
+      "bytes": 1328,
+      "sha256": "c94dbf1ab59ceadb3f83789fb47f521ec21e2dd66028728837867a3bbb088e48"
+    },
+    {
+      "path": "research/immune_llm_baseline/v0/v0_1_multiomics.py",
+      "bytes": 6353,
+      "sha256": "329781e5129acf99eba8a8473a0fb0aeee48ec532c49b02af172b23574be6a78",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/v0/v0_2_knowledge.py",
+      "bytes": 7296,
+      "sha256": "a410bbe0a75cb9909083fc01dd6961ff71a6d07d614cfe2e1fa2761995de71da",
+      "syntax": "pass",
+      "broad_exception_handlers": 3
+    },
+    {
+      "path": "research/immune_llm_baseline/v0/v0_3_fusion.py",
+      "bytes": 8602,
+      "sha256": "ecba4962c405f31c1284e4e653ae61a7efad2df585ab9f17e563584605b583a5",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/v0/v0_multiomics.py",
+      "bytes": 5427,
+      "sha256": "f446cf198814ad6ebd356e46bf4c554ee7639560c9e9d13d4fcb75f1ee93e816",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_a6.py",
+      "bytes": 8354,
+      "sha256": "2200d3571c728bbc41e678db0eaa095ee7b04f1d511c46894c6424025f6d46c3",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_build_submission.py",
+      "bytes": 10006,
+      "sha256": "7838f0ad8d6fddb6ec1c87febdca78a99f3735fe86f91092548db4c5542b7600",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_data_acquire.py",
+      "bytes": 10174,
+      "sha256": "cb82bd4eb55b2f1b25a3ce4a6e38a721925387b2ed26f44e4fe03e37d4c672ef",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_eval2.py",
+      "bytes": 10363,
+      "sha256": "8a547b92d5c4b35c1ad2f2b4dc77376c12a74ec732194f3260025659efd0e218",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_identity.py",
+      "bytes": 8770,
+      "sha256": "e476c50beb0d6576c1142e72c8fc9ec10189c2fcb5bb3ba2da9ba3c03c353e86",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_llo_lgo.py",
+      "bytes": 14144,
+      "sha256": "c903a26b2952f0ce93bc40e049ba5d14eb0a0f13314bb8dcf2235a5adb611d98",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_perturb_kit.py",
+      "bytes": 7972,
+      "sha256": "90ffec4d4a45d29712e22b234924644b0afc60de5379a5a8f55d02d2f533cf05",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_realdata_geneloo.py",
+      "bytes": 30586,
+      "sha256": "0b9d885f14028b30f18331d619787ec99b868429e759f5bb300bd4a8b2f82fc7",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_realdata_loo.py",
+      "bytes": 11587,
+      "sha256": "b86313bcf96bd6530e4c0010abe80ade916c72c2be108e5bdf81ac2cb2e4656c",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_registry.py",
+      "bytes": 4832,
+      "sha256": "087817d1a755aebfd55845cf1a0adfdc03c2404b7ac15de9753ac29f4eb12377",
+      "syntax": "pass",
+      "broad_exception_handlers": 1
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_smoke_test.py",
+      "bytes": 8052,
+      "sha256": "cb9354c575fad3ef2129ab79b9ac0f0de6ca4b65aa8493391bac585b724e0821",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_submit.py",
+      "bytes": 6854,
+      "sha256": "b2f68a82b450f18d3087d787973708d3c83b9a3535eb11a3545d5cdf0b6f025b",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_summarize.py",
+      "bytes": 5825,
+      "sha256": "b3109c2718c13af9122b81bc02e14bf34498ae0e22cc265482ceffc815ac4997",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_transfer_model.py",
+      "bytes": 6536,
+      "sha256": "b4ea2d0dfb6e0e669dc5884a05873c26db0e3e1e32ecb34b1520475729228236",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/vcc_transfer_model_v2.py",
+      "bytes": 11426,
+      "sha256": "461b139930c7905533d40cca4a94cf9fab83bb3ffc861618b72f4d7674352d43",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/verify_donor_pilot.py",
+      "bytes": 2200,
+      "sha256": "c23b893d188a82f2c1b8891c91338a49b153ecc876388351603f88e3f7560426",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/verify_h1_pilot.py",
+      "bytes": 1743,
+      "sha256": "66cbc801e9ee1657fab8b3846bca04178c90d3d69b26922a6a15d94a6217ef23",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/verify_mosaic_pilot.py",
+      "bytes": 4244,
+      "sha256": "ecfd6e702c7d7e6ee615c02f596ae052d553b793ffd75070df10c9a32d7d86f4",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/verify_shared_omic_pilot.py",
+      "bytes": 2373,
+      "sha256": "178bf6b9b46c7e60eae01bb350b2cf08645b29dfc906557c391266ccdb169699",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    },
+    {
+      "path": "research/immune_llm_baseline/xverse_model.py",
+      "bytes": 5127,
+      "sha256": "39e5d3bde7b2af06bb5a0fa27330a719cafa67612c16de904edf23c7161b5a96",
+      "syntax": "pass",
+      "broad_exception_handlers": 0
+    }
+  ],
+  "runs": [
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "rna",
+      "seed": 0,
+      "protein": {
+        "mse": 5.2167945123590975,
+        "pearson": 0.1829198776671603
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "b95587f6ef53f245fc2b3654418ac81f11ad189b7132ea80beaab24955200f8e"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "rna_kg",
+      "seed": 0,
+      "protein": {
+        "mse": 5.413244534719296,
+        "pearson": 0.20042893796030223
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "fb3b0a042b53cf8f6ebc4fe55c5a6a17d667956110c688af78f76e2fd2b7a4a1"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "rna_protein",
+      "seed": 0,
+      "protein": {
+        "mse": 5.159701766328761,
+        "pearson": 0.19035444649004288
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "6f0da31eb4e6ed6ed9ffff0d2a8250a8b1387b95b920df96de3f5e9d98223955"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "full",
+      "seed": 0,
+      "protein": {
+        "mse": 5.435868948432504,
+        "pearson": 0.23039139269776118
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "ce19216ad9aa41e8617abcfb5238fd007cf44bd726ed78af42c87e45f5330ce2"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "full_shuffled_kg",
+      "seed": 0,
+      "protein": {
+        "mse": 5.333443334820547,
+        "pearson": 0.20353212577106125
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "6e66ff01e84db0efd93f170b92c748fb7b80a49ba2baa1c094567d9f438d81b6"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "rna",
+      "seed": 1,
+      "protein": {
+        "mse": 5.087062529879922,
+        "pearson": 0.15983083353453933
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "91dbb5dd0bb0cf35c5fa2907f2a12050ba4125834dcfca4b8b381b468fc1b8c4"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "rna_kg",
+      "seed": 1,
+      "protein": {
+        "mse": 5.507363405763116,
+        "pearson": 0.24977833502715607
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "a39fcfeec12e13c9edb3d8a7203d65caa75fc9c7d7c3da311c23cc977ab927ed"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "rna_protein",
+      "seed": 1,
+      "protein": {
+        "mse": 5.180358427873689,
+        "pearson": 0.18542133091285104
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "3e7978d887f2213487be33c6b5e8075eae3461defe771afb3866f1acc3bbee85"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "full",
+      "seed": 1,
+      "protein": {
+        "mse": 5.277411639753762,
+        "pearson": 0.23361710506813868
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "1bd8f1352df5c2434f820476fab623e4bea98b24c21b42ba48c8536ab17deb8a"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "full_shuffled_kg",
+      "seed": 1,
+      "protein": {
+        "mse": 5.322121800795551,
+        "pearson": 0.17830313754573157
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "6e3055f27a78851357b1112105da2cf7f8b99225ea2c440fcda88731940cc9ce"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "rna",
+      "seed": 2,
+      "protein": {
+        "mse": 5.188889145549852,
+        "pearson": 0.21147260811468735
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "2d756525f1ac87ce66b5bd8a388c5e4cba1c44b19e9d1b3b045c075b5f62bd04"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "rna_kg",
+      "seed": 2,
+      "protein": {
+        "mse": 5.35824878833503,
+        "pearson": 0.20240154384397066
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "81b9eff874f9c98f3c06a23611dac8f1f4eedbfb4be75276523827cc1925f40a"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "rna_protein",
+      "seed": 2,
+      "protein": {
+        "mse": 5.1200008113363,
+        "pearson": 0.21644511037208458
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "5281251a11c4fc04504eee469209a44027bb7539e464594bf7bedd38f6eb0522"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "full",
+      "seed": 2,
+      "protein": {
+        "mse": 5.435988044922571,
+        "pearson": 0.23307464969032357
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "2cc0a6833d023242e22a84eeb893fabb0aacfa9a961bdb231f62c845adf35c4e"
+    },
+    {
+      "pilot": "shared_omic_training_pilot",
+      "arm": "full_shuffled_kg",
+      "seed": 2,
+      "protein": {
+        "mse": 5.205566586126696,
+        "pearson": 0.2357473409325218
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "2f72ee4c0508635303a28e5c4d4cfd75388dbf68b5bc8c8903abb5ab23965fe5"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "rna",
+      "seed": 0,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.1442721261201347,
+        "pearson": 0.32915850755083287
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "c0627c74ac81c3d13257122076c136ceaca7beec97c815db23d75c6d6d5fe66e"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full",
+      "seed": 0,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.060334144449949,
+        "pearson": 0.3071844162264351
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "f08bb2ea1ef8b567c9101be09dff5041e3942e31f364859fc28e0194eea12e50"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_shuffled_kg",
+      "seed": 0,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.0952779421593424,
+        "pearson": 0.2922168086706299
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "351511f840c29d9646e2e7781d95525b5be81248629161a29d16511466d21684"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_plus_GSE",
+      "seed": 0,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.0507815376671468,
+        "pearson": 0.3087370581956009
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "ac13919d8af91672627fdc1d2b479f8e0b35944981634d200555e2bef5955aec"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "rna",
+      "seed": 1,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.1628782425725812,
+        "pearson": 0.29807127407878686
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "94f13fc5f8edc358cf63ac0064116ae0cb4eefea9e37c13b8bada1ecee85c12f"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full",
+      "seed": 1,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.0695320024396004,
+        "pearson": 0.3034547847899393
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "a258e6ec8f856e1f9197ad127e5a3fbe44d5c43e3cc25bb3aa254e7a098beb24"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_shuffled_kg",
+      "seed": 1,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.0774630145093032,
+        "pearson": 0.299279182043367
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "dfdac4ee2468353f1f47ea94362b05856849dc9bbc89bd6d952da2a0d7d38f2d"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_plus_GSE",
+      "seed": 1,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.064320455791751,
+        "pearson": 0.3103835111530581
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "a82ddb3e7ef2b6eaaef2b39a33f1e79290330d2199c7033f0029e9ee006581c4"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "rna",
+      "seed": 2,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.169854554553827,
+        "pearson": 0.29750050755298585
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "d66ed24eab91a4968769978027bff37d8457a546bc880cb10a9dd0cc990b1ba0"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full",
+      "seed": 2,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.0238161460402577,
+        "pearson": 0.29478380426873285
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "aa4731cd149d8a3eb911962d6e96efa499ff60ce8f62173b8474f09d99b259d0"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_shuffled_kg",
+      "seed": 2,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.0325370601149741,
+        "pearson": 0.30990647088763335
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "8bfd331bb0b20ef85840281a804e38296308e2f7e63cd3849becc81029bdc36f"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_plus_GSE",
+      "seed": 2,
+      "task": "log1p",
+      "protein": {
+        "mse": 1.0613654707602544,
+        "pearson": 0.2831199166387445
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "cbc7fc590bf5799aa9501f2dde0576445408774128a08b967ff2e84972ca985b"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "rna",
+      "seed": 0,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.5681152137702628,
+        "pearson": 0.4841056608110723
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "b46e3379b1af0f92feb2b2188de09845da25ab2b17dbc676c7a4dd230e485b9c"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full",
+      "seed": 0,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.5448125194405671,
+        "pearson": 0.47943474074725495
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "15bdd40849f9d4f887945f469cf66b5e3a09a10dfa40cb9a7f0e9a980bf356f8"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_shuffled_kg",
+      "seed": 0,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.5437002498107604,
+        "pearson": 0.48228704950611834
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "0674b961964bb73cc8a29d27fc8d4e7fd6c536c0a95e6487dffa97c9cbd178f7"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_plus_GSE",
+      "seed": 0,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.5397673537241192,
+        "pearson": 0.4837486144826338
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "40980c7ca909838a84a7d340f99a15523af9b7017392c4d58c4cb146cf8e97a6"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "rna",
+      "seed": 1,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.557577096382045,
+        "pearson": 0.4859845100852145
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "a3110715f1bee2d00681ce30040cd26a0c074996e88a895a040c5e342f82d0de"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full",
+      "seed": 1,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.529264246956217,
+        "pearson": 0.48712163181033785
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "96f56fbf0f49c2b90ac8761c914b7ae25bc74178ab1f70ed730f44b66a220a8d"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_shuffled_kg",
+      "seed": 1,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.5296875268016729,
+        "pearson": 0.4872965476842962
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "7ed27207bdd97e9fb2d486c30d06f3b9c0700f7f1a5ba2fa45b0263920f6cbf3"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_plus_GSE",
+      "seed": 1,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.541350075252352,
+        "pearson": 0.4867734918583495
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "3257876b016ef86ee7e1f3b332c127cbb415ed033704646ebe6c004156b25f0d"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "rna",
+      "seed": 2,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.5724471443172882,
+        "pearson": 0.48558071775732425
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "5c116b31d02810ce1cb0df615b4481b4a4c1e6ad8b00762657bc91d55d69aa2d"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full",
+      "seed": 2,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.5375694381756967,
+        "pearson": 0.48365347210195286
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "0d11e4496ea6ffc96666376fc4ec0b70613b9ae3bc534b04289b20efe7dff852"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_shuffled_kg",
+      "seed": 2,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.5318684642872639,
+        "pearson": 0.48415500727350164
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "b78e154db5356fe9b3d78925e4c5cc3108c6bca007ed46526b1e8cd95597d8ba"
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "arm": "full_plus_GSE",
+      "seed": 2,
+      "task": "centered_log1p",
+      "protein": {
+        "mse": 0.5355690955993395,
+        "pearson": 0.48582693216829376
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "6c44ff71a1968c06a619c74880d9fec14f56ef2372321e3ea0d102ad54d34bfe"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "arm": "extra_RNA_only",
+      "seed": 0,
+      "protein": {
+        "mse": 0.5322550786888646,
+        "pearson": 0.4888678754819619
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "1d13663917afe90c816a9e51418c0b484e2fa033a61d6b89ca6e32f99d467a63"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "arm": "ATAC_paired",
+      "seed": 0,
+      "protein": {
+        "mse": 0.5319867703465532,
+        "pearson": 0.4880389823549004
+      },
+      "atac_AP": 0.1743012116033089,
+      "status": "metrics_match",
+      "prediction_sha256": "afeeea3852c28f217671fe3c9ac7e9647fc7911ff6f52dec94e4f4ead652540a"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "arm": "ATAC_shuffled",
+      "seed": 0,
+      "protein": {
+        "mse": 0.5393216651506068,
+        "pearson": 0.4965393140330304
+      },
+      "atac_AP": 0.13509906113865353,
+      "status": "metrics_match",
+      "prediction_sha256": "b394d51df5ccb808d2ecca08d7e72cee2ce5af9b186f9024acf06390a9ae3f6d"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "arm": "extra_RNA_only",
+      "seed": 1,
+      "protein": {
+        "mse": 0.5364483700855179,
+        "pearson": 0.48856024969726514
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "4b41f4929d2f6e1fd1ecba2e37d70a78da4f271ff3900ba4e207b1d57775c5c0"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "arm": "ATAC_paired",
+      "seed": 1,
+      "protein": {
+        "mse": 0.5352820875681725,
+        "pearson": 0.4927071550497089
+      },
+      "atac_AP": 0.17513557551643066,
+      "status": "metrics_match",
+      "prediction_sha256": "c73e9413869dbd952c3687ae76344ee43381b8f26077d866eb3013c5f2b552cb"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "arm": "ATAC_shuffled",
+      "seed": 1,
+      "protein": {
+        "mse": 0.5390160601867571,
+        "pearson": 0.4897854185238712
+      },
+      "atac_AP": 0.13570383012440052,
+      "status": "metrics_match",
+      "prediction_sha256": "543da24db094103c10fad4627d0a3ce2e685cc78928aacb189bc3934701e6e89"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "arm": "extra_RNA_only",
+      "seed": 2,
+      "protein": {
+        "mse": 0.5297353018465105,
+        "pearson": 0.48478939677091365
+      },
+      "status": "metrics_match",
+      "prediction_sha256": "2d81b20d8ef89c07b4a67bdc331cc2117d8bf49b523362805d47cb29071606c5"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "arm": "ATAC_paired",
+      "seed": 2,
+      "protein": {
+        "mse": 0.5351887105413556,
+        "pearson": 0.48538658301350257
+      },
+      "atac_AP": 0.1677747950320062,
+      "status": "metrics_match",
+      "prediction_sha256": "a71f4f845b3db9e52cde4fa798de809a5677b0bcaec333ac787e0e72449da2cb"
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "arm": "ATAC_shuffled",
+      "seed": 2,
+      "protein": {
+        "mse": 0.5361564687971392,
+        "pearson": 0.4850656780012623
+      },
+      "atac_AP": 0.1366123899886166,
+      "status": "metrics_match",
+      "prediction_sha256": "81573c2fce791e9e4f20c2fbfe9adbeef38fa580dee0a030997b0c3e468c8e5c"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "arm": "encoder_features",
+      "seed": 0,
+      "mse": 0.10449337487522786,
+      "rho": 0.024945229790298087,
+      "status": "metrics_match",
+      "prediction_sha256": "3a8b982fe2b6ea64673fdede71aee870e51ff3515a08c6f6a25e93471a40d0eb"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "arm": "random_features",
+      "seed": 0,
+      "mse": 0.10224347540766247,
+      "rho": 0.043477176198650686,
+      "status": "metrics_match",
+      "prediction_sha256": "c4344da93ff0be11bdeb377c75d6093463dbee92d3d75ea8eca290ea0af560c4"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "arm": "shuffled_training_effects",
+      "seed": 0,
+      "mse": 0.10319800929501162,
+      "rho": 0.016320593077071583,
+      "status": "metrics_match",
+      "prediction_sha256": "ed28eb068bd9f2f640817d614d6da0a8330aee3c7011922a55a0e674ea30344e"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "arm": "encoder_features",
+      "seed": 1,
+      "mse": 0.10387529934768078,
+      "rho": 0.0299161277151936,
+      "status": "metrics_match",
+      "prediction_sha256": "c82f7625fd60830ad0fda72293c0b0d5ff6234d992ae58179dd4d591ba93660b"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "arm": "random_features",
+      "seed": 1,
+      "mse": 0.10288199369720294,
+      "rho": 0.031241765717207656,
+      "status": "metrics_match",
+      "prediction_sha256": "11e706b380213eb4c559a2cdd4503b66a1e36b95c7bfffc4b66970097121bdaf"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "arm": "shuffled_training_effects",
+      "seed": 1,
+      "mse": 0.10133619835275809,
+      "rho": 0.02658189540471581,
+      "status": "metrics_match",
+      "prediction_sha256": "1d131d016005c02efe9986761fb4cc8a877f55e92bd632d6e59ed0f1479b8631"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "arm": "encoder_features",
+      "seed": 2,
+      "mse": 0.10463332373504693,
+      "rho": 0.04083307461923372,
+      "status": "metrics_match",
+      "prediction_sha256": "1253d924efea6020777cf3c2435fa93870410bf644e6f9399f1d9d5775b021de"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "arm": "random_features",
+      "seed": 2,
+      "mse": 0.10344821162206852,
+      "rho": 0.05387585245208788,
+      "status": "metrics_match",
+      "prediction_sha256": "2f0300adb02645c641d6d8719627bc3a26abb7c1968c21f1e51bddef7efeb665"
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "arm": "shuffled_training_effects",
+      "seed": 2,
+      "mse": 0.10325146151297118,
+      "rho": 0.048686542214314406,
+      "status": "metrics_match",
+      "prediction_sha256": "c216a1a6ccc84f1b84fa7c71e269b65097752f1ed2858520b5fe1725e7a9f35d"
+    }
+  ],
+  "artifact_errors": [
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_seed0_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_kg_seed0_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_protein_seed0_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_seed0_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_shuffled_kg_seed0_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_seed1_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_kg_seed1_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_protein_seed1_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_seed1_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_shuffled_kg_seed1_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_seed2_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_kg_seed2_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/rna_protein_seed2_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_seed2_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    },
+    {
+      "path": "/Users/kky/biomate-audit-fix/out/20260911_shared_omic_training_pilot/full_shuffled_kg_seed2_external.npz",
+      "field": "cell_ids",
+      "error": "Object arrays cannot be loaded when allow_pickle=False"
+    }
+  ],
+  "split_checks": [
+    {
+      "pilot": "shared_omic_training_pilot",
+      "status": "pass",
+      "prepared_fields": [
+        "X",
+        "Y",
+        "C",
+        "lib",
+        "external_X",
+        "external_Y",
+        "train",
+        "validation"
+      ]
+    },
+    {
+      "pilot": "donor_normalization_pilot",
+      "status": "pass",
+      "prepared_fields": [
+        "X",
+        "C",
+        "lib",
+        "logP",
+        "split",
+        "donor",
+        "cell_ids",
+        "extra_X",
+        "extra_C",
+        "extra_lib",
+        "extra_logP"
+      ]
+    },
+    {
+      "pilot": "mosaic_rna_protein_atac_kg",
+      "status": "pass",
+      "prepared_fields": [
+        "cite_X",
+        "cite_C",
+        "cite_lib",
+        "logP",
+        "split",
+        "donor",
+        "cell_ids",
+        "atac_X",
+        "atac_C",
+        "atac_lib",
+        "atac_binary",
+        "atac_train",
+        "atac_validation",
+        "atac_test",
+        "atac_cell_ids"
+      ]
+    },
+    {
+      "pilot": "h1_perturbation_pilot",
+      "status": "pass",
+      "prepared_fields": [
+        "Y",
+        "observed",
+        "targets",
+        "conditions",
+        "readouts",
+        "split",
+        "source_rows"
+      ]
+    }
+  ],
+  "h1_baseline_recomputed": {
+    "mse": 0.0998593419790268,
+    "mean_row_spearman": 0.053260237903920093,
+    "scored_rows": 64,
+    "constant_prediction_rows_scored_as_zero": 0,
+    "constant_target_rows_excluded": 0
+  },
+  "summary": {
+    "inventory_files": 401,
+    "python_files": 132,
+    "syntax_failures": 0,
+    "runs_verified": 57,
+    "artifact_errors": 15
+  }
+}

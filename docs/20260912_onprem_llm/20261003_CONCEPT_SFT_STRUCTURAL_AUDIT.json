@@ -1,0 +1,45 @@
+{
+  "sha256": "30c34f38fd7687880158e605b2b72a4af11616169d11b0d69620652a5f84d4ef",
+  "rows": 72397,
+  "invalid_rows": [],
+  "tasks": {
+    "workflow_routing": 5360,
+    "task_decomposition": 9717,
+    "knowledge_recall": 17495,
+    "parameter_extraction": 2273,
+    "scientific_qa": 10497,
+    "dataset_prerequisite_check": 6462,
+    "lane_arbitration": 1027,
+    "log_diagnosis": 2479,
+    "workflow_generation": 365,
+    "clarification_request": 1424,
+    "autofix_repair": 1515,
+    "tool_recommendation": 1500,
+    "out_of_catalog_composition": 599,
+    "design_constraint": 416,
+    "multi_workflow_chaining": 169,
+    "findings_interpretation": 10769,
+    "model_selection": 330
+  },
+  "sources": {
+    "multitask_sft_big": 29000,
+    "claude_code_logs": 8285,
+    "medmcqa": 8000,
+    "sciq": 7995,
+    "medqa": 7997,
+    "pubmedqa": 1000,
+    "latch_traj_spatialbench_anthropic_claude-opus-4-7": 47,
+    "latch_traj_spatialbench_openai_gpt-5.5": 41,
+    "latch_traj_scbench_openai_gpt-5.5": 17,
+    "latch_traj_scbench_anthropic_claude-opus-4-7": 15,
+    "pmc_mined": 10000
+  },
+  "exact_duplicate_messages": 98,
+  "rows_with_explicit_source_family": 0,
+  "rows_with_explicit_evidence_metadata": 0,
+  "limitations": [
+    "Evidence may be embedded in messages; metadata absence is not proof of absence.",
+    "No semantic quality, token-mask, license, or held-out leakage certification.",
+    "Duplicate counts may reflect intentional sampling weights; do not silently delete."
+  ]
+}

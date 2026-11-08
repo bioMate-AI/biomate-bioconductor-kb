@@ -1,0 +1,147 @@
+{
+ "name": "v4eval_A2_atomlm",
+ "round": null,
+ "scores_file": "scores_A2_atomlm.csv",
+ "I": {
+  "folds_scored": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "items_scored_frac": 0.9414,
+  "all_items": {
+   "n_targets": 44,
+   "n_families": 25,
+   "auc": {
+    "point": 0.5030956992423411,
+    "lo": 0.4566801758417713,
+    "hi": 0.5524975323028234,
+    "n_families": 25
+   },
+   "ef5": {
+    "point": 1.014529806389759,
+    "lo": 0.6573576130056952,
+    "hi": 1.4424344585142002,
+    "n_families": 25
+   },
+   "strongest_baseline_auc": "B3_nn_neg",
+   "vs_strongest_auc": {
+    "point": -0.11770420421299432,
+    "lo": -0.1907977595314702,
+    "hi": -0.04788908487385189,
+    "n_families": 25,
+    "verdict": "NOT_SUPPORTED"
+   },
+   "vs_strongest_ef5": {
+    "point": -0.667214078295707,
+    "lo": -1.2418844137024914,
+    "hi": -0.18028489309815665,
+    "n_families": 25,
+    "verdict": "NOT_SUPPORTED"
+   }
+  },
+  "contamination_controlled": {
+   "n_targets": 37,
+   "n_families": 22,
+   "auc": {
+    "point": 0.5324417810327219,
+    "lo": 0.4355650183110859,
+    "hi": 0.6284106388663359,
+    "n_families": 22
+   },
+   "ef5": {
+    "point": 1.2183325452173475,
+    "lo": 0.7576305769768901,
+    "hi": 1.7338182620780156,
+    "n_families": 22
+   },
+   "strongest_baseline_auc": "B3_nn_neg",
+   "vs_strongest_auc": {
+    "point": -0.031148306608163145,
+    "lo": -0.18757125715090706,
+    "hi": 0.12487761989557124,
+    "n_families": 22,
+    "verdict": "INCONCLUSIVE"
+   },
+   "vs_strongest_ef5": {
+    "point": -0.690629592063966,
+    "lo": -2.052916114694388,
+    "hi": 0.1945930636057254,
+    "n_families": 22,
+    "verdict": "INCONCLUSIVE"
+   }
+  }
+ },
+ "M2": {
+  "folds_scored": [
+   2,
+   3,
+   4
+  ],
+  "items_scored_frac": 0.9885,
+  "all_items": {
+   "n_targets": 20,
+   "n_families": 14,
+   "auc": {
+    "point": 0.6648955636549826,
+    "lo": 0.5565067396012262,
+    "hi": 0.7739492909690403,
+    "n_families": 14
+   },
+   "ef5": {
+    "point": 3.1092776711824337,
+    "lo": 1.04552590266876,
+    "hi": 5.611091051805337,
+    "n_families": 14
+   },
+   "strongest_baseline_auc": "B3_nn_neg",
+   "vs_strongest_auc": {
+    "point": 0.1326314835422996,
+    "lo": 0.02304075112118623,
+    "hi": 0.24062891771234995,
+    "n_families": 14,
+    "verdict": "SUPPORTED"
+   },
+   "vs_strongest_ef5": {
+    "point": 1.7105605894168823,
+    "lo": -0.5709247882023181,
+    "hi": 4.241438620851779,
+    "n_families": 14,
+    "verdict": "INCONCLUSIVE"
+   }
+  },
+  "contamination_controlled": {
+   "n_targets": 16,
+   "n_families": 12,
+   "auc": {
+    "point": 0.7050306054520449,
+    "lo": 0.5824283314306936,
+    "hi": 0.8260801750601481,
+    "n_families": 12
+   },
+   "ef5": {
+    "point": 4.63546626984127,
+    "lo": 0.8965773809523809,
+    "hi": 8.685763888888888,
+    "n_families": 12
+   },
+   "strongest_baseline_auc": "B0_random",
+   "vs_strongest_auc": {
+    "point": 0.10156404312258172,
+    "lo": -0.052189391034897004,
+    "hi": 0.2427887148125179,
+    "n_families": 12,
+    "verdict": "INCONCLUSIVE"
+   },
+   "vs_strongest_ef5": {
+    "point": 1.627827380952382,
+    "lo": -4.044567212301587,
+    "hi": 7.193283730158729,
+    "n_families": 12,
+    "verdict": "INCONCLUSIVE"
+   }
+  }
+ }
+}

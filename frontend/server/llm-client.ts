@@ -1,10 +1,11 @@
+import { localOnly, localCompletion } from './local-llm.js';
 /**
  * llmGenerate — the ONLY way the frontend should call an LLM.
  *
  * Routes to the backend's `/internal/llm/generate` endpoint which uses the
  * YAML-defined fallback chain in `backend/config/llm_providers.yml`:
  *   1. gemini-3.1-pro-preview (primary)
- *   2. gemini-3.5-flash-preview
+ *   2. gemini-3.8-flash-preview
  *   3. claude-sonnet-4-5
  *   4. gpt-4o
  *   5. ollama qwen3:32b
@@ -26,6 +27,13 @@ export interface LlmGenerateOptions {
   temperature?: number;
   /** Hint to the provider to return JSON; honored by Gemini, ignored otherwise. */
   jsonMode?: boolean;
+  /**
+   * Optional per-task tag forwarded to the backend chokepoint. When the on-prem
+   * SFT-gold adapter is enabled (flag default OFF) and this task is allowlisted
+   * (findings / decomposition), the backend routes the call to the adapter and
+   * falls back to the cloud chain on any error. Omit it for normal routing.
+   */
+  task?: string;
 }
 
 export interface LlmGenerateResult {
@@ -60,12 +68,26 @@ export async function llmGenerate(
   if (typeof opts.prompt !== "string" || !opts.prompt.trim()) {
     throw new Error("llmGenerate: prompt is required (non-empty string)");
   }
+  if (localOnly()) {
+    const result = await localCompletion({
+      messages: [...(opts.system ? [{ role: 'system', content: opts.system }] : []),
+        { role: 'user', content: opts.prompt }],
+      max_tokens: opts.maxTokens ?? 4096, temperature: opts.temperature ?? 0,
+      ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+    });
+    const choice = result.choices[0];
+    if (choice.finish_reason !== 'stop' || typeof choice.message.content !== 'string') {
+      throw new Error('Local generation did not produce a complete text answer');
+    }
+    return { text: choice.message.content, modelUsed: result.model || process.env.BIOMATE_LOCAL_LLM_MODEL!, fallbackDepth: 0 };
+  }
   const body = {
     prompt: opts.prompt,
     ...(opts.system ? { system: opts.system } : {}),
     max_tokens: opts.maxTokens ?? 4096,
     temperature: opts.temperature ?? 0.7,
     ...(opts.jsonMode ? { json_mode: true } : {}),
+    ...(opts.task ? { task: opts.task } : {}),
   };
   const url = `${backendUrl()}/internal/llm/generate`;
   const resp = await fetch(url, {

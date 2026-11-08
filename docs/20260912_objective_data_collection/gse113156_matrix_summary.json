@@ -1,0 +1,31 @@
+{
+  "GSE113156": {
+    "assay": "RNA-seq gene counts (real longitudinal, paired w0/w24)",
+    "n_genes": 20812,
+    "n_samples": 22,
+    "n_subjects": 6,
+    "cell_types": [
+      "CD4",
+      "CD8"
+    ],
+    "complete_w0_w24_pairs": 11,
+    "pairs_detail": [
+      "R084/CD4",
+      "R084/CD8",
+      "R087/CD4",
+      "R087/CD8",
+      "R103/CD4",
+      "R103/CD8",
+      "R104/CD4",
+      "R254/CD4",
+      "R254/CD8",
+      "R259/CD4",
+      "R259/CD8"
+    ],
+    "median_library_size": 7387268,
+    "min_library_size": 4895218,
+    "matrix": "raw/GSE113156_counts_matrix.tsv",
+    "role": "external-test only (n small but real paired design); do not train on it",
+    "training_eligible": false
+  }
+}

@@ -1,0 +1,20 @@
+N 884 pdb entries 878
+pre complexes 686 receptor clusters 179 peptide clusters 376 runnable_ccd 405 strict 187 NR clusters w/ >=1 runnable_ccd 105 NR strict 57
+post complexes 198 receptor clusters 82 peptide clusters 139 runnable_ccd 98 strict 32 NR clusters w/ >=1 runnable_ccd 48 NR strict 23
+total receptor clusters 225
+post novel receptor (no pre member in set): 46 runnable_ccd 24
+>=2025-07 55 23 runnable 14
+year [('1989', 1), ('1992', 1), ('1993', 1), ('1994', 4), ('1995', 7), ('1996', 2), ('1997', 8), ('1998', 15), ('1999', 8), ('2000', 3), ('2001', 7), ('2002', 4), ('2003', 4), ('2004', 12), ('2005', 11), ('2006', 4), ('2007', 15), ('2008', 7), ('2009', 12), ('2010', 21), ('2011', 30), ('2012', 21), ('2013', 29), ('2014', 27), ('2015', 58), ('2016', 52), ('2017', 39), ('2018', 29), ('2019', 43), ('2020', 60), ('2021', 48), ('2022', 61), ('2023', 65), ('2024', 83), ('2025', 78), ('2026', 14)]
+year post [('2023', 23), ('2024', 83), ('2025', 78), ('2026', 14)]
+len [(5, 34), (6, 33), (7, 73), (8, 66), (9, 38), (10, 47), (11, 115), (12, 58), (13, 66), (14, 76), (15, 55), (16, 46), (17, 45), (18, 22), (19, 32), (20, 12), (21, 26), (22, 13), (23, 12), (24, 4), (25, 11)]
+len post [(5, 7), (6, 5), (7, 15), (8, 5), (9, 5), (10, 9), (11, 25), (12, 8), (13, 9), (14, 20), (15, 19), (16, 19), (17, 12), (18, 7), (19, 17), (20, 1), (21, 6), (22, 2), (23, 4), (24, 2), (25, 1)]
+cyc [('disulfide', 306), ('head_to_tail_amide', 198), ('lactam_isopeptide_ester', 173), ('thioether', 105), ('carbon_carbon_staple', 71), ('head_to_tail_amide+thioether', 17), ('disulfide+head_to_tail_amide', 11), ('carbon_carbon_staple+lactam_isopeptide_ester', 2), ('lactam_isopeptide_ester+thioether', 1)]
+cyc post [('head_to_tail_amide', 52), ('thioether', 46), ('disulfide', 43), ('lactam_isopeptide_ester', 36), ('carbon_carbon_staple', 15), ('disulfide+head_to_tail_amide', 6)]
+ring Counter({'monocyclic': 765, 'bicyclic': 102, 'polycyclic': 17})
+noncanon frac 0.752262443438914 post 0.8383838383838383
+434 [('NH2', 206), ('ACE', 185), ('MLE', 81), ('DAL', 81), ('MVA', 77), ('SAR', 70), ('ABA', 57), ('BMT', 45), ('DTY', 43), ('MK8', 42), ('DPR', 37), ('DTR', 32), ('HYP', 31), ('MAA', 30), ('MP8', 29), ('NLE', 28), ('BAL', 27), ('ALY', 25), ('DPN', 24), ('DCY', 23), ('DLY', 19), ('MEA', 17), ('48V', 17), ('CCS', 16), ('NZC', 16), ('DLE', 15), ('DTH', 15), ('BB9', 14), ('ORN', 14), ('MLU', 14), ('ALO', 14), ('IIL', 13), ('DGL', 12), ('DPP', 12), ('EEP', 12), ('V7T', 12), ('CSX', 11), ('ILX', 11), ('TRX', 11), ('DGN', 11)]
+method Counter({'X-ray': 760, 'EM': 124})
+method post Counter({'X-ray': 136, 'EM': 62})
+res<=2.5 116 198
+runnable by canonical-only 219
+[('closure 1-15 (thioether) involves non-canonical residue', 20), ('closure 3-7 (lactam_isopeptide_ester) involves non-canonical', 18), ('closure 1-14 (thioether) involves non-canonical residue', 17), ('closure 1-14 (lactam_isopeptide_ester) involves non-canonica', 16), ('closure 4-11 (lactam_isopeptide_ester) involves non-canonica', 14), ('closure 1-11 (lactam_isopeptide_ester) involves non-canonica', 13), ('closure 1-5 (lactam_isopeptide_ester) involves non-canonical', 13), ('closure 4-8 (carbon_carbon_staple) involves non-canonical re', 12)]

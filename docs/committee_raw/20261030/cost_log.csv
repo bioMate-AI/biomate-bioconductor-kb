@@ -1,0 +1,5 @@
+ts,reviewer,model,attempt,prompt_tokens,completion_tokens,reasoning_tokens,reported_cost_usd,counted_cost_usd,finish,balance_before,balance_after,note
+2026-10-28T12:53:58,GEMINI,google/gemini-3.1-pro-preview,1,21669,3939,1824,0.0906,0.0906,stop,4.339,4.331,
+2026-10-28T12:55:25,GPT,openai/gpt-5.5,1,19431,6083,15,0.2796,0.2796,stop,4.331,4.241,
+2026-10-28T12:55:28,OPUS,anthropic/claude-opus-5.5,1,,,,0.0,0.0,content_filter,4.241,4.241,
+2026-10-28T12:55:55,OPUS,anthropic/claude-opus-5.5,2,,,,,0.0,content_filter,4.241,3.961,"retry same prompt, raw saved"

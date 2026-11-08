@@ -58,7 +58,7 @@ with open("enumerate_bacterial_cfu_by_serial_dilution_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("enumerate_bacterial_cfu_by_serial_dilution_output.txt", "w") as f:
-    f.write("Biomni: Enumerate Bacterial Cfu By Serial Dilution Results" + NL)
+    f.write("BioMate: Enumerate Bacterial Cfu By Serial Dilution Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

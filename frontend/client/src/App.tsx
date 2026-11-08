@@ -46,7 +46,6 @@ import AboutPage from "@/pages/about";
 import TutorialsPage from "@/pages/tutorials";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
-import DashboardPage from "@/pages/dashboard";
 import BillingPage from "@/pages/billing";
 import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
 import SystemDashboardPage from "@/pages/admin/system-dashboard";
@@ -55,20 +54,24 @@ import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import IndReportPage from "@/pages/ind-report";
 import DebugOutputs from "@/pages/DebugOutputs";
 import DebugViewerChain from "@/pages/DebugViewerChain";
+import DebugAfterRun from "@/pages/DebugAfterRun";
 import WorkflowDeepLink from "@/pages/WorkflowDeepLink";
 import CapabilitiesPage from "@/pages/capabilities";
+import { ModelsPanel } from "@/components/models";
+import { ConnectorsDialog } from "@/components/connectors-dialog";
+import DataHubPage from "@/pages/data-hub";
+import { DesignGenerate } from "@/components/design-generate/DesignGenerate";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TutorialTipOverlay } from "@/components/tutorial-tip-overlay";
-import { useUiFlavor } from "@/hooks/use-ui-flavor";
-// v2 surface — loaded behind ?ui=v2 / localStorage.biomate_ui flag.
-// ResearchApp has @ts-nocheck and a default export now; no @ts-expect-error needed.
-import ResearchApp from "@/v2/ResearchApp";
+// v2 design-token/layout CSS retained for AfterRunReport (active UI, ?afterrun=v2).
+// The old ?ui=v2 ResearchApp test surface was removed to avoid confusion.
 import "@/v2/tokens.css";
 import "@/v2/research-tokens.css";
 import "@/v2/layout.css";
 import "@/v2/research-layout.css";
 import "@/v2/tour.css";
+import { IND_REPORT_ENABLED } from "@/lib/feature-flags";
 
 interface ToolItem {
   id: string
@@ -79,12 +82,19 @@ interface ToolItem {
   icon: any
 }
 
-function ProjectsRouter() {
+function ProjectsRouter({ onNewChat }: { onNewChat: () => void }) {
+  const { setActiveProjectId } = useActiveProject();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const projectId = searchParams.get('project');
   const initialTab = searchParams.get('tab') ?? undefined;
+  useEffect(() => {
+    if (!projectId) return;
+    setActiveProjectId(projectId);
+    if (initialTab === "chat") onNewChat();
+    else if (initialTab !== "instructions" && initialTab !== "workflows") setLocation("/files");
+  }, [projectId, initialTab]);
 
   const handleProjectSelect = (id: string) => {
     setLocation(`/projects?project=${id}`);
@@ -97,6 +107,7 @@ function ProjectsRouter() {
   if (projectId) {
     return (
       <ProjectDetailPage
+        key={`${projectId}:${initialTab ?? "files"}`}
         projectId={projectId}
         onBack={handleBackToProjects}
         initialTab={initialTab}
@@ -120,10 +131,6 @@ function RootRoute({
   const [, setLocation] = useLocation()
   const search = useSearch()
   // All hooks must run before any conditional return (rules of hooks).
-  // useUiFlavor must be called every render — moving it after the early
-  // return below caused "Rendered more hooks than during the previous render"
-  // when isLoading flipped true→false.
-  const uiFlavor = useUiFlavor()
   const handledSessionParam = useRef(false)
 
   // Consume pending use-case query passed via ?q= from the marketing hero input.
@@ -158,9 +165,17 @@ function RootRoute({
   // Pre-filled draft (?draft=) from the project "Analyze with BioMate" flow. Unlike ?q=,
   // this populates the chat input for review/edit and is NOT auto-submitted.
   const [initialDraft] = useState<string | undefined>(() => {
-    const urlDraft = new URLSearchParams(window.location.search).get('draft')
+    const params = new URLSearchParams(window.location.search)
+    const urlDraft = params.get('draft')
     if (urlDraft) {
-      window.history.replaceState(null, '', window.location.pathname)
+      // Strip ONLY the draft param. The same navigation (e.g. the Data panel's
+      // "Run full QC") also carries ?project= and ?attachFile=, which the chat
+      // composer reads to attach the dataset — wiping the whole query here
+      // deleted attachFile before the composer could see it, so QC pre-filled
+      // the prompt but never attached the file. Preserve the rest.
+      params.delete('draft')
+      const rest = params.toString()
+      window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
       return decodeURIComponent(urlDraft)
     }
     return undefined
@@ -189,17 +204,6 @@ function RootRoute({
     }
   }, [isLoading, isAuthenticated]) // eslint-disable-line react-hooks/exhaustive-deps
   if (isLoading || !isAuthenticated) return null
-
-  // v2 chrome — gated behind ?ui=v2 / localStorage.biomate_ui = 'v2'.
-  // The data-v2-ui attribute scopes the v2 design-token :root rules so
-  // they don't bleed into the v1 surface.
-  if (uiFlavor === 'v2') {
-    return (
-      <div data-v2-ui style={{ height: '100vh', overflow: 'auto' }}>
-        <ResearchApp />
-      </div>
-    )
-  }
 
   return (
     <PlatformLayout
@@ -432,7 +436,6 @@ function PlatformLayout({
             <AppSidebar
               onNewChat={() => { onNewChat(); setMobileMenuOpen(false); }}
               onChatSelect={(id) => { onChatSelect(id); setMobileMenuOpen(false); }}
-              onCategorySelect={onCategorySelect}
               onToolSelect={onToolSelect}
               onProjectSelect={(id) => { onProjectSelect(id); setMobileMenuOpen(false); }}
               onNewProject={() => { onNewProject(); setMobileMenuOpen(false); }}
@@ -478,10 +481,8 @@ function PlatformLayout({
               <button onClick={onNewChat} data-testid="button-new-chat" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
                 <Plus className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
-              <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Workflows">
-                <FlaskConical className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
-              </button>
-              <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history">
+              {/* Import workflow is available under Settings in the expanded sidebar. */}
+              <button onClick={toggleSidebar} data-testid="button-rail-chat-history" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history — expand sidebar">
                 <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
               <div className="flex-1" />
@@ -489,11 +490,10 @@ function PlatformLayout({
             </div>
           ) : (
             /* Full sidebar */
-            <div className="flex-shrink-0 flex overflow-hidden" style={{ width: 260, minWidth: 260, maxWidth: 260 }}>
+            <div className="flex-shrink-0 flex overflow-hidden" data-testid="platform-sidebar" style={{ width: 224, minWidth: 224, maxWidth: 224 }}>
               <AppSidebar
                 onNewChat={onNewChat}
                 onChatSelect={onChatSelect}
-                onCategorySelect={onCategorySelect}
                 onToolSelect={onToolSelect}
                 onProjectSelect={onProjectSelect}
                 onNewProject={onNewProject}
@@ -552,6 +552,7 @@ function Router({
       {/* Debug-only harness — see frontend/client/src/pages/DebugOutputs.tsx */}
       <Route path="/debug/outputs/:runId" component={DebugOutputs} />
       <Route path="/debug/viewer/:runId" component={DebugViewerChain} />
+      <Route path="/debug/afterrun/:runId" component={DebugAfterRun} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
@@ -607,17 +608,15 @@ function Router({
 {/* NextflowDemoPage removed */}
 
       {/* Authenticated pages */}
-      {/* <Route path="/dashboard">
-        <AuthenticatedPageLayout>
-          <DashboardPage />
-        </AuthenticatedPageLayout>
-      </Route> */}
-
-      <Route path="/billing">
+      {/* Billing stays HIDDEN — deliberate owner decision; do NOT re-enable without
+          the owner's explicit OK. (The crash was separately hardened 2026-09-30 —
+          compute.total_hours / storage.size_gb are now null-safe — so it is ready to
+          restore WHENEVER the owner chooses, but it stays commented out until then.) */}
+      {/* <Route path="/billing">
         <AuthenticatedPageLayout>
           <BillingPage />
         </AuthenticatedPageLayout>
-      </Route>
+      </Route> */}
 
       <Route path="/admin/feedback-dashboard">
         <AuthenticatedPageLayout>
@@ -637,22 +636,107 @@ function Router({
         </AuthenticatedPageLayout>
       </Route>
 
-      <Route path="/drug-discovery-cro">
+      {/* CRO Library hidden for now (per request 2026-09-22) — no sidebar entry
+          existed; commenting the route so the direct /drug-discovery-cro URL is
+          disabled too. Restore when CRO is ready to surface. */}
+      {/* <Route path="/drug-discovery-cro">
         <AuthenticatedPageLayout>
           <DrugDiscoveryCroDemoPage />
         </AuthenticatedPageLayout>
-      </Route>
+      </Route> */}
 
-      <Route path="/ind-report">
-        <AuthenticatedPageLayout>
-          <IndReportPage />
-        </AuthenticatedPageLayout>
-      </Route>
+      {/* IND Report is paused — see IND_REPORT_ENABLED (feature-flags.ts). */}
+      {IND_REPORT_ENABLED && (
+        <Route path="/ind-report">
+          <AuthenticatedPageLayout>
+            <IndReportPage />
+          </AuthenticatedPageLayout>
+        </Route>
+      )}
 
       <Route path="/capabilities">
         <PublicPageLayout>
           <CapabilitiesPage />
         </PublicPageLayout>
+      </Route>
+
+      {/* DL upgrade wave-1/wave-2 — Models + Design&Generate surfaces.
+          Components: components/models (ModelsPanel) and
+          components/design-generate (DesignGenerate). Node proxy routes for
+          /api/models·/api/inference·/api/generate live in server/routes.ts. */}
+      <Route path="/models">
+        <PlatformLayout
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onNewChat={onNewChat}
+          onChatSelect={onChatSelect}
+          onCategorySelect={onCategorySelect}
+          onToolSelect={onToolSelect}
+          onProjectSelect={onProjectSelect}
+          onNewProject={onNewProject}
+          activeChatId={currentChatSession?.id}
+          chatSessions={chatSessions}
+        >
+          <div className="max-w-5xl mx-auto p-4">
+            <ModelsPanel />
+          </div>
+        </PlatformLayout>
+      </Route>
+
+      <Route path="/design">
+        <PlatformLayout
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onNewChat={onNewChat}
+          onChatSelect={onChatSelect}
+          onCategorySelect={onCategorySelect}
+          onToolSelect={onToolSelect}
+          onProjectSelect={onProjectSelect}
+          onNewProject={onNewProject}
+          activeChatId={currentChatSession?.id}
+          chatSessions={chatSessions}
+        >
+          <div className="max-w-5xl mx-auto p-4">
+            <DesignGenerate />
+          </div>
+        </PlatformLayout>
+      </Route>
+
+      {/* Tier-1 data surface — the data hub. Datasets as first-class objects
+          (DatasetObject) with perception-at-ingest quality. Node proxy for
+          /api/perception lives in server/routes.ts. */}
+      <Route path="/settings/connections">
+        <PlatformLayout
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onNewChat={onNewChat}
+          onChatSelect={onChatSelect}
+          onCategorySelect={onCategorySelect}
+          onToolSelect={onToolSelect}
+          onProjectSelect={onProjectSelect}
+          onNewProject={onNewProject}
+          activeChatId={currentChatSession?.id}
+          chatSessions={chatSessions}
+        >
+          <ConnectorsDialog embedded open onOpenChange={() => {}} />
+        </PlatformLayout>
+      </Route>
+
+      <Route path="/files">
+        <PlatformLayout
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onNewChat={onNewChat}
+          onChatSelect={onChatSelect}
+          onCategorySelect={onCategorySelect}
+          onToolSelect={onToolSelect}
+          onProjectSelect={onProjectSelect}
+          onNewProject={onNewProject}
+          activeChatId={currentChatSession?.id}
+          chatSessions={chatSessions}
+        >
+          <DataHubPage />
+        </PlatformLayout>
       </Route>
 
 {/* Deep link from chat connectors — loads a generated workflow by id and
@@ -702,7 +786,7 @@ function Router({
           activeChatId={currentChatSession?.id}
           chatSessions={chatSessions}
         >
-          <ProjectsRouter />
+          <ProjectsRouter onNewChat={onNewChat} />
         </PlatformLayout>
       </Route>
 
@@ -796,14 +880,20 @@ function App() {
     setShowToolDialog(true)
   }
 
+  // Both CTAs route through BioMate's real chat entry point via ?draft=, which
+  // pre-fills the chat input for the user to review/edit before sending (the
+  // same mechanism as the project "Analyze with BioMate" flow). They are NOT
+  // console.log no-ops.
   const handleAddToWorkflow = (tool: ToolItem) => {
-    console.log('Adding tool to workflow:', tool.name)
     setShowToolDialog(false)
+    const msg = `Add the ${tool.name} tool to my workflow.`
+    window.location.assign(`/?draft=${encodeURIComponent(msg)}`)
   }
 
   const handleStartChat = (tool: ToolItem) => {
-    console.log('Starting chat about tool:', tool.name)
     setShowToolDialog(false)
+    const msg = `Tell me about the ${tool.name} tool and how to use it.`
+    window.location.assign(`/?draft=${encodeURIComponent(msg)}`)
   }
 
   const toggleSidebar = () => {

@@ -1,0 +1,22 @@
+{
+  "n_tools_in": 12312,
+  "n_docs_out": 10532,
+  "kept_tokens": 11300629,
+  "dropped_tokens": 4050759,
+  "dedup_ratio": 0.264,
+  "kept_by_field": {
+    "scientific_context(verbalized)": 7705408,
+    "rawText": 2444719,
+    "parameters(verbalized)": 675305,
+    "help_text": 292076,
+    "examples/usage": 183121
+  },
+  "dropped_by_reason": {
+    "htmlContent(redundant)": 2498957,
+    "help_text(dup)": 970097,
+    "description(catalog_only)": 462690,
+    "scientific_context(failed_gen)": 80031,
+    "cross_tool_dup": 36167,
+    "usage_guide(dup_of_examples)": 2817
+  }
+}

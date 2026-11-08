@@ -1,4 +1,5 @@
 import * as os from 'os';
+import { mkdirSync, writeFileSync, renameSync } from 'node:fs';
 import * as path from 'path';
 
 export type SurfaceId =
@@ -42,15 +43,21 @@ function platformConfigDir(): string {
   return path.join(home(), '.config');
 }
 
-function mcpServerEntry(refreshToken: string) {
-  const apiBase = process.env.BIOMATE_API_BASE ?? 'https://api.biomate.ai';
+function mcpServerEntry(accessToken: string, refreshToken: string, clientId: string) {
+  const authBase = process.env.BIOMATE_AUTH_BASE ?? 'https://dev-public.biomate.ai';
+  const directory = path.join(home(), '.config', 'biomate');
+  mkdirSync(directory, { recursive: true, mode: 0o700 });
+  const credentialFile = path.join(directory, clientId + '.json');
+  const temporary = credentialFile + '.' + process.pid + '.tmp';
+  writeFileSync(temporary, JSON.stringify({
+    authBase, clientId: process.env.BIOMATE_OAUTH_CLIENT_ID ?? clientId,
+    access_token: accessToken, refresh_token: refreshToken,
+    expires_at: 0,
+  }), { mode: 0o600 });
+  renameSync(temporary, credentialFile);
   return {
-    command: 'npx',
-    args: ['-y', '@biomate/mcp-server'],
-    env: {
-      BIOMATE_API_BASE: apiBase,
-      BIOMATE_REFRESH_TOKEN: refreshToken,
-    },
+    command: 'npx', args: ['-y', '@biomate/mcp-server@0.1.1'],
+    env: { BIOMATE_OAUTH_FILE: credentialFile },
   };
 }
 
@@ -64,11 +71,11 @@ export const SURFACES: Record<SurfaceId, SurfaceConfig> = {
     callbackPort: 53682,
     scopes: DEFAULT_SCOPES,
     configPath: () => path.join(home(), '.claude.json'),
-    install: async (_t, refresh) => {
+    install: async (access, refresh) => {
       const p = path.join(home(), '.claude.json');
       await upsertJSON(p, (cfg) => {
         cfg.mcpServers ??= {};
-        cfg.mcpServers.biomate = mcpServerEntry(refresh);
+        cfg.mcpServers.biomate = mcpServerEntry(access, refresh, 'biomate-claude-code');
         return cfg;
       });
       return p;
@@ -81,11 +88,11 @@ export const SURFACES: Record<SurfaceId, SurfaceConfig> = {
     callbackPort: 53683,
     scopes: DEFAULT_SCOPES,
     configPath: () => path.join(platformConfigDir(), 'Claude', 'claude_desktop_config.json'),
-    install: async (_t, refresh) => {
+    install: async (access, refresh) => {
       const p = path.join(platformConfigDir(), 'Claude', 'claude_desktop_config.json');
       await upsertJSON(p, (cfg) => {
         cfg.mcpServers ??= {};
-        cfg.mcpServers.biomate = mcpServerEntry(refresh);
+        cfg.mcpServers.biomate = mcpServerEntry(access, refresh, 'biomate-claude-desktop');
         return cfg;
       });
       return p;
@@ -98,11 +105,11 @@ export const SURFACES: Record<SurfaceId, SurfaceConfig> = {
     callbackPort: 53684,
     scopes: DEFAULT_SCOPES,
     configPath: () => path.join(home(), '.cursor', 'mcp.json'),
-    install: async (_t, refresh) => {
+    install: async (access, refresh) => {
       const p = path.join(home(), '.cursor', 'mcp.json');
       await upsertJSON(p, (cfg) => {
         cfg.mcpServers ??= {};
-        cfg.mcpServers.biomate = mcpServerEntry(refresh);
+        cfg.mcpServers.biomate = mcpServerEntry(access, refresh, 'biomate-cursor');
         return cfg;
       });
       return p;
@@ -115,10 +122,10 @@ export const SURFACES: Record<SurfaceId, SurfaceConfig> = {
     callbackPort: 53685,
     scopes: DEFAULT_SCOPES,
     configPath: () => path.join(home(), '.codex', 'config.toml'),
-    install: async (_t, refresh) => {
+    install: async (access, refresh) => {
       const p = path.join(home(), '.codex', 'config.toml');
-      const apiBase = process.env.BIOMATE_API_BASE ?? 'https://api.biomate.ai';
-      await upsertTOML(p, `\n[mcp_servers.biomate]\ncommand = "npx"\nargs = ["-y", "@biomate/mcp-server"]\n\n[mcp_servers.biomate.env]\nBIOMATE_API_BASE = "${apiBase}"\nBIOMATE_REFRESH_TOKEN = "${refresh}"\n`);
+      const entry = mcpServerEntry(access, refresh, 'biomate-codex');
+      await upsertTOML(p, `\n[mcp_servers.biomate]\ncommand = "npx"\nargs = ["-y", "@biomate/mcp-server@0.1.1"]\n\n[mcp_servers.biomate.env]\nBIOMATE_OAUTH_FILE = ${JSON.stringify(entry.env.BIOMATE_OAUTH_FILE)}\n`);
       return p;
     },
   },
@@ -152,7 +159,7 @@ Install steps:
     callbackPort: 53687,
     scopes: DEFAULT_SCOPES,
     configPath: () => '(Open Claw — hosted by BioMate)',
-    install: async (_t, refresh) => {
+    install: async (access, refresh) => {
       console.log(`
 Open Claw runs as a hosted webhook — there's nothing to install locally.
 We've linked your account; in WeChat search the BioMate Open Claw bot and

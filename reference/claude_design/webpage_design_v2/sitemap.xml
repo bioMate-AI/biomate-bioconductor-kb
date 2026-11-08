@@ -2,8 +2,20 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Main pages -->
   <url>
+    <loc>https://biomate.ai/drug-discovery.html</loc>
+    <lastmod>2026-10-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://biomate.ai/research-engines.html</loc>
+    <lastmod>2026-10-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://biomate.ai/</loc>
-    <lastmod>2026-06-05</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -15,7 +27,7 @@
   </url>
   <url>
     <loc>https://biomate.ai/services.html</loc>
-    <lastmod>2026-06-05</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -33,7 +45,7 @@
   </url>
   <url>
     <loc>https://biomate.ai/blog.html</loc>
-    <lastmod>2026-06-05</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -335,37 +347,37 @@
   <!-- Research surveys -->
   <url>
     <loc>https://biomate.ai/surveys.html</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://biomate.ai/survey-target-identification.html</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://biomate.ai/survey-patient-stratification.html</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://biomate.ai/survey-multi-omics.html</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://biomate.ai/survey-virtual-cell.html</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://biomate.ai/survey-protein-conformation.html</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-10-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -399,5 +411,48 @@
     <lastmod>2026-08-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url><loc>https://biomate.ai/benchmarks-biology.html</loc></url>
+  <url><loc>https://biomate.ai/benchmarks-drug.html</loc></url>
+  <url><loc>https://biomate.ai/benchmarks-routing.html</loc></url>
+  <url><loc>https://biomate.ai/blog-admet-pbpk-ind-package.html</loc></url>
+  <url><loc>https://biomate.ai/blog-complement-stratification.html</loc></url>
+  <url><loc>https://biomate.ai/blog-connectors.html</loc></url>
+  <url><loc>https://biomate.ai/blog-endpoint-recommender.html</loc></url>
+  <url><loc>https://biomate.ai/blog-gwas-target-indication.html</loc></url>
+  <url><loc>https://biomate.ai/blog-immune-multiomics-data-landscape.html</loc></url>
+  <url><loc>https://biomate.ai/blog-immune-multiomics-integration-approaches.html</loc></url>
+  <url><loc>https://biomate.ai/blog-immune-multiomics-why.html</loc></url>
+  <url><loc>https://biomate.ai/blog-multi-omics-integration.html</loc></url>
+  <url><loc>https://biomate.ai/blog-ra-gwas-target.html</loc></url>
+  <url><loc>https://biomate.ai/blog-ra-responder-signature.html</loc></url>
+  <url><loc>https://biomate.ai/blog-rare-disease-trial-design.html</loc></url>
+  <url><loc>https://biomate.ai/blog-scrna-immune-profiling.html</loc></url>
+  <url><loc>https://biomate.ai/blog-summit-2026-deep-dive.html</loc></url>
+  <url><loc>https://biomate.ai/blog-summit-2026.html</loc></url>
+  <url><loc>https://biomate.ai/blog-tocilizumab-ind-package.html</loc></url>
+  <url><loc>https://biomate.ai/blog-tyk2-admet-validation.html</loc></url>
+  <url><loc>https://biomate.ai/blog-vanta-workstreet-compliance.html</loc></url>
+  <url><loc>https://biomate.ai/connectors.html</loc></url>
+  <url><loc>https://biomate.ai/privacy.html</loc></url>
+  <url><loc>https://biomate.ai/publications.html</loc></url>
+  <url><loc>https://biomate.ai/terms.html</loc></url>
+  <url>
+    <loc>https://biomate.ai/therapeutic-areas.html</loc>
+    <lastmod>2026-10-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://biomate.ai/how-we-design.html</loc>
+    <lastmod>2026-10-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://biomate.ai/target-identification.html</loc>
+    <lastmod>2026-10-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
   </url>
 </urlset>

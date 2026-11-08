@@ -610,7 +610,7 @@ with open("check_drug_combination_safety_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("check_drug_combination_safety_output.txt", "w") as f:
-    f.write("Biomni: Check Drug Combination Safety" + NL)
+    f.write("BioMate: Check Drug Combination Safety" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

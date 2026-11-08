@@ -50,7 +50,7 @@ with open("analyze_protein_conservation_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_protein_conservation_output.txt", "w") as f:
-    f.write("Biomni: Analyze Protein Conservation Results" + NL)
+    f.write("BioMate: Analyze Protein Conservation Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

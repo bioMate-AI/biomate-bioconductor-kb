@@ -340,7 +340,7 @@ with open("simulate_microbial_population_dynamics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("simulate_microbial_population_dynamics_output.txt", "w") as f:
-    f.write("Biomni: Simulate Microbial Population Dynamics" + NL)
+    f.write("BioMate: Simulate Microbial Population Dynamics" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

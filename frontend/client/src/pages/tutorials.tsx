@@ -19,7 +19,7 @@ const VIDEOS = [
     id: "F2DgmBa5gq8",
     title: "After Run Report — Reproducibility in One Click",
     description:
-      "Every completed BioMate run generates a structured 7-tab report: Findings, Outputs, Methods, Parameters, Software, Citations, and QC Audit. Download as DOCX, Markdown, or LaTeX — manuscript-ready without copy-paste.",
+      "Every completed BioMate run generates a structured 7-tab report: Findings, Outputs, Methods, Parameters, Software, Citations, and QC Audit. Download the whole report as Markdown — no copy-paste. (IND dossiers add a Word/DOCX export where the server-side converter is available.)",
   },
   {
     id: "IDcICWmB0Oo",

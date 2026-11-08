@@ -1,0 +1,57 @@
+{
+  "data": {
+    "a": {
+      "hits": [
+        {
+          "id": "ENSG00000145777",
+          "name": "TSLP",
+          "entity": "target"
+        },
+        {
+          "id": "ENSG00000205755",
+          "name": "CRLF2",
+          "entity": "target"
+        },
+        {
+          "id": "ENSG00000292363",
+          "name": "CRLF2",
+          "entity": "target"
+        }
+      ]
+    },
+    "b": {
+      "hits": [
+        {
+          "id": "ENSG00000137033",
+          "name": "IL33",
+          "entity": "target"
+        },
+        {
+          "id": "ENSG00000115602",
+          "name": "IL1RL1",
+          "entity": "target"
+        },
+        {
+          "id": "ENSG00000294323",
+          "name": "ENSG00000294323",
+          "entity": "target"
+        }
+      ]
+    },
+    "c": {
+      "hits": [
+        {
+          "id": "ENSG00000115602",
+          "name": "IL1RL1",
+          "entity": "target"
+        },
+        {
+          "id": "ENSG00000099203",
+          "name": "TMED1",
+          "entity": "target"
+        }
+      ]
+    },
+    "disease": null
+  }
+}

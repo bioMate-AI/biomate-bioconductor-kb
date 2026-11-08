@@ -1,0 +1,9 @@
+{
+  "scope": "live model and actual BioMate orchestration, synthetic storage",
+  "model": "Qwen/Qwen3.8-27B",
+  "latency_ms": 369696,
+  "events": [],
+  "result": {
+    "message": "I encountered an error processing your request. Please try again."
+  }
+}

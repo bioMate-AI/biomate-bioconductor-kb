@@ -1,0 +1,325 @@
+{
+    "Contents": [
+        {
+            "Key": "cyclic_peptide/baseline/cycpep_baseline_metrics.json",
+            "LastModified": "2026-07-20T15:50:52+00:00",
+            "ETag": "\"c7ca2c840423533c749a6bc6fc7e6cca\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 926,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/baseline/cycpep_descriptors.csv",
+            "LastModified": "2026-07-20T02:20:34+00:00",
+            "ETag": "\"68b329da9893e34099c7d8ad5cb9c940\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 1,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/baseline/cycpep_features.csv",
+            "LastModified": "2026-07-20T15:50:52+00:00",
+            "ETag": "\"eedb5c81ca017a2e7ff1128f7a0345db-2\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 10344457,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/code/cycpep_scorer_3d.py",
+            "LastModified": "2026-08-30T02:07:25+00:00",
+            "ETag": "\"30b6de2ef17a94caedd78557973cc593\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 7497,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/chemprop_scaffold.log",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"13a02ec3ab8ca3581808fd047bef3efa\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 452394,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/chemprop_scaffold/args.json",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"57a99f5ee6ac2cd2f0899f3fa068d058\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 4479,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/chemprop_scaffold/fold_0/model_0/events.out.tfevents.1784648411.907a66a6faa7",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"46498a3cc9f4fbb8874dd60d20b086d7\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 115221,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/chemprop_scaffold/fold_0/model_0/model.pt",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"ac2920c51313c13f72169ffebe957a0c\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 1428450,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/chemprop_scaffold/fold_0/test_scores.json",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"92303a7da5851cffd0adcb0f60222382\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 48,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/chemprop_scaffold/quiet.log",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"daec6f3a5ffa764679881a69299a4457\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 230,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/chemprop_scaffold/test_scores.csv",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"7c24201ee2d6b3be7981d3fb4943eb85\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 91,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/chemprop_scaffold/verbose.log",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"fba6f1b8014da97909fa9c185c358711\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 45652,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/cycpep_peptideclm_metrics.json",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"e0862489b808029993ae72b5c092fe8d\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 1016,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/dmpnn_peptideclm/pampa.csv",
+            "LastModified": "2026-07-21T16:04:10+00:00",
+            "ETag": "\"b6616ee9a911a076c151a9d565593697\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 1416549,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/fm_probe/cycpep_fm_probe_metrics.json",
+            "LastModified": "2026-07-21T04:49:03+00:00",
+            "ETag": "\"45022a5a28b00197efb1807f50123fba\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 1444,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/logs/cycpep.log",
+            "LastModified": "2026-07-20T15:50:53+00:00",
+            "ETag": "\"ed34203d1ebd40ccce88d710c6ca0d56\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 12443,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/logs/cycpep_dmpnn_peptideclm.log",
+            "LastModified": "2026-07-21T16:04:11+00:00",
+            "ETag": "\"cd2a5c7f3200df5eaae4923cd9507def\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 29661,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/logs/cycpep_fm_probe.log",
+            "LastModified": "2026-07-21T04:49:04+00:00",
+            "ETag": "\"a9af55e38b0bbf15afb3c3e35ccefcba\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 14151,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/logs/cycpep_gnn.log",
+            "LastModified": "2026-07-21T01:04:57+00:00",
+            "ETag": "\"e171e1b4d9ab9e4bca1ee9fbdf15d76d\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 10852,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/logs/cycpep_model.log",
+            "LastModified": "2026-07-20T16:22:26+00:00",
+            "ETag": "\"2f528c2065c06508dc6583dea3a23205\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 10406,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/logs/cycpep_multitask.log",
+            "LastModified": "2026-07-21T04:48:46+00:00",
+            "ETag": "\"662c36d4124ef36e89e38626765cdfed\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 12102,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/logs/cycpep_scorer.log",
+            "LastModified": "2026-07-21T11:54:48+00:00",
+            "ETag": "\"2cac611fe4a21e8592872cbe12bda303\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 11664,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/logs/cycpep_scorer_3d.log",
+            "LastModified": "2026-08-30T02:10:01+00:00",
+            "ETag": "\"ace0fbf44de8a291691b087d1d8faedc\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 4331,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/model/cycpep_gnn_metrics.json",
+            "LastModified": "2026-07-21T01:04:57+00:00",
+            "ETag": "\"a674721d656741418d60d6b19b0d9569\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 309,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/model/cycpep_model_metrics.json",
+            "LastModified": "2026-07-20T16:22:25+00:00",
+            "ETag": "\"16d3dde0d9cf2dc3694a1fcd924802f0\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 702,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/multitask/cycpep_multitask_metrics.json",
+            "LastModified": "2026-07-21T04:48:45+00:00",
+            "ETag": "\"7e88d4526f67faad4256acf15dcab2a7\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 740,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/multitask/model.pt",
+            "LastModified": "2026-07-21T04:48:45+00:00",
+            "ETag": "\"fb2be0a56aae10a8d2374551e066cc97\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 500648,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/raw/CycPeptMPDB_Peptide_All.csv",
+            "LastModified": "2026-07-20T15:50:52+00:00",
+            "ETag": "\"e9e917da181d9cb781fe570cec92530f-3\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 19068277,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/scorer/cycpep_perm_histgbm.pkl",
+            "LastModified": "2026-07-21T11:54:47+00:00",
+            "ETag": "\"ced20eefe5897a294425bdfab5be1724\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 1509573,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/scorer/cycpep_perm_histgbm_3d.pkl",
+            "LastModified": "2026-07-21T15:28:26+00:00",
+            "ETag": "\"00646d6f13fb92a48417946ca0453e05\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 1668408,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/scorer/cycpep_scorer_3d_metrics.json",
+            "LastModified": "2026-07-21T15:28:26+00:00",
+            "ETag": "\"670ae96f882afede812497cbd1701ae1\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 287,
+            "StorageClass": "STANDARD"
+        },
+        {
+            "Key": "cyclic_peptide/scorer/cycpep_scorer_metrics.json",
+            "LastModified": "2026-07-21T11:54:47+00:00",
+            "ETag": "\"9b3ff5bd0d35d07357bafddfc1190901\"",
+            "ChecksumAlgorithm": [
+                "CRC64NVME"
+            ],
+            "Size": 269,
+            "StorageClass": "STANDARD"
+        }
+    ],
+    "RequestCharged": null
+}

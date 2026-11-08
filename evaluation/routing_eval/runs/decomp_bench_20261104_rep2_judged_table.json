@@ -1,0 +1,32 @@
+[
+ {
+  "model": "moonshotai/kimi-k3",
+  "n": 24,
+  "failed": 5,
+  "node_f1": 0.5308531746031746,
+  "edge_f1": 0.2876984126984127,
+  "structure": 0.3333333333333333,
+  "usd_per_call": 0.02945498610526316,
+  "median_secs": 11.089
+ },
+ {
+  "model": "z-ai/glm-5.2",
+  "n": 24,
+  "failed": 2,
+  "node_f1": 0.5875,
+  "edge_f1": 0.30853174603174605,
+  "structure": 0.25,
+  "usd_per_call": 0.012123799181818183,
+  "median_secs": 9.722999999999999
+ },
+ {
+  "model": "google/gemini-3.8-flash",
+  "n": 24,
+  "failed": 3,
+  "node_f1": 0.506547619047619,
+  "edge_f1": 0.23214285714285715,
+  "structure": 0.25,
+  "usd_per_call": 0.025002410714285717,
+  "median_secs": 12.876
+ }
+]

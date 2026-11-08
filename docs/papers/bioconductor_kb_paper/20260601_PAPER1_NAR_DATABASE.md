@@ -5,9 +5,12 @@
 
 ---
 
-## Authors
-- Yaoyun Zhang¹
-- ¹ BioMate AI
+## Authors and Affiliations
+
+> **[AUTHORS TBD — confirm the full author list, ORCID iDs, and CRediT roles before submission. Do not add names that have not been confirmed by the corresponding author.]**
+
+- Yaoyun Zhang¹ *(corresponding author — to be confirmed)*
+- ¹ BioMate AI, [full postal affiliation TBD]
 - Correspondence: contact@biomate.ai
 
 ---
@@ -24,7 +27,7 @@ Bioconductor hosts 2,241 packages for statistical genomics, yet constructing cor
 
 Bioconductor has grown to 2,241 packages in release 3.20 (October 2024), covering transcriptomics, genomics, single-cell analysis, epigenomics, proteomics, and metabolomics (1, 2). This breadth is a strength — the ecosystem provides peer-reviewed, interoperable statistical tools for virtually every genomics domain. But it also creates a navigability challenge: deciding which packages to use, in what order, with what parameters, and producing reproducible workflows requires substantial domain expertise that is difficult to encode in queryable form.
 
-Existing resources address parts of this problem without covering it comprehensively. **bio.tools** (3) catalogs >30,000 bioinformatics tools with EDAM ontology annotations but provides no step-level workflow context. **WorkflowHub** (4) hosts ~1,000 abstract computational workflows. **BiocViews** (5) classifies packages by topic but provides no executable detail. **nf-core** (12, 29) provides ~100 curated Nextflow pipelines but covers only a small fraction of Bioconductor packages. No resource has systematically extracted step-level workflow knowledge from across the full Bioconductor package set, validated extracted function names against live NAMESPACE exports, or linked steps to executable Nextflow process templates.
+Existing resources address parts of this problem without covering it comprehensively. **bio.tools** (3) catalogs >30,000 bioinformatics tools with EDAM ontology annotations but provides no step-level workflow context. **WorkflowHub** (4) hosts ~1,000 abstract computational workflows. **BiocViews** (5) classifies packages by topic but provides no executable detail. **nf-core** (12, 16) provides ~100 curated Nextflow pipelines but covers only a small fraction of Bioconductor packages. No resource has systematically extracted step-level workflow knowledge from across the full Bioconductor package set, validated extracted function names against live NAMESPACE exports, or linked steps to executable Nextflow process templates.
 
 BioMate-KB fills this gap. It provides: (i) step-level workflow annotations for 87.9% of Bioconductor 3.20 packages; (ii) function names validated against NAMESPACE exports with ~96% verified accuracy against the full Bioconductor 3.20 registry; (iii) per-step EDAM ontology annotations, Biocontainer image URIs, and software DOIs for full FAIR traceability; (iv) Nextflow DSL2 process templates enabling direct workflow execution; and (v) a dual-agent LLM quality review with 90.0% step correctness. The companion methods paper (see companion paper) describes the structure-grounded LLM extraction methodology and demonstrates that BioMate-KB grounding improves workflow generation function citation accuracy from 71.4% to 88.2%.
 
@@ -293,7 +296,17 @@ The conservative 83.0% TP rate is a lower bound: 60% of flagged false positives 
 
 To validate step quality at scale, we deployed a dual-agent LLM review protocol across 7 biological domains (140 packages, 20 per domain). Two independent LLM reviewer agents assessed each step on four binary criteria (biological correctness, completeness, naming accuracy, granularity), with a third mediator agent resolving disagreements. Overall step correctness is **90.0%** across 1,549 steps reviewed, with inter-rater agreement κ = 0.801 → 0.96 after iterative calibration across 1,204 criterion revisions. Mediation produced 208 validated step renames applied directly to the knowledge base and identified 581 workflow gaps for future augmentation. The full dual-agent methodology and results are reported in the companion paper.
 
-### 6.3 FAIR Compliance
+### 6.3 Validation Scope and Caveats (structural, not runtime)
+
+The two quality figures reported above measure **structural and expert-judged** correctness, not end-to-end runtime execution. Readers should interpret them accordingly:
+
+- **Function-name accuracy (~96%, conservative lower bound 83.0%)** is a *structural NAMESPACE validation*: it confirms that extracted function names exist in the relevant Bioconductor 3.20 NAMESPACE exports. It does **not** confirm that any step runs to completion, that arguments are valid, or that outputs are produced.
+- **Step correctness (90.0%, κ = 0.96)** is a *dual-agent LLM expert review* of biological correctness, completeness, naming, and granularity. It is a judged-quality signal, **not** an execution test.
+- **No claim of runtime-proven execution is made for the knowledge base as a whole.** Extracted `sample_code` snippets assume data loaded earlier in the source vignette and are not self-contained executable units (see §8.1). The `nextflow_process_template` fields are deployable *skeletons* that users customise, not validated end-to-end pipelines.
+
+**End-to-end executable verification of a representative sampled subset — running vignette steps and Nextflow templates in isolated containers against example data and confirming valid outputs — is explicitly future work (§8.2).** The term "executable" in this paper denotes *execution-linked* (every step carries a Biocontainer image and a Nextflow process template), not *execution-verified*.
+
+### 6.4 FAIR Compliance
 
 | FAIR Evidence | Status |
 |---------------|--------|
@@ -306,7 +319,7 @@ To validate step quality at scale, we deployed a dual-agent LLM review protocol 
 | **Reusable**: Open license (Artistic/GPL, per Bioc policy) | 100% of packages |
 | **Reusable**: Methodology DOI (for cited methods) | 20.7% of packages |
 
-*FAIRsoft score computation planned after Zenodo DB deposit — estimated 0.84–0.88.*
+*FAIRsoft score computation planned after Zenodo DB deposit (`[DOI TBD]`) — estimated 0.84–0.88 (estimate only; to be computed on the deposited release).*
 
 ---
 
@@ -316,12 +329,12 @@ To validate step quality at scale, we deployed a dual-agent LLM review protocol 
 |----------|---------------------|---------------------|------------------|-----------------------|
 | bio.tools (3) | No | No | No | ~1,800 tools |
 | WorkflowHub (4) | Yes (abstract) | No | Partial | ~200 workflows |
-| nf-core (12, 29) | Yes | No | Nextflow | ~100 pipelines |
+| nf-core (12, 16) | Yes | No | Nextflow | ~100 pipelines |
 | BioWorkflow (6) | Yes | No | No | ~500 (paper-derived) |
-| APE + bio.tools (24) | Yes (constraint logic) | Partial (EDAM types) | No | Proteomics subset |
-| **BioMate-KB** | **Yes — 15,641 steps** | **NAMESPACE + S4 typed chains** | **Nextflow + Biocontainer** | **2,241 packages (87.9%)** |
+| APE + bio.tools (14) | Yes (constraint logic) | Partial (EDAM types) | No | Proteomics subset |
+| **BioMate-KB** | **Yes — 15,641 steps** | **NAMESPACE + EDAM-typed data-flow** | **Nextflow + Biocontainer** | **2,241 packages (87.9%)** |
 
-BioMate-KB is the only resource combining step-level knowledge with NAMESPACE validation, S4 type chain verification, and direct execution linkage across essentially the full Bioconductor package set. It is complementary to BioWorkflow (6), which mines workflow steps from published methods sections — a different source that covers published analysis recipes; BioWorkflow and BioMate-KB could be cross-validated in future work. It is also complementary to nf-core (12), which provides community-curated pipelines for ~100 workflows; BioMate-KB extends this to all 2,241 Bioconductor packages with AI-assisted generation. APE in the Wild (24) applies constraint logic over EDAM-annotated bio.tools for proteomics workflow composition — BioMate-KB extends this paradigm with richer Bioconductor-native structural constraints and LLM-based extraction.
+BioMate-KB is the only resource combining step-level knowledge with NAMESPACE validation, EDAM-typed data-flow chaining (§3.4–3.5), and direct execution linkage across essentially the full Bioconductor package set. It is complementary to BioWorkflow (6), which mines workflow steps from published methods sections — a different source that covers published analysis recipes; BioWorkflow and BioMate-KB could be cross-validated in future work. It is also complementary to nf-core (12), which provides community-curated pipelines for ~100 workflows; BioMate-KB extends this to all 2,241 Bioconductor packages with AI-assisted generation. APE in the Wild (14) applies constraint logic over EDAM-annotated bio.tools for proteomics workflow composition — BioMate-KB extends this paradigm with richer Bioconductor-native structural constraints and LLM-based extraction.
 
 ---
 
@@ -357,7 +370,9 @@ BioMate-KB provides the first comprehensive, step-level, NAMESPACE-validated, ex
 
 ## Availability and Implementation
 
-**Full knowledge base**: Integrated into BioMate AI at https://www.biomate.ai. The complete database (2,241 packages, 15,641 curated steps) powers live workflow generation, tool recommendation, and automated methods text synthesis.
+**Database access (NAR Database Issue requirement)**: BioMate-KB is freely accessible, without login or licence negotiation, at **`[DATABASE ACCESS URL TBD — public, no-login browse/query endpoint for the NAR Database Issue]`** (production front end: https://www.biomate.ai). The access point provides browse-by-package, browse-by-domain, and query-by-function views over all curated steps, with each step's EDAM annotations, Biocontainer image, software DOI, and vignette provenance.
+
+**Full knowledge base**: Integrated into BioMate AI at https://www.biomate.ai. The database snapshot reported here (1,970 extracted packages, 1,909 with curated steps, 15,641 curated steps) powers live workflow generation, tool recommendation, and automated methods text synthesis.
 
 **Public skill bundle**: Top 100 Bioconductor packages released as Claude Code `SKILL.md` files at https://github.com/bioMate-AI/biomate-bioconductor-kb under CC-BY-4.0 (skill content) and Apache-2.0 (extraction scripts).
 
@@ -367,9 +382,21 @@ BioMate-KB provides the first comprehensive, step-level, NAMESPACE-validated, ex
 
 ---
 
-## Data Availability
+## Data and Code Availability
 
-The top-100 Bioconductor skill bundle, extraction pipeline, and per-package step statistics are available at https://github.com/bioMate-AI/biomate-bioconductor-kb. The full BioMate-KB database is hosted at https://www.biomate.ai. The expert review audit log (`UNIFIED_AUDIT_LOG.jsonl`, 2,129 records) and retrieval benchmark are available as supplementary data. No raw biological data were generated or analysed; all data sources are publicly available Bioconductor vignettes (bioconductor.org/packages/).
+- **KB bundle (CC-BY-4.0)**: The curated knowledge-base bundle (top-100 Bioconductor skill files, per-package step statistics, and the step-level annotation export) is released under **CC-BY-4.0** at https://github.com/bioMate-AI/biomate-bioconductor-kb.
+- **Minted DOI**: A citable, versioned snapshot of the full KB bundle will be deposited on Zenodo under a minted DOI: **`[DOI TBD]`** (to be minted on deposit of the submitted release; cite this DOI, not a moving branch).
+- **Extraction and analysis code**: The extraction/enrichment pipeline and figure-generation scripts are released under Apache-2.0 in the same repository.
+- **Supplementary review artifacts**: The dual-agent expert review audit log (`UNIFIED_AUDIT_LOG.jsonl`, 2,129 records) and the retrieval benchmark are provided as supplementary data. *[VERIFICATION NOTE: this audit log is referenced by the manuscript but is not present in the manuscript repository worktree at the time of this preparation pass — confirm it is attached as a supplement / included in the Zenodo deposit before submission.]*
+- **No new biological data**: No raw biological data were generated or analysed; all upstream sources are publicly available Bioconductor vignettes (bioconductor.org/packages/).
+
+---
+
+## Novelty and Reuse
+
+**What is novel.** BioMate-KB is, to our knowledge, the first step-level, NAMESPACE-validated, execution-linked knowledge base spanning essentially the full Bioconductor package set. Unlike tool registries (bio.tools), abstract workflow catalogues (WorkflowHub), or curated pipeline collections (nf-core), it couples ordered analysis steps to validated function APIs, EDAM types, Biocontainer images, and Nextflow DSL2 process templates (see §7).
+
+**What is reusable.** The CC-BY-4.0 bundle is directly reusable for: (i) grounding LLM-based bioinformatics assistants with verified package/function knowledge (demonstrated in the companion paper); (ii) parameterising Nextflow pipelines from vignette-derived step templates; (iii) EDAM-typed workflow composition and tool recommendation; and (iv) automated, citation-backed methods-text generation. All fields are machine-readable JSON with stable per-package `tool_id`s and full provenance (vignette URL + git commit), enabling programmatic reuse and reproducible re-extraction.
 
 ---
 

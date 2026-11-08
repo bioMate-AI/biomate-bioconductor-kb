@@ -60,6 +60,11 @@ def train(cfg: TrainingConfig, dataset: LoadedDataset, artifact_dir: str) -> Tra
         result = train_trl(cfg, dataset, artifact_dir)
     elif cfg.model_type == "sklearn_gbr":
         result = _train_sklearn(cfg, dataset, artifact_dir)
+    elif cfg.model_type == "sklearn_tabular":
+        # Generic feature-matrix learner with k-fold CV; loads its own data
+        # (lazy import keeps chemprop_trainer ↔ tabular_trainer acyclic).
+        from .tabular_trainer import train as _train_tabular
+        result = _train_tabular(cfg, artifact_dir)
     else:  # pragma: no cover - guarded by config.validate()
         raise ValueError(f"unsupported model_type {cfg.model_type}")
     # Persist a small manifest next to the artifact for the wrapper to load.

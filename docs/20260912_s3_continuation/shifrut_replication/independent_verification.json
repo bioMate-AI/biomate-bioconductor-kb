@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "numeric_metrics_and_summaries_checked": 3666,
+  "guide_pairs_per_panel": 80,
+  "donor_transfer_rows": 80,
+  "control_split": "Recreated SHA256 assignment; 8 unique guides, 4 per pool in every donor/condition",
+  "gene_exclusion": "Every guide metric excludes direct target; every donor-transfer arm excludes both true and mismatched target",
+  "condition_mean": "Rebuilt per gene while excluding source rows directly perturbing that gene",
+  "pseudobulk_sha256": "a4dc1e3d8146f09bf6e947c39a710bea4a5408ae1acd6203a54c86c0f4aaee1e"
+}

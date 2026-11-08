@@ -1,12 +1,19 @@
+import { VoiceInput } from "./voice-controls"
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
+import { useLocation } from "wouter"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Send, Paperclip, X, FileText, Eye, Square, Database, FolderInput } from "lucide-react"
-import { filesFromDataTransfer } from "@/lib/folder-drop"
+import { Send, Paperclip, X, FileText, Square, Database, FolderInput, SlidersHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
+import { SkillsSelector, type SkillPack } from "./skills-selector"
+import { LanePreview, type LaneKind } from "./lane-preview"
+import { useDebounce } from "@/hooks/useDebounce"
+import { filesFromDataTransfer } from "@/lib/folder-drop"
+import { t } from "@/lib/i18n"
+import { outputRequirementsToPrompt } from "@/lib/output-requirements"
 
 interface AttachedFile {
   id: string
@@ -15,8 +22,77 @@ interface AttachedFile {
   file: File
 }
 
+export interface ComposerDatasetReference {
+  id: string;
+  name: string;
+}
+
+/**
+ * A real project as returned by GET /api/projects (or projectService).
+ * Only the fields the composer actually reads are typed here; the shape is
+ * a subset of @shared/schema `Project`. NO synthetic/fabricated projects are
+ * ever constructed — if the caller passes an empty list, the suggested-project
+ * row renders nothing (honest-empty).
+ */
+export interface ComposerProject {
+  id: string
+  name: string
+  category?: string
+  tags?: string[]
+  description?: string
+  /** Standing background context for the project (schema `Project.instructions`). */
+  instructions?: string
+}
+
+/**
+ * Score how well a project matches the typed goal, using ONLY real project
+ * fields (name / category / tags / description). Returns 0 when there is no
+ * lexical overlap — the caller treats 0 as "nothing to propose" so the row
+ * stays hidden (spec 06 §6.6.1: "Neither → Nothing is proposed").
+ */
+export function scoreProjectMatch(text: string, p: ComposerProject): number {
+  const q = text.toLowerCase()
+  if (!q.trim()) return 0
+  // Tokenise the goal into words of length ≥ 3 (drops "the", "a", "of"…).
+  const words = Array.from(new Set(q.split(/[^a-z0-9]+/i).filter((w) => w.length >= 3)))
+  if (words.length === 0) return 0
+  const haystacks: Array<{ text: string; weight: number }> = [
+    { text: (p.name || "").toLowerCase(), weight: 3 },
+    { text: (p.category || "").toLowerCase(), weight: 2 },
+    { text: (p.tags || []).join(" ").toLowerCase(), weight: 2 },
+    { text: (p.description || "").toLowerCase(), weight: 1 },
+  ]
+  let score = 0
+  for (const w of words) {
+    for (const h of haystacks) {
+      if (h.text && h.text.includes(w)) score += h.weight
+    }
+  }
+  return score
+}
+
+/** Pick the best-matching REAL project for a goal, or null when none clears the bar. */
+export function suggestProject(
+  text: string,
+  projects: ComposerProject[],
+  activeProjectId?: string | null,
+): ComposerProject | null {
+  if (!projects || projects.length === 0) return null
+  let best: ComposerProject | null = null
+  let bestScore = 0
+  for (const p of projects) {
+    // Never propose the project the chat is already filed into.
+    if (activeProjectId && p.id === activeProjectId) continue
+    const s = scoreProjectMatch(text, p)
+    if (s > bestScore) { bestScore = s; best = p }
+  }
+  // A single incidental token match is noise; require a real signal.
+  return bestScore >= 3 ? best : null
+}
+
 interface ChatInputProps {
-  onSend: (message: string, files?: File[]) => void
+  voiceContextKey?: string;
+  onSend: (message: string, files?: File[], contextOverride?: Record<string, unknown>) => void
   disabled?: boolean
   /** Number of messages queued behind the current AI response */
   pendingCount?: number
@@ -28,6 +104,8 @@ interface ChatInputProps {
   onRegisterSetDraft?: (setter: (draft: string) => void) => void
   /** Register an adder function that can programmatically attach File objects */
   onRegisterAddFiles?: (adder: (files: File[]) => void) => void
+  /** Replace previous example inputs while preserving user-picked files. */
+  onRegisterExampleFiles?: (setter: (files: File[]) => void) => void
   /**
    * Count of dataset references already attached to THIS chat session
    * (everything in chat_sessions.datasets, accumulated across all turns).
@@ -36,28 +114,151 @@ interface ChatInputProps {
    * frontend/server/dataset-cap.ts).
    */
   sessionDatasetCount?: number
+  /**
+   * Show the advisory Instant/Cloud lane preview above the input as the
+   * user types (spec 06 §6.2). Default true; set false to hide it.
+   */
+  showLanePreview?: boolean
+  /**
+   * The user's REAL projects (subset of @shared/schema `Project`), used to
+   * propose a home for the current chat (spec 06 §6.6 "Project suggested").
+   * The composer never invents projects — an empty/absent list means the
+   * suggested-project row simply doesn't render.
+   */
+  projects?: ComposerProject[]
+  /**
+   * The project this chat is already filed into, if any (read from
+   * `biomate-active-project-id`). When set, the suggested row is suppressed
+   * (spec 06 §6.6.1: a chat that already has a home isn't re-proposed one).
+   */
+  activeProjectId?: string | null
+  /**
+   * File the current chat into a project (spec 06 §6.6 "File it there").
+   * When absent, the suggested row still renders but "File it there" is a
+   * no-op — the caller opts in to the filing action.
+   */
+  onFileToProject?: (projectId: string) => void
+  /**
+   * Optional injected expert/skill packs for the composer's Experts selector
+   * (spec 06 §6.5 / §0.9.2). When omitted, SkillsSelector fetches the real
+   * GET /api/skills catalogue itself; injecting is for tests / a parent that
+   * already holds the list. An empty array renders the honest-empty state.
+   */
+  skillPacks?: SkillPack[]
 }
 
 /** Mirrors MAX_DATASET_REFS in frontend/server/dataset-cap.ts. */
 const MAX_DATASET_REFS = 32
 
 export function ChatInput({
+  voiceContextKey,
   onSend,
   disabled = false,
   pendingCount = 0,
-  placeholder = "What would you like to analyze?",
+  placeholder = t('chat.placeholder'),
   onFilesSelected,
   isStreaming = false,
   onStop,
   onRegisterSetDraft,
   onRegisterAddFiles,
+  onRegisterExampleFiles,
   sessionDatasetCount = 0,
+  // The pre-send lane verdict ("Answer here · with sources" / "Prepare an
+  // analysis") was removed from above the composer: the routing/intent read now
+  // lives only in the post-send progress stream (the scrolling status box, via
+  // the 'intent' progress event's rationale). Default off; the lane override
+  // simply falls back to server-decides.
+  showLanePreview = false,
+  projects = [],
+  activeProjectId = null,
+  onFileToProject,
+  skillPacks,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
+  // Standing instructions the user adds for THIS composer/project (spec 06
+  // §6.5). These are a reading lens the assistant should apply to every
+  // request in this composer — they thread into the submit context so the
+  // backend can honour them. Seeded from the active project's own
+  // `instructions` (schema `Project.instructions`) so a filed chat inherits
+  // the project's standing context. The §6.5 "experts" catalogue is now
+  // surfaced alongside via <SkillsSelector>, driven by the REAL GET /api/skills
+  // endpoint (frontend/server/routes.ts) — honest-empty when the catalogue is
+  // unpopulated. Selected pack ids thread into the same submit context path as
+  // instructions (as `skillPackIds`) so a run records which experts were on.
+  const activeProject = activeProjectId
+    ? projects.find((p) => p.id === activeProjectId) ?? null
+    : null
+  const [instructions, setInstructions] = useState<string>(activeProject?.instructions ?? "")
+  const [instructionsOpen, setInstructionsOpen] = useState(false)
+  // Expert/skill packs toggled on for THIS composer (spec 06 §6.5). The ids
+  // thread into the submit context as `skillPackIds` so a run records which
+  // experts were applied — mirrors the dataset/instruction threading below.
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([])
+  const [projectOutputRequirements, setProjectOutputRequirements] = useState("")
+  const [projectSettingsLoading, setProjectSettingsLoading] = useState(false)
+  const [projectSettingsError, setProjectSettingsError] = useState("")
+  useEffect(() => {
+    let cancelled = false
+    setSelectedSkillIds([]); setProjectOutputRequirements(""); setProjectSettingsError("")
+    if (!activeProjectId) { setProjectSettingsLoading(false); return }
+    setProjectSettingsLoading(true)
+    fetch(`/api/projects/${activeProjectId}/instruction-settings`, { credentials: "include" })
+      .then(async r => { if (!r.ok) throw new Error("Could not load project instructions. Reload before sending."); return r.json() })
+      .then(data => { if (!cancelled) { setSelectedSkillIds(data.settings.skillPackIds); setProjectOutputRequirements(data.settings.outputRequirements) } })
+      .catch(e => { if (!cancelled) setProjectSettingsError(e.message) })
+      .finally(() => { if (!cancelled) setProjectSettingsLoading(false) })
+    return () => { cancelled = true }
+  }, [activeProjectId])
+  // If the chat becomes filed into a project that carries standing
+  // instructions and the user hasn't typed their own, adopt the project's.
+  const seededProjectIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const seed = activeProject?.instructions ?? ""
+    if (!activeProject && seededProjectIdRef.current) { seededProjectIdRef.current = null; setInstructions("") }
+    if (activeProject && seededProjectIdRef.current !== activeProject.id) {
+      seededProjectIdRef.current = activeProject.id
+      setInstructions(seed)
+    }
+  }, [activeProject])
+  // The chat has no home yet AND a real project matches the goal → propose it
+  // (spec 06 §6.6). Debounced text keeps the proposal from flickering
+  // mid-word. Never shown while a project is already active.
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false)
+  // Lane override captured from the LanePreview affordance. When the user
+  // clicks "run a validated pipeline instead" / "answer it instantly
+  // instead", the NEXT send is forced to that lane; it resets after send.
+  const [laneOverride, setLaneOverride] = useState<LaneKind | null>(null)
+  const debouncedMessage = useDebounce(message, 350)
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
   // Dataset references selected from the browser — shown as chips, injected into message on send
   const [selectedDatasets, setSelectedDatasets] = useState<Array<{ id: string; name: string; value: string }>>([])
+  const [linkingDataset, setLinkingDataset] = useState(false)
+  const [datasetLinkError, setDatasetLinkError] = useState("")
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search)
+    const fileId = query.get("attachFile")
+    if (!fileId || !activeProjectId || query.get("project") !== activeProjectId) return
+    let cancelled = false
+    const abort = new AbortController()
+    setLinkingDataset(true)
+    setDatasetLinkError("")
+    fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/files/${encodeURIComponent(fileId)}/url`, {
+      credentials: "include", signal: abort.signal,
+    }).then(async response => {
+      if (!response.ok) throw new Error(`Cannot link this project file (${response.status}).`)
+      const file = await response.json()
+      if (typeof file.name !== "string") throw new Error("The project file is unavailable.")
+      if (cancelled) return
+      setSelectedDatasets(previous => [...previous.filter(d => d.value !== fileId), { id: fileId, value: fileId, name: file.name }])
+      query.delete("attachFile")
+      window.history.replaceState(null, "", `${window.location.pathname}?${query.toString()}`)
+      textareaRef.current?.focus()
+    }).catch(error => { if (!cancelled) setDatasetLinkError(error.message) })
+      .finally(() => { if (!cancelled) setLinkingDataset(false) })
+    return () => { cancelled = true; abort.abort() }
+  }, [activeProjectId])
   const [showDatasetBrowser, setShowDatasetBrowser] = useState(false)
+  const [, setLocation] = useLocation()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
@@ -81,10 +282,29 @@ export function ChatInput({
     if (onRegisterSetDraft) {
       onRegisterSetDraft((draft: string) => {
         setMessage(draft)
-        setTimeout(() => textareaRef.current?.focus(), 0)
+        setTimeout(() => {
+          const textarea = textareaRef.current
+          if (!textarea) return
+          textarea.style.height = 'auto'
+          textarea.style.height = `${Math.min(textarea.scrollHeight, 140)}px`
+          textarea.focus()
+          textarea.setSelectionRange(0, 0)
+          textarea.scrollTop = 0
+        }, 0)
       })
     }
   }, [onRegisterSetDraft])
+
+  const demoFileIds = useRef(new Set<string>())
+  useEffect(() => {
+    onRegisterExampleFiles?.((files: File[]) => {
+      const previousIds = demoFileIds.current
+      const prefix = `demo-${Date.now()}-`
+      const next = files.map((file, i) => ({ id: `${prefix}${i}`, name: file.name, size: file.size, file }))
+      demoFileIds.current = new Set(next.map(f => f.id))
+      setAttachedFiles(prev => [...prev.filter(f => !previousIds.has(f.id)), ...next])
+    })
+  }, [onRegisterExampleFiles])
 
   // Register a file adder so parent can programmatically inject files
   useEffect(() => {
@@ -101,7 +321,8 @@ export function ChatInput({
 
 
   const handleSend = () => {
-    if (message.trim() || attachedFiles.length > 0 || selectedDatasets.length > 0) {
+    if (disabled || linkingDataset || projectSettingsLoading || projectSettingsError) return
+    if (message.trim() || attachedFiles.length > 0) {
       const files = attachedFiles.map(f => f.file)
       // Append dataset references invisibly so the AI/backend can resolve them,
       // without forcing the user to see raw IDs in the textarea.
@@ -109,7 +330,42 @@ export function ChatInput({
         .map(d => `[BioMate dataset: ${d.name} (id: ${d.value})]`)
         .join('\n')
       const fullMessage = [message.trim(), datasetRefs].filter(Boolean).join('\n')
-      onSend(fullMessage, files.length > 0 ? files : undefined)
+      // Lane override -> intentOverride the backend already understands.
+      // "cloud" forces workflow generation (skips ambiguity detection);
+      // "instant" forces a direct research/knowledge answer. Advisory only —
+      // the preview never blocks send, this just honours an explicit click.
+      //
+      // Standing composer instructions (spec 06 §6.5) thread into the SAME
+      // context path as every other override. They ride as
+      // `composerInstructions` so the backend can apply them as a reading
+      // lens; empty instructions add nothing (honest-empty).
+      // Render output requirements through the shared helper: ONLY formats the user left switched
+      // ON are sent, as prose (never the raw JSON store, which also carried the disabled ones).
+      const trimmedInstructions = [instructions.trim(), outputRequirementsToPrompt(projectOutputRequirements)].filter(Boolean).join("\n\n")
+      const datasetReferences: ComposerDatasetReference[] = selectedDatasets.map((dataset) => ({
+        id: dataset.value,
+        name: dataset.name,
+      }))
+      // Expert/skill packs toggled on for this request (spec 06 §6.5). Ride
+      // as `skillPackIds` on the SAME context path so a run records which
+      // experts were applied; empty selection adds nothing (honest-empty).
+      const skillPackIds = selectedSkillIds
+      const contextOverride: Record<string, unknown> | undefined =
+        laneOverride || trimmedInstructions || datasetReferences.length > 0 || skillPackIds.length > 0 || activeProjectId
+          ? {
+              ...(laneOverride
+                ? { intentOverride: laneOverride === "cloud" ? "workflow_generation" : "research_question" }
+                : {}),
+              ...(trimmedInstructions ? { composerInstructions: trimmedInstructions } : {}),
+              // Exact project objects selected for THIS operation. The server
+              // filters the broader session pool to this set and reports any
+              // missing reference instead of silently choosing another file.
+              ...(datasetReferences.length ? { datasetReferences } : {}),
+              ...((activeProjectId || skillPackIds.length) ? { skillPackIds } : {}),
+            }
+          : undefined
+      onSend(fullMessage, files.length > 0 ? files : undefined, contextOverride)
+      setLaneOverride(null)
       setMessage("")
       setAttachedFiles([])
       setSelectedDatasets([])
@@ -237,6 +493,12 @@ export function ChatInput({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
+  // Real-data suggestion: only proposes an EXISTING project the goal matches
+  // (spec 06 §6.6). null when there's no home to propose → row hidden.
+  const suggested = (!activeProjectId && !suggestionDismissed)
+    ? suggestProject(debouncedMessage, projects, activeProjectId)
+    : null
+
   return (
     <div
       className="border-t bg-background p-4"
@@ -245,7 +507,10 @@ export function ChatInput({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Hidden file input for local file picking */}
+      {/* Hidden file/folder inputs — no visible buttons (removed 2026-10-20 per
+          UI refinement: the one visible entry point is the dataset browser).
+          Kept for the composer's drag-drop attach path and for programmatic /
+          e2e `setInputFiles` on a hidden input. */}
       <input
         ref={fileInputRef}
         type="file"
@@ -253,6 +518,16 @@ export function ChatInput({
         style={{ display: 'none' }}
         onChange={handleLocalFilePick}
         accept="*/*"
+        data-testid="chat-attach-file-input"
+      />
+      <input
+        ref={folderInputRef}
+        type="file"
+        multiple
+        {...({ webkitdirectory: '', directory: '', mozdirectory: '' } as Record<string, string>)}
+        style={{ display: 'none' }}
+        onChange={handleLocalFilePick}
+        data-testid="chat-attach-folder-input"
       />
       {/* Hidden folder input — same attach path as files (matches the upload panel) */}
       <input
@@ -265,25 +540,23 @@ export function ChatInput({
       />
 
       {/* Attached files + selected dataset chips */}
+      {projectSettingsError && <p role="alert" className="text-xs text-destructive">{projectSettingsError}</p>}
+      {linkingDataset && <p role="status" className="text-xs text-muted-foreground">Linking project file…</p>}
+      {datasetLinkError && <p role="alert" className="text-xs text-destructive">{datasetLinkError} Return to Files and select an available file.</p>}
       {(attachedFiles.length > 0 || selectedDatasets.length > 0) && (
         <div className="flex flex-wrap gap-2 mb-3">
           {attachedFiles.map(file => (
             <div
               key={file.id}
               className="flex items-center gap-1.5 px-2 py-1 bg-muted rounded-md text-sm group"
+              data-testid="composer-attached-file"
+              data-filename={file.name}
             >
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="max-w-[150px] truncate">{file.name}</span>
+              <button type="button" onClick={() => openPreview(file)} title={`Preview ${file.name}`} className="max-w-[220px] truncate text-left hover:underline focus-visible:underline">{file.name}</button>
               <span className="text-xs text-muted-foreground">
                 ({formatFileSize(file.size)})
               </span>
-              <button
-                onClick={() => openPreview(file)}
-                className="ml-0.5 p-0.5 rounded hover:bg-background transition-colors"
-                title="Preview file"
-              >
-                <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-              </button>
               <button
                 onClick={() => removeFile(file.id)}
                 className="p-0.5 rounded hover:bg-background transition-colors"
@@ -298,7 +571,18 @@ export function ChatInput({
               className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-md text-sm"
             >
               <Database className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span className="max-w-[150px] truncate">{ds.name}</span>
+              {/* Live reference: the chip opens the SAME dataset object it points
+                  at (data hub), so a project file referenced in chat is one
+                  clickable handle, not just a name. */}
+              <button
+                type="button"
+                onClick={() => setLocation(`/files?file=${encodeURIComponent(ds.value)}`)}
+                className="max-w-[150px] truncate hover:underline text-left"
+                title={`Open referenced project file · id ${ds.value}`}
+                data-testid="composer-dataset-ref"
+              >
+                {ds.name}
+              </button>
               <button
                 onClick={() => setSelectedDatasets(prev => prev.filter(d => d.id !== ds.id))}
                 className="p-0.5 rounded hover:bg-background transition-colors"
@@ -370,66 +654,133 @@ export function ChatInput({
         </div>
       )}
 
+      {/* Project suggested row (spec 06 §6.6). A quiet row proposing an
+          EXISTING project as a home for this chat, driven purely by real
+          project data. Honest-empty: renders nothing when the chat is already
+          filed, when no project matches, or when the user has dismissed it.
+          "Filing follows intent" (§6.6.1) — the chat is never gated on a
+          project; this only PROPOSES one, and "Keep unfiled" is a legitimate
+          resting state. */}
+      {suggested && (
+        <div
+          data-testid="composer-project-suggested"
+          data-project-id={suggested.id}
+          style={{
+            display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", rowGap: 6,
+            padding: "8px 10px", marginBottom: 8,
+            border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
+            borderRadius: "var(--bm-r-md, 8px)",
+            background: "var(--bm-surface, oklch(0.97 0.002 240))",
+            fontSize: 12.5,
+          }}
+        >
+          <FolderInput className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }} />
+          <span style={{ color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
+            This reads like{" "}
+            <strong style={{ fontWeight: 600 }}>{suggested.name}</strong>
+            {" "}· filing it there brings its files and instructions into context.{" "}
+            <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>Nothing runs either way.</span>
+          </span>
+          <span style={{ display: "inline-flex", gap: 8, marginLeft: "auto" }}>
+            <button
+              type="button"
+              data-testid="composer-project-file-it"
+              onClick={() => { onFileToProject?.(suggested.id); setSuggestionDismissed(true) }}
+              style={{
+                border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                padding: "3px 10px", borderRadius: 6, whiteSpace: "nowrap",
+                background: "var(--bm-primary, oklch(0.55 0.20 265))", color: "white",
+              }}
+            >
+              File it there
+            </button>
+            <button
+              type="button"
+              data-testid="composer-project-keep-unfiled"
+              onClick={() => setSuggestionDismissed(true)}
+              style={{
+                border: "none", cursor: "pointer", fontSize: 12,
+                padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap",
+                background: "transparent", color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+                textDecoration: "underline", textUnderlineOffset: 2,
+              }}
+            >
+              Keep unfiled
+            </button>
+          </span>
+        </div>
+      )}
+
+      {/* Lane preview (spec 06 §6.2) — advisory Instant/Cloud verdict shown as
+          the user types. Debounced so it settles rather than flickering
+          mid-word. Never blocks send. Hidden while streaming or when a file/
+          dataset-only message (no typed intent) is queued. */}
+      {showLanePreview && !isStreaming && debouncedMessage.trim() && (
+        laneOverride ? (
+          <div
+            data-testid="lane-preview"
+            data-lane={laneOverride}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 4px 8px", fontSize: 12, flexWrap: "wrap", rowGap: 4 }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
+              <span aria-hidden style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, background: laneOverride === "cloud" ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-ok, oklch(0.62 0.14 155))" }} />
+              {laneOverride === "cloud" ? "Prepare an analysis · review before starting" : "Answer here · with sources"}
+            </span>
+            <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>· selected for this message</span>
+            <button
+              type="button"
+              data-testid="lane-preview-clear-override"
+              onClick={() => setLaneOverride(null)}
+              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "var(--bm-primary, oklch(0.55 0.20 265))", fontSize: 12, textDecoration: "underline", textUnderlineOffset: 2 }}
+            >
+              let BioMate decide
+            </button>
+          </div>
+        ) : (
+          <LanePreview text={debouncedMessage} onOverride={setLaneOverride} />
+        )
+      )}
+
+      <VoiceInput key={voiceContextKey} disabled={disabled || isStreaming} onTranscript={text => setMessage(previous => previous.trim() ? `${previous}\n${text}` : text)} />
+
       {/* Reference design: pill input with attachment + textarea + send */}
       <div className="chat-input" style={{
         border: isDraggingOver
           ? '1px solid var(--bm-primary, oklch(0.55 0.20 265))'
-          : '1px solid var(--bm-border, hsl(var(--border)))',
+          : '1px solid var(--bm-border-strong, var(--bm-border, hsl(var(--border))))',
         borderRadius: 'var(--bm-r-lg, 12px)',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
         boxShadow: 'var(--bm-shadow-sm, 0 1px 2px rgba(15,23,42,0.04))',
-        padding: '8px 10px',
+        padding: '10px 12px',
+        maxWidth: 660,
+        margin: '0 auto',
+        width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        gap: 4,
+        gap: 9,
         transition: 'border-color .15s',
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
-          {/* Upload local file button */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 }}>
+          {/* Add data — the single entry point. Opens the assembled dataset
+              browser (upload file/folder via drop, session, project, From URL).
+              The two former standalone file/folder buttons were removed: the
+              browser's session box is now the one place to attach data. */}
           <button
             disabled={disabled}
-            title="Attach file"
-            onClick={() => fileInputRef.current?.click()}
+            title={t('composer.browse_datasets')}
+            aria-label={t('composer.browse_datasets')}
+            data-testid="chat-attach-data-button"
+            onClick={() => setShowDatasetBrowser(true)}
             style={{
-              width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
+              height: 28, padding: '0 8px', gap: 5, borderRadius: 'var(--bm-r-sm, 6px)',
               border: 'none', background: 'transparent',
               color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
+              flexShrink: 0, fontSize: 12,
             }}
           >
             <Paperclip className="w-4 h-4" />
-          </button>
-          {/* Upload a folder */}
-          <button
-            disabled={disabled}
-            title="Attach a folder"
-            onClick={() => folderInputRef.current?.click()}
-            data-testid="chat-attach-folder-button"
-            style={{
-              width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
-              border: 'none', background: 'transparent',
-              color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <FolderInput className="w-4 h-4" />
-          </button>
-          {/* Browse BioMate datasets */}
-          <button
-            disabled={disabled}
-            title="Browse BioMate datasets"
-            onClick={() => setShowDatasetBrowser(true)}
-            style={{
-              width: 22, height: 22, borderRadius: 'var(--bm-r-sm, 6px)',
-              border: 'none', background: 'transparent',
-              color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Database className="w-3 h-3" />
+            <span>{t('composer.data')}</span>
           </button>
 
           {/* Attached-count indicator. Hidden at 0 (no noise pre-attach);
@@ -475,19 +826,119 @@ export function ChatInput({
           <Textarea
             ref={textareaRef}
             data-testid="chat-input"
+            disabled={disabled}
             value={message}
             onInput={handleInput}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="min-h-[22px] max-h-[140px] resize-none border-none outline-none shadow-none p-0 bg-transparent text-sm flex-1"
+            className="w-full min-w-0 min-h-[44px] max-h-[140px] resize-none rounded-none border-0 border-b border-solid border-border outline-none shadow-none px-0 pt-1 pb-3 bg-transparent text-sm"
             style={{
+              order: -1,
+              flexBasis: '100%',
               fontFamily: 'var(--bm-font-ui)',
-              fontSize: 14,
-              lineHeight: 1.5,
+              fontSize: 13.5,
+              lineHeight: 1.55,
               color: 'var(--bm-text)',
             }}
             rows={1}
           />
+
+      {/* Instructions affordance (spec 06 §6.5). A lightweight, collapsible
+          field for standing instructions the assistant applies to every
+          request in this composer. Its value threads into the submit context
+          as `composerInstructions`. Collapsed by default so it adds no noise;
+          shows a "on" dot when instructions are present. The §6.5 "experts"
+          catalogue ships alongside it — see the Experts affordance
+          (SkillsSelector) below, backed by the real GET /api/skills catalogue. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0, flexBasis: (!activeProjectId && instructionsOpen) ? "100%" : undefined }}>
+        {/* Experts affordance (spec 06 §6.5 / §0.9.2) — placed first per the
+            design composer row (data → skills & experts → instructions). Backed
+            by the REAL GET /api/skills catalogue; honest-empty ("No expert packs
+            available yet") when unpopulated. Selection threads into the submit
+            context as `skillPackIds`. */}
+        <div style={{ flexShrink: 0 }}>
+          <SkillsSelector
+            selectedIds={selectedSkillIds}
+            onChange={setSelectedSkillIds}
+            packs={skillPacks}
+          />
+        </div>
+
+        {/* Instructions affordance. In a project (design ChatView onOpenInstr):
+            a single button that opens the project's Instructions panel directly
+            — standing instructions, output requirements and experts live there
+            and apply to every request. Outside a project there is no panel to
+            open, so a lightweight inline field remains for projectless chats. */}
+        {activeProjectId ? (
+          <button
+            type="button"
+            data-testid="composer-instructions-toggle"
+            onClick={() => setLocation(`/projects?project=${activeProjectId}&tab=instructions`)}
+            title={t('composer.instructions_open_panel')}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              border: "none", background: "transparent", cursor: "pointer",
+              fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+              padding: "2px 2px",
+            }}
+          >
+            <SlidersHorizontal className="w-3 h-3" />
+            <span>{t('composer.instructions')}</span>
+            {(instructions.trim() || projectOutputRequirements.trim() || selectedSkillIds.length > 0) && (
+              <span
+                data-testid="composer-instructions-on"
+                aria-hidden
+                style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
+              />
+            )}
+          </button>
+        ) : (
+          <div style={{ minWidth: 0, flex: instructionsOpen ? "1 1 100%" : undefined }}>
+            <button
+              type="button"
+              data-testid="composer-instructions-toggle"
+              onClick={() => setInstructionsOpen((o) => !o)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                border: "none", background: "transparent", cursor: "pointer",
+                fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+                padding: "2px 2px",
+              }}
+            >
+              {instructionsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              <SlidersHorizontal className="w-3 h-3" />
+              <span>{t('composer.instructions')}</span>
+              {instructions.trim() && (
+                <span
+                  data-testid="composer-instructions-on"
+                  aria-hidden
+                  style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
+                />
+              )}
+            </button>
+            {instructionsOpen && (
+              <textarea
+                data-testid="composer-instructions"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder={t('composer.instructions_placeholder')}
+                rows={2}
+                style={{
+                  width: "100%", marginTop: 6, resize: "vertical",
+                  minHeight: 44, maxHeight: 160,
+                  border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
+                  borderRadius: "var(--bm-r-md, 8px)",
+                  background: "var(--bm-bg-elev, hsl(var(--background)))",
+                  padding: "6px 8px", fontSize: 12.5, lineHeight: 1.45,
+                  fontFamily: "var(--bm-font-ui)", color: "var(--bm-text, oklch(0.22 0.01 260))",
+                  outline: "none",
+                }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
 
           {/* Send / Stop button */}
           {isStreaming ? (
@@ -495,21 +946,35 @@ export function ChatInput({
               data-testid="chat-stop-button"
               onClick={onStop}
               style={{
+                marginLeft: 'auto',
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
                 background: 'var(--bm-err, oklch(0.58 0.18 25))',
                 color: 'white', border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}
-              title="Stop reply"
+              title={t('composer.stop_reply')}
             >
               <Square className="w-3.5 h-3.5 fill-current" />
             </button>
           ) : (
+            <>
+            {/* ⏎ hint, per spec 06 §6.1 send group ([ Enter ] [ > ]). */}
+            <kbd
+              aria-hidden
+              style={{
+                marginLeft: 'auto',
+                fontSize: 10, lineHeight: 1, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+                border: '1px solid var(--bm-border, oklch(0.88 0.004 240))',
+                borderRadius: 4, padding: '2px 5px',
+                fontFamily: 'var(--bm-font-ui)', background: 'var(--bm-surface, transparent)',
+              }}
+            >⏎</kbd>
             <button
               data-testid="chat-send-button"
               onClick={handleSend}
-              disabled={!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0}
+              title={t('chat.send')}
+              disabled={disabled || linkingDataset || projectSettingsLoading || !!projectSettingsError || (!message.trim() && attachedFiles.length === 0)}
               style={{
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
                 background: (!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0)
@@ -524,6 +989,7 @@ export function ChatInput({
             >
               <Send className="w-3.5 h-3.5" />
             </button>
+            </>
           )}
         </div>
       </div>
@@ -532,12 +998,15 @@ export function ChatInput({
       <GalaxyDatasetBrowser
         open={showDatasetBrowser}
         onClose={() => setShowDatasetBrowser(false)}
+        projectId={activeProjectId}
         onSelect={(datasetValue, datasetName) => {
           // Add as a chip — dataset reference is appended to message text on send,
           // so the user sees a clean chip rather than raw ID text in the textarea.
           setSelectedDatasets(prev => {
             if (prev.some(d => d.value === datasetValue)) return prev
-            return [...prev, { id: `ds-${Date.now()}`, name: datasetName, value: datasetValue }]
+            // The stable dataset id is also the chip identity. A timestamp is
+            // not unique when a comparison preselects two files in one event.
+            return [...prev, { id: `ds-${datasetValue}`, name: datasetName, value: datasetValue }]
           })
           setTimeout(() => textareaRef.current?.focus(), 0)
         }}

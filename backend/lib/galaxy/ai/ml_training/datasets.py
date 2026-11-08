@@ -12,11 +12,58 @@ from __future__ import annotations
 
 import csv
 import logging
+import math
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 from .config import DatasetSpec, ConfigError
+
+log_stage = logging.getLogger(__name__)
+
+
+def stage_s3_to_local(s3_uri: str, dest: Optional[str] = None) -> str:
+    """Download an ``s3://`` object to a local file and return its path.
+
+    The ml_training loaders were written assuming the executor stages s3 inputs
+    into the work dir, but the ml_training ``.nf`` interpolates ``params.dataset``
+    as a plain value (no ``path`` input), so Nextflow never stages it. The Batch
+    container ships the AWS CLI and runs under an IAM role that can read the
+    work bucket, so the loader stages the object itself. Idempotent per-URI: the
+    default local name is prefixed with a hash of the FULL URI, so two objects that
+    share a basename (``s3://a/train.csv`` vs ``s3://b/train.csv``) do NOT collide and
+    reuse each other's data (committee finding — cross-run data leakage).
+    """
+    if not s3_uri.startswith("s3://"):
+        raise ValueError(f"not an s3 uri: {s3_uri}")
+    if dest:
+        target = dest
+    else:
+        import hashlib
+        _h = hashlib.sha1(s3_uri.encode("utf-8")).hexdigest()[:10]
+        target = f"{_h}_{Path(s3_uri).name}"   # URI-unique, keeps the extension for parsers
+    if Path(target).exists() and Path(target).stat().st_size > 0:
+        return target
+    try:
+        subprocess.run(
+            ["aws", "s3", "cp", s3_uri, target],
+            check=True, capture_output=True, text=True,
+        )
+    except FileNotFoundError as exc:  # aws CLI missing (non-Batch env)
+        raise FileNotFoundError(
+            f"cannot stage {s3_uri}: the AWS CLI is not available in this "
+            f"environment (expected in the ml-training Batch image)"
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        raise FileNotFoundError(
+            f"failed to stage {s3_uri} via 'aws s3 cp' "
+            f"(exit {exc.returncode}): {(exc.stderr or '').strip()[:300]}"
+        ) from exc
+    if not (Path(target).exists() and Path(target).stat().st_size > 0):
+        raise FileNotFoundError(f"staged file {target} missing/empty after download of {s3_uri}")
+    log_stage.info("[ml_training] staged %s -> %s (%d bytes)", s3_uri, target, Path(target).stat().st_size)
+    return target
 
 log = logging.getLogger(__name__)
 
@@ -139,9 +186,17 @@ def _load_csv(spec: DatasetSpec, path: str) -> LoadedDataset:
         for row in reader:
             smi = row[spec.smiles_col]
             raw = row[spec.target_col]
-            if smi is None or raw in (None, ""):
+            # _is_missing matches the broad token set (NA/nan/./…), not just
+            # None/"" — otherwise float("NA") below crashes the whole load.
+            if _is_missing(smi) or _is_missing(raw):
                 continue
-            rows.append((str(smi), float(raw)))
+            try:
+                val = float(raw)
+            except (TypeError, ValueError):
+                continue  # non-numeric property label (e.g. "inf"/"high") → skip row
+            if not math.isfinite(val):
+                continue  # inf/-inf target would poison a regression fit
+            rows.append((str(smi), val))
     if not rows:
         raise ConfigError(f"no usable rows parsed from {path}")
     return LoadedDataset(rows, spec.smiles_col, spec.target_col, source=f"csv:{path}")
@@ -157,6 +212,183 @@ def _load_s3(spec: DatasetSpec) -> LoadedDataset:
     raise NotImplementedError(
         "s3_uri loading is wired at execution time by the Nextflow executor "
         "(inputs are staged to a local work dir). Use path= for local runs."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Generic tabular datasets: numeric feature matrix + a label column
+# (e.g. a gene-expression matrix with a subtype/outcome label) — NOT molecules.
+# ---------------------------------------------------------------------------
+
+@dataclass
+class LoadedTabularDataset:
+    X: list[list[float]]          # one row of numeric features per sample
+    y: list                       # labels: str for classification, float for regression
+    feature_names: list[str]
+    target_col: str
+    source: str
+    task: str                     # 'classification' | 'regression'
+
+    def __len__(self) -> int:
+        return len(self.y)
+
+
+_MISSING_TOKENS = {"", "na", "n/a", "nan", "null", "none", ".", "-"}
+
+
+def _is_missing(v) -> bool:
+    return v is None or (isinstance(v, str) and v.strip().lower() in _MISSING_TOKENS)
+
+
+def _is_blank(v) -> bool:
+    """Truly-absent cell: None or empty/whitespace string. Distinct from
+    _is_missing, which also treats semantic tokens (NA/none/./-) as missing.
+    A classification LABEL of "None"/"NA"/"-" may be a legitimate class, so the
+    label row-skip uses _is_blank (never a real value), and only the regression
+    path (where float("NA") would crash) drops the semantic-missing labels."""
+    return v is None or (isinstance(v, str) and v.strip() == "")
+
+
+def _looks_numeric(values) -> bool:
+    """A column is numeric if every NON-MISSING value parses as a float. Common
+    missing tokens (NA/N/A/NaN/NULL/./-) are treated as missing, NOT as evidence the
+    column is non-numeric — otherwise one R-exported `NA` cell would drop a whole
+    real gene column as 'id/metadata' (committee finding)."""
+    for v in values:
+        if _is_missing(v):
+            continue
+        try:
+            float(v)
+        except (TypeError, ValueError):
+            return False
+    return True
+
+
+def load_tabular_dataset(path: str, target_col: str,
+                         id_cols: Optional[list] = None,
+                         task: Optional[str] = None) -> LoadedTabularDataset:
+    """Load a generic feature-matrix CSV with a label column.
+
+    Every column except ``target_col`` and any ``id_cols`` is treated as a
+    numeric feature (e.g. one gene per column in an expression matrix). Rows
+    missing the label are skipped; missing feature cells become 0.0. The task is
+    inferred when not given: a non-numeric or low-cardinality label column is
+    ``classification`` (subtype prediction), otherwise ``regression``.
+    """
+    p = Path(path)
+    if not p.exists():
+        raise ConfigError(f"dataset path not found: {path}")
+    skip = {target_col, *(id_cols or [])}
+    rows_raw: list[dict] = []
+    with p.open(newline="") as fh:
+        reader = csv.DictReader(fh)
+        cols = reader.fieldnames or []
+        if target_col not in cols:
+            raise ConfigError(f"target_col '{target_col}' not in CSV columns {cols}")
+        feature_names = [c for c in cols if c not in skip]
+        if not feature_names:
+            raise ConfigError("no feature columns found (all columns are target/id)")
+        for row in reader:
+            # Skip rows whose LABEL is TRULY absent (None/empty/whitespace) only.
+            # Semantic missing tokens ("NA"/"none"/"-"/".") are NOT dropped here:
+            # for classification they may be a legitimate class (e.g. a "no-subtype"
+            # category), and dropping them would silently change class balance
+            # (round-4 committee). The regression path below (where float("NA")
+            # would crash) drops them explicitly instead.
+            if _is_blank(row.get(target_col)):
+                continue
+            rows_raw.append(row)
+    if not rows_raw:
+        raise ConfigError(f"no usable rows parsed from {path}")
+
+    # Auto-drop non-numeric feature columns (e.g. a string `sample_id`): a
+    # numeric feature matrix cannot use them, and _num() would silently coerce
+    # them to a constant 0.0 "feature" (junk that dilutes real signal on live
+    # data). Columns the caller named in id_cols were already excluded above.
+    _non_numeric = [c for c in feature_names
+                    if not _looks_numeric([r.get(c) for r in rows_raw])]
+    if _non_numeric:
+        log.info("[ml_training] tabular loader dropping %d non-numeric column(s) as "
+                 "id/metadata: %s", len(_non_numeric), ", ".join(_non_numeric))
+        feature_names = [c for c in feature_names if c not in set(_non_numeric)]
+        if not feature_names:
+            raise ConfigError(
+                "no numeric feature columns found after dropping non-numeric "
+                f"id/metadata columns {_non_numeric}; pass a numeric feature matrix")
+
+    raw_labels = [r[target_col] for r in rows_raw]
+    if task is None:
+        uniq = set(raw_labels)
+        task = ("classification"
+                if (not _looks_numeric(raw_labels) or len(uniq) <= max(2, len(raw_labels) // 10))
+                else "regression")
+    if task == "regression":
+        # A regression target must be a finite number. Drop rows whose label is a
+        # missing token ("NA"/nan/…) or otherwise non-finite/non-numeric, together
+        # with their feature rows, so X and y stay aligned (float("NA") would
+        # otherwise crash the whole load). Classification keeps such labels as
+        # legitimate string classes (round-4 committee).
+        def _flabel(v):
+            if _is_missing(v):
+                return None
+            try:
+                f = float(v)
+            except (TypeError, ValueError):
+                return None
+            return f if math.isfinite(f) else None
+        _kept = [r for r in rows_raw if _flabel(r[target_col]) is not None]
+        _dropped = len(rows_raw) - len(_kept)
+        if _dropped:
+            log.info("[ml_training] tabular loader dropping %d row(s) with a "
+                     "missing/non-numeric label under regression", _dropped)
+        rows_raw = _kept
+        if not rows_raw:
+            raise ConfigError("no rows with a finite numeric label for regression")
+        raw_labels = [r[target_col] for r in rows_raw]
+    y: list = ([str(v) for v in raw_labels] if task == "classification"
+               else [float(v) for v in raw_labels])
+
+    # Build X with per-column MEAN IMPUTATION of missing cells (NA/NaN/…): a missing
+    # value must not silently become a constant 0 feature, and the column must not be
+    # dropped for it (see _looks_numeric). Mirrors the SNF .nf's feature-mean impute.
+    def _val(v):
+        if _is_missing(v):
+            return None
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            return None
+        # A cell like "inf"/"-inf"/"nan" parses as a non-finite float that would
+        # survive into _present, poison the column mean (mean of [1, 2, inf] = inf),
+        # and then reach sklearn as inf/NaN. Treat non-finite as missing.
+        return f if math.isfinite(f) else None
+    _col_mean: dict = {}
+    _all_missing: list = []
+    for c in feature_names:
+        _present = [x for x in (_val(r.get(c)) for r in rows_raw) if x is not None]
+        if not _present:
+            _all_missing.append(c)          # every cell missing → not a feature; drop it
+            continue
+        _col_mean[c] = sum(_present) / len(_present)
+    if _all_missing:
+        # A column that is missing in EVERY row would otherwise become a useless
+        # constant-0 feature (second-pass review); drop it (partially-missing columns
+        # are still kept + mean-imputed above).
+        log.info("[ml_training] dropping %d all-missing feature column(s): %s",
+                 len(_all_missing), ", ".join(_all_missing))
+        feature_names = [c for c in feature_names if c not in set(_all_missing)]
+        if not feature_names:
+            raise ConfigError("no feature columns with any present (non-missing) value")
+    X = []
+    for r in rows_raw:
+        row = []
+        for c in feature_names:
+            v = _val(r.get(c))
+            row.append(_col_mean[c] if v is None else v)
+        X.append(row)
+    return LoadedTabularDataset(
+        X=X, y=y, feature_names=feature_names, target_col=target_col,
+        source=f"tabular-csv:{path}", task=task,
     )
 
 

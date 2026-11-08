@@ -1,0 +1,314 @@
+{
+ "n_modalities": 28,
+ "source": "docs/20260509_modality_coverage_audit.md + standard pharma taxonomy",
+ "routable_count": 19,
+ "modalities": [
+  {
+   "modality": "small_molecule",
+   "coverage": "excellent",
+   "routable": true,
+   "intent": "design/screen a small-molecule binder",
+   "route": [
+    "Docking Autodock Vina",
+    "Drugclip Virtual Screening",
+    "REINVENT4 Generative Lead Design",
+    "Predict ADMET Properties (AI)",
+    "OpenFE Relative Binding Free Energy (RBFE)"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "covalent_small_molecule",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design a covalent/warhead inhibitor",
+   "route": [
+    "Covalent Warhead Design",
+    "MOE Covalent Docking Pipeline",
+    "Predict ADMET Properties (AI)"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "protac_degrader",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design a PROTAC/targeted-degrader",
+   "route": [
+    "protac_design",
+    "Predict ADMET Properties (AI)"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "molecular_glue",
+   "coverage": "partial",
+   "routable": false,
+   "intent": "design a molecular-glue degrader",
+   "route": [
+    "protac_design"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "scaffold_hop",
+   "coverage": "excellent",
+   "routable": true,
+   "intent": "scaffold-hop / optimize a lead series",
+   "route": [
+    "scaffold_hopping",
+    "Calculate Physicochemical Properties",
+    "Predict ADMET Properties (AI)"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "linear_peptide",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design a linear peptide binder",
+   "route": [
+    "Boltz Structure Prediction",
+    "GROMACS Protein-Ligand MD + MM-GBSA"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "cyclic_peptide_macrocycle",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design a cyclic peptide / macrocycle binder",
+   "route": [
+    "Boltz Structure Prediction",
+    "gromacs_pmx_fep",
+    "GROMACS Protein-Ligand MD + MM-GBSA"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "peptide_drug_conjugate",
+   "coverage": "partial",
+   "routable": false,
+   "intent": "design a peptide-drug conjugate (PDC)",
+   "route": [
+    "adc_design"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "antibody_mab",
+   "coverage": "excellent",
+   "routable": true,
+   "intent": "design/develop a monoclonal antibody",
+   "route": [
+    "scfv_antibody_design",
+    "antibody_developability",
+    "nf-core/proteinfold"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "scfv_fragment",
+   "coverage": "excellent",
+   "routable": true,
+   "intent": "design an scFv / antibody fragment",
+   "route": [
+    "scfv_antibody_design",
+    "antibody_developability"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "bispecific_antibody",
+   "coverage": "excellent",
+   "routable": true,
+   "intent": "design a bispecific / multi-specific antibody",
+   "route": [
+    "Bispecific Antibody Design",
+    "antibody_developability"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "nanobody_vhh",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design a nanobody / VHH",
+   "route": [
+    "scfv_antibody_design",
+    "antibody_developability"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "fc_engineered_ab",
+   "coverage": "partial",
+   "routable": false,
+   "intent": "Fc-engineer an antibody (ADCC/half-life)",
+   "route": [
+    "antibody_developability",
+    "Fcrn Antibody Pk"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "adc",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design an antibody-drug conjugate (ADC)",
+   "route": [
+    "adc_design",
+    "scfv_antibody_design",
+    "Predict ADMET Properties (AI)"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "large_protein_biologic",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design/predict a large protein / enzyme therapeutic",
+   "route": [
+    "nf-core/proteinfold",
+    "AlphaFold DB Search",
+    "proteome_selectivity_profiling"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "fusion_protein",
+   "coverage": "partial",
+   "routable": false,
+   "intent": "design a fusion-protein / trap biologic",
+   "route": [
+    "nf-core/proteinfold",
+    "antibody_developability"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "sirna_rnai",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design an siRNA / RNAi therapeutic",
+   "route": [
+    "sirna_design_full",
+    "sirna_offtarget_analysis",
+    "lnp_formulation_optimization"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "aso_gapmer",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design an antisense oligonucleotide / gapmer",
+   "route": [
+    "aso_gapmer_design"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "mrna_therapeutic",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design an mRNA therapeutic",
+   "route": [
+    "mrna_therapeutic_design",
+    "Optimize Codons For Heterologous Expression",
+    "lnp_formulation_optimization"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "sarna_circrna",
+   "coverage": "none",
+   "routable": false,
+   "intent": "design a self-amplifying / circular RNA",
+   "route": [],
+   "n_requests": 12
+  },
+  {
+   "modality": "aptamer",
+   "coverage": "none",
+   "routable": false,
+   "intent": "design an RNA/DNA aptamer (SELEX)",
+   "route": [],
+   "n_requests": 12
+  },
+  {
+   "modality": "crispr_editing",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design a CRISPR edit (KO / CRISPRa-i / base / prime)",
+   "route": [
+    "P0 Mrna Validation",
+    "Optimize Codons For Heterologous Expression"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "aav_gene_therapy",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design an AAV gene-therapy construct",
+   "route": [
+    "Optimize Codons For Heterologous Expression",
+    "mrna_therapeutic_design"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "car_cell_therapy",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design a CAR-T / cell-therapy construct",
+   "route": [
+    "scfv_antibody_design",
+    "bispecific_antibody_design"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "tcr_t",
+   "coverage": "partial",
+   "routable": false,
+   "intent": "design a TCR-T (HLA-restricted neoantigen)",
+   "route": [
+    "nf-core/epitopeprediction"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "nk_cell_therapy",
+   "coverage": "none",
+   "routable": false,
+   "intent": "design an NK-cell therapy",
+   "route": [],
+   "n_requests": 12
+  },
+  {
+   "modality": "vaccine_epitope",
+   "coverage": "good",
+   "routable": true,
+   "intent": "design a vaccine / epitope / neoantigen",
+   "route": [
+    "nf-core/epitopeprediction",
+    "mrna_therapeutic_design",
+    "Optimize Codons For Heterologous Expression"
+   ],
+   "n_requests": 12
+  },
+  {
+   "modality": "radiopharmaceutical",
+   "coverage": "partial",
+   "routable": false,
+   "intent": "design a radioligand / radiopharmaceutical (RLT)",
+   "route": [
+    "Analyze Radiolabeled Antibody Biodistribution",
+    "Estimate Alpha Particle Radiotherapy Dosimetry"
+   ],
+   "n_requests": 12
+  }
+ ]
+}

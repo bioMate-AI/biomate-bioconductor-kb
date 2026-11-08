@@ -48,7 +48,7 @@ with open("reverse_complement_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("reverse_complement_output.txt", "w") as f:
-    f.write("Biomni: Reverse Complement Results" + NL)
+    f.write("BioMate: Reverse Complement Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

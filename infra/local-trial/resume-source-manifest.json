@@ -1,0 +1,15 @@
+{
+  "scope": "Current local trial routing/prompt source hashes; verify against deployed files before attaching to a training episode",
+  "files": {
+    "frontend/server/local-llm.ts": "8f5220e966ba224af2f9bd639a2ad99414464bd8285ed5478be158d313aea188",
+    "frontend/server/local-intent-prompt.ts": "96d551613764c0481616a76fbf2cd9586b4504b664596f141683714183a04d37",
+    "frontend/server/local-response-prompt.ts": "9c90f85cb12e7336f18f9c5562a32386b67abeb1d63fb252d91c255384072a04",
+    "frontend/server/galaxy-assistant.ts": "a27e843158d6ad7e8e5c8f11bd0030f114ab5b6d958dfdbeab2850201285d3a0",
+    "backend/lib/galaxy/ai/local_knowledge_query.py": "4b0176af7e7e21d273eec379b31baf24b0731df00a1a8ef86c624122835ee503",
+    "backend/lib/galaxy/webapps/galaxy/api/knowledge_query.py": "ee511eec059b1f9dcd7d69a17458f5f52256d1d0eeea1e986ce2fc677d91ea97"
+  },
+  "model_revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+  "inference_engine_revision": "3057bb66c86c46d5781e50e85462a760ba7d1feb",
+  "quantization": "Q4_K_M",
+  "training_performed": false
+}

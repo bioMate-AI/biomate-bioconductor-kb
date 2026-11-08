@@ -1,0 +1,64 @@
+{
+ "link_counts": {
+  "accession": 105,
+  "gene": 151,
+  "pfam": 239
+ },
+ "families_v1": 317,
+ "families_v2": 298,
+ "largest_family_v2": 138,
+ "accessions_in_gt1_family_v1": 29,
+ "accessions_in_gt1_family_v2": 0,
+ "accessions_spanning_gt1_fold_v1": 24,
+ "accessions_spanning_gt1_fold_v2": 0,
+ "I_targets_with_same_protein_target_in_other_fold_v1": 6,
+ "I_targets_with_same_protein_target_in_other_fold_v2": 0,
+ "M2_targets_with_same_protein_target_in_other_fold_v1": 9,
+ "M2_targets_with_same_protein_target_in_other_fold_v2": 0,
+ "fold_compounds_v2": [
+  4551,
+  2742,
+  2742,
+  2741,
+  2741
+ ],
+ "I_families_v1": 26,
+ "I_families_v2": 23,
+ "I_fold_of_target_changed": 18,
+ "avb6_targets": [
+  {
+   "target_key": "P06756,P18564",
+   "genes": "ITGAV,ITGB6",
+   "family_v1": "F21103b9e",
+   "family": "Gd0868d62",
+   "fold_v1": 3,
+   "fold_v2": 3
+  },
+  {
+   "target_key": "P18564",
+   "genes": "ITGB6",
+   "family_v1": "F1aeb1980",
+   "family": "Gd0868d62",
+   "fold_v1": 2,
+   "fold_v2": 3
+  }
+ ],
+ "integrin_targets_total": 22,
+ "integrin_families_v1": 6,
+ "integrin_families_v2": 3,
+ "integrin_folds_v1": [
+  1,
+  2,
+  3,
+  4
+ ],
+ "integrin_folds_v2": [
+  2,
+  3
+ ],
+ "hashes": {
+  "folds_v2.csv": "dfb03bac5abf193702cb4aa2e99c0c53a1b58b82414c03c92e28c3930e39767c",
+  "targets_v2.csv": "f055ffc8d81ccc19b41b43e65f5860e3f33852e393e7b16b969e76aea2134e82",
+  "19_folds_v2.py": "53c6db1a5a40eb7aa9c89c8d0c89e0c817f3ca7247d3db28b0383c591288d945"
+ }
+}

@@ -194,7 +194,7 @@ with open("annotate_plasmid_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("annotate_plasmid_output.txt", "w") as f:
-    f.write("Biomni: Annotate Plasmid" + NL)
+    f.write("BioMate: Annotate Plasmid" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

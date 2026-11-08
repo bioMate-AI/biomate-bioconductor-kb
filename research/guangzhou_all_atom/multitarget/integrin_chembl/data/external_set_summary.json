@@ -1,0 +1,32 @@
+{
+ "n_kapp_ligands": 34,
+ "n_resolved": 20,
+ "n_tierA": 7,
+ "n_tierB": 13,
+ "unresolved": [
+  "Echistatin",
+  "sn243",
+  "RGD-4C",
+  "RGD10 (RGD-2C)",
+  "NC100717",
+  "c(phgisoDGRk)",
+  "44b",
+  "JSM6427",
+  "Mol11",
+  "F-Galacto-c(RGDfK)",
+  "(Ga)NOPO*-c(RGDfK)",
+  "c(RGDfK)-Peg-MPA",
+  "Flucilatide",
+  "c(phgisoDGRk)-Peg-MPA"
+ ],
+ "builder_validation": {
+  "c(RGDfK)": {
+   "builder_matches_registry_fullkey": true
+  },
+  "c(RGDyK)": {
+   "builder_matches_registry_fullkey": true
+  }
+ },
+ "n_cells_resolved": 120,
+ "n_cells_uncensored": 64
+}

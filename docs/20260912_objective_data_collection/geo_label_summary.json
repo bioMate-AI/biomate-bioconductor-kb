@@ -1,0 +1,67 @@
+{
+  "GSE113156": {
+    "n_samples": 22,
+    "n_patients_with_id": 6,
+    "n_paired_pre_post": 6,
+    "n_response_labeled": 0,
+    "n_missing_timepoint": 0,
+    "proposed_heldout_patients": [
+      "R084",
+      "R087"
+    ],
+    "proposed_split_note": "patient-held-out; all timepoints of a held-out patient stay together"
+  },
+  "GSE15316": {
+    "n_samples": 23,
+    "n_patients_with_id": 0,
+    "n_paired_pre_post": 0,
+    "n_response_labeled": 23,
+    "n_missing_timepoint": 23,
+    "proposed_heldout_patients": [],
+    "proposed_split_note": "no paired pre/post patients detected \u2014 response-split only"
+  },
+  "GSE35455": {
+    "n_samples": 224,
+    "n_patients_with_id": 112,
+    "n_paired_pre_post": 112,
+    "n_response_labeled": 0,
+    "n_missing_timepoint": 0,
+    "proposed_heldout_patients": [
+      "RA-1",
+      "RA-10",
+      "RA-100",
+      "RA-101",
+      "RA-102",
+      "RA-103",
+      "RA-104",
+      "RA-105",
+      "RA-106",
+      "RA-107",
+      "RA-108",
+      "RA-109",
+      "RA-11",
+      "RA-110",
+      "RA-111",
+      "RA-112",
+      "RA-12",
+      "RA-13",
+      "RA-14",
+      "RA-15",
+      "RA-16",
+      "RA-17",
+      "RA-18",
+      "RA-19",
+      "RA-2",
+      "RA-20",
+      "RA-21",
+      "RA-22",
+      "RA-23",
+      "RA-24",
+      "RA-25",
+      "RA-26",
+      "RA-27",
+      "RA-28"
+    ],
+    "proposed_split_note": "patient-held-out; all timepoints of a held-out patient stay together"
+  }
+}

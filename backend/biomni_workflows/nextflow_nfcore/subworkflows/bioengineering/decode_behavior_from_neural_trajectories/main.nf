@@ -112,20 +112,33 @@ def decode_behavior_from_neural_trajectories(neural_data, behavioral_data, n_com
         output_dir = "./"
     n_components = int(n_components)
 
-    # Generate synthetic data if no input provided
-    if neural_data is None or behavioral_data is None:
+    # Load REAL input when a file path is provided (.npy / .csv / .tsv / .txt), or accept an
+    # inline numeric array. Only if neither is available fall back to a clearly LABELED synthetic
+    # demo (disclosed in the output log below) — never silently pass synthetic off as real.
+    def _load_matrix(x):
+        if isinstance(x, str) and os.path.exists(x):
+            if x.endswith(".npy"):
+                return np.load(x)
+            if x.endswith(".csv"):
+                return np.loadtxt(x, delimiter=",")
+            if x.endswith((".tsv", ".txt")):
+                return np.loadtxt(x)
+        if isinstance(x, (list, tuple)):
+            return np.array(x, dtype=float)
+        return None
+
+    nd = _load_matrix(neural_data)
+    bd = _load_matrix(behavioral_data)
+
+    demo_mode = nd is None or bd is None
+    if demo_mode:
         np.random.seed(42)
-        n_timepoints = 1000
-        n_neurons = 50
-        n_behavioral = 3
+        n_timepoints, n_neurons, n_behavioral = 1000, 50, 3
+        nd = np.random.poisson(5, (n_timepoints, n_neurons)).astype(float)
+        bd = np.random.randn(n_timepoints, n_behavioral)
 
-        # Generate synthetic neural data (simulated firing rates)
-        neural_data = np.random.poisson(5, (n_timepoints, n_neurons)).astype(float)
-        # Generate correlated behavioral data
-        behavioral_data = np.random.randn(n_timepoints, n_behavioral)
-
-    neural_data = np.array(neural_data)
-    behavioral_data = np.array(behavioral_data)
+    neural_data = np.array(nd)
+    behavioral_data = np.array(bd)
 
     # Create output directory if it doesn't exist
     if not os.path.exists(output_dir):
@@ -133,6 +146,11 @@ def decode_behavior_from_neural_trajectories(neural_data, behavioral_data, n_com
 
     # Initialize research log
     log = "# Neural Trajectory Modeling and Decoding Research Log\\n\\n"
+    if demo_mode:
+        log += ("> **DEMO MODE — synthetic data.** No neural_data/behavioral_data file was "
+                "provided, so this run uses randomly generated firing rates for illustration "
+                "only; the decoding metrics below are NOT from real recordings. Provide "
+                "neural_data and behavioral_data (.npy/.csv) for a real analysis.\\n\\n")
 
     # Step 1: Preprocess the data
     log += "## Step 1: Data Preprocessing\\n"
@@ -312,7 +330,7 @@ with open("decode_behavior_from_neural_trajectories_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("decode_behavior_from_neural_trajectories_output.txt", "w") as f:
-    f.write("Biomni: Decode Behavior From Neural Trajectories" + NL)
+    f.write("BioMate: Decode Behavior From Neural Trajectories" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

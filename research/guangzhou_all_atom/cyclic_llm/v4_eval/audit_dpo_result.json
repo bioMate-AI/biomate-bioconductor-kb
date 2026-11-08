@@ -1,0 +1,50 @@
+{
+ "weight_delta_vs_v4": {
+  "v4_dpo": {
+   "rel_l2": 0.00096,
+   "identical": false
+  },
+  "v4_dpo_rc": {
+   "rel_l2": 0.0017,
+   "identical": false
+  }
+ },
+ "samples": {
+  "v4": {
+   "n": 400,
+   "valid": 397,
+   "unique_valid": 379,
+   "memorised_frac_of_valid": 0.708,
+   "n_memorised": 281,
+   "mean_measured_perm_of_memorised": -5.415,
+   "mean_measured_perm_all_training_peptides": -5.824
+  },
+  "v4_dpo": {
+   "n": 400,
+   "valid": 397,
+   "unique_valid": 371,
+   "memorised_frac_of_valid": 0.683,
+   "n_memorised": 271,
+   "mean_measured_perm_of_memorised": -5.367,
+   "mean_measured_perm_all_training_peptides": -5.824
+  },
+  "v4_dpo_rc": {
+   "n": 400,
+   "valid": 398,
+   "unique_valid": 348,
+   "memorised_frac_of_valid": 0.724,
+   "n_memorised": 288,
+   "mean_measured_perm_of_memorised": -5.187,
+   "mean_measured_perm_all_training_peptides": -5.824
+  }
+ },
+ "padi4_llr_rank_corr_with_v4": {
+  "v4_dpo": 0.9999,
+  "v4_dpo_rc": 0.9998
+ },
+ "padi4_auc_first1000_test": {
+  "v4": 0.94,
+  "v4_dpo": 0.94,
+  "v4_dpo_rc": 0.94
+ }
+}

@@ -1,4 +1,0 @@
-    "PHARMACOPHORE_FILTERING:PHARMACOPHORE_REPORT":
-        python: 3.12.3
-        mock_mode: "true"
-    END_VERSIONS

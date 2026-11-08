@@ -1,0 +1,86 @@
+{
+  "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.pseudobulk_merged.h5ad",
+  "source_size": 44566657140,
+  "source_etag": "\"757ccc082f2a0ca99868bee4604c962c-84\"",
+  "targets": {
+    "VIM": [
+      "VIM-1",
+      "VIM-2"
+    ],
+    "CORO1A": [
+      "CORO1A-2",
+      "CORO1A-1"
+    ],
+    "GBP4": [
+      "GBP4-1",
+      "GBP4-2"
+    ],
+    "IL32": [
+      "IL32-1",
+      "IL32-2"
+    ],
+    "ARPC2": [
+      "ARPC2-1",
+      "ARPC2-2"
+    ],
+    "DUSP1": [
+      "DUSP1-1",
+      "DUSP1-2"
+    ],
+    "GBP5": [
+      "GBP5-1",
+      "GBP5-2"
+    ],
+    "MSN": [
+      "MSN-2",
+      "MSN-1"
+    ],
+    "IKZF1": [
+      "IKZF1-1",
+      "IKZF1-2"
+    ],
+    "FTH1": [
+      "FTH1-1",
+      "FTH1-2"
+    ],
+    "CST7": [
+      "CST7-1",
+      "CST7-2"
+    ],
+    "CD7": [
+      "CD7-2",
+      "CD7-1"
+    ],
+    "SMCHD1": [
+      "SMCHD1-1",
+      "SMCHD1-2"
+    ],
+    "HINT1": [
+      "HINT1-1",
+      "HINT1-2"
+    ],
+    "KLF6": [
+      "KLF6-2",
+      "KLF6-1"
+    ],
+    "FOS": [
+      "FOS-2",
+      "FOS-1"
+    ]
+  },
+  "profiles": 384,
+  "genes": 132,
+  "counts_validated": true,
+  "full_library_matches_metadata": true,
+  "source_script_sha256": "a7765b47b13d368482d6d0d3720b0255d0f8cc556ed12199965eba2f351d9e30",
+  "prepared_sha256": "619c0e9257a09500c01321954429d9222f5296065c1768c1c9153f80c9d351ea",
+  "limits": [
+    "Small metadata-complete16-target/2guide-per-target pilot",
+    "Previously outcome-selected target panel; keep_for_DE also includes guide eligibility",
+    "Coverage selected across donors; not prospective unselected coverage",
+    "No labels or values used for target/guide hash ranking",
+    "Pseudobulk deltas are not publication DE log fold changes"
+  ],
+  "original_prepared_sha256": "91a0fdbbde0d45ce3597a8d5644ff5f7805a94f5bc0f2bbf82ad98a29bcc8b1d",
+  "metadata_repair": "metadata_repair.json"
+}

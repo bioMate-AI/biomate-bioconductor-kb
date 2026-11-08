@@ -1,0 +1,78 @@
+doc,year,title,n_cmpd,targets,n_rows,T1_model,T1_null,n_pairs,T2_model,T2_null,T2_Z,T2_delta_sd,T2_model_better
+CHEMBL1127482,1994,Design and synthesis of novel cyclic RGD-containing peptides as highly,42,a5b1;aIIbb3;avb5,121,1.406,1.709,116,1.973,1.864,1.864,1.859,False
+CHEMBL1130274,1997,"Fibrinogen receptor (GPIIb-IIIa) antagonists derived from 5,6-bicyclic",2,aIIbb3;avb3,4,2.071,2.557,2,2.808,3.026,3.026,0.398,True
+CHEMBL1130666,1998,"Benzimidazole derivatives as arginine mimetics in 1,4-benzodiazepine n",5,aIIbb3;avb3,10,1.691,1.879,5,1.019,2.048,2.048,0.615,True
+CHEMBL1131769,1999,Orally bioavailable nonpeptide vitronectin receptor antagonists with e,1,aIIbb3;avb1;avb3;avb5,4,1.368,1.793,6,2.118,2.977,2.977,1.648,True
+CHEMBL1132654,1999,N-Methylated cyclic RGD peptides as highly active and selective alpha(,4,aIIbb3;avb3,8,0.931,1.135,4,1.526,2.634,2.634,0.911,True
+CHEMBL1132762,2000,RGD mimetics containing a central hydantoin scaffold: alpkha(v)beta3 v,10,aIIbb3;avb3,20,1.384,1.614,10,0.693,0.6,0.6,0.577,False
+CHEMBL1133172,2000,Discovery of orally active nonpeptide vitronectin receptor antagonists,3,aIIbb3;avb3,6,0.929,1.548,3,1.725,3.786,3.786,0.304,True
+CHEMBL1133890,2001,alpha(v)beta(3) Antagonists based on a central thiophene scaffold.,22,aIIbb3;avb3,44,0.748,0.835,22,1.577,1.762,1.762,0.711,True
+CHEMBL1134450,2001,Solid-phase synthesis of a nonpeptide RGD mimetic library: new selecti,11,aIIbb3;avb3,22,1.241,1.327,11,2.268,3.173,3.173,1.005,True
+CHEMBL1135530,2002,Selective alpha4beta7 integrin antagonists and their potential as anti,1,a5b1;avb3,2,1.229,1.799,1,0.497,0.785,0.785,0.0,True
+CHEMBL1135730,2002,"Nanomolar small molecule inhibitors for alphav(beta)6, alphav(beta)5, ",14,avb3;avb5;avb6,41,1.35,1.308,40,2.128,2.104,2.104,2.098,False
+CHEMBL1135955,2002,Substituted benzocyloheptenes as potent and selective alpha(v) integri,10,aIIbb3;avb3;avb5,29,1.279,1.409,28,1.163,2.218,2.218,1.4,True
+CHEMBL1136255,2003,Highly potent and selective alphaVbeta3-receptor antagonists: solid-ph,2,aIIbb3;avb3;avb5,5,0.685,1.096,3,1.636,2.659,2.659,0.638,True
+CHEMBL1136561,2003,Thiophene-based vitronectin receptor antagonists.,7,a5b1;aIIbb3;avb3;avb5,22,1.581,1.68,17,1.528,1.711,1.711,1.71,True
+CHEMBL1136710,2003,"Phenylbutyrates as potent, orally bioavailable vitronectin receptor (i",2,aIIbb3;avb3;avb5,5,0.912,1.35,4,1.629,2.822,2.822,1.561,True
+CHEMBL1137098,2004,"Design, synthesis, and biochemical evaluation of novel alpha V beta 3 ",3,aIIbb3;avb3;avb5,7,0.878,0.807,5,1.525,1.444,1.444,1.319,False
+CHEMBL1137514,2007,Synthesis and biological evaluation of non-peptide alpha(v)beta(3)/alp,4,a5b1;avb3,8,1.022,1.206,4,1.524,1.086,1.086,0.896,False
+CHEMBL1137913,2004,Piperidine-containing beta-arylpropionic acids as potent antagonists o,17,aIIbb3;avb3,34,0.762,1.115,17,0.777,2.52,2.52,0.931,True
+CHEMBL1138114,2006,"Convergent, parallel synthesis of a series of beta-substituted 1,2,4-o",24,aIIbb3;avb1;avb3;avb5;avb6,68,0.872,1.198,55,1.266,2.414,2.414,2.408,True
+CHEMBL1138156,2006,Incorporation of the unusual C(alpha)-fluoroalkylamino acids into cycl,8,avb3;avb5,16,0.926,0.84,8,1.495,1.012,1.012,0.619,False
+CHEMBL1138295,2007,Multiple N-methylation by a designed approach enhances receptor select,8,a5b1;aIIbb3;avb3,21,1.473,1.438,18,1.912,1.432,1.432,1.4,False
+CHEMBL1138711,2004,"1,2,3,4-Tetrahydroquinoline-containing alphaVbeta3 integrin antagonist",10,aIIbb3;avb3;avb5,29,0.65,1.115,28,0.927,2.317,2.317,1.958,True
+CHEMBL1140543,2007,Biphenyls as potent vitronectin receptor antagonists. Part 3: Squaric ,1,aIIbb3;avb3,2,0.949,1.177,1,1.127,1.973,1.973,0.0,True
+CHEMBL1141196,2005,Grafting aminocyclopentane carboxylic acids onto the RGD tripeptide se,6,avb3;avb5,12,1.362,1.364,6,2.079,1.611,1.611,1.395,False
+CHEMBL1142302,2008,Discovery of subnanomolar arginine-glycine-aspartate-based alphaVbeta3,8,a5b1;avb3;avb5,16,0.942,0.969,8,0.69,1.04,1.04,1.032,True
+CHEMBL1142682,2005,"Design, synthesis, and biological evaluation of novel potent and selec",4,a5b1;avb3;avb5,10,1.157,1.316,8,1.301,1.595,1.595,1.083,True
+CHEMBL1143037,2007,"Discovery of +(2-{4-[2-(5,6,7,8-tetrahydro-1,8-naphthyridin-2-yl)ethox",9,avb1;avb3;avb5,22,0.686,0.845,17,0.44,0.716,0.716,0.642,True
+CHEMBL1144584,2007,Identification of novel short chain 4-substituted indoles as potent al,5,avb3;avb5,10,0.997,1.25,5,0.219,0.28,0.28,0.158,True
+CHEMBL1144770,2008,"Synthesis, SAR and in vitro evaluation of new cyclic Arg-Gly-Asp pseud",1,avb3;avb5,2,1.167,0.99,1,0.148,0.094,0.094,0.0,False
+CHEMBL1146737,2004,Discovery of a potent and selective alpha v beta 3 integrin antagonist,6,aIIbb3;avb3,12,1.661,1.562,6,2.437,3.274,3.274,0.874,True
+CHEMBL1147627,2004,Synthesis of cinnamic acids and related isosteres as potent and select,49,aIIbb3;avb1;avb3;avb5,152,1.059,1.056,130,0.932,1.435,1.435,1.133,True
+CHEMBL1147945,2007,R-isomers of Arg-Gly-Asp (RGD) mimics as potent alphavbeta3 inhibitors,48,avb3;avb6,96,1.378,1.09,48,2.579,2.353,2.353,1.19,False
+CHEMBL1148269,2004,Solid-phase synthesis of a small library of 3-phenylthio-3-nicotinyl p,21,aIIbb3;avb3,42,1.738,2.066,21,1.133,1.416,1.416,0.687,True
+CHEMBL1148501,2006,Synthesis of pyrazoles and isoxazoles as potent alpha(v)beta3 receptor,16,aIIbb3;avb3;avb5;avb6,57,0.798,1.16,56,0.991,2.23,2.23,1.71,True
+CHEMBL1148701,2007,Design and synthesis of a new class of selective integrin alpha5beta1 ,17,a5b1;aIIbb3;avb3;avb5,52,1.253,1.635,59,1.828,2.363,2.363,2.105,True
+CHEMBL1149202,2004,N-Aryl-gamma-lactams as integrin alphavbeta3 antagonists.,1,aIIbb3;avb3,2,0.875,1.339,1,1.688,3.477,3.477,0.0,True
+CHEMBL1149447,2006,"Synthesis of 2,5-thiazole butanoic acids as potent and selective alpha",10,aIIbb3;avb3,20,0.317,0.787,10,0.272,2.214,2.214,0.24,True
+CHEMBL1152742,2009,Morpholine-based RGD-cyclopentapeptides as alphavbeta3/alphavbeta5 int,2,avb3;avb5,4,0.826,1.005,2,1.0,0.707,0.707,0.097,False
+CHEMBL1153114,2010,Discovery of orally available integrin alpha5beta1 antagonists.,12,a5b1;aIIbb3;avb3;avb5,42,0.939,1.621,55,1.075,1.822,1.822,1.624,True
+CHEMBL1153181,2010,SAR of N-phenyl piperidine based oral integrin alpha5beta1 antagonists,9,a5b1;aIIbb3;avb3;avb5,34,1.499,1.898,48,1.758,2.663,2.663,2.427,True
+CHEMBL1154548,2009,"Synthesis and initial evaluation of novel, non-peptidic antagonists of",7,aIIbb3;avb3;avb5,17,1.0,1.163,13,1.053,1.623,1.623,1.597,True
+CHEMBL1156816,2010,Antiangiogenic effect of dual/selective alpha(5)beta(1)/alpha(v)beta(3,2,a5b1;avb3,4,2.048,2.166,2,1.522,0.5,0.5,0.479,False
+CHEMBL1157688,2010,Novel tumor-targeted RGD peptide-camptothecin conjugates: synthesis an,9,avb3;avb5,18,1.558,1.205,9,1.565,0.965,0.965,0.854,False
+CHEMBL1255570,2010,Click-chemistry-derived triazole ligands of arginine-glycine-aspartate,3,avb3;avb5,6,1.889,2.038,3,0.645,0.488,0.488,0.473,False
+CHEMBL2150976,2012,Camptothecins in tumor homing via an RGD sequence mimetic.,5,avb3;avb5,10,1.458,1.503,5,1.188,0.824,0.824,0.821,False
+CHEMBL2176897,2012,Synthesis and biological evaluation (in vitro and in vivo) of cyclic a,7,avb3;avb5,14,0.921,0.841,7,1.217,1.303,1.303,0.588,True
+CHEMBL2331347,2013,Biselectivity of isoDGR peptides for fibronectin binding integrin subt,10,a5b1;aIIbb3;avb3;avb5;avb6,26,0.891,1.013,26,1.522,1.809,1.809,1.791,True
+CHEMBL2417442,2013,Modulation of αvβ₃- and α₅β₁-integrin-mediated adhesion by dehydro-β-a,8,a5b1;avb3,16,1.236,1.487,8,1.611,1.432,1.432,1.335,False
+CHEMBL2440079,2013,Synthesis and in vitro evaluation of a novel radioligand for αvβ3 inte,1,a5b1;avb3,2,1.326,1.201,1,2.177,2.536,2.536,0.0,True
+CHEMBL3233001,2014,Pharmacophoric modifications lead to superpotent αvβ3 integrin ligands,3,a5b1;avb3;avb5;avb6,8,0.817,0.876,8,1.378,1.649,1.649,1.579,True
+CHEMBL3297736,2014,Rational improvement of the affinity and selectivity of integrin bindi,4,a5b1;avb3;avb5,10,2.261,2.636,8,0.751,0.981,0.981,0.963,True
+CHEMBL3351286,2014,Strategies to inhibit tumor associated integrin receptors: rationale f,13,a5b1;aIIbb3;avb1;avb3;avb5;avb6;avb8,45,1.301,1.328,58,1.229,1.386,1.386,1.286,True
+CHEMBL3351497,2014,Structure Activity Relationships of αv Integrin Antagonists for Pulmon,31,avb3;avb5;avb6;avb8,118,0.871,0.908,171,0.495,0.727,0.727,0.563,True
+CHEMBL3751710,2016,Cyclic RGD peptidomimetics containing 4- and 5-amino-cyclopropane pipe,2,a5b1;avb3,4,0.779,0.644,2,0.783,0.774,0.774,0.695,False
+CHEMBL3862028,2016,Exploring N-Arylsulfonyl-l-proline Scaffold as a Platform for Potent a,4,a5b1;avb1;avb3;avb5,13,1.507,1.827,16,2.362,2.732,2.732,2.698,True
+CHEMBL4000184,2017,Synthesis of Novel c(AmpRGD)-Sunitinib Dual Conjugates as Molecular To,4,a5b1;avb3;avb5,8,0.759,0.653,4,0.875,1.46,1.46,1.333,True
+CHEMBL4014304,2017,New potent and selective αvβ3 integrin ligands: Macrocyclic peptides c,2,avb3;avb5,4,1.669,2.235,2,0.786,0.268,0.268,0.005,False
+CHEMBL4138308,2018,Simultaneous Targeting of RGD-Integrins and Dual Murine Double Minute ,13,a5b1;avb3,26,1.145,0.914,13,0.534,1.355,1.355,0.295,True
+CHEMBL4229566,2018,"Discovery of ( S)-3-(3-(3,5-Dimethyl-1 H-pyrazol-1-yl)phenyl)-4-(( R)-",25,a5b1;avb1;avb3;avb5;avb6;avb8,122,1.352,1.523,242,1.295,1.249,1.249,0.958,False
+CHEMBL4354806,2019,Discovery of an Orally Bioavailable Pan αv Integrin Inhibitor for Idio,22,avb3;avb6,44,0.999,0.985,22,0.669,1.283,1.283,0.569,True
+CHEMBL4373697,2019,Cyclization of RGD Peptides by Suzuki-Miyaura Cross-Coupling.,12,a5b1;avb3,24,0.824,1.007,12,1.078,1.646,1.646,1.003,True
+CHEMBL4373707,2019,Profile of a Highly Selective Quaternized Pyrrolidine Betaine α<sub>v<,8,avb1;avb3;avb5;avb6;avb8,38,1.139,1.404,73,1.091,1.45,1.45,1.175,True
+CHEMBL4411322,2019,Selective Targeting of Integrin αvβ8 by a Highly Active Cyclic Peptide,51,a5b1;avb3;avb6;avb8,109,0.957,0.876,68,1.498,1.314,1.314,1.137,False
+CHEMBL4627306,2020,Novel cilengitide-based cyclic RGD peptides as αvβ<sub>3</sub> integri,5,a5b1;avb3;avb5;avb6;avb8,25,0.853,0.998,50,0.98,1.262,1.262,1.113,True
+CHEMBL4680084,2016,New β-Lactam Derivatives Modulate Cell Adhesion and Signaling Mediated,8,a5b1;aIIbb3;avb3;avb5;avb6,21,1.121,1.053,18,1.411,1.548,1.548,1.481,True
+CHEMBL4699539,2020,Dual antagonists of α5β1/αvβ1 integrin for airway hyperresponsiveness.,11,a5b1;avb1;avb3;avb5;avb6;avb8,32,1.599,1.827,33,2.496,2.635,2.635,2.107,True
+CHEMBL4765475,2021,Tuning the Biological Activity of RGD Peptides with Halotryptophans†.,14,a5b1;avb3;avb6;avb8,38,1.1,1.079,39,1.071,1.715,1.715,1.709,True
+CHEMBL5104133,2022,Sortase A-mediated cyclization of novel polycyclic RGD peptides for α<,3,avb3;avb5,6,1.605,2.195,3,0.337,0.898,0.898,0.263,True
+CHEMBL5214901,2021,Halting the Spread of Herpes Simplex Virus-1: The Discovery of an Effe,1,a5b1;avb3,2,2.17,2.167,1,0.34,1.196,1.196,0.0,True
+CHEMBL5500400,2024,Design and Discovery of a Potent and Selective Inhibitor of Integrin α,13,a5b1;a8b1;avb1;avb3;avb5;avb6;avb8,44,1.426,1.545,60,1.861,1.953,1.953,1.81,True
+CHEMBL5725645,2018,Meta-azacyclic amino benzoic acid derivatives as pan integrin antagoni,17,a5b1;a8b1;avb1;avb3;avb5;avb6;avb8,119,2.2,2.334,357,1.306,0.536,0.536,0.501,False
+CHEMBL5727548,2020,Meta-azacyclic amino benzoic acid derivatives as pan integrin antagoni,28,a5b1;avb1;avb3;avb5;avb6;avb8,99,1.593,1.573,177,1.14,0.668,0.668,0.581,False
+CHEMBL5729774,2023,Fluorinated tetrahydronaphthyridinyl nonanoic acid derivatives and use,13,avb6;avb8,26,0.901,0.756,13,1.04,0.758,0.758,0.502,False
+CHEMBL6083250,2024,Core Modifications of GSK3335103 toward Orally Bioavailable α<sub>v</s,3,avb1;avb3;avb5;avb6;avb8,11,0.404,0.641,17,0.414,0.524,0.524,0.497,True
+CHEMBL6083263,2024,"The Discovery of MORF-627, a Highly Selective Conformationally-Biased ",24,avb1;avb6;avb8,70,1.09,1.124,68,1.514,1.349,1.349,1.332,False
+CHEMBL6120942,2024,Discovery and Development of Highly Potent and Orally Bioavailable Non,6,avb1;avb3;avb5;avb6;avb8,24,0.376,0.788,40,0.55,0.979,0.979,0.839,True
+CHEMBL6153109,2025,Switching Roles─Exploring Concentration-Dependent Agonistic versus Ant,4,a5b1;avb3;avb6,9,0.904,0.892,6,1.359,1.494,1.494,1.494,True

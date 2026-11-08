@@ -190,8 +190,17 @@ class TestInferQcProfile:
 
     # ── Drug discovery ────────────────────────────────────────────────────────
     def test_admet_screening(self):
+        # ADMET is a SAFETY screen → admet_standard (hERG/DILI/Ames gates), NOT
+        # the Ro5-only compound_druglike (which silently disables the hERG gate).
         path = nf(f"{BASE}/drug_discovery/admet_screening")
-        assert NextflowQCGateHandler.infer_qc_profile(path) == "compound_druglike"
+        assert NextflowQCGateHandler.infer_qc_profile(path) == "admet_standard"
+
+    def test_predict_admet_properties_gets_herg_gate_profile(self):
+        # The real pharmacology ADMET workflow emits toxicity_report.json with
+        # herg_ic50_uM and exists to trigger the hERG gate — it must resolve to
+        # admet_standard, the only profile with herg_ic50_threshold_uM.
+        path = nf(f"{BASE}/pharmacology/predict_admet_properties")
+        assert NextflowQCGateHandler.infer_qc_profile(path) == "admet_standard"
 
     def test_docking(self):
         path = nf(f"{BASE}/drug_discovery/structure_prediction_docking")

@@ -1,3 +1,4 @@
+import { localOnly, localCompletion } from './local-llm.js';
 /**
  * Gemini 3 Flash — thin wrapper replacing Claude Haiku for lightweight inference tasks.
  *
@@ -14,7 +15,7 @@
 
 import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
 
-export const GEMINI_FLASH_MODEL = 'gemini-3.5-flash';
+export const GEMINI_FLASH_MODEL = 'gemini-3.8-flash';
 
 function getClient(): GoogleGenerativeAI {
   const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
@@ -36,7 +37,42 @@ interface CallGeminiFlashOpts {
  * Call Gemini 3 Flash with an Anthropic-style messages array.
  * Returns the response text.
  */
+// Hard safety-net timeout: the @google/generative-ai SDK does not honour the
+// opts.signal we accept, and a stalled provider call otherwise hangs forever
+// (observed: workflow findings stuck on "Analysis in progress…" indefinitely
+// when no deterministic preprocessor exists). Race every SDK call against both
+// the caller's signal (if any) and a hard cap so the call always settles.
+const GEMINI_HARD_TIMEOUT_MS = 180_000;
+function withGeminiTimeout<T>(p: Promise<T>, signal?: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`callGeminiFlash timed out after ${GEMINI_HARD_TIMEOUT_MS}ms`)),
+      GEMINI_HARD_TIMEOUT_MS,
+    );
+    const onAbort = () => { clearTimeout(timer); reject(new Error('callGeminiFlash aborted by caller signal')); };
+    if (signal) {
+      if (signal.aborted) { clearTimeout(timer); return reject(new Error('callGeminiFlash aborted by caller signal')); }
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+    p.then(
+      (v) => { clearTimeout(timer); if (signal) signal.removeEventListener('abort', onAbort); resolve(v); },
+      (e) => { clearTimeout(timer); if (signal) signal.removeEventListener('abort', onAbort); reject(e); },
+    );
+  });
+}
+
 export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string> {
+  if (localOnly()) {
+    if (!opts.messages.length) return '';
+    const result = await localCompletion({
+      messages: [...(opts.system ? [{ role: 'system', content: opts.system }] : []), ...opts.messages],
+      max_tokens: opts.maxTokens ?? 4096, temperature: opts.temperature ?? 0,
+      ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+    });
+    const choice = result.choices[0];
+    if (choice.finish_reason !== 'stop' || typeof choice.message.content !== 'string') throw new Error('Incomplete local completion');
+    return choice.message.content;
+  }
   const genAI = getClient();
 
   // Flash is the lightweight path — disable thinking so the entire token
@@ -48,7 +84,7 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
   const generationConfig: GenerationConfig = {
     maxOutputTokens: opts.maxTokens ?? 4096,
     temperature: opts.temperature ?? 0,
-    // @ts-expect-error — thinkingConfig is supported by gemini-3.5-flash but
+    // @ts-expect-error — thinkingConfig is supported by gemini-3.8-flash but
     // not yet in @google/generative-ai types
     thinkingConfig: { thinkingBudget: 0 },
     ...(opts.jsonMode ? { responseMimeType: 'application/json' } : {}),
@@ -79,7 +115,7 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
   };
 
   if (messages.length === 1) {
-    const result = await model.generateContent(messages[0].content);
+    const result = await withGeminiTimeout(model.generateContent(messages[0].content), opts.signal);
     reportTruncation(result.response);
     return result.response.text();
   }
@@ -99,7 +135,7 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
   const history = mappedHistory.slice(firstUserIdx);
   const lastMessage = messages[messages.length - 1].content;
   const chat = model.startChat({ history });
-  const result = await chat.sendMessage(lastMessage);
+  const result = await withGeminiTimeout(chat.sendMessage(lastMessage), opts.signal);
   reportTruncation(result.response);
   return result.response.text();
 }

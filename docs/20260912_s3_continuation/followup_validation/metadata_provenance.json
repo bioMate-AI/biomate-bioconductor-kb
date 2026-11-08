@@ -1,0 +1,14 @@
+{
+  "validation_donor_metadata.csv": {
+    "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/suppl_tables/validation_donor_metadata.csv",
+    "sha256": "a9ab7f1d83690b93433aa2ac8228c2b6dd58ea5002c0dcb3bc15db1e2c88ad66"
+  },
+  "sample_metadata.suppl_table.csv": {
+    "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/suppl_tables/sample_metadata.suppl_table.csv",
+    "sha256": "766134d11dabb5d63388e00b4d687a809c0254eb3c19d77f439a6bf9dad7abd4"
+  },
+  "table_name_conversion.md": {
+    "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/suppl_tables/table_name_conversion.md",
+    "sha256": "17ad23d666390e5df8d24a6c64d5368549ab0e3e4a4ea7107f1965a9498dbf68"
+  }
+}

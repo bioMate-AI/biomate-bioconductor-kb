@@ -1,0 +1,11 @@
+# Project panel fitting and prepared examples — 2026-10-09
+
+The deployed project page combined a legacy chat/file/run tab shell with a fixed Instructions sidebar. Runs also lost half their height because the inactive Files tab forced `display:flex`, overriding the native hidden state. Project destinations now use the unified chat and Data Hub. Runs have a full-width list and a dedicated selected-run view. Instructions have standing guidance, output requirements, account skills, notes, and inheritance; permission summaries and unrelated project metadata are omitted.
+
+The selected-run workflow occupies the remaining height beneath navigation. The workflow panel uses container queries, so controls reflow based on the resized panel rather than the browser width. Step details are available before execution and bounded by the viewport, with a scrolling body and wrapping parameters.
+
+Prepared examples explicitly map to public input bundles rather than choosing a generic dataset by keyword. Original measurements are preserved. Derived plate layouts, a teaching regression baseline, and proposed unmeasured sequence variants are labeled. Internal examples reuse a persistent MG PBMC project and upload missing input files. The catalog test enumerates the displayed examples and verifies every referenced local asset exists and is nonempty. This verifies input preparation, not successful execution of every scientific pipeline.
+
+Pre-deployment review: project settings require project membership; changes require owner/editor. Empty skill selection is explicit and disables auto-selection. The settings table is created idempotently on first authorized access. Smoke expectations: authorized settings GET returns empty defaults for an untouched project, saving persists across reload, viewer PATCH is rejected; project Runs occupies the available height and Instructions has no horizontal overflow at desktop/mobile widths. No scientific or GPU jobs are started by this UI smoke.
+
+Validation: full TypeScript and Vitest checks; real dev API-backed local browser checks at 1440, 1000, 760, and 390px. The local preview cannot exercise the new settings endpoint until it is deployed; its 404 is expected and is not accepted as final deployment verification.

@@ -1,0 +1,91 @@
+{
+  "data_origin": "simulated",
+  "model": "real pinned UniMoMo on CUDA",
+  "claim": "Integration mechanics only; simulated KD across fixture complexes is not biological evidence",
+  "checks": {
+    "three_pairs_loaded": true,
+    "three_updates_completed": true,
+    "all_reference_state_unchanged": true,
+    "frozen_ae_unchanged": true,
+    "trainable_weights_changed": true,
+    "checkpoint_roundtrip_exact": true,
+    "finite_weights": true
+  },
+  "passed": true,
+  "before": [
+    {
+      "loss": 0.6930923461914062,
+      "dpo_margin": -0.00010962784290313721,
+      "reward_margin": 0.00010962784290313721,
+      "gap_chosen": 0.0,
+      "gap_rejected": 0.00010962784290313721,
+      "Lp_chosen": 1.2940735816955566,
+      "Lr_chosen": 1.2940735816955566,
+      "Lp_rejected": 0.24113881587982178,
+      "Lr_rejected": 0.24102918803691864
+    },
+    {
+      "loss": 0.6931771039962769,
+      "dpo_margin": 5.9761106967926025e-05,
+      "reward_margin": -5.9761106967926025e-05,
+      "gap_chosen": 5.977600812911987e-05,
+      "gap_rejected": 1.4901161193847656e-08,
+      "Lp_chosen": 0.06764230132102966,
+      "Lr_chosen": 0.06758252531290054,
+      "Lp_rejected": 0.08359616249799728,
+      "Lr_rejected": 0.08359614759683609
+    },
+    {
+      "loss": 0.6954346299171448,
+      "dpo_margin": 0.0045697689056396484,
+      "reward_margin": -0.0045697689056396484,
+      "gap_chosen": 0.0,
+      "gap_rejected": -0.0045697689056396484,
+      "Lp_chosen": 7.597113609313965,
+      "Lr_chosen": 7.597113609313965,
+      "Lp_rejected": 2.2438805103302,
+      "Lr_rejected": 2.24845027923584
+    }
+  ],
+  "after": [
+    {
+      "loss": 0.687324583530426,
+      "dpo_margin": -0.011679291725158691,
+      "reward_margin": 0.011679291725158691,
+      "gap_chosen": -0.0061599016189575195,
+      "gap_rejected": 0.005519390106201172,
+      "Lp_chosen": 1.2879136800765991,
+      "Lr_chosen": 1.2940735816955566,
+      "Lp_rejected": 0.24638396501541138,
+      "Lr_rejected": 0.2408645749092102
+    },
+    {
+      "loss": 0.6928712129592896,
+      "dpo_margin": -0.0005520433187484741,
+      "reward_margin": 0.0005520433187484741,
+      "gap_chosen": 0.00036012381315231323,
+      "gap_rejected": 0.0009121671319007874,
+      "Lp_chosen": 0.06795094907283783,
+      "Lr_chosen": 0.06759082525968552,
+      "Lp_rejected": 0.08446206152439117,
+      "Lr_rejected": 0.08354989439249039
+    },
+    {
+      "loss": 0.6536393165588379,
+      "dpo_margin": -0.08064103126525879,
+      "reward_margin": 0.08064103126525879,
+      "gap_chosen": -0.08805418014526367,
+      "gap_rejected": -0.007413148880004883,
+      "Lp_chosen": 7.509060859680176,
+      "Lr_chosen": 7.5971150398254395,
+      "Lp_rejected": 2.236466884613037,
+      "Lr_rejected": 2.243880033493042
+    }
+  ],
+  "candidate_ids": [
+    "7QGV",
+    "7TPT",
+    "3WNG"
+  ],
+  "changed_parameters": 199
+}

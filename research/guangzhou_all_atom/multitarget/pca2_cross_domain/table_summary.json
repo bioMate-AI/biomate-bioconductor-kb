@@ -1,0 +1,85 @@
+{
+ "backbones": {
+  "152": "DKPLPPLP",
+  "246": "GGPVKPPRLLLLV",
+  "250": "GGGRYPVVDYVVL",
+  "299": "GLLWSRLAPSVPVL",
+  "363": "SGRFWFSDWL",
+  "366": "SKVRVFLGWF",
+  "385": "RRRLHESPWL"
+ },
+ "n_domains_pca2_ppi_mtx": 3,
+ "n_domains_pca1": 7,
+ "n_domains_union": 7,
+ "rows_per_dataset_domain": {
+  "PCA1/152": 380,
+  "PCA1/246": 400,
+  "PCA1/250": 381,
+  "PCA1/299": 400,
+  "PCA1/363": 400,
+  "PCA1/366": 387,
+  "PCA1/385": 400,
+  "PCA2/363": 1654,
+  "PCA2/366": 1653,
+  "PCA2/385": 1625
+ },
+ "pca2_rows_per_domain_family": {
+  "363/363": 552,
+  "363/366": 550,
+  "363/385": 552,
+  "366/363": 552,
+  "366/366": 549,
+  "366/385": 552,
+  "385/363": 552,
+  "385/366": 521,
+  "385/385": 552
+ },
+ "pca2_shared_peptides_in_all_3_domains": 1625,
+ "pca2_median_n_rep": 3.0,
+ "pca2_median_se": 0.041008446609862775,
+ "pca2_score_sd": 0.2958096567320369,
+ "domains": {
+  "152": {
+   "cls": "SH3",
+   "gene": "SHO1",
+   "uniprot": "P40073",
+   "length": 81
+  },
+  "246": {
+   "cls": "SH3",
+   "gene": "ARHGAP26",
+   "uniprot": "Q9UNA1",
+   "length": 56
+  },
+  "250": {
+   "cls": "SH3",
+   "gene": "EPS8L1",
+   "uniprot": "Q8TE68",
+   "length": 56
+  },
+  "299": {
+   "cls": "SH3",
+   "gene": "SNX9",
+   "uniprot": "Q9Y5X1",
+   "length": 59
+  },
+  "363": {
+   "cls": "PDZ",
+   "gene": "TJP1 (PDZ3)",
+   "uniprot": "Q07157",
+   "length": 82
+  },
+  "366": {
+   "cls": "PDZ",
+   "gene": "TIAM1 (PDZ1)",
+   "uniprot": "Q13009",
+   "length": 117
+  },
+  "385": {
+   "cls": "PDZ",
+   "gene": "PDLIM4 (PDZ1)",
+   "uniprot": "P50479",
+   "length": 110
+  }
+ }
+}

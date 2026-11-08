@@ -50,7 +50,7 @@ with open("optimize_codons_for_heterologous_expression_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("optimize_codons_for_heterologous_expression_output.txt", "w") as f:
-    f.write("Biomni: Optimize Codons For Heterologous Expression Results" + NL)
+    f.write("BioMate: Optimize Codons For Heterologous Expression Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

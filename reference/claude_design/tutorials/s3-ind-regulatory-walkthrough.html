@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · IND nonclinical overview — assembling CTD §2.6.1 from run data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">IND nonclinical overview (ICH CTD §2.6.1) — assemble a grounded regulatory draft from ADMET, PBPK and lead-selection runs</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="40.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>IND Nonclinical Overview · CTD §2.6.1</b></div>
+    <div class="kicker">For the regulatory-affairs scientist assembling an IND submission</div>
+    <h2>From finished runs to a Common Technical Document §2.6.1 — assembled, not re-typed.</h2>
+    <p class="caption">You have run the campaign: ADMET screening, a PBPK simulation, a lead-selection decision. Now the nonclinical evidence has to become a regulatory document — the ICH Common Technical Document Module 2.6, whose flagship is the <b>§2.6.1 Nonclinical Overview</b>. BioMate's <b>IND Report</b> assembles that document section by section, grounding each narrative in the campaign's real run outputs, and runs a regulatory audit over the result. In this walkthrough we build the idea from the ground up, then show the feature producing actual CTD §2.6.1 text — and we are precise about what it is: a draft for human review, not an approval.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>ADMET + PBPK + lead-selection runs</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>IND Report assembly</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Grounded CTD &sect;2.6.1, section by section</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Regulatory audit gate</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Signed, versioned DOCX draft</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Writing the nonclinical overview is slow, multi-region, and easy to get inconsistent.</h2>
+    <p class="caption">The science is done; the bottleneck is the document. A nonclinical overview must summarise every study faithfully, in a rigid structure, for several regulators at once — and every number in the prose has to match the study it came from. Done by hand, it is weeks of careful transcription where a single stale value can sink a submission.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">THE TASK</div><h4>Evidence &rarr; document</h4><p>Pharmacology, PK and toxicology findings must be re-told as a structured written summary, in the exact CTD order a reviewer expects.</p></div>
+          <div class="tile"><div class="n">THE PACE</div><h4>Weeks of transcription</h4><p>Hand-writing each section from study reports is slow, and it repeats for every amendment as the underlying data changes.</p></div>
+          <div class="tile"><div class="n">MANY REGIONS</div><h4>One dossier, four agencies</h4><p>F-D-A, E-M-A, N-M-P-A and P-M-D-A each have their own acceptance criteria and expectations — the same evidence, framed four ways.</p></div>
+          <div class="tile"><div class="n">THE RISK</div><h4>Numbers drift from source</h4><p>When prose is typed separately from the runs, a value can go stale. An overview whose figures no longer match the data is a finding waiting to happen.</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>The need: turn finished runs into a faithful, multi-region nonclinical overview — fast, and tied to its source</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas, and the rest of the document follows.</h2>
+    <p class="caption">You don't need the full regulatory code — just these four concepts, in order.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · CTD MODULE 2.6</div><h4>Nonclinical written summaries</h4><p>The ICH M4 Common Technical Document organises a submission into modules. <b>Module 2.6</b> holds the nonclinical written and tabulated summaries — the structured retelling of the studies.</p></div>
+            <div class="tile"><div class="n">2 · &sect;2.6.1</div><h4>The Nonclinical Overview</h4><p>The flagship section: §2.6.1 Pharmacology. Its subsections run §2.6.1.1 brief summary, §2.6.1.2 primary pharmacodynamics, §2.6.1.3 safety pharmacology, and §2.6.1.4 through §2.6.1.6.</p></div>
+            <div class="tile"><div class="n">3 · FOUR REGIONS</div><h4>Region-specific criteria</h4><p>F-D-A, E-M-A, N-M-P-A, P-M-D-A. Each carries its own acceptance thresholds — e.g. the E-M-A PBPK within-2-fold expectation — plus an ethnic-bridging note for N-M-P-A and P-M-D-A.</p></div>
+            <div class="tile"><div class="n">4 · GROUNDED</div><h4>Integrates the run outputs</h4><p>The narrative is not free-written. It integrates the campaign's ADMET, PBPK and lead-selection run outputs — each statement traces back to a real result.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The whole method is: take the campaign's finished runs, assemble the CTD §2.6.1 structure, and write each subsection as a narrative <b>grounded in the real run data</b> — framed for the target region.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — the structure and provenance the rest of the walkthrough uses</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT (LIVE SHOT 1) -->
+  <section class="scene" data-seconds="38.0">
+    <div class="kicker"><span class="st">In BioMate</span> · from runs to §2.6</div>
+    <h2>Open IND Report, pick the assembled campaign, and generate CTD §2.6.</h2>
+    <p class="caption">The feature lives at <code>/ind-report</code>. You choose a campaign built from ADMET, PBPK and lead-selection runs, and BioMate assembles the Module 2.6 structure — one click from a grounded draft.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · BioMate IND Report — CTD §2.6 assembly</span>
+        <div class="frame"><img src="assets/live/ind-overview-live.png" alt="BioMate IND Report page assembling the CTD Module 2.6 nonclinical overview from a drug-discovery campaign"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>One entry point.</b> Open <b>IND Report</b> at <code>/ind-report</code> and pick a campaign assembled from ADMET, PBPK and lead-selection runs.</span></li>
+          <li><span class="b"></span><span><b>The call behind it.</b> Generating fires <code>POST /api/drug-discovery/{campaign_id}/ind-assembly</code>, which returns the section list — <code>2.4</code>, <code>2.6.1.1</code>&hellip;<code>2.6.1.6</code>, <code>2.6.2</code>, <code>2.6.3.1</code>.</span></li>
+          <li><span class="b"></span><span><b>Region-aware.</b> You set the target region — F-D-A, E-M-A, N-M-P-A or P-M-D-A — so the acceptance criteria and bridging notes match the dossier.</span></li>
+          <li><span class="b gr"></span><span><b>Grounded by design.</b> Every section is written against the campaign's real run outputs, not composed from scratch.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real IND Report, assembling §2.6 from your runs</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">Inputs</span> · what feeds it</div>
+    <h2>The campaign's runs, plus the submission facts that frame them.</h2>
+    <p class="caption">Assembly is grounded, so the inputs are the real run outputs together with the dossier metadata a regulator expects. BioMate gathers them into one assembly request — the <code>INDAssemblyRequest</code> — and writes the narrative from there.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">THE RUN EVIDENCE</div><h4>ADMET · PBPK · lead selection</h4><p>The <code>pk_summary</code> is read from a predict-ADMET / PBPK run, and the lead-selection decision supplies the primary-pharmacodynamics story. This is the grounding the prose is written against.</p></div>
+          <div class="tile"><div class="n">THE SUBMISSION FACTS</div><h4>Molecule, sponsor, indication</h4><p><code>molecule_name</code>, <code>sponsor</code>, <code>indication</code> and <code>target_name</code> identify the program; <code>region</code> selects the agency framing.</p></div>
+          <div class="tile"><div class="n">THE COMPLIANCE CONTEXT</div><h4>G-L-P and bridging</h4><p><code>glp_facility</code>, <code>glp_recognition</code>, an <code>ethnic_bridging_note</code> for N-M-P-A / P-M-D-A, and any <code>wetlab_data</code> round out the request.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">One request object (<code>INDAssemblyRequest</code>): run-derived <code>pk_summary</code> + <code>molecule_name</code>, <code>sponsor</code>, <code>indication</code>, <code>target_name</code>, <code>region</code>, <code>glp_facility</code>, <code>glp_recognition</code>, <code>ethnic_bridging_note</code>, <code>wetlab_data</code>.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Real run outputs plus dossier facts in — a grounded, region-framed draft out</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE METHOD -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker"><span class="st">The method</span> · how each section is written</div>
+    <h2>A section-by-section narrative, grounded in run data, each one regenerable.</h2>
+    <p class="caption">The document is not generated in one block. BioMate walks the CTD §2.6 structure and writes each subsection as its own narrative — drawing the figures from the campaign's runs — so a section can be regenerated on its own without disturbing the rest.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · WALK THE STRUCTURE</div><h4>Section by section</h4><p>Assembly produces the ordered §2.6 list — §2.4, §2.6.1.1 through §2.6.1.6, §2.6.2, §2.6.3.1 — and treats each as a unit to be written.</p></div>
+          <div class="tile"><div class="n">2 · GROUND THE PROSE</div><h4>Narrative from run outputs</h4><p>For each subsection the narrative is written against the integrated ADMET, PBPK and lead-selection outputs — the pharmacodynamics, safety-pharmacology and PK statements all trace to real results.</p></div>
+          <div class="tile"><div class="n">3 · REGENERATE PER SECTION</div><h4>Fix one, keep the rest</h4><p>Each section can be regenerated independently, so you can refine §2.6.1.3 without touching §2.6.1.2 — and the output is produced as Markdown ready for export.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Output format: generated Markdown per section, exportable to <b>D-O-C-X</b> via <code>GET &hellip;/ind-assembly/download?format=docx</code> (filename <code>{campaign_id}_CTD_2.6.1.docx</code>, rendered by pandoc). Documents are versioned: v1 signed &rarr; v2.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Grounded, per-section narrative — assembled in CTD order, not free-written</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT (LIVE SHOT 2) -->
+  <section class="scene" data-seconds="46.0">
+    <div class="kicker"><span class="st">The output</span> · real CTD §2.6.1 text</div>
+    <h2>Generated §2.6.1 text, section by section — and a signed, hashed DOCX.</h2>
+    <p class="caption">The result is readable CTD §2.6.1 prose for each subsection, exportable as a versioned Word document. Each version carries an electronic signature and a S-H-A-256 hash so the document's integrity can be checked.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · generated CTD §2.6.1, section by section</span>
+        <div class="frame"><img src="assets/live/ind-sections-live.png" alt="BioMate IND Report showing generated CTD section 2.6.1 nonclinical overview text, subsection by subsection"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Readable regulatory prose.</b> Each subsection — §2.6.1.1 brief summary, §2.6.1.2 primary pharmacodynamics, §2.6.1.3 safety pharmacology — appears as finished CTD text.</span></li>
+          <li><span class="b"></span><span><b>Export to DOCX.</b> <code>GET &hellip;/ind-assembly/download?format=docx</code> renders the Word file <code>{campaign_id}_CTD_2.6.1.docx</code> through pandoc.</span></li>
+          <li><span class="b gr"></span><span><b>Versioned and signed.</b> A v1 document is e-signed, and the file carries a S-H-A-256 document hash for integrity.</span></li>
+          <li><span class="b am"></span><span><b>Freeze guard.</b> Once signed, re-generation returns HTTP 409; a <code>supersede</code> call makes a new version (v2) rather than overwriting the signed one.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Generated §2.6.1 text you can export, sign, and version</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — THE REGULATORY AUDIT GATE -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">The audit gate</span> · a machine consistency check</div>
+    <h2>A built-in auditor grades findings — and a CRITICAL one blocks downstream actions.</h2>
+    <p class="caption">Before the draft moves on, a regulatory auditor runs over it, grading findings by severity. A CRITICAL or failed-qualification finding halts downstream actions — CRO export, IND assembly — until it is resolved, so a known defect cannot slip through unnoticed.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.3fr 1fr">
+          <div class="tile"><div class="n">SEVERITY LADDER</div><h4>CRITICAL · MAJOR · MINOR · INFO</h4><p>Findings are graded on four levels. CRITICAL and MAJOR demand action; MINOR and INFO are advisory. A CRITICAL or failed-qualification finding <b>blocks CRO export and IND assembly until resolved</b>.</p></div>
+          <div class="tile"><div class="n">WORKED EXAMPLE</div><h4>PBPK fails within-2-fold</h4><p>If a PBPK model fails the E-M-A Cmax within-2-fold criterion, the auditor inserts a §2.6.2 model-limitation statement and halts — the limitation is stated in the document, not hidden.</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b"></span><span><b>Region-specific thresholds.</b> The E-M-A within-2-fold expectation is per CHMP/EWP/37498/2011; N-M-P-A and P-M-D-A add the ethnic-bridging note. The gate is checked against the region you chose.</span></li>
+          <li><span class="b gr"></span><span><b>A gate, not a rewrite.</b> When a criterion is not met, the document states the limitation and the gate halts — it never quietly passes a failed check.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Severity-graded findings, with a hard stop on CRITICAL — the limitation stated, not buried</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker">What you get, precisely</div>
+    <h2>A draft for human regulatory review — not an approval, and never submitted unchecked.</h2>
+    <p class="caption">The feature is powerful, and being exact about its scope is what makes it trustworthy. Every section it produces is a draft, and the audit is a consistency check — not a regulatory sign-off. BioMate states this plainly, and so do we.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">A DRAFT, NOT A FILING</div><h4>Human review required</h4><p>Every generated section is a BioMate-generated <b>draft that must not be submitted</b> without human regulatory-affairs review and a 21 C-F-R Part 11 electronic signature. The tool assembles; a qualified person decides.</p></div>
+          <div class="tile"><div class="n">A CHECK, NOT A GUARANTEE</div><h4>Machine consistency only</h4><p>The automated audit is a machine consistency check — it is <b>not a regulatory approval or guarantee</b>. Clearing the gate means the document is internally consistent, not that an agency will accept it.</p></div>
+          <div class="tile"><div class="n">STATED, NOT HIDDEN</div><h4>Limitations in the open</h4><p>Where a criterion is not met — a PBPK model outside within-2-fold, a missing qualification — the document <b>states the limitation</b> rather than hiding it, and the downstream action halts until it is addressed.</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>Honest about scope — an assembly aid behind human sign-off, not a self-certifying submission</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="36.0">
+    <div class="kicker">The value at a glance</div>
+    <h2 style="font-size:40px">Assemble the §2.6.1 draft from your runs. Audit it. Then a human signs.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The point in one sentence: <b>BioMate turns a finished campaign into a grounded, region-framed CTD §2.6.1 draft in minutes, then checks it against the acceptance criteria.</b> From <code>/ind-report</code> it assembles Module 2.6 section by section — grounded in your ADMET, PBPK and lead-selection runs — exports a versioned, signed, S-H-A-256-hashed D-O-C-X, and runs a severity-graded audit that halts on a CRITICAL finding. The draft always waits on human regulatory review and a 21 C-F-R Part 11 signature.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Open IND Report and pick a campaign built from ADMET / PBPK / lead-selection runs</li>
+            <li><span class="k">2</span>BioMate assembles CTD §2.6, grounding each section in the run outputs</li>
+            <li><span class="k">3</span>Export a versioned, signed, hashed DOCX; the auditor grades every finding</li>
+            <li><span class="k">4</span>A regulatory-affairs scientist reviews and signs before anything is submitted</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>What it produces</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Grounded CTD §2.6.1 draft</span></td></tr>
+            <tr><td>Standard</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">ICH M4 CTD Module 2.6</span></td></tr>
+            <tr><td>Regions</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">FDA · EMA · NMPA · PMDA</span></td></tr>
+            <tr><td>Output</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Signed, hashed DOCX</span></td></tr>
+            <tr><td>Honest edges</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Draft · review · 21 CFR Part 11</span></td></tr>
+          </table>
+          <p class="footnote">From finished runs to a faithful, multi-region nonclinical overview — every section traced to its source, every number stated with its limitation, and a human signature before it is filed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

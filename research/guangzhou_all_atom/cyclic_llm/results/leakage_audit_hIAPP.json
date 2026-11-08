@@ -1,0 +1,26 @@
+{
+ "target": "hIAPP",
+ "n_unique": 83229,
+ "n_train": 66584,
+ "n_test": 16645,
+ "test_binders_with_train_binder_within_hamming1": 0.353,
+ "test_binders_with_train_binder_within_hamming2": 0.555,
+ "random_split_kmer_baseline": {
+  "auc": 0.698,
+  "lift_top5": 6.8,
+  "n_test": 16645,
+  "n_test_binders": 173
+ },
+ "binder_families": 160,
+ "binders": 828,
+ "top1_family_share_of_binders": 0.806,
+ "top10_family_share_of_binders": 0.819,
+ "singleton_binder_families": 157,
+ "n_families": 11618,
+ "family_disjoint_kmer_baseline": {
+  "auc": 0.521,
+  "lift_top5": 2.0,
+  "n_test": 3310,
+  "n_test_binders": 20
+ }
+}

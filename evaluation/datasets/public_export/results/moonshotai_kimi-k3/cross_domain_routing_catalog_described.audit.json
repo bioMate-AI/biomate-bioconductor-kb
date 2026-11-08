@@ -1,0 +1,8 @@
+{
+  "model": "moonshotai/kimi-k3",
+  "n": 200,
+  "empty": 0,
+  "hallucination": 0,
+  "max_tokens": 2000,
+  "menu": "described"
+}

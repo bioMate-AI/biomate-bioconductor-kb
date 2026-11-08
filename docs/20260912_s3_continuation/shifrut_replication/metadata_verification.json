@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/scperturb/ShifrutMarson2018.h5ad",
+  "etag": "\"d706da80f6e1e7203bd0cf2d6baddc95-104\"",
+  "size": 871481676,
+  "expression_counts_read": false,
+  "source_cells": 52236,
+  "assigned_guide_cells": 25094,
+  "assigned_groups": 192,
+  "mismatch_counts": {
+    "patient_sample_prefix": 0,
+    "sample_stimulation": 0,
+    "assigned_target_perturbation": 0,
+    "assigned_guide_target": 0
+  },
+  "script_sha256": "c3931666a051a5a102bb18de7b62389fe5e6a28f1601aa6e486e2b784c9bb114"
+}

@@ -1,0 +1,241 @@
+{
+ "gen": "C-SHUF-PCLM2",
+ "cfg": {
+  "mask": 0.3,
+  "rounds": 3,
+  "temp": 1.0
+ },
+ "runs": [
+  {
+   "n": 1000,
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "ring_TV": null,
+   "nme_TV": null,
+   "mean_nme": null,
+   "n_constraint_satisfying": 0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "internal_diversity": null,
+   "seconds": null
+  },
+  {
+   "n": 1000,
+   "validity": 0.001,
+   "uniqueness_of_valid": 1.0,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 0.0,
+   "ring_TV": 1.0,
+   "nme_TV": 0.7499,
+   "mean_nme": 1.0,
+   "n_constraint_satisfying": 0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "internal_diversity": null,
+   "seconds": null
+  },
+  {
+   "n": 1000,
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "ring_TV": null,
+   "nme_TV": null,
+   "mean_nme": null,
+   "n_constraint_satisfying": 0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "internal_diversity": null,
+   "seconds": null
+  },
+  {
+   "n": 1000,
+   "validity": 0.001,
+   "uniqueness_of_valid": 1.0,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.7449,
+   "nme_TV": 0.8243,
+   "mean_nme": 2.0,
+   "n_constraint_satisfying": 1,
+   "Y": 1.0,
+   "Y_cluster": 1.0,
+   "internal_diversity": null,
+   "seconds": null
+  },
+  {
+   "n": 1000,
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "ring_TV": null,
+   "nme_TV": null,
+   "mean_nme": null,
+   "n_constraint_satisfying": 0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "internal_diversity": null,
+   "seconds": null
+  }
+ ],
+ "summary": {
+  "validity": {
+   "mean": 0.0004,
+   "t_interval": [
+    -0.0,
+    0.001
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.001
+   ],
+   "per_seed": [
+    0.0,
+    0.001,
+    0.0,
+    0.001,
+    0.0
+   ]
+  },
+  "uniqueness_of_valid": {
+   "mean": 0.4,
+   "t_interval": [
+    -0.28,
+    1.08
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.8
+   ],
+   "per_seed": [
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0
+   ]
+  },
+  "novelty_of_unique": {
+   "mean": 0.4,
+   "t_interval": [
+    -0.28,
+    1.08
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.8
+   ],
+   "per_seed": [
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0
+   ]
+  },
+  "macro_fraction": {
+   "mean": 0.2,
+   "t_interval": [
+    -0.355,
+    0.755
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.6
+   ],
+   "per_seed": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ]
+  },
+  "ring_TV": {
+   "mean": 0.8724,
+   "t_interval": [
+    -0.748,
+    2.493
+   ],
+   "percentile_bootstrap": [
+    0.745,
+    1.0
+   ],
+   "per_seed": [
+    1.0,
+    0.7449
+   ]
+  },
+  "nme_TV": {
+   "mean": 0.7871,
+   "t_interval": [
+    0.314,
+    1.26
+   ],
+   "percentile_bootstrap": [
+    0.75,
+    0.824
+   ],
+   "per_seed": [
+    0.7499,
+    0.8243
+   ]
+  },
+  "mean_nme": {
+   "mean": 1.5,
+   "t_interval": [
+    -4.853,
+    7.853
+   ],
+   "percentile_bootstrap": [
+    1.0,
+    2.0
+   ],
+   "per_seed": [
+    1.0,
+    2.0
+   ]
+  },
+  "Y": {
+   "mean": 0.2,
+   "t_interval": [
+    -0.355,
+    0.755
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.6
+   ],
+   "per_seed": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ]
+  },
+  "Y_cluster": {
+   "mean": 0.2,
+   "t_interval": [
+    -0.355,
+    0.755
+   ],
+   "percentile_bootstrap": [
+    0.0,
+    0.6
+   ],
+   "per_seed": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ]
+  }
+ },
+ "assembled_from_raw": true
+}

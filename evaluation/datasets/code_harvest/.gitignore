@@ -1,0 +1,7 @@
+# Large harvested data stays local (like docs/.../midtrain_corpus).
+# Regenerate with harvest_catalog.py / mine_fix_commits.py.
+*.jsonl
+
+# Per-script run manifests (transient); the committed summary is manifest.json.
+manifest_catalog.json
+manifest_fix.json

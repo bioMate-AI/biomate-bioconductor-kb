@@ -1,0 +1,8 @@
+{
+  "raw_all_complexes": 6105,
+  "train_complexes": 4157,
+  "valid_complexes": 114,
+  "exact_complex_overlap": 0,
+  "pdb_accession_overlap": 3,
+  "decision": "Preserve published split for initial baseline; require stricter sequence/target-family evaluation before generalization claims."
+}

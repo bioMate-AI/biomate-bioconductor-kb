@@ -1,0 +1,20 @@
+{
+  "target": "hPCSK9",
+  "traj_train": false,
+  "cyclization": "see_csv",
+  "n_test": 2827,
+  "test_binders": 152,
+  "motif_distinct_binders": 134,
+  "FULL": {
+    "LM": 0.3433,
+    "2mer": 0.8663,
+    "comp": 0.8191,
+    "LM_lift5": 2.64,
+    "LM_lift10": 1.58
+  },
+  "MOTIF_DISTINCT": {
+    "LM": 0.26,
+    "2mer": 0.865,
+    "comp": 0.815
+  }
+}

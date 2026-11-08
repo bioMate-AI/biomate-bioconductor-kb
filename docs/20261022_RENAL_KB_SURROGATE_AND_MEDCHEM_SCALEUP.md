@@ -1,0 +1,210 @@
+# 2026-10-22 — RadioRenalKB surrogate/Gate-A infrastructure + medchem_kb product scale-up
+
+**Programme:** αvβ6 radioligand therapy (RLT) — renal-clearance-engineering thesis (BMA-DEC-001).
+**Scope of this session:** (1) scale `medchem_kb` to a real product via free public ingestion; (2) stand
+up the RadioRenalKB surrogate + Gate-A as executable, honest infrastructure.
+
+---
+
+## 1. medchem_kb → product scale (14,576 structured entries)
+
+Wired the free, open, programmatic ingestions into `medchem_kb_product.summary()`
+(`research/guangzhou_all_atom/cyclic_llm/`). All curated layers remain evidence-cited.
+
+| Layer | Count | Source | Cost |
+|---|---|---|---|
+| ChEMBL target classes | 905 | ChEMBL `protein_classification` | $0 |
+| ChEMBL mechanisms of action | 7,561 | ChEMBL `mechanism` | $0 |
+| ChEMBL approved drugs (max_phase=4) | 4,225 | ChEMBL `molecule` | $0 |
+| RDKit liability alerts | 1,585 | RDKit FilterCatalog | $0 |
+| RDKit physchem descriptors | 210 | RDKit | $0 |
+| TDC ADME/Tox datasets | 38 | PyTDC (NeurIPS'21) | $0 |
+| Curated (metal / physchem / modality) | ~29 | hand-cited | — |
+| **Total** | **14,576** | | **$0** |
+
+No keys, local CPU, no GPU/spot. The 38 TDC datasets carry hundreds of thousands of labeled
+molecules behind them. Files: `medchem_kb_product.py`, `medchem_kb_ingested_large.json`,
+`admet_tdc_ingested.json`. Commit `8cb31233d`.
+
+**Claim status:** this is a *capability* layer (assembled public canon), not a moat — same posture as
+before, just at product scale. The moat is the renal corpus (§2).
+
+---
+
+## 2. RadioRenalKB — surrogate + Gate A, made executable and honest
+
+### 2.1 Feature engine (`renal/renal_features.py`)
+Deterministic sequence → interpretable renal features. Net charge at pH 7.4 via Henderson-Hasselbalch
+on ionizable side chains + termini (head-to-tail cyclization handled), plus the metal-chelate complex
+charge (DOTA-M(III) ≈ −1). Returns net charge, Lys/Arg/His counts, basic-residue fraction, length.
+
+**No fabrication:** charge is a *calculation* on a *sourced* sequence; the sequence's citation is the
+provenance. Sequences added so far: A20FMDV2 (Hausner 2007), DOTATATE/DOTATOC, PSMA-617.
+
+**Mechanistic check holds** (megalin/charge thesis — higher net cationic charge → more tubular
+reabsorption → worse retention):
+
+| Construct | net charge (+chelate) | renal retention | consistent? |
+|---|---|---|---|
+| ¹⁷⁷Lu-A20FMDV2 | **+0.80** (1 Lys, 2 Arg) | 118 %ID/g @4h (renal injury + deaths) | ✓ worst |
+| ¹⁷⁷Lu-PSMA-617 | **−1.20** | 0.42 Gy/GBq (benchmark) | ✓ best |
+
+### 2.2 Gate A (`renal/renal_surrogate.py`)
+Gate A (renal_corpus.gate_a_protocol): before any synthesis spend, an interpretable surrogate must
+rank-order kidney retention **strictly better than net charge alone on ≥50 held-out published
+constructs**. The harness assembles (feature, label) pairs where BOTH a sourced sequence and a
+published renal label exist, then:
+- usable n < 50 → **REFUSE_TO_CERTIFY** (prints the deficit + extraction target). A gate that fails
+  loudly is the point — it blocks spend on a model that does not yet exist.
+- usable n ≥ 50 → leave-one-out interpretable GBM vs net-charge baseline, Spearman, PASS/FAIL.
+
+**Current verdict: REFUSE_TO_CERTIFY** — corpus=13, with_sequence=4, with_label=5, **usable=2**.
+The seed is a schema scaffold, not a trainable asset. Commit `… renal_features + renal_surrogate`.
+
+---
+
+## 3. The real bottleneck (now exposed, not hidden): corpus extraction
+
+Gate A cannot pass or fail until the corpus exists. The next phase is the proprietary asset: extract
+**300–800 constructs** across PSMA/SSTR/GRPR/FAPI/RGD/bombesin with:
+- primary-cited renal numbers (Gy/GBq human, or %ID/g preclinical, or T:K),
+- `renal_protection` flag mandatory (stratify/exclude, never impute — mixing protected/unprotected
+  silently corrupts the model),
+- sequence (→ deterministic net charge via §2.1).
+
+**Feasibility proven:** BioMate's own `search_literature` returns real open-access sources with the
+numbers in full text — e.g. Baum 2021 ¹⁷⁷Lu-FAP-2286 first-in-human dosimetry (363 cites); Uijen 2022
+¹⁷⁷Lu-PSMA-617 vs I&T 3D kidney dosimetry; ¹⁷⁷Lu-FAPI-XT phase-I dose-escalation (2026). The work is
+sustained + accuracy-critical (citation integrity): search → fetch full text → extract number +
+context → cite. This is "tedious literature work radiochemistry groups can't do at scale" — i.e. the moat.
+
+## 4. Extraction run #1 — DONE (parallel, 5 agents): corpus 13 → 55
+
+Five class-scoped extraction agents (PSMA / SSTR / FAP / GRPR+integrin / renal-protection-SAR) ran in
+parallel, each returning primary-cited records through `renal_ingest.py`'s citation-integrity gate
+(quarantines any record lacking a DOI/PMID, a renal label, or the mandatory `renal_protection` flag).
+**42 constructs admitted, 0 quarantined → corpus = 55, 47 with renal labels.** Every number traces to a
+real fetched source; agents excluded values they couldn't verify (paywalled DOTANOC, RBE-weighted ²²⁵Ac
+Sv/MBq not converted to Gy/GBq, meeting abstracts flagged `verified="abstract"`).
+
+### The key finding: the binding constraint is SEQUENCES, not dosimetry
+Stratified Gate A (`unit-kind × species`; pooling incomparable units is invalid):
+
+| stratum | labelled | with computable sequence |
+|---|---|---|
+| gy_per_gbq · human | 31 | 4 |
+| log_pidg · mouse | 8 | 1 |
+| gy_per_gbq · mouse | 5 | 0 |
+| inv_tk · mouse | 3 | 0 |
+
+Dosimetry is plentiful (47 labelled) but only **7/55 have a computable net charge**, and the best
+homogeneous stratum has **4** sequence-bearing constructs (≪ 50). **Verdict: REFUSE_TO_CERTIFY.** The
+next extraction must (1) attach one-letter sequences to the peptide constructs already collected,
+(2) add a **SMILES→formal-charge** path so small-molecule radioligands (PSMA/FAPI urea/quinoline) get a
+net charge, (3) keep unit + species + protection stratified, never pooled.
+
+### Design levers captured (RadiopharmKB.QUANTIFIED_LEVER_EFFECTS) — 7 cited, paired effects
+The magnitude each lever moves kidney retention (the generation loop's objective gradient, binder frozen):
+- **Cleavable Met-Val-Lys linker** — the strongest absolute-retention lever: −70% (single) / −77% (dual
+  MV-MVK) kidney @24h (Trachsel 2023); −30% for PSMA HTK01166 (Kuo 2020).
+- **Net charge** — non-monotonic: −44% at net −1 (N-terminal), but **+25% at net −2 (C-terminal)**;
+  placement and magnitude matter (Durante 2017). A precision lever, not "more negative = better."
+- **Albumin binder** — raises absolute kidney dose ~6× but improves T:K 2.0–2.9×: a therapeutic-index
+  lever, NOT renal-sparing (Kuo 2021).
+- **Gelofusine (succinylated gelatin) co-infusion** — −61…−85% kidney for αvβ6 peptides (EJNMMI 2024).
+
+### Next steps
+1. Enrich existing corpus rows with sequences/SMILES (close the real gap) + add SMILES→formal-charge to
+   `renal_features`; re-run stratified Gate A.
+2. Extend extraction toward 300–800 cited constructs; re-run Gate A each batch (it is the spend gate).
+3. Only on Gate-A **PASS**: re-aim the cyclic generation loop (`cyclic_denovo_adapter`) over
+   spacer/linker/chelator (binder frozen), renal retention as objective — generating over exactly the
+   levers in `QUANTIFIED_LEVER_EFFECTS` — with binding physics as a preserve guard.
+
+**Do NOT** build the generation loop or commit synthesis spend before Gate A passes on real data.
+
+## 5. Extraction run #2 — corpus 55 → 88; cross-target transfer MEASURED (answers "new targets?")
+
+Run #2 targeted the **dense, reachable stratum**: preclinical mouse %ID/g with *sequences/SMILES*, and
+multi-class coverage so Leave-One-Target-Out becomes runnable. Added (all primary-cited):
+- **CCK2 minigastrin** — Mather 2007 penta-Glu charge series (×3 tumor models), Laverman 2011
+  sargastrin/MG11/cyclo-MG1, Holzleitner 2024 rhCCK linker series.
+- **MC1R α-MSH4-11 charge ladder** — Froidevaux 2005: identical sequence, net charge +2/+1/0/−1 set by
+  *terminal* Ac/Suc/amide mods → stored as **paper-stated net charge** (sequence can't encode it).
+- **A20FMDV2 (αvβ6)** albumin-binder variants at 48 h.
+
+Infrastructure this forced (all committed): **timepoint-aware strata** (`pidg_1h/4h/24h/48h`, never pool);
+**chelator-aware SMILES charge** (`renal_smiles_charge.py` — excludes the whole DOTA/NOTA macrocycle +
+arms, adds the metal-complex charge; FAPI-46 ≈ 0, PSMA-617 ≈ −4); **stated-charge override** in
+`features_for_row`; the **`loto()`** Leave-One-Target-Out eval.
+
+### First real cross-target result (dense stratum `pidg_4h|mouse`, 21 sequence-bearing, 2 classes)
+| held-out class (unseen in training) | structure model ρ | net-charge-alone ρ |
+|---|---|---|
+| CCK2 (n=14) | +0.24 | **−0.74** |
+| MC1R (n=6) | +0.66 | +0.62 |
+
+**Finding:** net-charge's sign *flips* between cationic (MC1R, +0.62) and anionic CCK2 minigastrins (the
+poly-Glu tract drives retention → −0.74). A learned structure model beats net-charge-alone exactly where
+the heuristic's direction breaks — i.e. the asset **does** contribute to targets it never trained on, and
+its value over the field heuristic is largest off the cationic/megalin assumption. Caveats: small n +
+Mather pseudo-replication (same constructs ×3 tumor models) → a **signal, not certification**.
+
+### Final run-#2 state: corpus = 99 (91 labelled, 35 charge-computable)
+Folded in the FAPI-46 head-to-head series (Rotteveel 2023: monomer/dimer/Ibu/EB ×2 models) + PSMA
+small molecules, with verified PubChem SMILES for FAPI-46 and PSMA-I&S. Adding the near-neutral FAP
+**small molecules** to the pooled surrogate **lowered** LOTO (held-out CCK2 +0.24→−0.14, MC1R
++0.66→+0.46).
+
+**Second finding — pooling modalities degrades cross-target prediction.** Renal handling is
+mechanism-dependent: peptides clear by filtration + megalin reabsorption (charge sign flips between
+cationic/anionic), small molecules by OAT/OCT tubular transporters. So heterogeneous data alone does
+NOT help; the surrogate must be **modality/mechanism-aware**. We will not exclude data to inflate the
+number (no-exclusion discipline) — the fix is principled modality stratification, mechanistically
+justified exactly like the unit/species/protection strata.
+
+### Gate A status: `REFUSE_TO_CERTIFY` (best stratum 23 < 50) — correct throughout.
+### Next
+1. Make the surrogate modality-aware (peptide vs small-molecule), handle the cationic/anionic charge
+   sign (features: signed charge AND |charge|).
+2. De-pseudo-replicate the Mather series (aggregate the same construct across 3 tumor models).
+3. Extend multi-class %ID/g toward n≥50 per modality stratum (supplementary .xlsx biodistribution
+   tables for PSMA-ALB/rhPSMA, per the extraction agent's pointer), then re-run Gate A + LOTO.
+4. Only on Gate-A PASS → generation loop over `QUANTIFIED_LEVER_EFFECTS` (binder frozen).
+
+**Two publishable-direction findings this session:** (1) the field's net-charge/megalin heuristic is
+sign-inverted for anionic radiopeptides; (2) cross-target renal-retention transfer is real but
+modality-gated. Both are cross-program (target-agnostic) — the asset contributes to NEW targets.
+
+## 6. Publication-grade evaluation (`renal_eval.py`) — corpus = 136
+
+Per the directive "evaluation should be qualified for a research paper," the LOTO was rebuilt to a
+methods-paper standard, and it corrected two things the point estimates hid.
+
+**Evaluation design.** Leave-One-Target-Out (train on all target classes but one, predict the held-out
+class). **Primary metric = mean WITHIN-CLASS Spearman** across held-out classes — because the naive
+*pooled* Spearman is confounded by cross-class scale (a Simpson's paradox: pidg_1h pools to −0.33 while
+per-class is +0.93 / +0.63). Baselines under the identical protocol: signed net-charge, |net-charge|.
+Uncertainty: bootstrap 95% CI (resample within class). Significance: permutation p (shuffle truth within
+class). Pseudo-replicates (same molecule across tumor models) aggregated.
+
+**Results (mouse %ID/g, de-pseudo-replicated):**
+
+| stratum (classes) | surrogate mean-per-class ρ | perm p | net-charge ρ | reading |
+|---|---|---|---|---|
+| pidg_1h integrin (αvβ3 n=8, αvβ6 n=4) | **+0.78** [−0.05, +0.98] | **0.012** | +0.55 (p=0.11) | significant transfer to unseen target |
+| pidg_4h (cck 6, mc1r 6, nts1 3) | +0.48 [−0.15, +0.92] | 0.13 | **−0.40** | positive but N.S.; model fails on held-out MC1R |
+
+**Finding, rigorously quantified:** net-charge as a *global* predictor is actively bad (mean-per-class
+**−0.40**) — its sign inverts between cationic and anionic ligands, so the field-standard megalin
+heuristic fails and a learned structure model is needed. Within a mechanistically-coherent family
+(integrins), the surrogate generalizes to a held-out target at ρ≈0.78 (permutation p=0.012).
+
+**Honest power (stated, not hidden):** pooled n in the tens, bootstrap CIs wide (the integrin lower
+bound is −0.05). These are **hypothesis-generating effect sizes with uncertainty, not a powered
+confirmatory result.** Gate A (n≥50 sequence-resolved per homogeneous stratum) remains the
+certification bar and is still `REFUSE_TO_CERTIFY`. The paper claim must be scoped accordingly:
+*"a target-agnostic structure surrogate shows cross-target renal-retention generalization within
+mechanistic families, where the net-charge heuristic fails due to sign inversion"* — with the diverse-
+class and powered-confirmation results flagged as future work (extend each stratum to n≥50; the limiter
+is sequence-resolved records, not dosimetry).

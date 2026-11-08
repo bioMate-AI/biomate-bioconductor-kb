@@ -1,0 +1,43 @@
+{
+  "source": "ImmPort DR66 adverse_event x arm_2_subject (no credentials)",
+  "objective": "safety: arm-level AE rates with denominators",
+  "n_arms": 297,
+  "n_studies": 107,
+  "scope": "restricted to AE-collecting studies",
+  "arms_excluded_no_ae_collection": 4419,
+  "n_subjects_in_denominator": 16516,
+  "total_ae_rows": 92733,
+  "arms_with_severity_grading": 254,
+  "median_any_ae_rate": 0.8,
+  "frozen_study_heldout_test": [
+    "SDY1",
+    "SDY1029",
+    "SDY131",
+    "SDY14",
+    "SDY1433",
+    "SDY1490",
+    "SDY1520",
+    "SDY1554",
+    "SDY1671",
+    "SDY1711",
+    "SDY1880",
+    "SDY1903",
+    "SDY211",
+    "SDY2943",
+    "SDY3265",
+    "SDY387",
+    "SDY522",
+    "SDY567",
+    "SDY620",
+    "SDY668",
+    "SDY823",
+    "SDY960"
+  ],
+  "role": "arm-level safety labels; STUDY-held-out external test",
+  "caveats": [
+    "denominator = arm roster (not AE-positive subjects) \u2014 rates are not inflated",
+    "severe = Grade>=3; non-gradeable studies -> severe_rate null, not 0",
+    "ImmPort quarantined; confirm not in knowledge-training before eval use"
+  ],
+  "training_eligible": false
+}

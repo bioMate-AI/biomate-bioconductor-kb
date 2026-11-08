@@ -1,0 +1,142 @@
+{
+ "version": "v2",
+ "rule": "sources with >=20 labelled PAMPA peptides; 2020_Townsend and 2021_Kelly always A(train); other sources sorted by (-n, name) and dealt to S(1)/B(2) by snake draft pattern [1,2,2,1]; sources <20 excluded",
+ "annotation_file": "annotations.csv.gz",
+ "annotation_sha256": "8b59c16e78b7df304301cb79deb3608c4e7a27463ef54517b3ee85e1ef5ae521",
+ "min_labelled_per_source": 20,
+ "assay": "pampa",
+ "total_peptides": 6784,
+ "n_sources": 20,
+ "summary": {
+  "0": {
+   "n_sources": 2,
+   "n_peptides": 4399,
+   "sources": [
+    "2020_Townsend",
+    "2021_Kelly"
+   ],
+   "share_of_total": 0.6484,
+   "top_source": "2020_Townsend",
+   "top_source_share_within_group": 0.6549
+  },
+  "1": {
+   "n_sources": 9,
+   "n_peptides": 1269,
+   "sources": [
+    "2013_CHUGAI",
+    "2015_Ahlbach",
+    "2017_Pye",
+    "2018_Naylor",
+    "2020_Le Roux",
+    "2021_Comeau",
+    "2021_Golosov",
+    "2022_Bhardwaj",
+    "2023_Ghosh"
+   ],
+   "share_of_total": 0.1871,
+   "top_source": "2013_CHUGAI",
+   "top_source_share_within_group": 0.6919
+  },
+  "2": {
+   "n_sources": 9,
+   "n_peptides": 1116,
+   "sources": [
+    "2015_Wang",
+    "2016_Furukawa",
+    "2020_Barlow",
+    "2020_Furukawa",
+    "2021_Wang",
+    "2022_Taechalertpaisarn",
+    "2024_Faris",
+    "2024_Koch",
+    "2024_Ly"
+   ],
+   "share_of_total": 0.1645,
+   "top_source": "2016_Furukawa",
+   "top_source_share_within_group": 0.5932
+  }
+ },
+ "membership": {
+  "2020_Townsend": {
+   "group": "A",
+   "n": 2881
+  },
+  "2021_Kelly": {
+   "group": "A",
+   "n": 1518
+  },
+  "2013_CHUGAI": {
+   "group": "S",
+   "n": 878
+  },
+  "2015_Ahlbach": {
+   "group": "S",
+   "n": 30
+  },
+  "2017_Pye": {
+   "group": "S",
+   "n": 21
+  },
+  "2018_Naylor": {
+   "group": "S",
+   "n": 64
+  },
+  "2020_Le Roux": {
+   "group": "S",
+   "n": 47
+  },
+  "2021_Comeau": {
+   "group": "S",
+   "n": 42
+  },
+  "2021_Golosov": {
+   "group": "S",
+   "n": 23
+  },
+  "2022_Bhardwaj": {
+   "group": "S",
+   "n": 133
+  },
+  "2023_Ghosh": {
+   "group": "S",
+   "n": 31
+  },
+  "2015_Wang": {
+   "group": "B",
+   "n": 49
+  },
+  "2016_Furukawa": {
+   "group": "B",
+   "n": 662
+  },
+  "2020_Barlow": {
+   "group": "B",
+   "n": 26
+  },
+  "2020_Furukawa": {
+   "group": "B",
+   "n": 36
+  },
+  "2021_Wang": {
+   "group": "B",
+   "n": 24
+  },
+  "2022_Taechalertpaisarn": {
+   "group": "B",
+   "n": 50
+  },
+  "2024_Faris": {
+   "group": "B",
+   "n": 207
+  },
+  "2024_Koch": {
+   "group": "B",
+   "n": 42
+  },
+  "2024_Ly": {
+   "group": "B",
+   "n": 20
+  }
+ },
+ "membership_sha256": "be8a9945f5042b97afa177d85c23f80b9343c933722c54f02188bd75b276db1c"
+}

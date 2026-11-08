@@ -1,0 +1,14 @@
+{
+  "data": {
+    "gene": {
+      "gene_id": "ENSG00000115602",
+      "symbol": "IL1RL1",
+      "gnomad_constraint": {
+        "pLI": 4.862191700831543e-07,
+        "oe_lof": 0.629059545458912,
+        "oe_lof_lower": 0.47479623573428587,
+        "oe_lof_upper": 0.8449538375062217
+      }
+    }
+  }
+}

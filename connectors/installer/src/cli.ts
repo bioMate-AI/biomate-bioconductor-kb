@@ -2,7 +2,7 @@
 import { runPKCEFlow } from './oauth.js';
 import { SURFACES, SurfaceId } from './surfaces.js';
 
-const AUTH_BASE = process.env.BIOMATE_AUTH_BASE ?? 'https://api.biomate.ai';
+const AUTH_BASE = process.env.BIOMATE_AUTH_BASE ?? 'https://dev-public.biomate.ai';
 
 const USAGE = `\nUsage:  npx @biomate/connect <surface> [--auth-base URL]\n\nSurfaces:\n  claude-code      Anthropic Claude Code (CLI)\n  claude-desktop   Anthropic Claude Desktop\n  cursor           Cursor IDE\n  codex            OpenAI Codex CLI\n  chatgpt          ChatGPT (Custom GPT Actions)\n  open-claw        WeChat / Open Claw\n\nExamples:\n  npx @biomate/connect claude-code\n  npx @biomate/connect cursor\n\nEnvironment:\n  BIOMATE_AUTH_BASE   Auth server URL (default ${AUTH_BASE})\n  BIOMATE_API_BASE    API base URL for installed configs\n`;
 
@@ -20,16 +20,13 @@ async function main(): Promise<number> {
   }
 
   try {
-    const tokens = await runPKCEFlow(surface, AUTH_BASE);
+    const flag = args.indexOf('--auth-base');
+    if (flag !== -1 && !args[flag + 1]) throw new Error('--auth-base requires a URL');
+    const authBase = flag === -1 ? AUTH_BASE : args[flag + 1];
+    const origin = new URL(authBase);
+    if (origin.protocol !== 'https:' && !(origin.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(origin.hostname))) throw new Error('OAuth requires HTTPS');
+    const tokens = await runPKCEFlow(surface, origin.origin);
     const where = await surface.install(tokens.access_token, tokens.refresh_token);
-
-    // Stash the refresh token in the OS keychain too (best-effort).
-    try {
-      const keytar = await import('keytar');
-      await keytar.default.setPassword('biomate', surface.id, tokens.refresh_token);
-    } catch {
-      /* keychain optional */
-    }
 
     console.log(`\n✓ ${surface.label} connected.`);
     if (where && !where.startsWith('(')) {

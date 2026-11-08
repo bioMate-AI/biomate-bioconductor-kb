@@ -32,7 +32,8 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ind_actions"])
 
-_REPO_ROOT = Path(__file__).resolve().parents[5]
+from ._data_root import data_root  # deploy-layout-independent writable data root
+_REPO_ROOT = data_root().parent
 _PROJECTS_PATH = _REPO_ROOT / "data" / "ind_demo" / "registry" / "projects.json"
 _SIGN_LOG = _REPO_ROOT / "data" / "regulatory_training" / "sign_audit_chain.jsonl"
 

@@ -50,7 +50,7 @@ with open("analyze_thrombus_histology_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_thrombus_histology_output.txt", "w") as f:
-    f.write("Biomni: Analyze Thrombus Histology Results" + NL)
+    f.write("BioMate: Analyze Thrombus Histology Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

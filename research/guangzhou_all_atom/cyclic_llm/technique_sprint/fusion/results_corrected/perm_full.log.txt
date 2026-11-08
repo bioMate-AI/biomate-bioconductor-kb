@@ -1,0 +1,43 @@
+shuffle None labs 20 peptides 6784
+PT 2013_CHUGAI 54
+PT 2015_Ahlbach 77
+PT 2015_Wang 95
+PT 2016_Furukawa 114
+PT 2017_Pye 143
+PT 2018_Naylor 181
+PT 2020_Barlow 194
+PT 2020_Furukawa 204
+PT 2020_Le Roux 220
+PT 2020_Townsend 236
+PT 2021_Comeau 251
+PT 2021_Golosov 266
+PT 2021_Kelly 279
+PT 2021_Wang 299
+PT 2022_Bhardwaj 319
+PT 2022_Taechalertpaisarn 337
+PT 2023_Ghosh 354
+PT 2024_Faris 376
+PT 2024_Koch 393
+PT 2024_Ly 410
+done 2013_CHUGAI 450 416
+done 2015_Ahlbach 300 420
+done 2015_Wang 330 424
+done 2016_Furukawa 450 429
+done 2017_Pye 0 430
+done 2018_Naylor 450 435
+done 2020_Barlow 150 437
+done 2020_Furukawa 300 440
+done 2020_Le Roux 300 444
+done 2020_Townsend 450 453
+done 2021_Comeau 300 457
+done 2021_Golosov 0 457
+done 2021_Kelly 450 463
+done 2021_Wang 0 463
+done 2022_Bhardwaj 450 469
+done 2022_Taechalertpaisarn 360 474
+done 2023_Ghosh 300 478
+done 2024_Faris 450 483
+done 2024_Koch 300 487
+done 2024_Ly 0 487
+wrote perm_cells.csv 5790
+real rc=0

@@ -1,0 +1,277 @@
+{
+  "doc": "H3_RNA_PROTEIN_PAIRS",
+  "date": "2026-09-14",
+  "objective": "Close immune FM H3 (protein abundance) gap: same-sample transcriptome+proteome pairs (feature=mRNA -> label=protein abundance).",
+  "training_eligible": false,
+  "method": "cptac Python package (PayneLab). Per cohort: same-sample intersection of transcriptomics (bcm/Baylor) x proteomics (umich/U-Michigan), aligned to gene symbol; dup gene columns mean-collapsed; compact long table (cancer,source,sample,gene,mRNA,protein) written gzip-CSV; one cohort at a time with cptac cache cleared between cohorts (disk budget ~3GB).",
+  "s3_location": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/",
+  "table_schema": [
+    "cancer",
+    "source",
+    "sample",
+    "gene",
+    "mRNA",
+    "protein"
+  ],
+  "table_format": "gzip CSV (.csv.gz); mRNA=log2 UQ RSEM (bcm), protein=log2 TMT reference-intensity-normalized abundance (umich)",
+  "summary": {
+    "n_cohorts_assembled": 10,
+    "n_cohorts_available_in_cptac": 10,
+    "total_paired_samples_assembled": 1458,
+    "total_paired_samples_available_cptac": 1458,
+    "total_gene_level_mRNA_protein_pairs": 13945566,
+    "median_of_cohort_median_spearman": 0.41,
+    "cohort_median_spearman_range": [
+      0.2902,
+      0.5015
+    ],
+    "mean_frac_genes_corr_below_0.3": 0.355,
+    "mean_frac_genes_corr_negative": 0.072
+  },
+  "mRNA_protein_decoupling_signal": "Protein is NOT proportional to mRNA. Per-gene Spearman(mRNA,protein) across samples has cohort medians 0.29-0.50 (median-of-medians 0.41). On average ~35% of genes have corr<0.3 and ~7% are NEGATIVE; in PDAC/COAD ~50% of genes fall below 0.3. This residual (protein deviating from mRNA) IS the H3 trainable target -- a model predicting protein from mRNA must learn gene-specific post-transcriptional offsets.",
+  "cohorts": [
+    {
+      "cohort": "brca",
+      "cancer": "Breast (BRCA)",
+      "n_paired_samples": 119,
+      "n_genes_both_modalities": 12046,
+      "n_gene_level_pairs": 1182713,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.4362,
+        "mean": 0.422,
+        "p10": 0.1153,
+        "p25": 0.2693,
+        "p75": 0.5907,
+        "p90": 0.7096,
+        "frac_genes_corr_below_0.3": 0.2911,
+        "frac_genes_corr_negative": 0.0388,
+        "n_genes_scored": 11520
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/brca_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/brca_qc.json"
+    },
+    {
+      "cohort": "ccrcc",
+      "cancer": "Clear-cell renal (CCRCC)",
+      "n_paired_samples": 185,
+      "n_genes_both_modalities": 11254,
+      "n_gene_level_pairs": 1676543,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.4506,
+        "mean": 0.4333,
+        "p10": 0.0371,
+        "p25": 0.2288,
+        "p75": 0.6762,
+        "p90": 0.8132,
+        "frac_genes_corr_below_0.3": 0.3236,
+        "frac_genes_corr_negative": 0.0827,
+        "n_genes_scored": 10881
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/ccrcc_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/ccrcc_qc.json"
+    },
+    {
+      "cohort": "coad",
+      "cancer": "Colon (COAD)",
+      "n_paired_samples": 96,
+      "n_genes_both_modalities": 9153,
+      "n_gene_level_pairs": 672973,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.3047,
+        "mean": 0.3055,
+        "p10": 0.0038,
+        "p25": 0.146,
+        "p75": 0.475,
+        "p90": 0.6132,
+        "frac_genes_corr_below_0.3": 0.4922,
+        "frac_genes_corr_negative": 0.0976,
+        "n_genes_scored": 8564
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/coad_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/coad_qc.json"
+    },
+    {
+      "cohort": "gbm",
+      "cancer": "Glioblastoma (GBM)",
+      "n_paired_samples": 100,
+      "n_genes_both_modalities": 12098,
+      "n_gene_level_pairs": 1032460,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.4358,
+        "mean": 0.4245,
+        "p10": 0.0901,
+        "p25": 0.2485,
+        "p75": 0.6187,
+        "p90": 0.7518,
+        "frac_genes_corr_below_0.3": 0.3149,
+        "frac_genes_corr_negative": 0.0506,
+        "n_genes_scored": 11683
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/gbm_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/gbm_qc.json"
+    },
+    {
+      "cohort": "hnscc",
+      "cancer": "Head & neck (HNSCC)",
+      "n_paired_samples": 158,
+      "n_genes_both_modalities": 11580,
+      "n_gene_level_pairs": 1500207,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.4476,
+        "mean": 0.43,
+        "p10": 0.0609,
+        "p25": 0.2397,
+        "p75": 0.6437,
+        "p90": 0.7805,
+        "frac_genes_corr_below_0.3": 0.3164,
+        "frac_genes_corr_negative": 0.065,
+        "n_genes_scored": 11275
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/hnscc_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/hnscc_qc.json"
+    },
+    {
+      "cohort": "lscc",
+      "cancer": "Lung squamous (LSCC)",
+      "n_paired_samples": 207,
+      "n_genes_both_modalities": 12757,
+      "n_gene_level_pairs": 2239456,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.5015,
+        "mean": 0.4703,
+        "p10": 0.0842,
+        "p25": 0.2849,
+        "p75": 0.6978,
+        "p90": 0.8145,
+        "frac_genes_corr_below_0.3": 0.2638,
+        "frac_genes_corr_negative": 0.0621,
+        "n_genes_scored": 12568
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/lscc_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/lscc_qc.json"
+    },
+    {
+      "cohort": "luad",
+      "cancer": "Lung adeno (LUAD)",
+      "n_paired_samples": 213,
+      "n_genes_both_modalities": 12429,
+      "n_gene_level_pairs": 2200257,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.4094,
+        "mean": 0.3874,
+        "p10": 0.0328,
+        "p25": 0.2108,
+        "p75": 0.5891,
+        "p90": 0.7263,
+        "frac_genes_corr_below_0.3": 0.3556,
+        "frac_genes_corr_negative": 0.0833,
+        "n_genes_scored": 12126
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/luad_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/luad_qc.json"
+    },
+    {
+      "cohort": "ov",
+      "cancer": "Ovarian (OV)",
+      "n_paired_samples": 82,
+      "n_genes_both_modalities": 10589,
+      "n_gene_level_pairs": 687334,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.3934,
+        "mean": 0.3808,
+        "p10": 0.0658,
+        "p25": 0.2238,
+        "p75": 0.5571,
+        "p90": 0.6816,
+        "frac_genes_corr_below_0.3": 0.3549,
+        "frac_genes_corr_negative": 0.063,
+        "n_genes_scored": 9915
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/ov_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/ov_qc.json"
+    },
+    {
+      "cohort": "pdac",
+      "cancer": "Pancreatic (PDAC)",
+      "n_paired_samples": 181,
+      "n_genes_both_modalities": 11416,
+      "n_gene_level_pairs": 1608637,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.2902,
+        "mean": 0.2982,
+        "p10": -0.0156,
+        "p25": 0.1222,
+        "p75": 0.4741,
+        "p90": 0.6409,
+        "frac_genes_corr_below_0.3": 0.5156,
+        "frac_genes_corr_negative": 0.1135,
+        "n_genes_scored": 11093
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/pdac_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/pdac_qc.json"
+    },
+    {
+      "cohort": "ucec",
+      "cancer": "Uterine (UCEC)",
+      "n_paired_samples": 117,
+      "n_genes_both_modalities": 11948,
+      "n_gene_level_pairs": 1144986,
+      "mRNA_protein_spearman_per_gene": {
+        "median": 0.434,
+        "mean": 0.4242,
+        "p10": 0.0714,
+        "p25": 0.2409,
+        "p75": 0.6323,
+        "p90": 0.7688,
+        "frac_genes_corr_below_0.3": 0.3206,
+        "frac_genes_corr_negative": 0.062,
+        "n_genes_scored": 11459
+      },
+      "rna_source": "bcm (Baylor, STAR/RSEM UQ-log2)",
+      "proteomics_source": "umich (U-Michigan, TMT MD-normalized, log2)",
+      "s3_table": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/ucec_h3_pairs.csv.gz",
+      "s3_qc": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/acquisitions_modalities/h3_rna_protein/ucec_qc.json"
+    }
+  ],
+  "total_available_across_all_sources": {
+    "cptac_assembled": {
+      "paired_tumor_samples": 1458,
+      "status": "DONE (all 10 cohorts landed)"
+    },
+    "procan_depmap_sanger": {
+      "paired_cell_lines": "~900+",
+      "route": "PXD030304 SWATH-DIA matrix + DepMap RNA join",
+      "status": "fetch-ready, not downloaded"
+    },
+    "gygi_ccle_depmap": {
+      "paired_cell_lines": "~375",
+      "route": "Nusinow 2020 TMT table + DepMap TPM join",
+      "status": "fetch-ready, not downloaded"
+    },
+    "note": "ProCan (~949) and Gygi (~375) overlap; unique cell-line pairs ~1,000-1,200. Grand total open H3 pairs ~2,300-2,700 (1,458 CPTAC tumor + ~1,000-1,200 cell-line)."
+  },
+  "notes": [
+    "cptac bcm-proteomics loader is broken in this version (missing Database_ID); used umich proteomics for all cohorts.",
+    "coad umich mapping file missing from repo size-index; patched cptac download_tools.get_data to fetch size via HTTP HEAD / single-thread fallback.",
+    "n_paired_samples = same-sample intersection of RNA and protein tables (tumor samples).",
+    "Correlations are Spearman per gene across samples, computed only on genes with >=10 samples having both modalities."
+  ]
+}

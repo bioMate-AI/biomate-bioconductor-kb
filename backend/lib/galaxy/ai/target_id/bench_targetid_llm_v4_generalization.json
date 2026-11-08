@@ -1,0 +1,25 @@
+{
+  "model": "openai/gpt-6.1-sol-pro",
+  "pooled": {
+    "all": {
+      "n_pos": 324,
+      "n": 1440,
+      "llm_alone_auroc": 0.6607,
+      "ot_genetics_auroc": 0.4384
+    },
+    "hi": {
+      "n_pos": 169,
+      "n": 1285,
+      "llm_alone_auroc": 0.7574,
+      "ot_genetics_auroc": 0.4653
+    },
+    "lo": {
+      "n_pos": 155,
+      "n": 1271,
+      "llm_alone_auroc": 0.5554,
+      "ot_genetics_auroc": 0.409
+    }
+  },
+  "memorization_control_pass": false,
+  "interpretation": "LLM-alone pooled AUROC: all=0.6607, HIGH-lit(famous)=0.7574, LOW-lit(less-published)=0.5554 (OT-genetics on low-lit=0.409). LLM advantage concentrates in famous (high-lit) targets -> substantially memorization; discount."
+}

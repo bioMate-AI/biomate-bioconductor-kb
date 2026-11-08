@@ -1,4 +1,0 @@
-    "DRUG_MOA_RNASEQ:MOA_REPORT":
-        python: 3.11.14
-        mock_mode: "false"
-    END_VERSIONS

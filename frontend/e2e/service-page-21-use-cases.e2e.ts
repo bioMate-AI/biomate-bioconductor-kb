@@ -402,7 +402,7 @@ test('Service page — 21 use case workflow routing', async () => {
     await shot(sharedPage, 'service-21-cases', `${tc.id}_${tc.section.replace('.', '-')}_${tc.label.replace(/\s+/g, '_')}`);
 
     const panelVisible = await sharedPage
-      .locator('[data-testid="nextflow-workflow-viewer"]')
+      .locator('[data-testid="workflow-artifact-panel"]')
       .isVisible({ timeout: 2_000 }).catch(() => false);
     if (panelVisible) {
       await shot(sharedPage, 'service-21-cases', `${tc.id}_panel`);

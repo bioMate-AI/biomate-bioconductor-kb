@@ -24,10 +24,11 @@ from .config import TrainingConfig, DatasetSpec, Hyperparams
 
 
 def _dataset_spec_from_arg(dataset: str, smiles_col: str, target_col: str,
-                           split: str, val_frac: float, test_frac: float) -> DatasetSpec:
+                           split: str, val_frac: float, test_frac: float,
+                           cv_folds: int = 5) -> DatasetSpec:
     """A dataset arg is an S3/local path when it looks like one, else a named shortcut."""
     kw = dict(smiles_col=smiles_col, target_col=target_col, split=split,
-              val_frac=val_frac, test_frac=test_frac)
+              val_frac=val_frac, test_frac=test_frac, cv_folds=cv_folds)
     if dataset.startswith("s3://"):
         return DatasetSpec(s3_uri=dataset, **kw)
     if ":" in dataset and not dataset.endswith((".csv", ".tsv", ".sdf")):
@@ -38,7 +39,8 @@ def _dataset_spec_from_arg(dataset: str, smiles_col: str, target_col: str,
 
 def build_config_from_args(args: argparse.Namespace) -> TrainingConfig:
     ds = _dataset_spec_from_arg(args.dataset, args.smiles_col, args.target_col,
-                                args.split, args.val_frac, args.test_frac)
+                                args.split, args.val_frac, args.test_frac,
+                                cv_folds=getattr(args, "cv_folds", 5))
     hp = Hyperparams(
         epochs=args.epochs, batch_size=args.batch_size, depth=args.depth,
         hidden_size=args.hidden_size, dropout=args.dropout,
@@ -71,6 +73,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--smiles-col", default="smiles", dest="smiles_col")
     p.add_argument("--target-col", default="y", dest="target_col")
     p.add_argument("--split", default="scaffold")
+    p.add_argument("--cv-folds", type=int, default=5, dest="cv_folds",
+                   help="k for split=kfold (generic tabular cross-validation)")
     p.add_argument("--val-frac", type=float, default=0.1, dest="val_frac")
     p.add_argument("--test-frac", type=float, default=0.1, dest="test_frac")
     p.add_argument("--model-name", default="molecular-model", dest="model_name")

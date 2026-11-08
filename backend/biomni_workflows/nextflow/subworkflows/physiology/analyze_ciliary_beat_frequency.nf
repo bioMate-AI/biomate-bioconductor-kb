@@ -56,7 +56,7 @@ with open("analyze_ciliary_beat_frequency_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_ciliary_beat_frequency_output.txt", "w") as f:
-    f.write("Biomni: Analyze Ciliary Beat Frequency Results" + NL)
+    f.write("BioMate: Analyze Ciliary Beat Frequency Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

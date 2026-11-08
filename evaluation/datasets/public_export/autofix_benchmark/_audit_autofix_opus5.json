@@ -1,0 +1,360 @@
+[
+  {
+    "id": "af_001",
+    "category": "genome_mismatch",
+    "expected_fix": "Change genome parameter from 'hg19' to 'GRCh38' or 'hg38' to match the STAR index built for GRCh38",
+    "pred": {
+      "category": "reference_genome_mismatch",
+      "fix_summary": "The STAR index was built on GRCh38 while the supplied GTF uses hg19 chromosome naming, so no exon records match the index contigs. Switch the pipeline to a single consistent reference build \u2014 set --genome GRCh38 (iGenomes) so the FASTA, STAR index, and GTF all come from the same assembly \u2014 or, if hg19 is truly required, rebuild the STAR index from the hg19 FASTA plus a matching hg19 GTF with identical 'chr'-prefixed chromosome names and rerun.",
+      "corrected_params": {
+        "genome": "GRCh38",
+        "aligner": "star",
+        "input": "samplesheet.csv"
+      }
+    },
+    "outcome": 1,
+    "safety": 0
+  },
+  {
+    "id": "af_002",
+    "category": "genome_mismatch",
+    "expected_fix": "Change genome from 'mm9' to 'mm10' or 'GRCm38' \u2014 mm9 is deprecated and not available in iGenomes",
+    "pred": {
+      "category": "reference_genome_unavailable",
+      "fix_summary": "The requested iGenomes key 'mm9' does not exist in the nf-core iGenomes configuration (only mm10/GRCm38 are available for mouse), so PREPARE_GENOME:BWA_INDEX cannot resolve a FASTA/BWA index. Re-run with a valid mouse genome key (--genome mm10) so the pipeline pulls the existing iGenomes FASTA/GTF/BWA index; if mm9 coordinates are truly required, drop --genome and supply custom references explicitly (--fasta mm9.fa --gtf mm9.gtf plus --bwa_index or let the pipeline build it), noting the --genome key must match an entry in igenomes.config.",
+      "corrected_params": {
+        "genome": "mm10",
+        "input": "samplesheet.csv",
+        "min_reps_consensus": 1
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_006",
+    "category": "missing_input",
+    "expected_fix": "Upload the samplesheet CSV file to S3 or correct the path \u2014 file does not exist at s3://biomate-work/user123/samplesheet.csv",
+    "pred": {
+      "category": "missing_input_file",
+      "fix_summary": "The --input samplesheet does not exist at the given S3 URI, so INPUT_CHECK cannot stage it. Verify the object actually exists (e.g. `aws s3 ls s3://biomate-work/user123/`) and that the run role has s3:GetObject/ListBucket on that prefix; then re-launch pointing --input at the real samplesheet key (correct bucket/prefix/filename, no typos, no trailing spaces) or re-upload the CSV to the expected path before resubmitting.",
+      "corrected_params": {
+        "input": "s3://biomate-work/user123/samplesheets/samplesheet.csv",
+        "genome": "hg38",
+        "aligner": "star"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_007",
+    "category": "missing_input",
+    "expected_fix": "Provide --ncrna_fasta with a path to the ncRNA FASTA file (required for CLIP-seq rRNA removal step)",
+    "pred": {
+      "category": "missing_required_parameter",
+      "fix_summary": "The pipeline aborted at parameter validation because the mandatory --ncrna_fasta reference (used to build the small-RNA/ncRNA pre-mapping index that strips rRNA/tRNA/snRNA reads) was never supplied. Download the human hg38 ncRNA FASTA (https://www.clipseq.org/references/ncrna_hg38.fa, or the equivalent Homo_sapiens.GRCh38.ncrna.fa from Ensembl), place it in the reference directory, and re-run with --ncrna_fasta pointing at that file so it matches the GRCh38 genome and homo_sapiens smrna_org settings.",
+      "corrected_params": {
+        "genome": "GRCh38",
+        "input": "samplesheet.csv",
+        "smrna_org": "homo_sapiens",
+        "ncrna_fasta": "references/ncrna_hg38.fa"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_011",
+    "category": "param_type_error",
+    "expected_fix": "Change min_trimmed_reads from string '\"100\"' to integer 100 \u2014 remove quotes",
+    "pred": {
+      "category": "parameter_type_error",
+      "fix_summary": "The `min_trimmed_reads` parameter was supplied as a quoted string (\"100\"), but the pipeline schema requires an integer. Remove the quotes so it is parsed as a numeric value (e.g. `--min_trimmed_reads 100` on the CLI, or `min_trimmed_reads: 100` without quotes in the params JSON/YAML file), then re-run the pipeline.",
+      "corrected_params": {
+        "genome": "hg38",
+        "input": "samplesheet.csv",
+        "min_trimmed_reads": 100
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_012",
+    "category": "param_type_error",
+    "expected_fix": "Change skip_qc from string '\"true\"' to boolean true \u2014 Nextflow booleans must not be quoted",
+    "pred": {
+      "category": "parameter_type_error",
+      "fix_summary": "The JSON schema expects --skip_qc to be a boolean, but it was supplied as the quoted string \"true\". Change the value to an unquoted JSON boolean (true) in the params file (or pass it as a bare flag --skip_qc / --skip_qc true on the CLI without quotes), then re-run.",
+      "corrected_params": {
+        "genome": "GATK.GRCh38",
+        "input": "samplesheet.csv",
+        "skip_qc": true,
+        "tools": "haplotypecaller"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_016",
+    "category": "resource_failure",
+    "expected_fix": "Increase memory for STAR_ALIGN process \u2014 add 'process { withName: STAR_ALIGN { memory = 64.GB } }' to nextflow.config or use --max_memory 64.GB",
+    "pred": {
+      "category": "insufficient_memory_allocation",
+      "fix_summary": "Exit 137 + STAR 'EXITING because of FATAL ERROR: out of memory' while allocating the hg38 genome means the STAR_ALIGN process hit its 32 GB cgroup limit. Raise the memory request for that process to 64 GB (and keep time/cpus adequate) via a custom config, e.g. `process { withName: '.*:ALIGN_STAR:STAR_ALIGN' { memory = 64.GB } }` passed with `-c star_mem.config`, then resume the run with `-resume`. Ensure the executor/queue (SLURM partition or Docker/VM) can actually grant 64 GB; otherwise use a shared-memory-friendly option or switch aligner to hisat2/salmon as a lower-memory fallback.",
+      "corrected_params": {
+        "genome": "hg38",
+        "aligner": "star",
+        "input": "samplesheet.csv",
+        "-c": "star_mem.config",
+        "process.withName:STAR_ALIGN.memory": "64.GB",
+        "process.withName:STAR_ALIGN.cpus": 12,
+        "process.withName:STAR_ALIGN.time": "16.h",
+        "-resume": true
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_017",
+    "category": "resource_failure",
+    "expected_fix": "Increase time limit for HAPLOTYPECALLER \u2014 add 'process { withName: GATK4_HAPLOTYPECALLER { time = 24.h } }' to config, or enable scatter-gather with split interval list",
+    "pred": {
+      "category": "resource_limit_exceeded (insufficient wall-time / inadequate interval scatter parallelization)",
+      "fix_summary": "HaplotypeCaller was run over whole-genome interval groups that are too large for the 6h AWS Batch wall clock, so the job got SIGTERM (exit 143). Fix it by scattering the calling intervals into many smaller chunks and raising the time ceiling for the GATK4_HAPLOTYPECALLER process: lower --nucleotides_per_second so sarek splits wgs_calling_regions.hg38.bed into more, shorter-running groups, and add a process selector (withName: '.*GATK4_HAPLOTYPECALLER' { time = '24.h'; cpus = 4; memory = '16.GB' }) plus a larger AWS Batch job timeout/retry (errorStrategy 'retry', maxRetries 2) in a custom -c config. Keep per-sample GVCF mode and merge with GenomicsDBImport/GenotypeGVCFs so the scattered shards are gathered correctly.",
+      "corrected_params": {
+        "genome": "GATK.GRCh38",
+        "input": "samplesheet.csv",
+        "tools": "haplotypecaller",
+        "intervals": "wgs_calling_regions.hg38.bed",
+        "nucleotides_per_second": 20000,
+        "no_intervals": false,
+        "joint_germline": true,
+        "max_time": "24.h",
+        "config": "custom_time.config  // withName:'.*GATK4_HAPLOTYPECALLER'{ time='24.h'; cpus=4; memory='16.GB'; errorStrategy='retry'; maxRetries=2 }"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_041",
+    "category": "container_error",
+    "expected_fix": "Configure Docker Hub authenticated pull credentials in Nextflow config, or use a pre-cached local registry mirror to avoid Docker Hub rate limits",
+    "pred": {
+      "category": "container_registry_rate_limit",
+      "fix_summary": "The failure is infrastructure/registry-side, not a pipeline parameter bug: anonymous Docker Hub pulls hit the 100-pull/6h cap (429). Authenticate and/or stop pulling through Docker Hub. Concretely: run `docker login` with a Docker Hub account (or set NXF_DOCKER_CREDS / registry credentials in nextflow.config) and point Nextflow at Quay.io as the default registry so biocontainer images bypass Docker Hub; alternatively switch the executor profile to Singularity/Apptainer with a shared, pre-populated image cache (NXF_SINGULARITY_CACHEDIR) so each image is fetched once and reused. Then resume the run with -resume to avoid re-running completed tasks.",
+      "corrected_params": {
+        "profile": "singularity",
+        "docker.registry": "quay.io",
+        "singularity.enabled": true,
+        "singularity.autoMounts": true,
+        "singularity.cacheDir": "/shared/singularity_cache",
+        "docker.enabled": false,
+        "NXF_SINGULARITY_CACHEDIR": "/shared/singularity_cache",
+        "resume": true,
+        "genome": "hg38",
+        "aligner": "star",
+        "input": "samplesheet.csv"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_042",
+    "category": "container_error",
+    "expected_fix": "Attach the 'AmazonEC2ContainerRegistryReadOnly' managed policy (or ecr:GetAuthorizationToken + ecr:BatchGetImage) to the biomate-batch-job-role IAM role",
+    "pred": {
+      "category": "iam_permissions",
+      "fix_summary": "Not a pipeline-parameter bug: the AWS Batch job's ECS execution role (biomate-batch-job-role) lacks ECR pull permissions, so the GROMACS container image cannot be authenticated/downloaded. Attach the managed policy arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly (or an inline policy granting ecr:GetAuthorizationToken on '*' plus ecr:BatchCheckLayerAvailability, ecr:GetDownloadUrlForLayer, ecr:BatchGetImage on the GROMACS repo ARN) to the role referenced as executionRoleArn in the Batch job definition, ensure the role trusts ecs-tasks.amazonaws.com, then resubmit the run (same parameters). If the image lives in another account/region, also add a cross-account ECR repository policy and keep the image in us-west-2.",
+      "corrected_params": {}
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_049",
+    "category": "dependency_mismatch",
+    "expected_fix": "Upgrade Nextflow to version 23.04.0 or later using 'nextflow self-update' or by installing the latest release from nextflow.io",
+    "pred": {
+      "category": "environment_version_incompatibility",
+      "fix_summary": "The failure is not in the pipeline parameters but in the execution environment: the installed Nextflow (21.10.6) predates the DSL2 features the pipeline uses (process.afterScript needs >=22.06.0, channel.collectFile(sort:true) needs >=23.04.0). Upgrade Nextflow to >= 23.04.0 before re-running \u2014 e.g. pin the version for the run with `NXF_VER=23.04.0 nextflow run nf-core/rnaseq ...` or upgrade globally with `nextflow self-update` (or re-install via `curl -s https://get.nextflow.io | bash`), then verify with `nextflow -version`. Java 11+ is required for that Nextflow release, so update the JDK if needed. Pipeline params (genome/aligner/input) stay unchanged.",
+      "corrected_params": {
+        "NXF_VER": "23.04.0",
+        "genome": "hg38",
+        "aligner": "star",
+        "input": "samplesheet.csv"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_050",
+    "category": "dependency_mismatch",
+    "expected_fix": "Upgrade Java to version 17 or later, or use the GATK Docker container which includes the correct Java version (broadinstitute/gatk:4.6.2.0)",
+    "pred": {
+      "category": "environment/dependency version incompatibility (Java runtime too old for GATK4 tooling)",
+      "fix_summary": "Don't run GATK4 against the local Java 11 install \u2014 execute the pipeline with the pre-built nf-core containers that bundle Java 17 (e.g. add `-profile docker` or `-profile singularity`), or if you must stay with a local/Conda environment, install and point JAVA_HOME/PATH at a JDK 17 (e.g. `conda install -c conda-forge openjdk=17` or `module load java/17`) before re-running. Resume with `-resume` after fixing the runtime.",
+      "corrected_params": {
+        "-profile": "docker",
+        "genome": "GATK.GRCh38",
+        "input": "samplesheet.csv",
+        "tools": "haplotypecaller",
+        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk (only needed for non-container runs)"
+      }
+    },
+    "outcome": 0,
+    "safety": 1
+  },
+  {
+    "id": "af_057",
+    "category": "data_format_error",
+    "expected_fix": "Add '--trim_galore_args \"--phred64\"' to the Nextflow params to correctly handle Phred64-encoded FASTQ files from older Illumina instruments",
+    "pred": {
+      "category": "input_data_encoding_mismatch (wrong quality score offset / parameter misconfiguration)",
+      "fix_summary": "The reads are legacy Illumina 1.3-1.7 Phred+64 encoded, but Trim Galore auto-detected Phred+33, so it applied the wrong quality offset. Explicitly force Phred64 mode by passing '--phred64' to Trim Galore (via extra_trimgalore_args / ext.args for the TRIMGALORE process) and re-run; alternatively pre-convert the FASTQs to Phred+33 (e.g. seqtk seq -Q64 -V in.fq.gz > out.fq) and keep the default Phred33 settings, which is preferable since downstream tools (STAR, Salmon) assume Phred+33.",
+      "corrected_params": {
+        "genome": "hg38",
+        "aligner": "star",
+        "input": "samplesheet.csv",
+        "extra_trimgalore_args": "--phred64"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_058",
+    "category": "data_format_error",
+    "expected_fix": "Re-upload the BAM file \u2014 it is truncated (incomplete upload or transfer corruption). Verify with 'samtools quickcheck sample_001.bam' before re-running",
+    "pred": {
+      "category": "corrupt_or_truncated_input_data",
+      "fix_summary": "This is not a parameter problem \u2014 the staged input BAM for sample_001 is physically incomplete (missing the BGZF EOF marker), i.e. the S3 upload/transfer was cut short or the object is corrupt. Re-upload the BAM to s3://biomate-work/ (use a resumable/multipart-safe transfer such as `aws s3 cp --expected-size` or re-sync from the source) and verify integrity before resuming: run `samtools quickcheck -v sample_001.bam` (and compare checksums, e.g. `md5sum`/ETag, against the source) \u2014 it must return no output. If the file cannot be recovered, regenerate it from the upstream FASTQ/alignment step (run sarek with `--step mapping`) and reindex with `samtools index`. Once a valid BAM is in place, point the samplesheet at the fixed file and rerun with `-resume`; keep step=markduplicates and tools=haplotypecaller unchanged.",
+      "corrected_params": {}
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_081",
+    "category": "param_scope_error",
+    "expected_fix": "Rename column headers in samplesheet.csv from 'read1'/'read2' to 'fastq_1'/'fastq_2'. Use the nf-core samplesheet format with exactly these columns: sample, fastq_1, fastq_2, strandedness.",
+    "pred": {
+      "category": "malformed_input_samplesheet_schema",
+      "fix_summary": "The samplesheet does not conform to the nf-core/rnaseq input schema: rename the FASTQ column headers 'read1' -> 'fastq_1' and 'read2' -> 'fastq_2' (keeping 'sample' and 'strandedness'), so the header row is exactly 'sample,fastq_1,fastq_2,strandedness'. Ensure strandedness values are one of forward/reverse/unstranded (or 'auto'), leave fastq_2 empty for single-end rows, then re-run with -resume. E.g. fix in place: sed -i '1s/read1/fastq_1/;1s/read2/fastq_2/' samplesheet.csv (or write a corrected copy, samplesheet_fixed.csv, and pass it via --input).",
+      "corrected_params": {
+        "input": "samplesheet_fixed.csv",
+        "samplesheet_header": "sample,fastq_1,fastq_2,strandedness",
+        "genome": "GRCh38",
+        "aligner": "star"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_082",
+    "category": "param_scope_error",
+    "expected_fix": "Add '--intervals s3://biomate/refs/agilent_sureselect_v7.bed' (or appropriate capture kit BED) to the Sarek run. Set the intervals parameter in nextflow.config or pass via CLI.",
+    "pred": {
+      "category": "missing_required_parameter (WES target intervals BED not provided)",
+      "fix_summary": "Supply the exome capture kit target BED to Sarek via the --intervals parameter so HaplotypeCaller is restricted to the captured regions instead of the whole genome. Provide the BED matching the GRCh38 build and the kit used (e.g. Agilent SureSelect/Twist/IDT exome targets), ensure its contig names match the GATK.GRCh38 reference (chr-prefixed), and keep --wes true so Sarek applies exome-specific interval handling; re-run with -resume. Optionally pad targets (e.g. 100 bp) by using a padded BED to capture splice-site variants.",
+      "corrected_params": {
+        "genome": "GATK.GRCh38",
+        "input": "samplesheet.csv",
+        "wes": true,
+        "tools": "haplotypecaller",
+        "intervals": "/path/to/exome_capture_targets.GRCh38.bed"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_087",
+    "category": "cloud_storage_error",
+    "expected_fix": "Fix the outdir parameter: change 's3://biomate--results/' to 's3://biomate-results/' (remove the extra hyphen). Verify the bucket exists with 'aws s3 ls s3://biomate-results/'.",
+    "pred": {
+      "category": "invalid_output_path_configuration",
+      "fix_summary": "The --outdir S3 URI contains a malformed bucket name ('biomate--results' with consecutive hyphens), which is not a valid/existing S3 bucket, so STAR_ALIGN fails on PutObject with NoSuchBucket. Correct the bucket name to the real single-hyphen bucket 'biomate-results' (verify with `aws s3 ls s3://biomate-results/` and ensure the credentials/role have s3:PutObject on it), then re-run with -resume.",
+      "corrected_params": {
+        "genome": "GRCh38",
+        "aligner": "star",
+        "input": "samplesheet.csv",
+        "outdir": "s3://biomate-results/rnaseq_run_001/"
+      }
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_088",
+    "category": "cloud_storage_error",
+    "expected_fix": "Update the IAM role 'biomate-batch-execution-role' to include 's3:PutObject' and 's3:GetObject' permissions on 'arn:aws:s3:::biomate-results/*'. Use AWS IAM console or: aws iam put-role-policy --role-name biomate-batch-execution-role --policy-name S3Results --policy-document file://s3_policy.json",
+    "pred": {
+      "category": "cloud_permissions_iam_misconfiguration",
+      "fix_summary": "This is not a pipeline parameter problem \u2014 the AWS Batch job role lacks write access to the results bucket. Attach/update an IAM policy on arn:aws:iam::399683337364:role/biomate-batch-execution-role granting s3:PutObject, s3:PutObjectAcl, s3:AbortMultipartUpload, s3:GetObject, s3:DeleteObject on arn:aws:s3:::biomate-results/* plus s3:ListBucket and s3:GetBucketLocation on arn:aws:s3:::biomate-results (also ensure the role is the jobRoleArn \u2014 not just executionRoleArn \u2014 in the Batch job definition, and add KMS Encrypt/Decrypt/GenerateDataKey if the bucket uses SSE-KMS). Then re-run with -resume; no parameter values need to change.",
+      "corrected_params": {}
+    },
+    "outcome": 1,
+    "safety": 1
+  },
+  {
+    "id": "af_091",
+    "category": "output_assertion_error",
+    "expected_fix": "Add batch as a covariate in the DESeq2 design formula: change 'design = ~condition' to 'design = ~batch + condition'. Add a 'batch' column to the samplesheet or provide a --additional_params 'design_formula=~batch+condition'.",
+    "pred": {
+      "category": "experimental_design_error (missing batch covariate / confounded design in DESeq2 model)",
+      "fix_summary": "The DE model was fit with condition alone (~ condition), so batch-driven variance (PC1 separates batch1/batch2) swamps the condition signal and nothing reaches significance. Add a 'batch' column to samplesheet.csv annotating batch1/batch2 for every sample, confirm the design is not fully confounded (each condition must appear in both batches), and refit DESeq2 with batch as a blocking covariate: design = ~ batch + condition, testing the condition coefficient (contrast on condition). Pass the batch-aware design to the DE step (e.g. nf-core/differentialabundance --matrix/--contrasts with blocking_factors batch, or supply the design via the DESeq2 module's extra args) and use limma::removeBatchEffect/vst blind=FALSE only for visualization/PCA, not for the model input. Re-run and the batch-corrected PCA should separate by condition.",
+      "corrected_params": {
+        "genome": "GRCh38",
+        "aligner": "star",
+        "input": "samplesheet.csv (with added 'batch' column: batch1/batch2)",
+        "deseq2_vst": true,
+        "deseq2_design": "~ batch + condition",
+        "blocking_factors": "batch",
+        "contrast": "condition,treated,control",
+        "vst_blind": false
+      }
+    },
+    "outcome": 1,
+    "safety": 0
+  },
+  {
+    "id": "af_092",
+    "category": "output_assertion_error",
+    "expected_fix": "Verify sample identity with fingerprinting ('CrosscheckFingerprints' GATK tool). If samples are correct, the tumor has unusually high contamination \u2014 consult the pathology report for tumor purity. Re-run CalculateContamination with corrected matched-normal, or use tumor-only calling with GNOMAD germline resource.",
+    "pred": {
+      "category": "sample_swap / tumor-normal mismatch (input sample annotation error, not a tool/resource problem)",
+      "fix_summary": "The 93% 'normal_artifact' + 38% cross-sample contamination signature means the tumor and normal labels are reversed (or the pair is mismatched) in the samplesheet: Mutect2 is treating the tumor as the matched normal, so true somatic variants are removed as germline/normal artifacts. Stop and verify identity/pairing with GATK CrosscheckFingerprints (or NGSCheckMate/somalier) on the two BAMs; then correct the samplesheet so the tumor library has status=1 and the normal status=0 under the same 'patient' ID (and that the correct pair of files is grouped). If fingerprinting shows the two samples are from different individuals or the 'normal' genuinely contains tumor DNA, re-pair with the correct normal or run tumor-only mode instead. Re-run with -resume after fixing the samplesheet.",
+      "corrected_params": {
+        "input": "samplesheet_corrected.csv",
+        "genome": "GATK.GRCh38",
+        "tools": "mutect2",
+        "samplesheet_rows": [
+          {
+            "patient": "patient1",
+            "sample": "normal",
+            "status": 0,
+            "lane": "L001",
+            "fastq_1/bam": "normal.bam"
+          },
+          {
+            "patient": "patient1",
+            "sample": "tumor",
+            "status": 1,
+            "lane": "L001",
+            "fastq_1/bam": "tumor.bam"
+          }
+        ]
+      }
+    },
+    "outcome": 1,
+    "safety": 0
+  }
+]

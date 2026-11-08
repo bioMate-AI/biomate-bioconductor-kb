@@ -1,0 +1,6 @@
+{
+  "checkpoint": "/opt/guangzhou-peptide/PepGLAD/previous_outputs/autoencoder/version_0/checkpoint/epoch1_step700.ckpt",
+  "completed_epochs": 2,
+  "remaining_epochs": 3,
+  "optimizer_state": "reset; upstream saves model only"
+}

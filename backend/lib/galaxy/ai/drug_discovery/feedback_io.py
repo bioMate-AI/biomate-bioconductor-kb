@@ -20,7 +20,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-_REPO_ROOT = Path(__file__).resolve().parents[5]
+from ._data_root import data_root  # deploy-layout-independent writable data root
+_REPO_ROOT = data_root().parent
 _FEEDBACK_ROOT = _REPO_ROOT / "data" / "regulatory_training"
 
 # Files used by each feedback type

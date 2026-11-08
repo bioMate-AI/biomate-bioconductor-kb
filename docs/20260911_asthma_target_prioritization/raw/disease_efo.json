@@ -1,0 +1,636 @@
+{
+  "response": {
+    "docs": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0004979",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0004979",
+        "description": [
+          "A bronchial disease that is characterized by chronic inflammation and narrowing of the airways, which is caused by a combination of environmental and genetic factors resulting in recurring periods of wheezing (a whistling sound while breathing), chest tightness, shortness of breath, mucus production and coughing. The symptoms appear due to a variety of triggers such as allergens, irritants, respiratory infections, weather changes, exercise, stress, reflux disease, medications, foods and emotional anxiety."
+        ],
+        "narrow_synonyms": [
+          "chronic obstructive asthma with acute exacerbation",
+          "chronic obstructive asthma with status asthmaticus",
+          "chronic obstructive asthma",
+          "exercise induced asthma",
+          "exercise-induced asthma"
+        ],
+        "label": "asthma",
+        "obo_id": "MONDO:0004979",
+        "type": "class"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/HP_0002099",
+        "ontology_name": "efo",
+        "related_synonyms": [
+          "Reactive airway disease"
+        ],
+        "ontology_prefix": "EFO",
+        "short_form": "HP_0002099",
+        "description": [
+          "Asthma is characterized by increased responsiveness of the tracheobronchial tree to multiple stimuli, leading to narrowing of the air passages with resultant dyspnea, cough, and wheezing."
+        ],
+        "label": "Asthma",
+        "obo_id": "HP:0002099",
+        "type": "class",
+        "exact_synonyms": [
+          "Bronchial asthma",
+          "Asthma"
+        ]
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0010638",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0010638",
+        "description": [
+          "An asthma that is characterized by symptoms that are triggered by an allergic reaction caused by inhaled allergens such as dust mite allergen, pet dander, pollen and mold."
+        ],
+        "label": "atopic asthma",
+        "obo_id": "EFO:0010638",
+        "type": "class",
+        "exact_synonyms": [
+          "allergic asthma"
+        ]
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_1002011",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_1002011",
+        "description": [
+          "Asthma that starts in adulthood"
+        ],
+        "label": "adult onset asthma",
+        "obo_id": "EFO:1002011",
+        "type": "class",
+        "exact_synonyms": [
+          "adult-onset asthma"
+        ]
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0007614",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0007614",
+        "description": [
+          "quantification of acute asthma exacerbations in an individual, generally defined by short courses of treatment with medication such as oral steroids."
+        ],
+        "label": "asthma exacerbation measurement",
+        "obo_id": "EFO:0007614",
+        "type": "class"
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0009759",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0009759",
+        "description": [
+          "Chronic airway obstruction caused by asthma."
+        ],
+        "label": "Chronic Obstructive Asthma",
+        "obo_id": "EFO:0009759",
+        "type": "class"
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0010049",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0010049",
+        "description": [
+          "Quantification of some aspect of asthma symptoms."
+        ],
+        "label": "asthma symptoms measurement",
+        "obo_id": "EFO:0010049",
+        "type": "class"
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0005536",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0005536",
+        "description": [
+          "Quantification of the fraction of nitric oxide in the total exhalation volume, used as a non-invasive biomarker of eosinophilic airway inflammation. Higher Feno values are associated with childhood asthma symptoms, exacerbations, physician-diagnosed asthma and atopy."
+        ],
+        "label": "nitric oxide exhalation measurement",
+        "obo_id": "EFO:0005536",
+        "type": "class",
+        "exact_synonyms": [
+          "FENO",
+          "fraction of exhaled nitric oxide"
+        ]
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0007728",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0007728",
+        "description": [
+          "FVB/NJ was inbred for the Fv1b allele which confers sensitivity to the Friend leukemia virus B strain. Due to the prominent pronuclei in their fertilized eggs and the large litter size, FVB/NJ mice are commonly used for transgenic injection. Compared to many other inbred strains, FVB/NJ is highly susceptible to asthma-like airway responsiveness with significant generation of antigen-specific IgE. Despite having the H2q MHC haplotype, FVB/NJ are resistant to collagen-induced arthritis. This resistance stems from coding polymorphisms in Tcra-V11.1 and a genomic deletion of some Tcrb-V genes that includes Tcrb-V8.2. FVB/NJ have higher than average activity, anxiety, and basal body temperature, low stress-induced hyperthermia, and are homozygous for the Pde6brd1 allele, which results in early onset retinal degeneration. Although FVB/N typically do not develop spontaneous tumors, they are highly susceptible to chemically induced squamous cell carcinomas with a high rate of malignant conversion from papilloma to carcinoma. "
+        ],
+        "label": "FVB/NJ",
+        "obo_id": "EFO:0007728",
+        "type": "class",
+        "exact_synonyms": [
+          "FVB",
+          "Friend Virus B NIH Jackson"
+        ]
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0007755",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0007755",
+        "description": [
+          "sequential manifestations of different allergic diseases such as eczema, asthma and rhinitis. Typically, eczema is the first allergic disease in infancy, followed by asthma and/or rhinitis in childhood. "
+        ],
+        "label": "atopic march",
+        "obo_id": "EFO:0007755",
+        "type": "class"
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0003276",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0003276",
+        "description": [
+          "Vascular endothelial growth factor (VEGF) is a signal protein produced by cells that stimulates vasculogenesis and angiogenesis. It is part of the system that restores the oxygen supply to tissues when blood circulation is inadequate. Serum concentration of VEGF is high in bronchial asthma and low in diabetes mellitus. VEGF's normal function is to create new blood vessels during embryonic development, new blood vessels after injury, muscle following exercise, and new vessels (collateral circulation) to bypass blocked vessels.\nWhen VEGF is overexpressed, it can contribute to disease. Solid cancers cannot grow beyond a limited size without an adequate blood supply; cancers that can express VEGF are able to grow and metastasize. Overexpression of VEGF can cause vascular disease in the retina of the eye and other parts of the body. Drugs such as bevacizumab can inhibit VEGF and control or slow those diseases.\nVEGF is a sub-family of growth factors, to be specific, the platelet-derived growth factor family of cystine-knot growth factors. They are important signaling proteins involved in both vasculogenesis (the de novo formation of the embryonic circulatory system) and angiogenesis (the growth of blood vessels from pre-existing vasculature)."
+        ],
+        "label": "vascular endothelial growth factor",
+        "obo_id": "EFO:0003276",
+        "type": "class",
+        "exact_synonyms": [
+          "VEGF"
+        ]
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0004869",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0004869",
+        "description": [
+          "Is a quantification of the secreted glycoprotein YKL-40  (Chitinase-3-like protein 1) YKL-40 has been associated with asthma, inflammatory disease and cancer progression."
+        ],
+        "label": "YKL40 measurement",
+        "obo_id": "EFO:0004869",
+        "type": "class",
+        "exact_synonyms": [
+          "CHI3L1 levels",
+          "CHI3L1 measurement",
+          "Chitinase-3-like protein 1 levels",
+          "Chitinase-3-like protein 1 measurement",
+          "YKL-40 levels"
+        ]
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0005414",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0005414",
+        "description": [
+          "one of the primary characteristics of asthma, characterised by easily triggered increased airway smooth muscle contractility"
+        ],
+        "label": "airway hyperresponsiveness",
+        "obo_id": "EFO:0005414",
+        "type": "class"
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0007734",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0007734",
+        "description": [
+          "The wild-derived inbred strain SPRET/Ei is often used in crosses with common inbred strains to create highly polymorphic panels for genetic mapping. SPRET/Ei mice are resistant to high doses of tumor necrosis factor alpha (TNFa) (Staelens et al 2002). Mice from a C57BL/6 x SPRET/Ei F1 cross were protected from TNFa-induced arthritis and partially protected against induced allergic asthma (Staelens et al 2004). SPRET/Ei may be useful in understanding certain inflammatory diseases."
+        ],
+        "label": "SPRET/EiJ",
+        "obo_id": "EFO:0007734",
+        "type": "class",
+        "exact_synonyms": [
+          "SPRET/Ei"
+        ]
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0008362",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0008362",
+        "description": [
+          "quantification of some aspect of an individual's exposure to a farm environment such as frequeny or duration. Farm exposure may have a beneficial or protective effect against certain conditions such as asthma"
+        ],
+        "label": "farm exposure measurement",
+        "obo_id": "EFO:0008362",
+        "type": "class"
+      },
+      {
+        "iri": "http://www.ebi.ac.uk/efo/EFO_0008459",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "EFO_0008459",
+        "description": [
+          "Any process that results in a change in state or activity of a cell or an organism (in terms of movement, secretion, enzyme production, gene expression, etc.) as a result of mepolizumab stimulus. Mepolizumab is a humanized monoclonal antibody used for the treatment of severe eosinophilic asthma."
+        ],
+        "label": "response to mepolizumab",
+        "obo_id": "EFO:0008459",
+        "type": "class"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0005405",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0005405",
+        "description": [
+          "Asthma that starts in childhood."
+        ],
+        "label": "childhood onset asthma",
+        "obo_id": "MONDO:0005405",
+        "type": "class",
+        "exact_synonyms": [
+          "asthma of childhood",
+          "childhood asthma",
+          "paediatric asthma",
+          "pediatric asthma"
+        ]
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0022742",
+        "ontology_name": "efo",
+        "related_synonyms": [
+          "Asthma, Occupational",
+          "Asthmas, Occupational",
+          "Industrial asthma",
+          "Occupational Asthmas"
+        ],
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0022742",
+        "description": [
+          "Asthma attacks caused, triggered, or exacerbated by OCCUPATIONAL EXPOSURE."
+        ],
+        "label": "occupational asthma",
+        "obo_id": "MONDO:0022742",
+        "type": "class"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0850282",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0850282",
+        "description": [
+          "An asthma that is characterized by the development of persistent airway inflammation and recurrent attacks of breathlessness and wheezing, which vary in severity and frequency."
+        ],
+        "narrow_synonyms": [
+          "adult-onset severe asthma",
+          "persistent mild asthma",
+          "persistent moderate asthma",
+          "persistent severe asthma"
+        ],
+        "label": "chronic asthma",
+        "obo_id": "MONDO:0850282",
+        "type": "class"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/OBA_2001001",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "OBA_2001001",
+        "description": [
+          "The age at which asthma manifestations first appear."
+        ],
+        "label": "age of onset of asthma",
+        "obo_id": "OBA:2001001",
+        "type": "class",
+        "exact_synonyms": [
+          "age asthma symptoms begin",
+          "age at onset of asthma"
+        ]
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/OBA_2001015",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "OBA_2001015",
+        "description": [
+          "The age at which childhood onset asthma manifestations first appear."
+        ],
+        "label": "age of onset of childhood onset asthma",
+        "obo_id": "OBA:2001015",
+        "type": "class",
+        "exact_synonyms": [
+          "age at onset of childhood onset asthma",
+          "age childhood onset asthma symptoms begin"
+        ]
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/HP_0012042",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "HP_0012042",
+        "description": [
+          "A type of asthma in which aspirin and other nonsteroidal anti-inflammatory drugs (NSAIDs) that inhibit cyclooxygen-ase 1 (COX-1) exacerbate bronchoconstriction."
+        ],
+        "label": "Aspirin-induced asthma",
+        "obo_id": "HP:0012042",
+        "type": "class",
+        "exact_synonyms": [
+          "Aspirin-induced asthma"
+        ]
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0004784",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0004784",
+        "description": [
+          "A asthma with a basis in a pathological type I hypersensitivity reaction."
+        ],
+        "label": "allergic asthma",
+        "obo_id": "MONDO:0004784",
+        "type": "class",
+        "exact_synonyms": [
+          "allergic form of asthma"
+        ]
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0956975",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0956975",
+        "description": [
+          "A chronic asthma that is characterized by the pathophysiology phenotype combination (endotype) of early-onset allergic asthma, late-onset eosinophilic asthma, and aspirin-exacerbated respiratory disease."
+        ],
+        "label": "T2-high asthma",
+        "obo_id": "MONDO:0956975",
+        "type": "class"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0008834",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0008834",
+        "description": [],
+        "label": "asthma, nasal polyps, and aspirin intolerance",
+        "obo_id": "MONDO:0008834",
+        "type": "class",
+        "exact_synonyms": [
+          "asthma, nasal polyps, and aspirin intolerance"
+        ]
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0010940",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0010940",
+        "description": [],
+        "label": "inherited susceptibility to asthma",
+        "obo_id": "MONDO:0010940",
+        "type": "class",
+        "exact_synonyms": [
+          "asthma, nocturnal, susceptibility to"
+        ]
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0004766",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0004766",
+        "description": [
+          "An acute exacerbation of asthma, characterized by inadequate response to initial bronchodilators."
+        ],
+        "label": "status asthmaticus",
+        "obo_id": "MONDO:0004766",
+        "type": "class"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/MONDO_0800415",
+        "ontology_name": "efo",
+        "ontology_prefix": "EFO",
+        "short_form": "MONDO_0800415",
+        "description": [],
+        "label": "asthma, aspirin-induced, susceptibility to",
+        "obo_id": "MONDO:0800415",
+        "type": "class"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/CHEBI_10112",
+        "ontology_name": "efo",
+        "related_synonyms": [
+          "(+-)-1-(1-Benzo[b]thien-2-ylethyl)-1-hydroxyurea",
+          "1-[1-(1-benzothien-2-yl)ethyl]-1-hydroxyurea",
+          "Leutrol",
+          "N-(1-Benzo(b)thien-2-ylethyl)-N-hydroxyurea",
+          "N-[1-(benzo[b]thiophen-2-yl)ethyl]-N-hydroxyurea",
+          "Zileuton",
+          "Zyflo",
+          "zileuton",
+          "zileutonum"
+        ],
+        "ontology_prefix": "EFO",
+        "short_form": "CHEBI_10112",
+        "description": [
+          "A member of the class of 1-benzothiophenes that is 1-benzothiophene in which the hydrogen at position 2 is replaced by a 1-[carbamoyl(hydroxy)amino]ethyl group. A selective 5-lipoxygenase inhibitor, it inhibits the formation of leukotrienes LTB4, LTC4, LDT4, and LTE4. It is used for the management of chronic asthma."
+        ],
+        "label": "zileuton",
+        "obo_id": "CHEBI:10112",
+        "type": "class",
+        "exact_synonyms": [
+          "1-[1-(1-benzothien-2-yl)ethyl]-1-hydroxyurea"
+        ]
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/CHEBI_52010",
+        "ontology_name": "efo",
+        "related_synonyms": [
+          "1-(p-chlorophenyl)-1-(2-pyridyl)-3-N,N-dimethylpropylamine",
+          "1-(p-chlorophenyl)-1-(2-pyridyl)-3-dimethylaminopropane",
+          "2-[p-chloro-alpha-[2-(dimethylamino)ethyl]benzyl]pyridine",
+          "3-(p-chlorophenyl)-3-(2-pyridyl)-N,N-dimethylpropylamine",
+          "Chlorphenamin",
+          "Chlorphenamine",
+          "Chlorpheniramine",
+          "Clofeniramina",
+          "Haynon",
+          "chlorophenylpyridamine",
+          "chlorphenamine",
+          "chlorphenaminum",
+          "chlorpheniraminum",
+          "clorfenamina",
+          "clorfeniramina",
+          "gamma-(4-chlorophenyl)-N,N-dimethyl-2-pyridinepropanamine",
+          "gamma-(4-chlorophenyl)-gamma-(2-pyridyl)propyldimethylamine"
+        ],
+        "ontology_prefix": "EFO",
+        "short_form": "CHEBI_52010",
+        "description": [
+          "A tertiary amino compound that is propylamine which is substituted at position 3 by a pyridin-2-yl group and a <em>p</em>-chlorophenyl group and in which the hydrogens attached to the nitrogen are replaced by methyl groups. A histamine H1 antagonist, it is used to relieve the symptoms of hay fever, rhinitis, urticaria, and asthma."
+        ],
+        "label": "chlorphenamine",
+        "obo_id": "CHEBI:52010",
+        "type": "class"
+      }
+    ],
+    "numFound": 42,
+    "start": 0
+  },
+  "responseHeader": {
+    "QTime": 0,
+    "status": 0
+  },
+  "facet_counts": {
+    "facet_fields": {
+      "ontologyPreferredPrefix": [
+        "EFO",
+        "42"
+      ],
+      "isDefiningOntology": [
+        "false",
+        "28",
+        "true",
+        "14"
+      ],
+      "ontologyId": [
+        "medgen",
+        "462",
+        "snomed",
+        "234",
+        "ncit",
+        "136",
+        "mesh",
+        "79",
+        "omit",
+        "67",
+        "mondo",
+        "55",
+        "doid",
+        "51",
+        "efo",
+        "42",
+        "slm",
+        "31",
+        "chebi",
+        "31",
+        "ror",
+        "29",
+        "upheno",
+        "28",
+        "enm",
+        "19",
+        "pride",
+        "19",
+        "cl",
+        "18",
+        "go",
+        "17",
+        "hra",
+        "16",
+        "hp",
+        "14",
+        "dron",
+        "13",
+        "rexo",
+        "10",
+        "reto",
+        "10",
+        "oae",
+        "10",
+        "cco",
+        "10",
+        "gexo",
+        "10",
+        "oba",
+        "9",
+        "ecto",
+        "9",
+        "ordo",
+        "9",
+        "bao",
+        "8",
+        "maxo",
+        "7",
+        "pcl",
+        "6",
+        "chiro",
+        "6",
+        "scdo",
+        "5",
+        "mp",
+        "5",
+        "genepio",
+        "5",
+        "eupath",
+        "5",
+        "hgnc",
+        "4",
+        "coho",
+        "4",
+        "cido",
+        "3",
+        "txpo",
+        "3",
+        "disdriv",
+        "3",
+        "cpont",
+        "3",
+        "covoc",
+        "3",
+        "wikipathways",
+        "3",
+        "bmont",
+        "3",
+        "zp",
+        "2",
+        "fypo",
+        "2",
+        "hgnc.genegroup",
+        "2",
+        "mco",
+        "2",
+        "micro",
+        "2",
+        "ncbitaxon",
+        "2",
+        "phipo",
+        "2",
+        "pr",
+        "2",
+        "rbo",
+        "2",
+        "pw",
+        "1",
+        "prefer",
+        "1",
+        "oostt",
+        "1",
+        "epio",
+        "1",
+        "symp",
+        "1",
+        "ecocore",
+        "1",
+        "cvdo",
+        "1",
+        "vo",
+        "1",
+        "clo",
+        "1",
+        "xco",
+        "1",
+        "bcgo",
+        "1"
+      ],
+      "ontologyIri": [
+        "http://www.ebi.ac.uk/efo/efo.owl",
+        "42"
+      ],
+      "isObsolete": [
+        "false",
+        "42",
+        "true",
+        "13"
+      ],
+      "type": [
+        "class",
+        "42"
+      ]
+    }
+  }
+}

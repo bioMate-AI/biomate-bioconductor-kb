@@ -1,0 +1,14 @@
+{
+ "final_run": "s3://biomate-nextflow-work/cyclic_peptide/allatom/k3/final-185814",
+ "shards": [
+  "shardE0-182434",
+  "shardE1-182525",
+  "shardE2-182649"
+ ],
+ "features_sha256": "3ad12c15f7a9a397bb154c1684e3bdfc6222786c6be837b18e9b3994c09f02d1",
+ "meta_sha256": "29dc87f5be0cbdac280d205bebf3267ac454ba2b1a7d369712eb76464c9247ff",
+ "candidates_union_sha256": "be63ec7bac6797807c8b985e2e84ba7845607d4d4aad7847df9b9a7d240f91c3",
+ "primary_priors_targets_sha256": "419f8bf3d8dc7334",
+ "tests": "23 passed (EC2)",
+ "spend_estimate_usd": "~1 (spot, estimate)"
+}

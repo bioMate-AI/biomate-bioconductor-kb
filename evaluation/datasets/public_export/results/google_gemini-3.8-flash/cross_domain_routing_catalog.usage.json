@@ -1,0 +1,16 @@
+{
+  "task": "cross_domain_routing",
+  "mode": "catalog",
+  "model": "google/gemini-3.8-flash",
+  "n": 200,
+  "n_with_usage": 200,
+  "input_tokens_total": 119096,
+  "output_tokens_total": 43908,
+  "input_tokens_mean": 595.48,
+  "output_tokens_mean": 219.54,
+  "latency_ms_p50": 2265,
+  "latency_ms_p95": 5264,
+  "latency_ms_mean": 2856.505,
+  "n_with_latency": 200,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

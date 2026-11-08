@@ -1,0 +1,102 @@
+{
+  "artifact": "A375_B2M_KO_DIAGNOSTIC",
+  "date": "2026-09-13",
+  "training_eligible": false,
+  "training_eligible_reason": "Diagnostic/decision artifact for the leave-HLA-out H4 gate. Not model training data.",
+  "question": "Is A375 B2M-KO's 88% retained immunopeptidome (vs HAP1 B2M-KO's 3%) a technical artifact or genuine B2M-independent biology?",
+  "deposit": "PXD065279 (MHC1-TIP: scalable multimodal immunopeptidome profiling of low-input samples)",
+  "data_file": "MB_30_A375_WT_and_B2M-KO_MHC1-TIP_fragpipe_combined_peptide.tsv (FragPipe combined_peptide, per-condition WT vs B2M_KO spectral counts + intensities + match types)",
+
+  "VERDICT": "METHOD_ARTIFACT",
+  "verdict_one_line": "The 88% is a MILD-ACID-ELUTION (MHC1-TIP) method artifact, NOT genuine biology and NOT a leaky KO. B2M-KO is CLEAN (zero residual B2M). The true HLA-I LIGAND signal collapsed to ~12% retained — fully consistent with H4 and with HAP1's collapse. The apparent 88% is a large B2M-independent intracellular/non-ligand peptide BACKGROUND that mild acid elution co-releases and that persists when surface HLA-I is gone.",
+  "recommendation_for_gate": "EXCLUDE the A375 B2M-KO point AS SCORED (naive total-peptide retention). It does NOT contradict H4; it is an apples-to-oranges enrichment method (MAE surface strip, not W6/32 pan-HLA-I IP) whose readout is dominated by non-HLA background. If re-scored on GENUINE HLA-I ligands only, A375 B2M-KO retention = 0.119 (~12%), which AGREES with HAP1 (0.03) and SUPPORTS H4. The load-bearing anti-correlation in LEAVE_HLA_OUT_RESULT (held-out HAP1 transfer rho -0.92) was driven by this mis-measured point.",
+
+  "check1_KO_completeness": {
+    "conclusion": "CLEAN / COMPLETE KO — NOT leaky.",
+    "n_B2M_peptides_detected_WT": 2,
+    "n_B2M_peptides_detected_KO": 0,
+    "B2M_KO_spectral_count_sum": 0.0,
+    "B2M_KO_intensity_sum": 0.0,
+    "B2M_peptides": [
+      {"peptide": "IQRTPKIQVYS", "len": 11, "WT_spectral_count": 2, "KO_spectral_count": 0, "WT_match": "MS/MS", "KO_match": "unmatched", "WT_intensity": 9930190.0, "KO_intensity": 0.0},
+      {"peptide": "IQRTPKIQVYSRHPAEN", "len": 17, "WT_spectral_count": 1, "KO_spectral_count": 0, "WT_match": "MS/MS", "KO_match": "unmatched", "WT_intensity": 2321513.2, "KO_intensity": 0.0}
+    ],
+    "interpretation": "B2M protein peptides are present in WT and DISAPPEAR entirely in the KO (0 spectral counts, 0 intensity, unmatched). This rules out the leaky/incomplete-KO hypothesis: the KO genuinely eliminated B2M. Therefore the 88% retention CANNOT be explained by residual B2M keeping surface HLA-I assembled."
+  },
+
+  "check2_are_retained_peptides_genuine_HLA_ligands": {
+    "conclusion": "NO — the retained repertoire is dominated by NON-HLA-I background; HLA-I ligand QUALITY collapses on KO.",
+    "length_distribution": {
+      "WT": {"n": 2578, "median_len": 9.0, "frac_8to11mer": 0.6897, "frac_9mer": 0.2991, "frac_gt15mer": 0.0706},
+      "KO": {"n": 2305, "median_len": 10.0, "frac_8to11mer": 0.5926, "frac_9mer": 0.1644, "frac_gt15mer": 0.0820},
+      "interpretation": "WT peaks at 9mers (30% 9mer, median 9) = canonical HLA-I. In the KO the 9mer fraction HALVES (30%->16%), the peak and median shift to 10, 8-11mer fraction drops. The KO length profile degrades away from the HLA-I signature toward a broader/longer (intracellular/tryptic) profile."
+    },
+    "binding_motif_anchor_match": {
+      "method": "exact-sequence overlap of 8-11mers with mono-allelic ligands of A375's OWN HLA-I alleles (A*01:01, A*02:01, B*44:03, B*57:01, C*06:02, C*16:01) from the 197-allele mono-allelic anchor (135,859 A375-allele ligands).",
+      "WT_frac_anchor_hit": 0.4882,
+      "KO_frac_anchor_hit": 0.1201,
+      "fold_drop": 4.07,
+      "interpretation": "48.8% of WT 8-11mers are EXACT known ligands of A375's alleles (very high for exact-match-only vs a finite panel -> WT is a bona fide A375 HLA-I immunopeptidome). In the KO this crashes to 12.0% (4-fold). The peptides that remain are largely NOT HLA-I binders."
+    },
+    "a0201_anchor_heuristic": {
+      "WT_9mer_frac_pos2_hydrophobic": 0.4929, "WT_9mer_frac_cterm_VLIA": 0.2698, "WT_9mer_frac_both": 0.1466,
+      "KO_9mer_frac_pos2_hydrophobic": 0.3509, "KO_9mer_frac_cterm_VLIA": 0.2375, "KO_9mer_frac_both": 0.0897,
+      "interpretation": "A*02:01 anchor enrichment (pos2 hydrophobic) drops 49%->35% on KO -> loss of A2-restricted ligands."
+    },
+    "cterm_residue": {
+      "WT_frac_cterm_KR_tryptic": 0.1245, "WT_top_cterm": "Y(545), L(248), K(228), F(173), A(166)",
+      "KO_frac_cterm_KR_tryptic": 0.1640, "KO_top_cterm": "L(288), K(256), D(183), A(176), S(168)",
+      "interpretation": "WT C-termini dominated by Y/L/F (HLA-A1/A2/B57/B44 anchors), only 12% K/R. KO loses the Y-anchor peak (A*01:01/B-anchor gone) and enriches K/R (tryptic) and acidic D/S (non-anchor) -> shift toward non-HLA background."
+    }
+  },
+
+  "check3_prep_metadata": {
+    "conclusion": "ROOT CAUSE. Enrichment is MILD ACID ELUTION (MHC1-TIP), NOT W6/32 pan-HLA-I immunoprecipitation.",
+    "enrichment_method": "Mild acid elution (MAE): 131 mM citric acid / 66 mM Na2HPO4 / 150 mM NaCl / 25 mM iodoacetamide, pH 3.3, in suspension or on-plate; 10 kDa ultrafilter + C18 StageTip cleanup.",
+    "immunoprecipitation": "NONE. No W6/32, no pan-HLA-I antibody IP for this A375 WT/B2M-KO pair (FragPipe DDA).",
+    "surface_vs_whole_cell": "Surface acid-strip in principle, but PRIDE metadata explicitly notes 'Identification of intracellular peptides post-mild acid elution' and documents an MHC1-TIP-vs-immunoprecipitation comparison. MAE co-releases a substantial B2M-INDEPENDENT intracellular/membrane peptide background that antibody-IP would exclude.",
+    "instrument": "Orbitrap Astral / Exploris 480; label-free.",
+    "why_it_matters": "HAP1 B2M-KO (PXD056426, the H4 PASS set) used antibody-based pan-HLA-I capture -> its readout is ~pure surface HLA-I ligand, so losing HLA-I collapses it to 3%. A375 here used MAE -> its readout is surface-ligand PLUS a large non-HLA background that does NOT depend on B2M. Comparing MAE total-peptide retention to IP total-peptide retention is method-confounded; they measure different things."
+  },
+
+  "check4_recompute_88pct_robustness": {
+    "conclusion": "The 88% is real AS A TOTAL-PEPTIDE number but MEASURES THE WRONG THING. Stratified by ligand identity it inverts.",
+    "naive_total_peptide_measures": {
+      "detection_count_KO_over_WT": 0.8941,
+      "summed_spectral_count": 0.8782,
+      "summed_intensity": 0.7516,
+      "shared_overlap_of_WT": 0.4884,
+      "note": "Prior agent's ~0.88 reproduced. Robust across count/spectral-sum (intensity a bit lower). BUT this pools ligands + background."
+    },
+    "stratified_measures_the_discriminator": {
+      "genuine_HLA_I_ligand_retention": 0.1187,
+      "genuine_HLA_I_ligands_in_WT": 868,
+      "genuine_HLA_I_ligands_retained_in_KO": 103,
+      "nonligand_background_retention": 0.6760,
+      "nonligand_background_in_WT": 1710,
+      "9mer_only_retention": 0.2555,
+      "interpretation": "When restricted to peptides that are actually HLA-I ligands of A375's alleles, retention is 11.9% -> ~88% of TRUE HLA-I ligands are LOST on B2M-KO, matching HAP1 (3%) and H4's prediction. The non-HLA background (67.6% retained) is what inflates the naive total to 88%. The prior 'robust 88%' claim is robust only for the wrong (total-peptide) measure; it is NOT robust to controlling for HLA-I ligand identity, where the sign flips from 'retained' to 'collapsed'."
+    }
+  },
+
+  "comparison_table": {
+    "HAP1_B2M_KO_W632_IP_total_retention": 0.028,
+    "A375_B2M_KO_MAE_naive_total_retention": 0.894,
+    "A375_B2M_KO_MAE_genuine_HLA_ligand_retention": 0.119,
+    "A375_B2M_KO_MAE_nonligand_background_retention": 0.676,
+    "reconciliation": "On matched (HLA-I-ligand) readout, A375 (0.119) and HAP1 (0.028) AGREE: B2M-KO collapses HLA-I presentation. The discordance was entirely an enrichment-method + measurement-definition artifact."
+  },
+
+  "impact_on_LEAVE_HLA_OUT_gate": {
+    "prior_gate_verdict": "FAIL / CONTRADICTED; held-out HAP1 transfer rho = -0.92; A375 B2M-KO cited as the load-bearing hard-essential replicate that failed to collapse.",
+    "corrected": "A375 B2M-KO does NOT contradict H4. Re-scored on HLA-I ligands it collapses (~12% retained), CONSISTENT with H4. The gate FAIL was driven by (a) this mis-measured artifact point and (b) genuine under-powering on hard-essential KOs (THP-1/HeLa contribute only trimmer/editor KOs). Removing the artifact removes the ACTIVE CONTRADICTION but does NOT by itself PASS the gate: H4 cross-HLA generalization is still UNPROVEN (only HAP1 + this one re-scored A375 point carry hard-essential collapse; still <3 independent hard-essential backgrounds). Reclassify from 'CONTRADICTED' to 'UNPROVEN / under-powered'.",
+    "action": "In the gate, either (1) exclude MAE/MHC1-TIP deposits from the total-peptide retention comparison entirely (method-incompatible with IP deposits), or (2) re-score ALL deposits on genuine-HLA-ligand retention (anchor-matched 8-11mers) so MAE and IP are comparable. Do NOT compare MAE total-peptide retention against IP total-peptide retention."
+  },
+
+  "limitations": [
+    "Genuine-ligand set defined by EXACT-match to a finite mono-allelic anchor (135,859 A375-allele ligands) -> a conservative LOWER bound on ligand count (true binders not in the anchor are miscounted as background, which if anything UNDERSTATES ligand retention symmetrically in WT and KO; the 4-fold quality drop and 12% ligand retention are robust to this).",
+    "No NetMHCpan/MHCflurry binding prediction was run (not installed); used exact anchor-overlap + anchor-residue heuristics instead. A predicted-affinity re-score would refine but is very unlikely to overturn a 4-fold anchor-hit drop + halved 9mer fraction.",
+    "Single WT vs single B2M-KO condition columns in the FragPipe combined_peptide table (no per-replicate breakdown in this table); spectral-count and intensity cross-checks mitigate.",
+    "MAE 'intracellular peptide' background is documented by the depositors themselves in the PRIDE metadata (MHC1-TIP-vs-IP comparison), corroborating the artifact interpretation."
+  ]
+}

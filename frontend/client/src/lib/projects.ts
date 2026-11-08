@@ -133,14 +133,16 @@ class ProjectService {
     }
   }
 
-  // Get local projects (localStorage)
+  // Get local projects (localStorage).
+  // Returns an empty list when nothing is stored — we never seed fabricated
+  // demo projects, because callers render these as the user's real projects.
   private getLocalProjects(): Project[] {
     try {
       const stored = localStorage.getItem(this.storageKey);
-      if (!stored) return this.getDefaultProjects();
+      if (!stored) return [];
       return JSON.parse(stored);
     } catch {
-      return this.getDefaultProjects();
+      return [];
     }
   }
 
@@ -519,54 +521,11 @@ class ProjectService {
     return this.getAllProjects();
   }
 
-  private getDefaultProjects(): Project[] {
-    // Create some example projects to get users started
-    const now = new Date();
-    const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-
-    return [
-      {
-        id: "project-demo-1",
-        name: "biomate AI",
-        description: "Aiming to build online-platform with LLM backed agent pipelines to accelerate life science.",
-        instructions: "This project focuses on developing an AI-powered bioinformatics platform that makes complex genomic analysis accessible through conversational interfaces. The platform should integrate various bioinformatics tools and provide automated workflow generation.",
-        status: "active",
-        category: "Bioinformatics",
-        tags: ["AI", "genomics", "platform", "automation"],
-        progress: 65,
-        createdAt: daysAgo(30),
-        updatedAt: daysAgo(1),
-        lastActivity: daysAgo(1),
-        chatSessions: [],
-        documents: [
-          {
-            id: "doc-1",
-            name: "Project Requirements",
-            type: "text",
-            content: "# BioMate AI Platform Requirements\n\n## Core Features\n- Conversational AI interface\n- Automated workflow generation\n- Integration with bioinformatics tools\n- Cloud-based data processing",
-            format: "markdown",
-            uploadedAt: daysAgo(25),
-            description: "Initial requirements document"
-          }
-        ]
-      },
-      {
-        id: "project-demo-2", 
-        name: "LIS",
-        description: "Build a better LIS than epic and the soft company, using LLM-based agent pipelines; quickly prototype it and commercialize it.",
-        instructions: "Laboratory Information System (LIS) modernization project using AI agents. Focus on improving workflow efficiency, reducing manual data entry, and providing intelligent insights for laboratory operations.",
-        status: "active",
-        category: "Healthcare",
-        tags: ["LIS", "laboratory", "healthcare", "AI-agents"],
-        progress: 25,
-        createdAt: daysAgo(14),
-        updatedAt: daysAgo(2),
-        lastActivity: daysAgo(2),
-        chatSessions: [],
-        documents: []
-      }
-    ];
-  }
+  // NOTE: fabricated demo projects ("biomate AI", "LIS", …) were removed.
+  // They were being rendered as the user's own real projects on both an empty
+  // result and an API error. An empty account must show the honest empty state,
+  // not seeded example data. If an onboarding/example mode is wanted, it must be
+  // an explicit, clearly-labeled "example" affordance — never the default list.
 }
 
 // Export singleton instance

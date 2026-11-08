@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 07 — The workflow panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>The workflow panel</h1>
+<p class="docmeta"><span>BioMate · Function-module spec 07</span><span>Status: for review</span><span>Surface: right panel, or full width</span></p>
+
+<p class="lede">Where a run is configured, watched, gated and read. It is one structure used by everything expensive the platform does — validated workflows, model training, pre-trained inference and design runs all render here, because a scientist who has watched one run already knows how to read the next. This spec covers its three sections, the two kinds of gate that can stop it, and the two records it leaves behind.</p>
+
+<h2><span class="num">7.1</span>Structure</h2>
+<figure>
+<div class="wire">+--------------------------------------------------------------+
+| Transcriptomics - Workflow                              [x]  |
+| Bulk RNA-seq differential expression                         |
+| Fibrosis target triage - v4.2 - inputs from project files    |
+|                                                              |
+| Running  [##########........]  56%   12/22 - 4 skipped       |
++--------------------------------------------------------------+
+| Workflow settings (6) | Phases (4) | After run *             |
++--------------------------------------------------------------+
+|                                                              |
+|   ... section body ...                                       |
+|                                                              |
++--------------------------------------------------------------+
+| [!] GENCODE v44 licence not accepted - required by this      |
+|     workflow's reference build.        [ Accept licence ]    |
+|            [ Confirm and run workflow ]                      |
++--------------------------------------------------------------+</div>
+<figcaption>Panel anatomy: head with the run bar, section tabs, section body, and a footer that carries the primary action and any blocker.</figcaption>
+</figure>
+<table class="el">
+<thead><tr><th>Element</th><th>Contents</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>.panel-head</td><td>Domain kicker, workflow name, project · version · input provenance.</td><td>Fixed. The version line is why a reader six months later knows what ran.</td></tr>
+<tr><td>.run-bar</td><td>State word, progress, percentage, step count and skip count.</td><td>State words: Ready · Running · Halted · <strong>Awaiting approval</strong> · Completed. Colour is never the only carrier.</td></tr>
+<tr><td>.wf-sectionbar</td><td>Three tabs: Workflow settings · Phases · After run.</td><td>After run is <em>disabled</em> until the run completes, with a tooltip saying so, and carries a dot when the report is ready.</td></tr>
+<tr><td>.panel-foot</td><td>Blocker block, then the primary action.</td><td>The primary action is <em>Confirm and run workflow</em> before a run, <em>Cancel run</em> during, <em>Run again</em> after.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Blocker rule</span><p>A disabled primary action must carry its reason <strong>next to itself</strong>, with the remedy. A blocker explained three screens up in an input slot is a dead end: the user sees a greyed button and no cause. This is the general form of Spec 04 §4.9's "state the consequence at the control".</p></div>
+
+<h2><span class="num">7.2</span>Workflow settings</h2>
+<p>Everything decided before the run, in one place, in the order a user needs it.</p>
+<ol>
+<li><strong>Clarification</strong>, if the configuration is underdetermined — the typed confirm-inference card (Spec 06 §6.4). It appears first because everything below it may depend on the answer.</li>
+<li><strong>Global parameters</strong>, as <code>.param-row</code>s: name, resolved value, and a <strong>provenance badge</strong> — see §7.4.</li>
+<li><strong>Inputs</strong>, resolved from the project's files rather than uploaded (Spec 02 §2.4.2).</li>
+<li><strong>Phases to run</strong>, with the three skip states (Spec 02 §2.5.1).</li>
+<li><strong>Your permissions here</strong> and <strong>the verification pattern</strong> — §7.3.</li>
+</ol>
+<p>Auto-loop on QC failure sits with the parameters: retry a failed phase with adjusted parameters, capped at three attempts, with a review window before each retry. It is on by default and always visible, because a system that silently retries is a system whose results cannot be reasoned about.</p>
+
+<h2><span class="num">7.3</span>Permissions in the panel</h2>
+<p>The panel states the current user's role and what it permits, on the surface where the consequential actions live (Spec 00 §0.12). Each capability row names the role it needs and whether the user has it. Controls beyond the user's role are <strong>disabled with the role named, never hidden</strong>.</p>
+<p>Alongside it, the verification pattern is stated once: the five checks in the product, what measures each, and what a failure stops. It is here rather than in a help article because this is the panel where four of the five appear.</p>
+
+<h2><span class="num">7.4</span>Resolved parameters and their origins</h2>
+<p>A parameter row shows the value the run will actually use, and where that value came from. The origin is the point: a user must be able to tell what they chose from what was chosen for them.</p>
+<table class="st">
+<thead><tr><th>Origin</th><th>Means</th></tr></thead>
+<tbody>
+<tr><td>default</td><td>The workflow's own default, unchanged.</td></tr>
+<tr><td>inherited</td><td>From a <strong>project instruction</strong> — a standing rule the user wrote, possibly weeks ago. Accent-styled, because this is the origin users are most surprised by.</td></tr>
+<tr><td>recommended</td><td>BioMate proposed it for this data, with a reason and a citation behind <em>why</em>.</td></tr>
+<tr><td>confirmed</td><td>Answered by the user in a clarification card, bound to this field.</td></tr>
+<tr><td>edited</td><td>Changed by hand in this configuration.</td></tr>
+</tbody>
+</table>
+<p><em>why</em> expands one line of justification plus its citation. Every recommended value must have one; a recommendation with no reason is a default wearing a costume.</p>
+
+<h2><span class="num">7.5</span>Phases, steps and the quality gate</h2>
+<p>The accordion. Each phase carries its letter, name, step count, duration and state chip; each step carries its name, status, and — once it has run — its tool and version, its two headline parameters, and its outputs as evidence-badged chips. A step offers three actions: edit its parameters, re-run from here, and <em>Full view</em> (Spec 08).</p>
+<h3>7.5.1 The quality gate</h3>
+<p>A gate halts the run and takes over the top of the Phases section. Its anatomy is the verification pattern made concrete:</p>
+<ul>
+<li><strong>Measured</strong> rows: the metric, the observed value, the threshold.</li>
+<li><strong>Evidence level</strong>: what kind of claim the threshold rests on.</li>
+<li><strong>Suggested change</strong>: a before/after diff, with a rationale.</li>
+<li><strong>Three actions</strong>: apply the suggestion, keep my parameters, cancel the run.</li>
+</ul>
+<div class="rule"><span class="lbl">Override rule</span><p>Keeping your parameters is always available, and always <strong>recorded as an override in the QC audit</strong> with the measurement that was overridden. Overriding requires the Reviewer or Owner role. A gate a user cannot override is a gate they will work around outside the platform; a gate they can override silently is not a gate.</p></div>
+<p>The collapsed <em>QC gates</em> block under a phase shows every threshold for that phase in one reading — metric, operator, threshold, observed, verdict — including the ones that passed, so a reader can see what was checked and not only what failed.</p>
+
+<h2><span class="num">7.6</span>Human approval <span class="tag new">new</span></h2>
+<p>A machine gate asks "does the data meet the threshold?". Some decisions are not of that kind: spending beyond a budget, overwriting a version other runs read, signing off before something leaves the platform. Those need a <strong>person</strong>, and until now the panel had no way to ask for one — only the licence blocker and the pre-run confirmation, both of which are narrower.</p>
+<figure>
+<div class="wire">+--------------------------------------------------------------+
+| [!] Paused - needs your approval            [human gate]     |
+|                                                              |
+| Write this run's outputs into the project record             |
+| Phase D publishes counts.tsv v4 and the run report into      |
+| the project. Two downstream runs read that file, and this    |
+| version becomes the one future runs resolve by default.      |
+| writes counts.tsv v4 + report - reversible for 24 h          |
+|                                                              |
+| Consumers affected   2 runs    above 1 = approval    [!]     |
+| Overwrites version   writes v4 earlier versions kept [ok]    |
+| Reversible           yes, 24 h -                     [ok]    |
+|                                                              |
+| Who: you can approve this - you own this project.            |
+| [ Approve ]  [ Deny ]  [ Ask a reviewer ]                    |
++--------------------------------------------------------------+</div>
+<figcaption>The approval gate. Same measured / threshold / verdict layout as a quality gate, because it is the same concept with a person as the instrument.</figcaption>
+</figure>
+<table class="el">
+<thead><tr><th>Element</th><th>Requirement</th></tr></thead>
+<tbody>
+<tr><td>what</td><td>The action, in one line, in the user's terms.</td></tr>
+<tr><td>why</td><td>Why it needs a human — the threshold crossed, the thing overwritten, the irreversibility.</td></tr>
+<tr><td>cost</td><td>What it will cost and what it will write — money, time, versions, notifications. Never omitted, never rounded away, and it must describe <strong>the action actually being gated</strong>, not a related one.</td></tr>
+<tr><td>measured rows</td><td>The same three columns as a QC gate. This is deliberate and not negotiable.</td></tr>
+<tr><td>who</td><td>Whether <em>this</em> user can approve it, and the policy behind that — "publishing to the project record requires an owner".</td></tr>
+<tr><td>Approve / Deny / Ask a reviewer</td><td>Approving records the approver, the timestamp and the reason shown. Denying leaves the run paused with nothing written. Delegating leaves it paused until someone with the role answers.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Approval rule</span><p>An approval <strong>pauses</strong>; it never proceeds on a timeout. A pause that resolves itself by waiting is not an approval, and would be worse than having none — it would produce an audit trail that claims a human agreed when no human read it.</p></div>
+<p>Where approvals arise: publishing outputs into the project record where other runs read them, spend above a project threshold, registering a model that gates a live campaign, and any step that sends data or an order outward. The same component serves all four.</p>
+<div class="rule"><span class="lbl">Truthfulness rule</span><p>The <em>what</em>, <em>why</em>, <em>cost</em> and measured rows must describe the action at the point the run actually paused. An approval card that describes a plausible-but-different action — a re-run, when what is being gated is this run's final write — produces an audit record asserting a human agreed to something nobody was asked about. That is a worse failure than having no approval gate at all.</p></div>
+
+<h2><span class="num">7.7</span>The agent trajectory <span class="tag new">new</span></h2>
+<p>The panel's provenance was, until now, entirely <em>data-side</em>: which file, which version, which parameter, which output. That answers "where did this number come from" and leaves unanswered a question users ask just as often — <strong>"why did it do it this way?"</strong> The trajectory is the agent-side complement to lineage, and it is a tab of the after-run report.</p>
+<table class="st">
+<thead><tr><th>Entry kind</th><th>Records</th></tr></thead>
+<tbody>
+<tr><td>Decision</td><td>The routing verdict and its reasoning in the user's terms — "read the goal as a standardised differential-abundance analysis; chose the validated lane because the goal named a figure".</td></tr>
+<tr><td>Tool call</td><td>What was called, with timing and a result count. Nested calls nest.</td></tr>
+<tr><td>Your answer</td><td>Every clarification and every gate decision, with the field or parameter it bound to.</td></tr>
+<tr><td>What it told you</td><td>The mid-run progress lines and the post-run reply, verbatim (Spec 06 §6.9).</td></tr>
+<tr><td>Gate</td><td>Where a gate or approval paused the run, and what was surfaced rather than decided.</td></tr>
+</tbody>
+</table>
+<p>Filterable by kind, exportable with the audit trail. Two design decisions worth stating:</p>
+<ul>
+<li><strong>The assistant's own words are in the record.</strong> If it narrated it, it is auditable — which is also what stops narration drifting into reassurance the evidence does not support.</li>
+<li><strong>It is written in the user's terms, not the system's.</strong> A trace of prompts and token counts serves an engineer debugging the harness; a scientist needs to know which decision to disagree with. Timing and call names are enough machinery; the reasoning is prose.</li>
+</ul>
+
+<h2><span class="num">7.8</span>After run</h2>
+<p>Three tabs. <strong>Summary</strong> combines the run report and findings, with <em>every number linked</em> to the output in which it is findable (Spec 08 §8.6). <strong>Outputs</strong> lists every artifact by producing step, evidence-badged, with dataset-class outputs opening as dataset objects. <strong>Reproducibility record</strong> keeps Methods, resolved Parameters, Software, Citations, QC audit and Trajectory as expandable sections. Nothing is removed; the record stops competing with the primary result for attention.</p>
+
+<h2><span class="num">7.9</span>States</h2>
+<table class="st">
+<thead><tr><th>State</th><th>Panel</th></tr></thead>
+<tbody>
+<tr><td>Ready</td><td>Settings section. Nothing has run. Primary action confirms.</td></tr>
+<tr><td>Running</td><td>Phases section, live, current phase auto-opened.</td></tr>
+<tr><td>Halted</td><td>Gate panel at the top of Phases; progress frozen; state word Halted.</td></tr>
+<tr><td>Awaiting approval</td><td>Approval gate; state word says so; nothing advances.</td></tr>
+<tr><td>Cancelled</td><td>Back to Ready with the configuration kept. <strong>Partial outputs are retained and stay inspectable.</strong></td></tr>
+<tr><td>Completed</td><td>After run, with the report dot. Run again available.</td></tr>
+<tr><td>Blocked</td><td>Primary action disabled, blocker and remedy in the footer.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">7.10</span>Copy rules</h2>
+<ol>
+<li><strong>Every state has a word</strong>, not only a colour or a bar.</li>
+<li><strong>A blocker sits at the control it blocks</strong>, with its remedy.</li>
+<li><strong>A parameter states its origin.</strong> Inherited values are the ones users most need to see.</li>
+<li><strong>All five checks read the same way</strong> — measured, threshold, verdict.</li>
+<li><strong>An override is recorded, never prevented.</strong></li>
+<li><strong>An approval waits.</strong> No timeouts, no defaults, no implied consent.</li>
+</ol>
+
+<h2><span class="num">7.11</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Whether a denied approval should offer a reduced alternative automatically — "re-run on the 84-sample subset for £160" — or leave that to the user.</li>
+<li><span class="tag open">open</span> How the trajectory should render a long agentic run with hundreds of tool calls without becoming a log nobody reads.</li>
+<li><span class="tag open">open</span> Whether auto-loop retries should each appear in the trajectory, or collapse into one entry with an attempt count.</li>
+<li><span class="tag open">open</span> Whether approvals should be answerable from outside the panel — a notification, an email — for a reviewer who does not live in the product.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 07 · The workflow panel</span><span>Next: 08 — The full step view</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

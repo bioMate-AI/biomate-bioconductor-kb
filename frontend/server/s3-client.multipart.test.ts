@@ -7,14 +7,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // --- Mocks must be hoisted before the import under test. -------------------
 // vi.mock factories run before any top-level `const`, so capture the spy
 // instances via vi.hoisted() instead of plain consts.
-const { sendMock, getSignedUrlMock } = vi.hoisted(() => ({
+const { sendMock, getSignedUrlMock, clientConfigs } = vi.hoisted(() => ({
   sendMock: vi.fn(),
   getSignedUrlMock: vi.fn(),
+  clientConfigs: [] as unknown[],
 }));
 
 vi.mock('@aws-sdk/client-s3', () => {
   class S3Client {
-    constructor(_cfg?: unknown) {}
+    constructor(cfg?: unknown) { clientConfigs.push(cfg); }
     send = sendMock;
   }
   // The command classes need to be distinguishable so we can assert which one
@@ -33,6 +34,7 @@ vi.mock('@aws-sdk/client-s3', () => {
     GetObjectCommand: makeCmd('GetObject'),
     DeleteObjectCommand: makeCmd('DeleteObject'),
     HeadObjectCommand: makeCmd('HeadObject'),
+    GetBucketLocationCommand: makeCmd('GetBucketLocation'),
     CreateMultipartUploadCommand: makeCmd('CreateMultipart'),
     UploadPartCommand: makeCmd('UploadPart'),
     CompleteMultipartUploadCommand: makeCmd('CompleteMultipart'),
@@ -60,11 +62,43 @@ const CHUNK_8MIB = 8 * 1024 * 1024;
 beforeEach(() => {
   sendMock.mockReset();
   getSignedUrlMock.mockReset();
+  clientConfigs.length = 0;
+});
+
+function mockBucketThen(result: unknown): void {
+  sendMock
+    .mockResolvedValueOnce({ LocationConstraint: 'us-west-2' })
+    .mockResolvedValueOnce(result);
+}
+
+describe('S3Service credential providers', () => {
+  it('uses the AWS SDK default credential chain when no static key is supplied', () => {
+    const savedAccessKey = process.env.AWS_ACCESS_KEY_ID;
+    const savedSecret = process.env.AWS_SECRET_ACCESS_KEY;
+    delete process.env.AWS_ACCESS_KEY_ID;
+    delete process.env.AWS_SECRET_ACCESS_KEY;
+    try {
+      new S3Service({ bucket: 'test-bucket', region: 'us-west-2' });
+      expect(clientConfigs).toHaveLength(1);
+      expect(clientConfigs[0]).not.toHaveProperty('credentials');
+    } finally {
+      process.env.AWS_ACCESS_KEY_ID = savedAccessKey;
+      process.env.AWS_SECRET_ACCESS_KEY = savedSecret;
+    }
+  });
+
+  it('rejects incomplete static credentials instead of silently mixing providers', () => {
+    expect(() => new S3Service({
+      bucket: 'test-bucket',
+      accessKeyId: 'only-a-key',
+      secretAccessKey: undefined,
+    })).toThrow('AWS static credentials are incomplete');
+  });
 });
 
 describe('S3Service.startMultipartUpload', () => {
   it('issues CreateMultipartUpload then N UploadPart presigned URLs', async () => {
-    sendMock.mockResolvedValueOnce({ UploadId: 'S3UPID-1' });
+    mockBucketThen({ UploadId: 'S3UPID-1' });
     getSignedUrlMock.mockImplementation(async (_c: unknown, cmd: any) =>
       `https://s3/part-${cmd.input.PartNumber}`,
     );
@@ -78,8 +112,8 @@ describe('S3Service.startMultipartUpload', () => {
       CHUNK_8MIB,
     );
 
-    expect(sendMock).toHaveBeenCalledTimes(1);
-    const created = sendMock.mock.calls[0][0];
+    expect(sendMock).toHaveBeenCalledTimes(2);
+    const created = sendMock.mock.calls[1][0];
     expect(created.constructor.cmdName).toBe('CreateMultipart');
     expect(created.input.Bucket).toBe('test-bucket');
     expect(created.input.Key).toMatch(/^users\/user-42\/uploads\/.*-big\.fastq\.gz$/);
@@ -109,6 +143,7 @@ describe('S3Service.startMultipartUpload', () => {
   });
 
   it('rejects files that would require > 10,000 parts', async () => {
+    sendMock.mockResolvedValueOnce({ LocationConstraint: 'us-west-2' });
     const s3 = new S3Service();
     await expect(
       s3.startMultipartUpload(
@@ -122,7 +157,7 @@ describe('S3Service.startMultipartUpload', () => {
   });
 
   it('throws if S3 omits UploadId', async () => {
-    sendMock.mockResolvedValueOnce({});
+    mockBucketThen({});
     const s3 = new S3Service();
     await expect(
       s3.startMultipartUpload('u', 'f', CHUNK_8MIB, 'application/gzip', CHUNK_8MIB),
@@ -132,7 +167,7 @@ describe('S3Service.startMultipartUpload', () => {
 
 describe('S3Service.completeMultipartUpload', () => {
   it('sorts parts by PartNumber and sends CompleteMultipartUpload', async () => {
-    sendMock.mockResolvedValueOnce({ Location: 's3://test-bucket/users/u/abc' });
+    mockBucketThen({ Location: 's3://test-bucket/users/u/abc' });
     const s3 = new S3Service();
     const out = await s3.completeMultipartUpload(
       'users/u/uploads/x.gz',
@@ -148,7 +183,7 @@ describe('S3Service.completeMultipartUpload', () => {
     expect(out.bucket).toBe('test-bucket');
     expect(out.location).toBe('s3://test-bucket/users/u/abc');
 
-    const cmd = sendMock.mock.calls[0][0];
+    const cmd = sendMock.mock.calls[1][0];
     expect(cmd.constructor.cmdName).toBe('CompleteMultipart');
     expect(cmd.input.UploadId).toBe('S3UPID-2');
     expect(cmd.input.MultipartUpload.Parts.map((p: any) => p.PartNumber)).toEqual([1, 2, 3]);
@@ -164,12 +199,37 @@ describe('S3Service.completeMultipartUpload', () => {
 
 describe('S3Service.abortMultipartUpload', () => {
   it('sends AbortMultipartUpload with the key + uploadId', async () => {
-    sendMock.mockResolvedValueOnce({});
+    mockBucketThen({});
     const s3 = new S3Service();
     await s3.abortMultipartUpload('users/u/uploads/x.gz', 'S3UPID-4');
-    const cmd = sendMock.mock.calls[0][0];
+    const cmd = sendMock.mock.calls[1][0];
     expect(cmd.constructor.cmdName).toBe('AbortMultipart');
     expect(cmd.input.Key).toBe('users/u/uploads/x.gz');
     expect(cmd.input.UploadId).toBe('S3UPID-4');
+  });
+});
+
+describe('S3Service.readTextPrefix', () => {
+  it('reads only a bounded object range and decodes the returned stream', async () => {
+    sendMock.mockResolvedValueOnce({
+      Body: (async function* () {
+        yield Buffer.from('gene,count\nTP53,12\n');
+      })(),
+    });
+    const s3 = new S3Service();
+    await expect(s3.readTextPrefix('projects/p/inputs/counts.csv', 64)).resolves.toBe('gene,count\nTP53,12\n');
+
+    const cmd = sendMock.mock.calls[0][0] as any;
+    expect(cmd.constructor.cmdName).toBe('GetObject');
+    expect(cmd.input.Bucket).toBe('test-bucket');
+    expect(cmd.input.Key).toBe('projects/p/inputs/counts.csv');
+    expect(cmd.input.Range).toBe('bytes=0-63');
+  });
+
+  it('caps a caller-supplied range at one MiB', async () => {
+    sendMock.mockResolvedValueOnce({ Body: { transformToString: async () => 'ok' } });
+    const s3 = new S3Service();
+    await expect(s3.readTextPrefix('projects/p/inputs/a.csv', 99 * 1024 * 1024)).resolves.toBe('ok');
+    expect((sendMock.mock.calls[0][0] as any).input.Range).toBe(`bytes=0-${1024 * 1024 - 1}`);
   });
 });

@@ -1,0 +1,39 @@
+{
+  "target": "pdl1",
+  "name": "Programmed death-ligand 1 (CD274)",
+  "indication": "immuno-oncology (blocker)",
+  "modality": "PD-1/PD-L1 PPI blocker (no chelator)",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "site": "PD-1-binding front beta-sheet groove",
+    "metal_cofactor": null
+  },
+  "pharmacophore_hint": "amphipathic macrocycle covering the hydrophobic PD-1 groove; no linear motif",
+  "counter_targets": [
+    "pdl2"
+  ],
+  "receptor_structure": "5O45 chain A (PD-L1 IgV + bound macrocycle)",
+  "controls": [
+    {
+      "id": "5O45-pep71",
+      "note": "published BMS macrocyclic peptide; verify exact structure from primary source"
+    }
+  ],
+  "fto": {
+    "patent": "BMS macrocyclic-peptide estate (verify)",
+    "status": "counsel"
+  },
+  "examples": {
+    "actives": [
+      "cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G)"
+    ],
+    "non_actives": [
+      "cyclo(V-R-V-S-Y-N-[dP]-W-[NMeF]-N-L-E)",
+      "cyclo([NMeF]-V-R-V-R-F-[dP]-H-I-Q-W-D)",
+      "cyclo(W-Y-F-[dP]-V-[NMeI]-T-D-N-K-T-G)"
+    ],
+    "note": "PD-L1 non_actives here = PD-L2-preferring pan-binders (negatives for a SELECTIVITY rule, not a binding rule)"
+  },
+  "cofactors": [],
+  "receptor_pdb": "5o45"
+}

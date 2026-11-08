@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · AI 生物信息平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"Noto Sans SC","IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 48px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500; display:flex; align-items:center; gap:10px}
+.brand-logo{height:30px;width:auto;display:block}
+.rail .tagp{font-family:var(--ff-ui); font-size:11.5px; letter-spacing:.06em; color:var(--mut); padding:3px 9px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:44px 64px 52px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.15; letter-spacing:0; color:var(--ink); font-weight:700; margin:0 0 12px; max-width:28ch}
+.scene.title h2{font-size:50px; max-width:22ch; margin-bottom:22px}
+.caption{font-size:18px; line-height:1.6; color:var(--ink2); max-width:50ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut)}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:24px; min-height:0}
+.shotcol{flex:1.5; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px; min-height:0}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:18px 20px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:17px; margin:7px 0 7px; color:var(--ink); font-weight:700}
+.tile p{font-size:14px; line-height:1.6; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 18px; font-size:15px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.chip.g .i{background:var(--green)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:9px 0; border-bottom:1px solid var(--line); font-size:15.5px; line-height:1.55; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:8px}
+.points li b{color:var(--ink); font-weight:700}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-ui); font-size:12px; letter-spacing:.02em; color:var(--mut); margin-top:auto; padding-top:16px}
+.dgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; flex:1; align-content:center}
+.dcell{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px; display:flex; flex-direction:column; gap:3px}
+.dcell .dn{font-family:var(--ff-ui); font-size:15.5px; color:var(--ink); font-weight:700}
+.dcell .dc{font-family:var(--ff-mono); font-size:19px; color:var(--blue); font-weight:500}
+.dcell .dd{font-size:12.5px; color:var(--mut); line-height:1.5}
+.dcell.accent{background:var(--blue-bg); border-color:#c7dbfb}
+.bignum{display:flex; gap:36px; margin:4px 0 2px}
+.bignum .bn{font-family:var(--ff-mono)}
+.bignum .bn b{display:block; font-size:30px; color:var(--blue); font-weight:600; letter-spacing:-.01em}
+.bignum .bn span{font-family:var(--ff-ui); font-size:12.5px; color:var(--mut); letter-spacing:.02em}
+.freetrial{position:fixed; right:40px; bottom:18px; z-index:31; font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut); background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2); border-radius:999px; backdrop-filter:blur(4px)}
+.freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+
+.cmp{display:grid; grid-template-columns:150px 1fr 1fr; border:1px solid var(--line2); border-radius:8px; overflow:hidden; font-size:13.5px; line-height:1.4}
+.cmp>div{padding:9px 15px; border-top:1px solid var(--line)}
+.cmp .hd{border-top:none; background:var(--panel2); font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.cmp .lbl{font-weight:600; color:var(--ink); background:var(--panel)}
+.cmp .r{color:var(--ink2); border-left:1px solid var(--line)}
+.cmp .bm{color:var(--ink2); background:var(--blue-bg); border-left:1px solid var(--line)}
+.cmp .bm.hd{color:var(--blue); font-weight:600; background:var(--blue-bg)}
+</style>
+</head>
+<body>
+<div class="freetrial">www.biomate.ai</div>
+<div class="rail">
+  <span class="brand"><img class="brand-logo" src="assets/biomate-logo.png" alt="BioMate"></span>
+  <span class="tagp">产品介绍</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">12</span> 页</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 1 TITLE -->
+  <section class="scene title" data-seconds="9">
+    <div class="kicker">BioMate · 产品介绍</div>
+    <h2>AI 生物信息平台</h2>
+    <p class="caption">从任意仪器与数据，到可复现、可决策的结果。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>检索</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>运行</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>验证</span><span class="arrow">→</span>
+        <span class="chip g"><span class="i"></span>学习</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 PROBLEM -->
+  <section class="scene" data-seconds="14">
+    <div class="kicker">痛点</div>
+    <h2>当下的生物信息分析，是割裂的。</h2>
+    <div class="scene-body"><div class="concept">
+      <ul class="points">
+        <li><span class="b"></span><span><b>工具按领域割裂。</b>RNA-seq、变异检测、蛋白质组、冷冻电镜各需不同且需单独授权的软件。</span></li>
+        <li><span class="b"></span><span><b>仪器成为孤岛。</b>测序仪、流式、液质、酶标仪各自产出文件，需要人工搬运。</span></li>
+        <li><span class="b"></span><span><b>专家工作流难沉淀。</b>分析师如何选方法、定阈值，只存在于脑中，未被系统记录。</span></li>
+        <li><span class="b"></span><span><b>结果不积累。</b>运行、质控与阴性结果未回流到可复用的知识库。</span></li>
+        <li><span class="b"></span><span><b>计算依赖外包且成本高</b>——多套专业软件分别采购与维护。</span></li>
+        <li><span class="b am"></span><span><b>数据安全与合规。</b>研发数据是核心知识产权，外部工具与外包存在泄露风险。</span></li>
+      </ul>
+    </div></div>
+  </section>
+
+  <!-- 3 WHY -->
+  <section class="scene" data-seconds="13">
+    <div class="kicker">为什么选择 BioMate</div>
+    <h2>一个平台，覆盖全领域，部署在你的环境。</h2>
+    <div class="scene-body"><div class="concept">
+      <div class="row3">
+        <div class="tile"><div class="n">01</div><h4>一个平台贯通各领域</h4><p>任意生物信息任务的检索、运行与结果解读，都在同一工作台完成。</p></div>
+        <div class="tile"><div class="n">02</div><h4>仪器连接</h4><p>为测序仪、流式、液质、酶标仪、冷冻电镜、移液机器人及 ELN/LIMS 提供真实连接器。</p></div>
+        <div class="tile"><div class="n">03</div><h4>内置检索</h4><p>文献、数据库与 4,210 个工作流目录，智能路由到正确的方法。</p></div>
+        <div class="tile"><div class="n">04</div><h4>统一执行</h4><p>云端（AWS Batch / Nextflow）或本地部署，带质控门与从每轮运行中学习的闭环。</p></div>
+        <div class="tile"><div class="n">05</div><h4>私域可审计</h4><p>数据不出域；确定性执行；结果可版本化、可溯源。</p></div>
+        <div class="tile accent" style="border:none"><div class="n" style="color:#3763b0">BioMate</div><h4 style="color:var(--blue)">检索 · 运行 · 验证 · 学习</h4><p style="color:#2c4a7a">同一个闭环，贯穿每一个领域。</p></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 3b WHY NOT R -->
+  <section class="scene" data-seconds="15">
+    <div class="kicker">为什么不直接用 R / Excel</div>
+    <h2>你已经有 R，为什么还要 BioMate？</h2>
+    <p class="caption sub">BioMate 不替代 R 的方法——而是<b>运行</b>它们。其 1,000+ 工作流本身就是 Bioconductor/R（DESeq2、limma、edgeR、Seurat、flowCore、survival）。它替代的是你围绕这些方法自行搭建与维护的一切。</p>
+    <div class="scene-body"><div class="concept" style="justify-content:flex-start; gap:0">
+    <div class="cmp">
+      <div class="hd"></div><div class="hd r">原生 R / Excel</div><div class="hd bm">BioMate</div>
+      <div class="lbl">编码</div><div class="r">编写与调试脚本；管理安装、版本与依赖</div><div class="bm">用自然语言描述目标——即可运行</div>
+      <div class="lbl">方法选择</div><div class="r">需自行判断 DESeq2 / limma / edgeR</div><div class="bm">在 4,210 个工作流中智能路由，并解释原因</div>
+      <div class="lbl">可复现</div><div class="r">脚本易漂移——版本、手工步骤</div><div class="bm">确定性、版本化记录：参数、版本、校验和、方法、引用</div>
+      <div class="lbl">规模</div><div class="r">受限于本机内存/CPU</div><div class="bm">AWS Batch / Nextflow 或本地——大数据、并行</div>
+      <div class="lbl">质控</div><div class="r">手工，或无</div><div class="bm">自动质控门：暂停→复核→恢复、自动修复</div>
+      <div class="lbl">集成</div><div class="r">仅分析这一步</div><div class="bm">仪器→分析、ELN/LIMS、文献与工作流检索、结果回写</div>
+    </div>
+    <p style="font-size:13px; color:var(--mut); margin:14px 0 0; max-width:96ch"><b>诚实边界：</b>对于做定制化、全新分析的资深生物信息专家，原生 R 更灵活——BioMate 的价值在于面向非编程用户、可复现与合规、规模化与方法路由。</p>
+    </div></div>
+  </section>
+
+  <!-- 4 DOMAINS -->
+  <section class="scene" data-seconds="14">
+    <div class="kicker">研究领域</div>
+    <h2>广度：42 个领域，4,210 个工作流。</h2>
+    <div class="bignum">
+      <span class="bn"><b>4,210</b><span>工作流</span></span>
+      <span class="bn"><b>42</b><span>领域标签</span></span>
+      <span class="bn"><b>12,312</b><span>工具</span></span>
+      <span class="bn"><b>1,092</b><span>真实执行验证</span></span>
+    </div>
+    <div class="scene-body"><div class="dgrid">
+      <div class="dcell"><span class="dn">转录组学</span><span class="dc">1,695</span><span class="dd">bulk 与单细胞 RNA-seq、差异表达、剪接、空间</span></div>
+      <div class="dcell"><span class="dn">基因组学</span><span class="dc">756</span><span class="dd">组装、注释、比对、质控</span></div>
+      <div class="dcell"><span class="dn">表观基因组学</span><span class="dc">265</span><span class="dd">ATAC-seq、ChIP-seq、甲基化、Hi-C</span></div>
+      <div class="dcell"><span class="dn">变异检测</span><span class="dc">181</span><span class="dd">胚系/体细胞 SNV·indel·SV</span></div>
+      <div class="dcell"><span class="dn">蛋白质组学</span><span class="dc">186</span><span class="dd">DIA/DDA 质谱、非标定量、肽段鉴定</span></div>
+      <div class="dcell"><span class="dn">单细胞</span><span class="dc">100</span><span class="dd">聚类、注释、拟时序</span></div>
+      <div class="dcell accent"><span class="dn">药物发现</span><span class="dc">200</span><span class="dd">ADMET、对接、QSAR、PBPK——众多领域之一</span></div>
+      <div class="dcell"><span class="dn">冷冻电镜</span><span class="dc">19</span><span class="dd">单颗粒、断层成像</span></div>
+      <div class="dcell"><span class="dn">+ 代谢组</span><span class="dc" style="font-size:14px">· 宏基因组</span><span class="dd">LC-MS/GC-MS；分类、分箱</span></div>
+      <div class="dcell"><span class="dn">+ 免疫</span><span class="dc" style="font-size:14px">· 结构生物学</span><span class="dd">TCR/BCR、HLA；AlphaFold、对接、MD</span></div>
+      <div class="dcell"><span class="dn">+ 影像</span><span class="dc" style="font-size:14px">· 系统生物学</span><span class="dd">分割；GSEA、WGCNA、多组学整合</span></div>
+      <div class="dcell"><span class="dn">…… 共 42 领域</span><span class="dc" style="font-size:14px">合计</span><span class="dd">群体遗传、糖工程、合成生物学……</span></div>
+    </div></div>
+  </section>
+
+  <!-- 5 INSTRUMENTS -->
+  <section class="scene" data-seconds="14">
+    <div class="kicker">仪器连接的工作流</div>
+    <h2>从实验台仪器到分析，一气呵成。</h2>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">连接器 · 感知数据驻留</span>
+        <div class="frame"><img src="assets/i12-1-connectors-dialog.png" alt="BioMate 连接器与驻留标签"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>流式细胞仪</b>（FCS）→ 圈门 → 标志物阳性亚群定量。</span></li>
+          <li><span class="b"></span><span><b>酶标仪</b>（BMG/BioTek/Tecan）→ ELISA 标准曲线 → 分组滴度。</span></li>
+          <li><span class="b"></span><span><b>液质联用</b>（Thermo/Waters/Bruker/SCIEX）→ 蛋白质组 / 代谢组。</span></li>
+          <li><span class="b"></span><span><b>测序仪</b>——Illumina BaseSpace、Nanopore MinKNOW → FASTQ → 对应流程。</span></li>
+          <li><span class="b"></span><span><b>冷冻电镜</b>（Thermo EPU）·<b>移液机器人</b>（Opentrons）·<b>ELN/LIMS</b>（Benchling）。</span></li>
+        </ul>
+        <div class="footnote">真实连接器位于 backend/lib/integrations/ · 感知数据驻留（本地 / 挂载 / 云）</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 SEARCH -->
+  <section class="scene" data-seconds="13">
+    <div class="kicker">检索与证据</div>
+    <h2>找到正确的方法，以及背后的证据。</h2>
+    <div class="scene-body"><div class="concept">
+      <div class="row4">
+        <div class="tile"><div class="n">路由</div><h4>目标 → 工作流</h4><p>用自然语言描述目标，BioMate 从 4,210 个工作流中选择并解释原因。</p></div>
+        <div class="tile"><div class="n">编号解析</div><h4>GEO / SRA / EMPIAR</h4><p>粘贴编号，自动识别模态并匹配流程。</p></div>
+        <div class="tile"><div class="n">文献</div><h4>带引用的回答</h4><p>基于证据的文献问答，真实引用——不编造参考文献。</p></div>
+        <div class="tile"><div class="n">数据库</div><h4>结构与 SAR</h4><p>活性/SAR、结构与相似性检索；适用领域的 FTO/专利。</p></div>
+      </div>
+      <div class="footnote">每个路由决策都有解释 · 每个数字都可溯源到其来源文件</div>
+    </div></div>
+  </section>
+
+  <!-- 7 PRODUCT -->
+  <section class="scene" data-seconds="13">
+    <div class="kicker">产品界面</div>
+    <h2>以项目为中心的工作台。</h2>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">项目工作空间 · 数据中心</span>
+        <div class="frame"><img src="assets/i05-0-data-hub.png" alt="BioMate 项目工作空间与数据中心"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>每个项目一个工作空间</b>——对话、数据、工作流与运行集中在一起。</span></li>
+          <li><span class="b"></span><span><b>每个输入都是对象，</b>而非一串路径——运行前可预览。</span></li>
+          <li><span class="b"></span><span><b>工作流面板</b>——运行前看参数、运行中看阶段、运行后看一份合并的结果报告。</span></li>
+          <li><span class="b"></span><span><b>全量前可先跑小样试点；</b>参数与质控阈值可就地调整。</span></li>
+          <li><span class="b gr"></span><span><b>结果可回写</b>到你的 ELN / 数据系统。</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 EXECUTION + QC -->
+  <section class="scene" data-seconds="14">
+    <div class="kicker">执行与质控</div>
+    <h2>随处运行，带质控门与闭环。</h2>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">工作流面板 · 带质控门的实时运行</span>
+        <div class="frame"><img src="assets/r2-running.png" alt="带实时阶段与质控门的运行中工作流"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>执行</b>——云端 AWS Batch + Nextflow DSL2，或本地部署。</span></li>
+          <li><span class="b"></span><span><b>阶段与步骤</b>——每次运行拆分为可检视的阶段与工具步骤。</span></li>
+          <li><span class="b am"></span><span><b>质控门</b>绝不默默放过失败结果；暂停 → 专家复核 → 恢复。</span></li>
+          <li><span class="b"></span><span><b>自动循环</b>——可恢复失败时自动调整参数重跑（展示 was→now 差异）。</span></li>
+          <li><span class="b gr"></span><span><b>运行后报告</b>——一个合并的"结果"视图 + 一份可复现记录。</span></li>
+        </ul>
+        <div class="footnote">所有领域共用同一机制——RNA-seq · 变异 · 蛋白质组 · 冷冻电镜 · ADMET</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 PRIVATE / AUDITABLE -->
+  <section class="scene" data-seconds="13">
+    <div class="kicker">工程落地 · 安全与可审计</div>
+    <h2>私域部署，可审计，可复现。</h2>
+    <div class="scene-body"><div class="concept">
+      <div class="row3">
+        <div class="tile"><div class="n">数据</div><h4>数据不出域</h4><p>本地/私有化部署为默认；计算在自有环境内完成。</p></div>
+        <div class="tile"><div class="n">模型</div><h4>参考数据本地化</h4><p>可在自有数据上训练与微调。</p></div>
+        <div class="tile"><div class="n">执行</div><h4>确定性</h4><p>同一输入在推理阶段得到一致输出。</p></div>
+        <div class="tile"><div class="n">审计</div><h4>以证据取代黑箱</h4><p>评分以公式与解释列呈现，证据来源可追溯。</p></div>
+        <div class="tile"><div class="n">版本化</div><h4>线上只执行已接受版本</h4><p>探索在演化层完成，线上执行已接受版本，变更留有记录。</p></div>
+        <div class="tile"><div class="n">权限</div><h4>权限与对接</h4><p>按团队/项目/人员授权；与 ELN / 化合物库 / LIMS 双向打通。</p></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 10 VALUE -->
+  <section class="scene" data-seconds="12">
+    <div class="kicker">价值</div>
+    <h2>平台能带来什么。</h2>
+    <div class="scene-body"><div class="concept">
+      <div class="row4">
+        <div class="tile"><div class="n">成本</div><h4>替代多套软件</h4><p>一个平台替代多套单点软件；减少计算外包；先试点后全量，减少无效运行。</p></div>
+        <div class="tile"><div class="n">效率</div><h4>从数据到洞见更快</h4><p>质控门与自动循环减少返工。</p></div>
+        <div class="tile"><div class="n">整合</div><h4>仪器与领域统一</h4><p>结果回写到你的系统。</p></div>
+        <div class="tile"><div class="n">知识</div><h4>可复用资产</h4><p>运行、质控与专家纠正沉淀为可审计的知识。</p></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 11 DELIVERABLE -->
+  <section class="scene" data-seconds="14">
+    <div class="kicker">交付物</div>
+    <h2>交付的是可复现的结果——适用于任意领域。</h2>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">合并的结果报告 · 发现 + 输出</span>
+        <div class="frame"><img src="assets/rnaseq-results.png" alt="合并的结果报告：发现摘要与输出"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>发现</b>——自然语言摘要与关键数字，每项溯源到其输出文件。</span></li>
+          <li><span class="b"></span><span><b>输出</b>——每个文件按类型内联预览（表格、图像、结构、VCF……）。</span></li>
+          <li><span class="b"></span><span><b>可复现记录</b>——工作流、参数、版本、校验和、方法与引用。</span></li>
+          <li><span class="b gr"></span><span><b>下一步</b>——结果支持什么，下一步该运行什么。</span></li>
+        </ul>
+        <div class="footnote">无论任务是 RNA-seq · 变异检测 · 仪器读出 · 还是 ADMET，交付同一套结果包</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 COLLABORATION -->
+  <section class="scene title" data-seconds="12">
+    <div class="kicker">如何开始</div>
+    <h2>调研 → 连接 → 运行 → 验证 → 部署。</h2>
+    <div class="scene-body" style="align-items:flex-start">
+      <div class="concept" style="justify-content:flex-start">
+        <ul class="points" style="max-width:none">
+          <li><span class="b"></span><span><b>01 · 调研与数据审计</b>——你的领域、仪器、数据系统与目标。</span></li>
+          <li><span class="b"></span><span><b>02 · 连接</b>——接入仪器 / ELN / 编号；带入一份代表性数据。</span></li>
+          <li><span class="b"></span><span><b>03 · 运行</b>——路由到正确的工作流，带质控运行，查看合并的结果报告。</span></li>
+          <li><span class="b"></span><span><b>04 · 验证</b>——与你既有方法对比；在历史数据上回顾性评估。</span></li>
+          <li><span class="b gr"></span><span><b>05 · 部署</b>——云端或本地；为你的团队配置权限、版本与审计。</span></li>
+        </ul>
+        <div class="footnote" style="font-size:13px">BioMate · 检索 · 运行 · 验证 · 学习 &nbsp;·&nbsp; <b style="color:var(--blue)">www.biomate.ai</b></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length) ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i; scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,615 @@
+[
+ {
+  "model": "google/gemini-3.8-flash",
+  "req": "bulk_prot",
+  "secs": 13.698,
+  "err": "",
+  "n_wf": 4,
+  "roots": 3,
+  "expect_roots": 3,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 4,
+  "spec_clean": 4,
+  "domains": [
+   "transcriptomics",
+   "proteomics",
+   "proteomics",
+   "multi_omics"
+  ],
+  "specs": [
+   "differential gene expression on a bulk RNA-seq gene count matrix (DESeq2/edgeR-style negative-binomial model), two-group comparison → per-gene log2 fold change ",
+   "differential protein abundance testing on a processed protein-group intensity matrix (log2 intensities, missing-value imputation), two-group comparison → per-pr",
+   "differential protein abundance on a processed protein-group intensity matrix of secreted proteins, two-group comparison → per-protein log2 fold change and adjus",
+   "integration of transcript and protein differential results — concordance and sparse PLS / co-inertia multi-omics integration → shared features and joint pathway"
+  ],
+  "deps": [
+   [],
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2",
+    "intent_3"
+   ]
+  ]
+ },
+ {
+  "model": "google/gemini-3.8-flash",
+  "req": "two_indep",
+  "secs": 11.61,
+  "err": "",
+  "n_wf": 2,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 2,
+  "spec_clean": 1,
+  "domains": [
+   "variant_calling",
+   "transcriptomics"
+  ],
+  "specs": [
+   "germline short-variant calling from paired-end whole-genome FASTQ (alignment, duplicate marking, base quality score recalibration, variant calling) → annotated ",
+   "differential gene expression on a bulk RNA-seq gene count matrix (DESeq2/edgeR-style negative-binomial model), two-group comparison → per-gene log2 fold change "
+  ],
+  "deps": [
+   [],
+   []
+  ]
+ },
+ {
+  "model": "google/gemini-3.8-flash",
+  "req": "dock_admet_rank",
+  "secs": 17.744,
+  "err": "",
+  "n_wf": 3,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 3,
+  "spec_clean": 3,
+  "domains": [
+   "drug_discovery",
+   "drug_discovery",
+   "drug_discovery"
+  ],
+  "specs": [
+   "molecular docking and virtual screening of small-molecule SMILES against a target protein structure → ligand binding poses and predicted affinity scores",
+   "in silico ADMET and pharmacokinetic property profiling for small-molecule chemical structures from SMILES → predicted absorption, distribution, metabolism, excr",
+   "multi-parameter scoring and ranking of compound libraries combining docking binding affinity scores with ADMET safety predictions → prioritized hit list"
+  ],
+  "deps": [
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2"
+   ]
+  ]
+ },
+ {
+  "model": "google/gemini-3.8-flash",
+  "req": "cohort_meta",
+  "secs": 12.47,
+  "err": "",
+  "n_wf": 4,
+  "roots": 3,
+  "expect_roots": 3,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 4,
+  "spec_clean": 1,
+  "domains": [
+   "transcriptomics",
+   "transcriptomics",
+   "transcriptomics",
+   "transcriptomics"
+  ],
+  "specs": [
+   "differential gene expression analysis on bulk transcriptomic data, two-group comparison (cases vs controls) → per-gene log2 fold change, standard error, and p-v",
+   "differential gene expression analysis on bulk transcriptomic data, two-group comparison (cases vs controls) → per-gene log2 fold change, standard error, and p-v",
+   "differential gene expression analysis on bulk transcriptomic data, two-group comparison (cases vs controls) → per-gene log2 fold change, standard error, and p-v",
+   "meta-analysis of differential gene expression summary statistics across multiple independent transcriptomic cohorts (effect size combination or p-value pooling)"
+  ],
+  "deps": [
+   [],
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2",
+    "intent_3"
+   ]
+  ]
+ },
+ {
+  "model": "google/gemini-3.8-flash",
+  "req": "atac_rna",
+  "secs": 17.082,
+  "err": "",
+  "n_wf": 3,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 3,
+  "spec_clean": 3,
+  "domains": [
+   "epigenomics",
+   "transcriptomics",
+   "multi_omics"
+  ],
+  "specs": [
+   "ATAC-seq read alignment, peak calling, consensus peak generation, and differential accessibility testing from FASTQ files → differential accessible regions (DAR",
+   "differential gene expression on a bulk RNA-seq gene count matrix (DESeq2/edgeR-style negative-binomial model), two-group comparison → per-gene log2 fold change ",
+   "integration of differential chromatin accessibility and differential gene expression layers — genomic peak-to-gene mapping and concordant regulation filtering →"
+  ],
+  "deps": [
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2"
+   ]
+  ]
+ },
+ {
+  "model": "google/gemini-3.1-pro-preview",
+  "req": "bulk_prot",
+  "secs": 31.895,
+  "err": "",
+  "n_wf": 4,
+  "roots": 3,
+  "expect_roots": 3,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 4,
+  "spec_clean": 4,
+  "domains": [
+   "transcriptomics",
+   "proteomics",
+   "proteomics",
+   "multi_omics"
+  ],
+  "specs": [
+   "differential gene expression on a bulk RNA-seq gene count matrix, two-group comparison → per-gene log2 fold change and adjusted p-values",
+   "differential protein abundance on a processed protein-group intensity matrix, two-group comparison → per-protein log2 fold change and adjusted p-values",
+   "differential protein abundance on a processed protein-group intensity matrix of secreted proteins, two-group comparison → per-protein log2 fold change and adjus",
+   "integration of transcript and protein differential results — concordance and sparse PLS / co-inertia multi-omics integration → shared features and joint pathway"
+  ],
+  "deps": [
+   [],
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2",
+    "intent_3"
+   ]
+  ]
+ },
+ {
+  "model": "google/gemini-3.1-pro-preview",
+  "req": "two_indep",
+  "secs": 19.755,
+  "err": "",
+  "n_wf": 2,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 2,
+  "spec_clean": 1,
+  "domains": [
+   "variant_calling",
+   "transcriptomics"
+  ],
+  "specs": [
+   "short-variant calling from whole-genome sequencing FASTQ files (alignment, duplicate marking, base recalibration, variant calling) → annotated VCF",
+   "differential gene expression on a bulk RNA-seq gene count matrix (DESeq2/edgeR-style negative-binomial model), two-group comparison → per-gene log2 fold change "
+  ],
+  "deps": [
+   [],
+   []
+  ]
+ },
+ {
+  "model": "google/gemini-3.1-pro-preview",
+  "req": "dock_admet_rank",
+  "secs": 31.729,
+  "err": "",
+  "n_wf": 3,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 3,
+  "spec_clean": 3,
+  "domains": [
+   "drug_discovery",
+   "pharmacology",
+   "drug_discovery"
+  ],
+  "specs": [
+   "molecular docking of multiple ligand SMILES into a protein target structure → docking scores and 3D ligand poses",
+   "ADMET and toxicity prediction from ligand SMILES strings → tabular ADMET metrics and safety flags",
+   "integration of molecular docking scores and ADMET prediction tables — multi-parameter optimization → ranked list of compounds"
+  ],
+  "deps": [
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2"
+   ]
+  ]
+ },
+ {
+  "model": "google/gemini-3.1-pro-preview",
+  "req": "cohort_meta",
+  "secs": 25.928,
+  "err": "",
+  "n_wf": 4,
+  "roots": 3,
+  "expect_roots": 3,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 4,
+  "spec_clean": 4,
+  "domains": [
+   "transcriptomics",
+   "transcriptomics",
+   "transcriptomics",
+   "transcriptomics"
+  ],
+  "specs": [
+   "differential gene expression on GEO accession data, two-group comparison → per-gene log2 fold change and adjusted p-values",
+   "differential gene expression on GEO accession data, two-group comparison → per-gene log2 fold change and adjusted p-values",
+   "differential gene expression on GEO accession data, two-group comparison → per-gene log2 fold change and adjusted p-values",
+   "meta-analysis of multiple transcriptomic differential expression result tables → combined effect sizes, meta-p-values, and heterogeneity metrics"
+  ],
+  "deps": [
+   [],
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2",
+    "intent_3"
+   ]
+  ]
+ },
+ {
+  "model": "google/gemini-3.1-pro-preview",
+  "req": "atac_rna",
+  "secs": 21.944,
+  "err": "",
+  "n_wf": 3,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 3,
+  "spec_clean": 3,
+  "domains": [
+   "epigenomics",
+   "transcriptomics",
+   "multi_omics"
+  ],
+  "specs": [
+   "ATAC-seq peak calling and differential accessibility analysis from raw FASTQ files, two-group comparison → consensus peaks, differential accessibility log2 fold",
+   "differential gene expression on a bulk RNA-seq gene count matrix, two-group comparison → per-gene log2 fold change and adjusted p-values",
+   "integration of epigenomic differential accessibility and transcriptomic differential expression results → joint features, genes with concordant open chromatin a"
+  ],
+  "deps": [
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2"
+   ]
+  ]
+ },
+ {
+  "model": "anthropic/claude-sonnet-5.5",
+  "req": "bulk_prot",
+  "secs": 14.94,
+  "err": "",
+  "n_wf": 4,
+  "roots": 3,
+  "expect_roots": 3,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 4,
+  "spec_clean": 4,
+  "domains": [
+   "transcriptomics",
+   "proteomics",
+   "proteomics",
+   "multi_omics"
+  ],
+  "specs": [
+   "differential gene expression on a bulk RNA-seq gene count matrix, two-group comparison → per-gene log2 fold change and adjusted p-values",
+   "differential protein abundance on a processed protein-group intensity matrix (log2 intensities, missing-value imputation), two-group comparison → per-protein lo",
+   "differential protein abundance on a processed protein-group intensity matrix of secreted proteins, two-group comparison → per-protein log2 fold change and adjus",
+   "integration of transcript and protein differential results across lysate and secretome layers — RNA–protein concordance and multi-block sparse PLS / co-inertia "
+  ],
+  "deps": [
+   [],
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2",
+    "intent_3"
+   ]
+  ]
+ },
+ {
+  "model": "anthropic/claude-sonnet-5.5",
+  "req": "two_indep",
+  "secs": 9.145,
+  "err": "",
+  "n_wf": 2,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 2,
+  "spec_clean": 1,
+  "domains": [
+   "variant_calling",
+   "transcriptomics"
+  ],
+  "specs": [
+   "short-variant calling from whole-genome sequencing FASTQ (alignment, duplicate marking, base recalibration, variant calling) → annotated VCF",
+   "differential gene expression on a bulk RNA-seq gene count matrix with sample metadata (negative-binomial model, DESeq2/edgeR-style), group comparison → per-gene"
+  ],
+  "deps": [
+   [],
+   []
+  ]
+ },
+ {
+  "model": "anthropic/claude-sonnet-5.5",
+  "req": "dock_admet_rank",
+  "secs": 13.76,
+  "err": "",
+  "n_wf": 3,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 3,
+  "spec_clean": 3,
+  "domains": [
+   "drug_discovery",
+   "drug_discovery",
+   "drug_discovery"
+  ],
+  "specs": [
+   "structure-based molecular docking of a SMILES compound library into a known protein binding pocket (site-directed, e.g. AutoDock Vina) using a PDB receptor stru",
+   "ML-based ADMET property prediction from SMILES (absorption, distribution, metabolism, excretion, toxicity endpoints such as hERG, DILI, Ames) → per-compound end",
+   "multi-criteria ranking of compounds by merging a docking-score table with an ADMET safety table → combined ranked list with per-criterion scores"
+  ],
+  "deps": [
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2"
+   ]
+  ]
+ },
+ {
+  "model": "anthropic/claude-sonnet-5.5",
+  "req": "cohort_meta",
+  "secs": 10.71,
+  "err": "",
+  "n_wf": 4,
+  "roots": 3,
+  "expect_roots": 3,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 4,
+  "spec_clean": 1,
+  "domains": [
+   "transcriptomics",
+   "transcriptomics",
+   "transcriptomics",
+   "transcriptomics"
+  ],
+  "specs": [
+   "differential gene expression on bulk RNA-seq data fetched from a GEO accession (reads or counts), two-group case vs control comparison → per-gene log2 fold chan",
+   "differential gene expression on bulk RNA-seq data fetched from a GEO accession (reads or counts), two-group case vs control comparison → per-gene log2 fold chan",
+   "differential gene expression on bulk RNA-seq data fetched from a GEO accession (reads or counts), two-group case vs control comparison → per-gene log2 fold chan",
+   "random- or fixed-effects meta-analysis of per-gene differential expression statistics (log2 fold change and standard error) across independent cohorts → combine"
+  ],
+  "deps": [
+   [],
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2",
+    "intent_3"
+   ]
+  ]
+ },
+ {
+  "model": "anthropic/claude-sonnet-5.5",
+  "req": "atac_rna",
+  "secs": 10.582,
+  "err": "",
+  "n_wf": 3,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 3,
+  "spec_clean": 3,
+  "domains": [
+   "epigenomics",
+   "transcriptomics",
+   "multi_omics"
+  ],
+  "specs": [
+   "ATAC-seq open chromatin analysis from paired or single-end FASTQ (alignment, filtering, peak calling with MACS2, consensus peak set, differential accessibility ",
+   "differential gene expression on a bulk RNA-seq gene count matrix (DESeq2/edgeR-style negative-binomial model), two-group comparison → per-gene log2 fold change ",
+   "integration of chromatin accessibility and gene expression differential results — peak-to-gene annotation (nearest TSS / promoter-enhancer assignment) and conco"
+  ],
+  "deps": [
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2"
+   ]
+  ]
+ },
+ {
+  "model": "anthropic/claude-opus-5.5",
+  "req": "bulk_prot",
+  "secs": 23.124,
+  "err": "",
+  "n_wf": 4,
+  "roots": 3,
+  "expect_roots": 3,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 4,
+  "spec_clean": 3,
+  "domains": [
+   "transcriptomics",
+   "proteomics",
+   "proteomics",
+   "multi_omics"
+  ],
+  "specs": [
+   "differential gene expression on a bulk RNA-seq gene count matrix (DESeq2/edgeR-style negative-binomial model), two-group comparison → per-gene log2 fold change ",
+   "differential protein abundance on a processed protein-group intensity matrix (log2 transform, normalization, missing-value imputation, limma-style moderated tes",
+   "differential protein abundance on a processed protein-group intensity matrix of secreted proteins from conditioned media (log2, normalization, imputation, moder",
+   "integration of transcript and protein differential results or matrices: gene-protein ID mapping, fold-change concordance and correlation, sparse PLS / co-inerti"
+  ],
+  "deps": [
+   [],
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2",
+    "intent_3"
+   ]
+  ]
+ },
+ {
+  "model": "anthropic/claude-opus-5.5",
+  "req": "two_indep",
+  "secs": 12.105,
+  "err": "",
+  "n_wf": 2,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 2,
+  "spec_clean": 1,
+  "domains": [
+   "variant_calling",
+   "transcriptomics"
+  ],
+  "specs": [
+   "short-variant calling from paired-end whole-genome sequencing FASTQ (alignment with BWA-MEM, duplicate marking, base recalibration, GATK variant calling) → anno",
+   "differential gene expression on a pre-computed bulk RNA-seq gene count matrix with sample metadata (DESeq2/edgeR-style negative-binomial model), group compariso"
+  ],
+  "deps": [
+   [],
+   []
+  ]
+ },
+ {
+  "model": "anthropic/claude-opus-5.5",
+  "req": "dock_admet_rank",
+  "secs": 1.97,
+  "err": "",
+  "n_wf": 0,
+  "roots": 0,
+  "expect_roots": 2,
+  "join_ok": false,
+  "seq": false,
+  "spec_present": 0,
+  "spec_clean": 0,
+  "domains": [],
+  "specs": [],
+  "deps": []
+ },
+ {
+  "model": "anthropic/claude-opus-5.5",
+  "req": "cohort_meta",
+  "secs": 21.549,
+  "err": "",
+  "n_wf": 4,
+  "roots": 3,
+  "expect_roots": 3,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 4,
+  "spec_clean": 1,
+  "domains": [
+   "transcriptomics",
+   "transcriptomics",
+   "transcriptomics",
+   "transcriptomics"
+  ],
+  "specs": [
+   "differential gene expression on a GEO series (fetch raw reads via SRA or the processed count/expression matrix plus sample metadata), two-group case vs control ",
+   "differential gene expression on a GEO series (fetch raw reads via SRA or the processed count/expression matrix plus sample metadata), two-group case vs control ",
+   "differential gene expression on a GEO series (fetch raw reads via SRA or the processed count/expression matrix plus sample metadata; use limma if the platform i",
+   "cross-cohort meta-analysis of per-study differential expression results (gene ID harmonisation and ortholog mapping if species differ; random-effects meta-analy"
+  ],
+  "deps": [
+   [],
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2",
+    "intent_3"
+   ]
+  ]
+ },
+ {
+  "model": "anthropic/claude-opus-5.5",
+  "req": "atac_rna",
+  "secs": 18.947,
+  "err": "",
+  "n_wf": 3,
+  "roots": 2,
+  "expect_roots": 2,
+  "join_ok": true,
+  "seq": false,
+  "spec_present": 3,
+  "spec_clean": 2,
+  "domains": [
+   "epigenomics",
+   "transcriptomics",
+   "multi_omics"
+  ],
+  "specs": [
+   "ATAC-seq processing from paired-end FASTQ (adapter trimming, alignment, duplicate/mitochondrial filtering, MACS2 peak calling, consensus peak set) followed by t",
+   "differential gene expression on a pre-computed bulk RNA-seq gene count matrix with sample metadata (DESeq2/edgeR negative-binomial model), two-group comparison ",
+   "integration of differential chromatin accessibility peaks with differential gene expression results: peak-to-gene annotation (promoter/nearest-gene/window assig"
+  ],
+  "deps": [
+   [],
+   [],
+   [
+    "intent_1",
+    "intent_2"
+   ]
+  ]
+ }
+]

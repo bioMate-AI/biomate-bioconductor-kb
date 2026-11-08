@@ -561,7 +561,7 @@ with open("analyze_interaction_mechanisms_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_interaction_mechanisms_output.txt", "w") as f:
-    f.write("Biomni: Analyze Interaction Mechanisms" + NL)
+    f.write("BioMate: Analyze Interaction Mechanisms" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

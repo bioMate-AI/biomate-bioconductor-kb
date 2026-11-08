@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Why Multi-Omics for Immune-Mediated Disorders — BioMate AI Blog</title>
+  <meta name="description" content="Immune-mediated diseases are populations of distinct molecular diseases. No single omic resolves which axis of heterogeneity matters — multi-omics integration reconstructs the intersection of genetics, cell state, and protein." />
+  <meta name="keywords" content="multi-omics, immune-mediated disorders, autoimmune, single-cell, GWAS, eQTL, patient stratification, BioMate AI" />
+  <link rel="canonical" href="https://biomate.ai/blog-immune-multiomics-why.html" />
+  <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://biomate.ai/llms.txt" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Why Multi-Omics for Immune-Mediated Disorders" />
+  <meta property="og:description" content="Genetics, transcriptomics, and proteomics are each projections — the disease lives in their intersection. Why immune-mediated disorders demand multi-omics integration." />
+  <meta property="og:url" content="https://biomate.ai/blog-immune-multiomics-why.html" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-multi-omics-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Why Multi-Omics for Immune-Mediated Disorders — BioMate AI" />
+  <meta name="twitter:description" content="Two RA patients, two different diseases. Why single-omic readouts miss most of the biology a therapeutic engages." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-multi-omics-hero.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Why Multi-Omics for Immune-Mediated Disorders",
+    "description": "Why immune-mediated disorders require multi-omics integration: genetics, cell state, and protein are each partial projections of a heterogeneous disease.",
+    "datePublished": "2026-10-08",
+    "dateModified": "2026-10-08",
+    "url": "https://biomate.ai/blog-immune-multiomics-why.html",
+    "image": "https://biomate.ai/images/blog-multi-omics-hero.png",
+    "keywords": ["multi-omics", "immune-mediated disorders", "autoimmune", "single-cell", "GWAS", "patient stratification", "BioMate"],
+    "author": { "@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "BioMate AI",
+      "logo": { "@type": "ImageObject", "url": "https://biomate.ai/assets/logo.png" }
+    },
+    "isPartOf": { "@type": "Blog", "name": "BioMate AI Blog", "url": "https://biomate.ai/blog.html" },
+    "articleSection": "Immune-Mediated"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type":"ListItem","position":1,"name":"Home","item":"https://biomate.ai/"},
+      {"@type":"ListItem","position":2,"name":"Blog","item":"https://biomate.ai/blog.html"},
+      {"@type":"ListItem","position":3,"name":"Why Multi-Omics for Immune-Mediated Disorders","item":"https://biomate.ai/blog-immune-multiomics-why.html"}
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css?v=20261010-ui2" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .bm-blog {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  .bm-blog { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  .bm-blog a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  .bm-blog a:hover { color:var(--accent); }
+  .bm-blog img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  .bm-blog nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+  /* Article hero */
+  .article-hero { width:100%; min-height:280px; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body h3 { font-family:var(--font-head); font-size:1.1rem; color:var(--text); margin:1.5rem 0 .5rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul,ol { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li,ol li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+  /* Tables */
+  .article-body table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:.86rem; overflow-x:auto; display:block; }
+  .article-body th { background:var(--bg-card); color:var(--text); font-weight:700; padding:.6rem .9rem; text-align:left; border:1px solid var(--border); white-space:nowrap; }
+  .article-body td { padding:.55rem .9rem; border:1px solid var(--border); color:var(--text-muted); white-space:nowrap; }
+  .td-gene { font-weight:700; color:var(--text) !important; font-family:monospace; }
+  .td-score { font-weight:700; color:#047857 !important; }
+  .td-func { white-space:normal !important; }
+  /* References */
+  .bm-refs { font-size:.82rem; color:var(--text-muted); margin:2rem 0 0; padding:.75rem 1rem; background:var(--bg-card); border-radius:6px; border-left:3px solid var(--border); }
+  .bm-refs p { margin-bottom:.35rem; font-size:.82rem; color:var(--text-muted); }
+  .bm-refs a { color:var(--accent-light); }
+  /* Figure wrapper */
+  .figure-wrap { margin:2rem 0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:#fff; }
+  .figure-caption { font-size:.78rem; color:var(--text-muted); text-align:center; padding:.5rem 1rem .75rem; background:var(--bg-card); border-top:1px solid var(--border); }
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+  /* CTA */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .bm-blog .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .bm-blog .btn-primary:hover { background:var(--accent-light); color:#fff; }
+  /* Footer */
+  .bm-blog footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+  </style>
+      <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-65JDDPEDQ5');</script>
+</head>
+<body>
+<!-- bm-static-nav:start -->
+<div id="bm-nav"><header class="bm-nav"> <div class="bm-nav-inner"> <a href="index.html" class="bm-brand" aria-label="BioMate AI"> <img src="assets/logo.png?v=3" alt="BioMate AI" /> </a> <nav aria-label="Primary navigation" class="bm-primary-nav"><ul class="bm-nav-links" id="bmNavLinks"> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger active" aria-expanded="false" aria-controls="bm-panel-company">Company<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-company" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="about.html">About BioMate</a></h2><p>Our mission and approach to AI-powered science.</p><ul><li><a href="compare.html">BioMate vs. the alternatives &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="blog.html?cat=news">Newsroom</a></h2><p>Company news and the latest from our team.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="contact.html">Contact</a></h2><p>Discuss your research and working with BioMate.</p><ul></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-services">Services<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-services" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="features.html">Biomedical Research Platform</a></h2><p>From scientific questions to reproducible analyses.</p><ul><li><a href="services.html">Explore applications &rarr;</a></li><li><a href="connectors.html">Connectors & developer docs &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="drug-discovery.html">Drug Discovery</a></h2><p>Target intelligence, molecular design and candidate evaluation.</p><ul><li><a href="drug-discovery.html">Explore the workbench &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="tutorials.html">Getting Started</a></h2><p>Practical guidance for your research team.</p><ul><li><a href="tutorials.html">Tutorials &rarr;</a></li><li><a href="pricing.html">Pricing &rarr;</a></li></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-engines">Research Engines<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-engines" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="research-engines.html">Our Research Programs</a></h2><p>Advancing biological understanding and molecular design.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="research-engines.html#virtual-cell">Virtual Cell LLM</a></h2><p>Research into cellular states, responses and disease mechanisms.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="research-engines.html#cyclic-peptides">Cyclic-Peptide Generation</a></h2><p>Research into structure-aware generation and optimization.</p><ul></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-research">Evidence<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-research" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="benchmarks.html">Benchmarks & Evaluations</a></h2><p>Inspect performance, methods and evaluation criteria.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="surveys.html">Research Perspectives</a></h2><p>Explore approaches, comparisons and scientific limitations.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="publications.html">Scientific Publishing</a></h2><p>Follow the research and its applications.</p><ul><li><a href="publications.html">Publications &rarr;</a></li><li><a href="blog.html?cat=science">Scientific articles &rarr;</a></li></ul></section> </div> </div> </div> </li> <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li> <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li> </ul></nav> <button class="bm-mobile-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="bmNavLinks" id="bmMobileToggle"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg> </button> </div> </header><noscript><style>.bm-nav{display:none}</style><nav class="bm-static-nav" aria-label="Primary navigation without JavaScript"><a href="index.html">BioMate AI</a><a href="about.html">Company</a><a href="features.html">Research Platform</a><a href="drug-discovery.html">Drug Discovery</a><a href="research-engines.html">Research Engines</a><a href="benchmarks.html">Evidence</a><a href="pricing.html">Pricing</a><a href="contact.html">Contact</a></nav></noscript></div>
+<!-- bm-static-nav:end -->
+<div class="bm-blog">
+
+<!-- Hero — SVG banner replacing hero image since no image file exists yet -->
+<div class="article-hero" style="max-height:420px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#0f2027;">
+  <img src="images/blog-multi-omics-hero.png" alt="Why Multi-Omics for Immune-Mediated Disorders" style="width:100%;max-width:1100px;max-height:420px;object-fit:cover;display:block;" />
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Immune-Mediated
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Immune-Mediated Multi-Omics</span>
+      <h1>Why Multi-Omics for Immune-Mediated Disorders</h1>
+      <div class="article-meta">
+        <span><strong>October 8, 2026</strong></span>
+        <span>6 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Immune-mediated diseases look like single diagnoses but behave like populations of distinct molecular diseases. Two patients who both carry a diagnosis of rheumatoid arthritis, lupus, or inflammatory bowel disease can have inflammation driven by entirely different cell types, cytokine circuits, and genetic risk — which is why a drug that transforms one patient does little for the next.</p>
+
+      <p>The central problem of the field is not describing <em>that</em> these diseases are heterogeneous; it is resolving <em>which</em> axis of heterogeneity matters for a given patient and a given therapy. No single measurement captures that. Genetics tells you inherited risk but not the current state of the tissue. Bulk transcriptomics averages over the very cell types whose balance defines the disease. Protein abundance — the layer closest to drug action — correlates only modestly with mRNA (on the order of r ≈ 0.4 in many tissues), so a transcript-only readout misses most of the biology a therapeutic will actually engage. Each layer is a projection; the disease lives in their intersection.</p>
+
+      <h2>The modern multi-omics playbook</h2>
+
+      <p>Multi-omics integration is the discipline of reconstructing that intersection, and the approach is now consistent across disorders: genome-wide association studies map inherited risk; functional genomics (expression QTLs, single-cell chromatin accessibility, colocalization) converts non-coding risk loci into the specific genes and cell types that carry them; single-cell and spatial transcriptomics identify the pathogenic cell states in the affected tissue; and bulk molecular profiling stratifies patients for treatment-response prediction. Together these turn a clinical label into a mechanistic, cell-resolved, patient-specific picture.</p>
+
+      <h2>Where it already pays off</h2>
+
+      <p>The payoff is tangible where the data are rich. In inflammatory bowel disease, cellular modules identified by single-cell analysis of mucosa are associated with resistance to anti-TNF therapy (Martin et al., <em>Cell</em> 2019; Smillie et al., <em>Cell</em> 2019). In psoriasis, convergent genetic, transcriptomic, and functional evidence pinned the IL-23/IL-17 axis — and that convergence translated directly into a generation of successful biologics (Tsoi et al., <em>Nat Genet</em> 2012; Reynolds et al., <em>Science</em> 2021). These are proofs that integrated multi-omics is not description for its own sake; done well, it nominates targets and stratifies patients.</p>
+
+      <blockquote>"The disease is not in any one layer. It is in the agreement — and the disagreement — between them."</blockquote>
+
+      <p>A platform that carries a scientist from raw multi-omics data to an integrated, quality-checked, interpretable result — without a bioinformatics team per project — is what makes this routine rather than heroic. The rest of this series walks through the public data that makes it possible, the methods that integrate it, and where the field can and cannot yet deliver, disorder by disorder.</p>
+
+      <div class="callout"><strong>Immune-Mediated Multi-Omics series</strong><p>1. <a href="blog-immune-multiomics-why.html">Why multi-omics</a> &middot; 2. <a href="blog-immune-multiomics-data-landscape.html">The data landscape</a> &middot; 3. <a href="blog-immune-multiomics-integration-approaches.html">Three ways to integrate</a></p></div>
+
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-immune-multiomics-data-landscape.html">The Public Multi-Omics Data Landscape</a><div class="meta">October 8, 2026 · Immune-Mediated</div></li>
+        <li><a href="blog-immune-multiomics-integration-approaches.html">Three Ways to Integrate Multi-Omics, and When</a><div class="meta">October 8, 2026 · Immune-Mediated</div></li>
+        <li><a href="blog-scrna-immune-profiling.html">From PBMC Samples to Immune Cell Maps</a><div class="meta">October 8, 2026 · Single-Cell</div></li>
+        <li><a href="blog-complement-stratification.html">C3 or C5? Complement Pathway Stratification</a><div class="meta">October 8, 2026 · Immunology</div></li>
+        <li><a href="blog-gwas-target-indication.html">GWAS → scRNA-seq → eQTL Target Prioritization</a><div class="meta">October 8, 2026 · Genomics</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Multi-Omics</span>
+        <span class="topic-chip">Immune-Mediated</span>
+        <span class="topic-chip">Autoimmune</span>
+        <span class="topic-chip">Single-Cell</span>
+        <span class="topic-chip">GWAS</span>
+        <span class="topic-chip">Patient Stratification</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Run integrated multi-omics analysis on your own data — no pipeline setup required.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Stay updated</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.9rem;">New posts on multi-omics, biomarker workflows, and platform updates &mdash; no spam.</p>
+      <form class="bm-sub" onsubmit="return bmSubscribe(this,event)">
+        <input type="email" name="email" required placeholder="your@email.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:.85rem;margin-bottom:.6rem;font-family:var(--font-body);" />
+        <input type="hidden" name="_subject" value="Newsletter signup (blog)" />
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <p class="bm-sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+      </form>
+    </div>
+    <script>
+    function bmSubscribe(form,ev){ev.preventDefault();var m=form.querySelector('.bm-sub-msg');
+      fetch('https://formspree.io/f/xlgvqqvz',{method:'POST',headers:{'Accept':'application/json'},body:new FormData(form)})
+      .then(function(r){if(!r.ok)throw 0;form.innerHTML='<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed &mdash; thanks!</p>';})
+      .catch(function(){m.style.color='#b42828';m.textContent='Something went wrong — email contact@biomate.ai';m.style.display='';});
+      return false;}
+    </script>
+  </aside>
+</div>
+
+<section style="background:var(--bg-2,#f4f7f9);padding:2rem 0;">
+  <div style="max-width:760px;margin:0 auto;padding:0 1.5rem;">
+    <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#6b7280);margin-bottom:.75rem;">Explore BioMate capabilities</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
+      <a href="services.html#genomics" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Genomics &amp; Multi-Omics &rarr;</a>
+      <a href="features.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Platform features &rarr;</a>
+      <a href="pricing.html" style="color:var(--accent-2,#2563eb);font-size:.9rem;text-decoration:none;">Pricing &rarr;</a>
+    </div>
+  </div>
+</section>
+
+</div><!-- /bm-blog -->
+<!-- bm-static-foot:start -->
+<div id="bm-foot"><section class="bm-cta-bar"> <div class="bm-cta-bar-inner"> <p class="bm-cta-bar-eyebrow">BioMate AI</p> <h2 class="bm-cta-bar-head">Try BioMate free.</h2> <p class="bm-cta-bar-sub">Move faster from scientific question to actionable results.</p> <div class="bm-cta-bar-btns"> <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-on-ink-primary bm-btn-lg"> Start free <span class="bm-btn-arrow">&rarr;</span> </a> <a href="contact.html?topic=General%20inquiry" class="bm-btn bm-btn-ink bm-btn-lg">Contact us</a> </div> </div> </section> <footer class="bm-footer"> <div class="bm-footer-inner"> <div class="bm-footer-grid"> <div class="bm-footer-brand"> <a href="index.html" class="bm-brand"> <img src="assets/logo.png?v=3" alt="BioMate AI" /> </a> <p>A biomedical research platform for drug discovery.</p> </div> <div class="bm-footer-col"> <h4>Platform</h4> <ul> <li><a href="features.html">Research Workbench</a></li> <li><a href="drug-discovery.html">Drug Discovery</a></li> <li><a href="research-engines.html">Research Engines</a></li> <li><a href="features.html">Features</a></li> <li><a href="benchmarks.html">Benchmarks</a></li> <li><a href="pricing.html">Pricing</a></li> <li><a href="https://dev-public.biomate.ai/register">Start free</a></li> </ul> </div> <div class="bm-footer-col"> <h4>Science</h4> <ul> <li><a href="services.html#drug-discovery">Drug Discovery</a></li> <li><a href="services.html#genomics">Genomics &amp; Multi-Omics</a></li> <li><a href="services.html#structural-biology">Structural Biology</a></li> <li><a href="surveys.html">Research Perspectives</a></li> <li><a href="blog.html">Newsroom &rarr;</a></li> </ul> </div> <div class="bm-footer-col"> <h4>Company</h4> <ul> <li><a href="about.html">About</a></li> <li><a href="tutorials.html">Tutorials</a></li> <li><a href="glossary.html">Glossary</a></li> <li><a href="blog.html">Newsroom</a></li> <li><a href="contact.html">Contact</a></li> <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li> </ul> </div> </div> <div class="bm-footer-bottom"> <span>&copy; 2026 BioMate AI &middot; contact@biomate.ai</span> <span class="links"> <a href="privacy.html">Privacy</a> <a href="terms.html">Terms</a> </span> </div> </div> </footer></div>
+<!-- bm-static-foot:end -->
+<script src="shell.js?v=20260609b"></script>
+<script>renderShell({ active: 'newsroom' });</script>
+</body>
+</html>

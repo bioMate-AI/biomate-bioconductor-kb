@@ -1,0 +1,8 @@
+{
+  "tests_passed": 81,
+  "tests_failed": 0,
+  "durable_files_checksum_matched": 44,
+  "module_tests": 70,
+  "donor_evaluator_tests": 11,
+  "source_worktree": "/Users/kky/biomate-audit-fix"
+}

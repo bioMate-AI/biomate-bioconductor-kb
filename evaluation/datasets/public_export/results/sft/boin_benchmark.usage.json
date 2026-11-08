@@ -1,0 +1,16 @@
+{
+  "task": "boin_benchmark",
+  "mode": null,
+  "model": "sft",
+  "n": 20,
+  "n_with_usage": 20,
+  "input_tokens_total": 5099,
+  "output_tokens_total": null,
+  "input_tokens_mean": 254.95,
+  "output_tokens_mean": 0.0,
+  "latency_ms_p50": 893,
+  "latency_ms_p95": 971,
+  "latency_ms_mean": 873.3,
+  "n_with_latency": 20,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

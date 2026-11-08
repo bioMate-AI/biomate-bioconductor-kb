@@ -1,0 +1,60 @@
+{
+  "harvest_date": "2026-10-05",
+  "source_db": "backend/database/galaxy_ai_tools.db",
+  "db_size_mb": 324.1,
+  "db_is_enriched": true,
+  "db_note": "real enriched catalog (4210 workflow rows, real_exec_status populated); NOT a stub",
+  "catalog": {
+    "catalog_rows": 4210,
+    "emitted_records": 4210,
+    "duplicate_paths_skipped": 0,
+    "nf_files_on_disk_repo": 5100,
+    "tiers": {
+      "receipted": 1092,
+      "curated": 2664,
+      "stub": 454
+    },
+    "records_with_nf_code": 3756,
+    "holdout_records": 53,
+    "holdout_by_tier": {
+      "curated": 33,
+      "stub": 20,
+      "receipted": 0
+    },
+    "sft_exportable_by_tier": {
+      "receipted": 1092,
+      "curated": 2631,
+      "stub": 434
+    },
+    "holdout_family_tokens_count": 54,
+    "file": "catalog_pairs.jsonl",
+    "bytes": 43480239,
+    "sha256": "d1ef0d1303f50dbae5c4b10ac0b359977eef85e1a56168e261acdd5a7937cae2"
+  },
+  "fix_triples": {
+    "candidate_commits": {
+      "nf_fix_commits": 842,
+      "executor_fix_commits": 369,
+      "union": 1169
+    },
+    "usable_triples": 2608,
+    "usable_triples_nf": 2249,
+    "usable_triples_executor": 359,
+    "commits_producing_a_pair": 1046,
+    "bulk_commits_skipped": 83,
+    "bulk_files_skipped": 85085,
+    "dropped_pairs": {
+      "empty_side": 221,
+      "binary": 0,
+      "whitespace_only": 4,
+      "too_large": 4
+    },
+    "filters": {
+      "max_files_per_commit": 50,
+      "max_diff_lines": 2000
+    },
+    "file": "fix_triples.jsonl",
+    "bytes": 325937217,
+    "sha256": "f9871dae2705e56df25f138e20c1ffead04e90f1d034416b749f9cf8ca206651"
+  }
+}

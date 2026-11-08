@@ -1,0 +1,17 @@
+
+k=5 labs=17 best comparator on eval: PTk  means {'PT': 0.4194, 'A': 0.2274, 'PTk': 0.4537, 'F1b_1': 0.3072, 'F1b_10': 0.4352, 'F1b_2': 0.3522, 'F1b_25': 0.4338, 'F1b_5': 0.4123, 'F2b_1': 0.3983, 'F2b_10': 0.4367, 'F2b_2': 0.4325, 'F2b_25': 0.4296, 'F2b_5': 0.4438}
+  F2b_5  - best: -0.010  95% [-0.046,0.015]  adj98.3% [-0.055,0.019]  | vs PTk -0.010  vs PT +0.024  vs A +0.216
+  F1b_5  - best: -0.041  95% [-0.072,-0.013]  adj98.3% [-0.079,-0.006]  | vs PTk -0.041  vs PT -0.007  vs A +0.185
+  F2b_10 - best: -0.017  95% [-0.060,0.010]  adj98.3% [-0.075,0.012]  | vs PTk -0.017  vs PT +0.017  vs A +0.209
+
+k=10 labs=15 best comparator on eval: PTk  means {'PT': 0.3677, 'A': 0.3088, 'PTk': 0.4286, 'F1b_1': 0.3483, 'F1b_10': 0.4425, 'F1b_2': 0.376, 'F1b_25': 0.415, 'F1b_5': 0.4227, 'F2b_1': 0.4138, 'F2b_10': 0.4161, 'F2b_2': 0.4334, 'F2b_25': 0.3927, 'F2b_5': 0.4348}
+  F2b_5  - best: +0.006  95% [-0.020,0.029]  adj98.3% [-0.027,0.034]  | vs PTk +0.006  vs PT +0.067  vs A +0.126
+  F1b_5  - best: -0.006  95% [-0.073,0.064]  adj98.3% [-0.085,0.080]  | vs PTk -0.006  vs PT +0.055  vs A +0.114
+  F2b_10 - best: -0.013  95% [-0.055,0.020]  adj98.3% [-0.066,0.023]  | vs PTk -0.013  vs PT +0.048  vs A +0.107
+
+k=25 labs=9 best comparator on eval: PTk  means {'PT': 0.3813, 'A': 0.3331, 'PTk': 0.4193, 'F1b_1': 0.3466, 'F1b_10': 0.4257, 'F1b_2': 0.3603, 'F1b_25': 0.4572, 'F1b_5': 0.3943, 'F2b_1': 0.4039, 'F2b_10': 0.4476, 'F2b_2': 0.4267, 'F2b_25': 0.4315, 'F2b_5': 0.4446}
+  F2b_5  - best: +0.025  95% [-0.057,0.134]  adj98.3% [-0.070,0.161]  | vs PTk +0.025  vs PT +0.063  vs A +0.112
+  F1b_5  - best: -0.025  95% [-0.147,0.139]  adj98.3% [-0.168,0.173]  | vs PTk -0.025  vs PT +0.013  vs A +0.061
+  F2b_10 - best: +0.028  95% [-0.032,0.092]  adj98.3% [-0.047,0.107]  | vs PTk +0.028  vs PT +0.066  vs A +0.114
+
+DECISION {"F2b_5": {"cluster": "lab", "a_point_noninferior_all_k": true, "b_supported_bonferroni_adjusted": false, "b_nominal_only_unadjusted": false, "formal_NI_95lower_gt_minus0p05_all_k": false, "outcome": "NULL"}, "F1b_5": {"cluster": "lab", "a_point_noninferior_all_k": false, "b_supported_bonferroni_adjusted": false, "b_nominal_only_unadjusted": false, "formal_NI_95lower_gt_minus0p05_all_k": false, "outcome": "FAILED"}}

@@ -85,15 +85,26 @@ jobs:
           # PI-12 needs the local GPU + adapter; skipped against dev
           BIOMATE_REQUIRE_AUTH: ${{ github.event.inputs.require_auth || 'false' }}
         run: |
-          npx playwright test e2e/ind-report-production.e2e.ts \
-            --reporter=list --output=/tmp/pi-suite-output
+          # The PI test files were removed in the "161 stale E2E files" cleanup
+          # (1a12b4e8c). Skip gracefully if absent so a manual dispatch doesn't
+          # hard-fail with "No tests found". Restore the test to re-enable.
+          if [ -f e2e/ind-report-production.e2e.ts ]; then
+            npx playwright test e2e/ind-report-production.e2e.ts \
+              --reporter=list --output=/tmp/pi-suite-output
+          else
+            echo "::warning::e2e/ind-report-production.e2e.ts absent (removed in 1a12b4e8c) — PI suite skipped. Restore the test to re-enable."
+          fi
 
       - name: Run design audit against dev
         env:
           BIOMATE_URL: https://dev-public.biomate.ai
         run: |
-          npx playwright test e2e/ind-design-audit.e2e.ts \
-            --reporter=list --output=/tmp/audit-output
+          if [ -f e2e/ind-design-audit.e2e.ts ]; then
+            npx playwright test e2e/ind-design-audit.e2e.ts \
+              --reporter=list --output=/tmp/audit-output
+          else
+            echo "::warning::e2e/ind-design-audit.e2e.ts absent (removed in 1a12b4e8c) — design audit skipped. Restore the test to re-enable."
+          fi
 
       - name: Upload PI suite artifacts
         if: always()

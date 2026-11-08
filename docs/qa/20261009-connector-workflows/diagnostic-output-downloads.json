@@ -1,0 +1,25 @@
+{
+  "scope": "Direct canonical API diagnostic, not connector discovery proof",
+  "files": [
+    {
+      "name": "predict_admet_properties_results.json",
+      "bytes": 1580,
+      "sha256": "019feac729ca332592315319fbc9a218eec0758138c8992d92e186c7dc0b6192"
+    },
+    {
+      "name": "qc_metrics.json",
+      "bytes": 563,
+      "sha256": "61860002d10eca771ceb75e1f2eee90ff25165036bbcbfad42d2645ce9f5bfec"
+    },
+    {
+      "name": "toxicity_report.json",
+      "bytes": 3497,
+      "sha256": "800673bb9a895b02c052f7e84511bcbe68f40ccc4a6658663a849021d7749046"
+    },
+    {
+      "name": "versions.yml",
+      "bytes": 159,
+      "sha256": "ce795eddc7f1e07edf583fcaeb5a839c045db4bee990858de3c58761a3fa1a90"
+    }
+  ]
+}

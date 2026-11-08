@@ -29,7 +29,7 @@ const CLUSTER_FILE: Record<string, string> = {
 function comb2(v: number): number { return v < 2 ? 0 : (v * (v - 1)) / 2; }
 
 export function ari(a: string[], b: string[]): number {
-  const n = a.length; if (n < 2) return NaN;
+  const n = a.length; if (n < 2 || n !== b.length) return NaN;
   const tab = new Map<string, number>(), ca = new Map<string, number>(), cb = new Map<string, number>();
   for (let i = 0; i < n; i++) {
     tab.set(a[i] + '' + b[i], (tab.get(a[i] + '' + b[i]) || 0) + 1);
@@ -39,11 +39,11 @@ export function ari(a: string[], b: string[]): number {
   let sa = 0; ca.forEach(v => sa += comb2(v));
   let sb = 0; cb.forEach(v => sb += comb2(v));
   const exp = (sa * sb) / comb2(n), mx = (sa + sb) / 2;
-  return mx === exp ? 0 : (idx - exp) / (mx - exp);
+  return mx === exp ? 1 : (idx - exp) / (mx - exp);
 }
 
 export function nmi(a: string[], b: string[]): number {
-  const n = a.length; if (n < 2) return NaN;
+  const n = a.length; if (n < 2 || n !== b.length) return NaN;
   const tab = new Map<string, number>(), ca = new Map<string, number>(), cb = new Map<string, number>();
   for (let i = 0; i < n; i++) {
     tab.set(a[i] + '' + b[i], (tab.get(a[i] + '' + b[i]) || 0) + 1);
@@ -56,7 +56,7 @@ export function nmi(a: string[], b: string[]): number {
     mi += (nxy / n) * Math.log((nxy * n) / (ca.get(x)! * cb.get(y)!));
   });
   const denom = (H(ca) + H(cb)) / 2;
-  return denom ? mi / denom : 0;
+  return denom ? mi / denom : 1;
 }
 
 /** parse a clusters.csv (sample,cluster) text into a map */
@@ -81,36 +81,70 @@ export function parseLabels(text: string): Map<string, string> {
   return out;
 }
 
-/** score a set of method clusterings. If labels given → ARI/NMI ranked; else pairwise agreement. */
+export interface BenchmarkScore {
+  mode: 'ground_truth' | 'agreement';
+  report: Array<{
+    method: string; n: number; available_n: number; rank: number | null;
+    status?: 'scored' | 'failed';
+    ARI?: number | null; NMI?: number | null; mean_agreement?: number | null;
+  }>;
+  winner: string | null;
+  reason: 'insufficient_methods' | 'insufficient_common_samples' | 'tied' | null;
+  common_samples: string[];
+}
+
+/** Compare every method on the same cohort. Agreement measures consensus, not accuracy. */
 export function scoreBenchmark(
   methodClusters: Record<string, Map<string, string>>,
   labels?: Map<string, string>,
-): { mode: 'ground_truth' | 'agreement'; report: any[]; winner: string | null } {
+): BenchmarkScore {
   const names = Object.keys(methodClusters);
-  if (labels && labels.size) {
-    const rows = names.map(m => {
-      const clu = methodClusters[m];
-      const common = [...clu.keys()].filter(s => labels.has(s));
-      if (common.length < 2) return { method: m, ARI: NaN, NMI: NaN, n: common.length };
-      const a = common.map(s => clu.get(s)!), b = common.map(s => labels.get(s)!);
-      return { method: m, ARI: ari(a, b), NMI: nmi(a, b), n: common.length };
-    }).sort((x, y) => (Number.isNaN(y.ARI) ? -9 : y.ARI) - (Number.isNaN(x.ARI) ? -9 : x.ARI))
-      .map((r, i) => ({ ...r, rank: i + 1 }));
-    return { mode: 'ground_truth', report: rows, winner: rows[0]?.method ?? null };
-  }
-  // no labels → mean pairwise inter-method agreement (consensus ranking)
-  const mean: Record<string, number[]> = {}; names.forEach(m => (mean[m] = []));
-  for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
-    const x = names[i], y = names[j];
-    const common = [...methodClusters[x].keys()].filter(s => methodClusters[y].has(s));
-    if (common.length < 2) continue;
-    const v = ari(common.map(s => methodClusters[x].get(s)!), common.map(s => methodClusters[y].get(s)!));
-    mean[x].push(v); mean[y].push(v);
-  }
-  const rows = names.map(m => ({
-    method: m, mean_agreement: mean[m].length ? mean[m].reduce((s, v) => s + v, 0) / mean[m].length : 0,
-  })).sort((a, b) => b.mean_agreement - a.mean_agreement).map((r, i) => ({ ...r, rank: i + 1 }));
-  return { mode: 'agreement', report: rows, winner: rows[0]?.method ?? null };
+  // An explicitly supplied empty label set must not silently switch scoring mode.
+  const mode = labels !== undefined ? 'ground_truth' : 'agreement';
+  const usable = (value: string | undefined) => value !== undefined && !['', 'NA', 'NaN'].includes(value.trim());
+  const common = names.length ? [...methodClusters[names[0]].keys()].filter(sample =>
+    names.every(name => usable(methodClusters[name].get(sample))) &&
+    (labels === undefined || usable(labels.get(sample))),
+  ).sort() : [];
+  const reason = names.length < 2 ? 'insufficient_methods'
+    : common.length < 2 ? 'insufficient_common_samples' : null;
+  const vectors = names.map(name => common.map(sample => methodClusters[name].get(sample)!));
+  const report: BenchmarkScore['report'] = names.map((method, i) => {
+    const row = { method, n: common.length, available_n: methodClusters[method].size, rank: null };
+    if (mode === 'ground_truth') {
+      const truth = common.map(sample => labels!.get(sample)!);
+      return { ...row, ARI: reason ? null : ari(vectors[i], truth), NMI: reason ? null : nmi(vectors[i], truth) };
+    }
+    const agreements = vectors.filter((_, j) => i !== j).map(other => ari(vectors[i], other));
+    return { ...row, mean_agreement: reason ? null : agreements.reduce((sum, v) => sum + v, 0) / agreements.length };
+  });
+  if (reason) return { mode, report, winner: null, reason, common_samples: common };
+  const value = (row: BenchmarkScore['report'][number]) => (mode === 'ground_truth' ? row.ARI : row.mean_agreement)!;
+  report.sort((a, b) => value(b) - value(a));
+  // Equal scores share rank; input ordering must never decide a scientific winner.
+  report.forEach((row, i) => {
+    row.rank = i > 0 && Math.abs(value(row) - value(report[i - 1])) <= 1e-12 ? report[i - 1].rank : i + 1;
+  });
+  const tied = report[1].rank === 1;
+  return { mode, report, winner: tied ? null : report[0].method, reason: tied ? 'tied' : null, common_samples: common };
+}
+
+/**
+ * Append explicit rows for methods that produced no clusters, so a PARTIAL
+ * comparison report shows WHICH method failed instead of hiding it in
+ * `coverage.missing_methods`. Failed rows carry null metrics and rank=null, so
+ * they never enter ranking or winner selection (scoreBenchmark already decided
+ * those over the scored methods only). Pure + unit-testable.
+ */
+export function withFailedMethodRows(
+  score: BenchmarkScore,
+  missingMethods: string[],
+): BenchmarkScore['report'] {
+  const failed = missingMethods.map(method => ({
+    method, n: 0, available_n: 0, rank: null, status: 'failed' as const,
+    ...(score.mode === 'ground_truth' ? { ARI: null, NMI: null } : { mean_agreement: null }),
+  }));
+  return [...score.report.map(r => ({ ...r, status: 'scored' as const })), ...failed];
 }
 
 // ------------------------------------------------------------------ orchestrator deps (injected)
@@ -120,12 +154,12 @@ export interface BenchmarkDeps {
   // current run status ('running' | 'completed' | 'succeeded' | 'failed' | 'error' | ...)
   getRun: (runId: string) => Promise<{ status: string } | null>;
   // list a run's output files → [{ name, s3_uri }]
-  getOutputFiles: (runId: string) => Promise<Array<{ name?: string; s3_uri?: string }>>;
+  getOutputFiles: (runId: string, req: Request) => Promise<Array<{ name?: string; s3_uri?: string }>>;
   // read an s3://… (or local) text file
   readS3Text: (uri: string) => Promise<string>;
 }
 
-const TERMINAL = new Set(['completed', 'succeeded', 'failed', 'error']);
+const TERMINAL = new Set(['completed', 'succeeded', 'failed', 'error', 'cancelled', 'canceled', 'blocked', 'skipped']);
 const OK = new Set(['completed', 'succeeded']);
 
 // v1 persistence: in-memory grouping (child runs are durably tracked in the DB; the
@@ -142,6 +176,7 @@ export function registerBenchmarkOrchestrator(app: Express, deps: BenchmarkDeps)
       if (!Array.isArray(omics) || omics.length < 2) return res.status(400).json({ error: 'omics must be a list of ≥2 matrix paths' });
       const sel: string[] = Array.isArray(methods) ? methods.map((m: string) => String(m).toLowerCase()) : [];
       if (!sel.length) return res.status(400).json({ error: 'methods is required — the user selects which methods to compare' });
+      if (new Set(sel).size !== sel.length) return res.status(400).json({ error: 'methods must be unique' });
       const bad = sel.filter(m => !BENCHMARK_METHOD_PATHS[m]);
       if (bad.length) return res.status(400).json({ error: `unknown methods: ${bad.join(', ')}`, available: Object.keys(BENCHMARK_METHOD_PATHS) });
 
@@ -188,7 +223,7 @@ export function registerBenchmarkOrchestrator(app: Express, deps: BenchmarkDeps)
       // all done → fetch clusters for the OK ones + score
       const methodClusters: Record<string, Map<string, string>> = {};
       for (const c of children.filter(c => OK.has(c.status))) {
-        const files = await deps.getOutputFiles(c.runId).catch(() => []);
+        const files = await deps.getOutputFiles(c.runId, req).catch(() => []);
         const want = CLUSTER_FILE[c.method];
         const hit = files.find(f => (f.s3_uri || '').endsWith(want) || (f.name || '') === want)
                  || files.find(f => (f.s3_uri || '').includes('_clusters.csv') && !(f.s3_uri || '').includes('_views'));
@@ -198,11 +233,26 @@ export function registerBenchmarkOrchestrator(app: Express, deps: BenchmarkDeps)
         }
       }
       let labels: Map<string, string> | undefined;
-      if (grp.labels) { const t = await deps.readS3Text(grp.labels).catch(() => ''); if (t) labels = parseLabels(t); }
+      if (grp.labels) {
+        const text = await deps.readS3Text(grp.labels).catch(() => '');
+        labels = parseLabels(text);
+        if (!labels.size) return res.json({ benchmarkId: bid, status: 'failed', children, winner: null, error: 'labels_unavailable' });
+      }
 
-      if (!Object.keys(methodClusters).length) return res.json({ benchmarkId: bid, status: 'failed', children, error: 'no method produced clusters' });
-      const { mode, report, winner } = scoreBenchmark(methodClusters, labels);
-      res.json({ benchmarkId: bid, status: 'completed', mode, children, report, winner });
+      const missingMethods = grp.methods.filter(method => !methodClusters[method]?.size);
+      if (missingMethods.length === grp.methods.length) return res.json({
+        benchmarkId: bid, status: 'failed', children, winner: null, error: 'no method produced clusters',
+        coverage: { expected: grp.methods.length, observed: 0, missing_methods: missingMethods },
+      });
+      const score = scoreBenchmark(methodClusters, labels);
+      const partial = missingMethods.length > 0;
+      res.json({
+        benchmarkId: bid, status: partial ? 'partial' : 'completed', children, ...score,
+        report: withFailedMethodRows(score, missingMethods),
+        winner: partial ? null : score.winner,
+        reason: partial ? 'incomplete_method_coverage' : score.reason,
+        coverage: { expected: grp.methods.length, observed: grp.methods.length - missingMethods.length, missing_methods: missingMethods },
+      });
     } catch (e: any) {
       res.status(500).json({ error: 'benchmark_status_failed', detail: String(e?.message || e) });
     }

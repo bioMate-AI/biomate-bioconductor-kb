@@ -15,7 +15,7 @@ Writes: reference/claude_design/research_agents/narration/<demo>.zh.subs.md
 """
 import re, os, sys, pathlib, argparse, time
 
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyDoFJyQuwTYsfhoLO4DBL1ME9Ojl7VpFHI')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 MODEL = 'gemini-2.5-flash'   # fast condenser
 
 PROMPT = """你是中文字幕助手。把下列中文旁白压缩成 1-2 行流畅自然的字幕。规则:

@@ -124,7 +124,7 @@ with open("norm_chr_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("norm_chr_output.txt", "w") as f:
-    f.write("Biomni: Norm Chr" + NL)
+    f.write("BioMate: Norm Chr" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

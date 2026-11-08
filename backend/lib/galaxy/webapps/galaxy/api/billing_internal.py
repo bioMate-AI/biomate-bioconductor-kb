@@ -98,81 +98,122 @@ async def record_llm_cost(request: Request) -> Dict[str, Any]:
     output_tokens = int(body.get("output_tokens") or 0)
     duration_ms = float(body.get("duration_ms") or 0.0)
 
+    # 1. File-based durable audit log (append-only JSONL; never raises).
+    #    This is the primary durable sink — it has no external dependencies.
+    file_log_ok = False
     try:
-        # 1. File-based durable audit log (always works, no dependencies)
-        _cost_log().record(
+        file_log_ok = bool(_cost_log().record(
             user_id=user_id,
             session_id=session_id,
             model=model,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             duration_ms=duration_ms,
-        )
+        ))
+    except Exception as exc:
+        # Only reached if the cost_log module itself fails to import/resolve.
+        log.error("[BillingInternal] durable file cost-log write failed: %s", exc)
 
-        # 2. Redis-backed realtime cost service (powers /api/billing/usage dashboard)
-        svc = _cost_service()
-        if svc is not None:
-            try:
-                calc = _cost_calculator()
-                if calc is not None:
-                    cost = calc.llm_call_cost(
-                        user_id=user_id,
-                        session_id=session_id,
-                        model=model,
-                        input_tokens=input_tokens,
-                        output_tokens=output_tokens,
-                    )
-                    svc.record_llm_cost(
-                        user_id=user_id,
-                        input_usd=cost.input_cost,
-                        output_usd=cost.output_cost,
-                        input_tokens=cost.input_tokens,
-                        output_tokens=cost.output_tokens,
-                    )
-                else:
-                    # Fallback: estimate cost inline using same price table as cost_log
-                    from galaxy.ai.cost_log import compute_cost
-                    total = compute_cost(model, input_tokens, output_tokens)
-                    input_usd = round(total * (input_tokens / max(input_tokens + output_tokens, 1)), 8)
-                    output_usd = round(total - input_usd, 8)
-                    svc.record_llm_cost(
-                        user_id=user_id,
-                        input_usd=input_usd,
-                        output_usd=output_usd,
-                        input_tokens=input_tokens,
-                        output_tokens=output_tokens,
-                    )
-            except Exception as redis_exc:
-                log.debug("[BillingInternal] Redis write skipped (non-fatal): %s", redis_exc)
-
-        # 3. Lago emission for usage-based billing (fire-and-forget)
+    # 2. Redis-backed realtime cost service (powers /api/billing/usage dashboard
+    #    and quota enforcement). record_llm_cost returns a durability status:
+    #    "redis" (written), "deadletter" (Redis failed → durably queued), or
+    #    "lost" (Redis AND dead-letter both failed).
+    realtime_durability = "unavailable"  # svc could not be constructed at all
+    svc = _cost_service()
+    if svc is not None:
         try:
-            lago = _lago_client()
-            if lago is not None:
-                plan_code = _get_user_plan_code(user_id)
-                lago.emit_llm(
+            calc = _cost_calculator()
+            if calc is not None:
+                cost = calc.llm_call_cost(
                     user_id=user_id,
                     session_id=session_id,
+                    model=model,
                     input_tokens=input_tokens,
                     output_tokens=output_tokens,
-                    model=model,
-                    plan_code=plan_code,
                 )
-        except Exception as lago_exc:
-            log.warning("[BillingInternal] Lago emit skipped (non-fatal): %s", lago_exc)
+                realtime_durability = svc.record_llm_cost(
+                    user_id=user_id,
+                    input_usd=cost.input_cost,
+                    output_usd=cost.output_cost,
+                    input_tokens=cost.input_tokens,
+                    output_tokens=cost.output_tokens,
+                ) or "redis"
+            else:
+                # Fallback: estimate cost inline using same price table as cost_log
+                from galaxy.ai.cost_log import compute_cost
+                total = compute_cost(model, input_tokens, output_tokens)
+                input_usd = round(total * (input_tokens / max(input_tokens + output_tokens, 1)), 8)
+                output_usd = round(total - input_usd, 8)
+                realtime_durability = svc.record_llm_cost(
+                    user_id=user_id,
+                    input_usd=input_usd,
+                    output_usd=output_usd,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                ) or "redis"
+        except Exception as compute_exc:
+            # Cost computation (not the Redis write — that is handled inside
+            # record_llm_cost and dead-lettered) failed. The file audit log
+            # above is the durable backstop for this record.
+            log.error("[BillingInternal] realtime cost compute failed: %s", compute_exc)
+            realtime_durability = "error"
 
-        log.info(
-            "[BillingInternal] Recorded LLM cost: user=%s model=%s in=%d out=%d",
-            user_id, model, input_tokens, output_tokens,
+    # 3. Lago emission for usage-based billing (fire-and-forget; intentional
+    #    no-op when Lago is disabled by default under flat-tier billing).
+    try:
+        lago = _lago_client()
+        if lago is not None:
+            plan_code = _get_user_plan_code(user_id)
+            lago.emit_llm(
+                user_id=user_id,
+                session_id=session_id,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                model=model,
+                plan_code=plan_code,
+            )
+    except Exception as lago_exc:
+        log.warning("[BillingInternal] Lago emit skipped (non-fatal): %s", lago_exc)
+
+    # 4. Durability decision. The event is durably recorded if EITHER the file
+    #    audit log succeeded OR the realtime ledger landed in Redis / the
+    #    dead-letter. Only when the event is nowhere durable do we return 5xx —
+    #    we must never return HTTP 200 claiming success on a lost money event.
+    durable = file_log_ok or realtime_durability in ("redis", "deadletter")
+    if not durable:
+        log.error(
+            "[BillingInternal] LLM cost NOT durably recorded (file_log_ok=%s "
+            "realtime=%s) user=%s model=%s in=%d out=%d",
+            file_log_ok, realtime_durability, user_id, model, input_tokens, output_tokens,
         )
-        return {
-            "status": "recorded",
-            "user_id": user_id,
-            "session_id": session_id,
-            "model": model,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-        }
-    except Exception as exc:
-        log.warning("[BillingInternal] Failed to record cost: %s", exc)
-        return {"status": "error", "message": str(exc)}
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "error",
+                "message": "LLM cost event could not be durably recorded (Redis, "
+                           "dead-letter, and file audit log all failed)",
+                "file_log_ok": file_log_ok,
+                "realtime_durability": realtime_durability,
+            },
+        )
+
+    log.info(
+        "[BillingInternal] Recorded LLM cost: user=%s model=%s in=%d out=%d "
+        "(file_log=%s realtime=%s)",
+        user_id, model, input_tokens, output_tokens, file_log_ok, realtime_durability,
+    )
+    resp: Dict[str, Any] = {
+        "status": "recorded",
+        "user_id": user_id,
+        "session_id": session_id,
+        "model": model,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "file_log_ok": file_log_ok,
+        "realtime_durability": realtime_durability,
+    }
+    if realtime_durability == "deadletter":
+        # Primary Redis write failed but the event is durably queued.
+        resp["queued"] = True
+        resp["durability"] = "deadletter"
+    return resp

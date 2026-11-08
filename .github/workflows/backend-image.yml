@@ -261,23 +261,44 @@ jobs:
             "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
             "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-arm64"
 
-      - name: Push GHCR multi-arch manifest (on-prem, release only)
-        if: steps.tags.outputs.release_tag != ''
+      - name: Push GHCR multi-arch manifest (on-prem, release + branch)
+        # Push to GHCR on every branch build so on-prem ARM64 instances can pull
+        # branch-tagged images without needing ECR credentials.
+        # `:latest` is only updated on release-v* tags (production release gate).
+        # Uses `skopeo copy --multi-arch all` to cross-copy from ECR to GHCR
+        # without pulling layers locally — avoids the ~20 GB disk spike from
+        # docker pull + docker push on a fresh runner.
         run: |
-          # Re-push per-platform images to GHCR so imagetools can reference them
-          docker pull "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-amd64"
-          docker pull "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-arm64"
-          docker tag "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
-                     "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-amd64"
-          docker tag "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-arm64" \
-                     "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-arm64"
-          docker push "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-amd64"
-          docker push "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-arm64"
-          docker buildx imagetools create \
-            --tag "${{ env.GHCR_IMAGE }}:latest" \
-            --tag "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}" \
-            "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
-            "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-arm64"
+          # Install skopeo for disk-efficient cross-registry manifest copy
+          sudo apt-get install -y skopeo --no-install-recommends -qq
+
+          ECR="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}"
+          GHCR="${{ env.GHCR_IMAGE }}"
+          SHA="${{ steps.tags.outputs.sha_tag }}"
+          BRANCH="${{ steps.tags.outputs.branch_tag }}"
+          RELEASE="${{ steps.tags.outputs.release_tag }}"
+
+          # sha-tagged multi-arch manifest (always)
+          skopeo copy --multi-arch all \
+            "docker://${ECR}:${SHA}" \
+            "docker://${GHCR}:${SHA}"
+
+          # branch-scoped moving tag (branch builds)
+          if [[ -n "${BRANCH}" ]]; then
+            skopeo copy --multi-arch all \
+              "docker://${ECR}:${SHA}" \
+              "docker://${GHCR}:${BRANCH}"
+          fi
+
+          # :latest + release tag (release-v* only)
+          if [[ -n "${{ steps.tags.outputs.release_tag }}" ]]; then
+            skopeo copy --multi-arch all \
+              "docker://${ECR}:${SHA}" \
+              "docker://${GHCR}:latest"
+            skopeo copy --multi-arch all \
+              "docker://${ECR}:${SHA}" \
+              "docker://${GHCR}:${{ steps.tags.outputs.release_tag }}"
+          fi
 
       - name: Summary
         run: |
@@ -285,6 +306,7 @@ jobs:
             echo "## Backend image build (multi-arch: amd64 + arm64)"
             echo "- sha tag: \`${{ steps.tags.outputs.sha_tag }}\`"
             [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- branch tag: \`${{ steps.tags.outputs.branch_tag }}\`" || true
+            [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- GHCR branch: \`${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.branch_tag }}\`" || true
             [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`" || true
             echo "- ECR: \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}\`"
             [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- GHCR: \`${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}\`" || true

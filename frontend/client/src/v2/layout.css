@@ -126,13 +126,14 @@
   display: flex; flex-direction: column; gap: 6px;
 }
 .msg .who {
-  font-size: 11px; color: var(--text-dim); text-transform: uppercase;
-  letter-spacing: 0.05em; font-weight: 600;
+  font-family: var(--bm-font-mono, 'JetBrains Mono', monospace);
+  font-size: 9.5px; color: var(--text-dim); text-transform: none;
+  letter-spacing: 0.13em; font-weight: 600;
 }
 .msg.user .bubble {
-  align-self: flex-end; background: var(--surface-3);
-  padding: 10px 14px; border-radius: 14px 14px 2px 14px;
-  max-width: 80%;
+  align-self: flex-end; background: var(--surface-2);
+  padding: 11px 13px; border-radius: var(--r-md);
+  max-width: 86%;
 }
 .msg.user { align-items: flex-end; }
 .msg.assistant .bubble {

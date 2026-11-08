@@ -39,7 +39,10 @@ process ANALYZE_IMMUNOHISTOCHEMISTRY_IMAGE {
     export PARAM_PROTEIN_NAME="${params.protein_name?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
 
-    # Generate mock IHC stained tissue image for testing
+    # Input resolution lives in the python below (_resolve_image_path): a missing/
+    # placeholder image_path uses the real scikit-image reference IHC image; http/s3
+    # URIs are fetched. (Previously this comment promised a mock image that was never
+    # generated, so the default demo failed to load.)
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -75,6 +78,47 @@ def auto_convert(val):
     return val
 
 
+def _resolve_image_path(p):
+    # Resolve the IHC input image to a real local file.
+    #  - no/placeholder input  -> the REAL reference IHC image bundled with
+    #    scikit-image (data.immunohistochemistry(), an H-DAB stained section) so
+    #    the demo runs a genuine analysis on real data, not a phantom mock.
+    #  - http(s)://, s3:// URI  -> download to a local file (BioMate stages user
+    #    uploads as s3:// URIs; the executor bind-mounts the aws CLI at /opt/aws-cli).
+    #  - local path             -> returned as-is (the analysis honest-fails if absent).
+    import os
+    placeholder = (None, "", "null", "mock_ihc_image.png")
+    if p in placeholder:
+        import numpy as np
+        from skimage import data, io as _sio
+        dest = os.path.join(os.getcwd(), "ihc_reference_demo.png")
+        _sio.imsave(dest, data.immunohistochemistry())  # real reference image
+        print(f"No image_path supplied; using the scikit-image reference IHC image [DEMO DATA]: {dest}")
+        return dest
+    if isinstance(p, str) and p.startswith(("http://", "https://", "s3://")):
+        base = os.path.basename(p.split("?")[0]) or "ihc_input.png"
+        dest = os.path.join(os.getcwd(), base)
+        if p.startswith(("http://", "https://")):
+            import urllib.request
+            urllib.request.urlretrieve(p, dest)
+        else:
+            try:
+                import boto3, urllib.parse
+                u = urllib.parse.urlparse(p)
+                boto3.client("s3").download_file(u.netloc, u.path.lstrip("/"), dest)
+            except Exception as _e_boto:
+                import subprocess, shutil
+                aws_bin = shutil.which("aws") or next(
+                    (q for q in ("/opt/aws-cli/aws", "/opt/aws-cli/bin/aws", "/usr/local/bin/aws") if os.path.exists(q)), None)
+                if not aws_bin:
+                    raise RuntimeError(f"cannot fetch s3 image {p}: boto3 unavailable ({_e_boto!r}) and no aws CLI found")
+                r = subprocess.run([aws_bin, "s3", "cp", p, dest], capture_output=True, text=True)
+                if r.returncode != 0:
+                    raise RuntimeError(f"aws s3 cp failed for {p}: {(r.stderr or '').strip()}")
+        print(f"Fetched remote IHC image [{p.split('://',1)[0]}]: {p}")
+        return dest
+    return p
+
 
 def analyze_immunohistochemistry_image(image_path, protein_name="Unknown", output_dir="./ihc_results/"):
     '''Analyzes immunohistochemistry images to quantify protein expression and spatial distribution.
@@ -106,12 +150,14 @@ def analyze_immunohistochemistry_image(image_path, protein_name="Unknown", outpu
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     base_filename = f"{protein_name}_{timestamp}"
 
-    # Load the image
+    # Load the image — HONEST FAILURE: raise (not return a string) so the caller
+    # records success=False and the process exits non-zero. Returning an error
+    # string here previously made every load failure look like a successful run.
     try:
         img = io.imread(image_path)
         log = f"Loaded image from {image_path}\\n"
     except Exception as e:
-        return f"Error loading image: {str(e)}"
+        raise RuntimeError(f"Error loading image from {image_path}: {str(e)}")
 
     # Convert to grayscale if RGB
     if len(img.shape) == 3 and img.shape[2] >= 3:
@@ -205,7 +251,7 @@ def analyze_immunohistochemistry_image(image_path, protein_name="Unknown", outpu
 # Execute the function
 try:
     result = analyze_immunohistochemistry_image(
-        image_path=auto_convert(os.environ.get("PARAM_IMAGE_PATH", "")),
+        image_path=_resolve_image_path(auto_convert(os.environ.get("PARAM_IMAGE_PATH", ""))),
         protein_name=auto_convert(os.environ.get("PARAM_PROTEIN_NAME", "Unknown")),
         output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "./ihc_results/")),
     )
@@ -237,7 +283,7 @@ with open("analyze_immunohistochemistry_image_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_immunohistochemistry_image_output.txt", "w") as f:
-    f.write("Biomni: Analyze Immunohistochemistry Image" + NL)
+    f.write("BioMate: Analyze Immunohistochemistry Image" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,28 @@
+{
+  "target": "il17f",
+  "name": "IL-17F",
+  "indication": "psoriasis (dual A/F)",
+  "modality": "PPI blocker (bimekizumab axis)",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "motif": null,
+    "metal_cofactor": null,
+    "site": "IL-17RA-binding groove"
+  },
+  "counter_targets": [
+    "il17a"
+  ],
+  "receptor_structure": "5N92 \u2014 needs prep",
+  "source": "docs/20260727_CROSS_DISEASE_TARGET_SCORECARD.md (OT-ranked, drug-blind rediscovery)",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet"
+  },
+  "cofactors": [],
+  "receptor_pdb": "5n92"
+}

@@ -1,0 +1,81 @@
+# bioc-domain-spatial:3.20-deps — Voyager Visium ESDA stack. SLIMMED (2026-09-29).
+#
+# ── Why this was slimmed ──────────────────────────────────────────────────────
+# The prior build layered the spatial deps ON TOP OF bioc-domain-transcriptomics:3.20,
+# which is ~9.78 GB COMPRESSED on its own (the full 519-package transcriptomics stack:
+# clusterProfiler / pathview / ChIPpeakAnno / GenomicFeatures / signatureSearch / …).
+# That stack transitively pulls the huge annotation databases reactome.db / GO.db /
+# org.*.db / TxDb.*. The resulting ~9.83 GB compressed (~20-23 GB unpacked) image FAILED
+# to pull on the default Batch compute environment biomate-nextflow-ce-v2:
+#   CannotPullContainerError: failed to register layer: write
+#     /usr/local/lib/R/site-library/reactome.db/extdata/reactome.sqlite:
+#     no space left on device
+# i.e. the node root/instance-store disk (~30 GB ECS-optimized AMI default) cannot
+# unpack it. reactome.db et al. are NOT used by the minimal Voyager Visium ESDA
+# (load SFE → QC → logNormCounts → HVG → spatial graph → Moran's I → plots).
+#
+# ── The fix ───────────────────────────────────────────────────────────────────
+# Switch the base to bioc-domain-single_cell:3.20-slim (~2 GB compressed) — the same
+# proven-Batch-ready :3.20-slim family the single-cell/ChIP-seq domains validated on.
+# It already carries SpatialExperiment / SingleCellExperiment / SummarizedExperiment /
+# scater / scran / scuttle / ggplot2 / patchwork / DropletUtils, so we only add the
+# geospatial + Voyager stack (sf, spdep, Voyager, SpatialFeatureExperiment, SFEData;
+# terra + EBImage come transitively as SFE/Voyager hard Imports). We also install with
+# --no-install-recommends, strip R docs/help/HTML/tests, and clean apt + R caches in the
+# SAME layer, so the added layer stays small.
+#
+# Build/push a NEW tag :3.20-deps to the biomate/bioc-domain-spatial ECR repo (push only —
+# repo pre-created). Sanity-gated (library() on the key packages) before push. Same guards
+# as Dockerfile.tmpl: R_NO_REMAP undef header, CRAN snapshot pin.
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-single_cell:3.20-slim
+ENV MAKEFLAGS="-j16"
+ENV DEBIAN_FRONTEND=noninteractive
+
+# --- Geospatial system libraries (sf/spdep hard requirement) --------------------
+# sf links against GDAL/GEOS/PROJ; spdep pulls sf. udunits2 is a common transitive dep.
+# Without these, install.packages("sf") fails at configure ("gdal-config not found").
+# --no-install-recommends + clean apt lists in the SAME layer.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libgdal-dev libgeos-dev libproj-dev libudunits2-dev libsqlite3-dev \
+      gdal-bin proj-bin libfontconfig1-dev libharfbuzz-dev libfribidi-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY deps.txt /tmp/deps.txt
+
+# --- GLOBAL R_NO_REMAP counter (same rationale as Dockerfile.tmpl) --------------
+RUN printf '#undef R_NO_REMAP\n' > /opt/undef_rno_remap.h \
+ && mkdir -p /root/.R \
+ && printf 'CPPFLAGS += -include /opt/undef_rno_remap.h\n' >> /root/.R/Makevars
+
+# --- Install the spatial R stack (Bioc-release-pinned + CRAN snapshot) ----------
+# Bioc 3.20 snapshot pin so CRAN dep versions match what the Bioc 3.20 packages were
+# built against. sf/spdep from CRAN; SFEData/Voyager/SpatialFeatureExperiment from Bioc.
+# INSTALL_opts drop help/html/latex/tests/example docs to shave install size.
+# Everything (install + strip + clean) in ONE layer so the deleted bytes never persist.
+RUN Rscript -e '\
+  snap <- "https://packagemanager.posit.co/cran/2024-10-30"; \
+  options(repos = c(CRAN = snap)); \
+  pkgs <- readLines("/tmp/deps.txt"); \
+  pkgs <- trimws(pkgs); \
+  pkgs <- pkgs[nzchar(pkgs) & !startsWith(pkgs, "#")]; \
+  if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager"); \
+  bin <- tryCatch(sprintf("https://bioconductor.org/packages/%s/container-binaries/bioconductor_docker", BiocManager::version()), error=function(e) NULL); \
+  miss <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  if (length(miss)) BiocManager::install(miss, update=FALSE, ask=FALSE, Ncpus=16, site_repository=bin, INSTALL_opts=c("--no-help","--no-html","--no-docs","--no-manual","--no-test-load","--no-byte-compile-tests","--no-demo","--no-data-compress")); \
+  still0 <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  if (length(still0)) BiocManager::install(still0, update=FALSE, ask=FALSE, Ncpus=16, INSTALL_opts=c("--no-help","--no-html","--no-docs","--no-manual")); \
+  still <- pkgs[!pkgs %in% rownames(installed.packages())]; \
+  wont  <- pkgs[!vapply(pkgs, function(p) requireNamespace(p, quietly=TRUE), logical(1))]; \
+  cat("STILL MISSING:", length(still), paste(head(still,40), collapse=","), "\n"); \
+  cat("INSTALLED BUT WONT LOAD:", length(wont), paste(head(wont,40), collapse=","), "\n"); \
+  if (length(still)) quit(status=1)' \
+ && LIB="$(Rscript -e 'cat(.libPaths()[1])')" \
+ && echo "[slim] pruning docs/help/html/tests under $LIB" \
+ && find "$LIB" -type d \( -name doc -o -name help -o -name html -o -name examples -o -name tests -o -name unitTests -o -name "test" -o -name "testthat" \) -prune -exec rm -rf {} + 2>/dev/null || true \
+ && find "$LIB" -type f \( -name "*.pdf" -o -name "*.Rd" -o -name "AUTHORS" -o -name "NEWS*" -o -name "*.md" -o -name "doc.zip" \) -delete 2>/dev/null || true \
+ && rm -rf /tmp/* /tmp/Rtmp* /root/.cache /var/tmp/* 2>/dev/null || true
+
+# --- Bake the minimal-correct Voyager Visium ESDA driver script -----------------
+# The workflow (single_cell/visium_voyager_spatial_esda/main.nf) calls
+# /opt/biomate/voyager/esda_run.R. Ship it in the image.
+COPY esda_run.R /opt/biomate/voyager/esda_run.R

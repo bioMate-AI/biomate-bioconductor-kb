@@ -125,7 +125,7 @@ class FallbackChainManager:
         self.fallbacks = [
             LLMProviderConfig({
                 'provider': 'gemini',
-                'model': 'gemini-3.5-flash',
+                'model': 'gemini-3.8-flash',
                 'api_key_env': 'GOOGLE_API_KEY',
                 'retry_attempts': 2,
                 'timeout_seconds': 60
@@ -213,6 +213,9 @@ async def generate_with_fallback(
     Raises:
         Exception if all providers fail
     """
+    from .local_inference import local_only, generate_local
+    if local_only():
+        return await generate_local(prompt, **kwargs)
     if fallback_manager is None:
         fallback_manager = FallbackChainManager()
 

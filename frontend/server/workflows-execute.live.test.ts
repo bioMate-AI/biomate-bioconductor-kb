@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 const RUN_LIVE = process.env.RUN_LIVE_EXECUTE_CONTRACT === "1";
 const BASE_URL = process.env.BIOMATE_URL || "http://127.0.0.1:5000";
-const REQUIRE_AWS_200 = process.env.REQUIRE_AWS_EXEC_200 === "1";
 
 type JsonRecord = Record<string, any>;
 
@@ -89,17 +88,17 @@ describeLive("Live /api/workflows/execute confidence gate contract", () => {
       },
     }, 60000);
 
-    // The core contract here is that AWS/default path is not confidence-gate blocked.
-    expect(awsAllowed.status).not.toBe(409);
-    expect(awsAllowed.body.error).not.toBe("confidence_gate_blocked");
-
-    if (REQUIRE_AWS_200) {
-      expect(awsAllowed.status).toBe(200);
-      expect(awsAllowed.body.executionEngine).toBe("nextflow");
-      expect(awsAllowed.body.status).toBe("running");
-      expect(typeof awsAllowed.body.runId).toBe("string");
-      expect(typeof awsAllowed.body.nextflowRunId).toBe("string");
-    }
+    // This is an explicit live test. A non-409 response (401/500/launch error)
+    // is not evidence that the AWS path is usable.
+    expect(awsAllowed.status).toBe(200);
+    expect(awsAllowed.body.executionEngine).toBe("nextflow");
+    expect(awsAllowed.body.status).toBe("running");
+    expect(typeof awsAllowed.body.runId).toBe("string");
+    expect(awsAllowed.body.runId.length).toBeGreaterThan(0);
+    expect(typeof awsAllowed.body.nextflowRunId).toBe("string");
+    expect(awsAllowed.body.nextflowRunId.length).toBeGreaterThan(0);
+    expect(typeof awsAllowed.body.galaxyInvocationId).toBe("string");
+    expect(awsAllowed.body.galaxyInvocationId.length).toBeGreaterThan(0);
   }, 120000);
 });
 
@@ -130,7 +129,7 @@ describeLive("Live /api/workflows/execute required-parameter gate contract", () 
     expect(res.body.runId).toBeUndefined();
   }, 30000);
 
-  it("does NOT block on missing_required_params when the value is supplied via the params map", async () => {
+  it("launches with IDs when a supplied SMILES satisfies the required parameter", async () => {
     const res = await postJson("/api/workflows/execute", {
       workflowDefinition: workflowWithRequiredParam,
       params: { smiles: "CC(=O)Oc1ccccc1C(=O)O" },
@@ -138,8 +137,91 @@ describeLive("Live /api/workflows/execute required-parameter gate contract", () 
       executionConfig: { executionEngine: "nextflow", computeConfig: { executor: "awsbatch" } },
     }, 60000);
 
-    // The required-param gate must be satisfied by the merged params value.
-    expect(res.body.error).not.toBe("missing_required_params");
+    // A gate pass alone is insufficient: this must be a successfully accepted
+    // Nextflow launch with both platform and executor tracking IDs. The
+    // companion non-live payload test asserts the exact `parameters.smiles`
+    // sent to the executor.
+    expect(res.status).toBe(200);
+    expect(res.body.error).toBeUndefined();
+    expect(res.body.executionEngine).toBe("nextflow");
+    expect(res.body.status).toBe("running");
+    expect(typeof res.body.runId).toBe("string");
+    expect(res.body.runId.length).toBeGreaterThan(0);
+    expect(typeof res.body.nextflowRunId).toBe("string");
+    expect(res.body.nextflowRunId.length).toBeGreaterThan(0);
+    expect(typeof res.body.galaxyInvocationId).toBe("string");
+    expect(res.body.galaxyInvocationId.length).toBeGreaterThan(0);
   }, 90000);
 });
 
+describeLive("Live /api/workflows/execute dataset-binding safety contract", () => {
+  // A Galaxy-shaped definition with a data-input step.  It deliberately has no
+  // Nextflow path: production defaults unmarked executable definitions to the
+  // Nextflow launcher, which must reject accepted Galaxy bindings rather than
+  // silently dropping them.
+  const workflowWithGalaxyInput = {
+    name: "Dataset binding safety probe",
+    steps: {
+      "0": { type: "data_input", name: "reads" },
+      "1": { type: "tool", tool_id: "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0" },
+    },
+  };
+
+  function expectNoLaunch(body: JsonRecord) {
+    expect(body.runId).toBeUndefined();
+    expect(body.nextflowRunId).toBeUndefined();
+    expect(body.galaxyInvocationId).toBeUndefined();
+  }
+
+  it("blocks missing and malformed Galaxy dataset bindings before compute", async () => {
+    const missing = await postJson("/api/workflows/execute", {
+      workflowDefinition: workflowWithGalaxyInput,
+      inputs: [],
+    }, 15000);
+
+    expect(missing.status).toBe(400);
+    expect(missing.body).toMatchObject({
+      error: "inputs_required",
+      inputStepsCount: 1,
+      missingInputStepIds: ["0"],
+    });
+    expect(typeof missing.body.message).toBe("string");
+    expect(typeof missing.body.guidance).toBe("string");
+    expectNoLaunch(missing.body);
+
+    const malformed = await postJson("/api/workflows/execute", {
+      workflowDefinition: workflowWithGalaxyInput,
+      // A dataset id without the required Galaxy source and step id cannot be
+      // passed to a launcher as a valid binding.
+      inputs: [{ id: "dataset-probe" }],
+    }, 15000);
+
+    expect(malformed.status).toBe(400);
+    expect(malformed.body).toMatchObject({
+      error: "invalid_workflow_inputs",
+      inputStepsCount: 1,
+      invalidInputCount: 1,
+    });
+    expect(typeof malformed.body.message).toBe("string");
+    expect(typeof malformed.body.guidance).toBe("string");
+    expectNoLaunch(malformed.body);
+  }, 45000);
+
+  it("rejects a well-formed Galaxy binding on the default Nextflow path instead of dropping it", async () => {
+    const res = await postJson("/api/workflows/execute", {
+      workflowDefinition: workflowWithGalaxyInput,
+      inputs: [{ id: "dataset-probe", src: "hda", step_id: "0" }],
+      // Intentionally omit executionConfig: this verifies the default engine
+      // follows the same no-silent-data-loss safety rule.
+    }, 15000);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({
+      error: "nextflow_inputs_not_supported",
+      inputStepsCount: 1,
+    });
+    expect(typeof res.body.message).toBe("string");
+    expect(res.body.message).toContain("No compute was launched");
+    expectNoLaunch(res.body);
+  }, 30000);
+});

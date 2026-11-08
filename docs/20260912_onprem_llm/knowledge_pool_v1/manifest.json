@@ -1,0 +1,156 @@
+{
+  "pool": "knowledge_pool_v1",
+  "built_from": {
+    "midtrain_corpus": "13 live sources (tools_corpus superseded, midtrain_all stale-excluded)",
+    "data_candidates_v2": "8 knowledge sources"
+  },
+  "dedup": "exact-text sha256(whitespace-collapsed, lowercased); first-seen wins",
+  "supersession": {
+    "tools_corpus": "EXCLUDED \u2014 tool_knowledge (12,312) is richer superset of tools_corpus (10,532)",
+    "docs_candidates": "POINTER-ONLY, body excluded (overlaps internal_corpus); 1693 pointers recorded",
+    "benchmarks": "all_/public_benchmark EXCLUDED \u2014 eval items, not CPT knowledge (held out)"
+  },
+  "totals": {
+    "records_in": 253314,
+    "records_kept": 248035,
+    "records_dropped_dup": 5279,
+    "kept_tok_c4": 60905400,
+    "docs_pointers_recorded": 1693
+  },
+  "per_source": {
+    "chebi": {
+      "in": 55446,
+      "kept": 55446,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 3665671
+    },
+    "go": {
+      "in": 38092,
+      "kept": 38092,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 2870476
+    },
+    "hpo": {
+      "in": 17428,
+      "kept": 17428,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 1058884
+    },
+    "so": {
+      "in": 2403,
+      "kept": 2403,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 115911
+    },
+    "edam": {
+      "in": 2356,
+      "kept": 2356,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 138704
+    },
+    "hetionet": {
+      "in": 34717,
+      "kept": 34715,
+      "dropped_dup": 2,
+      "dropped_empty": 0,
+      "kept_tok": 452912
+    },
+    "gtn": {
+      "in": 848,
+      "kept": 848,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 1623609
+    },
+    "internal": {
+      "in": 16487,
+      "kept": 16487,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 8960686
+    },
+    "db_kg": {
+      "in": 23336,
+      "kept": 23307,
+      "dropped_dup": 29,
+      "dropped_empty": 0,
+      "kept_tok": 565943
+    },
+    "wkg": {
+      "in": 4049,
+      "kept": 4049,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 378557
+    },
+    "workflow_order": {
+      "in": 3152,
+      "kept": 3152,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 616641
+    },
+    "code": {
+      "in": 21003,
+      "kept": 21001,
+      "dropped_dup": 2,
+      "dropped_empty": 0,
+      "kept_tok": 17241420
+    },
+    "tool_knowledge": {
+      "in": 12312,
+      "kept": 12300,
+      "dropped_dup": 12,
+      "dropped_empty": 0,
+      "kept_tok": 5865997
+    },
+    "composition_rationale": {
+      "in": 9817,
+      "kept": 4899,
+      "dropped_dup": 4918,
+      "dropped_empty": 0,
+      "kept_tok": 280330
+    },
+    "biomate_run_output": {
+      "in": 1707,
+      "kept": 1571,
+      "dropped_dup": 136,
+      "dropped_empty": 0,
+      "kept_tok": 580395
+    },
+    "git_fix_pair": {
+      "in": 500,
+      "kept": 496,
+      "dropped_dup": 4,
+      "dropped_empty": 0,
+      "kept_tok": 585650
+    },
+    "nf_program": {
+      "in": 5049,
+      "kept": 4873,
+      "dropped_dup": 176,
+      "dropped_empty": 0,
+      "kept_tok": 9209842
+    },
+    "workflow_spec": {
+      "in": 4200,
+      "kept": 4200,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 6415603
+    },
+    "official_nextflow_doc": {
+      "in": 412,
+      "kept": 412,
+      "dropped_dup": 0,
+      "dropped_empty": 0,
+      "kept_tok": 278169
+    }
+  },
+  "note": "token est = chars/4 (~1.5x a real tokenizer). HAVE-NOW only; no fetched data."
+}

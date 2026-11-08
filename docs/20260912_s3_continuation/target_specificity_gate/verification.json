@@ -1,0 +1,173 @@
+{
+  "status": "passed",
+  "common_readouts": 116,
+  "excluded_targets": 16,
+  "rows": 192,
+  "all_alternative_pairs": 2880,
+  "prediction_vectors_checked": 2304,
+  "scalar_metrics_checked": 2808,
+  "hashes_verified": true,
+  "consistency": {
+    "by_donor": {
+      "no_change": {
+        "matched_better_count": 4,
+        "total": 4,
+        "mse_advantage": {
+          "CE0006864": 0.00021075385323269732,
+          "CE0008162": 7.574756814511183e-05,
+          "CE0008678": 0.00023553658329359545,
+          "CE0010866": 0.00019513724682888173
+        }
+      },
+      "shrunk_condition_mean": {
+        "matched_better_count": 4,
+        "total": 4,
+        "mse_advantage": {
+          "CE0006864": 0.00016777955155291256,
+          "CE0008162": 9.734387337072617e-05,
+          "CE0008678": 0.0001804922927994175,
+          "CE0010866": 5.9882134497462464e-05
+        }
+      },
+      "shrunk_target_condition": {
+        "matched_better_count": 4,
+        "total": 4,
+        "mse_advantage": {
+          "CE0006864": 8.005585414475047e-05,
+          "CE0008162": 4.912412086808052e-05,
+          "CE0008678": 0.00010240255701276374,
+          "CE0010866": 3.9024361324250384e-05
+        }
+      },
+      "shrunk_baseline_state": {
+        "matched_better_count": 4,
+        "total": 4,
+        "mse_advantage": {
+          "CE0006864": 5.212552459569683e-05,
+          "CE0008162": 7.547675069581421e-05,
+          "CE0008678": 0.00010111159913601259,
+          "CE0010866": 3.609449191906838e-05
+        }
+      },
+      "shrunk_shuffled_state": {
+        "matched_better_count": 3,
+        "total": 4,
+        "mse_advantage": {
+          "CE0006864": 0.00010580184426604855,
+          "CE0008162": -2.8070980395070513e-05,
+          "CE0008678": 0.00011992888126256124,
+          "CE0010866": 7.529950060696303e-05
+        }
+      },
+      "shrunk_other_target_mean": {
+        "matched_better_count": 4,
+        "total": 4,
+        "mse_advantage": {
+          "CE0006864": 0.00018097130345916257,
+          "CE0008162": 0.00010814756223013165,
+          "CE0008678": 0.00019375104883230174,
+          "CE0010866": 6.651296811191823e-05
+        }
+      },
+      "shrunk_all_mismatches_expected_mse": {
+        "matched_better_count": 4,
+        "total": 4,
+        "mse_advantage": {
+          "CE0006864": 0.0002090615820305921,
+          "CE0008162": 0.00016854492444913147,
+          "CE0008678": 0.00021091416001319321,
+          "CE0010866": 0.00010345464651670064
+        }
+      }
+    },
+    "by_condition": {
+      "no_change": {
+        "matched_better_count": 3,
+        "total": 3,
+        "mse_advantage": {
+          "Rest": 0.0001728213809733467,
+          "Stim48hr": 0.00024037188201596164,
+          "Stim8hr": 0.0001246881756359012
+        }
+      },
+      "shrunk_condition_mean": {
+        "matched_better_count": 3,
+        "total": 3,
+        "mse_advantage": {
+          "Rest": 9.593317586355232e-05,
+          "Stim48hr": 0.00020765306665893914,
+          "Stim8hr": 7.553714664289626e-05
+        }
+      },
+      "shrunk_target_condition": {
+        "matched_better_count": 3,
+        "total": 3,
+        "mse_advantage": {
+          "Rest": 5.18459462207875e-05,
+          "Stim48hr": 0.00011235195940975835,
+          "Stim8hr": 3.875726438183277e-05
+        }
+      },
+      "shrunk_baseline_state": {
+        "matched_better_count": 3,
+        "total": 3,
+        "mse_advantage": {
+          "Rest": 4.916002211121859e-05,
+          "Stim48hr": 0.00011483658368796265,
+          "Stim8hr": 3.46096689607632e-05
+        }
+      },
+      "shrunk_shuffled_state": {
+        "matched_better_count": 3,
+        "total": 3,
+        "mse_advantage": {
+          "Rest": 3.166720023572642e-05,
+          "Stim48hr": 0.00013145103683984138,
+          "Stim8hr": 4.1601197229804154e-05
+        }
+      },
+      "shrunk_other_target_mean": {
+        "matched_better_count": 3,
+        "total": 3,
+        "mse_advantage": {
+          "Rest": 0.00010489501625601458,
+          "Stim48hr": 0.00022517313418781923,
+          "Stim8hr": 8.196901153129967e-05
+        }
+      },
+      "shrunk_all_mismatches_expected_mse": {
+        "matched_better_count": 3,
+        "total": 3,
+        "mse_advantage": {
+          "Rest": 0.0001408231509444878,
+          "Stim48hr": 0.00027664455071047325,
+          "Stim8hr": 0.00010151378310224377
+        }
+      }
+    }
+  },
+  "donor_condition_consistency": {
+    "shrunk_condition_mean": {
+      "matched_better_count": 11,
+      "total": 12,
+      "min_mse_advantage": -3.732610031797188e-05,
+      "max_mse_advantage": 0.00039944123234475693
+    },
+    "shrunk_target_condition": {
+      "matched_better_count": 11,
+      "total": 12,
+      "min_mse_advantage": -5.2995530016481675e-06,
+      "max_mse_advantage": 0.00025281609927501556
+    },
+    "shrunk_baseline_state": {
+      "matched_better_count": 10,
+      "total": 12,
+      "min_mse_advantage": -5.419805312293957e-05,
+      "max_mse_advantage": 0.00020232274918705563
+    }
+  },
+  "limitations": [
+    "Reuses four-donor development data; no independent validation.",
+    "Applies previously estimated guide attenuation unchanged to every arm; does not independently re-estimate alpha."
+  ]
+}

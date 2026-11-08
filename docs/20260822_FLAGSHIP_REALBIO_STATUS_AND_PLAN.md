@@ -160,6 +160,54 @@ S3-PutObject 403 (instance role is read-only on `knowledge-datasets`) + the 4 h 
 firing during a message gap. Fix that worked: base64 results into the SSM command stdout (persists
 service-side, survives instance death). All instances terminated.
 
+## 3c. New RealBio task — `proteomics_search` (real-execution capability), added 2026-10-01
+
+RealBio's thesis is *"can it run science, not just discuss it?"* — and `proteomics_search` is the
+purest real-execution instance in the suite: it is scored by **running** a shotgun-proteomics MS/MS
+search on real data through the production Batch path and measuring **two axes on the same runs**,
+not by scoring a prediction against ground truth.
+
+- **What it measures.** Speed (wall-clock, spectra/s) AND recall (#PSMs/#peptides/#proteins at 1%
+  FDR), with the 1% FDR **validated by an entrapment database** (entrapment false-match rate), per the
+  2025 entrapment-literature honesty requirement.
+- **Inputs.** 1 ProteomeTools DDA run (PXD010595, 65,521 scans) vs human UniProt reviewed (20,431
+  proteins) + 1:1 shuffled-target entrapment (20,431) + reversed decoys (40,862) = 81,724 searched
+  sequences. Phase-1 adds a HeLa gradient, an HLA immunopeptidome set, and a species mixture.
+- **Targets (define a pass).** ≥5× faster end-to-end than the brute-force (Comet) baseline; **no
+  peptide-recall regression** vs baseline; **entrapment FMR ≤ 1.3%** at claimed 1% FDR.
+- **Measured (Comet vs Sage vs Sage+Mokapot, uniform FDR scorer, every arm entrapment-validated):**
+
+  | Arm | end-to-end | #peptides@1%FDR | entrapment FMR @1% |
+  |---|---|---|---|
+  | Comet (baseline) | 153.1 s | 73 | 0.00% |
+  | Sage | ~29 s (**5.3×**) | 137 | 0.54% |
+  | Sage+Mokapot | ~42 s | **191 (+162%)** | 0.24% |
+
+  → **all three targets met**: 5.3× faster, +162% peptides (no regression), FMR 0.24% ≤ 1.3%.
+- **Wiring (consistent with the other tasks).** Registered at
+  `evaluation/datasets/public_export/proteomics_search/` (`README.md` + `metadata.json`), added to the
+  suite `MANIFEST.json` and `README.md` tasks table (marked `kind=real_execution_capability` to
+  distinguish it from the prediction item-sets). Scored by the committed harness
+  `evaluation/datasets/proteomics_search_benchmark/` + `scripts/score_proteomics_search_benchmark.py`
+  — NOT a `predictions.jsonl`, NOT an LLM judge.
+- **Live production-path proof.** run `fb3440ec-6ef0-43f4-be39-5e249e7bc1b6` ran Sage+Mokapot
+  end-to-end on AWS Batch via three per-tool containers (DECOYDATABASE→SAGE→MOKAPOT, all SUCCEEDED);
+  35,821 Sage PSMs → 1,145 Mokapot PSMs / 136 peptides @1% FDR.
+- **Provenance.** Benchmark report `docs/20261001_PROTEOMICS_SEARCH_BENCHMARK_REPORT.md`; detailed
+  session log `docs/20260929_PROTEOMICS_SEARCH_SPEED_RECALL.md`; survey/design
+  `docs/20260907_PROTEOMICS_DB_SEARCH_OPTIMIZATION_SURVEY.md` §14.
+- **Honest scope.** Single dataset so far (relative gains strong, absolute counts modest: ProteomeTools
+  synthetic + strict 1:1 entrapment); RAM measured the docker wrapper not the tool; it is **not** yet
+  in the LLM-vs-BioMate leaderboard.csv because it is a capability benchmark with no LLM-prediction
+  comparator — it stands as a real-execution RealBio task on its own metric, like the internal
+  `proteomics_search` capability in CLAUDE.md's benchmark table.
+
+**Leaderboard note:** `leaderboard.csv` tracks the 8-task LLM-vs-BioMate head-to-head (prediction
+items). `proteomics_search` is deliberately NOT a column there (no per-item LLM prediction to compare);
+it is tracked as a pass/fail-against-targets capability task in this doc and in its own README/metadata.
+
+---
+
 ## 4. Open items & plan (prioritized)
 
 | # | Item | Owner | Status | Notes |
@@ -200,3 +248,5 @@ service-side, survives instance death). All instances terminated.
 - [ ] HF publish → DOI (user)
 - [ ] dd BioMate cell (docking-rank run) — optional
 - [ ] autofix/wf_gen BioMate cells — optional
+- [x] **`proteomics_search` real-execution task added** (2026-10-01) — registered in public_export + MANIFEST + suite README; wired to the proteomics_search_benchmark harness; targets met (5.3× faster, +162% peptides, FMR 0.24%); live Batch proof `fb3440ec…`
+- [ ] **`proteomics_search` Phase-1 breadth** — add a HeLa gradient + an HLA immunopeptidome set + a species mixture to generalize beyond the single ProteomeTools run (required before claiming the ratios hold universally)

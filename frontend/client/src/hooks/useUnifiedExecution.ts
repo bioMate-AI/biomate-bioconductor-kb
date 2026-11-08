@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { parseSSEData } from '@/lib/sse-parse';
 import type {
   ExecutionRun,
   ExecutionConfig,
@@ -36,9 +37,44 @@ export interface UnifiedExecutionState {
   /** Loading state */
   isLoading: boolean;
   /** Error state */
-  error: string | null;
+  error: WorkflowExecutionErrorDetails | null;
   /** SSE connection state */
   isConnected: boolean;
+}
+
+/** A safe, actionable subset of a rejected /api/workflows/execute response. */
+export interface WorkflowExecutionErrorDetails {
+  message: string;
+  code?: string;
+  guidance?: string;
+  inputStepsCount?: number;
+  missing?: Array<{ name: string; label?: string; description?: string; type?: string }>;
+}
+
+export class WorkflowExecutionError extends Error {
+  readonly details: WorkflowExecutionErrorDetails;
+
+  constructor(details: WorkflowExecutionErrorDetails) {
+    super(details.message);
+    this.name = "WorkflowExecutionError";
+    this.details = details;
+  }
+}
+
+export function toWorkflowExecutionErrorDetails(
+  payload: unknown,
+  fallbackMessage: string,
+): WorkflowExecutionErrorDetails {
+  const error = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+  return {
+    message: typeof error.message === 'string'
+      ? error.message
+      : typeof error.error === 'string' ? error.error : fallbackMessage,
+    code: typeof error.error === 'string' ? error.error : undefined,
+    guidance: typeof error.guidance === 'string' ? error.guidance : undefined,
+    inputStepsCount: typeof error.inputStepsCount === 'number' ? error.inputStepsCount : undefined,
+    missing: Array.isArray(error.missing) ? error.missing : undefined,
+  };
 }
 
 export interface ExecuteWorkflowParams {
@@ -94,8 +130,11 @@ async function apiExecuteWorkflow(params: ExecuteWorkflowParams): Promise<{
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: `HTTP ${response.status}: ${response.statusText}` }));
-    throw new Error(error.message || error.error || 'Failed to execute workflow');
+    const error = await response.json().catch(() => ({}));
+    throw new WorkflowExecutionError(toWorkflowExecutionErrorDetails(
+      error,
+      `HTTP ${response.status}: ${response.statusText}` || 'Failed to execute workflow',
+    ));
   }
 
   return response.json();
@@ -134,6 +173,12 @@ async function apiGetRunStatus(runId: string): Promise<{
     downloadableCount?: number;
     totalOutputs?: number;
     meetsContract?: boolean;
+    completionContract?: {
+      mode: 'artifacts_required' | 'stdout_only';
+      state: 'ready' | 'artifact_unavailable' | 'stdout_only';
+      registeredOutputCount: number;
+      meetsContract: boolean;
+    };
   };
 }> {
   const response = await fetch(`/api/workflows/runs/${runId}/status?includeSteps=true`);
@@ -275,6 +320,11 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
   const notifiedRunsRef = useRef<Set<string>>(new Set());
   // Synchronous mirror of state.currentRun so polling can check without setState-callback timing issues
   const currentRunRef = useRef<ExecutionRun | null>(null);
+  // Refs to startPolling / stopPolling so the SSE handlers (defined above these
+  // callbacks in source order) can arm / cancel the DB-poll fallback without a
+  // temporal-dead-zone reference or a stale closure.
+  const startPollingRef = useRef<((runId: string) => void) | null>(null);
+  const stopPollingRef = useRef<(() => void) | null>(null);
 
   // Keep currentRunRef in sync with state.currentRun
   useEffect(() => {
@@ -299,16 +349,29 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
     eventSource.onopen = () => {
       console.log('[UnifiedExecution] SSE connected');
       setState((prev) => ({ ...prev, isConnected: true }));
+      // SSE is live (or recovered) — cancel any DB-poll fallback armed by a
+      // prior onerror so we don't keep polling alongside a healthy stream.
+      stopPollingRef.current?.();
     };
 
     eventSource.onerror = () => {
-      console.warn('[UnifiedExecution] SSE error, will auto-reconnect');
+      console.warn('[UnifiedExecution] SSE error — arming DB-status poll fallback');
       setState((prev) => ({ ...prev, isConnected: false }));
+      // The browser keeps retrying a dead EventSource silently, so a non-transient
+      // SSE failure would otherwise leave the run stuck on 'running' forever. Arm a
+      // polling fallback that advances status from the DB. It self-stops on the next
+      // terminal state, onopen cancels it if SSE recovers, and the pollIntervalRef
+      // guard prevents stacking duplicate intervals on repeated errors.
+      const activeRunId = currentRunRef.current?.id;
+      if (activeRunId && !pollIntervalRef.current) {
+        startPollingRef.current?.(activeRunId);
+      }
     };
 
     // Workflow state changes
     eventSource.addEventListener('workflow_state', (event) => {
-      const update = JSON.parse(event.data);
+      const update = parseSSEData<any>(event.data);
+      if (!update || !update.data) return;
       console.log('[UnifiedExecution] Workflow state:', update.data.workflow_state);
 
       // Fire OS notification on terminal state (SSE path)
@@ -379,7 +442,8 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
 
     // Step state changes
     eventSource.addEventListener('step_state', (event) => {
-      const update = JSON.parse(event.data);
+      const update = parseSSEData<any>(event.data);
+      if (!update || !update.data) return;
       const { step_id, step_state, job_id } = update.data;
 
       setState((prev) => {
@@ -440,7 +504,8 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
 
     // Progress milestones
     eventSource.addEventListener('progress_milestone', (event) => {
-      const update = JSON.parse(event.data);
+      const update = parseSSEData<any>(event.data);
+      if (!update) return;
       console.log('[UnifiedExecution] Progress milestone:', update.data);
     });
 
@@ -589,6 +654,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
     pollIntervalRef.current = setInterval(poll, pollInterval);
     poll(); // Initial fetch
   }, [pollInterval]);
+  startPollingRef.current = startPolling;
 
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
@@ -596,6 +662,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
       pollIntervalRef.current = null;
     }
   }, []);
+  stopPollingRef.current = stopPolling;
 
   // ============================================================================
   // Actions
@@ -640,7 +707,9 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error.message,
+        error: error instanceof WorkflowExecutionError
+          ? error.details
+          : { message: error?.message || 'Failed to execute workflow' },
       }));
       throw error;
     }
@@ -690,7 +759,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        ...(opts?.silent ? {} : { error: error.message }),
+        ...(opts?.silent ? {} : { error: { message: error?.message || 'Failed to load run' } }),
       }));
       throw error;
     }

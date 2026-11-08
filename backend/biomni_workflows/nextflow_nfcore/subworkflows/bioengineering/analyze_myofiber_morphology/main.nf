@@ -327,7 +327,7 @@ with open("analyze_myofiber_morphology_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_myofiber_morphology_output.txt", "w") as f:
-    f.write("Biomni: Analyze Myofiber Morphology" + NL)
+    f.write("BioMate: Analyze Myofiber Morphology" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,126 @@
+{
+  "harness": "leave_hla_out_gate.py",
+  "purpose": "decision-gate: does the widened H4 (machinery->presentation) thesis generalize ACROSS HLA backgrounds; sizes CRO spend.",
+  "training_eligible": false,
+  "mode": "single_background_DRY_RUN",
+  "deposit_metrics": [
+    {
+      "deposit": "PXD056426",
+      "hla_background": "HAP1;HLA-A*03:01;HLA-B*51:01;HLA-C*01:02",
+      "hla_class": "I",
+      "n_KO_conditions": 11,
+      "has_matched_proteome": true,
+      "B1_spearman_pres_vs_proteome": -0.5909,
+      "H4_mean_essential_loss_beyond_abundance": 0.7219,
+      "H4_local_win": true,
+      "per_KO": [
+        {
+          "KO": "B2M",
+          "immunopeptidome_frac": 0.0279,
+          "proteome_frac": 1.192,
+          "presentation_loss_beyond_abundance": 1.1641,
+          "essential": true
+        },
+        {
+          "KO": "TAP2",
+          "immunopeptidome_frac": 0.1715,
+          "proteome_frac": 1.3168,
+          "presentation_loss_beyond_abundance": 1.1453,
+          "essential": true
+        },
+        {
+          "KO": "TAPBP",
+          "immunopeptidome_frac": 0.2416,
+          "proteome_frac": 1.1032,
+          "presentation_loss_beyond_abundance": 0.8616,
+          "essential": true
+        },
+        {
+          "KO": "IRF2",
+          "immunopeptidome_frac": 0.2853,
+          "proteome_frac": 1.3623,
+          "presentation_loss_beyond_abundance": 1.077,
+          "essential": false
+        },
+        {
+          "KO": "ERP57",
+          "immunopeptidome_frac": 0.3887,
+          "proteome_frac": 1.2419,
+          "presentation_loss_beyond_abundance": 0.8532,
+          "essential": true
+        },
+        {
+          "KO": "TAP1",
+          "immunopeptidome_frac": 0.4862,
+          "proteome_frac": 1.2696,
+          "presentation_loss_beyond_abundance": 0.7834,
+          "essential": true
+        },
+        {
+          "KO": "ERAP1",
+          "immunopeptidome_frac": 0.4987,
+          "proteome_frac": 1.2418,
+          "presentation_loss_beyond_abundance": 0.7431,
+          "essential": true
+        },
+        {
+          "KO": "GIIA",
+          "immunopeptidome_frac": 0.6149,
+          "proteome_frac": 1.142,
+          "presentation_loss_beyond_abundance": 0.5271,
+          "essential": false
+        },
+        {
+          "KO": "SPPL3",
+          "immunopeptidome_frac": 0.8005,
+          "proteome_frac": 1.1834,
+          "presentation_loss_beyond_abundance": 0.3829,
+          "essential": false
+        },
+        {
+          "KO": "CANX",
+          "immunopeptidome_frac": 0.8729,
+          "proteome_frac": 0.9765,
+          "presentation_loss_beyond_abundance": 0.1036,
+          "essential": true
+        },
+        {
+          "KO": "CALR",
+          "immunopeptidome_frac": 0.9306,
+          "proteome_frac": 1.0517,
+          "presentation_loss_beyond_abundance": 0.1211,
+          "essential": true
+        }
+      ]
+    }
+  ],
+  "deposit_loaders": {
+    "PXD056426": {
+      "loader": "fragpipe_searchzip",
+      "dia_wt_peptides": 18624,
+      "prot_wt_spectral": 203192.0,
+      "n_conditions": 12,
+      "has_matched_proteome": true
+    }
+  },
+  "cross_HLA": null,
+  "GATE": {
+    "verdict": "INSUFFICIENT_DEPOSITS_FOR_CROSS_HLA_GATE",
+    "n_deposits": 1,
+    "n_local_H4_wins": 1,
+    "pooled_transfer_spearman": null,
+    "mean_LOO_transfer_spearman": null,
+    "perm_pvalue_one_sided": null,
+    "n_backgrounds_carrying_transfer": 0,
+    "null_band": null,
+    "shared_allele_leakage": false,
+    "CRO_sizing": "DRY-RUN / single background only. Cannot run leave-HLA-out yet. Once >=3 HLA backgrounds land, re-run; result then sizes the CRO."
+  },
+  "caveats": [
+    "H4 thesis validated on ONE HLA background so far (HAP1/PXD056426). >=3 distinct HLA backgrounds with KO+matched-proteome are required for a real cross-HLA PASS.",
+    "Cross-HLA transfer uses an HLA-AGNOSTIC machinery-role feature only; it is a conservative floor, not a trained H4 head. A trained head could do better OR reveal HLA-specific processing the role feature misses.",
+    "Fraction-of-WT is unique-peptide count (presentation) vs summed spectral count (proteome); both are relative-abundance proxies, not absolute copies/cell. Absolute-quant + MS-detectability censoring (BMA-PGM-002 +D) still owed.",
+    "Class-I and class-II presentation use different machinery; mixing classes in one LOO fold is invalid. Group by hla_class before gating when the corpus spans both.",
+    "Single-background dry-run cannot run leave-HLA-out; it only proves the B1+H4 compute path and the loaders. The gate verdict there is INSUFFICIENT_DEPOSITS by design."
+  ]
+}

@@ -54,7 +54,7 @@ with open("analyze_cas9_mutation_outcomes_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_cas9_mutation_outcomes_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cas9 Mutation Outcomes Results" + NL)
+    f.write("BioMate: Analyze Cas9 Mutation Outcomes Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

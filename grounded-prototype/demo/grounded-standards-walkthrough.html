@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grounded Standards Assistant</title>
+<style>
+  :root {
+    --bg: #0b1220; --panel: #111a2e; --panel2: #0e1526; --ink: #e8eef9;
+    --muted: #9fb0cc; --line: #22304d; --accent: #6aa3ff;
+    --A: #2fbf71; --A-bg: rgba(47,191,113,.14);
+    --B: #3b82f6; --B-bg: rgba(59,130,246,.14);
+    --C: #e0a52b; --C-bg: rgba(224,165,43,.14);
+    --D: #8695ad; --D-bg: rgba(134,149,173,.12);
+    --warn: #e0a52b; --warn-bg: rgba(224,165,43,.10);
+    --block: #ef6a6a; --block-bg: rgba(239,106,106,.12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; }
+  .stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .scene { position: absolute; inset: 0; opacity: 0; transform: translateY(14px);
+    transition: opacity .6s ease, transform .6s ease; display: flex; align-items: center; justify-content: center; padding: 44px 64px; }
+  .scene.active { opacity: 1; transform: none; }
+
+  /* title / outro cards */
+  .card { max-width: 1040px; text-align: center; }
+  .card .eyebrow { color: var(--accent); letter-spacing: .18em; text-transform: uppercase; font-size: 15px; font-weight: 600; }
+  .card h1 { font-size: 54px; line-height: 1.08; margin: 18px 0 14px; font-weight: 700; }
+  .card p { font-size: 22px; color: var(--muted); margin: 0 auto; max-width: 820px; line-height: 1.5; }
+  .pillrow { display: flex; gap: 14px; justify-content: center; margin-top: 34px; flex-wrap: wrap; }
+  .pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 12px 20px; font-size: 17px; color: var(--ink); }
+  .pill b { color: var(--accent); }
+
+  /* conversation scene */
+  .conv { width: 1180px; max-width: 100%; }
+  .beatbar { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .beatno { font-size: 14px; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }
+  .beattitle { font-size: 26px; font-weight: 700; }
+  .caption { color: var(--muted); font-size: 18px; margin-bottom: 22px; line-height: 1.45; }
+
+  .msg { border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; margin-bottom: 16px; background: var(--panel); }
+  .msg.user { background: var(--panel2); }
+  .who { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+  .avatar { width: 24px; height: 24px; border-radius: 6px; background: var(--accent); color: #06101f; font-weight: 800;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+  .avatar.ai { background: #243a63; color: var(--accent); }
+  .qtext { font-size: 22px; line-height: 1.4; min-height: 1.4em; }
+  .cursor { display: inline-block; width: 2px; background: var(--accent); margin-left: 2px; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .grade { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; border-radius: 8px; padding: 5px 12px; }
+  .grade.high { color: var(--A); background: var(--A-bg); }
+  .grade.moderate { color: var(--C); background: var(--C-bg); }
+  .grade.low { color: var(--C); background: var(--C-bg); }
+  .qtype { font-size: 14px; color: var(--muted); margin-left: 12px; }
+
+  .block { opacity: 0; transform: translateY(8px); transition: opacity .45s ease, transform .45s ease; }
+  .block.show { opacity: 1; transform: none; }
+
+  .sect { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 16px 0 10px; }
+  .claim { border-left: 3px solid var(--line); padding: 4px 0 4px 14px; margin-bottom: 14px; }
+  .claim .ctext { font-size: 17px; line-height: 1.5; }
+  .src { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 14px; color: var(--muted); flex-wrap: wrap; }
+  .chip { font-weight: 800; font-size: 12px; border-radius: 6px; padding: 3px 8px; letter-spacing: .04em; }
+  .chip.A { color: var(--A); background: var(--A-bg); } .chip.B { color: var(--B); background: var(--B-bg); }
+  .chip.C { color: var(--C); background: var(--C-bg); } .chip.D { color: var(--D); background: var(--D-bg); }
+  .verified { font-size: 12px; color: var(--A); } .unverified { font-size: 12px; color: var(--C); }
+  .loc { font-size: 13px; color: #6f82a6; }
+
+  .boundary { border: 1px solid var(--warn); background: var(--warn-bg); border-radius: 12px; padding: 16px 18px; margin-top: 8px; }
+  .boundary .bt { color: var(--warn); font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+  .boundary .br { font-size: 15px; color: var(--ink); line-height: 1.5; }
+  .boundary ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+
+  .pnote { border: 1px dashed var(--line); border-radius: 10px; padding: 12px 16px; margin-top: 8px; background: var(--D-bg); color: var(--muted); font-size: 15px; }
+
+  .iso { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; display: flex; gap: 26px; flex-wrap: wrap; font-size: 14px; }
+  .iso .k { color: var(--muted); } .iso .v { font-weight: 800; }
+  .iso .blocked .v { color: var(--block); }
+  .iso .used .v { color: var(--A); }
+  .brand { position: fixed; left: 28px; bottom: 22px; font-size: 14px; color: var(--muted); letter-spacing: .04em; }
+  .brand b { color: var(--ink); }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage"></div>
+  <div class="brand">BioMate · <b>Grounded Standards Assistant</b></div>
+
+<script>
+const TIER_LABEL = { A: "Normative", B: "Peer-reviewed", C: "Org-validated", D: "Unverified note" };
+
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderIntro() {
+  const s = el('div', 'scene'); const c = el('div', 'card');
+  c.appendChild(el('div','eyebrow','BioMate for CMC & Manufacturing'));
+  c.appendChild(el('h1',null,'Answers you can defend to an auditor.'));
+  c.appendChild(el('p',null,'Most assistants quote a regulatory number. The Grounded Standards Assistant tells you <b>why</b> the number is set, <b>what work produced it</b>, and <b>which tier of evidence</b> backs every line — and it refuses to invent what the record does not say.'));
+  const pr = el('div','pillrow');
+  ['Tiered provenance (A·B·C·D)','Honest boundaries','Per-user isolation'].forEach(t => pr.appendChild(el('div','pill',t)));
+  c.appendChild(pr); s.appendChild(c); return s;
+}
+
+function renderOutro() {
+  const s = el('div','scene'); const c = el('div','card');
+  c.appendChild(el('div','eyebrow','What ships next'));
+  c.appendChild(el('h1',null,'From quoting the number to deriving it.'));
+  c.appendChild(el('p',null,'Next: a <b>derivation engine</b> that computes your case — PDE/ADE, cleaning MACO, TTC→ppm, sterilization F₀ — with a replayable, tier-tagged calculation trace. Every input sourced. Audit-grade, and isolated per tenant.'));
+  const pr = el('div','pillrow');
+  ['Derivation engine','ICH Q3C/Q3D · Annex 1 corpus','Spec-check mode'].forEach(t => pr.appendChild(el('div','pill',t)));
+  c.appendChild(pr); s.appendChild(c); return s;
+}
+
+function renderBeat(d, idx) {
+  const a = d.answer;
+  const s = el('div','scene'); const conv = el('div','conv');
+  const bar = el('div','beatbar');
+  bar.appendChild(el('div','beatno', 'Beat ' + (idx+1)));
+  bar.appendChild(el('div','beattitle', esc(d.beat)));
+  conv.appendChild(bar);
+  conv.appendChild(el('div','caption', esc(d.caption)));
+
+  // user message (question typed in)
+  const um = el('div','msg user');
+  const uwho = el('div','who');
+  uwho.appendChild(el('span','avatar', esc(d.user[0].toUpperCase())));
+  uwho.appendChild(el('span', null, esc(d.user) + ' · CMC scientist'));
+  um.appendChild(uwho);
+  const q = el('div','qtext'); q.dataset.full = a.question; q.innerHTML = '<span class="cursor">&nbsp;</span>';
+  um.appendChild(q); conv.appendChild(um);
+
+  // assistant message
+  const am = el('div','msg');
+  const awho = el('div','who');
+  awho.appendChild(el('span','avatar ai','◆'));
+  awho.appendChild(el('span', null, 'Grounded Standards Assistant'));
+  am.appendChild(awho);
+
+  const head = el('div','block');
+  head.innerHTML = '<span class="grade '+esc(a.grade)+'">Evidence grade: '+esc(a.grade.toUpperCase())+'</span>'
+    + '<span class="qtype">question type: '+esc(a.question_type)+'</span>';
+  am.appendChild(head);
+
+  const grounded = a.claims.filter(c => c.grounded);
+  const personal = a.claims.filter(c => !c.grounded);
+
+  if (grounded.length) {
+    const b = el('div','block');
+    b.appendChild(el('div','sect','What the evidence supports'));
+    grounded.forEach(c => {
+      const cl = el('div','claim');
+      cl.appendChild(el('div','ctext', esc(c.text)));
+      c.sources.forEach(src => {
+        const row = el('div','src');
+        row.appendChild(el('span','chip '+esc(src.tier), esc(src.tier)+' · '+TIER_LABEL[src.tier]));
+        row.appendChild(el('span', null, esc(src.citation)));
+        row.appendChild(el('span', src.verified ? 'verified' : 'unverified', src.verified ? '✓ verified' : '○ confirm vs controlled doc'));
+        if (src.locator) row.appendChild(el('span','loc', esc(src.locator)));
+        cl.appendChild(row);
+      });
+      b.appendChild(cl);
+    });
+    am.appendChild(b);
+  }
+
+  if (a.boundaries && a.boundaries.length) {
+    const b = el('div','block');
+    b.appendChild(el('div','sect','Where the record stops'));
+    a.boundaries.forEach(bd => {
+      const box = el('div','boundary');
+      box.appendChild(el('div','bt','⚠ Not asserted as settled'));
+      box.appendChild(el('div','br', esc(bd.reason)));
+      if (bd.suggested_questions && bd.suggested_questions.length) {
+        const ul = el('ul',''); bd.suggested_questions.forEach(q => ul.appendChild(el('li', null, esc(q)))); box.appendChild(ul);
+      }
+      b.appendChild(box);
+    });
+    am.appendChild(b);
+  }
+
+  if (personal.length) {
+    const b = el('div','block');
+    b.appendChild(el('div','sect','Your unverified notes — shown to you only, not evidence'));
+    personal.forEach(c => b.appendChild(el('div','pnote', esc(c.text))));
+    am.appendChild(b);
+  }
+
+  // isolation audit
+  const iso = a.isolation;
+  if (iso) {
+    const b = el('div','block');
+    const box = el('div','iso');
+    box.innerHTML =
+      '<span class="used"><span class="k">authoritative sources used:</span> <span class="v">'+iso.shared_sources_used+'</span></span>'
+      + '<span><span class="k">your own notes (demoted):</span> <span class="v">'+iso.own_personal_sources_used+'</span></span>'
+      + '<span class="blocked"><span class="k">other users’ private notes blocked:</span> <span class="v">'+iso.other_tenant_personal_blocked+'</span></span>';
+    b.appendChild(box);
+    am.appendChild(b);
+  }
+
+  conv.appendChild(am); s.appendChild(conv);
+  s._q = q; // for typing
+  return s;
+}
+
+// ── schedule + drive ─────────────────────────────────────────────────────────
+const stage = document.getElementById('stage');
+let scenes = [];
+const SCHED = []; // {startSec}
+let TOTAL = 0;
+
+function typeInto(elm, text, cps, done) {
+  let i = 0; const step = () => {
+    i++; elm.innerHTML = esc(text.slice(0, i)) + '<span class="cursor">&nbsp;</span>';
+    if (i < text.length) setTimeout(step, 1000 / cps); else { elm.innerHTML = esc(text); done && done(); }
+  }; step();
+}
+
+function runBeat(sceneEl, cb) {
+  const blocks = sceneEl.querySelectorAll('.block');
+  typeInto(sceneEl._q, sceneEl._q.dataset.full, 42, () => {
+    let d = 450;
+    blocks.forEach((bl) => { setTimeout(() => bl.classList.add('show'), d); d += 900; });
+    setTimeout(cb, d + 2600); // hold after last block
+  });
+}
+
+function build(data) {
+  const intro = renderIntro(); stage.appendChild(intro); scenes.push({el: intro, type: 'card', dur: 4.2});
+  data.forEach((d, i) => {
+    const sc = renderBeat(d, i); stage.appendChild(sc);
+    // duration estimate: type question + blocks reveal + hold
+    const blocks = sc.querySelectorAll('.block').length;
+    const dur = Math.max(10, (d.answer.question.length / 42) + 0.45 + blocks * 0.9 + 2.6 + 1.2);
+    scenes.push({el: sc, type: 'beat', dur});
+  });
+  const outro = renderOutro(); stage.appendChild(outro); scenes.push({el: outro, type: 'card', dur: 4.6});
+
+  let t = 0; scenes.forEach(s => { SCHED.push(+t.toFixed(2)); t += s.dur; });
+  TOTAL = +t.toFixed(2);
+  window.__timeline = SCHED;
+  window.__totalSeconds = TOTAL;
+}
+
+function play(idx) {
+  if (idx >= scenes.length) { window.__done = true; return; }
+  const s = scenes[idx];
+  scenes.forEach(x => x.el.classList.remove('active'));
+  s.el.classList.add('active');
+  if (s.type === 'beat') {
+    runBeat(s.el, () => play(idx + 1));
+  } else {
+    setTimeout(() => play(idx + 1), s.dur * 1000);
+  }
+}
+
+fetch('./demo_data.json').then(r => r.json()).then(data => {
+  build(data);
+  // small delay so the record harness can observe __timeline before scene 0
+  setTimeout(() => play(0), 300);
+}).catch(e => {
+  document.body.innerHTML = '<div style="color:#fff;padding:40px;font:18px sans-serif">Failed to load demo_data.json — run gen_demo_data.py first. '+esc(e.message)+'</div>';
+});
+</script>
+</body>
+</html>

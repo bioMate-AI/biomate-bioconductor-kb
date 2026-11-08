@@ -113,13 +113,27 @@ export function serveStatic(app: Express) {
     app.use("/reference", express.static(referencePath));
   }
 
-  // Serve index.html for all non-API routes (SPA fallback)
+  // Serve index.html for all non-API routes (SPA fallback).
+  // When DISABLE_GOOGLE_FONTS=true (on-prem / behind GFW), strip CDN links at runtime
+  // so the browser never stalls waiting for fonts.googleapis.com.
+  const stripCdn = process.env.DISABLE_GOOGLE_FONTS === "true" || process.env.VITE_ONPREM === "true";
   app.get("*", (req, res) => {
     if (req.path.startsWith("/api")) {
       return res.status(404).json({
         error: "NotFound",
         message: `API route ${req.path} not found`,
       });
+    }
+    if (stripCdn) {
+      try {
+        let html = fs.readFileSync(indexPath, "utf-8");
+        html = html.replace(/<link[^>]*fonts\.googleapis\.com[^>]*>/g, "");
+        html = html.replace(/<link[^>]*fonts\.gstatic\.com[^>]*>/g, "");
+        html = html.replace(/<script[^>]*googletagmanager\.com[^>]*><\/script>/g, "");
+        return res.set("Content-Type", "text/html").send(html);
+      } catch {
+        // fall through to sendFile if read fails
+      }
     }
     res.sendFile(indexPath);
   });

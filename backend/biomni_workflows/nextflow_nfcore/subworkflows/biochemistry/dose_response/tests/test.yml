@@ -1,4 +1,9 @@
-- name: "dose_response test"
+- name: "dose_response drc fit"
+  command: nextflow run ../main.nf -profile docker --data ./data/dose_response.csv
+  tags:
+    - biochemistry
+    - dose_response
+- name: "dose_response scalar fallback"
   command: nextflow run ../main.nf -profile docker
   params:
       x: 1.0

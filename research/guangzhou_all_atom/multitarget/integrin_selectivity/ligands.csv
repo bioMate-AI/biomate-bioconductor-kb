@@ -1,0 +1,47 @@
+ligand_id,source,smiles,tier,pubchem_cid,formula,provenance
+Echistatin,kapp2017,,,,,no unambiguous structure; excluded from structure models
+RGD,kapp2017,N=C(N)NCCC[C@H](N)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)O,B,,C12H22N6O6,"built from sequence RGD by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+RGDS,kapp2017,N=C(N)NCCC[C@H](N)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CO)C(=O)O,B,,C15H27N7O8,"built from sequence RGDS by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGD,kapp2017,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)O,B,,C14H25N7O7,"built from sequence GRGD by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDS,kapp2017,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CO)C(=O)O,B,,C17H30N8O9,"built from sequence GRGDS by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDSP,kapp2017,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CO)C(=O)N1CCC[C@H]1C(=O)O,B,,C22H37N9O10,"built from sequence GRGDSP by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDSPK,kapp2017,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CO)C(=O)N1CCC[C@H]1C(=O)N[C@@H](CCCCN)C(=O)O,B,,C28H49N11O11,"built from sequence GRGDSPK by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDNP,kapp2017,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CC(N)=O)C(=O)N1CCC[C@H]1C(=O)O,B,,C23H38N10O10,"built from sequence GRGDNP by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDTP,kapp2017,C[C@@H](O)[C@H](NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CN)C(=O)N1CCC[C@H]1C(=O)O,B,,C23H39N9O10,"built from sequence GRGDTP by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+c(RGDfV),kapp2017,CC(C)[C@@H]1NC(=O)[C@@H](Cc2ccccc2)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCN=C(N)N)NC1=O,B,,C26H38N8O7,"derived from PubChem cyclo(RGDfK) SMILES (CID 10196873) by substituting Lys side chain with Val (cyclo(Arg-Gly-Asp-D-Phe-Val)); stereo inherited, not independently verified"
+Cilengitide,kapp2017,CC(C)[C@H]1C(=O)N[C@H](C(=O)NCC(=O)N[C@H](C(=O)N[C@@H](C(=O)N1C)CC2=CC=CC=C2)CC(=O)O)CCCN=C(N)N,A,176873,C27H40N8O7,PubChem PUG REST name query 'cilengitide' -> CID 176873 (InChIKey AMLYAMJWYAIXIA-VWNVYAMZSA-N)
+c(RGDfK),kapp2017,C1C(=O)N[C@H](C(=O)N[C@@H](C(=O)N[C@H](C(=O)N[C@H](C(=O)N1)CCCN=C(N)N)CCCCN)CC2=CC=CC=C2)CC(=O)O,A,10196873,C27H41N9O7,PubChem PUG REST name query 'cyclo(RGDfK)' -> CID 10196873 (InChIKey NVHPXYIRNJFKTE-HAGHYFMRSA-N)
+c(RGDyK),kapp2017,C1C(=O)N[C@H](C(=O)N[C@@H](C(=O)N[C@H](C(=O)N[C@H](C(=O)N1)CCCN=C(N)N)CCCCN)CC2=CC=C(C=C2)O)CC(=O)O,A,11157853,C27H41N9O8,PubChem PUG REST name query 'cyclo(Arg-Gly-Asp-D-Tyr-Lys)' -> CID 11157853 (InChIKey LAROZEWEPNAWMD-HAGHYFMRSA-N)
+c(RGDfC),kapp2017,,,,,no unambiguous structure; excluded from structure models
+sn243,kapp2017,,,,,no unambiguous structure; excluded from structure models
+RGD-4C,kapp2017,,,,,no unambiguous structure; excluded from structure models
+RGD10 (RGD-2C),kapp2017,,,,,no unambiguous structure; excluded from structure models
+NC100717,kapp2017,,,,,no unambiguous structure; excluded from structure models
+c(phgisoDGRk),kapp2017,,,,,no unambiguous structure; excluded from structure models
+44b,kapp2017,,,,,no unambiguous structure; excluded from structure models
+ATN161,kapp2017,CC(=O)N1CCC[C@H]1C(=O)N[C@@H](CC2=CN=CN2)C(=O)N[C@@H](CO)C(=O)N[C@@H](CS)C(=O)N[C@@H](CC(=O)N)C(=O)N,A,9960285,C23H35N9O8S,PubChem PUG REST name query 'ATN161' -> CID 9960285 (InChIKey MMHDBUJXLOFTLC-WOYTXXSLSA-N)
+JSM6427,kapp2017,,,,,no unambiguous structure; excluded from structure models
+RTDLDSLRT,kapp2017,,,,,no unambiguous structure; excluded from structure models
+A20FMDV2,kapp2017,,,,,no unambiguous structure; excluded from structure models
+Mol11,kapp2017,,,,,no unambiguous structure; excluded from structure models
+c(FRGDLAFp(NMe)K),kapp2017,,,,,no unambiguous structure; excluded from structure models
+Eptifibatide,kapp2017,C1C[C@H]2C(=O)N[C@@H](CSSCCC(=O)N[C@H](C(=O)NCC(=O)N[C@H](C(=O)N[C@H](C(=O)N2C1)CC3=CNC4=CC=CC=C43)CC(=O)O)CCCCN=C(N)N)C(=O)N,A,448812,C35H49N11O9S2,PubChem PUG REST name query 'eptifibatide' -> CID 448812 (InChIKey CZKPOZZJODAYPZ-LROMGURASA-N)
+Tirofiban,kapp2017,CCCCS(=O)(=O)N[C@@H](CC1=CC=C(C=C1)OCCCCC2CCNCC2)C(=O)O,A,60947,C22H36N2O5S,PubChem PUG REST name query 'tirofiban' -> CID 60947 (InChIKey COKMIXFXJJXBQG-NRFANRHFSA-N)
+GR144053,kapp2017,C1CN(CCC1N2CCN(CC2)C3=CC=C(C=C3)C(=N)N)CC(=O)O,A,173614,C18H27N5O2,PubChem PUG REST name query 'GR144053' -> CID 173614 (InChIKey QGEGSJUSWLLZLH-UHFFFAOYSA-N)
+F-Galacto-c(RGDfK),kapp2017,,,,,no unambiguous structure; excluded from structure models
+(Ga)NOPO*-c(RGDfK),kapp2017,,,,,no unambiguous structure; excluded from structure models
+c(RGDfK)-Peg-MPA,kapp2017,,,,,no unambiguous structure; excluded from structure models
+Flucilatide,kapp2017,,,,,no unambiguous structure; excluded from structure models
+c(phgisoDGRk)-Peg-MPA,kapp2017,,,,,no unambiguous structure; excluded from structure models
+Quigley_FF,quigley2023,,,,,no unambiguous structure; excluded from structure models
+Quigley_YF,quigley2023,,,,,no unambiguous structure; excluded from structure models
+Quigley_FY,quigley2023,,,,,no unambiguous structure; excluded from structure models
+Quigley_YY,quigley2023,,,,,no unambiguous structure; excluded from structure models
+Tomassi_cmpd1,tomassi2021,,,,,no unambiguous structure; excluded from structure models
+Tomassi_cmpd2,tomassi2021,,,,,no unambiguous structure; excluded from structure models
+Tomassi_cmpd3,tomassi2021,,,,,no unambiguous structure; excluded from structure models
+Tomassi_cmpd4,tomassi2021,,,,,no unambiguous structure; excluded from structure models
+Tomassi_cmpd5,tomassi2021,,,,,no unambiguous structure; excluded from structure models
+Tomassi_cmpd6,tomassi2021,,,,,no unambiguous structure; excluded from structure models
+Cilengitide@tomassi2021,tomassi2021,,,,,no unambiguous structure; excluded from structure models
+RTDLDSLRT@tomassi2021,tomassi2021,,,,,no unambiguous structure; excluded from structure models

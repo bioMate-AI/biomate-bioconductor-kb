@@ -1,0 +1,159 @@
+{
+  "scope": "Actual Hermes registry + synthetic BioMate tools + provisional graph validator; no model or scientific execution.",
+  "hermes_revision": "46d7718a52ff33accb15dc0501736fbdb6833cab",
+  "total": 30,
+  "failed": 0,
+  "passed": 30,
+  "checks": [
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "only_three_readonly_tools",
+      "passed": true
+    },
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "context_bound_to_case",
+      "passed": true
+    },
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "catalog_exhaustion_explicit",
+      "passed": true
+    },
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "complete_plan_accepted_without_execution",
+      "passed": true
+    },
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "missing_case_rejected",
+      "passed": true
+    },
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "unavailable_workflow_rejected",
+      "passed": true
+    },
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "cycle_rejected",
+      "passed": true
+    },
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "model_cannot_shrink_expected_scope",
+      "passed": true
+    },
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "context_cannot_be_overridden",
+      "passed": true
+    },
+    {
+      "case_id": "compare_all_applicable_tools",
+      "check": "submission_tool_absent",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "only_three_readonly_tools",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "context_bound_to_case",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "catalog_exhaustion_explicit",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "complete_plan_accepted_without_execution",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "missing_case_rejected",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "unavailable_workflow_rejected",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "cycle_rejected",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "model_cannot_shrink_expected_scope",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "context_cannot_be_overridden",
+      "passed": true
+    },
+    {
+      "case_id": "two_inhibitors_three_targets",
+      "check": "submission_tool_absent",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "only_three_readonly_tools",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "context_bound_to_case",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "catalog_exhaustion_explicit",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "complete_plan_accepted_without_execution",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "missing_case_rejected",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "unavailable_workflow_rejected",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "cycle_rejected",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "model_cannot_shrink_expected_scope",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "context_cannot_be_overridden",
+      "passed": true
+    },
+    {
+      "case_id": "peptide_shortlist_from_prior_run",
+      "check": "submission_tool_absent",
+      "passed": true
+    }
+  ]
+}

@@ -12,6 +12,17 @@ IID[rf_01]=i-087c0e15d97ec8f80; IP[rf_01]=54.218.87.146; DOMS[rf_01]="transcript
 IID[rf_02]=i-0fda6379f3af317f2; IP[rf_02]=35.90.77.237;  DOMS[rf_02]="genomics imaging single_cell"
 IID[rf_03]=i-053919ffbb8cc512a; IP[rf_03]=35.167.220.240; DOMS[rf_03]="epigenomics proteomics variant_calling metabolomics metagenomics"
 
+# Ensure every target ECR repo exists BEFORE the boxes try to push. The build boxes'
+# ecsInstanceRole has push perms (InitiateLayerUpload/PutImage/...) but NOT
+# ecr:CreateRepository — so a brand-new domain image false-fails at push
+# ("not authorized to perform ecr:CreateRepository"). This script runs with local creds
+# that CAN create, so create-if-missing here once. (Observed 2026-09-28 building the new
+# bioc-domain-spatial image.) Idempotent: describe first, create only if absent.
+for dom in $(printf '%s\n' "${DOMS[@]}" | tr ' ' '\n' | sort -u); do
+  aws ecr describe-repositories --repository-names "biomate/bioc-domain-$dom" --region us-west-2 >/dev/null 2>&1 \
+    || { echo "[ecr] creating missing repo biomate/bioc-domain-$dom"; aws ecr create-repository --repository-name "biomate/bioc-domain-$dom" --region us-west-2 >/dev/null 2>&1; }
+done
+
 for s in rf_00 rf_01 rf_02 rf_03; do
   inj ${IID[$s]}
   $SSH ubuntu@${IP[$s]} "aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $REG >/dev/null 2>&1" 2>/dev/null

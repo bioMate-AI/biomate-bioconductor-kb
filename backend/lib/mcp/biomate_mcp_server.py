@@ -386,18 +386,33 @@ class BioMateClient:
             return {"error": str(exc), "results": []}
 
     def run_workflow(self, workflow_id: str, params: dict, session_message: Optional[str] = None) -> Dict[str, Any]:
-        # workflow_id should be the nextflow_path from search_workflow (e.g.
-        # "pharmacology/herg_cardiac_safety_qsar/main.nf").
-        # POST /api/workflows/execute expects a workflowDefinition envelope.
-        payload: Dict[str, Any] = {
-            "workflowDefinition": {
-                "nextflow_path": workflow_id,
-                "workflow_type": "nextflow",
-                "parameters": params or {},
-            }
-        }
+        # `workflow_id` is a search query (workflow name / nextflow_path / description).
+        # /api/workflows/execute needs a FULL workflowDefinition, NOT a bare
+        # {nextflow_path: ...} envelope — so resolve it via /api/workflows/search first
+        # (mirrors the Node connector's run_workflow in frontend/server/routes.ts:830).
+        # The old bare-envelope form was broken both ways: a numeric id ran
+        # `nextflow run /app` (no main.nf), and a nextflow_path string was rejected 400.
+        # (Fix 2026-10-05, committee review.)
+        try:
+            s = self.session.post(
+                self._url("/api/workflows/search"),
+                json={"query": workflow_id, "limit": 1, "defer_param_prefill": True},
+                timeout=30,
+            )
+            s.raise_for_status()
+            workflow_def = (s.json() or {}).get("workflow_ga")
+        except Exception as exc:
+            return {"error": f"workflow search failed for '{workflow_id}': {exc}"}
+        if not workflow_def:
+            return {"error": f"No workflow found matching '{workflow_id}'. "
+                             f"Use search_workflow first to find the correct workflow."}
+        if params:
+            workflow_def["parameters"] = {**(workflow_def.get("parameters") or {}), **params}
+        payload: Dict[str, Any] = {"workflowDefinition": workflow_def}
+        if params:
+            payload["params"] = params
         if session_message:
-            payload["workflowDefinition"]["description"] = session_message
+            payload["message"] = session_message
         try:
             r = self.session.post(
                 self._url("/api/workflows/execute"),

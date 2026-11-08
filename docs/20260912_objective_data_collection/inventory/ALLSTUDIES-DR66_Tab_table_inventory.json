@@ -1,0 +1,1711 @@
+[
+ {
+  "table": "fcs_analyzed_result_marker",
+  "data_rows": 45422606,
+  "n_cols": 5,
+  "columns": [
+   "FCS_ANALYZED_RESULT_MARKER_ID",
+   "POPULATION_MARKER_PREFERRED",
+   "POPULATION_MARKER_REPORTED",
+   "PREFERRED_ANALYTE_ACCESSION",
+   "RESULT_ID"
+  ],
+  "bytes": 1677709835
+ },
+ {
+  "table": "mass_spectrometry_result",
+  "data_rows": 7763572,
+  "n_cols": 25,
+  "columns": [
+   "RESULT_ID",
+   "ARM_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "COMMENTS",
+   "EXPERIMENT_ACCESSION",
+   "EXPSAMPLE_ACCESSION",
+   "INTENSITY",
+   "RETENTION_TIME",
+   "RETENTION_TIME_UNIT",
+   "M_Z_RATIO",
+   "Z_CHARGE",
+   "DATABASE_ID_REPORTED",
+   "DATABASE_ID_PREFERRED",
+   "MASS_SPECTROMETRY_TYPE",
+   "METABOLITE_NAME_REPORTED",
+   "METABOLITE_NAME_PREFERRED",
+   "PROTEIN_NAME_REPORTED",
+   "PROTEIN_NAME_PREFERRED",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 1214729824
+ },
+ {
+  "table": "expsample_2_reagent",
+  "data_rows": 7750946,
+  "n_cols": 2,
+  "columns": [
+   "EXPSAMPLE_ACCESSION",
+   "REAGENT_ACCESSION"
+  ],
+  "bytes": 144081887
+ },
+ {
+  "table": "fcs_analyzed_result",
+  "data_rows": 5222064,
+  "n_cols": 26,
+  "columns": [
+   "RESULT_ID",
+   "ARM_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "COMMENTS",
+   "EXPERIMENT_ACCESSION",
+   "EXPSAMPLE_ACCESSION",
+   "PARENT_POPULATION_PREFERRED",
+   "PARENT_POPULATION_REPORTED",
+   "POPULATION_DEFNITION_PREFERRED",
+   "POPULATION_DEFNITION_REPORTED",
+   "POPULATION_NAME_PREFERRED",
+   "POPULATION_NAME_REPORTED",
+   "POPULATION_STAT_UNIT_PREFERRED",
+   "POPULATION_STAT_UNIT_REPORTED",
+   "POPULATION_STATISTIC_PREFERRED",
+   "POPULATION_STATISTIC_REPORTED",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "WORKSPACE_FILE_INFO_ID",
+   "POPULATION_NAME_MODIFIER",
+   "PARENT_POPULATION_MODIFIER",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 1525664014
+ },
+ {
+  "table": "fcs_header_marker",
+  "data_rows": 3445203,
+  "n_cols": 6,
+  "columns": [
+   "FCS_HEADER_ID",
+   "PARAMETER_NUMBER",
+   "PNN_PREFERRED",
+   "PNN_REPORTED",
+   "PNS_PREFERRED",
+   "PNS_REPORTED"
+  ],
+  "bytes": 114411194
+ },
+ {
+  "table": "assessment_component",
+  "data_rows": 2944874,
+  "n_cols": 28,
+  "columns": [
+   "ASSESSMENT_COMPONENT_ACCESSION",
+   "AGE_AT_ONSET_PREFERRED",
+   "AGE_AT_ONSET_REPORTED",
+   "AGE_AT_ONSET_UNIT_PREFERRED",
+   "AGE_AT_ONSET_UNIT_REPORTED",
+   "ASSESSMENT_PANEL_ACCESSION",
+   "IS_CLINICALLY_SIGNIFICANT",
+   "LOCATION_OF_FINDING_PREFERRED",
+   "LOCATION_OF_FINDING_REPORTED",
+   "NAME_PREFERRED",
+   "NAME_REPORTED",
+   "ORGAN_OR_BODY_SYSTEM_PREFERRED",
+   "ORGAN_OR_BODY_SYSTEM_REPORTED",
+   "PLANNED_VISIT_ACCESSION",
+   "REFERENCE_RANGE_ACCESSION",
+   "RESULT_UNIT_PREFERRED",
+   "RESULT_UNIT_REPORTED",
+   "RESULT_VALUE_CATEGORY",
+   "RESULT_VALUE_PREFERRED",
+   "RESULT_VALUE_REPORTED",
+   "STUDY_DAY",
+   "SUBJECT_ACCESSION",
+   "SUBJECT_POSITION_PREFERRED",
+   "SUBJECT_POSITION_REPORTED",
+   "TIME_OF_DAY",
+   "VERBATIM_QUESTION",
+   "WHO_IS_ASSESSED",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 369994268
+ },
+ {
+  "table": "expsample_2_file_info",
+  "data_rows": 1973930,
+  "n_cols": 3,
+  "columns": [
+   "EXPSAMPLE_ACCESSION",
+   "FILE_INFO_ID",
+   "RESULT_SCHEMA"
+  ],
+  "bytes": 44878395
+ },
+ {
+  "table": "lab_test",
+  "data_rows": 1791224,
+  "n_cols": 11,
+  "columns": [
+   "LAB_TEST_ACCESSION",
+   "LAB_TEST_PANEL_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "NAME_PREFERRED",
+   "NAME_REPORTED",
+   "REFERENCE_RANGE_ACCESSION",
+   "RESULT_UNIT_PREFERRED",
+   "RESULT_UNIT_REPORTED",
+   "RESULT_VALUE_PREFERRED",
+   "RESULT_VALUE_REPORTED",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 137544829
+ },
+ {
+  "table": "expsample_2_biosample",
+  "data_rows": 1757669,
+  "n_cols": 2,
+  "columns": [
+   "BIOSAMPLE_ACCESSION",
+   "EXPSAMPLE_ACCESSION"
+  ],
+  "bytes": 33130031
+ },
+ {
+  "table": "mbaa_result",
+  "data_rows": 1524993,
+  "n_cols": 25,
+  "columns": [
+   "RESULT_ID",
+   "ANALYTE_ACCESSION",
+   "ANALYTE_PREFERRED",
+   "ANALYTE_REPORTED",
+   "ARM_ACCESSION",
+   "ASSAY_GROUP_ID",
+   "ASSAY_ID",
+   "BIOSAMPLE_ACCESSION",
+   "COMMENTS",
+   "CONCENTRATION_UNIT_REPORTED",
+   "CONCENTRATION_UNIT_PREFERRED",
+   "CONCENTRATION_VALUE_REPORTED",
+   "CONCENTRATION_VALUE_PREFERRED",
+   "EXPERIMENT_ACCESSION",
+   "MFI",
+   "MFI_COORDINATE",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "SOURCE_ACCESSION",
+   "SOURCE_TYPE",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 213059348
+ },
+ {
+  "table": "expsample",
+  "data_rows": 1288729,
+  "n_cols": 7,
+  "columns": [
+   "EXPSAMPLE_ACCESSION",
+   "DESCRIPTION",
+   "EXPERIMENT_ACCESSION",
+   "NAME",
+   "RESULT_SCHEMA",
+   "UPLOAD_RESULT_STATUS",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 83206524
+ },
+ {
+  "table": "expsample_2_treatment",
+  "data_rows": 1165745,
+  "n_cols": 2,
+  "columns": [
+   "EXPSAMPLE_ACCESSION",
+   "TREATMENT_ACCESSION"
+  ],
+  "bytes": 20721024
+ },
+ {
+  "table": "biosample",
+  "data_rows": 671968,
+  "n_cols": 13,
+  "columns": [
+   "BIOSAMPLE_ACCESSION",
+   "DESCRIPTION",
+   "NAME",
+   "PLANNED_VISIT_ACCESSION",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "STUDY_TIME_T0_EVENT",
+   "STUDY_TIME_T0_EVENT_SPECIFY",
+   "SUBJECT_ACCESSION",
+   "SUBTYPE",
+   "TYPE",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 72560099
+ },
+ {
+  "table": "elisa_result",
+  "data_rows": 543722,
+  "n_cols": 20,
+  "columns": [
+   "RESULT_ID",
+   "ANALYTE_ACCESSION",
+   "ANALYTE_PREFERRED",
+   "ANALYTE_REPORTED",
+   "ARM_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "COMMENTS",
+   "EXPERIMENT_ACCESSION",
+   "EXPSAMPLE_ACCESSION",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "UNIT_PREFERRED",
+   "UNIT_REPORTED",
+   "VALUE_PREFERRED",
+   "VALUE_REPORTED",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 94733573
+ },
+ {
+  "table": "file_details",
+  "data_rows": 416017,
+  "n_cols": 15,
+  "columns": [
+   "FILE_DETAILS_ID",
+   "REPORTED_MD5",
+   "GENERATED_MD5",
+   "STUDY_ACCESSION",
+   "FILESIZE_BYTES",
+   "FILE_TYPE",
+   "FILE_ACCESSION",
+   "FILE_NAME",
+   "PATH",
+   "DATE_FILE_UPDATED",
+   "AI_GENERATED_KEYWORDS",
+   "AI_GENERATED_SUMMARY",
+   "FILE_UUID",
+   "DRS_OBJECT_CREATED",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 104518538
+ },
+ {
+  "table": "intervention",
+  "data_rows": 348588,
+  "n_cols": 24,
+  "columns": [
+   "INTERVENTION_ACCESSION",
+   "COMPOUND_NAME_REPORTED",
+   "COMPOUND_ROLE",
+   "DOSE",
+   "DOSE_FREQ_PER_INTERVAL",
+   "DOSE_REPORTED",
+   "DOSE_UNITS",
+   "DURATION",
+   "DURATION_UNIT",
+   "END_DAY",
+   "END_TIME",
+   "FORMULATION",
+   "IS_ONGOING",
+   "NAME_PREFERRED",
+   "NAME_REPORTED",
+   "REPORTED_INDICATION",
+   "ROUTE_OF_ADMIN_PREFERRED",
+   "ROUTE_OF_ADMIN_REPORTED",
+   "START_DAY",
+   "START_TIME",
+   "STATUS",
+   "STUDY_ACCESSION",
+   "SUBJECT_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 58727107
+ },
+ {
+  "table": "file_info",
+  "data_rows": 334065,
+  "n_cols": 6,
+  "columns": [
+   "FILE_INFO_ID",
+   "DETAIL",
+   "FILESIZE_BYTES",
+   "NAME",
+   "ORIGINAL_FILE_NAME",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 36908733
+ },
+ {
+  "table": "arm_2_subject",
+  "data_rows": 201460,
+  "n_cols": 11,
+  "columns": [
+   "ARM_ACCESSION",
+   "SUBJECT_ACCESSION",
+   "AGE_EVENT",
+   "AGE_EVENT_SPECIFY",
+   "AGE_UNIT",
+   "MAX_SUBJECT_AGE",
+   "MIN_SUBJECT_AGE",
+   "SUBJECT_PHENOTYPE",
+   "SUBJECT_LOCATION",
+   "MAX_SUBJECT_AGE_IN_YEARS",
+   "MIN_SUBJECT_AGE_IN_YEARS"
+  ],
+  "bytes": 15680027
+ },
+ {
+  "table": "subject",
+  "data_rows": 194854,
+  "n_cols": 11,
+  "columns": [
+   "SUBJECT_ACCESSION",
+   "ANCESTRAL_POPULATION",
+   "DESCRIPTION",
+   "ETHNICITY",
+   "GENDER",
+   "RACE",
+   "RACE_SPECIFY",
+   "SPECIES",
+   "STRAIN",
+   "STRAIN_CHARACTERISTICS",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 26002737
+ },
+ {
+  "table": "immune_exposure",
+  "data_rows": 189671,
+  "n_cols": 13,
+  "columns": [
+   "EXPOSURE_ACCESSION",
+   "ARM_ACCESSION",
+   "DISEASE_ONTOLOGY_ID",
+   "DISEASE_PREFERRED",
+   "DISEASE_REPORTED",
+   "DISEASE_STAGE_PREFERRED",
+   "DISEASE_STAGE_REPORTED",
+   "EXPOSURE_MATERIAL_ID",
+   "EXPOSURE_MATERIAL_PREFERRED",
+   "EXPOSURE_MATERIAL_REPORTED",
+   "EXPOSURE_PROCESS_PREFERRED",
+   "EXPOSURE_PROCESS_REPORTED",
+   "SUBJECT_ACCESSION"
+  ],
+  "bytes": 26827503
+ },
+ {
+  "table": "fcs_header",
+  "data_rows": 171413,
+  "n_cols": 13,
+  "columns": [
+   "FCS_HEADER_ID",
+   "COMPENSATION_FLAG",
+   "EXPSAMPLE_ACCESSION",
+   "FCS_FILE_NAME",
+   "FCS_HEADER_TEXT",
+   "FCS_VERSION",
+   "FILE_INFO_ID",
+   "MAXIMUM_INTENSITY",
+   "MINIMUM_INTENSITY",
+   "NUMBER_OF_EVENTS",
+   "NUMBER_OF_MARKERS",
+   "PANEL_PREFERRED",
+   "PANEL_REPORTED"
+  ],
+  "bytes": 669551820
+ },
+ {
+  "table": "hla_typing_result",
+  "data_rows": 155447,
+  "n_cols": 18,
+  "columns": [
+   "RESULT_ID",
+   "ALLELE_1",
+   "ALLELE_2",
+   "ANCESTRAL_POPULATION",
+   "ARM_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "COMMENTS",
+   "EXPERIMENT_ACCESSION",
+   "EXPSAMPLE_ACCESSION",
+   "LOCUS_NAME",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "RESULT_SET_ID",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 20046077
+ },
+ {
+  "table": "pcr_result",
+  "data_rows": 140053,
+  "n_cols": 23,
+  "columns": [
+   "RESULT_ID",
+   "ARM_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "COMMENTS",
+   "EXPERIMENT_ACCESSION",
+   "EXPSAMPLE_ACCESSION",
+   "GENE_ID",
+   "GENE_NAME",
+   "ANALYTE_ACCESSION",
+   "GENE_SYMBOL_PREFERRED",
+   "GENE_SYMBOL_REPORTED",
+   "OTHER_GENE_ACCESSION",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "UNIT_PREFERRED",
+   "UNIT_REPORTED",
+   "VALUE_PREFERRED",
+   "VALUE_REPORTED",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 25666996
+ },
+ {
+  "table": "expsample_mbaa_detail",
+  "data_rows": 131991,
+  "n_cols": 5,
+  "columns": [
+   "EXPSAMPLE_ACCESSION",
+   "ASSAY_GROUP_ID",
+   "ASSAY_ID",
+   "DILUTION_FACTOR",
+   "PLATE_TYPE"
+  ],
+  "bytes": 3807154
+ },
+ {
+  "table": "hai_result",
+  "data_rows": 116441,
+  "n_cols": 19,
+  "columns": [
+   "RESULT_ID",
+   "ARM_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "COMMENTS",
+   "EXPERIMENT_ACCESSION",
+   "EXPSAMPLE_ACCESSION",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "UNIT_PREFERRED",
+   "UNIT_REPORTED",
+   "VALUE_PREFERRED",
+   "VALUE_REPORTED",
+   "VIRUS_STRAIN_PREFERRED",
+   "VIRUS_STRAIN_REPORTED",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 17578692
+ },
+ {
+  "table": "adverse_event",
+  "data_rows": 92733,
+  "n_cols": 24,
+  "columns": [
+   "ADVERSE_EVENT_ACCESSION",
+   "CAUSALITY",
+   "DESCRIPTION",
+   "END_STUDY_DAY",
+   "END_TIME",
+   "LOCATION_OF_REACTION_PREFERRED",
+   "LOCATION_OF_REACTION_REPORTED",
+   "NAME_PREFERRED",
+   "NAME_REPORTED",
+   "ORGAN_OR_BODY_SYSTEM_PREFERRED",
+   "ORGAN_OR_BODY_SYSTEM_REPORTED",
+   "OTHER_ACTION_TAKEN",
+   "OUTCOME_PREFERRED",
+   "OUTCOME_REPORTED",
+   "RELATION_TO_NONSTUDY_TREATMENT",
+   "RELATION_TO_STUDY_TREATMENT",
+   "SEVERITY_PREFERRED",
+   "SEVERITY_REPORTED",
+   "START_STUDY_DAY",
+   "START_TIME",
+   "STUDY_ACCESSION",
+   "STUDY_TREATMENT_ACTION_TAKEN",
+   "SUBJECT_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 15602244
+ },
+ {
+  "table": "elispot_result",
+  "data_rows": 76288,
+  "n_cols": 20,
+  "columns": [
+   "RESULT_ID",
+   "ANALYTE_ACCESSION",
+   "ANALYTE_PREFERRED",
+   "ANALYTE_REPORTED",
+   "ARM_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "CELL_NUMBER_PREFERRED",
+   "CELL_NUMBER_REPORTED",
+   "COMMENTS",
+   "EXPERIMENT_ACCESSION",
+   "EXPSAMPLE_ACCESSION",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "SPOT_NUMBER_PREFERRED",
+   "SPOT_NUMBER_REPORTED",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 9108257
+ },
+ {
+  "table": "expsample_public_repository",
+  "data_rows": 62379,
+  "n_cols": 4,
+  "columns": [
+   "RESULT_ID",
+   "EXPSAMPLE_ACCESSION",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME"
+  ],
+  "bytes": 1833138
+ },
+ {
+  "table": "neut_ab_titer_result",
+  "data_rows": 55114,
+  "n_cols": 19,
+  "columns": [
+   "RESULT_ID",
+   "ARM_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "COMMENTS",
+   "EXPERIMENT_ACCESSION",
+   "EXPSAMPLE_ACCESSION",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "UNIT_PREFERRED",
+   "UNIT_REPORTED",
+   "VALUE_PREFERRED",
+   "VALUE_REPORTED",
+   "VIRUS_STRAIN_PREFERRED",
+   "VIRUS_STRAIN_REPORTED",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 11328096
+ },
+ {
+  "table": "biosample_2_treatment",
+  "data_rows": 38431,
+  "n_cols": 2,
+  "columns": [
+   "BIOSAMPLE_ACCESSION",
+   "TREATMENT_ACCESSION"
+  ],
+  "bytes": 640178
+ },
+ {
+  "table": "study_file",
+  "data_rows": 38158,
+  "n_cols": 6,
+  "columns": [
+   "STUDY_FILE_ACCESSION",
+   "DESCRIPTION",
+   "FILE_NAME",
+   "STUDY_ACCESSION",
+   "STUDY_FILE_TYPE",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 4079142
+ },
+ {
+  "table": "kir_typing_result",
+  "data_rows": 34696,
+  "n_cols": 16,
+  "columns": [
+   "RESULT_ID",
+   "ALLELE_1",
+   "ALLELE_2",
+   "ARM_ACCESSION",
+   "BIOSAMPLE_ACCESSION",
+   "COMMENTS",
+   "EXPERIMENT_ACCESSION",
+   "EXPSAMPLE_ACCESSION",
+   "KIR_HAPLOTYPE",
+   "REPOSITORY_ACCESSION",
+   "REPOSITORY_NAME",
+   "STUDY_ACCESSION",
+   "STUDY_TIME_COLLECTED",
+   "STUDY_TIME_COLLECTED_UNIT",
+   "SUBJECT_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 3747082
+ },
+ {
+  "table": "reagent",
+  "data_rows": 13961,
+  "n_cols": 17,
+  "columns": [
+   "REAGENT_ACCESSION",
+   "ANALYTE_ACCESSION",
+   "ANALYTE_PREFERRED",
+   "ANALYTE_REPORTED",
+   "ANTIBODY_REGISTRY_ID",
+   "CATALOG_NUMBER",
+   "CLONE_NAME",
+   "CONTACT",
+   "DESCRIPTION",
+   "IS_SET",
+   "LOT_NUMBER",
+   "MANUFACTURER",
+   "NAME",
+   "REPORTER_NAME",
+   "TYPE",
+   "WEBLINK",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 1810549
+ },
+ {
+  "table": "control_sample",
+  "data_rows": 13626,
+  "n_cols": 11,
+  "columns": [
+   "CONTROL_SAMPLE_ACCESSION",
+   "ASSAY_GROUP_ID",
+   "ASSAY_ID",
+   "CATALOG_ID",
+   "DILUTION_FACTOR",
+   "EXPERIMENT_ACCESSION",
+   "LOT_NUMBER",
+   "RESULT_SCHEMA",
+   "SOURCE",
+   "UPLOAD_RESULT_STATUS",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 881419
+ },
+ {
+  "table": "study_2_panel",
+  "data_rows": 12267,
+  "n_cols": 2,
+  "columns": [
+   "STUDY_ACCESSION",
+   "PANEL_NAME"
+  ],
+  "bytes": 247024
+ },
+ {
+  "table": "standard_curve",
+  "data_rows": 11319,
+  "n_cols": 15,
+  "columns": [
+   "STANDARD_CURVE_ACCESSION",
+   "ANALYTE_ACCESSION",
+   "ANALYTE_PREFERRED",
+   "ANALYTE_REPORTED",
+   "ASSAY_GROUP_ID",
+   "ASSAY_ID",
+   "EXPERIMENT_ACCESSION",
+   "FORMULA",
+   "LOWER_LIMIT",
+   "LOWER_LIMIT_UNIT",
+   "RESULT_SCHEMA",
+   "UPLOAD_RESULT_STATUS",
+   "UPPER_LIMIT",
+   "UPPER_LIMIT_UNIT",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 1168885
+ },
+ {
+  "table": "planned_visit",
+  "data_rows": 10980,
+  "n_cols": 9,
+  "columns": [
+   "PLANNED_VISIT_ACCESSION",
+   "END_RULE",
+   "MAX_START_DAY",
+   "MIN_START_DAY",
+   "NAME",
+   "ORDER_NUMBER",
+   "START_RULE",
+   "STUDY_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 828455
+ },
+ {
+  "table": "reagent_set_2_reagent",
+  "data_rows": 8850,
+  "n_cols": 3,
+  "columns": [
+   "REAGENT_SET_ACCESSION",
+   "REAGENT_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 201927
+ },
+ {
+  "table": "arm_or_cohort",
+  "data_rows": 7901,
+  "n_cols": 7,
+  "columns": [
+   "ARM_ACCESSION",
+   "DESCRIPTION",
+   "NAME",
+   "STUDY_ACCESSION",
+   "TYPE_REPORTED",
+   "TYPE_PREFERRED",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 1510107
+ },
+ {
+  "table": "inclusion_exclusion",
+  "data_rows": 7542,
+  "n_cols": 5,
+  "columns": [
+   "CRITERION_ACCESSION",
+   "CRITERION",
+   "CRITERION_CATEGORY",
+   "STUDY_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 987632
+ },
+ {
+  "table": "experiment_2_protocol",
+  "data_rows": 5946,
+  "n_cols": 2,
+  "columns": [
+   "EXPERIMENT_ACCESSION",
+   "PROTOCOL_ACCESSION"
+  ],
+  "bytes": 103926
+ },
+ {
+  "table": "experiment",
+  "data_rows": 5271,
+  "n_cols": 6,
+  "columns": [
+   "EXPERIMENT_ACCESSION",
+   "DESCRIPTION",
+   "MEASUREMENT_TECHNIQUE",
+   "NAME",
+   "STUDY_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 874608
+ },
+ {
+  "table": "study_data_release",
+  "data_rows": 4094,
+  "n_cols": 5,
+  "columns": [
+   "STUDY_ACCESSION",
+   "DATA_RELEASE_VERSION",
+   "DATA_RELEASE_DATE",
+   "RELEASE_NOTES",
+   "STATUS"
+  ],
+  "bytes": 242408
+ },
+ {
+  "table": "study_personnel",
+  "data_rows": 3758,
+  "n_cols": 13,
+  "columns": [
+   "PERSON_ACCESSION",
+   "EMAIL",
+   "FIRST_NAME",
+   "HONORIFIC",
+   "LAST_NAME",
+   "ORCID",
+   "ORGANIZATION",
+   "ROLE_IN_STUDY",
+   "SITE_NAME",
+   "STUDY_ACCESSION",
+   "SUFFIXES",
+   "TITLE_IN_STUDY",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 643349
+ },
+ {
+  "table": "treatment",
+  "data_rows": 3440,
+  "n_cols": 10,
+  "columns": [
+   "TREATMENT_ACCESSION",
+   "AMOUNT_UNIT",
+   "AMOUNT_VALUE",
+   "COMMENTS",
+   "DURATION_UNIT",
+   "DURATION_VALUE",
+   "NAME",
+   "TEMPERATURE_UNIT",
+   "TEMPERATURE_VALUE",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 482013
+ },
+ {
+  "table": "protocol",
+  "data_rows": 2978,
+  "n_cols": 7,
+  "columns": [
+   "PROTOCOL_ACCESSION",
+   "DESCRIPTION",
+   "FILE_NAME",
+   "NAME",
+   "ORIGINAL_FILE_NAME",
+   "TYPE",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 518699
+ },
+ {
+  "table": "study_2_condition_or_disease",
+  "data_rows": 2234,
+  "n_cols": 3,
+  "columns": [
+   "STUDY_ACCESSION",
+   "CONDITION_REPORTED",
+   "CONDITION_PREFERRED"
+  ],
+  "bytes": 89276
+ },
+ {
+  "table": "study_2_protocol",
+  "data_rows": 2198,
+  "n_cols": 2,
+  "columns": [
+   "STUDY_ACCESSION",
+   "PROTOCOL_ACCESSION"
+  ],
+  "bytes": 35665
+ },
+ {
+  "table": "assessment_panel",
+  "data_rows": 2160,
+  "n_cols": 8,
+  "columns": [
+   "ASSESSMENT_PANEL_ACCESSION",
+   "ASSESSMENT_TYPE",
+   "NAME_PREFERRED",
+   "NAME_REPORTED",
+   "RESULT_SCHEMA",
+   "STATUS",
+   "STUDY_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 189316
+ },
+ {
+  "table": "contract_grant_2_study",
+  "data_rows": 1701,
+  "n_cols": 2,
+  "columns": [
+   "CONTRACT_GRANT_ID",
+   "STUDY_ACCESSION"
+  ],
+  "bytes": 21629
+ },
+ {
+  "table": "study_link",
+  "data_rows": 1677,
+  "n_cols": 6,
+  "columns": [
+   "STUDY_LINK_ID",
+   "NAME",
+   "STUDY_ACCESSION",
+   "TYPE",
+   "VALUE",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 152497
+ },
+ {
+  "table": "study_pubmed",
+  "data_rows": 1671,
+  "n_cols": 11,
+  "columns": [
+   "STUDY_ACCESSION",
+   "PUBMED_ID",
+   "AUTHORS",
+   "DOI",
+   "ISSUE",
+   "JOURNAL",
+   "MONTH",
+   "PAGES",
+   "TITLE",
+   "YEAR",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 617424
+ },
+ {
+  "table": "lab_test_panel",
+  "data_rows": 1667,
+  "n_cols": 5,
+  "columns": [
+   "LAB_TEST_PANEL_ACCESSION",
+   "NAME_PREFERRED",
+   "NAME_REPORTED",
+   "STUDY_ACCESSION",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 79027
+ },
+ {
+  "table": "lab_test_panel_2_protocol",
+  "data_rows": 1628,
+  "n_cols": 2,
+  "columns": [
+   "LAB_TEST_PANEL_ACCESSION",
+   "PROTOCOL_ACCESSION"
+  ],
+  "bytes": 27433
+ },
+ {
+  "table": "study_categorization",
+  "data_rows": 1512,
+  "n_cols": 3,
+  "columns": [
+   "STUDY_CATEGORIZATION_ID",
+   "RESEARCH_FOCUS",
+   "STUDY_ACCESSION"
+  ],
+  "bytes": 43202
+ },
+ {
+  "table": "study",
+  "data_rows": 1500,
+  "n_cols": 27,
+  "columns": [
+   "STUDY_ACCESSION",
+   "ACTUAL_COMPLETION_DATE",
+   "ACTUAL_ENROLLMENT",
+   "ACTUAL_START_DATE",
+   "AGE_UNIT",
+   "BRIEF_DESCRIPTION",
+   "BRIEF_TITLE",
+   "CLINICAL_TRIAL",
+   "DCL_ID",
+   "DESCRIPTION",
+   "DOI",
+   "ENDPOINTS",
+   "GENDER_INCLUDED",
+   "HYPOTHESIS",
+   "INITIAL_DATA_RELEASE_DATE",
+   "INITIAL_DATA_RELEASE_VERSION",
+   "INTERVENTION_AGENT",
+   "LATEST_DATA_RELEASE_DATE",
+   "LATEST_DATA_RELEASE_VERSION",
+   "MAXIMUM_AGE",
+   "MINIMUM_AGE",
+   "OBJECTIVES",
+   "OFFICIAL_TITLE",
+   "SHARED_STUDY",
+   "SPONSORING_ORGANIZATION",
+   "TARGET_ENROLLMENT",
+   "WORKSPACE_ID"
+  ],
+  "bytes": 3385413
+ },
+ {
+  "table": "lk_hmdb",
+  "data_rows": 1316,
+  "n_cols": 4,
+  "columns": [
+   "HMDB_ID",
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 1434911
+ },
+ {
+  "table": "lk_analyte",
+  "data_rows": 925,
+  "n_cols": 15,
+  "columns": [
+   "ANALYTE_ACCESSION",
+   "GENE_SYMBOL",
+   "GENE_ALIASES",
+   "GENE_ID",
+   "GENETIC_NOMENCLATURE_ID",
+   "IMMUNOLOGY_SYMBOL",
+   "LINK",
+   "OFFICIAL_GENE_NAME",
+   "PROTEIN_ONTOLOGY_ID",
+   "PROTEIN_ONTOLOGY_NAME",
+   "PROTEIN_ONTOLOGY_SYNONYMS",
+   "PROTEIN_ONTOLOGY_SHORT_LABEL",
+   "TAXONOMY_ID",
+   "UNIPROT_ENTRY",
+   "UNIPROT_ENTRY_NAME"
+  ],
+  "bytes": 318802
+ },
+ {
+  "table": "lk_protein_name",
+  "data_rows": 841,
+  "n_cols": 5,
+  "columns": [
+   "NAME",
+   "UNIPROT_ID",
+   "UNIPROT_GENE_NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 79725
+ },
+ {
+  "table": "standard_curve_2_file_info",
+  "data_rows": 536,
+  "n_cols": 3,
+  "columns": [
+   "STANDARD_CURVE_ACCESSION",
+   "FILE_INFO_ID",
+   "RESULT_SCHEMA"
+  ],
+  "bytes": 10582
+ },
+ {
+  "table": "contract_grant_2_personnel",
+  "data_rows": 445,
+  "n_cols": 3,
+  "columns": [
+   "CONTRACT_GRANT_ID",
+   "PERSONNEL_ID",
+   "ROLE_TYPE"
+  ],
+  "bytes": 4989
+ },
+ {
+  "table": "personnel",
+  "data_rows": 436,
+  "n_cols": 5,
+  "columns": [
+   "PERSONNEL_ID",
+   "EMAIL",
+   "FIRST_NAME",
+   "LAST_NAME",
+   "ORGANIZATION"
+  ],
+  "bytes": 29500
+ },
+ {
+  "table": "contract_grant",
+  "data_rows": 414,
+  "n_cols": 9,
+  "columns": [
+   "CONTRACT_GRANT_ID",
+   "CATEGORY",
+   "DESCRIPTION",
+   "END_DATE",
+   "EXTERNAL_ID",
+   "LINK",
+   "NAME",
+   "PROGRAM_ID",
+   "START_DATE"
+  ],
+  "bytes": 709327
+ },
+ {
+  "table": "lk_lab_test_name",
+  "data_rows": 372,
+  "n_cols": 5,
+  "columns": [
+   "NAME",
+   "CDISC_LAB_TEST_CODE",
+   "DESCRIPTION",
+   "LAB_TEST_PANEL_NAME",
+   "LINK"
+  ],
+  "bytes": 67003
+ },
+ {
+  "table": "lk_disease",
+  "data_rows": 371,
+  "n_cols": 5,
+  "columns": [
+   "NAME",
+   "DISEASE_ONTOLOGY_ID",
+   "DESCRIPTION",
+   "LINK",
+   "HUMAN_PHENOTYPE_ID"
+  ],
+  "bytes": 99816
+ },
+ {
+  "table": "lk_subject_location",
+  "data_rows": 270,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 118461
+ },
+ {
+  "table": "control_sample_2_file_info",
+  "data_rows": 265,
+  "n_cols": 3,
+  "columns": [
+   "CONTROL_SAMPLE_ACCESSION",
+   "FILE_INFO_ID",
+   "RESULT_SCHEMA"
+  ],
+  "bytes": 5357
+ },
+ {
+  "table": "workspace",
+  "data_rows": 252,
+  "n_cols": 4,
+  "columns": [
+   "WORKSPACE_ID",
+   "CATEGORY",
+   "NAME",
+   "TYPE"
+  ],
+  "bytes": 13026
+ },
+ {
+  "table": "lk_organization",
+  "data_rows": 168,
+  "n_cols": 2,
+  "columns": [
+   "NAME",
+   "LINK"
+  ],
+  "bytes": 5587
+ },
+ {
+  "table": "program_2_personnel",
+  "data_rows": 133,
+  "n_cols": 3,
+  "columns": [
+   "PROGRAM_ID",
+   "PERSONNEL_ID",
+   "ROLE_TYPE"
+  ],
+  "bytes": 1353
+ },
+ {
+  "table": "lk_unit_of_measure",
+  "data_rows": 125,
+  "n_cols": 4,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK",
+   "TYPE"
+  ],
+  "bytes": 24318
+ },
+ {
+  "table": "lk_exp_measurement_tech",
+  "data_rows": 102,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 28584
+ },
+ {
+  "table": "lk_exposure_material",
+  "data_rows": 102,
+  "n_cols": 4,
+  "columns": [
+   "NAME",
+   "EXPOSURE_MATERIAL_ID",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 20005
+ },
+ {
+  "table": "lk_sample_type",
+  "data_rows": 96,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 23175
+ },
+ {
+  "table": "lk_cell_population",
+  "data_rows": 91,
+  "n_cols": 6,
+  "columns": [
+   "NAME",
+   "COMMENTS",
+   "DEFINITION",
+   "DESCRIPTION",
+   "LINK",
+   "LINEAGE_PREFIX"
+  ],
+  "bytes": 33851
+ },
+ {
+  "table": "program",
+  "data_rows": 88,
+  "n_cols": 8,
+  "columns": [
+   "PROGRAM_ID",
+   "CATEGORY",
+   "DESCRIPTION",
+   "END_DATE",
+   "LINK",
+   "NAME",
+   "SHORT_NAME",
+   "START_DATE"
+  ],
+  "bytes": 60017
+ },
+ {
+  "table": "lk_virus_strain",
+  "data_rows": 59,
+  "n_cols": 7,
+  "columns": [
+   "NAME",
+   "CENTER_ID_NAME_SEASON_LIST",
+   "DESCRIPTION",
+   "LINK",
+   "SEASON_LIST",
+   "TAXONOMY_ID",
+   "VIRUS_NAME"
+  ],
+  "bytes": 11747
+ },
+ {
+  "table": "lk_file_detail",
+  "data_rows": 44,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 5563
+ },
+ {
+  "table": "lk_study_file_type",
+  "data_rows": 26,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 4046
+ },
+ {
+  "table": "lk_lab_test_panel_name",
+  "data_rows": 24,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 4832
+ },
+ {
+  "table": "lk_protocol_type",
+  "data_rows": 24,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 2585
+ },
+ {
+  "table": "lk_species",
+  "data_rows": 24,
+  "n_cols": 5,
+  "columns": [
+   "NAME",
+   "COMMON_NAME",
+   "LINK",
+   "TAXONOMY_ID",
+   "TAXONOMY_ID_SUBSET"
+  ],
+  "bytes": 2104
+ },
+ {
+  "table": "lk_disease_stage",
+  "data_rows": 22,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 5947
+ },
+ {
+  "table": "lk_research_focus",
+  "data_rows": 22,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 4165
+ },
+ {
+  "table": "lk_public_repository",
+  "data_rows": 20,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 5162
+ },
+ {
+  "table": "lk_exposure_process",
+  "data_rows": 19,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 2966
+ },
+ {
+  "table": "lk_personnel_role",
+  "data_rows": 19,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 5622
+ },
+ {
+  "table": "lk_study_panel",
+  "data_rows": 19,
+  "n_cols": 6,
+  "columns": [
+   "NAME",
+   "COLLAPSIBLE",
+   "DESCRIPTION",
+   "DISPLAY_NAME",
+   "SORT_ORDER",
+   "VISIBLE"
+  ],
+  "bytes": 1742
+ },
+ {
+  "table": "lk_expsample_result_schema",
+  "data_rows": 17,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "TABLE_NAME"
+  ],
+  "bytes": 1382
+ },
+ {
+  "table": "lk_ancestral_population",
+  "data_rows": 15,
+  "n_cols": 4,
+  "columns": [
+   "NAME",
+   "ABBREVIATION",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 3167
+ },
+ {
+  "table": "lk_reagent_type",
+  "data_rows": 15,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 3515
+ },
+ {
+  "table": "lk_arm_type",
+  "data_rows": 13,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 2094
+ },
+ {
+  "table": "lk_cell_population_marker",
+  "data_rows": 12,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 3101
+ },
+ {
+  "table": "lk_locus_name",
+  "data_rows": 11,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 134
+ },
+ {
+  "table": "lk_race",
+  "data_rows": 9,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 1940
+ },
+ {
+  "table": "lk_time_unit",
+  "data_rows": 9,
+  "n_cols": 4,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK",
+   "YEAR_DIVISOR"
+  ],
+  "bytes": 753
+ },
+ {
+  "table": "lk_age_event",
+  "data_rows": 8,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 1140
+ },
+ {
+  "table": "lk_gender",
+  "data_rows": 8,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 1102
+ },
+ {
+  "table": "lk_t0_event",
+  "data_rows": 8,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 1142
+ },
+ {
+  "table": "study_2_cde_mapping",
+  "data_rows": 8,
+  "n_cols": 9,
+  "columns": [
+   "STUDY_2_CDE_MAPPING_ID",
+   "STUDY_ACCESSION",
+   "CDE_ID",
+   "NAME",
+   "CDE_PV_ID",
+   "PV_LABEL",
+   "IMMPORT_TABLE_NAME",
+   "IMMPORT_COLUMN_NAME",
+   "IMMPORT_COLUMN_VALUE"
+  ],
+  "bytes": 684
+ },
+ {
+  "table": "lk_user_role_type",
+  "data_rows": 7,
+  "n_cols": 2,
+  "columns": [
+   "NAME",
+   "DESCRIPTION"
+  ],
+  "bytes": 528
+ },
+ {
+  "table": "lk_visibility_category",
+  "data_rows": 7,
+  "n_cols": 2,
+  "columns": [
+   "NAME",
+   "DESCRIPTION"
+  ],
+  "bytes": 494
+ },
+ {
+  "table": "lk_adverse_event_severity",
+  "data_rows": 6,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 1634
+ },
+ {
+  "table": "lk_compound_role",
+  "data_rows": 4,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 340
+ },
+ {
+  "table": "lk_ethnicity",
+  "data_rows": 4,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 1014
+ },
+ {
+  "table": "lk_data_completeness",
+  "data_rows": 3,
+  "n_cols": 2,
+  "columns": [
+   "ID",
+   "DESCRIPTION"
+  ],
+  "bytes": 242
+ },
+ {
+  "table": "lk_mass_spectrometry_type",
+  "data_rows": 3,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 582
+ },
+ {
+  "table": "lk_source_type",
+  "data_rows": 3,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 297
+ },
+ {
+  "table": "lk_transcript_type",
+  "data_rows": 3,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 1452
+ },
+ {
+  "table": "lk_criterion_category",
+  "data_rows": 2,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 320
+ },
+ {
+  "table": "lk_plate_type",
+  "data_rows": 1,
+  "n_cols": 3,
+  "columns": [
+   "NAME",
+   "DESCRIPTION",
+   "LINK"
+  ],
+  "bytes": 61
+ }
+]

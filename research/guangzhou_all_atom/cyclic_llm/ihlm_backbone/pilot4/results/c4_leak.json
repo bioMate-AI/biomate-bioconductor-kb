@@ -1,0 +1,26 @@
+{
+ "h0": {
+  "spearman": 0.5483052369225566,
+  "mean_rank_pct_of_true_bottom_decile": 0.2769966601692557
+ },
+ "h1": {
+  "spearman": 0.6115673994966421,
+  "mean_rank_pct_of_true_bottom_decile": 0.2276323416049775
+ },
+ "h1_scrambled_flags": {
+  "spearman": 0.5360024480338105,
+  "mean_rank_pct_of_true_bottom_decile": 0.2904764321391542
+ },
+ "h0_scrambled_ct_arg": {
+  "spearman": 0.5483052369225566,
+  "mean_rank_pct_of_true_bottom_decile": 0.2769966601692557
+ },
+ "h0_identical_when_censor_arg_permuted": true,
+ "n_targets_eval": 56,
+ "n_train_targets": 180,
+ "pass_gain>=0.03": true,
+ "pass_bias": true,
+ "scrambled_flags_gain_lost": true,
+ "train_mlp_prior_signature": "(X, rows, Ct, censored, seed=0, epochs=30, bs=256)",
+ "feature_matrix_only": false
+}

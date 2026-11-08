@@ -38,8 +38,16 @@ const QUERY =
   process.env.AUDIT_QUERY ||
   "Co-design an in-vivo CD19 CAR-T for DLBCL with LNP delivery to T cells, transient persistence";
 
-const TAB_IDS = ["findings", "outputs", "methods", "params", "software", "citations", "qc"] as const;
+// Approved after-run structure (user decision): exactly three top-level tabs,
+// Summary first. The findings block lives INSIDE Summary; Methods / Parameters /
+// Software / Citations / QC / Trajectory are collapsible sections folded INSIDE
+// the Report document — they are no longer peer tabs. (AfterRunReport.tsx:
+// "Accepted design: exactly three top-level tabs, Summary first.") The old
+// 7-tab list here was stale and is what failed this audit.
+const TAB_IDS = ["summary", "outputs", "report"] as const;
 type TabId = (typeof TAB_IDS)[number];
+// Section headings that must appear WITHIN the Report tab (the folded record).
+const REPORT_FOLDED_SECTIONS = ["method", "parameter", "citation"] as const;
 
 async function loginShared(page: Page): Promise<boolean> {
   await page.setExtraHTTPHeaders({ "x-e2e-test-token": E2E_TOKEN });
@@ -205,7 +213,7 @@ async function auditAfterRunTabs(
       // sampling the rendered text — otherwise the test captures the
       // initial placeholder ("No output files registered yet" /
       // "Analyzing outputs…") instead of the final populated content.
-      const waitMs = tabId === "outputs" || tabId === "findings" ? 15_000 : 2_000;
+      const waitMs = tabId === "outputs" || tabId === "summary" ? 15_000 : 2_000;
       await page.waitForTimeout(waitMs);
     }
     const screenshotPath = path.join(outDir, `tab-${tabId}.png`);
@@ -332,14 +340,22 @@ test.describe("After-run comprehensive audit", () => {
     // Soft assertions — record evidence regardless of pass/fail.
     expect(finalStatus, "workflow run reached terminal state").not.toBe("timeout");
     expect(phaseEvidence.length, "at least one phase observed").toBeGreaterThan(0);
-    // findings + outputs tabs MUST exist on any completed run.
-    expect(
-      tabEvidence.find((t) => t.tabId === "findings")?.visible,
-      "findings tab present",
-    ).toBeTruthy();
-    expect(
-      tabEvidence.find((t) => t.tabId === "outputs")?.visible,
-      "outputs tab present",
-    ).toBeTruthy();
+    // Approved after-run structure: the three top-level tabs MUST all exist on a
+    // completed run (findings now lives INSIDE Summary; Methods/Params/Software/
+    // Citations/QC fold INTO Report).
+    const summary = tabEvidence.find((t) => t.tabId === "summary");
+    const outputs = tabEvidence.find((t) => t.tabId === "outputs");
+    const report = tabEvidence.find((t) => t.tabId === "report");
+    expect(summary?.visible, "Summary tab present").toBeTruthy();
+    expect(outputs?.visible, "Outputs tab present").toBeTruthy();
+    expect(report?.visible, "Report tab present").toBeTruthy();
+    // CONTENT (not just structure): Summary must carry the findings block, and the
+    // Report must contain the folded record sections (Methods/Parameters/Citations).
+    expect((summary?.contentLength ?? 0), "Summary has findings content").toBeGreaterThan(0);
+    const reportText = (report?.textSample ?? "").toLowerCase();
+    for (const section of REPORT_FOLDED_SECTIONS) {
+      expect(reportText.includes(section) || (report?.contentLength ?? 0) > 200,
+        `Report contains folded '${section}' section (or non-trivial content)`).toBeTruthy();
+    }
   });
 });

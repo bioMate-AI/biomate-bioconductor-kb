@@ -1,0 +1,3586 @@
+{
+  "studies": [
+    {
+      "protocolSection": {
+        "identificationModule": {
+          "nctId": "NCT02999711",
+          "orgStudyIdInfo": {
+            "id": "R3500-AS-1619"
+          },
+          "secondaryIdInfos": [
+            {
+              "id": "2016-002979-95",
+              "type": "EUDRACT_NUMBER"
+            },
+            {
+              "id": "2016",
+              "type": "NIH",
+              "link": "https://reporter.nih.gov/quickSearch/2016"
+            }
+          ],
+          "organization": {
+            "fullName": "Regeneron Pharmaceuticals",
+            "class": "INDUSTRY"
+          },
+          "briefTitle": "Study of Safety, Tolerability, and Pharmacokinetics of Multiple Ascending Doses of REGN3500 in Adults With Moderate Asthma",
+          "officialTitle": "A Randomised, Double-blind, Placebo-controlled, Multiple Ascending Dose Study of the Safety, Tolerability, Pharmacokinetic and Pharmacodynamics Effects of Subcutaneously Administered REGN3500 in Adult Patients With Moderate Asthma"
+        },
+        "statusModule": {
+          "statusVerifiedDate": "2018-12",
+          "overallStatus": "COMPLETED",
+          "expandedAccessInfo": {
+            "hasExpandedAccess": false
+          },
+          "startDateStruct": {
+            "date": "2017-02-03",
+            "type": "ACTUAL"
+          },
+          "primaryCompletionDateStruct": {
+            "date": "2018-08-30",
+            "type": "ACTUAL"
+          },
+          "completionDateStruct": {
+            "date": "2018-09-10",
+            "type": "ACTUAL"
+          },
+          "studyFirstSubmitDate": "2016-12-19",
+          "studyFirstSubmitQcDate": "2016-12-19",
+          "studyFirstPostDateStruct": {
+            "date": "2016-12-21",
+            "type": "ESTIMATED"
+          },
+          "lastUpdateSubmitDate": "2018-12-10",
+          "lastUpdatePostDateStruct": {
+            "date": "2018-12-12",
+            "type": "ACTUAL"
+          }
+        },
+        "sponsorCollaboratorsModule": {
+          "responsibleParty": {
+            "type": "SPONSOR"
+          },
+          "leadSponsor": {
+            "name": "Regeneron Pharmaceuticals",
+            "class": "INDUSTRY"
+          },
+          "collaborators": [
+            {
+              "name": "Sanofi",
+              "class": "INDUSTRY"
+            }
+          ]
+        },
+        "oversightModule": {
+          "oversightHasDmc": false,
+          "isFdaRegulatedDrug": true,
+          "isFdaRegulatedDevice": false,
+          "isUsExport": true
+        },
+        "descriptionModule": {
+          "briefSummary": "Purpose of this study is to assess the safety and tolerability of multiple ascending subcutaneous doses of REGN3500 to moderate asthmatics."
+        },
+        "conditionsModule": {
+          "conditions": [
+            "Asthma",
+            "Moderate Asthma"
+          ]
+        },
+        "designModule": {
+          "studyType": "INTERVENTIONAL",
+          "phases": [
+            "PHASE1"
+          ],
+          "designInfo": {
+            "allocation": "RANDOMIZED",
+            "interventionModel": "PARALLEL",
+            "primaryPurpose": "OTHER",
+            "maskingInfo": {
+              "masking": "QUADRUPLE",
+              "whoMasked": [
+                "PARTICIPANT",
+                "CARE_PROVIDER",
+                "INVESTIGATOR",
+                "OUTCOMES_ASSESSOR"
+              ]
+            }
+          },
+          "enrollmentInfo": {
+            "count": 23,
+            "type": "ACTUAL"
+          }
+        },
+        "armsInterventionsModule": {
+          "armGroups": [
+            {
+              "label": "Cohort 1",
+              "type": "EXPERIMENTAL",
+              "description": "REGN3500 low dose or placebo",
+              "interventionNames": [
+                "Drug: REGN3500",
+                "Drug: Placebo"
+              ]
+            },
+            {
+              "label": "Cohort 2",
+              "type": "EXPERIMENTAL",
+              "description": "REGN3500 medium dose or placebo",
+              "interventionNames": [
+                "Drug: REGN3500",
+                "Drug: Placebo"
+              ]
+            }
+          ],
+          "interventions": [
+            {
+              "type": "DRUG",
+              "name": "REGN3500",
+              "description": "REGN3500 dose",
+              "armGroupLabels": [
+                "Cohort 1",
+                "Cohort 2"
+              ]
+            },
+            {
+              "type": "DRUG",
+              "name": "Placebo",
+              "description": "Matching placebo",
+              "armGroupLabels": [
+                "Cohort 1",
+                "Cohort 2"
+              ]
+            }
+          ]
+        },
+        "outcomesModule": {
+          "primaryOutcomes": [
+            {
+              "measure": "Incidence of treatment emergent adverse events (TEAEs) after repeat subcutaneous administration",
+              "timeFrame": "Up to 36 weeks"
+            },
+            {
+              "measure": "Severity of TEAEs after repeat subcutaneous administration",
+              "timeFrame": "Up to 36 weeks"
+            }
+          ],
+          "secondaryOutcomes": [
+            {
+              "measure": "The concentration-time profile of REGN3500 after repeat subcutaneous administration",
+              "timeFrame": "Up to 36 weeks"
+            },
+            {
+              "measure": "Immunogenicity of REGN3500 assessed by measurement of anti-drug antibodies",
+              "timeFrame": "Up to 36 weeks"
+            },
+            {
+              "measure": "Percent change in total from baseline forced expiratory volume (FEV) at day 29",
+              "timeFrame": "Baseline to week 4"
+            },
+            {
+              "measure": "Percent change of the average of the prior 7 days of FEV1 at day 29 compared to average daily FEV1 during the last 14 days of screening",
+              "timeFrame": "From -14 days screening to week 4"
+            },
+            {
+              "measure": "Absolute change from baseline fractional exhaled nitric oxide (FeNO) at day 29",
+              "timeFrame": "Baseline to week 4"
+            },
+            {
+              "measure": "Percent change from baseline FeNO at day 29",
+              "timeFrame": "Baseline to week 4"
+            },
+            {
+              "measure": "Change from baseline in biomarkers at day 29",
+              "timeFrame": "Baseline to week 4"
+            },
+            {
+              "measure": "Percent change from baseline in biomarkers at day 29",
+              "timeFrame": "Baseline to week 4"
+            }
+          ]
+        },
+        "eligibilityModule": {
+          "eligibilityCriteria": "Key Inclusion Criteria:\n\n* Body mass index (BMI) of 18 to 32 kg/m2\n* A diagnosis of moderate asthma (according to GINA 2015) for a period of at least 2 years prior to screening.\n* Patient must use a stable medium daily dose level of inhaled corticosteroids (ICS) as defined by GINA guidelines, ie, total daily dose of ICS \\>400 \u03bcg and \u2264800 \u03bcg/day of budesonide or equivalent for at least 1 month prior to screening and during the study\n* A pre-bronchodilator forced expiratory volume in the first sec (FEV1) \u226560% and \u226490% of the predicted normal values at screening and pre-dose at screening\n* A documented positive response to the reversibility test at the screening, defined as improvement in FEV1 \u226512% and \u2265200 mL over baseline after 400 \u03bcg salbutamol Pmdi\n* Willing and able to comply with clinic visits and study-related procedures\n* Provide signed informed consent.\n\nKey Exclusion Criteria:\n\n* Clinically significant abnormal CBC, clinical chemistry, and urine analysis at screening.\n* Treatment with an investigational drug within 8 weeks or within 5 half-lives (if known), whichever is longer, prior to screening.\n* History of life-threatening asthma\n* Occurrence of asthma exacerbations or respiratory tract infections within 4 weeks prior to screening.\n* Diagnosis of any other airway/pulmonary disease such as Chronic Obstructive Pulmonary Disease (COPD) as defined by the Global Initiative for Chronic Obstructive Lung Disease (GOLD) guidelines (GOLD 2016); or other lung diseases (eg, emphysema, idiopathic pulmonary fibrosis, Churg-Strauss syndrome, allergic bronchopulmonary aspergillosis cystic fibrosis, bronchiectasis or alpha-1 antitrypsin deficiency or restrictive lung disease).\n* Chronic or acute infection requiring treatment with systemic antibiotics, antivirals, or antifungals within 1 month prior to screening.\n* Use of oral antibiotics/anti-infectives within 2 weeks prior to screening.\n* Known sensitivity to doxycycline or tetracyclines, or to any of the components of the investigational product formulation.\n* Recent (within the previous 2 months) bacterial, protozoal, viral, or parasite infection.\n* History of tuberculosis or systemic fungal diseases\n* Patients treated with a monoclonal antibody based therapy (such as an anti-IgE, anti-IL-5), a biologic therapy or immunotherapy (subcutaneous immunotherapy \\[SCIT\\], sublingual immunotherapy \\[SLIT\\], or oral immunotherapy \\[OIT\\]) in the previous 12 weeks prior to screening and during the study\n\nNote: Other protocol defined Inclusion/Exclusion criteria may apply",
+          "healthyVolunteers": false,
+          "sex": "ALL",
+          "minimumAge": "18 Years",
+          "maximumAge": "60 Years",
+          "stdAges": [
+            "ADULT"
+          ]
+        },
+        "contactsLocationsModule": {
+          "overallOfficials": [
+            {
+              "name": "Clinical Trial Management",
+              "affiliation": "Regeneron Pharmaceuticals",
+              "role": "STUDY_DIRECTOR"
+            }
+          ],
+          "locations": [
+            {
+              "facility": "Regeneron Research Site",
+              "city": "Belfast",
+              "state": "Northern Ireland",
+              "country": "United Kingdom",
+              "geoPoint": {
+                "lat": 54.59682,
+                "lon": -5.92541
+              }
+            },
+            {
+              "facility": "Regeneron Research Site",
+              "city": "London",
+              "country": "United Kingdom",
+              "geoPoint": {
+                "lat": 51.50853,
+                "lon": -0.12574
+              }
+            },
+            {
+              "facility": "Regeneron Research Site",
+              "city": "Manchester",
+              "country": "United Kingdom",
+              "geoPoint": {
+                "lat": 53.48095,
+                "lon": -2.23743
+              }
+            }
+          ]
+        },
+        "referencesModule": {
+          "references": [
+            {
+              "pmid": "34523807",
+              "type": "DERIVED",
+              "citation": "Kosloski MP, Kalliolias GD, Xu CR, Harel S, Lai CH, Zheng W, Davis JD, Kamal MA. Pharmacokinetics and pharmacodynamics of itepekimab in healthy adults and patients with asthma: Phase I first-in-human and first-in-patient trials. Clin Transl Sci. 2022 Feb;15(2):384-395. doi: 10.1111/cts.13157. Epub 2021 Sep 29."
+            }
+          ]
+        }
+      },
+      "derivedSection": {
+        "miscInfoModule": {
+          "versionHolder": "2026-09-11",
+          "removedCountries": [
+            "Germany"
+          ]
+        },
+        "conditionBrowseModule": {
+          "meshes": [
+            {
+              "id": "D001249",
+              "term": "Asthma"
+            }
+          ],
+          "ancestors": [
+            {
+              "id": "D001982",
+              "term": "Bronchial Diseases"
+            },
+            {
+              "id": "D012140",
+              "term": "Respiratory Tract Diseases"
+            },
+            {
+              "id": "D008173",
+              "term": "Lung Diseases, Obstructive"
+            },
+            {
+              "id": "D008171",
+              "term": "Lung Diseases"
+            },
+            {
+              "id": "D012130",
+              "term": "Respiratory Hypersensitivity"
+            },
+            {
+              "id": "D006969",
+              "term": "Hypersensitivity, Immediate"
+            },
+            {
+              "id": "D006967",
+              "term": "Hypersensitivity"
+            },
+            {
+              "id": "D007154",
+              "term": "Immune System Diseases"
+            }
+          ]
+        },
+        "interventionBrowseModule": {
+          "meshes": [
+            {
+              "id": "C000720033",
+              "term": "itepekimab"
+            }
+          ]
+        }
+      },
+      "hasResults": false
+    },
+    {
+      "protocolSection": {
+        "identificationModule": {
+          "nctId": "NCT03387852",
+          "orgStudyIdInfo": {
+            "id": "ACT15102"
+          },
+          "secondaryIdInfos": [
+            {
+              "id": "2017-003289-29",
+              "type": "EUDRACT_NUMBER"
+            },
+            {
+              "id": "U1111-1194-2185",
+              "type": "OTHER",
+              "domain": "UTN"
+            },
+            {
+              "id": "2017",
+              "type": "NIH",
+              "link": "https://reporter.nih.gov/quickSearch/2017"
+            }
+          ],
+          "organization": {
+            "fullName": "Sanofi",
+            "class": "INDUSTRY"
+          },
+          "briefTitle": "Evaluation of SAR440340 and as Combination Therapy With Dupilumab in Moderate-to-Severe Asthma Participants",
+          "officialTitle": "A Randomized, Double-blind, Placebo-controlled, Parallel-group, 12-week Proof-of-Concept (PoC) Study to Assess the Efficacy, Safety, and Tolerability of SAR440340 and the Coadministration of SAR440340 and Dupilumab in Patients With Moderate-to-Severe Asthma Who Are Not Well Controlled on Inhaled Corticosteroid (ICS) Plus Long-acting \u03b22 Adrenergic Agonist (LABA) Therapy"
+        },
+        "statusModule": {
+          "statusVerifiedDate": "2022-05",
+          "overallStatus": "COMPLETED",
+          "expandedAccessInfo": {
+            "hasExpandedAccess": false
+          },
+          "startDateStruct": {
+            "date": "2018-03-12",
+            "type": "ACTUAL"
+          },
+          "primaryCompletionDateStruct": {
+            "date": "2019-03-21",
+            "type": "ACTUAL"
+          },
+          "completionDateStruct": {
+            "date": "2019-08-07",
+            "type": "ACTUAL"
+          },
+          "studyFirstSubmitDate": "2017-12-15",
+          "studyFirstSubmitQcDate": "2017-12-22",
+          "studyFirstPostDateStruct": {
+            "date": "2018-01-02",
+            "type": "ACTUAL"
+          },
+          "resultsFirstSubmitDate": "2022-03-03",
+          "resultsFirstSubmitQcDate": "2022-03-03",
+          "resultsFirstPostDateStruct": {
+            "date": "2022-03-29",
+            "type": "ACTUAL"
+          },
+          "dispFirstSubmitDate": "2020-05-06",
+          "dispFirstSubmitQcDate": "2020-05-13",
+          "dispFirstPostDateStruct": {
+            "date": "2020-05-18",
+            "type": "ACTUAL"
+          },
+          "lastUpdateSubmitDate": "2022-05-25",
+          "lastUpdatePostDateStruct": {
+            "date": "2022-06-14",
+            "type": "ACTUAL"
+          }
+        },
+        "sponsorCollaboratorsModule": {
+          "responsibleParty": {
+            "type": "SPONSOR"
+          },
+          "leadSponsor": {
+            "name": "Sanofi",
+            "class": "INDUSTRY"
+          },
+          "collaborators": [
+            {
+              "name": "Regeneron Pharmaceuticals",
+              "class": "INDUSTRY"
+            }
+          ]
+        },
+        "oversightModule": {
+          "oversightHasDmc": false,
+          "isFdaRegulatedDrug": true,
+          "isFdaRegulatedDevice": false,
+          "isUsExport": true
+        },
+        "descriptionModule": {
+          "briefSummary": "Primary Objective:\n\nTo evaluate the effects of SAR440340 with or without dupilumab, compared to placebo, on reducing the incidence of \"loss of asthma control\" (LOAC) events.\n\nSecondary Objectives:\n\nTo evaluate the effects of SAR440340/REGN3500 and coadministration of SAR440340 and dupilumab, compared with placebo, on forced expiratory volume in 1 second (FEV1).\n\nTo evaluate the effects of coadministration of SAR440340 and dupilumab, compared with SAR440340 and compared with dupilumab, on FEV1.\n\nTo assess safety and tolerability of SAR440340 alone and in coadministration with dupilumab.",
+          "detailedDescription": "The total duration of the study (per participant) was approximately 36 weeks, including 4 weeks screening, 12 weeks treatment, and 20 weeks post-treatment."
+        },
+        "conditionsModule": {
+          "conditions": [
+            "Asthma"
+          ]
+        },
+        "designModule": {
+          "studyType": "INTERVENTIONAL",
+          "phases": [
+            "PHASE2"
+          ],
+          "designInfo": {
+            "allocation": "RANDOMIZED",
+            "interventionModel": "PARALLEL",
+            "primaryPurpose": "TREATMENT",
+            "maskingInfo": {
+              "masking": "QUADRUPLE",
+              "whoMasked": [
+                "PARTICIPANT",
+                "CARE_PROVIDER",
+                "INVESTIGATOR",
+                "OUTCOMES_ASSESSOR"
+              ]
+            }
+          },
+          "enrollmentInfo": {
+            "count": 296,
+            "type": "ACTUAL"
+          }
+        },
+        "armsInterventionsModule": {
+          "armGroups": [
+            {
+              "label": "SAR440340",
+              "type": "EXPERIMENTAL",
+              "description": "Participants received 2 injections of SAR440340 300 milligram (mg) along with 1 injection of dupilumab placebo, subcutaneous (SC) once every 2 weeks (Q2W) for 12 weeks.",
+              "interventionNames": [
+                "Drug: SAR440340",
+                "Drug: Fluticasone or Fluticasone/salmeterol combination",
+                "Drug: Placebo for dupilumab"
+              ]
+            },
+            {
+              "label": "Dupilumab",
+              "type": "ACTIVE_COMPARATOR",
+              "description": "Participants received 1 injection of dupilumab 300 mg along with 2 injections of SAR440340 placebo, SC Q2W for 12 weeks.",
+              "interventionNames": [
+                "Drug: Dupilumab",
+                "Drug: Fluticasone or Fluticasone/salmeterol combination",
+                "Drug: Placebo for SAR440340"
+              ]
+            },
+            {
+              "label": "SAR440340 + Dupilumab",
+              "type": "EXPERIMENTAL",
+              "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of dupilumab 300 mg, SC Q2W for 12 weeks.",
+              "interventionNames": [
+                "Drug: SAR440340",
+                "Drug: Dupilumab",
+                "Drug: Fluticasone or Fluticasone/salmeterol combination"
+              ]
+            },
+            {
+              "label": "Placebo",
+              "type": "PLACEBO_COMPARATOR",
+              "description": "Participants received 2 SC injections of SAR440340 placebo along with 1 SC injection of dupilumab placebo Q2W for 12 weeks.",
+              "interventionNames": [
+                "Drug: Fluticasone or Fluticasone/salmeterol combination",
+                "Drug: Placebo for SAR440340",
+                "Drug: Placebo for dupilumab"
+              ]
+            }
+          ],
+          "interventions": [
+            {
+              "type": "DRUG",
+              "name": "SAR440340",
+              "description": "Pharmaceutical form: Solution for Injection, Route of administration: SC",
+              "armGroupLabels": [
+                "SAR440340",
+                "SAR440340 + Dupilumab"
+              ],
+              "otherNames": [
+                "REGN3500"
+              ]
+            },
+            {
+              "type": "DRUG",
+              "name": "Dupilumab",
+              "description": "Pharmaceutical form: Solution for Injection, Route of administration: SC",
+              "armGroupLabels": [
+                "Dupilumab",
+                "SAR440340 + Dupilumab"
+              ],
+              "otherNames": [
+                "SAR231893 (REGN668)"
+              ]
+            },
+            {
+              "type": "DRUG",
+              "name": "Fluticasone or Fluticasone/salmeterol combination",
+              "description": "Pharmaceutical form: Aerosol, dry powder, Route of administration: Inhaled",
+              "armGroupLabels": [
+                "Dupilumab",
+                "Placebo",
+                "SAR440340",
+                "SAR440340 + Dupilumab"
+              ]
+            },
+            {
+              "type": "DRUG",
+              "name": "Placebo for SAR440340",
+              "description": "Pharmaceutical form: Solution for Injection, Route of administration: SC",
+              "armGroupLabels": [
+                "Dupilumab",
+                "Placebo"
+              ]
+            },
+            {
+              "type": "DRUG",
+              "name": "Placebo for dupilumab",
+              "description": "Pharmaceutical form: Solution for Injection, Route of administration: SC",
+              "armGroupLabels": [
+                "Placebo",
+                "SAR440340"
+              ]
+            }
+          ]
+        },
+        "outcomesModule": {
+          "primaryOutcomes": [
+            {
+              "measure": "Percentage of Participants With Loss of Asthma Control",
+              "description": "An LOAC event during the 12-week treatment period was a deterioration of asthma defined as any of the following: a) 30 percent (%) or greater reduction from baseline in morning peak expiratory flow (PEF) on 2 consecutive days; b) greater than or equal to (\\>=) 6 additional reliever puffs of salbutamol/albuterol or levosalbutamol/levalbuterol in a 24-hour period (compared to baseline) on 2 consecutive days; c) increase in inhaled corticosteroid (ICS) \\>=4 times the last prescribed ICS dose (or \\>=50% of the prescribed ICS dose at Baseline if background therapy withdrawal completed); d) required use of systemic (oral and/or parenteral) steroid treatment; e) required hospitalization or emergency room visit.",
+              "timeFrame": "From Baseline up to Week 12"
+            }
+          ],
+          "secondaryOutcomes": [
+            {
+              "measure": "Change From Baseline at Week 12 in Pre-bronchodilator Forced Expiratory Volume in 1 Second (FEV1)",
+              "description": "FEV1 was the volume of air exhaled in the first second of a forced expiration as measured by spirometer. Pre-bronchodilator FEV1 refers to the spirometry performed after a wash period of bronchodilators (i.e., not earlier than 6 hours) after the last dose of albuterol/salbutamol or levalbuterol/levosalbutamol from a primed meter dose inhaler and withholding the last dose of long-acting \u03b22 adrenergic agonist (LABA) for at least 12 hours, and prior to administration of study drug.",
+              "timeFrame": "Baseline, Week 12"
+            },
+            {
+              "measure": "Change From Baseline at Week 12 in Post-bronchodilator Forced Expiratory Volume in 1 Second",
+              "description": "FEV1 was the volume of air exhaled in the first second of a forced expiration as measured by spirometer. Post-bronchodilator FEV1 refers to the spirometry performed within 30 minutes after administration of bronchodilator.",
+              "timeFrame": "Baseline, Week 12"
+            }
+          ]
+        },
+        "eligibilityModule": {
+          "eligibilityCriteria": "Inclusion criteria :\n\n* Adult participants with a physician diagnosis of asthma for at least 12 months based on the Global Initiative for Asthma (GINA) 2017 Guidelines.\n* Participants with existing treatment with medium to high dose ICS (greater than or equal to \\[\\>=\\] 250 microgram (mcg) of fluticasone propionate twice a day (BID) or equipotent ICS daily dosage to a maximum of 2000 mcg/day of fluticasone propionate or clinically comparable) in combination with a LABA as second controller for at least 3 months with a stable dose \\>=1 month prior to Visit 1.\n* Participants with pre-bronchodilator FEV1 greater than (\\>) 40 percent (%) of predicted normal at Visit 1/Screening. Pre-bronchodilator FEV1 \\>=50% but less than or equal to (\\<=) 85% of predicted normal at Visit 2/Baseline.\n* Participants with reversibility of at least 12% and 200 milliliters (mL) in FEV1 after administration of 2 to 4 puffs (200-400 microgram \\[\u00b5g\\]) of albuterol/salbutamol or levalbuterol/levosalbutamol during screening or documented history of a reversibility test that meets this criteria within 12 months prior to Visit 1 or documented positive response to methacholine challenge (a decrease in FEV by 20% \\[PC20\\] of less than \\[\\<\\] 8 milligram per milliliter \\[mg/mL\\]) within 12 months prior to Visit 1/Screening is considered acceptable to meet this inclusion criterion.\n* Participants had experienced, within 1 year prior to Visit 1, any of the following events at least once:\n* Treatment with a systemic steroid (oral or parenteral) for worsening asthma.\n* Hospitalization or emergency medical care visit for worsening asthma.\n* Signed written informed consent.\n\nExclusion criteria:\n\n* Participants \\<18 years or \\>70 years of age (i.e., have reached the age of 71 at the screening visit).\n* Participants with body mass index (BMI) \\<16.\n* Chronic lung disease (for example, chronic obstructive pulmonary disease \\[COPD\\], or idiopathic pulmonary fibrosis \\[IPF\\]), which might impair lung function.\n* History of life threatening asthma (i.e., severe exacerbation that required intubation).\n* Co-morbid disease that might interfere with the evaluation of investigational medicinal product (IMP).\n* Participants with any of the following events within the 4 weeks prior to their Screening Visit 1:\n* Treatment with 1 or more systemic (oral and/or parenteral) steroid bursts for worsening asthma;\n* Hospitalization or emergency medical care visit for worsening asthma.\n* Asthma Control Questionnaire 5-question version (ACQ-5) score \\<1.25 or \\>3.0 at Visit 2/randomization. During the screening period, an ACQ-5 of up to \\<=4 was acceptable.\n* Anti-immunoglobulin E (IgE) therapy (e.g., omalizumab \\[Xolair\u00ae\\]) within 130 days prior to Visit 1 or any other biologic therapy (including anti interleukin-5 \\[anti-IL5\\] monoclonal antibodies \\[mAb\\]) or systemic immunosuppressant (e.g., methotrexate) to treat inflammatory disease or autoimmune disease (e.g., rheumatoid arthritis, inflammatory bowel disease, primary biliary cirrhosis, systemic lupus erythematosus, multiple sclerosis, etc.) and other diseases, within 2 months or 5 half-lives prior to Visit 1, whichever was longer.\n* Participants with a history of a systemic hypersensitivity reaction to a biologic drug.\n* Participants on or initiation of bronchial thermoplasty within 2 years prior to Visit 1 or plan to begin therapy during the screening period or the randomized treatment period.\n* Current smoker or cessation of smoking within the 6 months prior to Visit 1.\n* Previous smoker with a smoking history \\>10 pack-years.\n\nThe above information is not intended to contain all considerations relevant to a participant's potential participation in a clinical trial.",
+          "healthyVolunteers": false,
+          "sex": "ALL",
+          "minimumAge": "18 Years",
+          "maximumAge": "70 Years",
+          "stdAges": [
+            "ADULT",
+            "OLDER_ADULT"
+          ]
+        },
+        "contactsLocationsModule": {
+          "overallOfficials": [
+            {
+              "name": "Clinical Sciences & Operations",
+              "affiliation": "Sanofi",
+              "role": "STUDY_DIRECTOR"
+            }
+          ],
+          "locations": [
+            {
+              "facility": "Investigational Site Number 8400026",
+              "city": "Birmingham",
+              "state": "Alabama",
+              "zip": "35209",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.52066,
+                "lon": -86.80249
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400004",
+              "city": "Long Beach",
+              "state": "California",
+              "zip": "90808",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.76696,
+                "lon": -118.18923
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400020",
+              "city": "Los Angeles",
+              "state": "California",
+              "zip": "90025",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 34.05223,
+                "lon": -118.24368
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400001",
+              "city": "Rolling Hills Estates",
+              "state": "California",
+              "zip": "90274",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.78779,
+                "lon": -118.35813
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400013",
+              "city": "San Jose",
+              "state": "California",
+              "zip": "95117",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 37.33939,
+                "lon": -121.89496
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400009",
+              "city": "Stockton",
+              "state": "California",
+              "zip": "95207",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 37.9577,
+                "lon": -121.29078
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400016",
+              "city": "Colorado Springs",
+              "state": "Colorado",
+              "zip": "80907",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 38.83388,
+                "lon": -104.82136
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400021",
+              "city": "Ann Arbor",
+              "state": "Michigan",
+              "zip": "48109",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 42.27756,
+                "lon": -83.74088
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400022",
+              "city": "Minneapolis",
+              "state": "Minnesota",
+              "zip": "55402",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 44.97997,
+                "lon": -93.26384
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400007",
+              "city": "Papillion",
+              "state": "Nebraska",
+              "zip": "27103",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 41.15444,
+                "lon": -96.04224
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400025",
+              "city": "Edmond",
+              "state": "Oklahoma",
+              "zip": "73034",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 35.65283,
+                "lon": -97.4781
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400011",
+              "city": "Medford",
+              "state": "Oregon",
+              "zip": "97504",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 42.32652,
+                "lon": -122.87559
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400024",
+              "city": "Portland",
+              "state": "Oregon",
+              "zip": "97209",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 45.52345,
+                "lon": -122.67621
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400010",
+              "city": "Dallas",
+              "state": "Texas",
+              "zip": "75231",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 32.78306,
+                "lon": -96.80667
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400023",
+              "city": "Dallas",
+              "state": "Texas",
+              "zip": "75231",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 32.78306,
+                "lon": -96.80667
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400006",
+              "city": "Plano",
+              "state": "Texas",
+              "zip": "75093",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.01984,
+                "lon": -96.69889
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400008",
+              "city": "Murray",
+              "state": "Utah",
+              "zip": "84107",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 40.66689,
+                "lon": -111.88799
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8400014",
+              "city": "Milwaukee",
+              "state": "Wisconsin",
+              "zip": "53219",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 43.0389,
+                "lon": -87.90647
+              }
+            },
+            {
+              "facility": "Investigational Site Number 0320001",
+              "city": "Buenos Aires",
+              "zip": "C1121ABE",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -34.61315,
+                "lon": -58.37723
+              }
+            },
+            {
+              "facility": "Investigational Site Number 0320003",
+              "city": "Caba",
+              "zip": "C1122AAK",
+              "country": "Argentina"
+            },
+            {
+              "facility": "Investigational Site Number 0320002",
+              "city": "Caba",
+              "zip": "C1425BEN",
+              "country": "Argentina"
+            },
+            {
+              "facility": "Investigational Site Number 0320004",
+              "city": "Caba",
+              "zip": "C1425FVH",
+              "country": "Argentina"
+            },
+            {
+              "facility": "Investigational Site Number 0320005",
+              "city": "Mendoza",
+              "zip": "5500",
+              "country": "Argentina",
+              "geoPoint": {
+                "lat": -32.88946,
+                "lon": -68.84582
+              }
+            },
+            {
+              "facility": "Investigational Site Number 1520002",
+              "city": "Quillota",
+              "zip": "2260877",
+              "country": "Chile",
+              "geoPoint": {
+                "lat": -32.88341,
+                "lon": -71.24882
+              }
+            },
+            {
+              "facility": "Investigational Site Number 1520001",
+              "city": "Santiago",
+              "zip": "7500692",
+              "country": "Chile",
+              "geoPoint": {
+                "lat": -33.45694,
+                "lon": -70.64827
+              }
+            },
+            {
+              "facility": "Investigational Site Number 1520009",
+              "city": "Santiago",
+              "zip": "7500710",
+              "country": "Chile",
+              "geoPoint": {
+                "lat": -33.45694,
+                "lon": -70.64827
+              }
+            },
+            {
+              "facility": "Investigational Site Number 1520008",
+              "city": "Santiago",
+              "zip": "8207257",
+              "country": "Chile",
+              "geoPoint": {
+                "lat": -33.45694,
+                "lon": -70.64827
+              }
+            },
+            {
+              "facility": "Investigational Site Number 1520007",
+              "city": "Santiago",
+              "zip": "8330336",
+              "country": "Chile",
+              "geoPoint": {
+                "lat": -33.45694,
+                "lon": -70.64827
+              }
+            },
+            {
+              "facility": "Investigational Site Number 1520004",
+              "city": "Santiago",
+              "zip": "8910131",
+              "country": "Chile",
+              "geoPoint": {
+                "lat": -33.45694,
+                "lon": -70.64827
+              }
+            },
+            {
+              "facility": "Investigational Site Number 1520005",
+              "city": "Talca",
+              "country": "Chile",
+              "geoPoint": {
+                "lat": -35.4232,
+                "lon": -71.64974
+              }
+            },
+            {
+              "facility": "Investigational Site Number 1520003",
+              "city": "Vi\u00f1a del Mar",
+              "country": "Chile",
+              "geoPoint": {
+                "lat": -33.02457,
+                "lon": -71.55183
+              }
+            },
+            {
+              "facility": "Investigational Site Number 4840005",
+              "city": "Chihuahua City",
+              "zip": "31000",
+              "country": "Mexico",
+              "geoPoint": {
+                "lat": 28.63528,
+                "lon": -106.08889
+              }
+            },
+            {
+              "facility": "Investigational Site Number 4840004",
+              "city": "Durango",
+              "zip": "34080",
+              "country": "Mexico",
+              "geoPoint": {
+                "lat": 24.02032,
+                "lon": -104.65756
+              }
+            },
+            {
+              "facility": "Investigational Site Number 4840002",
+              "city": "Guadalajara",
+              "zip": "44100",
+              "country": "Mexico",
+              "geoPoint": {
+                "lat": 20.67738,
+                "lon": -103.34749
+              }
+            },
+            {
+              "facility": "Investigational Site Number 4840006",
+              "city": "Monterrey",
+              "zip": "64460",
+              "country": "Mexico",
+              "geoPoint": {
+                "lat": 25.68435,
+                "lon": -100.31721
+              }
+            },
+            {
+              "facility": "Investigational Site Number 4840001",
+              "city": "Monterrey",
+              "zip": "66465",
+              "country": "Mexico",
+              "geoPoint": {
+                "lat": 25.68435,
+                "lon": -100.31721
+              }
+            },
+            {
+              "facility": "Investigational Site Number 4840003",
+              "city": "Veracruz",
+              "zip": "91910",
+              "country": "Mexico",
+              "geoPoint": {
+                "lat": 19.18095,
+                "lon": -96.1429
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6160001",
+              "city": "Bialystok",
+              "zip": "15-010",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 53.13333,
+                "lon": 23.16433
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6160008",
+              "city": "Bialystok",
+              "zip": "15-044",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 53.13333,
+                "lon": 23.16433
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6160005",
+              "city": "Bydgoszcz",
+              "zip": "85-079",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 53.1235,
+                "lon": 18.00762
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6160007",
+              "city": "Krakow",
+              "zip": "31-559",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 50.06143,
+                "lon": 19.93658
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6160002",
+              "city": "Poznan",
+              "zip": "60-693",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 52.40692,
+                "lon": 16.92993
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6160006",
+              "city": "Poznan",
+              "zip": "60-823",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 52.40692,
+                "lon": 16.92993
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6160003",
+              "city": "\u017bnin",
+              "zip": "88-400",
+              "country": "Poland",
+              "geoPoint": {
+                "lat": 52.84958,
+                "lon": 17.71992
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6430003",
+              "city": "Moscow",
+              "zip": "109240",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 55.75204,
+                "lon": 37.61781
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6430001",
+              "city": "Moscow",
+              "zip": "109544",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 55.75204,
+                "lon": 37.61781
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6430005",
+              "city": "Moscow",
+              "zip": "115280",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 55.75204,
+                "lon": 37.61781
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6430008",
+              "city": "Ryazan",
+              "zip": "390039",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 54.62696,
+                "lon": 39.70415
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6430007",
+              "city": "Saint Petersburg",
+              "zip": "193231",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 59.93863,
+                "lon": 30.31413
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6430010",
+              "city": "Saint Petersburg",
+              "zip": "194291",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 59.93863,
+                "lon": 30.31413
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6430006",
+              "city": "Saint Petersburg",
+              "zip": "194354",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 59.93863,
+                "lon": 30.31413
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6430009",
+              "city": "Stavropol",
+              "zip": "355030",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 45.03442,
+                "lon": 41.9642
+              }
+            },
+            {
+              "facility": "Investigational Site Number 6430004",
+              "city": "Ulyanovsk",
+              "zip": "432017",
+              "country": "Russia",
+              "geoPoint": {
+                "lat": 54.32824,
+                "lon": 48.38657
+              }
+            },
+            {
+              "facility": "Investigational Site Number 7920004",
+              "city": "Ankara",
+              "zip": "06100",
+              "country": "Turkey (T\u00fcrkiye)",
+              "geoPoint": {
+                "lat": 39.91987,
+                "lon": 32.85427
+              }
+            },
+            {
+              "facility": "Investigational Site Number 7920003",
+              "city": "Bursa",
+              "zip": "16059",
+              "country": "Turkey (T\u00fcrkiye)",
+              "geoPoint": {
+                "lat": 40.19559,
+                "lon": 29.06013
+              }
+            },
+            {
+              "facility": "Investigational Site Number 7920001",
+              "city": "Istanbul",
+              "zip": "34098",
+              "country": "Turkey (T\u00fcrkiye)",
+              "geoPoint": {
+                "lat": 41.01384,
+                "lon": 28.94966
+              }
+            },
+            {
+              "facility": "Investigational Site Number 7920006",
+              "city": "Izmir",
+              "zip": "35040",
+              "country": "Turkey (T\u00fcrkiye)",
+              "geoPoint": {
+                "lat": 38.41273,
+                "lon": 27.13838
+              }
+            },
+            {
+              "facility": "Investigational Site Number 7920007",
+              "city": "Izmir",
+              "zip": "35110",
+              "country": "Turkey (T\u00fcrkiye)",
+              "geoPoint": {
+                "lat": 38.41273,
+                "lon": 27.13838
+              }
+            },
+            {
+              "facility": "Investigational Site Number 7920008",
+              "city": "Kirikkale",
+              "zip": "71450",
+              "country": "Turkey (T\u00fcrkiye)",
+              "geoPoint": {
+                "lat": 39.84528,
+                "lon": 33.50639
+              }
+            },
+            {
+              "facility": "Investigational Site Number 7920002",
+              "city": "Mersin",
+              "zip": "33070",
+              "country": "Turkey (T\u00fcrkiye)",
+              "geoPoint": {
+                "lat": 36.81196,
+                "lon": 34.63886
+              }
+            },
+            {
+              "facility": "Investigational Site Number 7920009",
+              "city": "Rize",
+              "zip": "53100",
+              "country": "Turkey (T\u00fcrkiye)",
+              "geoPoint": {
+                "lat": 41.02083,
+                "lon": 40.52194
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040008",
+              "city": "Chernivtsi",
+              "zip": "58001",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 48.29045,
+                "lon": 25.93241
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040012",
+              "city": "Ivano-Frankivsk",
+              "zip": "76000",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 48.92312,
+                "lon": 24.71248
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040002",
+              "city": "Kharkiv",
+              "zip": "61039",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 49.98177,
+                "lon": 36.25475
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040009",
+              "city": "Kharkiv",
+              "zip": "61124",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 49.98177,
+                "lon": 36.25475
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040011",
+              "city": "Kharkiv",
+              "zip": "61166",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 49.98177,
+                "lon": 36.25475
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040007",
+              "city": "Kyiv",
+              "zip": "02091",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 50.45466,
+                "lon": 30.5238
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040001",
+              "city": "Kyiv",
+              "zip": "02125",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 50.45466,
+                "lon": 30.5238
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040006",
+              "city": "Odesa",
+              "zip": "65025",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 46.48572,
+                "lon": 30.74383
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040003",
+              "city": "Ternopil",
+              "zip": "46000",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 49.55404,
+                "lon": 25.59067
+              }
+            },
+            {
+              "facility": "Investigational Site Number 8040005",
+              "city": "Vinnytsia",
+              "zip": "21001",
+              "country": "Ukraine",
+              "geoPoint": {
+                "lat": 49.2322,
+                "lon": 28.46871
+              }
+            }
+          ]
+        },
+        "referencesModule": {
+          "references": [
+            {
+              "pmid": "36253275",
+              "type": "DERIVED",
+              "citation": "Yin Z, Zhou Y, Turnquist HR, Liu Q. Neuro-epithelial-ILC2 crosstalk in barrier tissues. Trends Immunol. 2022 Nov;43(11):901-916. doi: 10.1016/j.it.2022.09.006. Epub 2022 Oct 14."
+            },
+            {
+              "pmid": "34706171",
+              "type": "DERIVED",
+              "citation": "Wechsler ME, Ruddy MK, Pavord ID, Israel E, Rabe KF, Ford LB, Maspero JF, Abdulai RM, Hu CC, Martincova R, Jessel A, Nivens MC, Amin N, Weinreich DM, Yancopoulos GD, Goulaouic H. Efficacy and Safety of Itepekimab in Patients with Moderate-to-Severe Asthma. N Engl J Med. 2021 Oct 28;385(18):1656-1668. doi: 10.1056/NEJMoa2024257."
+            }
+          ]
+        },
+        "ipdSharingStatementModule": {
+          "ipdSharing": "YES",
+          "description": "Qualified researchers may request access to patient level data and related study documents including the clinical study report, study protocol with any amendments, blank case report form, statistical analysis plan, and dataset specifications. Patient level data will be anonymized and study documents will be redacted to protect the privacy of trial participants. Further details on Sanofi's data sharing criteria, eligible studies, and process for requesting access can be found at: https://vivli.org"
+        }
+      },
+      "resultsSection": {
+        "participantFlowModule": {
+          "preAssignmentDetails": "A total of 499 participants were screened, out of which 296 participants were enrolled and randomized to 1 of the 4 treatment groups.",
+          "recruitmentDetails": "The study was conducted from 12-March-2018 to 7-August-2019. Participants were screened at 70 centers across 8 countries, out of which 68 centers randomized at least 1 participant.",
+          "groups": [
+            {
+              "id": "FG000",
+              "title": "Placebo",
+              "description": "Participants received 2 subcutaneous (SC) injections of SAR440340 placebo along with 1 SC injection of dupilumab placebo once every 2 weeks (Q2W) for 12 weeks."
+            },
+            {
+              "id": "FG001",
+              "title": "SAR440340 300 mg",
+              "description": "Participants received 2 injections of SAR440340 300 milligram (mg) along with 1 injection of dupilumab placebo, SC Q2W for 12 weeks."
+            },
+            {
+              "id": "FG002",
+              "title": "SAR440340 + Dupilumab",
+              "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of dupilumab 300 mg, SC Q2W for 12 weeks."
+            },
+            {
+              "id": "FG003",
+              "title": "Dupilumab 300 mg",
+              "description": "Participants received 1 injection of dupilumab 300 mg along with 2 injections of SAR440340 placebo, SC Q2W for 12 weeks."
+            }
+          ],
+          "periods": [
+            {
+              "title": "Overall Study",
+              "milestones": [
+                {
+                  "type": "STARTED",
+                  "comment": "Randomized",
+                  "achievements": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "74"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "73"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "74"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "75"
+                    }
+                  ]
+                },
+                {
+                  "type": "Treated",
+                  "achievements": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "74"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "73"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "74"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "74"
+                    }
+                  ]
+                },
+                {
+                  "type": "COMPLETED",
+                  "achievements": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "41"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "55"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "47"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "56"
+                    }
+                  ]
+                },
+                {
+                  "type": "NOT COMPLETED",
+                  "achievements": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "33"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "18"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "27"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "19"
+                    }
+                  ]
+                }
+              ],
+              "dropWithdraws": [
+                {
+                  "type": "Adverse event (AE)",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "3"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "2"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "0"
+                    }
+                  ]
+                },
+                {
+                  "type": "Loss of asthma control (LOAC)",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "28"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "16"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "20"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "14"
+                    }
+                  ]
+                },
+                {
+                  "type": "Withdrawal by participant",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "3"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "2"
+                    }
+                  ]
+                },
+                {
+                  "type": "Other- Unspecified",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "1"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "2"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "1"
+                    }
+                  ]
+                },
+                {
+                  "type": "Poor compliance to protocol",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "1"
+                    }
+                  ]
+                },
+                {
+                  "type": "Randomized and not treated",
+                  "reasons": [
+                    {
+                      "groupId": "FG000",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG001",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG002",
+                      "numSubjects": "0"
+                    },
+                    {
+                      "groupId": "FG003",
+                      "numSubjects": "1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "baselineCharacteristicsModule": {
+          "populationDescription": "Analysis was performed on randomized population that included any participant who had signed informed consent and had been allocated to a randomized treatment regardless of whether the treatment kit was used.",
+          "groups": [
+            {
+              "id": "BG000",
+              "title": "Placebo",
+              "description": "Participants received 2 SC injections of SAR440340 placebo along with 1 SC injection of dupilumab placebo Q2W for 12 weeks."
+            },
+            {
+              "id": "BG001",
+              "title": "SAR440340 300 mg",
+              "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of dupilumab placebo, SC Q2W for 12 weeks."
+            },
+            {
+              "id": "BG002",
+              "title": "SAR440340 + Dupilumab",
+              "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of dupilumab 300 mg, SC Q2W for 12 weeks."
+            },
+            {
+              "id": "BG003",
+              "title": "Dupilumab 300 mg",
+              "description": "Participants received 1 injection of dupilumab 300 mg along with 2 injections of SAR440340 placebo, SC Q2W for 12 weeks."
+            },
+            {
+              "id": "BG004",
+              "title": "Total",
+              "description": "Total of all reporting groups"
+            }
+          ],
+          "denoms": [
+            {
+              "units": "Participants",
+              "counts": [
+                {
+                  "groupId": "BG000",
+                  "value": "74"
+                },
+                {
+                  "groupId": "BG001",
+                  "value": "73"
+                },
+                {
+                  "groupId": "BG002",
+                  "value": "74"
+                },
+                {
+                  "groupId": "BG003",
+                  "value": "75"
+                },
+                {
+                  "groupId": "BG004",
+                  "value": "296"
+                }
+              ]
+            }
+          ],
+          "measures": [
+            {
+              "title": "Age, Continuous",
+              "paramType": "MEAN",
+              "dispersionType": "STANDARD_DEVIATION",
+              "unitOfMeasure": "years",
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "47.0",
+                          "spread": "11.4"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "49.0",
+                          "spread": "13.9"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "49.1",
+                          "spread": "12.0"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "51.3",
+                          "spread": "12.7"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "49.1",
+                          "spread": "12.6"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Sex: Female, Male",
+              "paramType": "COUNT_OF_PARTICIPANTS",
+              "unitOfMeasure": "Participants",
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "title": "Female",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "47"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "50"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "51"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "41"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "189"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Male",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "27"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "23"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "23"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "34"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "107"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Race (NIH/OMB)",
+              "paramType": "COUNT_OF_PARTICIPANTS",
+              "unitOfMeasure": "Participants",
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "title": "American Indian or Alaska Native",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "2"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "1"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "1"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "4"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Asian",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "2"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "1"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "1"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "4"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Native Hawaiian or Other Pacific Islander",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "0"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Black or African American",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "1"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "3"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "2"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "6"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "White",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "71"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "68"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "69"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "73"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "281"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "More than one race",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "1"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "1"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Unknown or Not Reported",
+                      "measurements": [
+                        {
+                          "groupId": "BG000",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG001",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG002",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG003",
+                          "value": "0"
+                        },
+                        {
+                          "groupId": "BG004",
+                          "value": "0"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "outcomeMeasuresModule": {
+          "outcomeMeasures": [
+            {
+              "type": "PRIMARY",
+              "title": "Percentage of Participants With Loss of Asthma Control",
+              "description": "An LOAC event during the 12-week treatment period was a deterioration of asthma defined as any of the following: a) 30 percent (%) or greater reduction from baseline in morning peak expiratory flow (PEF) on 2 consecutive days; b) greater than or equal to (\\>=) 6 additional reliever puffs of salbutamol/albuterol or levosalbutamol/levalbuterol in a 24-hour period (compared to baseline) on 2 consecutive days; c) increase in inhaled corticosteroid (ICS) \\>=4 times the last prescribed ICS dose (or \\>=50% of the prescribed ICS dose at Baseline if background therapy withdrawal completed); d) required use of systemic (oral and/or parenteral) steroid treatment; e) required hospitalization or emergency room visit.",
+              "populationDescription": "The analysis was performed on modified intent-to-treat (mITT) population that included all randomized participants who have received at least 1 dose of investigational medicinal product (IMP) analyzed according to the treatment group allocated by randomization.",
+              "reportingStatus": "POSTED",
+              "paramType": "NUMBER",
+              "unitOfMeasure": "percentage of participants",
+              "timeFrame": "From Baseline up to Week 12",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received 2 SC injections of placebo matching to SAR440340 along with 1 SC injection of placebo matching to dupilumab once Q2W for 12 weeks."
+                },
+                {
+                  "id": "OG001",
+                  "title": "SAR440340 300 mg",
+                  "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of placebo matching to dupilumab, SC Q2W for 12 weeks."
+                },
+                {
+                  "id": "OG002",
+                  "title": "SAR440340 + Dupilumab",
+                  "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of dupilumab 300 mg, SC Q2W for 12 weeks."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Dupilumab 300 mg",
+                  "description": "Participants received 1 injection of dupilumab 300 mg along with 2 injections of placebo matched to SAR440340, SC Q2W for 12 weeks."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "73"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "74"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "74"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "40.5"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "21.9"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "27.0"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "18.9"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "analyses": [
+                {
+                  "groupIds": [
+                    "OG000",
+                    "OG001"
+                  ],
+                  "groupDescription": "Odds ratio, 95% confidence interval (CI), and p-value derived from logistic regression with treatment, baseline eosinophil strata, region, background ICS dose level at randomization and number of exacerbation events (defined as required use of systemic \\[oral and/or parenteral\\] steroid treatment, or required hospitalization or emergency room visit) within 1 year prior to screening.",
+                  "nonInferiorityType": "SUPERIORITY",
+                  "pValue": "=0.0214",
+                  "statisticalMethod": "Regression, Logistic",
+                  "paramType": "Odds ratio",
+                  "paramValue": "0.423",
+                  "ciPctValue": "95",
+                  "ciNumSides": "TWO_SIDED",
+                  "ciLowerLimit": "0.203",
+                  "ciUpperLimit": "0.88",
+                  "estimateComment": "SAR440340 300 mg vs. Placebo"
+                },
+                {
+                  "groupIds": [
+                    "OG000",
+                    "OG002"
+                  ],
+                  "groupDescription": "Odds ratio, 95% CI, and p-value derived from logistic regression with treatment, baseline eosinophil strata, region, background ICS dose level at randomization and number of exacerbation events (defined as required use of systemic \\[oral and/or parenteral\\] steroid treatment, or required hospitalization or emergency room visit) within 1 year prior to screening.",
+                  "nonInferiorityType": "SUPERIORITY",
+                  "pValue": "=0.0709",
+                  "statisticalMethod": "Regression, Logistic",
+                  "paramType": "Odds ratio",
+                  "paramValue": "0.520",
+                  "ciPctValue": "95",
+                  "ciNumSides": "TWO_SIDED",
+                  "ciLowerLimit": "0.256",
+                  "ciUpperLimit": "1.057",
+                  "estimateComment": "SAR440340 + Dupilumab vs. Placebo"
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Change From Baseline at Week 12 in Pre-bronchodilator Forced Expiratory Volume in 1 Second (FEV1)",
+              "description": "FEV1 was the volume of air exhaled in the first second of a forced expiration as measured by spirometer. Pre-bronchodilator FEV1 refers to the spirometry performed after a wash period of bronchodilators (i.e., not earlier than 6 hours) after the last dose of albuterol/salbutamol or levalbuterol/levosalbutamol from a primed meter dose inhaler and withholding the last dose of long-acting \u03b22 adrenergic agonist (LABA) for at least 12 hours, and prior to administration of study drug.",
+              "populationDescription": "Analysis was performed on mITT population. Here, \"Overall number of participants analyzed\" signifies participants with available data for this outcome measure.",
+              "reportingStatus": "POSTED",
+              "paramType": "MEAN",
+              "dispersionType": "Standard Deviation",
+              "unitOfMeasure": "liters",
+              "timeFrame": "Baseline, Week 12",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received 2 SC injections of placebo matching to SAR440340 along with 1 SC injection of placebo matching to dupilumab Q2W for 12 weeks."
+                },
+                {
+                  "id": "OG001",
+                  "title": "SAR440340 300 mg",
+                  "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of placebo matching to dupilumab, SC Q2W for 12 weeks."
+                },
+                {
+                  "id": "OG002",
+                  "title": "SAR440340 + Dupilumab",
+                  "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of dupilumab 300 mg, SC Q2W for 12 weeks."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Dupilumab 300 mg",
+                  "description": "Participants received 1 injection of dupilumab 300 mg along with 2 injections of placebo matched to SAR440340, SC Q2W for 12 weeks."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "41"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "58"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "49"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "56"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "0.06",
+                          "spread": "0.35"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "0.11",
+                          "spread": "0.34"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "0.06",
+                          "spread": "0.37"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "0.14",
+                          "spread": "0.43"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "SECONDARY",
+              "title": "Change From Baseline at Week 12 in Post-bronchodilator Forced Expiratory Volume in 1 Second",
+              "description": "FEV1 was the volume of air exhaled in the first second of a forced expiration as measured by spirometer. Post-bronchodilator FEV1 refers to the spirometry performed within 30 minutes after administration of bronchodilator.",
+              "populationDescription": "Analysis was performed on mITT population. Here, \"Overall number of participants analyzed\" signifies participants with available data for this outcome measure.",
+              "reportingStatus": "POSTED",
+              "paramType": "MEAN",
+              "dispersionType": "Standard Deviation",
+              "unitOfMeasure": "liters",
+              "timeFrame": "Baseline, Week 12",
+              "groups": [
+                {
+                  "id": "OG000",
+                  "title": "Placebo",
+                  "description": "Participants received 2 SC injections of placebo matching to SAR440340 along with 1 SC injection of placebo matching to dupilumab Q2W for 12 weeks."
+                },
+                {
+                  "id": "OG001",
+                  "title": "SAR440340 300 mg",
+                  "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of placebo matching to dupilumab, SC Q2W for 12 weeks."
+                },
+                {
+                  "id": "OG002",
+                  "title": "SAR440340 + Dupilumab",
+                  "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of dupilumab 300 mg, SC Q2W for 12 weeks."
+                },
+                {
+                  "id": "OG003",
+                  "title": "Dupilumab 300 mg",
+                  "description": "Participants received 1 injection of dupilumab 300 mg along with 2 injections of placebo matched to SAR440340, SC Q2W for 12 weeks."
+                }
+              ],
+              "denoms": [
+                {
+                  "units": "Participants",
+                  "counts": [
+                    {
+                      "groupId": "OG000",
+                      "value": "42"
+                    },
+                    {
+                      "groupId": "OG001",
+                      "value": "58"
+                    },
+                    {
+                      "groupId": "OG002",
+                      "value": "51"
+                    },
+                    {
+                      "groupId": "OG003",
+                      "value": "57"
+                    }
+                  ]
+                }
+              ],
+              "classes": [
+                {
+                  "categories": [
+                    {
+                      "measurements": [
+                        {
+                          "groupId": "OG000",
+                          "value": "-0.02",
+                          "spread": "0.27"
+                        },
+                        {
+                          "groupId": "OG001",
+                          "value": "-0.00",
+                          "spread": "0.33"
+                        },
+                        {
+                          "groupId": "OG002",
+                          "value": "0.06",
+                          "spread": "0.41"
+                        },
+                        {
+                          "groupId": "OG003",
+                          "value": "0.09",
+                          "spread": "0.42"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "adverseEventsModule": {
+          "frequencyThreshold": "5",
+          "timeFrame": "From first administration of IMP up to the final visit (Week 32) regardless of seriousness or relationship to IMP",
+          "description": "Analysis was performed on safety population that included all enrolled participants who had received at least 1 dose of study drug, analyzed as per actual treatment received.",
+          "eventGroups": [
+            {
+              "id": "EG000",
+              "title": "Placebo",
+              "description": "Participants received 2 SC injections of SAR440340 placebo along with 1 SC injection of dupilumab placebo Q2W for 12 weeks.",
+              "deathsNumAffected": 0,
+              "deathsNumAtRisk": 74,
+              "seriousNumAffected": 3,
+              "seriousNumAtRisk": 74,
+              "otherNumAffected": 31,
+              "otherNumAtRisk": 74
+            },
+            {
+              "id": "EG001",
+              "title": "SAR440340 300mg",
+              "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of dupilumab placebo, SC Q2W for 12 weeks.",
+              "deathsNumAffected": 0,
+              "deathsNumAtRisk": 73,
+              "seriousNumAffected": 3,
+              "seriousNumAtRisk": 73,
+              "otherNumAffected": 29,
+              "otherNumAtRisk": 73
+            },
+            {
+              "id": "EG002",
+              "title": "SAR440340 + Dupilumab",
+              "description": "Participants received 2 injections of SAR440340 300 mg along with 1 injection of dupilumab 300 mg, SC Q2W for 12 weeks.",
+              "deathsNumAffected": 0,
+              "deathsNumAtRisk": 74,
+              "seriousNumAffected": 2,
+              "seriousNumAtRisk": 74,
+              "otherNumAffected": 26,
+              "otherNumAtRisk": 74
+            },
+            {
+              "id": "EG003",
+              "title": "Dupilumab 300mg",
+              "description": "Participants received 1 injection of dupilumab 300 mg along with 2 injections of SAR440340 placebo, SC Q2W for 12 weeks.",
+              "deathsNumAffected": 1,
+              "deathsNumAtRisk": 74,
+              "seriousNumAffected": 3,
+              "seriousNumAtRisk": 74,
+              "otherNumAffected": 28,
+              "otherNumAtRisk": 74
+            }
+          ],
+          "seriousEvents": [
+            {
+              "term": "Aortic Valve Incompetence",
+              "organSystem": "Cardiac disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Cholecystitis Acute",
+              "organSystem": "Hepatobiliary disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Abscess Jaw",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Pneumonia",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Pyelonephritis Acute",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Alcohol Poisoning",
+              "organSystem": "Injury, poisoning and procedural complications",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Alanine Aminotransferase Increased",
+              "organSystem": "Investigations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Vascular Encephalopathy",
+              "organSystem": "Nervous system disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Acute Respiratory Failure",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Asthma",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Nasal Polyps",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Aortic Aneurysm",
+              "organSystem": "Vascular disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Deep Vein Thrombosis",
+              "organSystem": "Vascular disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                }
+              ]
+            }
+          ],
+          "otherEvents": [
+            {
+              "term": "Nausea",
+              "organSystem": "Gastrointestinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 4,
+                  "numAffected": 2,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 4,
+                  "numAffected": 4,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Injection Site Reaction",
+              "organSystem": "General disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 6,
+                  "numAffected": 4,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 16,
+                  "numAffected": 5,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 4,
+                  "numAffected": 4,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Nasopharyngitis",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 10,
+                  "numAffected": 9,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 15,
+                  "numAffected": 13,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 8,
+                  "numAffected": 8,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 11,
+                  "numAffected": 9,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Upper Respiratory Tract Infection Bacterial",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 4,
+                  "numAffected": 4,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Urinary Tract Infection",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 3,
+                  "numAffected": 2,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 7,
+                  "numAffected": 5,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 3,
+                  "numAffected": 3,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Viral Upper Respiratory Tract Infection",
+              "organSystem": "Infections and infestations",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 6,
+                  "numAffected": 5,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 3,
+                  "numAffected": 3,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 7,
+                  "numAffected": 5,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 3,
+                  "numAffected": 2,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Back Pain",
+              "organSystem": "Musculoskeletal and connective tissue disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 4,
+                  "numAffected": 4,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 2,
+                  "numAffected": 2,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 3,
+                  "numAffected": 3,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Headache",
+              "organSystem": "Nervous system disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 7,
+                  "numAffected": 7,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 7,
+                  "numAffected": 6,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 9,
+                  "numAffected": 5,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 12,
+                  "numAffected": 10,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Cough",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 5,
+                  "numAffected": 5,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                }
+              ]
+            },
+            {
+              "term": "Rhinitis Allergic",
+              "organSystem": "Respiratory, thoracic and mediastinal disorders",
+              "sourceVocabulary": "MedDRA 22.0",
+              "assessmentType": "SYSTEMATIC_ASSESSMENT",
+              "stats": [
+                {
+                  "groupId": "EG000",
+                  "numEvents": 1,
+                  "numAffected": 1,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG001",
+                  "numEvents": 4,
+                  "numAffected": 3,
+                  "numAtRisk": 73
+                },
+                {
+                  "groupId": "EG002",
+                  "numEvents": 0,
+                  "numAffected": 0,
+                  "numAtRisk": 74
+                },
+                {
+                  "groupId": "EG003",
+                  "numEvents": 6,
+                  "numAffected": 5,
+                  "numAtRisk": 74
+                }
+              ]
+            }
+          ]
+        },
+        "moreInfoModule": {
+          "certainAgreement": {
+            "piSponsorEmployee": false,
+            "restrictionType": "OTHER",
+            "restrictiveAgreement": true,
+            "otherDetails": "The Sponsor supports publication of clinical trial results but may request that investigators temporarily delay or alter publications in order to protect proprietary information. The Sponsor may also require that the results of multicenter studies be published only in their entirety and not as individual site data."
+          },
+          "pointOfContact": {
+            "title": "Trial Transparency Team",
+            "organization": "Sanofi",
+            "email": "Contact-US@sanofi.com",
+            "phone": "800-633-1610",
+            "phoneExt": "1#"
+          }
+        }
+      },
+      "documentSection": {
+        "largeDocumentModule": {
+          "largeDocs": [
+            {
+              "typeAbbrev": "Prot",
+              "hasProtocol": true,
+              "hasSap": false,
+              "hasIcf": false,
+              "label": "Study Protocol",
+              "date": "2018-09-06",
+              "uploadDate": "2022-03-03T02:52",
+              "filename": "Prot_000.pdf",
+              "size": 1255769
+            },
+            {
+              "typeAbbrev": "SAP",
+              "hasProtocol": false,
+              "hasSap": true,
+              "hasIcf": false,
+              "label": "Statistical Analysis Plan",
+              "date": "2018-11-28",
+              "uploadDate": "2022-03-03T02:53",
+              "filename": "SAP_001.pdf",
+              "size": 872890
+            }
+          ]
+        }
+      },
+      "derivedSection": {
+        "miscInfoModule": {
+          "versionHolder": "2026-09-11"
+        },
+        "conditionBrowseModule": {
+          "meshes": [
+            {
+              "id": "D001249",
+              "term": "Asthma"
+            }
+          ],
+          "ancestors": [
+            {
+              "id": "D001982",
+              "term": "Bronchial Diseases"
+            },
+            {
+              "id": "D012140",
+              "term": "Respiratory Tract Diseases"
+            },
+            {
+              "id": "D008173",
+              "term": "Lung Diseases, Obstructive"
+            },
+            {
+              "id": "D008171",
+              "term": "Lung Diseases"
+            },
+            {
+              "id": "D012130",
+              "term": "Respiratory Hypersensitivity"
+            },
+            {
+              "id": "D006969",
+              "term": "Hypersensitivity, Immediate"
+            },
+            {
+              "id": "D006967",
+              "term": "Hypersensitivity"
+            },
+            {
+              "id": "D007154",
+              "term": "Immune System Diseases"
+            }
+          ]
+        },
+        "interventionBrowseModule": {
+          "meshes": [
+            {
+              "id": "C000720033",
+              "term": "itepekimab"
+            },
+            {
+              "id": "C582203",
+              "term": "dupilumab"
+            },
+            {
+              "id": "D000068297",
+              "term": "Fluticasone-Salmeterol Drug Combination"
+            }
+          ],
+          "ancestors": [
+            {
+              "id": "D000068299",
+              "term": "Salmeterol Xinafoate"
+            },
+            {
+              "id": "D000420",
+              "term": "Albuterol"
+            },
+            {
+              "id": "D004983",
+              "term": "Ethanolamines"
+            },
+            {
+              "id": "D000605",
+              "term": "Amino Alcohols"
+            },
+            {
+              "id": "D000438",
+              "term": "Alcohols"
+            },
+            {
+              "id": "D009930",
+              "term": "Organic Chemicals"
+            },
+            {
+              "id": "D000588",
+              "term": "Amines"
+            },
+            {
+              "id": "D010627",
+              "term": "Phenethylamines"
+            },
+            {
+              "id": "D005021",
+              "term": "Ethylamines"
+            },
+            {
+              "id": "D000068298",
+              "term": "Fluticasone"
+            },
+            {
+              "id": "D000730",
+              "term": "Androstadienes"
+            },
+            {
+              "id": "D000736",
+              "term": "Androstenes"
+            },
+            {
+              "id": "D000731",
+              "term": "Androstanes"
+            },
+            {
+              "id": "D013256",
+              "term": "Steroids"
+            },
+            {
+              "id": "D000072473",
+              "term": "Fused-Ring Compounds"
+            },
+            {
+              "id": "D011083",
+              "term": "Polycyclic Compounds"
+            },
+            {
+              "id": "D004338",
+              "term": "Drug Combinations"
+            },
+            {
+              "id": "D004364",
+              "term": "Pharmaceutical Preparations"
+            }
+          ]
+        }
+      },
+      "hasResults": true
+    },
+    {
+      "protocolSection": {
+        "identificationModule": {
+          "nctId": "NCT03112577",
+          "orgStudyIdInfo": {
+            "id": "R3500-AS-1633"
+          },
+          "secondaryIdInfos": [
+            {
+              "id": "2016-003165-26",
+              "type": "EUDRACT_NUMBER"
+            },
+            {
+              "id": "SAR440340",
+              "type": "OTHER",
+              "domain": "Sanofi"
+            },
+            {
+              "id": "2016",
+              "type": "NIH",
+              "link": "https://reporter.nih.gov/quickSearch/2016"
+            }
+          ],
+          "organization": {
+            "fullName": "Regeneron Pharmaceuticals",
+            "class": "INDUSTRY"
+          },
+          "briefTitle": "Study of REGN3500 and Dupilumab in Patients With Asthma",
+          "officialTitle": "A Randomized, Placebo-controlled, Parallel Panel Study to Assess the Effects of REGN3500, Dupilumab, and Combination of REGN3500 Plus Dupilumab on Markers of Inflammation After Bronchial Allergen Challenge in Patients With Allergic Asthma"
+        },
+        "statusModule": {
+          "statusVerifiedDate": "2020-01",
+          "overallStatus": "COMPLETED",
+          "expandedAccessInfo": {
+            "hasExpandedAccess": false
+          },
+          "startDateStruct": {
+            "date": "2017-06-15",
+            "type": "ACTUAL"
+          },
+          "primaryCompletionDateStruct": {
+            "date": "2019-03-20",
+            "type": "ACTUAL"
+          },
+          "completionDateStruct": {
+            "date": "2019-12-09",
+            "type": "ACTUAL"
+          },
+          "studyFirstSubmitDate": "2017-04-04",
+          "studyFirstSubmitQcDate": "2017-04-07",
+          "studyFirstPostDateStruct": {
+            "date": "2017-04-13",
+            "type": "ACTUAL"
+          },
+          "lastUpdateSubmitDate": "2020-01-16",
+          "lastUpdatePostDateStruct": {
+            "date": "2020-01-18",
+            "type": "ACTUAL"
+          }
+        },
+        "sponsorCollaboratorsModule": {
+          "responsibleParty": {
+            "type": "SPONSOR"
+          },
+          "leadSponsor": {
+            "name": "Regeneron Pharmaceuticals",
+            "class": "INDUSTRY"
+          },
+          "collaborators": [
+            {
+              "name": "Sanofi",
+              "class": "INDUSTRY"
+            }
+          ]
+        },
+        "oversightModule": {
+          "oversightHasDmc": true,
+          "isFdaRegulatedDrug": true,
+          "isFdaRegulatedDevice": false
+        },
+        "descriptionModule": {
+          "briefSummary": "To assess the effects of REGN3500, dupilumab, and REGN3500 plus dupilumab, compared with placebo, on changes in inflammatory gene expression signatures in sputum induced after a bronchial allergen challenge (BAC) in adults with mild allergic asthma, at week 4 after treatment initiation compared with those at screening."
+        },
+        "conditionsModule": {
+          "conditions": [
+            "Asthma, Allergic"
+          ]
+        },
+        "designModule": {
+          "studyType": "INTERVENTIONAL",
+          "phases": [
+            "PHASE1"
+          ],
+          "designInfo": {
+            "allocation": "RANDOMIZED",
+            "interventionModel": "PARALLEL",
+            "primaryPurpose": "TREATMENT",
+            "maskingInfo": {
+              "masking": "QUADRUPLE",
+              "whoMasked": [
+                "PARTICIPANT",
+                "CARE_PROVIDER",
+                "INVESTIGATOR",
+                "OUTCOMES_ASSESSOR"
+              ]
+            }
+          },
+          "enrollmentInfo": {
+            "count": 32,
+            "type": "ACTUAL"
+          }
+        },
+        "armsInterventionsModule": {
+          "armGroups": [
+            {
+              "label": "REGN3500",
+              "type": "EXPERIMENTAL",
+              "description": "REGN3500: masked and randomized dosing regimen per protocol (part 1 only)",
+              "interventionNames": [
+                "Drug: REGN3500"
+              ]
+            },
+            {
+              "label": "Dupilumab",
+              "type": "EXPERIMENTAL",
+              "description": "Dupilumab: masked and randomized dosing regimen per protocol (part 1 only)",
+              "interventionNames": [
+                "Drug: Dupilumab"
+              ]
+            },
+            {
+              "label": "REGN3500 plus dupilumab",
+              "type": "EXPERIMENTAL",
+              "description": "REGN3500 plus dupilumab: masked and randomized dosing regimen per protocol (part 1 only)",
+              "interventionNames": [
+                "Drug: REGN3500",
+                "Drug: Dupilumab"
+              ]
+            },
+            {
+              "label": "Placebo",
+              "type": "EXPERIMENTAL",
+              "description": "Placebo: masked and randomized dosing regimen per protocol (part 1 only)",
+              "interventionNames": [
+                "Drug: Placebo"
+              ]
+            },
+            {
+              "label": "Fluticasone propionate",
+              "type": "ACTIVE_COMPARATOR",
+              "description": "Fluticasone propionate: open label dosing regimen per protocol (part 2 only)",
+              "interventionNames": [
+                "Drug: Fluticasone propionate"
+              ]
+            }
+          ],
+          "interventions": [
+            {
+              "type": "DRUG",
+              "name": "REGN3500",
+              "description": "Intravenous (IV) use",
+              "armGroupLabels": [
+                "REGN3500",
+                "REGN3500 plus dupilumab"
+              ]
+            },
+            {
+              "type": "DRUG",
+              "name": "Dupilumab",
+              "description": "Subcutaneous (SC) use",
+              "armGroupLabels": [
+                "Dupilumab",
+                "REGN3500 plus dupilumab"
+              ],
+              "otherNames": [
+                "Dupixent"
+              ]
+            },
+            {
+              "type": "DRUG",
+              "name": "Placebo",
+              "description": "Matching placebo",
+              "armGroupLabels": [
+                "Placebo"
+              ]
+            },
+            {
+              "type": "DRUG",
+              "name": "Fluticasone propionate",
+              "description": "Inhalation use",
+              "armGroupLabels": [
+                "Fluticasone propionate"
+              ]
+            }
+          ]
+        },
+        "outcomesModule": {
+          "primaryOutcomes": [
+            {
+              "measure": "Difference in bronchial allergen challenge (BAC)-induced changes in sputum inflammatory markers in individuals treated with REGN3500, dupilumab and the combination of REGN3500 plus dupilumab or placebo",
+              "timeFrame": "Screening (pre-treatment) to week 4 after treatment initiation"
+            }
+          ],
+          "secondaryOutcomes": [
+            {
+              "measure": "Incidence of Treatment Emergent Adverse Events (TEAEs)",
+              "timeFrame": "Baseline to week 42"
+            },
+            {
+              "measure": "Severity of TEAEs",
+              "timeFrame": "Baseline to week 42"
+            },
+            {
+              "measure": "Serum concentration-time profile of REGN3500",
+              "description": "Assessed by maximum plasma concentration \\[Cmax\\]",
+              "timeFrame": "Baseline to week 42"
+            },
+            {
+              "measure": "Serum concentration-time profile of REGN3500: Tmax (time at Cmax)",
+              "timeFrame": "Baseline to week 42"
+            },
+            {
+              "measure": "Serum concentration-time profile of REGN3500: AUClast (area under the curve to the last measurable concentration)",
+              "timeFrame": "Baseline to week 42"
+            },
+            {
+              "measure": "Immunogenicity of REGN3500 and dupilumab",
+              "description": "Assessed by measurement of anti-drug antibodies (ADAs)",
+              "timeFrame": "Baseline to week 42"
+            },
+            {
+              "measure": "Serum concentration of total IL-33 after single IV dose",
+              "timeFrame": "Up to Week 42"
+            },
+            {
+              "measure": "Difference in the BAC-induced changes in sputum inflammatory mRNA signature in individual patients treated with fluticasone",
+              "timeFrame": "Screening (pre-treatment) to day 4 after treatment initiation"
+            }
+          ]
+        },
+        "eligibilityModule": {
+          "eligibilityCriteria": "KEY Inclusion Criteria:\n\n1. Male or female aged between 18 and 60 years\n2. Has a Body Mass Index {BMI) of 17 to 33 kg/m2 at pre-study screening\n3. Has a history of mild allergic asthma for at least 6 months\n4. Is a non-smoker or ex-smoker for at least 12 months\n\nKEY Exclusion Criteria:\n\n1. Has a history of life-threatening asthma\n2. Has been hospitalized or has attended the emergency room for asthma in the 12 months prior to screening\n3. Has a history of severe allergies or history of an anaphylactic reaction\n4. Has a history of drug or alcohol abuse within a year prior to the screening visit\n\nNote: other protocol defined inclusion/exclusion criteria apply",
+          "healthyVolunteers": false,
+          "sex": "ALL",
+          "minimumAge": "18 Years",
+          "maximumAge": "60 Years",
+          "stdAges": [
+            "ADULT"
+          ]
+        },
+        "contactsLocationsModule": {
+          "overallOfficials": [
+            {
+              "name": "Clinical Trial Management",
+              "affiliation": "Regeneron Pharmaceuticals",
+              "role": "STUDY_DIRECTOR"
+            }
+          ],
+          "locations": [
+            {
+              "facility": "WCCT Global",
+              "city": "Cypress",
+              "state": "California",
+              "zip": "90630",
+              "country": "United States",
+              "geoPoint": {
+                "lat": 33.81696,
+                "lon": -118.03729
+              }
+            },
+            {
+              "facility": "Celerion",
+              "city": "Belfast",
+              "zip": "BT9 6AD",
+              "country": "United Kingdom",
+              "geoPoint": {
+                "lat": 54.59682,
+                "lon": -5.92541
+              }
+            },
+            {
+              "facility": "Hammersmith Medicine Research",
+              "city": "London",
+              "zip": "NW10 7EW",
+              "country": "United Kingdom",
+              "geoPoint": {
+                "lat": 51.50853,
+                "lon": -0.12574
+              }
+            },
+            {
+              "facility": "Respiratory Clinical Trials Ltd",
+              "city": "London",
+              "zip": "W1G 8HU",
+              "country": "United Kingdom",
+              "geoPoint": {
+                "lat": 51.50853,
+                "lon": -0.12574
+              }
+            },
+            {
+              "facility": "The Medicines Evaluation Unit",
+              "city": "Manchester",
+              "zip": "M23 9QZ",
+              "country": "United Kingdom",
+              "geoPoint": {
+                "lat": 53.48095,
+                "lon": -2.23743
+              }
+            }
+          ]
+        }
+      },
+      "derivedSection": {
+        "miscInfoModule": {
+          "versionHolder": "2026-09-11"
+        },
+        "conditionBrowseModule": {
+          "meshes": [
+            {
+              "id": "D001249",
+              "term": "Asthma"
+            }
+          ],
+          "ancestors": [
+            {
+              "id": "D001982",
+              "term": "Bronchial Diseases"
+            },
+            {
+              "id": "D012140",
+              "term": "Respiratory Tract Diseases"
+            },
+            {
+              "id": "D008173",
+              "term": "Lung Diseases, Obstructive"
+            },
+            {
+              "id": "D008171",
+              "term": "Lung Diseases"
+            },
+            {
+              "id": "D012130",
+              "term": "Respiratory Hypersensitivity"
+            },
+            {
+              "id": "D006969",
+              "term": "Hypersensitivity, Immediate"
+            },
+            {
+              "id": "D006967",
+              "term": "Hypersensitivity"
+            },
+            {
+              "id": "D007154",
+              "term": "Immune System Diseases"
+            }
+          ]
+        },
+        "interventionBrowseModule": {
+          "meshes": [
+            {
+              "id": "C000720033",
+              "term": "itepekimab"
+            },
+            {
+              "id": "C582203",
+              "term": "dupilumab"
+            },
+            {
+              "id": "D000068298",
+              "term": "Fluticasone"
+            }
+          ],
+          "ancestors": [
+            {
+              "id": "D000730",
+              "term": "Androstadienes"
+            },
+            {
+              "id": "D000736",
+              "term": "Androstenes"
+            },
+            {
+              "id": "D000731",
+              "term": "Androstanes"
+            },
+            {
+              "id": "D013256",
+              "term": "Steroids"
+            },
+            {
+              "id": "D000072473",
+              "term": "Fused-Ring Compounds"
+            },
+            {
+              "id": "D011083",
+              "term": "Polycyclic Compounds"
+            }
+          ]
+        }
+      },
+      "hasResults": false
+    }
+  ]
+}

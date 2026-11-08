@@ -21,13 +21,26 @@ def _make_stub(name: str) -> types.ModuleType:
 for _sname in [
     "galaxy", "galaxy.managers", "galaxy.managers.context",
     "galaxy.webapps", "galaxy.webapps.galaxy",
+    "galaxy.ai", "galaxy.ai.runs", "galaxy.ai.runs.bootstrap", "galaxy.ai.s3_utils",
     "a2wsgi", "a2wsgi.wsgi", "dotenv",
 ]:
     sys.modules.setdefault(_sname, _make_stub(_sname))
 
+# nextflow_executor imports make_s3_client from galaxy.ai.s3_utils (MinIO-aware S3 clients, added on integration/next-phase).
+_s3_utils_stub = sys.modules["galaxy.ai.s3_utils"]
+if not hasattr(_s3_utils_stub, "make_s3_client"):
+    _s3_utils_stub.make_s3_client = MagicMock()
+
 _ctx_stub = sys.modules["galaxy.managers.context"]
 if not hasattr(_ctx_stub, "ProvidesUserContext"):
     _ctx_stub.ProvidesUserContext = object
+
+_runs_stub = sys.modules["galaxy.ai.runs"]
+if not hasattr(_runs_stub, "get_run_state_store"):
+    _runs_stub.get_run_state_store = MagicMock()
+_runs_bootstrap_stub = sys.modules["galaxy.ai.runs.bootstrap"]
+if not hasattr(_runs_bootstrap_stub, "ensure_poller_started"):
+    _runs_bootstrap_stub.ensure_poller_started = MagicMock()
 
 _pydantic_stub = _make_stub("pydantic")
 _pydantic_stub.BaseModel = object
@@ -139,6 +152,33 @@ class TestNextflowFalseFailure(unittest.TestCase):
             )
         )
 
+    def test_s3_outputs_alone_never_salvage_a_failed_run(self):
+        """Partial publishDir output must not override a reported failure."""
+        outputs = [
+            {"s3_uri": "s3://b/out/intermediate.json", "filename": "intermediate.json"},
+            {"s3_uri": "s3://b/out/plot.png", "filename": "plot.png"},
+            {"s3_uri": "s3://b/out/table.csv", "filename": "table.csv"},
+        ]
+        self.assertFalse(
+            _nf._looks_like_false_failure(
+                log_full_text="Submitted process > SCORE\n",
+                returncode=1,
+                s3_output_files=outputs,
+                processes=[{"status": "completed"}],
+            )
+        )
+
+    def test_success_stats_without_completion_marker_do_not_salvage_failure(self):
+        """A partial/stale log statistic is not equivalent to terminal success."""
+        partial_log = "WorkflowStats[succeededCount=1; failedCount=0; pendingCount=1]"
+        self.assertFalse(
+            _nf._looks_like_false_failure(
+                log_full_text=partial_log,
+                returncode=1,
+                s3_output_files=[{"s3_uri": "s3://b/out/x.json", "filename": "x.json"}],
+            )
+        )
+
     def test_real_failure_with_session_aborted_not_salvaged(self):
         self.assertFalse(
             _nf._looks_like_false_failure(
@@ -223,6 +263,72 @@ class TestBatchStatusFromDisk(unittest.TestCase):
             self.assertTrue(failed)
             self.assertEqual(completed, 1)
             self.assertEqual(fail_n, 1)
+            self.assertEqual(total, 2)
+
+    # ADMET false-failure: a halt-severity QC gate fires AFTER the (fast) workflow
+    # already finished, so _terminate_run_process SIGTERMs the driver. Nextflow logs
+    # "Session aborted -- Cause: SIGTERM" but still drains + reaches clean completion
+    # with 0 failed tasks → a completed run, not a failure (verified on dev: run
+    # fa825572 was "marking succeeded" by the salvage then "Downgrading false success"
+    # because this SIGTERM-abort line was treated as a failure marker).
+    _SIGTERM_COMPLETED_LOG = (
+        "Oct-22 04:14:22 [SIGTERM handler] DEBUG nextflow.Session - Session aborted -- Cause: SIGTERM\n"
+        "Oct-22 04:14:25 DEBUG n.trace.WorkflowStatsObserver - Workflow completed > "
+        "WorkflowStats[succeededCount=2; failedCount=0; ignoredCount=0; cachedCount=0]\n"
+        "Oct-22 04:14:27 DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye\n"
+    )
+
+    def test_sigterm_abort_after_completion_is_not_a_failure(self):
+        self.assertFalse(
+            _nf._log_indicates_nextflow_failure(log_full_text=self._SIGTERM_COMPLETED_LOG, log_tail=None)
+        )
+
+    def test_sigterm_abort_with_failed_tasks_is_a_failure(self):
+        bad = self._SIGTERM_COMPLETED_LOG.replace("failedCount=0", "failedCount=1")
+        self.assertTrue(
+            _nf._log_indicates_nextflow_failure(log_full_text=bad, log_tail=None)
+        )
+
+    def test_sigterm_abort_without_completion_marker_is_a_failure(self):
+        interrupted = (
+            "Oct-22 04:14:22 [SIGTERM handler] DEBUG nextflow.Session - Session aborted -- Cause: SIGTERM\n"
+            "Oct-22 04:14:23 DEBUG nextflow.Session - Shutting down tasks\n"
+        )
+        self.assertTrue(
+            _nf._log_indicates_nextflow_failure(log_full_text=interrupted, log_tail=None)
+        )
+
+    def test_evaluate_trace_terminal_all_completed_is_success(self):
+        """ADMET false-failure case: driver SIGKILL'd (-9) during shutdown AFTER
+        Nextflow finished. workflow-trace shows every task COMPLETED, 0 FAILED, and
+        the log has 'Execution complete' with no failure markers → done=True,
+        failed=False. This is the authoritative signal the exit-handler's
+        trace-salvage uses to mark such a run succeeded instead of failed."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_dir = Path(tmp)
+            (log_dir / "workflow-trace.txt").write_text(
+                "task_id\tname\tstatus\texit\trealtime\t%cpu\trss\tpeak_rss\n"
+                "1\tPREDICT_ADMET\tCOMPLETED\t0\t90s\t180%\t512 MB\t512 MB\n"
+                "2\tRANK_COMPOUNDS\tCOMPLETED\t0\t12s\t100%\t64 MB\t64 MB\n",
+                encoding="utf-8",
+            )
+            work = log_dir / "work"
+            work.mkdir()
+            (work / ".nextflow.log").write_text(
+                "Oct-22 03:46:33 DEBUG nextflow.trace.TraceFileObserver - Workflow completed\n"
+                "> Execution complete -- Goodbye\n",
+                encoding="utf-8",
+            )
+            log_text, tail = _nf._read_run_nextflow_log_text(log_dir)
+            done, failed, completed, fail_n, total = _nf._evaluate_workflow_trace_terminal(
+                log_dir, log_text, tail,
+            )
+            self.assertTrue(done)
+            self.assertFalse(failed)
+            self.assertEqual(completed, 2)
+            self.assertEqual(fail_n, 0)
             self.assertEqual(total, 2)
 
     def test_stub_launcher_log_alone_does_not_mark_terminal(self):

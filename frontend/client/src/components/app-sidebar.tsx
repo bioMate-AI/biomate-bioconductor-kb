@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
-import { t } from "@/lib/i18n"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -9,44 +8,33 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SettingsDialog } from "./settings-dialog"
 import { WorkflowHistoryDialog } from "./workflow-history-dialog"
 import { RecentToolsDialog } from "./recent-tools-dialog"
-import { ConnectorsDialog } from "./connectors-dialog"
-import { projectService } from "@/lib/projects"
+import { StarredWorkflowsDialog } from "./starred-workflows-dialog"
 import type { Project } from "@shared/schema"
 import {
   MessageCircle,
   Plus,
-  Dna,
-  BarChart3,
-  Database,
   Settings,
-  Workflow,
-  Clock,
-  Star,
   ChevronRight,
   ChevronDown,
-  Zap,
   FileText,
-  Activity,
-  Target,
-  Layers,
-  GitBranch,
-  Search,
-  Filter,
-  BarChart,
-  PieChart,
-  TrendingUp,
   FolderOpen,
   PanelLeft,
-  DollarSign,
   FlaskConical,
-  BookOpen,
   Cable,
+  Database,
+  Layers,
+  CreditCard,
+  Wrench,
+  Workflow,
   Server,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 import { analytics } from "@/lib/analytics"
+import { useActiveProject } from "@/contexts/active-project-context"
 import { useAuth } from "@/contexts/auth-context"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
+import { IND_REPORT_ENABLED } from "@/lib/feature-flags";
 
 interface ToolItem {
   id: string
@@ -57,65 +45,9 @@ interface ToolItem {
   icon: any
 }
 
-interface ToolCategory {
-  name: string
-  icon: any
-  count: number
-  tools: ToolItem[]
-}
-
-const toolCategories: ToolCategory[] = [
-  {
-    name: "Genomics", 
-    icon: Dna, 
-    count: 45,
-    tools: [
-      { id: 'fastqc', name: 'FastQC', description: 'Quality assessment of sequencing data', complexity: 'simple', category: 'genomics', icon: Activity },
-      { id: 'hisat2', name: 'HISAT2', description: 'Splice-aware RNA-seq alignment', complexity: 'intermediate', category: 'genomics', icon: Target },
-      { id: 'bwa-mem', name: 'BWA-MEM', description: 'Fast and accurate read alignment', complexity: 'intermediate', category: 'genomics', icon: Target },
-      { id: 'star', name: 'STAR', description: 'Ultrafast RNA-seq aligner', complexity: 'complex', category: 'genomics', icon: Star },
-      { id: 'gatk', name: 'GATK', description: 'Variant discovery toolkit', complexity: 'complex', category: 'genomics', icon: Search },
-      { id: 'freebayes', name: 'FreeBayes', description: 'Bayesian variant caller', complexity: 'intermediate', category: 'genomics', icon: Search }
-    ]
-  },
-  {
-    name: "Statistics", 
-    icon: BarChart3, 
-    count: 28,
-    tools: [
-      { id: 'deseq2', name: 'DESeq2', description: 'Differential gene expression analysis', complexity: 'complex', category: 'statistics', icon: BarChart },
-      { id: 'edger', name: 'edgeR', description: 'Empirical analysis of digital gene expression', complexity: 'complex', category: 'statistics', icon: BarChart },
-      { id: 'limma', name: 'limma', description: 'Linear models for microarray data', complexity: 'intermediate', category: 'statistics', icon: TrendingUp },
-      { id: 'multiqc', name: 'MultiQC', description: 'Aggregate bioinformatics analyses', complexity: 'simple', category: 'statistics', icon: PieChart }
-    ]
-  },
-  {
-    name: "Data Sources", 
-    icon: Database, 
-    count: 32,
-    tools: [
-      { id: 'samtools', name: 'SAMtools', description: 'Tools for SAM/BAM manipulation', complexity: 'simple', category: 'data-sources', icon: Database },
-      { id: 'bcftools', name: 'BCFtools', description: 'Tools for VCF/BCF files', complexity: 'intermediate', category: 'data-sources', icon: Database },
-      { id: 'picard', name: 'Picard', description: 'Java tools for sequencing data', complexity: 'intermediate', category: 'data-sources', icon: Layers }
-    ]
-  },
-  {
-    name: "Workflows", 
-    icon: Workflow, 
-    count: 15,
-    tools: [
-      { id: 'rna-seq', name: 'RNA-seq Pipeline', description: 'Complete RNA sequencing workflow', complexity: 'complex', category: 'workflows', icon: GitBranch },
-      { id: 'variant-calling', name: 'Variant Calling', description: 'SNP and indel discovery pipeline', complexity: 'complex', category: 'workflows', icon: GitBranch },
-      { id: 'chip-seq', name: 'ChIP-seq Pipeline', description: 'Chromatin immunoprecipitation workflow', complexity: 'complex', category: 'workflows', icon: GitBranch }
-    ]
-  },
-]
-
-
 interface AppSidebarProps {
   onNewChat?: () => void
   onChatSelect?: (chatId: string) => void
-  onCategorySelect?: (category: string) => void
   onToolSelect?: (tool: ToolItem) => void
   onProjectSelect?: (projectId: string) => void
   onNewProject?: () => void
@@ -130,7 +62,6 @@ interface AppSidebarProps {
 export function AppSidebar({ 
   onNewChat = () => console.log('New chat triggered'),
   onChatSelect = (id) => console.log('Chat selected:', id),
-  onCategorySelect = (cat) => console.log('Category selected:', cat),
   onToolSelect = (tool) => console.log('Tool selected:', tool.name),
   onProjectSelect = (id) => console.log('Project selected:', id),
   onNewProject = () => console.log('New project triggered'),
@@ -143,24 +74,30 @@ export function AppSidebar({
 }: AppSidebarProps) {
   // Map chatSessionId → status dot ('running' | 'completed' | 'failed' | undefined).
   // Fetched from the run list API independently so no state lifting is needed.
-  const [sessionStatusMap, setSessionStatusMap] = useState<Map<string, 'running' | 'completed' | 'failed'>>(new Map())
+  const [sessionStatusMap, setSessionStatusMap] = useState<Map<string, 'running' | 'completed' | 'failed' | 'cancelled'>>(new Map())
   const fetchSessionStatuses = useCallback(async () => {
     try {
       const res = await fetch('/api/workflows/runs?limit=50')
       if (!res.ok) return
       const runs: Array<{ id: string; chatSessionId?: string; execution?: { status?: string } }> = await res.json()
-      const map = new Map<string, 'running' | 'completed' | 'failed'>()
+      const map = new Map<string, 'running' | 'completed' | 'failed' | 'cancelled'>()
       for (const run of runs) {
         if (!run.chatSessionId) continue
         const s = run.execution?.status ?? ''
-        const bucket: 'running' | 'completed' | 'failed' =
+        // A cancelled / paused run is NOT a failure — it gets its own neutral
+        // bucket so the sidebar dot is grey, not red or (misleadingly) green
+        // (UI refinement item 2).
+        const bucket: 'running' | 'completed' | 'failed' | 'cancelled' =
           ['running', 'configuring', 'queued'].some(v => s.includes(v)) ? 'running'
           : ['failed', 'error'].some(v => s.includes(v)) ? 'failed'
-          : s === 'completed' ? 'completed'
+          : ['cancelled', 'canceled', 'paused'].some(v => s.includes(v)) ? 'cancelled'
           : 'completed'
-        // Prefer 'running' > 'failed' > 'completed' for a session with multiple runs
+        // Prefer running > failed > cancelled > completed for a multi-run session.
         const existing = map.get(run.chatSessionId)
-        if (!existing || bucket === 'running' || (bucket === 'failed' && existing === 'completed')) {
+        if (!existing
+            || bucket === 'running'
+            || (bucket === 'failed' && existing !== 'running')
+            || (bucket === 'cancelled' && (existing === 'completed'))) {
           map.set(run.chatSessionId, bucket)
         }
       }
@@ -172,11 +109,9 @@ export function AppSidebar({
     const id = setInterval(fetchSessionStatuses, 15000)
     return () => clearInterval(id)
   }, [fetchSessionStatuses])
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [projectsExpanded, setProjectsExpanded] = useState(true);
-  const [chatsExpanded, setChatsExpanded] = useState(true);
-  const [toolCategoriesExpanded, setToolCategoriesExpanded] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showWorkflowsDialog, setShowWorkflowsDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [historyInitialTab, setHistoryInitialTab] = useState<'runs' | 'imports' | 'upload'>('runs');
   const [runningCount, setRunningCount] = useState<number>(0);
@@ -193,18 +128,40 @@ export function AppSidebar({
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
-  const [showConnectorsDialog, setShowConnectorsDialog] = useState(false);
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
+  const { activeProjectId: contextProjectId, setActiveProjectId: setContextProjectId } = useActiveProject();
+  const selectedProjectId = activeProjectId || contextProjectId;
+  const [projectSessions, setProjectSessions] = useState<Record<string, Array<{ session_id: string; title: string }>>>({});
 
   // Projects — fetched from API (not localStorage) so they survive page reload
   const [apiProjects, setApiProjects] = useState<Array<{ id: string; name: string; status: string; userId?: string }>>([]);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    const ids = Array.from(expandedProjectIds);
+    Promise.allSettled(ids.map(async id => {
+      const response = await fetch(`/api/projects/${encodeURIComponent(id)}/sessions`, { credentials: 'include' });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!cancelled) setProjectSessions(prev => ({ ...prev, [id]: data.sessions || [] }));
+    }));
+    return () => { cancelled = true; };
+  }, [expandedProjectIds, activeChatId]);
+  useEffect(() => {
+    if (selectedProjectId) setExpandedProjectIds(prev => new Set([...prev, selectedProjectId]));
+  }, [selectedProjectId]);
   const refreshProjects = () => {
     fetch("/api/projects", { credentials: "include" })
       .then((r) => r.ok ? r.json() : { projects: [] })
-      .then((d) => setApiProjects((d.projects ?? []).slice(0, 12)))
+      // Archived projects are soft-deleted — never show them in the sidebar.
+      // (The API returns all statuses when unfiltered; keep active/completed only.)
+      .then((d) => setApiProjects(
+        (d.projects ?? [])
+          .filter((p: { status?: string }) => p.status !== "archived")
+          .slice(0, 12)
+      ))
       .catch(() => {});
   };
   useEffect(() => {
@@ -212,16 +169,6 @@ export function AppSidebar({
     window.addEventListener('biomate:projects-updated', refreshProjects);
     return () => window.removeEventListener('biomate:projects-updated', refreshProjects);
   }, []);
-  const recentProjects = projectService.getAllProjects().slice(0, 5);
-
-  const toggleCategory = (categoryName: string) => {
-    setExpandedCategories(prev => 
-      prev.includes(categoryName)
-        ? prev.filter(name => name !== categoryName)
-        : [...prev, categoryName]
-    );
-    onCategorySelect(categoryName);
-  };
 
   function getRelativeTime(date: Date): string {
     const now = new Date()
@@ -259,50 +206,52 @@ export function AppSidebar({
           the top-right corner. */}
       <div
         style={{
-          position: 'relative',
-          display: 'block',
-          padding: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          padding: '10px 12px',
           margin: '-14px -10px 12px',
           borderBottom: '1px solid var(--bm-border, hsl(var(--border)))',
           background: 'var(--bm-bg-elev, white)',
-          width: 'auto',
         }}
       >
-        <img
-          src="/biomate-logo.png"
-          alt="BioMate"
-          style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover' }}
-        />
-        <span
-          title="Early-access beta — features may change"
-          style={{
-            position: 'absolute',
-            top: 6,
-            right: 30,
-            fontSize: 9.5,
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            padding: '1px 5px',
-            borderRadius: 3,
-            background: 'oklch(0.78 0.15 65)',
-            color: '#fff',
-            lineHeight: 1.3,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-          }}
-        >
-          BETA
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+          <img
+            src="/biomate-logo.png"
+            alt="BioMate"
+            style={{ height: 26, width: 'auto', display: 'block', flexShrink: 0 }}
+          />
+          {/* BETA tag restored 2026-11-01 (per user request — re-add it back).
+              Reverts the 2026-10-20 "refinement 1c" removal. */}
+          <span
+            title="Early-access beta — features may change"
+            style={{
+              flexShrink: 0,
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--bm-accent, hsl(var(--primary)))',
+              background: 'var(--bm-accent-soft, hsl(var(--primary) / 0.1))',
+              border: '1px solid var(--bm-accent, hsl(var(--primary) / 0.3))',
+              borderRadius: 4,
+              padding: '1px 5px',
+              lineHeight: 1.4,
+            }}
+          >
+            BETA
+          </span>
+        </div>
         <button
           onClick={onToggleSidebar}
           data-testid="button-sidebar-toggle"
           style={{
-            position: 'absolute', top: 4, right: 4,
-            background: 'rgba(255,255,255,0.85)', border: 'none', padding: 4,
+            background: 'transparent', border: 'none', padding: 4,
             borderRadius: 4, cursor: 'pointer', color: 'var(--bm-text-dim)',
-            backdropFilter: 'blur(4px)',
+            flexShrink: 0,
           }}
-          title="Collapse sidebar"
+          title={t('nav.collapse_sidebar')}
         >
           <PanelLeft className="h-4 w-4" />
         </button>
@@ -310,52 +259,67 @@ export function AppSidebar({
 
       {/* Workspace nav */}
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>{t('Workspace')}</div>
-        <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>{t('nav.workspace')}</div>
+        <button className="side-link" onClick={() => { setContextProjectId(null); onNewChat(); }} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>{t('New Chat')}</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>{t('Start a fresh AI conversation')}</span>
+            <span>{t('chat.new_chat')}</span>
           </span>
         </button>
-        <button
-          className="side-link"
-          data-testid="button-workflows-nav"
-          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
-          onClick={() => { analytics.track('workflows_sidebar_opened'); setHistoryInitialTab('runs'); setShowHistoryDialog(true); }}
-        >
-          <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {t('Workflows')}
-              {runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
-            </span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>{t('Run history, browse & import pipelines')}</span>
+        {/* Workflows — top-level Workspace entry (design App.jsx NAV); opens the
+            starred-workflows browser. */}
+        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowWorkflowsDialog(true)}>
+          <Workflow className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>{t('nav.workflows')}</span>
           </span>
         </button>
-        <button
-          className="side-link"
-          data-testid="button-connectors-nav"
-          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
-          onClick={() => setShowConnectorsDialog(true)}
-        >
+
+        {/* Data — the dataset object is a first-class surface (spec 04). */}
+        <button className="side-link" data-testid="button-data-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/files')}>
+          <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>{t('nav.data')}</span>
+          </span>
+        </button>
+
+        {/* Connectors — top-level Workspace entry (design App.jsx NAV has it here,
+            not buried under Settings). Opens the workspace connections page. */}
+        <button className="side-link" data-testid="button-connectors-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/settings/connections')}>
           <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>{t('Connectors')}</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>{t('Databases, LLMs & platform integrations')}</span>
+            <span>{t('nav.connectors')}</span>
           </span>
         </button>
-        <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
+
+        {/* IND Report is paused — see IND_REPORT_ENABLED (feature-flags.ts). */}
+        {IND_REPORT_ENABLED && (<button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
           <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>{t('IND Report')}</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>{t('Generate regulatory submission documents')}</span>
+            <span>IND Report</span>
+          </span>
+        </button>)}
+
+        <button className="side-link" data-testid="button-models-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/models')}>
+          <Layers className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>{t('nav.models')}</span>
           </span>
         </button>
+
+
+        {/* Billing hidden — /billing page crashes (BillingPage toFixed on undefined).
+            Restore this nav entry once the page is hardened. */}
+        {/* <button className="side-link" data-testid="button-billing-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/billing')}>
+          <CreditCard className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>{t('nav.billing')}</span>
+          </span>
+        </button> */}
       </div>
 
       {/* Projects section — always visible */}
-      <div style={{ marginBottom: 8, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
+      <div style={{ marginBottom: 8, borderTop: '1px solid var(--bm-border)', paddingTop: 8, maxHeight: '50vh', overflowY: 'auto', flexShrink: 1 }}>
           <button
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px 4px', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', fontWeight: 600, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={() => setProjectsExpanded(p => !p)}
@@ -363,19 +327,19 @@ export function AppSidebar({
           >
             {projectsExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             <FolderOpen className="w-3 h-3" style={{ opacity: 0.7 }} />
-            {t('Projects')}
+            {t('nav.projects')}
           </button>
           {projectsExpanded && apiProjects.map((proj) => {
             const isExpanded = expandedProjectIds.has(proj.id);
             return (
               <div key={proj.id}>
                 <button
-                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 5, color: activeProjectId === proj.id ? 'var(--bm-text)' : 'var(--bm-text-muted)', background: activeProjectId === proj.id ? 'var(--bm-surface-3)' : 'transparent', fontSize: 12.5, cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left' }}
-                  onClick={() => { onProjectSelect(proj.id); setExpandedProjectIds(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; }); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 5, color: selectedProjectId === proj.id ? 'var(--bm-text)' : 'var(--bm-text-muted)', background: selectedProjectId === proj.id ? 'var(--bm-surface-3)' : 'transparent', fontSize: 12.5, cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left' }}
+                  onClick={() => { setContextProjectId(proj.id); setExpandedProjectIds(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; }); }}
                   data-testid={`button-project-${proj.id}`}
                 >
                   {isExpanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
-                  <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.9 }} />
+                  <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: selectedProjectId === proj.id ? 'var(--bm-accent, oklch(0.55 0.14 245))' : 'var(--bm-text-dim)', opacity: 0.8 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proj.name}</span>
                   {proj.userId && user && proj.userId !== user.id && (
                     <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.8, flexShrink: 0 }}>shared</span>
@@ -383,18 +347,17 @@ export function AppSidebar({
                 </button>
                 {isExpanded && (
                   <div style={{ paddingLeft: 28 }}>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=chat`)} data-testid={`project-link-chats-${proj.id}`}>
-                      <MessageCircle className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
-                      Chats
-                    </button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=files`)} data-testid={`project-link-files-${proj.id}`}>
-                      <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
+                    {/* Project-child rows render in the design's accent blue (UI
+                        refinement 1b) rather than muted gray. Active chat keeps its
+                        background highlight. */}
+                    <button className="side-link" style={{ display: 'flex', gap: 6, padding: '3px 10px', fontSize: 11.5, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))' }} onClick={() => { setContextProjectId(proj.id); setLocation(`/projects?project=${proj.id}&tab=instructions`); }} data-testid={`project-link-instructions-${proj.id}`}><Settings className="w-3 h-3" />Instructions</button>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => (() => { setContextProjectId(proj.id); setLocation("/files"); })()} data-testid={`project-link-files-${proj.id}`}>
+                      <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.7 }} />
                       Files
                     </button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=workflows`)} data-testid={`project-link-workflows-${proj.id}`}>
-                      <FlaskConical className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
-                      Workflows
-                    </button>
+                    {/* Project Runs navigation hidden: executions are accessible from their chats. */}
+                    {(projectSessions[proj.id] || []).map(chat => <button key={chat.session_id} data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 12, width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button>)}
+                    <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 12, width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />New chat</button>
                   </div>
                 )}
               </div>
@@ -406,7 +369,7 @@ export function AppSidebar({
             data-testid="button-new-project"
           >
             <Plus className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
-            {t('New project')}
+            {t('nav.new_project')}
           </button>
         </div>
 
@@ -414,8 +377,8 @@ export function AppSidebar({
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {recentChats.length > 0 && (
           <>
-            <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>Current</div>
-            {recentChats.slice(0, 6).map((chat) => {
+            <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>{t('nav.other_chats')}</div>
+            {recentChats.filter(chat => !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
               const dotStatus = sessionStatusMap.get(chat.id)
               const isActive = activeChatId === chat.id
               return (
@@ -437,6 +400,7 @@ export function AppSidebar({
                     width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                     background: dotStatus === 'running' ? 'var(--bm-accent, oklch(0.55 0.14 245))' :
                                 dotStatus === 'failed'  ? 'var(--bm-err, oklch(0.58 0.18 25))' :
+                                dotStatus === 'cancelled' ? 'var(--bm-text-dim, oklch(0.62 0.01 260))' :
                                 dotStatus === 'completed' ? 'var(--bm-ok, oklch(0.62 0.13 150))' :
                                 'var(--bm-border-strong, oklch(0.80 0.008 240))',
                     animation: dotStatus === 'running' ? 'pulse 1.5s infinite' : 'none',
@@ -445,29 +409,7 @@ export function AppSidebar({
                 </button>
               )
             })}
-            {recentChats.length > 6 && (
-              <>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 14 }}>{t('Recent')}</div>
-                {recentChats.slice(6, 12).map((chat) => (
-                  <button
-                    key={chat.id}
-                    onClick={() => onChatSelect(chat.id)}
-                    data-testid={`button-chat-${chat.id}`}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 9,
-                      padding: '5px 10px', borderRadius: 6,
-                      color: activeChatId === chat.id ? 'var(--bm-text)' : 'var(--bm-text-muted)',
-                      background: activeChatId === chat.id ? 'var(--bm-surface-3)' : 'transparent',
-                      fontSize: 12.5, cursor: 'pointer', border: 'none',
-                      width: '100%', textAlign: 'left',
-                    }}
-                  >
-                    <span style={{ width: 8, flexShrink: 0 }} />
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
-                  </button>
-                ))}
-              </>
-            )}
+
           </>
         )}
         {recentChats.length === 0 && (
@@ -476,7 +418,10 @@ export function AppSidebar({
           </div>
         )}
 
-        {/* Settings entry — visible in sidebar nav as well as the footer gear icon */}
+        <details className="text-xs text-muted-foreground px-2 py-2"><summary className="cursor-pointer">{t('nav.more_tools')}</summary><div className="flex flex-col items-start gap-2 pt-3"><button onClick={() => setLocation('/files')}>{t('nav.data')}</button><button onClick={() => setLocation('/design')}>{t('nav.design_generate')}</button><button onClick={() => setShowRecentToolsDialog(true)}>{t('nav.recent_tools')}</button><button data-testid="button-import-workflow-settings" onClick={() => { setHistoryInitialTab('upload'); setShowHistoryDialog(true); }}>{t('nav.import_workflow')}</button></div></details>
+        {/* Settings — a single click opens the tabbed Settings panel (API Keys is a
+            tab inside it). Connectors moved up to the Workspace nav; Import workflow
+            moved into "more tools" — so Settings is one clean entry, no sub-items. */}
         <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
           <button
             style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
@@ -484,7 +429,7 @@ export function AppSidebar({
             data-testid="button-settings-sidebar"
           >
             <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
-            <span>{t('Settings & API Keys')}</span>
+            <span>{t('settings.title')}</span>
           </button>
           {user?.subscriptionTier === 'admin' && (
             <button
@@ -497,27 +442,6 @@ export function AppSidebar({
             </button>
           )}
         </div>
-
-        {/* Beta: Actions panel hidden — Starred Workflows, Recent Tools,
-            Billing — dialogs not yet wired to backend.
-            Re-enable once each action lands a real implementation.
-
-        <div style={{ marginTop: 16, borderTop: '1px solid var(--bm-border)', paddingTop: 10 }}>
-          <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>Actions</div>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowStarredDialog(true)} data-testid="button-starred-workflows">
-            <Star className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Starred Workflows</span>
-          </button>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowRecentToolsDialog(true)} data-testid="button-recent-tools">
-            <Clock className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Recent Tools</span>
-          </button>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/billing')} data-testid="button-billing">
-            <DollarSign className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Billing</span>
-          </button>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }} data-testid="button-settings">
-            <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Settings</span>
-          </button>
-        </div>
-        */}
       </div>
 
       {/* Footer */}
@@ -536,7 +460,7 @@ export function AppSidebar({
         <button
           onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }}
           data-testid="button-settings"
-          title="Settings"
+          title={t('nav.settings')}
           style={{
             flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
             padding: '4px 6px', borderRadius: 6, display: 'grid', placeItems: 'center', color: 'var(--bm-text-muted)',
@@ -547,20 +471,20 @@ export function AppSidebar({
         <button
           onClick={async () => { await logout(); setLocation('/login'); }}
           data-testid="button-logout"
-          title="Sign out"
+          title={t('nav.sign_out')}
           style={{
             flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
             padding: '4px 8px', borderRadius: 6, fontSize: 11, color: 'var(--bm-text-muted)',
           }}
         >
-          Sign&nbsp;out
+          {t('nav.sign_out')}
         </button>
       </div>
 
       {/* Dialogs */}
       <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
-      <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { window.location.assign(`/?reuseWorkflow=${encodeURIComponent(row.runId)}`); }} />
-      <ConnectorsDialog open={showConnectorsDialog} onOpenChange={setShowConnectorsDialog} />
+      <StarredWorkflowsDialog open={showWorkflowsDialog} onOpenChange={setShowWorkflowsDialog} />
+      <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} importOnly onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { window.location.assign(`/?reuseWorkflow=${encodeURIComponent(row.runId)}`); }} />
 <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
         onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}
       />

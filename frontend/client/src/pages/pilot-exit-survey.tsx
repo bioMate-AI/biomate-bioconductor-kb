@@ -190,8 +190,8 @@ export default function PilotExitSurveyPage() {
               to improve BioMate for the research community. We will share the aggregated
               results with you at the pilot debrief.
             </p>
-            <Button onClick={() => setLocation("/dashboard")} variant="outline">
-              Return to dashboard
+            <Button onClick={() => setLocation("/")} variant="outline">
+              Return to BioMate
             </Button>
           </CardContent>
         </Card>
@@ -533,7 +533,7 @@ export default function PilotExitSurveyPage() {
         <div className="flex justify-between">
           <Button
             variant="outline"
-            onClick={() => page === 0 ? setLocation("/dashboard") : setPage((p) => p - 1)}
+            onClick={() => page === 0 ? setLocation("/") : setPage((p) => p - 1)}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             {page === 0 ? "Cancel" : "Back"}

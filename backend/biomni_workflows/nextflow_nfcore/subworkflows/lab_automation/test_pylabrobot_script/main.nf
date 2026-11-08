@@ -571,7 +571,7 @@ with open("test_pylabrobot_script_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("test_pylabrobot_script_output.txt", "w") as f:
-    f.write("Biomni: Test Pylabrobot Script" + NL)
+    f.write("BioMate: Test Pylabrobot Script" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -245,7 +245,7 @@ with open("setup_registration_method_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("setup_registration_method_output.txt", "w") as f:
-    f.write("Biomni: Setup Registration Method" + NL)
+    f.write("BioMate: Setup Registration Method" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,133 @@
+{
+  "data": {
+    "search": {
+      "hits": [
+        {
+          "id": "MONDO_0004979",
+          "name": "asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0005405",
+          "name": "childhood onset asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0004784",
+          "name": "allergic asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "OBA_2001001",
+          "name": "age of onset of asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "EFO_0010638",
+          "name": "atopic asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "OBA_2001015",
+          "name": "age of onset of childhood onset asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "EFO_1002011",
+          "name": "adult onset asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "EFO_0010049",
+          "name": "asthma symptoms measurement",
+          "entity": "disease"
+        },
+        {
+          "id": "EFO_0007614",
+          "name": "asthma exacerbation measurement",
+          "entity": "disease"
+        },
+        {
+          "id": "EFO_0009759",
+          "name": "Chronic Obstructive Asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0850282",
+          "name": "chronic asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0956975",
+          "name": "T2-high asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0022742",
+          "name": "occupational asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0004766",
+          "name": "status asthmaticus",
+          "entity": "disease"
+        },
+        {
+          "id": "HP_0012042",
+          "name": "Aspirin-induced asthma",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0008834",
+          "name": "asthma, nasal polyps, and aspirin intolerance",
+          "entity": "disease"
+        },
+        {
+          "id": "EFO_0005414",
+          "name": "airway hyperresponsiveness",
+          "entity": "disease"
+        },
+        {
+          "id": "EFO_0007755",
+          "name": "atopic march",
+          "entity": "disease"
+        },
+        {
+          "id": "HP_0006536",
+          "name": "Airway obstruction",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0000474",
+          "name": "pericardium disorder",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0005904",
+          "name": "pericarditis",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0005271",
+          "name": "allergic disease",
+          "entity": "disease"
+        },
+        {
+          "id": "MONDO_0004577",
+          "name": "corneal ulcer",
+          "entity": "disease"
+        },
+        {
+          "id": "GO_0061476",
+          "name": "response to anticoagulant",
+          "entity": "disease"
+        },
+        {
+          "id": "EFO_0005536",
+          "name": "nitric oxide exhalation measurement",
+          "entity": "disease"
+        }
+      ]
+    }
+  }
+}

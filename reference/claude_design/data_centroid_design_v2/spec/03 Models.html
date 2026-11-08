@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · Spec 03 — Models</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="spec.css"/>
+<style>doc-page:not(:defined){visibility:hidden}</style>
+</head>
+<body>
+<doc-page margin="0.85in">
+<h1>Models</h1>
+<p class="docmeta"><span>BioMate · Function-module spec 03</span><span>Status: for review</span><span>Lane: Cloud · hours</span></p>
+
+<p class="lede">The backend is built: training, reinforcement fine-tuning, adapters, a registry, inference at scale. None of it is legible in the product. This spec is therefore almost entirely a presentation and integration problem — how a trained model becomes an <strong>object a scientist can see, judge, trust and use</strong>, and how it enters the surfaces they already work in rather than becoming a machine-learning annex nobody visits.</p>
+
+<h2><span class="num">3.1</span>The design problem</h2>
+<p>Three ways a models feature normally fails, all of which this spec is written against:</p>
+<table class="st">
+<thead><tr><th>Failure</th><th>What it looks like</th><th>Our answer</th></tr></thead>
+<tbody>
+<tr><td>The ML annex</td><td>A separate section with experiment tables and loss curves that only an ML engineer opens.</td><td>Models appear <em>inside</em> the surfaces where they are used — a gate, a score column, a proposal — and the module is where you go to interrogate them, not to find them.</td></tr>
+<tr><td>The leaderboard</td><td>A ranked list of runs by metric, which teaches users to chase a number.</td><td>A model passes or fails a <strong>held-out gate with a floor</strong>. There is no ranking, and a model that clears the floor is not "better" than one that clears it by more.</td></tr>
+<tr><td>The unaccountable prediction</td><td>A number appears in a table with no provenance.</td><td>A prediction always carries the model name, the version and a confidence, and clicking it opens the model object.</td></tr>
+</tbody>
+</table>
+<div class="rule"><span class="lbl">Framing rule</span><p>A trained model is a <strong>dataset with a function attached</strong> — same lineage discipline, same version discipline, same quality evidence. Everything in this spec follows from treating it that way, and from reusing the run surface rather than inventing a second one.</p></div>
+
+<h2><span class="num">3.2</span>The four tracks</h2>
+<table class="st">
+<thead><tr><th>Track</th><th>The user's sentence</th><th>What it produces</th><th>Typical cost</th></tr></thead>
+<tbody>
+<tr><td>Train</td><td>"Learn to predict this from my data."</td><td>A new model object, gated on a held-out split.</td><td>Minutes to hours.</td></tr>
+<tr><td>Adapt</td><td>"Make it write and reason the way we do."</td><td>Learned rules, indexed examples, or a fine-tuned adapter.</td><td>Instant to hours, by level.</td></tr>
+<tr><td>Optimise</td><td>"Find me the next candidates."</td><td>A closed design–make–test–analyse loop with proposals.</td><td>Continuous, per round.</td></tr>
+<tr><td>Run a pre-trained model <span class="tag new">new</span></td><td>"Predict this for me."</td><td>An inference from an already-fitted model, with its confidence.</td><td>Minutes.</td></tr>
+</tbody>
+</table>
+
+<h3>3.2.1 Train</h3>
+<p>Model families are presented as <em>what they are for</em>, never as architectures: language models (including reinforcement fine-tuning) for drafting, extraction and review; tabular AutoML for assay tables and clinical endpoints; diffusion for generative perturbation and augmentation; molecular property models for potency, ADMET and selectivity. The user picks a goal and a dataset; the family follows and is stated.</p>
+<p>Training <strong>reuses the run surface verbatim</strong> — the same panel head, run bar, phase accordion and step views as a workflow (Spec 06). The phases differ; nothing about the chrome does. This is the single largest integration decision in the module: a scientist who has watched one workflow run already knows how to watch a training job, read its parameters, and open a step.</p>
+<ul class="deck">
+  <li><b>Dataset</b><span>A dataset object from the user's data — the same object the workflows read and write. No separate ML data import.</span></li>
+  <li><b>Train</b><span>The same cloud compute and the same live phase list as a run.</span></li>
+  <li><b>Quality gate</b><span>Held-out evaluation against a floor — <em>AUC 0.81 vs 0.75 floor</em> — not a leaderboard position.</span></li>
+  <li><b>Tracking</b><span>Every attempt recorded with its dataset version, parameters, metrics and artifacts.</span></li>
+  <li><b>Register</b><span>The trained model becomes a callable object with a name and a version.</span></li>
+</ul>
+
+<h3>3.2.2 Adapt</h3>
+<p>Adaptation is presented as a <strong>ladder of cost</strong>, not a technique menu, and each rung is independently switchable:</p>
+<table class="st">
+<thead><tr><th>Level</th><th>Cost</th><th>What it holds</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td>Prompt-level rules</td><td>Cheapest · instant</td><td>Rules learned from repeated edits.</td><td>On</td></tr>
+<tr><td>Few-shot memory</td><td>Cheap · seconds to index</td><td>Before→after pairs indexed from real edits.</td><td>On</td></tr>
+<tr><td>Fine-tuned adapter</td><td>Costly · a training job</td><td>Weights built from accumulated pairs.</td><td>Off</td></tr>
+</tbody>
+</table>
+<p>The material of adaptation is the user's own editing. When someone rewrites "the compound showed good efficacy" into an effect size with a confidence interval, that edit is captured as a pair and a learned rule is proposed in plain language: <em>"Replace qualitative efficacy claims with the effect size and its interval."</em></p>
+<figure>
+<div class="wire">┌────────────────────────────────────────────────────────────────┐
+│ Learned from your edits                          8 rules active│
+│                                                                │
+│ IND · Module 2.6.2 pharmacology                    16 Aug      │
+│  was  The compound showed good efficacy in the mouse model.    │
+│  now  In the bleomycin-induced mouse model, the compound       │
+│       reduced Ashcroft score by 2.1 points (95% CI 1.4–2.8).   │
+│                                                                │
+│  Learned  Replace qualitative efficacy claims with the effect  │
+│           size and its interval.                               │
+│  Scope    ◉ organisation   ○ this project only        [ on ▮ ] │
+└────────────────────────────────────────────────────────────────┘</div>
+<figcaption>A learned rule is shown as the edit that taught it, in the user's own words, with a scope and an off switch. Never a weight, never a diff of a prompt.</figcaption>
+</figure>
+<div class="rule"><span class="lbl">Consent rule</span><p>Adaptation is visible and reversible. Every rule shows the edit it came from, is scoped to a project or an organisation, and can be switched off. Nothing is learned silently, and no rule is applied that the user cannot read as a sentence.</p></div>
+
+<h3>3.2.3 Optimise</h3>
+<p>The closed loop, presented as rounds rather than as reinforcement learning. Each round is a row: what it proposed, what came back from the assay, and what the surrogate learned. The current round shows its proposals with confidence and gate verdicts.</p>
+<table class="st">
+<thead><tr><th>Element</th><th>What it shows</th></tr></thead>
+<tbody>
+<tr><td>Round list</td><td>One row per round: state, what happened, when. Round 1 is the baseline scored from literature only, so the loop's own progress is legible.</td></tr>
+<tr><td>Surrogate</td><td>Which models are scoring, by name and version — <code>admet-herg v3 + potency-gp v2</code> — each clickable to its model object.</td></tr>
+<tr><td>Refit policy</td><td>When the surrogate updates: automatic on every assay upload, with the last refit time.</td></tr>
+<tr><td>Proposal table</td><td>Candidate, predicted properties, confidence, and a verdict: accepted, flagged by the safety gate, or rejected by it.</td></tr>
+<tr><td>Budget</td><td>The experimental budget the loop is optimising under — set by the user, not inferred.</td></tr>
+</tbody>
+</table>
+<p>The safety gate is the important element here. A proposal rejected by it is shown, with the reason, rather than filtered out of the list — a user must be able to see what the loop wanted to do and why it was not allowed to.</p>
+<p>The loop’s hard part is not the model. It is the return path from the bench, specified in §3.7.</p>
+
+<h3>3.2.4 Run a pre-trained model <span class="tag new">new</span></h3>
+<p>BioMate integrates open-source models that arrive <strong>already fitted</strong> — structure prediction, genomic sequence models, chemical screening models. Nothing of the user's is trained. Until now the spec had no home for them: they are not "train your own", and burying them inside generic workflows hides both their confidence semantics and their specialised outputs.</p>
+<div class="rule"><span class="lbl">Placement decision</span><p>Pre-trained inference lives in <strong>Models, as a fourth track</strong> — not as an unmarked Data-analysis workflow. The reason is the questions it raises. For a trained model the questions are "what did it learn from?" and "how did it score held-out?". For a pre-trained one they are <em>"what can it speak to?"</em> and <em>"how much of this answer do I trust?"</em> — model questions, answered by a model object, in the surface where models live. It still <em>executes</em> as a run, on the run surface, like everything else.</p></div>
+<p>A pre-trained model object differs from a trained one in exactly two ways, and both are stated rather than hidden:</p>
+<table class="st">
+<thead><tr><th></th><th>Trained here</th><th>Pre-trained</th></tr></thead>
+<tbody>
+<tr><td>Evidence</td><td>Held out on your data, against a floor.</td><td><strong>Published</strong> by its authors — plus a <em>local spot-check</em> on our own set, which is what actually earns it a gate here.</td></tr>
+<tr><td>Lineage</td><td>Into a dataset version in this project.</td><td>None into your data. The training corpus may be undisclosed, and that is recorded as a known gap rather than left blank.</td></tr>
+</tbody>
+</table>
+<p>Presentation follows the no-inventory rule: three domains, each stated as an achievement with what it produces and how long it takes — "predict a structure and tell me where to trust it", not a list of package names and versions on the front door. The model name and version are on the result, where they are accountable.</p>
+
+<h2><span class="num">3.3</span>The model object</h2>
+<p>The destination of every training run and the target of every prediction link. It is deliberately shaped like the dataset object (Spec 04), because a model is a dataset with a function attached.</p>
+<table class="st">
+<thead><tr><th>Section</th><th>Contents</th></tr></thead>
+<tbody>
+<tr><td>Identity</td><td>Name, version, family, confidence band, and how it got here — trained here, imported from your lab, or an external service under contract.</td></tr>
+<tr><td>Evidence</td><td>The held-out gate result against its floor, calibration, and the evaluation set as a dataset chip. A model with no held-out evidence cannot be registered.</td></tr>
+<tr><td>Lineage</td><td>The dataset version it learned from, the run that produced it, and every model version before it.</td></tr>
+<tr><td>Used by</td><td>Every surface consuming it right now: workflow gates, score columns, DMTA rounds. This is the blast radius, and it is what makes a version bump safe to reason about.</td></tr>
+<tr><td>Interface</td><td>How it is called: a Python <code>scored()</code> entry point, a container image, or a REST endpoint.</td></tr>
+<tr><td>Versions</td><td>Every version with its gate verdict. Superseding a version never deletes it; completed runs keep the version they used.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">3.4</span>Integration — where models actually appear</h2>
+<p>This is the section that decides whether the module succeeds. A user should meet models in their work, not in a menu.</p>
+<table class="st">
+<thead><tr><th>Surface</th><th>How a model appears</th><th>The link back</th></tr></thead>
+<tbody>
+<tr><td>Workflow quality gate</td><td>A prediction can halt a run — "ADMET gate rejected 1 of 12 proposals". The gate names the model and version in its measured row.</td><td>The model name in the gate panel opens the model object.</td></tr>
+<tr><td>A results table</td><td>A predicted column is marked as predicted, with the model, the version and a per-row confidence.</td><td>The column header opens the model object; a cell shows the confidence basis.</td></tr>
+<tr><td>The dataset object</td><td>A dataset's <em>Runs</em> view lists training runs that consumed it alongside workflow runs — one history, not two.</td><td>A training run row opens the run surface.</td></tr>
+<tr><td>Design &amp; generate</td><td>Every prediction in the design pipeline — affinity, safety, druglikeness — comes from a registered model, named and versioned on the candidate row.</td><td>A candidate’s <em>why?</em> opens the model object behind its score (Spec 05).</td></tr>
+<tr><td>The composer</td><td>A goal that reads as training routes to <em>Cloud · models</em> with the domain stated, exactly as a workflow goal routes to a pipeline.</td><td>Start opens the training configuration in the run surface.</td></tr>
+<tr><td>The after-run report</td><td>Software and Parameters sections list model name and version alongside tool versions; the QC audit records gate verdicts that a model produced.</td><td>Every number remains click-traceable to the output it came from.</td></tr>
+<tr><td>Document drafting</td><td>Adaptation applies to the writing surfaces — the rules and pairs are what make a drafted section sound like this organisation.</td><td>Any drafted claim can be traced to the rule that shaped it.</td></tr>
+<tr><td>Project navigation</td><td>Two entries, not one. A <strong>workspace</strong> entry always holds the account registry — every model and where each is used. A <strong>project</strong> entry appears only once that project has done model work. See §3.4.1.</td><td>The workspace entry opens the registry; a project entry opens that project’s training, adaptation and inference.</td></tr>
+</tbody>
+</table>
+<div class="note"><span class="lbl">Earned surfaces</span><p>This last rule matters for legibility overall. A project's navigation reflects what that project does. Advertising every capability everywhere is how a platform becomes illegible — the cure for "I didn't know BioMate could do that" is not putting all of it on every screen.</p></div>
+
+<h2><span class="num">3.5</span>Bringing your own model</h2>
+<p>Three ways in, presented by what the user already has rather than by our plumbing:</p>
+<ul class="deck">
+  <li><b>Python function</b><span>A <code>scored()</code> entry point in your package. No container build; runs in the workflow sandbox.</span></li>
+  <li><b>Container</b><span>Your own image and dependencies — for a fixed environment or GPU needs.</span></li>
+  <li><b>REST endpoint</b><span>A URL and a key, for vendor or internal services we do not host.</span></li>
+</ul>
+<p>An imported model enters the same registry and is held to the same standard: it needs held-out evidence on a dataset in the product before it can be used in a gate. An external service under contract shows its contract end date, because a run that depends on it will break when the contract lapses.</p>
+
+<h2><span class="num">3.6</span>States and failure</h2>
+<table class="st">
+<thead><tr><th>State</th><th>Presentation</th><th>What the user can do</th></tr></thead>
+<tbody>
+<tr><td>Training</td><td>The run surface, live phases, RUNNING chip.</td><td>Watch, open a step, cancel. Partial artifacts are kept.</td></tr>
+<tr><td>Gate pending</td><td>"AUC 0.81 · gate pending · floor 0.75".</td><td>Wait. The model is not callable yet and is not offered anywhere.</td></tr>
+<tr><td>Gate failed</td><td>"Blocked at eval gate · reward plateaued at 0.42". Not registered.</td><td>Inspect the failing evaluation, change the configuration, re-run from a step.</td></tr>
+<tr><td>Registered</td><td>Name, version, confidence band. Appears in <em>Used by</em> as consumers adopt it.</td><td>Call it, gate on it, supersede it. <strong>Registering requires the Owner role</strong> (Spec 00 §0.12) and is recorded with a name.</td></tr>
+<tr><td>Superseded</td><td>Marked, not deleted. Completed runs keep their version.</td><td>Compare versions; see which consumers still pin the old one.</td></tr>
+<tr><td>Drifting <span class="tag open">open</span></td><td>Proposed: a model whose live inputs have moved away from its training distribution is flagged where it is used.</td><td>Re-train, or accept and record the acceptance.</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">3.7</span>The wet-lab loop <span class="tag new">new</span></h2>
+<p>An optimisation loop whose scores never meet a measurement is a simulation of drug discovery. This section specifies the return path — the part that is not compute — because it is where this class of project actually fails: latency is measured in weeks, returns are partial, and the numbers come back censored.</p>
+
+<h3>3.7.1 A round is the contract</h3>
+<p>The loop does not consume a stream of results; it consumes <strong>rounds</strong>. A round has proposals out, an order to the bench, results back, and a refit. Its state is always visible as a stage bar.</p>
+<figure>
+<div class="wire">Proposed --- Ordered --- At the bench --- Results in --- Refit --- Round 5
+  done        done          now (day 14)      7 of 12       partial
+
+ordered  19 Aug - 12 compounds requested
+due      2 Sep - expected - day 14 of a 14-day turnaround</div>
+<figcaption>Round state. The bench stage owns weeks, so the UI shows the day count and the expected return rather than a spinner.</figcaption>
+</figure>
+<p>Leaving the platform, a round becomes an <strong>order sheet and plate map</strong> in the format the lab registers from, pairing platform candidate ids with the lab's registry ids. Identity must survive the round trip or nothing downstream can be joined.</p>
+
+<h3>3.7.2 Three intake routes</h3>
+<table class="st">
+<thead><tr><th>Route</th><th>What it is</th><th>For</th></tr></thead>
+<tbody>
+<tr><td>Drop an export</td><td>A plate CSV, ELN or LIMS export, mapped once with a template and auto-mapped thereafter.</td><td>The common case, and the one that must work with no integration project.</td></tr>
+<tr><td>Connector</td><td>A LIMS or ELN API, polled on a schedule; each pull lands as a new dataset version.</td><td>Organisations with a system of record.</td></tr>
+<tr><td>Watched intake</td><td>A per-project address or an instrument folder.</td><td>Instruments that can only email or write to a share.</td></tr>
+</tbody>
+</table>
+<p>All three land in the same place: a dataset object in the project, with the instrument or system as its origin and a version per pull (Spec 04 §4.5). There is no separate "assay results" store.</p>
+
+<h3>3.7.3 Mapping is a template, not a wizard</h3>
+<p>Mapped once per assay type and saved: compound identity via the order sheet, the readout column and its units, replicate handling, censoring, and the plate QC flag. Subsequent uploads map automatically. An upload that does not fit is <strong>held and shown as a diff</strong> — never coerced into the columns the loop was expecting. Editing a template affects future uploads only; results already ingested keep the mapping they were read with.</p>
+
+<h3>3.7.4 Partial returns are first-class</h3>
+<div class="rule"><span class="lbl">Anti-survivorship rule</span><p>Every proposal in a round is accounted for, including those that produced no number — <em>not synthesised</em>, <em>insufficient material</em>, <em>assay QC failed</em> — each with its reason. Dropping those rows would train the surrogate on survivors only, and it would quietly learn that everything it proposes gets made and assayed.</p></div>
+<table class="st">
+<thead><tr><th>Return kind</th><th>Recorded as</th><th>Effect on the model</th></tr></thead>
+<tbody>
+<tr><td>Measured</td><td>A value with units and replicate spread.</td><td>Trains normally.</td></tr>
+<tr><td>Censored</td><td><code>IC50 &gt; 30 µM</code>, preserved as an inequality.</td><td>Fitted as censored data — <strong>never coerced to 30</strong>, which would invent a measurement.</td></tr>
+<tr><td>Not synthesised</td><td>The reason — a route that failed, and where.</td><td>Informs synthesisability, not activity.</td></tr>
+<tr><td>Insufficient material</td><td>How short, against the assay minimum.</td><td>No activity signal; the proposal stays open.</td></tr>
+<tr><td>Assay QC failed</td><td>The failing plate or control.</td><td>Excluded, queued for repeat. Never averaged in.</td></tr>
+</tbody>
+</table>
+
+<h3>3.7.5 Refit</h3>
+<p>One policy, stated once: <strong>partial refit at 50% returned, full refit on close</strong>. Partial results are useful, and waiting for the last two compounds wastes a week. The refit is a <em>training run</em> — it inherits the run surface, its gates and its audit trail, and it produces a new model version that does not score anything until it passes. The refit's effect is reported on held-out data ("surrogate MAE 0.41 → 0.33"), not on the new results it just learned from.</p>
+
+<h3>3.7.6 What the loop must show a reviewer</h3>
+<ul>
+<li><strong>Predicted versus measured, per round.</strong> The only honest measure of whether the design pipeline works, and the thing a client will ask for first.</li>
+<li><strong>Which surrogate version scored which round.</strong> Every proposal traceable to a model version and an assay round.</li>
+<li><strong>Every rejection and every no-data return</strong>, with reasons.</li>
+<li><strong>The budget</strong> the loop is optimising under — set by the user, never inferred.</li>
+</ul>
+
+<h2><span class="num">3.8</span>Domain viewers for inference outputs <span class="tag new">new</span></h2>
+<p>The evidence classes (Spec 00 §0.7) choose the <em>kind</em> of viewer. These outputs need viewers specific to their science, because the generic one lets a user over-read the result — which is the exact failure mode this product exists to prevent.</p>
+
+<h3>3.8.1 Structure prediction</h3>
+<p>Three views of one output, shown together and never separately:</p>
+<table class="el">
+<thead><tr><th>View</th><th>Reads</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>3D structure</td><td>The predicted fold.</td><td>The familiar viewer. Alone, it is not a sufficient rendering of this output.</td></tr>
+<tr><td>Per-residue confidence chart</td><td>Which parts of that picture to believe.</td><td>A bar per residue, coloured by confidence band, with a mean. <strong>Linked to the 3D view</strong>: hovering reads out the residue and its score; clicking centres the structure on it. One selection, not two.</td></tr>
+<tr><td>Pairwise error heatmap</td><td>Whether the <em>relative placement</em> of two regions is resolved.</td><td>A matrix; dark blocks are confident domains, a pale off-diagonal says their relative orientation is unresolved. Answers the question per-residue confidence cannot.</td></tr>
+</tbody>
+</table>
+<p>Beneath the chart, the low-confidence regions are listed in words — "Loop 43–57 · low confidence, flexible loop with no template coverage" — because a chart the user has to interpret unaided is only half a viewer. Each row centres the 3D view on that region.</p>
+<div class="rule"><span class="lbl">Over-reading rule</span><p>A structure picture with no confidence chart invites a binding-site claim that its disordered loops cannot support. The chart is not an optional detail view; it is part of the output.</p></div>
+
+<h3>3.8.2 Genomic sequence models</h3>
+<p>Per-base scores render as <strong>tracks</strong> over the locus — model score, conservation, flagged intervals, variant ticks — sharing one coordinate axis. The actionable output is not the per-base vector but the <strong>flagged interval</strong>, so intervals are listed with their locus, their annotation context and why the model flagged them; the tracks are how a user checks the list rather than the list itself.</p>
+
+<h3>3.8.3 Chemical screening models</h3>
+<p>A ranked hit table, and a <strong>2D depiction grid</strong> as an alternate view of the same ranking — a chemist reads structures, not identifier strings. Every score names the model and version behind it; a candidate outside the model's applicability region is <em>held</em> with no confident number offered. Specified with the ranking surface in Spec 05 §5.5.</p>
+
+<h2><span class="num">3.9</span>Copy rules</h2>
+<ol>
+<li><strong>No architecture names in primary copy.</strong> Families are described by what they are for. Architecture belongs in the model object's detail, for the reader who wants it. The same holds for integrated pre-trained models: named on the result, not on the front door.</li>
+<li><strong>Published evidence is labelled as published.</strong> An author-reported benchmark is never presented as though it were measured here.</li>
+<li><strong>No leaderboards.</strong> Gates and floors only. Never rank a user's models against each other.</li>
+<li><strong>Never a bare prediction.</strong> Model, version and confidence travel with every predicted number.</li>
+<li><strong>Adaptation speaks in sentences.</strong> A learned rule is stated as a rule, with the edit that taught it.</li>
+<li><strong>A rejected proposal is shown.</strong> The loop's refusals are as informative as its suggestions.</li>
+</ol>
+
+<h2><span class="num">3.10</span>Open questions</h2>
+<ul>
+<li><span class="tag open">open</span> Drift detection: is it a gate that halts consumers, or a flag that informs them?</li>
+<li><span class="tag open">open</span> Whether an organisation-scoped adapter needs an approval step before it starts shaping everyone's documents.</li>
+<li><span class="tag ship">resolved</span> <strong>Design &amp; generate</strong> ships as its own module (Spec 05); Models supplies the predictions it scores with.</li>
+<li><span class="tag open">open</span> Whether a refit should be blocked when a round’s no-data rate is high enough to bias it.</li>
+<li><span class="tag open">open</span> Whether a model's confidence band should be a single label, or per-input-region.</li>
+</ul>
+
+<p class="docfoot"><span>Spec 03 · Models</span><span>Next: 04 — Files &amp; the dataset object</span></p>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

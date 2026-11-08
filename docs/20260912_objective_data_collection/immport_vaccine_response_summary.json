@@ -1,0 +1,58 @@
+{
+  "source": "ImmPort DR66 parquet in S3 (no credentials used)",
+  "assays": {
+    "HAI": {
+      "response_rows": 40445,
+      "dropped_single_timepoint": 12858,
+      "studies": 80
+    },
+    "neutAb": {
+      "response_rows": 7998,
+      "dropped_single_timepoint": 16039,
+      "studies": 62
+    }
+  },
+  "total_response_rows": 48443,
+  "total_subjects": 6819,
+  "total_studies": 122,
+  "raw_titer_studies": 118,
+  "log_or_index_studies": 5,
+  "usable_seroconversion_rows": 46783,
+  "frozen_study_heldout_test": [
+    "SDY1058",
+    "SDY1252",
+    "SDY1439",
+    "SDY1469",
+    "SDY1482",
+    "SDY1742",
+    "SDY194",
+    "SDY200",
+    "SDY212",
+    "SDY2349",
+    "SDY2575",
+    "SDY270",
+    "SDY2752",
+    "SDY296",
+    "SDY305",
+    "SDY312",
+    "SDY3193",
+    "SDY369",
+    "SDY387",
+    "SDY514",
+    "SDY56",
+    "SDY640",
+    "SDY739",
+    "SDY887"
+  ],
+  "endpoints": {
+    "fold_change": "post_peak/pre; valid within-series regardless of scale",
+    "seroconversion": ">=4-fold; RAW-titer studies only",
+    "seroprotection": "peak>=40; RAW-titer studies only"
+  },
+  "caveats": [
+    "titer scale differs by study; >=4-fold/>=40 rules applied ONLY to raw-titer studies",
+    "peak-post used as response; day-28-nearest also recorded for design-consistent reanalysis",
+    "quarantined: ImmPort not wired into training but knowledge integration incomplete \u2014 confirm before eval use"
+  ],
+  "training_eligible": false
+}

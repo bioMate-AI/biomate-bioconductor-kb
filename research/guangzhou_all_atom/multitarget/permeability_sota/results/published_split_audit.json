@@ -1,0 +1,64 @@
+[
+ {
+  "split": "CycPeptMP published test (cv0 train)",
+  "n_test": 344,
+  "n_train": 6201,
+  "frac_test_scaffold_in_train": 0.5116279069767442,
+  "mean_nn_tanimoto": 0.8329802424647511,
+  "median_nn_tanimoto": 0.8446360153256705,
+  "frac_nn_ge_0.8": 0.6627906976744186,
+  "test_y_std": 1.0531424924693795,
+  "train_y_std": 0.8380037661670574,
+  "test_frac_y_le_-10": 0.0,
+  "test_source_top": {
+   "2013_CHUGAI": 208,
+   "2016_Furukawa": 20,
+   "2015_Ahlbach": 14,
+   "2022_Bhardwaj": 14
+  }
+ },
+ {
+  "split": "random 344 from same pool (reference)",
+  "n_test": 345,
+  "n_train": 6651,
+  "frac_test_scaffold_in_train": 0.8927536231884058,
+  "mean_nn_tanimoto": 0.9632454366339522,
+  "median_nn_tanimoto": 1.0,
+  "frac_nn_ge_0.8": 0.9594202898550724,
+  "test_y_std": 0.8240683821556779,
+  "train_y_std": 0.835518186443513,
+  "test_frac_y_le_-10": 0.0,
+  "test_source_top": {
+   "2020_Townsend": 147,
+   "2021_Kelly": 62,
+   "2013_CHUGAI": 36,
+   "2016_Furukawa": 35
+  }
+ },
+ {
+  "split": "scaffold-grouped holdout (~344) same pool",
+  "n_test": 344,
+  "n_train": 6993,
+  "frac_test_scaffold_in_train": 0.0,
+  "mean_nn_tanimoto": 0.9000055576353051,
+  "median_nn_tanimoto": 0.9289915966386555,
+  "frac_nn_ge_0.8": 0.9011627906976745,
+  "test_y_std": 0.7336149166056375,
+  "train_y_std": 0.8395357569207287,
+  "test_frac_y_le_-10": 0.0,
+  "test_source_top": {
+   "2020_Townsend": 162,
+   "2016_Furukawa": 71,
+   "2013_CHUGAI": 36,
+   "2015_Bockus_1": 14
+  }
+ },
+ {
+  "pool": {
+   "n": 7337,
+   "y_std": 0.8358904116709301,
+   "frac_y_le_-10": 0.0,
+   "n_pampa": 6889
+  }
+ }
+]

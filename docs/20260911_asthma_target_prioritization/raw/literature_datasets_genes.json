@@ -1,0 +1,1555 @@
+{
+  "reports": [
+    {
+      "gene": {
+        "gene_id": "90865",
+        "symbol": "IL33",
+        "description": "interleukin 33",
+        "tax_id": "9606",
+        "taxname": "Homo sapiens",
+        "common_name": "human",
+        "type": "PROTEIN_CODING",
+        "orientation": "plus",
+        "reference_standards": [
+          {
+            "gene_range": {
+              "accession_version": "NG_047209.1",
+              "range": [
+                {
+                  "begin": "5659",
+                  "end": "47835",
+                  "orientation": "plus"
+                }
+              ]
+            },
+            "type": "REFSEQ_GENE"
+          }
+        ],
+        "chromosomes": [
+          "9"
+        ],
+        "nomenclature_authority": {
+          "authority": "HGNC",
+          "identifier": "HGNC:16028"
+        },
+        "swiss_prot_accessions": [
+          "O95760"
+        ],
+        "ensembl_gene_ids": [
+          "ENSG00000137033"
+        ],
+        "omim_ids": [
+          "608678"
+        ],
+        "synonyms": [
+          "DVS27",
+          "IL1F11",
+          "NF-HEV",
+          "NFEHEV",
+          "C9orf26"
+        ],
+        "alternate_names": [
+          "DVS27-related protein",
+          "interleukin-1 family member 11",
+          "interleukin-33",
+          "nuclear factor for high endothelial venules",
+          "nuclear factor from high endothelial venules"
+        ],
+        "annotations": [
+          {
+            "assembly_accession": "GCF_000001405.40",
+            "assembly_name": "GRCh38.p14",
+            "annotation_name": "GCF_000001405.40-RS_2025_08",
+            "annotation_release_date": "2025-08-01",
+            "genomic_locations": [
+              {
+                "genomic_accession_version": "NC_000009.12",
+                "sequence_name": "9",
+                "genomic_range": {
+                  "begin": "6215149",
+                  "end": "6257983",
+                  "orientation": "plus"
+                }
+              }
+            ]
+          },
+          {
+            "assembly_accession": "GCF_009914755.1",
+            "assembly_name": "T2T-CHM13v2.0",
+            "annotation_name": "GCF_009914755.1-RS_2025_08",
+            "annotation_release_date": "2025-08-01",
+            "genomic_locations": [
+              {
+                "genomic_accession_version": "NC_060933.1",
+                "sequence_name": "9",
+                "genomic_range": {
+                  "begin": "6220289",
+                  "end": "6263045",
+                  "orientation": "plus"
+                }
+              }
+            ]
+          }
+        ],
+        "transcript_count": 21,
+        "protein_count": 21,
+        "transcript_type_counts": [
+          {
+            "type": "PROTEIN_CODING",
+            "count": 9
+          },
+          {
+            "type": "PROTEIN_CODING_MODEL",
+            "count": 12
+          }
+        ],
+        "gene_groups": [
+          {
+            "id": "90865",
+            "method": "NCBI Ortholog"
+          }
+        ],
+        "summary": [
+          {
+            "description": "The protein encoded by this gene is a cytokine that binds to the IL1RL1/ST2 receptor. The encoded protein is involved in the maturation of Th2 cells and the activation of mast cells, basophils, eosinophils and natural killer cells. Several transcript variants encoding different isoforms have been found for this gene. [provided by RefSeq, Sep 2015]"
+          }
+        ],
+        "gene_ontology": {
+          "assigned_by": "GOA",
+          "molecular_functions": [
+            {
+              "name": "cytokine activity",
+              "go_id": "GO:0005125",
+              "evidence_code": "IBA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "cytokine activity",
+              "go_id": "GO:0005125",
+              "evidence_code": "IDA",
+              "qualifier": "enables",
+              "reference": {
+                "pmids": [
+                  "19841166",
+                  "27830702"
+                ]
+              }
+            },
+            {
+              "name": "cytokine activity",
+              "go_id": "GO:0005125",
+              "evidence_code": "IEA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "interleukin-33 receptor binding",
+              "go_id": "GO:0002112",
+              "evidence_code": "IEA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "protein binding",
+              "go_id": "GO:0005515",
+              "evidence_code": "IPI",
+              "qualifier": "enables",
+              "reference": {
+                "pmids": [
+                  "16286016",
+                  "18688256",
+                  "29045903"
+                ]
+              }
+            }
+          ],
+          "biological_processes": [
+            {
+              "name": "antibacterial innate immune response",
+              "go_id": "GO:0140367",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "antibacterial innate immune response",
+              "go_id": "GO:0140367",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "antibacterial innate immune response",
+              "go_id": "GO:0140367",
+              "evidence_code": "ISS",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "gene expression",
+              "go_id": "GO:0010467",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "inflammatory response",
+              "go_id": "GO:0006954",
+              "evidence_code": "NAS",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "27640624"
+                ]
+              }
+            },
+            {
+              "name": "interleukin-33-mediated signaling pathway",
+              "go_id": "GO:0038172",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "interleukin-33-mediated signaling pathway",
+              "go_id": "GO:0038172",
+              "evidence_code": "ISS",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "interleukin-33-mediated signaling pathway",
+              "go_id": "GO:0038172",
+              "evidence_code": "NAS",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "23980170"
+                ]
+              }
+            },
+            {
+              "name": "macrophage activation involved in immune response",
+              "go_id": "GO:0002281",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "macrophage differentiation",
+              "go_id": "GO:0030225",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "macrophage differentiation",
+              "go_id": "GO:0030225",
+              "evidence_code": "ISS",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "microglial cell activation involved in immune response",
+              "go_id": "GO:0002282",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "microglial cell proliferation",
+              "go_id": "GO:0061518",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "negative regulation of T-helper 1 type immune response",
+              "go_id": "GO:0002826",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "negative regulation of immunoglobulin production",
+              "go_id": "GO:0002638",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "negative regulation of inflammatory response to wounding",
+              "go_id": "GO:0106015",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "27830702"
+                ]
+              }
+            },
+            {
+              "name": "negative regulation of inflammatory response to wounding",
+              "go_id": "GO:0106015",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "negative regulation of leukocyte migration",
+              "go_id": "GO:0002686",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "negative regulation of macrophage proliferation",
+              "go_id": "GO:0120042",
+              "evidence_code": "ISS",
+              "qualifier": "acts_upstream_of_or_within"
+            },
+            {
+              "name": "negative regulation of transcription by RNA polymerase II",
+              "go_id": "GO:0000122",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "17185418"
+                ]
+              }
+            },
+            {
+              "name": "negative regulation of type II interferon production",
+              "go_id": "GO:0032689",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of cellular defense response",
+              "go_id": "GO:0010186",
+              "evidence_code": "ISS",
+              "qualifier": "acts_upstream_of_or_within"
+            },
+            {
+              "name": "positive regulation of chemokine production",
+              "go_id": "GO:0032722",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "19841166"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of chemokine production",
+              "go_id": "GO:0032722",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of cytokine production",
+              "go_id": "GO:0001819",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of gene expression",
+              "go_id": "GO:0010628",
+              "evidence_code": "ISS",
+              "qualifier": "acts_upstream_of_or_within"
+            },
+            {
+              "name": "positive regulation of glycoprotein biosynthetic process",
+              "go_id": "GO:0010560",
+              "evidence_code": "ISS",
+              "qualifier": "acts_upstream_of_or_within"
+            },
+            {
+              "name": "positive regulation of immunoglobulin production",
+              "go_id": "GO:0002639",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of inflammatory response",
+              "go_id": "GO:0050729",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of inflammatory response",
+              "go_id": "GO:0050729",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of inflammatory response",
+              "go_id": "GO:0050729",
+              "evidence_code": "ISS",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "19841166"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of interleukin-13 production",
+              "go_id": "GO:0032736",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of interleukin-4 production",
+              "go_id": "GO:0032753",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of interleukin-5 production",
+              "go_id": "GO:0032754",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of interleukin-6 production",
+              "go_id": "GO:0032755",
+              "evidence_code": "ISS",
+              "qualifier": "acts_upstream_of"
+            },
+            {
+              "name": "positive regulation of interleukin-6 production",
+              "go_id": "GO:0032755",
+              "evidence_code": "ISS",
+              "qualifier": "acts_upstream_of_or_within"
+            },
+            {
+              "name": "positive regulation of macrophage activation",
+              "go_id": "GO:0043032",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of macrophage activation",
+              "go_id": "GO:0043032",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "19841166"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of macrophage activation",
+              "go_id": "GO:0043032",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of macrophage activation",
+              "go_id": "GO:0043032",
+              "evidence_code": "ISS",
+              "qualifier": "acts_upstream_of_or_within"
+            },
+            {
+              "name": "positive regulation of neuroinflammatory response",
+              "go_id": "GO:0150078",
+              "evidence_code": "TAS",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "26753638"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of transcription by RNA polymerase II",
+              "go_id": "GO:0045944",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of transcription by RNA polymerase II",
+              "go_id": "GO:0045944",
+              "evidence_code": "ISS",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "19841166"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of tumor necrosis factor production",
+              "go_id": "GO:0032760",
+              "evidence_code": "ISS",
+              "qualifier": "acts_upstream_of"
+            },
+            {
+              "name": "positive regulation of tumor necrosis factor production",
+              "go_id": "GO:0032760",
+              "evidence_code": "ISS",
+              "qualifier": "acts_upstream_of_or_within"
+            },
+            {
+              "name": "protein import into nucleus",
+              "go_id": "GO:0006606",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            }
+          ],
+          "cellular_components": [
+            {
+              "name": "chromosome",
+              "go_id": "GO:0005694",
+              "evidence_code": "EXP",
+              "qualifier": "located_in",
+              "reference": {
+                "pmids": [
+                  "17185418"
+                ]
+              }
+            },
+            {
+              "name": "chromosome",
+              "go_id": "GO:0005694",
+              "evidence_code": "IEA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "cytoplasm",
+              "go_id": "GO:0005737",
+              "evidence_code": "EXP",
+              "qualifier": "located_in",
+              "reference": {
+                "pmids": [
+                  "32272059"
+                ]
+              }
+            },
+            {
+              "name": "cytoplasm",
+              "go_id": "GO:0005737",
+              "evidence_code": "IDA",
+              "qualifier": "part_of",
+              "reference": {
+                "pmids": [
+                  "22215666"
+                ]
+              }
+            },
+            {
+              "name": "cytoplasm",
+              "go_id": "GO:0005737",
+              "evidence_code": "IEA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "decoy receptor complex",
+              "go_id": "GO:0140368",
+              "evidence_code": "NAS",
+              "qualifier": "part_of",
+              "reference": {
+                "pmids": [
+                  "27640624"
+                ]
+              }
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "EXP",
+              "qualifier": "located_in",
+              "reference": {
+                "pmids": [
+                  "19465481",
+                  "35794369"
+                ]
+              }
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IBA",
+              "qualifier": "is_active_in"
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IDA",
+              "qualifier": "is_active_in",
+              "reference": {
+                "pmids": [
+                  "27830702"
+                ]
+              }
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IEA",
+              "qualifier": "is_active_in"
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IEA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "TAS",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "nucleoplasm",
+              "go_id": "GO:0005654",
+              "evidence_code": "IDA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "nucleoplasm",
+              "go_id": "GO:0005654",
+              "evidence_code": "TAS",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "nucleus",
+              "go_id": "GO:0005634",
+              "evidence_code": "EXP",
+              "qualifier": "located_in",
+              "reference": {
+                "pmids": [
+                  "12819012",
+                  "17185418",
+                  "21734074"
+                ]
+              }
+            },
+            {
+              "name": "nucleus",
+              "go_id": "GO:0005634",
+              "evidence_code": "IDA",
+              "qualifier": "part_of",
+              "reference": {
+                "pmids": [
+                  "18787100",
+                  "18836528",
+                  "21357533",
+                  "22215666"
+                ]
+              }
+            },
+            {
+              "name": "nucleus",
+              "go_id": "GO:0005634",
+              "evidence_code": "IEA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "signaling receptor complex",
+              "go_id": "GO:0043235",
+              "evidence_code": "NAS",
+              "qualifier": "part_of",
+              "reference": {
+                "pmids": [
+                  "23980170"
+                ]
+              }
+            },
+            {
+              "name": "transport vesicle",
+              "go_id": "GO:0030133",
+              "evidence_code": "IEA",
+              "qualifier": "located_in"
+            }
+          ]
+        },
+        "map_locations": [
+          {
+            "map_type": "Cytogenetic",
+            "map_value": "9p24.1"
+          }
+        ]
+      },
+      "query": [
+        "IL33"
+      ]
+    },
+    {
+      "gene": {
+        "gene_id": "9173",
+        "symbol": "IL33R",
+        "description": "interleukin 33 receptor",
+        "tax_id": "9606",
+        "taxname": "Homo sapiens",
+        "common_name": "human",
+        "type": "PROTEIN_CODING",
+        "orientation": "plus",
+        "chromosomes": [
+          "2"
+        ],
+        "nomenclature_authority": {
+          "authority": "HGNC",
+          "identifier": "HGNC:5998"
+        },
+        "swiss_prot_accessions": [
+          "Q01638"
+        ],
+        "ensembl_gene_ids": [
+          "ENSG00000115602"
+        ],
+        "omim_ids": [
+          "601203"
+        ],
+        "synonyms": [
+          "T1",
+          "ST2",
+          "DER4",
+          "ST2L",
+          "ST2V",
+          "FIT-1",
+          "IL-33R",
+          "IL1RL1"
+        ],
+        "alternate_names": [
+          "growth stimulation-expressed",
+          "homolog of mouse growth stimulation-expressed",
+          "interleukin 1 receptor like 1",
+          "interleukin 1 receptor-related protein",
+          "interleukin-1 receptor-like 1",
+          "suppressor of tumorigenicity 2"
+        ],
+        "annotations": [
+          {
+            "assembly_accession": "GCF_000001405.40",
+            "assembly_name": "GRCh38.p14",
+            "annotation_name": "GCF_000001405.40-RS_2025_08",
+            "annotation_release_date": "2025-08-01",
+            "genomic_locations": [
+              {
+                "genomic_accession_version": "NC_000002.12",
+                "sequence_name": "2",
+                "genomic_range": {
+                  "begin": "102311563",
+                  "end": "102352356",
+                  "orientation": "plus"
+                }
+              }
+            ]
+          },
+          {
+            "assembly_accession": "GCF_009914755.1",
+            "assembly_name": "T2T-CHM13v2.0",
+            "annotation_name": "GCF_009914755.1-RS_2025_08",
+            "annotation_release_date": "2025-08-01",
+            "genomic_locations": [
+              {
+                "genomic_accession_version": "NC_060926.1",
+                "sequence_name": "2",
+                "genomic_range": {
+                  "begin": "102769811",
+                  "end": "102810635",
+                  "orientation": "plus"
+                }
+              }
+            ]
+          }
+        ],
+        "transcript_count": 8,
+        "protein_count": 7,
+        "transcript_type_counts": [
+          {
+            "type": "PROTEIN_CODING",
+            "count": 3
+          },
+          {
+            "type": "NON_CODING",
+            "count": 1
+          },
+          {
+            "type": "PROTEIN_CODING_MODEL",
+            "count": 4
+          }
+        ],
+        "gene_groups": [
+          {
+            "id": "9173",
+            "method": "NCBI Ortholog"
+          }
+        ],
+        "summary": [
+          {
+            "description": "The protein encoded by this gene is a member of the interleukin 1 receptor family. Studies of the similar gene in mouse suggested that this receptor can be induced by proinflammatory stimuli, and may be involved in the function of helper T cells. This gene, interleukin 1 receptor, type I (IL1R1), interleukin 1 receptor, type II (IL1R2) and interleukin 1 receptor-like 2 (IL1RL2) form a cytokine receptor gene cluster in a region mapped to chromosome 2q12. Alternative splicing of this gene results in multiple transcript variants. [provided by RefSeq, Jul 2008]"
+          }
+        ],
+        "gene_ontology": {
+          "assigned_by": "GOA",
+          "molecular_functions": [
+            {
+              "name": "NAD+ nucleosidase activity, cyclic ADP-ribose generating",
+              "go_id": "GO:0061809",
+              "evidence_code": "IEA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "cytokine receptor activity",
+              "go_id": "GO:0004896",
+              "evidence_code": "IEA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "cytokine receptor activity",
+              "go_id": "GO:0004896",
+              "evidence_code": "TAS",
+              "qualifier": "enables",
+              "reference": {
+                "pmids": [
+                  "10191101"
+                ]
+              }
+            },
+            {
+              "name": "interleukin-1 receptor activity",
+              "go_id": "GO:0004908",
+              "evidence_code": "IEA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "interleukin-33 binding",
+              "go_id": "GO:0002113",
+              "evidence_code": "IBA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "interleukin-33 binding",
+              "go_id": "GO:0002113",
+              "evidence_code": "IEA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "interleukin-33 receptor activity",
+              "go_id": "GO:0002114",
+              "evidence_code": "IDA",
+              "qualifier": "enables",
+              "reference": {
+                "pmids": [
+                  "16286016"
+                ]
+              }
+            },
+            {
+              "name": "protein binding",
+              "go_id": "GO:0005515",
+              "evidence_code": "IPI",
+              "qualifier": "enables",
+              "reference": {
+                "pmids": [
+                  "8621446",
+                  "16286016",
+                  "25416956",
+                  "32296183",
+                  "32822567"
+                ]
+              }
+            }
+          ],
+          "biological_processes": [
+            {
+              "name": "immune response",
+              "go_id": "GO:0006955",
+              "evidence_code": "NAS",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "10527832"
+                ]
+              }
+            },
+            {
+              "name": "inflammatory response",
+              "go_id": "GO:0006954",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "inflammatory response",
+              "go_id": "GO:0006954",
+              "evidence_code": "ISS",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "inflammatory response",
+              "go_id": "GO:0006954",
+              "evidence_code": "NAS",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "27640624"
+                ]
+              }
+            },
+            {
+              "name": "interleukin-33-mediated signaling pathway",
+              "go_id": "GO:0038172",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "interleukin-33-mediated signaling pathway",
+              "go_id": "GO:0038172",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "16286016"
+                ]
+              }
+            },
+            {
+              "name": "interleukin-33-mediated signaling pathway",
+              "go_id": "GO:0038172",
+              "evidence_code": "NAS",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "23980170"
+                ]
+              }
+            },
+            {
+              "name": "macrophage differentiation",
+              "go_id": "GO:0030225",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "macrophage differentiation",
+              "go_id": "GO:0030225",
+              "evidence_code": "ISS",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "negative regulation of T-helper 1 type immune response",
+              "go_id": "GO:0002826",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "negative regulation of type II interferon production",
+              "go_id": "GO:0032689",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of chemokine production",
+              "go_id": "GO:0032722",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of inflammatory response",
+              "go_id": "GO:0050729",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of interleukin-5 production",
+              "go_id": "GO:0032754",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of macrophage activation",
+              "go_id": "GO:0043032",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "signal transduction",
+              "go_id": "GO:0007165",
+              "evidence_code": "IEA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "signal transduction",
+              "go_id": "GO:0007165",
+              "evidence_code": "TAS",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "1482686"
+                ]
+              }
+            }
+          ],
+          "cellular_components": [
+            {
+              "name": "cell surface",
+              "go_id": "GO:0009986",
+              "evidence_code": "IBA",
+              "qualifier": "is_active_in"
+            },
+            {
+              "name": "decoy receptor complex",
+              "go_id": "GO:0140368",
+              "evidence_code": "NAS",
+              "qualifier": "part_of",
+              "reference": {
+                "pmids": [
+                  "27640624"
+                ]
+              }
+            },
+            {
+              "name": "external side of plasma membrane",
+              "go_id": "GO:0009897",
+              "evidence_code": "IEA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IEA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "plasma membrane",
+              "go_id": "GO:0005886",
+              "evidence_code": "IBA",
+              "qualifier": "is_active_in"
+            },
+            {
+              "name": "plasma membrane",
+              "go_id": "GO:0005886",
+              "evidence_code": "IC",
+              "qualifier": "is_active_in",
+              "reference": {
+                "pmids": [
+                  "16286016"
+                ]
+              }
+            },
+            {
+              "name": "plasma membrane",
+              "go_id": "GO:0005886",
+              "evidence_code": "IDA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "plasma membrane",
+              "go_id": "GO:0005886",
+              "evidence_code": "IEA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "plasma membrane",
+              "go_id": "GO:0005886",
+              "evidence_code": "TAS",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "signaling receptor complex",
+              "go_id": "GO:0043235",
+              "evidence_code": "NAS",
+              "qualifier": "part_of",
+              "reference": {
+                "pmids": [
+                  "23980170"
+                ]
+              }
+            }
+          ]
+        },
+        "map_locations": [
+          {
+            "map_type": "Cytogenetic",
+            "map_value": "2q12.1"
+          }
+        ]
+      },
+      "query": [
+        "IL1RL1"
+      ]
+    },
+    {
+      "gene": {
+        "gene_id": "85480",
+        "symbol": "TSLP",
+        "description": "thymic stromal lymphopoietin",
+        "tax_id": "9606",
+        "taxname": "Homo sapiens",
+        "common_name": "human",
+        "type": "PROTEIN_CODING",
+        "orientation": "plus",
+        "chromosomes": [
+          "5"
+        ],
+        "nomenclature_authority": {
+          "authority": "HGNC",
+          "identifier": "HGNC:30743"
+        },
+        "swiss_prot_accessions": [
+          "Q969D9"
+        ],
+        "ensembl_gene_ids": [
+          "ENSG00000145777"
+        ],
+        "omim_ids": [
+          "607003"
+        ],
+        "alternate_names": [
+          "thymic stroma-derived lymphopoietin"
+        ],
+        "annotations": [
+          {
+            "assembly_accession": "GCF_000001405.40",
+            "assembly_name": "GRCh38.p14",
+            "annotation_name": "GCF_000001405.40-RS_2025_08",
+            "annotation_release_date": "2025-08-01",
+            "genomic_locations": [
+              {
+                "genomic_accession_version": "NC_000005.10",
+                "sequence_name": "5",
+                "genomic_range": {
+                  "begin": "111070062",
+                  "end": "111078026",
+                  "orientation": "plus"
+                }
+              }
+            ]
+          },
+          {
+            "assembly_accession": "GCF_009914755.1",
+            "assembly_name": "T2T-CHM13v2.0",
+            "annotation_name": "GCF_009914755.1-RS_2025_08",
+            "annotation_release_date": "2025-08-01",
+            "genomic_locations": [
+              {
+                "genomic_accession_version": "NC_060929.1",
+                "sequence_name": "5",
+                "genomic_range": {
+                  "begin": "111580695",
+                  "end": "111588660",
+                  "orientation": "plus"
+                }
+              }
+            ]
+          }
+        ],
+        "transcript_count": 8,
+        "protein_count": 7,
+        "transcript_type_counts": [
+          {
+            "type": "PROTEIN_CODING",
+            "count": 2
+          },
+          {
+            "type": "NON_CODING",
+            "count": 1
+          },
+          {
+            "type": "PROTEIN_CODING_MODEL",
+            "count": 5
+          }
+        ],
+        "gene_groups": [
+          {
+            "id": "85480",
+            "method": "NCBI Ortholog"
+          }
+        ],
+        "summary": [
+          {
+            "description": "This gene encodes a hemopoietic cytokine proposed to signal through a heterodimeric receptor complex composed of the thymic stromal lymphopoietin receptor and the IL-7R alpha chain. It mainly impacts myeloid cells and induces the release of T cell-attracting chemokines from monocytes and enhances the maturation of CD11c(+) dendritic cells. The protein promotes T helper type 2 (TH2) cell responses that are associated with immunity in various inflammatory diseases, including asthma, allergic inflammation and chronic obstructive pulmonary disease. The protein is therefore considered a potential therapeutic target for the treatment of such diseases. In addition, the shorter (predominant) isoform is an antimicrobial protein, displaying antibacterial and antifungal activity against B. cereus, E. coli, E. faecalis, S. mitis, S. epidermidis, and C. albicans. Alternative splicing of this gene results in multiple transcript variants. [provided by RefSeq, Jul 2020]"
+          }
+        ],
+        "gene_ontology": {
+          "assigned_by": "GOA",
+          "molecular_functions": [
+            {
+              "name": "cytokine activity",
+              "go_id": "GO:0005125",
+              "evidence_code": "IBA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "cytokine activity",
+              "go_id": "GO:0005125",
+              "evidence_code": "IDA",
+              "qualifier": "enables",
+              "reference": {
+                "pmids": [
+                  "11418668",
+                  "20974963"
+                ]
+              }
+            },
+            {
+              "name": "cytokine activity",
+              "go_id": "GO:0005125",
+              "evidence_code": "IEA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "cytokine activity",
+              "go_id": "GO:0005125",
+              "evidence_code": "IMP",
+              "qualifier": "enables",
+              "reference": {
+                "pmids": [
+                  "17242164"
+                ]
+              }
+            },
+            {
+              "name": "interleukin-7 receptor binding",
+              "go_id": "GO:0005139",
+              "evidence_code": "IBA",
+              "qualifier": "enables"
+            },
+            {
+              "name": "interleukin-7 receptor binding",
+              "go_id": "GO:0005139",
+              "evidence_code": "IMP",
+              "qualifier": "enables",
+              "reference": {
+                "pmids": [
+                  "11480573"
+                ]
+              }
+            }
+          ],
+          "biological_processes": [
+            {
+              "name": "antimicrobial humoral immune response mediated by antimicrobial peptide",
+              "go_id": "GO:0061844",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "24850429"
+                ]
+              }
+            },
+            {
+              "name": "cell surface receptor signaling pathway via JAK-STAT",
+              "go_id": "GO:0007259",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "11480573"
+                ]
+              }
+            },
+            {
+              "name": "cytokine-mediated signaling pathway",
+              "go_id": "GO:0019221",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "10881176"
+                ]
+              }
+            },
+            {
+              "name": "defense response to Gram-negative bacterium",
+              "go_id": "GO:0050829",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "24850429"
+                ]
+              }
+            },
+            {
+              "name": "defense response to fungus",
+              "go_id": "GO:0050832",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "24850429"
+                ]
+              }
+            },
+            {
+              "name": "interleukin-7-mediated signaling pathway",
+              "go_id": "GO:0038111",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "11480573"
+                ]
+              }
+            },
+            {
+              "name": "negative regulation of apoptotic process",
+              "go_id": "GO:0043066",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "11480573"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of cell population proliferation",
+              "go_id": "GO:0008284",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "11418668"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of cell population proliferation",
+              "go_id": "GO:0008284",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "11480573"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of chemokine (C-C motif) ligand 1 production",
+              "go_id": "GO:0071654",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "17242164"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of chemokine production",
+              "go_id": "GO:0032722",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of chemokine production",
+              "go_id": "GO:0032722",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "11418668"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of cytokine-mediated signaling pathway",
+              "go_id": "GO:0001961",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of cytokine-mediated signaling pathway",
+              "go_id": "GO:0001961",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "11418668"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of granulocyte colony-stimulating factor production",
+              "go_id": "GO:0071657",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "17242164"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of inflammatory response",
+              "go_id": "GO:0050729",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of inflammatory response",
+              "go_id": "GO:0050729",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "17242164"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of interleukin-10 production",
+              "go_id": "GO:0032733",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of interleukin-10 production",
+              "go_id": "GO:0032733",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "17242164"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of interleukin-13 production",
+              "go_id": "GO:0032736",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of interleukin-13 production",
+              "go_id": "GO:0032736",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "17242164"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of interleukin-5 production",
+              "go_id": "GO:0032754",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of interleukin-5 production",
+              "go_id": "GO:0032754",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "17242164"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of interleukin-6 production",
+              "go_id": "GO:0032755",
+              "evidence_code": "IBA",
+              "qualifier": "involved_in"
+            },
+            {
+              "name": "positive regulation of interleukin-6 production",
+              "go_id": "GO:0032755",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "17242164"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of mast cell activation",
+              "go_id": "GO:0033005",
+              "evidence_code": "IMP",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "17242164"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of receptor signaling pathway via STAT",
+              "go_id": "GO:1904894",
+              "evidence_code": "IDA",
+              "qualifier": "NOT involved_in",
+              "reference": {
+                "pmids": [
+                  "24850429"
+                ]
+              }
+            },
+            {
+              "name": "positive regulation of receptor signaling pathway via STAT",
+              "go_id": "GO:1904894",
+              "evidence_code": "IDA",
+              "qualifier": "involved_in",
+              "reference": {
+                "pmids": [
+                  "11418668",
+                  "24850429"
+                ]
+              }
+            }
+          ],
+          "cellular_components": [
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IBA",
+              "qualifier": "is_active_in"
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IDA",
+              "qualifier": "is_active_in",
+              "reference": {
+                "pmids": [
+                  "35321112"
+                ]
+              }
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IDA",
+              "qualifier": "located_in",
+              "reference": {
+                "pmids": [
+                  "11418668",
+                  "17242164",
+                  "24850429"
+                ]
+              }
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IEA",
+              "qualifier": "located_in"
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "IMP",
+              "qualifier": "located_in",
+              "reference": {
+                "pmids": [
+                  "11480573"
+                ]
+              }
+            },
+            {
+              "name": "extracellular region",
+              "go_id": "GO:0005576",
+              "evidence_code": "TAS",
+              "qualifier": "located_in"
+            }
+          ]
+        },
+        "map_locations": [
+          {
+            "map_type": "Cytogenetic",
+            "map_value": "5q22.1"
+          }
+        ]
+      },
+      "query": [
+        "TSLP"
+      ]
+    }
+  ],
+  "total_count": 3
+}

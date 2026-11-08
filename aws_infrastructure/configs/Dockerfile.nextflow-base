@@ -13,18 +13,20 @@ FROM python:3.11-slim
 #
 # Build multi-arch (Batch=amd64, dev Mac=arm64):
 #   docker buildx build --platform linux/amd64,linux/arm64 \
-#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest \
+#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest \
 #     --push .
 #
 # Build amd64-only (faster, sufficient for Batch):
 #   docker buildx build --platform linux/amd64 \
-#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest \
+#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest \
 #     --push .
 
 # Install system dependencies
-RUN apt-get update \
+RUN set -eux; \
+    AWSARCH="$(uname -m | sed 's/aarch64/aarch64/;s/x86_64/x86_64/')"; \
+    apt-get update \
     && apt-get install -y --no-install-recommends curl unzip ca-certificates procps \
-    && curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
+    && curl -s "https://awscli.amazonaws.com/awscli-exe-linux-${AWSARCH}.zip" -o /tmp/awscliv2.zip \
     && unzip -q /tmp/awscliv2.zip -d /tmp \
     && /tmp/aws/install \
     && rm -rf /tmp/awscliv2.zip /tmp/aws \
@@ -45,7 +47,7 @@ RUN apt-get update \
 #   AttributeError: _ARRAY_API not found
 # This broke every cheminformatics workflow downstream of biomni-tools
 # (caught on dev via cyp_ddi_panel runtime). Pin numpy<2 here so EVERY image
-# `FROM biomate-nextflow-base` inherits a consistent numpy + RDKit ABI.
+# `FROM biomate/nextflow-base` inherits a consistent numpy + RDKit ABI.
 # When rdkit ships numpy-2-compatible wheels broadly (track via
 # https://github.com/rdkit/rdkit/issues — numpy 2 support was added in
 # rdkit 2024.09.1+), remove this pin or bump to numpy<3.

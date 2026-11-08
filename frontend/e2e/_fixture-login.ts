@@ -23,7 +23,7 @@
  */
 import { type Page } from "@playwright/test";
 
-export const FIXTURE_EMAIL = "lifeifei163361@163.com";
+export const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@163.com";
 export const FIXTURE_PASSWORD =
   process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
 export const E2E_TOKEN =

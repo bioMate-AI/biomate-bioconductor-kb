@@ -383,7 +383,7 @@ with open("fit_genomic_prediction_model_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("fit_genomic_prediction_model_output.txt", "w") as f:
-    f.write("Biomni: Fit Genomic Prediction Model" + NL)
+    f.write("BioMate: Fit Genomic Prediction Model" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

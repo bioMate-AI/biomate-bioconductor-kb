@@ -149,6 +149,17 @@ RUN groupadd -g 1000 galaxy && useradd -u 1000 -g 1000 -d /app -s /bin/bash gala
 COPY --chown=galaxy:galaxy requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# RDKit — required in-process by the Design & generate module
+# (backend/lib/galaxy/ai/drug_discovery/*, webapps/.../api/generation.py:
+# Chem/QED/BRICS/Descriptors/Crippen/FilterCatalog). Kept out of Galaxy's
+# pinned-requirements.txt so Galaxy's pins stay pristine. Without it the
+# generator returns "no candidates: rdkit_unavailable" (2026-09-13).
+# MUST be a numpy-2-compatible build: this image ships numpy 2.x, and older
+# rdkit (2023.9.x, built for numpy 1.x) SEGFAULTS in rdkit.ML.InfoTheory under
+# numpy 2 — which manifested as generation runs hanging forever. rdkit>=2024.3
+# supports numpy 2 (verified 2024.3.5 on py3.9 under numpy 2.0.2).
+RUN pip install --no-cache-dir rdkit==2024.3.5
+
 # Copy application code with correct ownership in one shot.
 COPY --chown=galaxy:galaxy . .
 

@@ -1,0 +1,22 @@
+2013_CHUGAI n0* 10 {1: np.float64(0.322), 2: np.float64(0.336), 5: np.float64(0.357), 10: np.float64(0.361), 25: np.float64(0.35)}
+2015_Ahlbach n0* 10 {1: np.float64(0.302), 2: np.float64(0.315), 5: np.float64(0.334), 10: np.float64(0.34), 25: np.float64(0.332)}
+2015_Wang n0* 10 {1: np.float64(0.263), 2: np.float64(0.277), 5: np.float64(0.296), 10: np.float64(0.306), 25: np.float64(0.301)}
+2016_Furukawa n0* 25 {1: np.float64(0.32), 2: np.float64(0.339), 5: np.float64(0.374), 10: np.float64(0.388), 25: np.float64(0.392)}
+2017_Pye n0* 10 {1: np.float64(0.3), 2: np.float64(0.312), 5: np.float64(0.327), 10: np.float64(0.33), 25: np.float64(0.317)}
+2018_Naylor n0* 10 {1: np.float64(0.32), 2: np.float64(0.337), 5: np.float64(0.364), 10: np.float64(0.372), 25: np.float64(0.364)}
+2020_Barlow n0* 10 {1: np.float64(0.303), 2: np.float64(0.317), 5: np.float64(0.336), 10: np.float64(0.341), 25: np.float64(0.331)}
+2020_Furukawa n0* 10 {1: np.float64(0.306), 2: np.float64(0.319), 5: np.float64(0.34), 10: np.float64(0.345), 25: np.float64(0.336)}
+2020_Le Roux n0* 10 {1: np.float64(0.279), 2: np.float64(0.289), 5: np.float64(0.306), 10: np.float64(0.309), 25: np.float64(0.297)}
+2020_Townsend n0* 5 {1: np.float64(0.291), 2: np.float64(0.3), 5: np.float64(0.309), 10: np.float64(0.307), 25: np.float64(0.289)}
+2021_Comeau n0* 10 {1: np.float64(0.3), 2: np.float64(0.312), 5: np.float64(0.328), 10: np.float64(0.33), 25: np.float64(0.317)}
+2021_Golosov n0* 10 {1: np.float64(0.305), 2: np.float64(0.321), 5: np.float64(0.344), 10: np.float64(0.353), 25: np.float64(0.346)}
+2021_Kelly n0* 10 {1: np.float64(0.313), 2: np.float64(0.326), 5: np.float64(0.339), 10: np.float64(0.342), 25: np.float64(0.33)}
+2021_Wang n0* 10 {1: np.float64(0.305), 2: np.float64(0.321), 5: np.float64(0.343), 10: np.float64(0.353), 25: np.float64(0.345)}
+2022_Bhardwaj n0* 10 {1: np.float64(0.32), 2: np.float64(0.338), 5: np.float64(0.36), 10: np.float64(0.369), 25: np.float64(0.362)}
+2022_Taechalertpaisarn n0* 10 {1: np.float64(0.284), 2: np.float64(0.301), 5: np.float64(0.325), 10: np.float64(0.336), 25: np.float64(0.329)}
+2023_Ghosh n0* 10 {1: np.float64(0.305), 2: np.float64(0.321), 5: np.float64(0.344), 10: np.float64(0.354), 25: np.float64(0.346)}
+2024_Faris n0* 10 {1: np.float64(0.335), 2: np.float64(0.353), 5: np.float64(0.377), 10: np.float64(0.39), 25: np.float64(0.383)}
+2024_Koch n0* 10 {1: np.float64(0.305), 2: np.float64(0.321), 5: np.float64(0.343), 10: np.float64(0.353), 25: np.float64(0.346)}
+2024_Ly n0* 10 {1: np.float64(0.305), 2: np.float64(0.321), 5: np.float64(0.344), 10: np.float64(0.353), 25: np.float64(0.346)}
+chosen n0: {'2013_CHUGAI': 10, '2015_Ahlbach': 10, '2015_Wang': 10, '2016_Furukawa': 25, '2017_Pye': 10, '2018_Naylor': 10, '2020_Barlow': 10, '2020_Furukawa': 10, '2020_Le Roux': 10, '2020_Townsend': 5, '2021_Comeau': 10, '2021_Golosov': 10, '2021_Kelly': 10, '2021_Wang': 10, '2022_Bhardwaj': 10, '2022_Taechalertpaisarn': 10, '2023_Ghosh': 10, '2024_Faris': 10, '2024_Koch': 10, '2024_Ly': 10}
+nested rc=0

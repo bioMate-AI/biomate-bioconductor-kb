@@ -1,0 +1,32 @@
+{"id": "br_variant_type_clarify", "slot_type": "branch", "query": "Call variants from my whole-genome sequencing BAM files.", "gold_action": "clarify", "gold_target": "variant_type"}
+{"id": "br_variant_type_interp", "slot_type": "branch", "query": "Run germline variant calling with GATK HaplotypeCaller on my WGS BAMs.", "gold_action": "interpret", "gold_target": "variant_type"}
+{"id": "br_assembly_type_clarify", "slot_type": "branch", "query": "Assemble a genome from my long-read sequencing data.", "gold_action": "clarify", "gold_target": "assembly_type"}
+{"id": "br_assembly_type_interp", "slot_type": "branch", "query": "Run de novo genome assembly with Flye on my Nanopore reads.", "gold_action": "interpret", "gold_target": "assembly_type"}
+{"id": "br_rnaseq_type_clarify", "slot_type": "branch", "query": "Analyze my RNA-seq data for gene expression.", "gold_action": "clarify", "gold_target": "rnaseq_type"}
+{"id": "br_rnaseq_type_interp", "slot_type": "branch", "query": "Run single-cell RNA-seq clustering with Seurat on my 10x data.", "gold_action": "interpret", "gold_target": "rnaseq_type"}
+{"id": "br_peak_calling_type_clarify", "slot_type": "branch", "query": "Call peaks from my chromatin sequencing experiment.", "gold_action": "clarify", "gold_target": "peak_calling_type"}
+{"id": "br_peak_calling_type_interp", "slot_type": "branch", "query": "Run ATAC-seq open-chromatin peak calling (transposase-accessible).", "gold_action": "interpret", "gold_target": "peak_calling_type"}
+{"id": "br_chip_target_clarify", "slot_type": "branch", "query": "Run a ChIP-seq peak-calling pipeline on my samples.", "gold_action": "clarify", "gold_target": "chip_target"}
+{"id": "br_chip_target_interp", "slot_type": "branch", "query": "ChIP-seq for the histone mark H3K27me3 (broad peaks).", "gold_action": "interpret", "gold_target": "chip_target"}
+{"id": "br_proteomics_type_clarify", "slot_type": "branch", "query": "Quantify proteins from my mass-spectrometry raw files.", "gold_action": "clarify", "gold_target": "proteomics_type"}
+{"id": "br_proteomics_type_interp", "slot_type": "branch", "query": "Run DIA proteomics quantification with DIA-NN.", "gold_action": "interpret", "gold_target": "proteomics_type"}
+{"id": "br_cryoem_type_clarify", "slot_type": "branch", "query": "Process my cryo-EM dataset to get a structure.", "gold_action": "clarify", "gold_target": "cryoem_type"}
+{"id": "br_cryoem_type_interp", "slot_type": "branch", "query": "Run single-particle analysis (SPA) 3D reconstruction from my purified-protein micrographs.", "gold_action": "interpret", "gold_target": "cryoem_type"}
+{"id": "br_metagenomics_type_clarify", "slot_type": "branch", "query": "Profile the microbiome composition of my sequencing samples.", "gold_action": "clarify", "gold_target": "metagenomics_type"}
+{"id": "br_metagenomics_type_interp", "slot_type": "branch", "query": "Run 16S amplicon taxonomic profiling with QIIME2 / DADA2.", "gold_action": "interpret", "gold_target": "metagenomics_type"}
+{"id": "br_docking_type_clarify", "slot_type": "branch", "query": "Dock this ligand library against my target protein.", "gold_action": "clarify", "gold_target": "docking_type"}
+{"id": "br_docking_type_interp", "slot_type": "branch", "query": "Run site-directed docking with AutoDock Vina into the known ATP pocket.", "gold_action": "interpret", "gold_target": "docking_type"}
+{"id": "br_rnaseq_focus_clarify", "slot_type": "branch", "query": "Study the RNA in my sequencing samples.", "gold_action": "clarify", "gold_target": "rnaseq_focus"}
+{"id": "br_rnaseq_focus_interp", "slot_type": "branch", "query": "Run bulk mRNA differential expression (DESeq2) on tumor vs normal.", "gold_action": "interpret", "gold_target": "rnaseq_focus"}
+{"id": "pa_00", "slot_type": "param", "query": "Align my human tumor RNA-seq reads.", "gold_action": "interpret", "gold_target": "genome", "gold_value": "GRCh38"}
+{"id": "pa_01", "slot_type": "param", "query": "Run RNA-seq on Saccharomyces cerevisiae heat-stress samples.", "gold_action": "interpret", "gold_target": "genome", "gold_value": "R64-1-1"}
+{"id": "pa_02", "slot_type": "param", "query": "Align my sequencing reads to a reference and quantify expression.", "gold_action": "clarify", "gold_target": "genome"}
+{"id": "pa_03", "slot_type": "param", "query": "Run variant calling on my samples.", "gold_action": "clarify", "gold_target": "genome"}
+{"id": "pa_04", "slot_type": "param", "query": "Standard polyA stranded (reverse) library, run the RNA-seq pipeline for human.", "gold_action": "interpret", "gold_target": "strandedness", "gold_value": "reverse"}
+{"id": "pa_05", "slot_type": "param", "query": "Run the RNA-seq pipeline \u2014 I'm not sure about the library strandedness.", "gold_action": "clarify", "gold_target": "strandedness"}
+{"id": "in_00", "slot_type": "input", "query": "Run an ADMET safety screen on CC(=O)Oc1ccccc1C(=O)O.", "gold_action": "interpret", "gold_target": "smiles"}
+{"id": "in_01", "slot_type": "input", "query": "Run an ADMET safety screen for my compound.", "gold_action": "clarify", "gold_target": "smiles"}
+{"id": "in_02", "slot_type": "input", "query": "Dock my ligands into the receptor at s3://bucket/receptor.pdb.", "gold_action": "interpret", "gold_target": "receptor_pdb"}
+{"id": "in_03", "slot_type": "input", "query": "Run molecular docking of my compound library.", "gold_action": "clarify", "gold_target": "receptor_pdb"}
+{"id": "in_04", "slot_type": "input", "query": "Run DESeq2 on my counts matrix counts.tsv (genes x samples).", "gold_action": "interpret", "gold_target": "matrix"}
+{"id": "in_05", "slot_type": "input", "query": "Run differential expression analysis.", "gold_action": "clarify", "gold_target": "matrix"}

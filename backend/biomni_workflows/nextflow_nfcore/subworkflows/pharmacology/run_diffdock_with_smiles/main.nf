@@ -198,7 +198,7 @@ with open("run_diffdock_with_smiles_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("run_diffdock_with_smiles_output.txt", "w") as f:
-    f.write("Biomni: Run Diffdock With Smiles" + NL)
+    f.write("BioMate: Run Diffdock With Smiles" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -1,0 +1,279 @@
+{
+  "source": "s3://knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.pseudobulk_merged.h5ad",
+  "source_size": 44566657140,
+  "source_etag": "\"757ccc082f2a0ca99868bee4604c962c-84\"",
+  "matrix_encoding": "csr_matrix",
+  "matrix_shape": [
+    278684,
+    18129
+  ],
+  "selection": "eligible non-targeting keep_for_DE rows; first32 SHA256-sorted guide IDs, alternating feature/reference pools; all eligible runs retained",
+  "pool_salt": "control-pools-20260912:",
+  "selected_guides": [
+    "NTC-696",
+    "NTC-842",
+    "NTC-110",
+    "NTC-068",
+    "NTC-048",
+    "NTC-926",
+    "NTC-343",
+    "NTC-969",
+    "NTC-902",
+    "NTC-768",
+    "NTC-962",
+    "NTC-062",
+    "NTC-598",
+    "NTC-777",
+    "NTC-227",
+    "NTC-957",
+    "NTC-258",
+    "NTC-500",
+    "NTC-107",
+    "NTC-748",
+    "NTC-841",
+    "NTC-821",
+    "NTC-415",
+    "NTC-566",
+    "NTC-850",
+    "NTC-142",
+    "NTC-302",
+    "NTC-747",
+    "NTC-235",
+    "NTC-512",
+    "NTC-773",
+    "NTC-298"
+  ],
+  "eligible_profiles": 10303,
+  "extracted_profiles": 348,
+  "selected_row_uncompressed_bytes": 59520272,
+  "genes": 132,
+  "raw_integer_nonnegative_finite": true,
+  "full_library_matches_obs_total_counts": true,
+  "aggregates": [
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "pool": "feature",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1081,
+      "library_counts": 9341399
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Rest",
+      "pool": "reference",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1222,
+      "library_counts": 11468234
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "pool": "feature",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1172,
+      "library_counts": 16228302
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim48hr",
+      "pool": "reference",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1182,
+      "library_counts": 15341560
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "pool": "feature",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1181,
+      "library_counts": 12554065
+    },
+    {
+      "donor": "CE0006864",
+      "condition": "Stim8hr",
+      "pool": "reference",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1188,
+      "library_counts": 12327613
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "pool": "feature",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1549,
+      "library_counts": 14404940
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Rest",
+      "pool": "reference",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1370,
+      "library_counts": 12107222
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "pool": "feature",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1595,
+      "library_counts": 23503881
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim48hr",
+      "pool": "reference",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1274,
+      "library_counts": 19042530
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "pool": "feature",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1524,
+      "library_counts": 18839149
+    },
+    {
+      "donor": "CE0008162",
+      "condition": "Stim8hr",
+      "pool": "reference",
+      "profiles": 16,
+      "guides": 16,
+      "n_cells": 1219,
+      "library_counts": 14965626
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "pool": "feature",
+      "profiles": 10,
+      "guides": 10,
+      "n_cells": 1456,
+      "library_counts": 16220592
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Rest",
+      "pool": "reference",
+      "profiles": 15,
+      "guides": 15,
+      "n_cells": 1122,
+      "library_counts": 11432166
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "pool": "feature",
+      "profiles": 11,
+      "guides": 11,
+      "n_cells": 1471,
+      "library_counts": 17956694
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim48hr",
+      "pool": "reference",
+      "profiles": 12,
+      "guides": 12,
+      "n_cells": 1081,
+      "library_counts": 13245576
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "pool": "feature",
+      "profiles": 10,
+      "guides": 10,
+      "n_cells": 1374,
+      "library_counts": 19785330
+    },
+    {
+      "donor": "CE0008678",
+      "condition": "Stim8hr",
+      "pool": "reference",
+      "profiles": 13,
+      "guides": 13,
+      "n_cells": 1013,
+      "library_counts": 13992716
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "pool": "feature",
+      "profiles": 13,
+      "guides": 13,
+      "n_cells": 1054,
+      "library_counts": 10117259
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Rest",
+      "pool": "reference",
+      "profiles": 14,
+      "guides": 14,
+      "n_cells": 2025,
+      "library_counts": 19440066
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "pool": "feature",
+      "profiles": 14,
+      "guides": 14,
+      "n_cells": 1295,
+      "library_counts": 12477810
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim48hr",
+      "pool": "reference",
+      "profiles": 14,
+      "guides": 14,
+      "n_cells": 2469,
+      "library_counts": 25922779
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "pool": "feature",
+      "profiles": 15,
+      "guides": 15,
+      "n_cells": 1202,
+      "library_counts": 15332089
+    },
+    {
+      "donor": "CE0010866",
+      "condition": "Stim8hr",
+      "pool": "reference",
+      "profiles": 15,
+      "guides": 15,
+      "n_cells": 2150,
+      "library_counts": 28233640
+    }
+  ],
+  "limitations": [
+    "Pilot32-guide subset, not all eligible controls.",
+    "Guide-disjoint controls are not independent biological donors.",
+    "No perturbed response or donor-specific label extracted."
+  ],
+  "artifact_sha256": {
+    "controls.npz": "442a0b4500c305787d869efc0ad8e8e6c48028e3c65d9b7a17e31180c6405d4e",
+    "baseline_aggregates.npz": "90dd86ec2fb393564e636cd9a25eb3c7cb960808cc67104f53b3abda5baf6836"
+  }
+}

@@ -1,0 +1,11 @@
+# Control-pool quality
+
+After summing raw counts within donor/condition/pool and applying natural log1p(10,000 × gene count / full-library UMI sum), feature and reference pools have mean across-gene MSE **0.004642** and mean Pearson **0.997259** across 12 donor-condition comparisons. MSE ranges from 0.000979 to 0.009287; Pearson ranges from 0.995395 to 0.999454. Per-comparison gene detection, profile, guide, cell and UMI coverage are recorded in `control_quality.json`.
+
+These are expression-profile agreement measures, heavily influenced by gene abundance. They are not perturbation-effect predictive correlations, biological replicate confidence intervals, or proof of independent cohorts. Both pools share the same four donors and three conditions; they differ by guide IDs.
+
+The source README defines `keep_effective_guides` through t-test significance, and does not fully define the construction of `keep_for_DE`. We therefore inspected eligibility columns directly. Among all **11,018 non-targeting profiles**, every profile has `keep_effective_guides=true` and `keep_test_genes=true`. For these controls, `keep_for_DE` equals `keep_min_cells AND keep_total_counts` exactly: **10,303 pass; zero disagreements**. Thus the extracted control membership has no additional guide-effect significance filter in this object. This result does not establish the same property for targeting guides. Downstream prospective target selection should predeclare count/cell QC and avoid selecting targets or guides on observed perturbation significance.
+
+Source README and the metadata-only eligibility audit are saved beside this note. Quality calculations use the saved count artifacts without new expression reads.
+
+For **267,666 targeting profiles**, the four flags' conjunction also equals `keep_for_DE` exactly. Basic cell/count QC passes 239,206 profiles, while `keep_for_DE` passes 224,761: an additional **14,445 profiles** are excluded by effective-guide and/or test-gene eligibility. The README identifies the effective-guide flag as significance based. Consequently the frozen targeting pilot is QC- and guide-effect-conditioned and cannot estimate performance across all prospective perturbations. The frozen selection was not altered. Counts and empirical equivalence are saved in `targeting_flag_audit.json`.

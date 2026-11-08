@@ -1,0 +1,2463 @@
+[
+ {
+  "target": "a4b1",
+  "label": "integrin alpha4-beta1 (VLA-4)",
+  "reference_pdb": "4IRZ",
+  "note": "reference structure parsed from target_kb receptor_structure: \"4IRZ \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 2; tokens ['a4b1', 'integrin', 'alpha4', 'beta1', 'VLA'])",
+  "reference": {
+   "title": "Crystal structure of A4b7 headpiece complexed with Fab Natalizumab",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 2.84,
+   "doi": "10.1074/jbc.M113.501668",
+   "pubmed": 24047894,
+   "year": 2013,
+   "citation_title": "How natalizumab binds and antagonizes alpha 4 integrins.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Fab Natalizumab heavy chain",
+    "Fab Natalizumab light chain",
+    "Integrin alpha4 subunit"
+   ]
+  },
+  "receptor_uniprot": [
+   "G1TY34"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "a4b7",
+  "label": "integrin alpha4-beta7",
+  "reference_pdb": "3V4V",
+  "note": "reference structure parsed from target_kb receptor_structure: \"3V4V (alpha4beta7 headpiece) \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 2; tokens ['a4b7', 'integrin', 'alpha4', 'beta7'])",
+  "reference": {
+   "title": "crystal structure of a4b7 headpiece complexed with Fab ACT-1 and RO0505376",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 3.1,
+   "doi": "10.1083/jcb.201110023",
+   "pubmed": 22232704,
+   "year": 2012,
+   "citation_title": "Structural specializations of a4b7, an Integrin that Mediates Rolling Adhesion",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Integrin alpha-4",
+    "Integrin beta-7",
+    "MONOCLONAL ANTIBODY Act-1 HEAVY CHAIN",
+    "MONOCLONAL ANTIBODY Act-1 LIGHT CHAIN"
+   ]
+  },
+  "receptor_uniprot": [
+   "P13612",
+   "P26010"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "avb6",
+  "label": "integrin alpha-v beta-6",
+  "reference_pdb": "9XMM",
+  "note": "reference structure parsed from target_kb receptor_structure: \"avb6_ourstructure_v1.cif (9XMM-derived, metal-complete)\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 2; tokens ['avb6', 'integrin', 'alpha', 'beta'])",
+  "reference": {
+   "title": "Cryo-EM structure of Integrin alpha V beta 6 complex with a bicyclic inhibitory peptide",
+   "method": "ELECTRON MICROSCOPY",
+   "resolution": 2.88,
+   "doi": "10.1002/anie.1254428",
+   "pubmed": 41937119,
+   "year": 2026,
+   "citation_title": "Ansamer-Controlled Bicyclic Peptides as Integrin alpha v beta 6 Targeting Agents.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "ALA-TRP-ARG-GLY-ASP-CHG-CYS-ASN-PRO",
+    "Integrin alpha-V heavy chain",
+    "Integrin beta-6"
+   ]
+  },
+  "receptor_uniprot": [
+   "P06756",
+   "P18564"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "baff",
+  "label": "BAFF/BLyS (TNFSF13B)",
+  "reference_pdb": "1OQD",
+  "note": "reference structure parsed from target_kb receptor_structure: \"1OQD \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "AMBIGUOUS: no entity description matched the target name; all protein entities used",
+  "reference": {
+   "title": "Crystal structure of sTALL-1 and BCMA",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 2.6,
+   "doi": "10.1038/nature01543",
+   "pubmed": 12721620,
+   "year": 2003,
+   "citation_title": "Ligand-receptor binding revealed by the TNF family member TALL-1.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Tumor necrosis factor ligand superfamily member 13B, soluble form",
+    "Tumor necrosis factor receptor superfamily member 17"
+   ]
+  },
+  "receptor_uniprot": [
+   "Q9Y275"
+  ],
+  "n_cyclic_complexes": 5,
+  "n_non_antibody_receptor": 5,
+  "structure_status": "cyclic-peptide complexes available",
+  "templates": [
+   {
+    "pdb_id": "1OQE",
+    "pep_chain": "N",
+    "seq": "PTPCVPAECFDLLVRHCVACGLLR",
+    "closure": "disulfide",
+    "ring_residues": 14,
+    "resolution": 2.5,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 162,
+    "hbonds": 14,
+    "salt_bridges": 10,
+    "hydrophobic": 18,
+    "metal_contacts": 0,
+    "buried_sasa": 667.5,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:LLVR"
+    ],
+    "receptor_desc": [
+     "Tumor necrosis factor ligand superfamily member 13B, soluble form"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "E",
+      124,
+      "ARG",
+      32
+     ],
+     [
+      "E",
+      65,
+      "TYR",
+      20
+     ],
+     [
+      "E",
+      90,
+      "ARG",
+      20
+     ],
+     [
+      "E",
+      92,
+      "ILE",
+      10
+     ],
+     [
+      "E",
+      64,
+      "THR",
+      10
+     ],
+     [
+      "E",
+      123,
+      "PRO",
+      9
+     ],
+     [
+      "E",
+      68,
+      "GLY",
+      8
+     ],
+     [
+      "F",
+      134,
+      "ASP",
+      8
+     ]
+    ],
+    "doi": "10.1038/nature01543",
+    "pubmed": 12721620,
+    "title": "Crystal structure of sTALL-1 with BAFF-R",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "8ZUJ",
+    "pep_chain": "C",
+    "seq": "PCVPAECFDLLVRHCVACGLLRTP",
+    "closure": "disulfide",
+    "ring_residues": 14,
+    "resolution": 2.58,
+    "method": "ELECTRON MICROSCOPY",
+    "contacts": 111,
+    "hbonds": 7,
+    "salt_bridges": 4,
+    "hydrophobic": 22,
+    "metal_contacts": 0,
+    "buried_sasa": 460.4,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:LLVR",
+     "I:ACGL"
+    ],
+    "receptor_desc": [
+     "Tumor necrosis factor ligand superfamily member 13b, soluble form"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "F",
+      206,
+      "TYR",
+      25
+     ],
+     [
+      "F",
+      265,
+      "ARG",
+      19
+     ],
+     [
+      "F",
+      266,
+      "GLU",
+      17
+     ],
+     [
+      "F",
+      231,
+      "ARG",
+      13
+     ],
+     [
+      "F",
+      264,
+      "PRO",
+      9
+     ],
+     [
+      "F",
+      233,
+      "ILE",
+      9
+     ],
+     [
+      "F",
+      209,
+      "GLY",
+      8
+     ],
+     [
+      "F",
+      208,
+      "MET",
+      4
+     ]
+    ],
+    "doi": "10.1038/s41467-025-61271-6",
+    "pubmed": 40593711,
+    "title": "Pentagonal cluster of BAFF-BAFFR ectodomain complex",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "1OQD",
+    "pep_chain": "N",
+    "seq": "CSQNEYFDSLLHACIPCQLRC",
+    "closure": "disulfide",
+    "ring_residues": 14,
+    "resolution": 2.6,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 132,
+    "hbonds": 11,
+    "salt_bridges": 9,
+    "hydrophobic": 13,
+    "metal_contacts": 0,
+    "buried_sasa": 533.4,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:SLLH"
+    ],
+    "receptor_desc": [
+     "Tumor necrosis factor ligand superfamily member 13B, soluble form"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "E",
+      124,
+      "ARG",
+      35
+     ],
+     [
+      "E",
+      125,
+      "GLU",
+      16
+     ],
+     [
+      "E",
+      65,
+      "TYR",
+      14
+     ],
+     [
+      "E",
+      90,
+      "ARG",
+      12
+     ],
+     [
+      "E",
+      123,
+      "PRO",
+      10
+     ],
+     [
+      "E",
+      92,
+      "ILE",
+      8
+     ],
+     [
+      "E",
+      68,
+      "GLY",
+      8
+     ],
+     [
+      "F",
+      101,
+      "ASN",
+      8
+     ]
+    ],
+    "doi": "10.1038/nature01543",
+    "pubmed": 12721620,
+    "title": "Crystal structure of sTALL-1 and BCMA",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "1OSG",
+    "pep_chain": "J",
+    "seq": "CHWDLLVRHWVC",
+    "closure": "disulfide",
+    "ring_residues": 12,
+    "resolution": 3.0,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 103,
+    "hbonds": 8,
+    "salt_bridges": 7,
+    "hydrophobic": 13,
+    "metal_contacts": 0,
+    "buried_sasa": 479.1,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:LLVR"
+    ],
+    "receptor_desc": [
+     "Tumor necrosis factor ligand superfamily member 13B"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "D",
+      231,
+      "ARG",
+      21
+     ],
+     [
+      "D",
+      206,
+      "TYR",
+      17
+     ],
+     [
+      "D",
+      265,
+      "ARG",
+      16
+     ],
+     [
+      "D",
+      233,
+      "ILE",
+      10
+     ],
+     [
+      "D",
+      209,
+      "GLY",
+      8
+     ],
+     [
+      "D",
+      264,
+      "PRO",
+      7
+     ],
+     [
+      "E",
+      242,
+      "ASN",
+      6
+     ],
+     [
+      "E",
+      275,
+      "ASP",
+      5
+     ]
+    ],
+    "doi": "10.1021/bi034017g",
+    "pubmed": 12755599,
+    "title": "Complex between BAFF and a BR3 derived peptide presented in a beta-hairpin scaffold",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "4V46",
+    "pep_chain": "B2",
+    "seq": "TPCVPAECFDLLVRHCVACGLLRTP",
+    "closure": "disulfide",
+    "ring_residues": 14,
+    "resolution": 3.3,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 115,
+    "hbonds": 5,
+    "salt_bridges": 4,
+    "hydrophobic": 23,
+    "metal_contacts": 0,
+    "buried_sasa": 479.6,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:LLVR",
+     "I:ACGL",
+     "I:CGLL"
+    ],
+    "receptor_desc": [
+     "Tumor necrosis factor ligand superfamily member 13B"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A2",
+      265,
+      "ARG",
+      21
+     ],
+     [
+      "A2",
+      264,
+      "PRO",
+      18
+     ],
+     [
+      "A2",
+      206,
+      "TYR",
+      17
+     ],
+     [
+      "A2",
+      266,
+      "GLU",
+      14
+     ],
+     [
+      "A2",
+      231,
+      "ARG",
+      10
+     ],
+     [
+      "A2",
+      233,
+      "ILE",
+      8
+     ],
+     [
+      "A2",
+      209,
+      "GLY",
+      8
+     ],
+     [
+      "A2",
+      163,
+      "TYR",
+      6
+     ]
+    ],
+    "doi": "10.1038/nsb925",
+    "pubmed": 12715002,
+    "title": "Crystal structure of the BAFF-BAFF-R complex",
+    "affinity": [],
+    "paper_opened": false
+   }
+  ],
+  "binding_mode_summary": {
+   "n_templates": 5,
+   "closures": [
+    "disulfide"
+   ],
+   "median_ring_residues": 14.0,
+   "median_contacts": 115.0,
+   "median_hbonds": 8.0,
+   "median_salt_bridges": 7.0,
+   "median_buried_sasa_A2": 479.6,
+   "median_buried_apolar_fraction": 0.6537257357545397,
+   "frac_with_D": 0.0,
+   "frac_with_NMe": 0.0,
+   "frac_with_metal_contact": 0.0,
+   "turns_seen": [
+    "I"
+   ],
+   "caveat": "residue numbering differs between entries; hotspot lists are per entry, not harmonised across entries"
+  }
+ },
+ {
+  "target": "c5",
+  "label": "complement C5",
+  "reference_pdb": "5I5K",
+  "note": "reference structure parsed from target_kb receptor_structure: \"5I5K \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 1; tokens ['complement'])",
+  "reference": {
+   "title": "Structure of complement C5 in complex with eculizumab",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 4.2,
+   "doi": "10.4049/jimmunol.1600280",
+   "pubmed": 27194791,
+   "year": 2016,
+   "citation_title": "Structural Basis for Eculizumab-Mediated Inhibition of the Complement Terminal Pathway.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Complement C5",
+    "Eculizumab heavy chain (variable domain)",
+    "Eculizumab light chain (variable domain)"
+   ]
+  },
+  "receptor_uniprot": [
+   "P01031"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "cd20",
+  "label": "CD20 (MS4A1)",
+  "reference_pdb": "6Y92",
+  "note": "reference structure parsed from target_kb receptor_structure: \"6Y92 \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 2; tokens ['cd20', 'CD20', 'MS4A1'])",
+  "reference": {
+   "title": "Structure of full-length CD20 in complex with Ofatumumab Fab",
+   "method": "ELECTRON MICROSCOPY",
+   "resolution": 4.73,
+   "doi": "10.1126/science.abb8008",
+   "pubmed": 32792392,
+   "year": 2020,
+   "citation_title": "Binding mechanisms of therapeutic antibodies to human CD20.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "B-lymphocyte antigen CD20",
+    "Ofatumumab Fab heavy chain",
+    "Ofatumumab Fab light chain"
+   ]
+  },
+  "receptor_uniprot": [
+   "P11836"
+  ],
+  "n_cyclic_complexes": 1,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "ONLY antibody-epitope complexes (the 'receptor' chains are antibody-like): not a cyclic-peptide binder of the target",
+  "templates": [
+   {
+    "pdb_id": "2OSL",
+    "pep_chain": "P",
+    "seq": "CEPANPSEKNSPSTQYCYSI",
+    "closure": "disulfide",
+    "ring_residues": 17,
+    "resolution": 2.6,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 203,
+    "hbonds": 10,
+    "salt_bridges": 0,
+    "hydrophobic": 13,
+    "metal_contacts": 0,
+    "buried_sasa": 526.1,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:NPSE",
+     "I:EKNS",
+     "I:YCYS"
+    ],
+    "receptor_desc": [
+     "B-lymphocyte antigen CD20",
+     "heavy chain of the Rituximab Fab fragment,heavy chain of the Rituximab Fab fragment",
+     "light chain of the Rituximab Fab fragment,light chain of the Rituximab Fab fragment"
+    ],
+    "receptor_antibody_like": true,
+    "hotspots_entry_numbering": [
+     [
+      "H",
+      106,
+      "TRP",
+      39
+     ],
+     [
+      "H",
+      33,
+      "ASN",
+      32
+     ],
+     [
+      "L",
+      93,
+      "ASN",
+      22
+     ],
+     [
+      "H",
+      59,
+      "SER",
+      17
+     ],
+     [
+      "H",
+      52,
+      "TYR",
+      17
+     ],
+     [
+      "H",
+      57,
+      "ASP",
+      12
+     ],
+     [
+      "H",
+      35,
+      "HIS",
+      9
+     ],
+     [
+      "L",
+      90,
+      "TRP",
+      9
+     ]
+    ],
+    "doi": "10.1074/jbc.M701654200",
+    "pubmed": 17395584,
+    "title": "Crystal structure of Rituximab Fab in complex with an epitope peptide",
+    "affinity": [],
+    "paper_opened": false
+   }
+  ],
+  "binding_mode_summary": {
+   "n_templates": 1,
+   "closures": [
+    "disulfide"
+   ],
+   "median_ring_residues": 17.0,
+   "median_contacts": 203.0,
+   "median_hbonds": 10.0,
+   "median_salt_bridges": 0.0,
+   "median_buried_sasa_A2": 526.1,
+   "median_buried_apolar_fraction": 0.4662611670785022,
+   "frac_with_D": 0.0,
+   "frac_with_NMe": 0.0,
+   "frac_with_metal_contact": 0.0,
+   "turns_seen": [
+    "I"
+   ],
+   "caveat": "residue numbering differs between entries; hotspot lists are per entry, not harmonised across entries"
+  }
+ },
+ {
+  "target": "cd40",
+  "label": "CD40",
+  "reference_pdb": "3QD6",
+  "note": "reference structure parsed from target_kb receptor_structure: \"3QD6 \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 2; tokens ['cd40', 'CD40'])",
+  "reference": {
+   "title": "Crystal structure of the CD40 and CD154 (CD40L) complex",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 3.5,
+   "doi": "10.1074/jbc.M110.208215",
+   "pubmed": 21285457,
+   "year": 2011,
+   "citation_title": "Crystallographic and mutational analysis of the CD40-CD154 complex and its implications for receptor activation",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "CD40 ligand",
+    "Tumor necrosis factor receptor superfamily member 5"
+   ]
+  },
+  "receptor_uniprot": [
+   "P29965"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "fcrn",
+  "label": "FcRn (FCGRT/\u03b22m)",
+  "reference_pdb": "4N0U",
+  "note": "reference structure parsed from target_kb receptor_structure: \"4N0U \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 2; tokens ['fcrn', 'FcRn', 'FCGRT'])",
+  "reference": {
+   "title": "Ternary complex between Neonatal Fc receptor, serum albumin and Fc",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 3.8,
+   "doi": "10.1074/jbc.M113.537563",
+   "pubmed": 24469444,
+   "year": 2014,
+   "citation_title": "Structural Insights into Neonatal Fc Receptor-based Recycling Mechanisms.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Beta-2-microglobulin",
+    "Ig gamma-1 chain C region",
+    "IgG receptor FcRn large subunit p51",
+    "Serum albumin"
+   ]
+  },
+  "receptor_uniprot": [
+   "P55899"
+  ],
+  "n_cyclic_complexes": 5,
+  "n_non_antibody_receptor": 5,
+  "structure_status": "cyclic-peptide complexes available",
+  "templates": [
+   {
+    "pdb_id": "3M17",
+    "pep_chain": "I",
+    "seq": "RFXTGHFGXXYPC",
+    "closure": "disulfide",
+    "ring_residues": 11,
+    "resolution": 2.6,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 165,
+    "hbonds": 5,
+    "salt_bridges": 0,
+    "hydrophobic": 24,
+    "metal_contacts": 0,
+    "buried_sasa": 396.5,
+    "n_d": 0,
+    "n_nme": 2,
+    "beta_turns": [
+     "I:GHFG"
+    ],
+    "receptor_desc": [
+     "IgG receptor FcRn large subunit p51"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A",
+      133,
+      "GLU",
+      41
+     ],
+     [
+      "A",
+      131,
+      "TRP",
+      38
+     ],
+     [
+      "A",
+      132,
+      "PRO",
+      17
+     ],
+     [
+      "A",
+      113,
+      "ASN",
+      13
+     ],
+     [
+      "A",
+      115,
+      "GLU",
+      12
+     ],
+     [
+      "A",
+      84,
+      "GLY",
+      10
+     ],
+     [
+      "A",
+      83,
+      "GLY",
+      10
+     ],
+     [
+      "A",
+      112,
+      "LEU",
+      9
+     ]
+    ],
+    "doi": "10.1074/jbc.M110.120667",
+    "pubmed": 20592032,
+    "title": "Crystal structure of human FcRn with a monomeric peptide inhibitor",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "3M1B",
+    "pep_chain": "I",
+    "seq": "XTGHFGXXYPC",
+    "closure": "disulfide",
+    "ring_residues": 11,
+    "resolution": 3.1,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 147,
+    "hbonds": 4,
+    "salt_bridges": 0,
+    "hydrophobic": 22,
+    "metal_contacts": 0,
+    "buried_sasa": 407.7,
+    "n_d": 0,
+    "n_nme": 2,
+    "beta_turns": [],
+    "receptor_desc": [
+     "IgG receptor FcRn large subunit p51"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A",
+      131,
+      "TRP",
+      36
+     ],
+     [
+      "A",
+      133,
+      "GLU",
+      30
+     ],
+     [
+      "A",
+      132,
+      "PRO",
+      14
+     ],
+     [
+      "A",
+      113,
+      "ASN",
+      12
+     ],
+     [
+      "A",
+      82,
+      "LEU",
+      11
+     ],
+     [
+      "A",
+      84,
+      "GLY",
+      8
+     ],
+     [
+      "A",
+      83,
+      "GLY",
+      8
+     ],
+     [
+      "A",
+      112,
+      "LEU",
+      7
+     ]
+    ],
+    "doi": "10.1074/jbc.M110.120667",
+    "pubmed": 20592032,
+    "title": "Crystal structure of human FcRn with a dimeric peptide inhibitor",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "3M1B",
+    "pep_chain": "J",
+    "seq": "FXTGHFGXXYPC",
+    "closure": "disulfide",
+    "ring_residues": 11,
+    "resolution": 3.1,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 141,
+    "hbonds": 3,
+    "salt_bridges": 0,
+    "hydrophobic": 21,
+    "metal_contacts": 0,
+    "buried_sasa": 388.0,
+    "n_d": 0,
+    "n_nme": 2,
+    "beta_turns": [],
+    "receptor_desc": [
+     "IgG receptor FcRn large subunit p51"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "C",
+      133,
+      "GLU",
+      42
+     ],
+     [
+      "C",
+      131,
+      "TRP",
+      30
+     ],
+     [
+      "C",
+      132,
+      "PRO",
+      29
+     ],
+     [
+      "C",
+      84,
+      "GLY",
+      10
+     ],
+     [
+      "C",
+      112,
+      "LEU",
+      8
+     ],
+     [
+      "C",
+      83,
+      "GLY",
+      8
+     ],
+     [
+      "C",
+      115,
+      "GLU",
+      4
+     ],
+     [
+      "C",
+      113,
+      "ASN",
+      4
+     ]
+    ],
+    "doi": "10.1074/jbc.M110.120667",
+    "pubmed": 20592032,
+    "title": "Crystal structure of human FcRn with a dimeric peptide inhibitor",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "5BJT",
+    "pep_chain": "S",
+    "seq": "RYFCTKWKHGWCEEVG",
+    "closure": "disulfide",
+    "ring_residues": 9,
+    "resolution": 3.2,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 135,
+    "hbonds": 4,
+    "salt_bridges": 1,
+    "hydrophobic": 31,
+    "metal_contacts": 0,
+    "buried_sasa": 568.5,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [],
+    "receptor_desc": [
+     "Beta-2-microglobulin",
+     "IgG receptor FcRn large subunit p51"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "E",
+      193,
+      "PHE",
+      23
+     ],
+     [
+      "A",
+      103,
+      "THR",
+      22
+     ],
+     [
+      "E",
+      241,
+      "THR",
+      17
+     ],
+     [
+      "A",
+      104,
+      "SER",
+      13
+     ],
+     [
+      "A",
+      157,
+      "PHE",
+      12
+     ],
+     [
+      "E",
+      240,
+      "LEU",
+      9
+     ],
+     [
+      "A",
+      101,
+      "ASP",
+      7
+     ],
+     [
+      "A",
+      156,
+      "LEU",
+      6
+     ]
+    ],
+    "doi": "10.1073/pnas.1618291114",
+    "pubmed": 28330995,
+    "title": "Crystal structure of human FcRn with a peptide inhibitor at multiple sites",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "5BJT",
+    "pep_chain": "P",
+    "seq": "RYFCTKWKHGWCEEVG",
+    "closure": "disulfide",
+    "ring_residues": 9,
+    "resolution": 3.2,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 116,
+    "hbonds": 5,
+    "salt_bridges": 0,
+    "hydrophobic": 28,
+    "metal_contacts": 0,
+    "buried_sasa": 500.7,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [],
+    "receptor_desc": [
+     "IgG receptor FcRn large subunit p51"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A",
+      161,
+      "HIS",
+      27
+     ],
+     [
+      "A",
+      149,
+      "ASN",
+      21
+     ],
+     [
+      "A",
+      153,
+      "THR",
+      15
+     ],
+     [
+      "A",
+      157,
+      "PHE",
+      10
+     ],
+     [
+      "A",
+      152,
+      "LEU",
+      9
+     ],
+     [
+      "A",
+      162,
+      "ARG",
+      7
+     ],
+     [
+      "A",
+      158,
+      "SER",
+      5
+     ],
+     [
+      "A",
+      156,
+      "LEU",
+      4
+     ]
+    ],
+    "doi": "10.1073/pnas.1618291114",
+    "pubmed": 28330995,
+    "title": "Crystal structure of human FcRn with a peptide inhibitor at multiple sites",
+    "affinity": [],
+    "paper_opened": false
+   }
+  ],
+  "binding_mode_summary": {
+   "n_templates": 5,
+   "closures": [
+    "disulfide"
+   ],
+   "median_ring_residues": 11.0,
+   "median_contacts": 141.0,
+   "median_hbonds": 4.0,
+   "median_salt_bridges": 0.0,
+   "median_buried_sasa_A2": 407.7,
+   "median_buried_apolar_fraction": 0.7105670103092783,
+   "frac_with_D": 0.0,
+   "frac_with_NMe": 0.6,
+   "frac_with_metal_contact": 0.0,
+   "turns_seen": [
+    "I"
+   ],
+   "caveat": "residue numbering differs between entries; hotspot lists are per entry, not harmonised across entries"
+  }
+ },
+ {
+  "target": "il17a",
+  "label": "IL-17A",
+  "reference_pdb": "4HSA",
+  "note": "reference structure parsed from target_kb receptor_structure: \"4HSA \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 1; tokens ['il17a', '17A'])",
+  "reference": {
+   "title": "Structure of interleukin 17a in complex with il17ra receptor",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 3.15,
+   "doi": "10.1038/ncomms2880",
+   "pubmed": 23695682,
+   "year": 2013,
+   "citation_title": "Crystal structures of interleukin 17A and its complex with IL-17 receptor A.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Interleukin-17 receptor A",
+    "Interleukin-17A"
+   ]
+  },
+  "receptor_uniprot": [
+   "Q16552"
+  ],
+  "n_cyclic_complexes": 1,
+  "n_non_antibody_receptor": 1,
+  "structure_status": "cyclic-peptide complexes available",
+  "templates": [
+   {
+    "pdb_id": "5VB9",
+    "pep_chain": "D",
+    "seq": "CWVLEYDMFGALHCR",
+    "closure": "disulfide",
+    "ring_residues": 14,
+    "resolution": 1.7,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 147,
+    "hbonds": 6,
+    "salt_bridges": 1,
+    "hydrophobic": 34,
+    "metal_contacts": 0,
+    "buried_sasa": 532.4,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:DMFG"
+    ],
+    "receptor_desc": [
+     "Interleukin-17A"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "B",
+      67,
+      "TRP",
+      40
+     ],
+     [
+      "B",
+      65,
+      "VAL",
+      28
+     ],
+     [
+      "B",
+      62,
+      "TYR",
+      22
+     ],
+     [
+      "B",
+      63,
+      "PRO",
+      21
+     ],
+     [
+      "B",
+      64,
+      "SER",
+      9
+     ],
+     [
+      "B",
+      53,
+      "LEU",
+      5
+     ],
+     [
+      "B",
+      66,
+      "ILE",
+      4
+     ],
+     [
+      "B",
+      41,
+      "SER",
+      4
+     ]
+    ],
+    "doi": "10.1371/journal.pone.0190850",
+    "pubmed": 29329326,
+    "title": "IL-17A in complex with peptide",
+    "affinity": [],
+    "paper_opened": false
+   }
+  ],
+  "binding_mode_summary": {
+   "n_templates": 1,
+   "closures": [
+    "disulfide"
+   ],
+   "median_ring_residues": 14.0,
+   "median_contacts": 147.0,
+   "median_hbonds": 6.0,
+   "median_salt_bridges": 1.0,
+   "median_buried_sasa_A2": 532.4,
+   "median_buried_apolar_fraction": 0.6299774605559729,
+   "frac_with_D": 0.0,
+   "frac_with_NMe": 0.0,
+   "frac_with_metal_contact": 0.0,
+   "turns_seen": [
+    "I"
+   ],
+   "caveat": "residue numbering differs between entries; hotspot lists are per entry, not harmonised across entries"
+  }
+ },
+ {
+  "target": "il17f",
+  "label": "IL-17F",
+  "reference_pdb": "5N92",
+  "note": "reference structure parsed from target_kb receptor_structure: \"5N92 \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 1; tokens ['il17f', '17F'])",
+  "reference": {
+   "title": "Crystal Structure of Human IL-17AF",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 2.3,
+   "doi": "10.1038/s41598-017-08360-9",
+   "pubmed": 28827714,
+   "year": 2017,
+   "citation_title": "The human IL-17A/F heterodimer: a two-faced cytokine with unique receptor recognition properties.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Interleukin-17A",
+    "Interleukin-17F"
+   ]
+  },
+  "receptor_uniprot": [
+   "Q96PD4"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "il23",
+  "label": "IL-23 (p19/p40)",
+  "reference_pdb": "6WDP",
+  "note": "reference structure parsed from target_kb receptor_structure: \"6WDP / 5MXA \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "AMBIGUOUS: no entity description matched the target name; all protein entities used",
+  "reference": {
+   "title": "Interleukin 12 receptor subunit beta-1",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 2.01,
+   "doi": "10.1016/j.cell.2021.01.018",
+   "pubmed": 33606986,
+   "year": 2021,
+   "citation_title": "Structural basis for IL-12 and IL-23 receptor sharing reveals a gateway for shaping actions on T versus NK cells.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Interleukin-12 receptor subunit beta-1"
+   ]
+  },
+  "receptor_uniprot": [
+   "P42701"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "il2ra",
+  "label": "IL-2R\u03b1 (CD25)",
+  "reference_pdb": "1Z92",
+  "note": "reference structure parsed from target_kb receptor_structure: \"1Z92 \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "AMBIGUOUS: no entity description matched the target name; all protein entities used",
+  "reference": {
+   "title": "structure of interleukin-2 with its alpha receptor",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 2.8,
+   "doi": "10.1126/science.1109745",
+   "pubmed": 15933202,
+   "year": 2005,
+   "citation_title": "The structure of interleukin-2 complexed with its alpha receptor.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Interleukin-2",
+    "Interleukin-2 receptor alpha chain"
+   ]
+  },
+  "receptor_uniprot": [
+   "P01589",
+   "P60568"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "il6r",
+  "label": "IL-6 receptor",
+  "reference_pdb": "1P9M",
+  "note": "reference structure parsed from target_kb receptor_structure: \"1P9M \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "AMBIGUOUS: no entity description matched the target name; all protein entities used",
+  "reference": {
+   "title": "Crystal structure of the hexameric human IL-6/IL-6 alpha receptor/gp130 complex",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 3.65,
+   "doi": "10.1126/science.1083901",
+   "pubmed": 12829785,
+   "year": 2003,
+   "citation_title": "Hexameric Structure and Assembly of the Interleukin-6/IL-6 alpha-Receptor/gp130 Complex",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Interleukin-6",
+    "Interleukin-6 receptor alpha chain",
+    "Interleukin-6 receptor beta chain"
+   ]
+  },
+  "receptor_uniprot": [
+   "P05231",
+   "P08887",
+   "P40189"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "lfa1",
+  "label": "integrin alphaL-beta2 (LFA-1)",
+  "reference_pdb": "5E6U",
+  "note": "reference structure parsed from target_kb receptor_structure: \"5E6U / 1MQ8 (alphaL I-domain) \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 2; tokens ['lfa1', 'integrin', 'alphaL', 'beta2', 'LFA'])",
+  "reference": {
+   "title": "Structures of leukocyte integrin aLb2: The aI domain, the headpiece, and the pocket for the internal ligand",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 2.5,
+   "doi": "10.1073/pnas.1601379113",
+   "pubmed": 26936951,
+   "year": 2016,
+   "citation_title": "Leukocyte integrin alpha L beta 2 headpiece structures: The alpha I domain, the pocket for the internal ligand, and concerted movements of its loops.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Integrin alpha-L",
+    "Integrin beta-2"
+   ]
+  },
+  "receptor_uniprot": [
+   "P05107",
+   "P20701"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
+ },
+ {
+  "target": "pdl1",
+  "label": "Programmed death-ligand 1 (CD274)",
+  "reference_pdb": "5O45",
+  "note": "reference structure parsed from target_kb receptor_structure: \"5O45 chain A (PD-L1 IgV + bound macrocycle)\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 3; tokens ['pdl1', 'Programmed', 'death', 'ligand', 'CD274'])",
+  "reference": {
+   "title": "Structure of human PD-L1 in complex with inhibitor",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 0.99,
+   "doi": "10.1002/anie.201707707",
+   "pubmed": 28881104,
+   "year": 2017,
+   "citation_title": "Bioactive Macrocyclic Inhibitors of the PD-1/PD-L1 Immune Checkpoint.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "PHE-MEA-9KK-SAR-ASP-VAL-MEA-TYR-SAR-TRP-TYR-LEU-CCS-GLY-NH2",
+    "Programmed cell death 1 ligand 1"
+   ]
+  },
+  "receptor_uniprot": [
+   "Q9NZQ7"
+  ],
+  "n_cyclic_complexes": 9,
+  "n_non_antibody_receptor": 9,
+  "structure_status": "cyclic-peptide complexes available",
+  "templates": [
+   {
+    "pdb_id": "5O45",
+    "pep_chain": "B",
+    "seq": "FXXXDVXYXWYLXG",
+    "closure": "amide_like",
+    "ring_residues": 13,
+    "resolution": 0.99,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 219,
+    "hbonds": 4,
+    "salt_bridges": 0,
+    "hydrophobic": 74,
+    "metal_contacts": 0,
+    "buried_sasa": 573.8,
+    "n_d": 0,
+    "n_nme": 5,
+    "beta_turns": [
+     "II':XXDV",
+     "II:DVXY",
+     "II:XYXW"
+    ],
+    "receptor_desc": [
+     "Programmed cell death 1 ligand 1"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A",
+      56,
+      "TYR",
+      39
+     ],
+     [
+      "A",
+      115,
+      "MET",
+      29
+     ],
+     [
+      "A",
+      58,
+      "GLU",
+      29
+     ],
+     [
+      "A",
+      123,
+      "TYR",
+      24
+     ],
+     [
+      "A",
+      61,
+      "ASP",
+      17
+     ],
+     [
+      "A",
+      66,
+      "GLN",
+      16
+     ],
+     [
+      "A",
+      54,
+      "ILE",
+      10
+     ],
+     [
+      "A",
+      63,
+      "ASN",
+      9
+     ]
+    ],
+    "doi": "10.1002/anie.201707707",
+    "pubmed": 28881104,
+    "title": "Structure of human PD-L1 in complex with inhibitor",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "8ALX",
+    "pep_chain": "B",
+    "seq": "YXNPXLXWXXXXLXG",
+    "closure": "amide_like",
+    "ring_residues": 14,
+    "resolution": 1.1,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 291,
+    "hbonds": 12,
+    "salt_bridges": 0,
+    "hydrophobic": 69,
+    "metal_contacts": 0,
+    "buried_sasa": 694.5,
+    "n_d": 0,
+    "n_nme": 3,
+    "beta_turns": [
+     "I:NPXL"
+    ],
+    "receptor_desc": [
+     "Programmed cell death 1 ligand 1"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A",
+      66,
+      "GLN",
+      61
+     ],
+     [
+      "A",
+      113,
+      "ARG",
+      50
+     ],
+     [
+      "A",
+      56,
+      "TYR",
+      39
+     ],
+     [
+      "A",
+      123,
+      "TYR",
+      21
+     ],
+     [
+      "A",
+      115,
+      "MET",
+      17
+     ],
+     [
+      "A",
+      73,
+      "ASP",
+      17
+     ],
+     [
+      "A",
+      68,
+      "VAL",
+      16
+     ],
+     [
+      "A",
+      76,
+      "VAL",
+      16
+     ]
+    ],
+    "doi": "10.1186/s12943-023-01853-4",
+    "pubmed": 37679783,
+    "title": "Structure of human PD-L1 in complex with inhibitor",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "6YCR",
+    "pep_chain": "B",
+    "seq": "FFIVIRDRVFRXG",
+    "closure": "amide_like",
+    "ring_residues": 12,
+    "resolution": 1.54,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 177,
+    "hbonds": 4,
+    "salt_bridges": 2,
+    "hydrophobic": 63,
+    "metal_contacts": 0,
+    "buried_sasa": 496.0,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I':IRDR"
+    ],
+    "receptor_desc": [
+     "Programmed cell death 1 ligand 1"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A",
+      56,
+      "TYR",
+      44
+     ],
+     [
+      "A",
+      123,
+      "TYR",
+      36
+     ],
+     [
+      "A",
+      113,
+      "ARG",
+      19
+     ],
+     [
+      "A",
+      115,
+      "MET",
+      17
+     ],
+     [
+      "A",
+      122,
+      "ASP",
+      16
+     ],
+     [
+      "A",
+      66,
+      "GLN",
+      12
+     ],
+     [
+      "A",
+      121,
+      "ALA",
+      7
+     ],
+     [
+      "A",
+      54,
+      "ILE",
+      6
+     ]
+    ],
+    "doi": "10.1002/adtp.202000195",
+    "pubmed": null,
+    "title": "Structure of human PD-L1 in complex with inhibitor",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "7OUN",
+    "pep_chain": "B",
+    "seq": "AFLFVIRDRVFRCG",
+    "closure": "thioether",
+    "ring_residues": 13,
+    "resolution": 1.9,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 140,
+    "hbonds": 4,
+    "salt_bridges": 2,
+    "hydrophobic": 45,
+    "metal_contacts": 0,
+    "buried_sasa": 490.0,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I':IRDR"
+    ],
+    "receptor_desc": [
+     "Programmed cell death 1 ligand 1"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A",
+      123,
+      "TYR",
+      35
+     ],
+     [
+      "A",
+      56,
+      "TYR",
+      20
+     ],
+     [
+      "A",
+      115,
+      "MET",
+      17
+     ],
+     [
+      "A",
+      113,
+      "ARG",
+      17
+     ],
+     [
+      "A",
+      66,
+      "GLN",
+      14
+     ],
+     [
+      "A",
+      122,
+      "ASP",
+      12
+     ],
+     [
+      "A",
+      121,
+      "ALA",
+      7
+     ],
+     [
+      "A",
+      58,
+      "GLU",
+      5
+     ]
+    ],
+    "doi": "10.3390/molecules26164848",
+    "pubmed": 34443436,
+    "title": "Structure of human PD-L1 in complex with macrocyclic inhibitor",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "7UXO",
+    "pep_chain": "B",
+    "seq": "DCQWAAFLCRVYX",
+    "closure": "thioether",
+    "ring_residues": 12,
+    "resolution": 2.25,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 155,
+    "hbonds": 5,
+    "salt_bridges": 4,
+    "hydrophobic": 50,
+    "metal_contacts": 0,
+    "buried_sasa": 471.0,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [],
+    "receptor_desc": [
+     "Programmed cell death 1 ligand 1"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A",
+      115,
+      "MET",
+      30
+     ],
+     [
+      "A",
+      56,
+      "TYR",
+      26
+     ],
+     [
+      "A",
+      123,
+      "TYR",
+      23
+     ],
+     [
+      "A",
+      121,
+      "ALA",
+      12
+     ],
+     [
+      "A",
+      117,
+      "SER",
+      11
+     ],
+     [
+      "A",
+      122,
+      "ASP",
+      9
+     ],
+     [
+      "A",
+      54,
+      "ILE",
+      8
+     ],
+     [
+      "A",
+      113,
+      "ARG",
+      7
+     ]
+    ],
+    "doi": "10.1073/pnas.2210435119",
+    "pubmed": 36534810,
+    "title": "Structure of PDL1 in complex with FP30790, a Helicon Polypeptide",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "5O4Y",
+    "pep_chain": "A",
+    "seq": "FXNPHLSWSWXXRXG",
+    "closure": "amide_like",
+    "ring_residues": 14,
+    "resolution": 2.3,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 232,
+    "hbonds": 7,
+    "salt_bridges": 0,
+    "hydrophobic": 64,
+    "metal_contacts": 0,
+    "buried_sasa": 589.8,
+    "n_d": 0,
+    "n_nme": 3,
+    "beta_turns": [],
+    "receptor_desc": [
+     "Programmed cell death 1 ligand 1"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "E",
+      66,
+      "GLN",
+      57
+     ],
+     [
+      "E",
+      113,
+      "ARG",
+      35
+     ],
+     [
+      "E",
+      56,
+      "TYR",
+      34
+     ],
+     [
+      "E",
+      73,
+      "ASP",
+      22
+     ],
+     [
+      "E",
+      76,
+      "VAL",
+      17
+     ],
+     [
+      "E",
+      63,
+      "ASN",
+      14
+     ],
+     [
+      "E",
+      68,
+      "VAL",
+      13
+     ],
+     [
+      "E",
+      115,
+      "MET",
+      12
+     ]
+    ],
+    "doi": "10.1002/anie.201707707",
+    "pubmed": 28881104,
+    "title": "Structure of human PD-L1 in complex with inhibitor",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "7UXP",
+    "pep_chain": "C",
+    "seq": "DPALWQCVFAARSCYEEX",
+    "closure": "thioether",
+    "ring_residues": 12,
+    "resolution": 2.62,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 230,
+    "hbonds": 9,
+    "salt_bridges": 2,
+    "hydrophobic": 51,
+    "metal_contacts": 0,
+    "buried_sasa": 603.4,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:CYEE"
+    ],
+    "receptor_desc": [
+     "Programmed cell death 1 ligand 1"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "A",
+      63,
+      "ASN",
+      52
+     ],
+     [
+      "A",
+      56,
+      "TYR",
+      45
+     ],
+     [
+      "A",
+      115,
+      "MET",
+      30
+     ],
+     [
+      "A",
+      76,
+      "VAL",
+      14
+     ],
+     [
+      "A",
+      58,
+      "GLU",
+      12
+     ],
+     [
+      "A",
+      66,
+      "GLN",
+      11
+     ],
+     [
+      "A",
+      61,
+      "ASP",
+      10
+     ],
+     [
+      "A",
+      78,
+      "HIS",
+      9
+     ]
+    ],
+    "doi": "10.1073/pnas.2210435119",
+    "pubmed": 36534810,
+    "title": "Structure of PDL1 in complex with FP28132, a Helicon Polypeptide",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "7UXQ",
+    "pep_chain": "D",
+    "seq": "DPALWMCVFAARQCYESX",
+    "closure": "thioether",
+    "ring_residues": 12,
+    "resolution": 2.89,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 214,
+    "hbonds": 7,
+    "salt_bridges": 2,
+    "hydrophobic": 57,
+    "metal_contacts": 0,
+    "buried_sasa": 623.6,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:QCYE",
+     "I:CYES"
+    ],
+    "receptor_desc": [
+     "Programmed cell death 1 ligand 1"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "B",
+      56,
+      "TYR",
+      45
+     ],
+     [
+      "B",
+      63,
+      "ASN",
+      45
+     ],
+     [
+      "B",
+      115,
+      "MET",
+      23
+     ],
+     [
+      "B",
+      76,
+      "VAL",
+      22
+     ],
+     [
+      "B",
+      58,
+      "GLU",
+      12
+     ],
+     [
+      "B",
+      66,
+      "GLN",
+      11
+     ],
+     [
+      "B",
+      61,
+      "ASP",
+      9
+     ],
+     [
+      "B",
+      78,
+      "HIS",
+      9
+     ]
+    ],
+    "doi": "10.1073/pnas.2210435119",
+    "pubmed": 36534810,
+    "title": "Structure of PDL1 in complex with FP28135, a Helicon Polypeptide",
+    "affinity": [],
+    "paper_opened": false
+   },
+   {
+    "pdb_id": "7UX5",
+    "pep_chain": "F",
+    "seq": "DPALWQCVFAARYCYEEX",
+    "closure": "thioether",
+    "ring_residues": 12,
+    "resolution": 3.35,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 296,
+    "hbonds": 8,
+    "salt_bridges": 2,
+    "hydrophobic": 72,
+    "metal_contacts": 0,
+    "buried_sasa": 845.4,
+    "n_d": 0,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:CYEE"
+    ],
+    "receptor_desc": [
+     "Programmed cell death 1 ligand 1"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "E",
+      56,
+      "TYR",
+      47
+     ],
+     [
+      "E",
+      63,
+      "ASN",
+      42
+     ],
+     [
+      "E",
+      115,
+      "MET",
+      29
+     ],
+     [
+      "I",
+      106,
+      "LEU",
+      23
+     ],
+     [
+      "I",
+      32,
+      "TYR",
+      21
+     ],
+     [
+      "E",
+      58,
+      "GLU",
+      16
+     ],
+     [
+      "E",
+      61,
+      "ASP",
+      15
+     ],
+     [
+      "E",
+      76,
+      "VAL",
+      12
+     ]
+    ],
+    "doi": "10.1073/pnas.2210435119",
+    "pubmed": 36534810,
+    "title": "Structure of PDL1 in complex with FP28136, a Helicon Polypeptide",
+    "affinity": [],
+    "paper_opened": false
+   }
+  ],
+  "binding_mode_summary": {
+   "n_templates": 9,
+   "closures": [
+    "amide_like",
+    "thioether"
+   ],
+   "median_ring_residues": 12.0,
+   "median_contacts": 219.0,
+   "median_hbonds": 7.0,
+   "median_salt_bridges": 2.0,
+   "median_buried_sasa_A2": 589.8,
+   "median_buried_apolar_fraction": 0.7248236048749198,
+   "frac_with_D": 0.0,
+   "frac_with_NMe": 0.3333333333333333,
+   "frac_with_metal_contact": 0.0,
+   "turns_seen": [
+    "I",
+    "I'",
+    "II",
+    "II'"
+   ],
+   "caveat": "residue numbering differs between entries; hotspot lists are per entry, not harmonised across entries"
+  }
+ },
+ {
+  "target": "tnfa",
+  "label": "TNF-alpha",
+  "reference_pdb": "2AZ5",
+  "note": "reference structure parsed from target_kb receptor_structure: \"2AZ5 / 1TNF \\u2014 needs prep\"",
+  "retrieved_utc": "2026-10-29T19:00:01Z",
+  "accession_method": "entity-name match (score 3; tokens ['tnfa', 'TNF', 'alpha'])",
+  "reference": {
+   "title": "Crystal Structure of TNF-alpha with a small molecule inhibitor",
+   "method": "X-RAY DIFFRACTION",
+   "resolution": 2.1,
+   "doi": "10.1126/science.1116304",
+   "pubmed": 16284179,
+   "year": 2005,
+   "citation_title": "Small-molecule inhibition of TNF-alpha.",
+   "paper_opened": false,
+   "polymer_descriptions": [
+    "Tumor necrosis factor (TNF-alpha) (Tumor necrosis factor ligand superfamily member 2) (TNF-a) (Cachectin) [Contains: Tumor necrosis factor, membrane form; Tumor necrosis factor, soluble form]"
+   ]
+  },
+  "receptor_uniprot": [
+   "P01375"
+  ],
+  "n_cyclic_complexes": 1,
+  "n_non_antibody_receptor": 1,
+  "structure_status": "cyclic-peptide complexes available",
+  "templates": [
+   {
+    "pdb_id": "7TA6",
+    "pep_chain": "J",
+    "seq": "XLGWCIGEXGTDPNLNHXQFRXKILXCWX",
+    "closure": "disulfide",
+    "ring_residues": 23,
+    "resolution": 2.67,
+    "method": "X-RAY DIFFRACTION",
+    "contacts": 247,
+    "hbonds": 9,
+    "salt_bridges": 0,
+    "hydrophobic": 60,
+    "metal_contacts": 0,
+    "buried_sasa": 870.1,
+    "n_d": 3,
+    "n_nme": 0,
+    "beta_turns": [
+     "I:EXGT",
+     "I:XGTD",
+     "I:DPNL"
+    ],
+    "receptor_desc": [
+     "Tumor necrosis factor"
+    ],
+    "receptor_antibody_like": false,
+    "hotspots_entry_numbering": [
+     [
+      "C",
+      149,
+      "GLN",
+      33
+     ],
+     [
+      "C",
+      151,
+      "TYR",
+      25
+     ],
+     [
+      "C",
+      11,
+      "LYS",
+      22
+     ],
+     [
+      "C",
+      201,
+      "EDO",
+      17
+     ],
+     [
+      "C",
+      15,
+      "HIS",
+      16
+     ],
+     [
+      "C",
+      57,
+      "LEU",
+      16
+     ],
+     [
+      "C",
+      119,
+      "TYR",
+      15
+     ],
+     [
+      "C",
+      61,
+      "GLN",
+      14
+     ]
+    ],
+    "doi": "10.1021/jacs.1c13717",
+    "pubmed": 35613436,
+    "title": "Trimer-to-Monomer Disruption of Tumor Necrosis Factor-alpha (TNF-alpha) by unnatural alpha/beta-peptide-1",
+    "affinity": [],
+    "paper_opened": false
+   }
+  ],
+  "binding_mode_summary": {
+   "n_templates": 1,
+   "closures": [
+    "disulfide"
+   ],
+   "median_ring_residues": 23.0,
+   "median_contacts": 247.0,
+   "median_hbonds": 9.0,
+   "median_salt_bridges": 0.0,
+   "median_buried_sasa_A2": 870.1,
+   "median_buried_apolar_fraction": 0.7517526721066544,
+   "frac_with_D": 1.0,
+   "frac_with_NMe": 0.0,
+   "frac_with_metal_contact": 0.0,
+   "turns_seen": [
+    "I"
+   ],
+   "caveat": "residue numbering differs between entries; hotspot lists are per entry, not harmonised across entries"
+  }
+ },
+ {
+  "target": "grpr",
+  "label": "gastrin-releasing peptide receptor",
+  "reference_pdb": null,
+  "note": "found 12 RCSB entries by full-text search 'gastrin-releasing peptide receptor'; accessions selected by entity-name match: ['P0AEX9', 'P30550', 'Q9V2J8']",
+  "retrieved_utc": "2026-10-29T19:00:02Z",
+  "accession_method": "from RCSB entries found by text search (entity-name match)",
+  "receptor_uniprot": [
+   "P0AEX9",
+   "P30550",
+   "Q9V2J8"
+  ],
+  "n_cyclic_complexes": 0,
+  "n_non_antibody_receptor": 0,
+  "structure_status": "NO cyclic-peptide complex in the library for this target",
+  "flag": "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets",
+  "short_peptide_entities_in_found_entries": [
+   {
+    "pdb_id": "7W3Z",
+    "chains": [
+     "L"
+    ],
+    "desc": "Gastrin Releasing Peptide PRGNHWAVGHLM(NH2)",
+    "seq": "PRGNHWAVGHLMX"
+   },
+   {
+    "pdb_id": "7W40",
+    "chains": [
+     "E"
+    ],
+    "desc": "Bombesin",
+    "seq": "FQWAVXHFL"
+   },
+   {
+    "pdb_id": "9BKK",
+    "chains": [
+     "P"
+    ],
+    "desc": "Cholecystokinin-8",
+    "seq": "DYMGWMDFX"
+   },
+   {
+    "pdb_id": "2N0B",
+    "chains": [
+     "A"
+    ],
+    "desc": "Neuromedin C (NMC)",
+    "seq": "GNHWAVGHLMX"
+   },
+   {
+    "pdb_id": "2N0C",
+    "chains": [
+     "A"
+    ],
+    "desc": "Neuromedin C (NMC)",
+    "seq": "GNHWAVGHLMX"
+   },
+   {
+    "pdb_id": "2N0D",
+    "chains": [
+     "A"
+    ],
+    "desc": "Neuromedin C (NMC)",
+    "seq": "GNHWAVGHLMX"
+   },
+   {
+    "pdb_id": "2N0E",
+    "chains": [
+     "A"
+    ],
+    "desc": "Neuromedin C (NMC)",
+    "seq": "GNHWAVGHLMX"
+   },
+   {
+    "pdb_id": "2N0F",
+    "chains": [
+     "A"
+    ],
+    "desc": "Neuromedin C (NMC)",
+    "seq": "GNHWAVGHLMX"
+   },
+   {
+    "pdb_id": "2N0G",
+    "chains": [
+     "A"
+    ],
+    "desc": "Neuromedin C (NMC)",
+    "seq": "GNHWAVGHLMX"
+   },
+   {
+    "pdb_id": "2N0H",
+    "chains": [
+     "A"
+    ],
+    "desc": "Neuromedin C (NMC)",
+    "seq": "GNHWAVGHLMX"
+   },
+   {
+    "pdb_id": "8H0Q",
+    "chains": [
+     "L"
+    ],
+    "desc": "GRP",
+    "seq": "NHWAVGHLM"
+   }
+  ],
+  "text_search_entries": [
+   "7W41",
+   "7W3Z",
+   "7W40",
+   "9BKK",
+   "2N0B",
+   "2N0C",
+   "2N0D",
+   "2N0E",
+   "2N0F",
+   "2N0G",
+   "2N0H",
+   "8H0Q"
+  ]
+ }
+]

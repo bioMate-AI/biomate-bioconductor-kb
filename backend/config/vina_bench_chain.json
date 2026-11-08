@@ -1,0 +1,135 @@
+{
+  "_doc": "Chain definition for vina_virtual_screening_bench (workstream B2). Applied by backend/scripts/add_vina_bench_chain.py. Scenario: docs/20261101_VINA_SCREENING_CHAIN_BENCH_SCENARIO.md (EGFR kinase, PDB 1M17). Every hand-off below is justified from the workflows' own main.nf (paths relative to backend/biomni_workflows/nextflow_nfcore/subworkflows/). 'workflow_file' on a step is a pin check only (stripped before insert). 'evidence' on a connection is informational (stripped before insert).",
+  "name": "vina_virtual_screening_bench",
+  "display_name": "Vina Virtual Screening (EGFR bench scenario)",
+  "domain": "drug_discovery",
+  "description": "Structure-based hit finding on a characterised target (bench scenario: EGFR kinase domain, PDB 1M17): druggable-pocket detection, pharmacophore pre-screen of a compound library against known actives, ADMET profiling of the surviving compounds, then AutoDock Vina docking into the detected pocket with the pharmacophore-filtered compounds. Note: the ADMET step reports properties but does not remove compounds before docking (it publishes no compound list).",
+  "source": "curated",
+  "steps": [
+    {
+      "order": 1,
+      "workflow_name": "pocket_detection_druggability",
+      "workflow_id": 12805,
+      "workflow_file": "nextflow_nfcore/subworkflows/drug_discovery/pocket_detection_druggability/main.nf",
+      "role": "pocket_detection",
+      "params_template": {
+        "pdb_input": "1M17",
+        "site_ligand": "AQ4"
+      }
+    },
+    {
+      "order": 2,
+      "workflow_name": "pharmacophore_filtering",
+      "workflow_id": 12804,
+      "workflow_file": "nextflow_nfcore/subworkflows/drug_discovery/pharmacophore_filtering/main.nf",
+      "role": "pharmacophore_prescreen",
+      "params_template": {}
+    },
+    {
+      "order": 3,
+      "workflow_name": "predict_admet_properties",
+      "workflow_id": 12826,
+      "workflow_file": "nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+      "role": "admet_profile",
+      "params_template": {}
+    },
+    {
+      "order": 4,
+      "workflow_name": "docking_autodock_vina",
+      "workflow_id": 12824,
+      "workflow_file": "nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf",
+      "role": "docking",
+      "params_template": {
+        "receptor_pdb_file": "1M17",
+        "site_ligand": "AQ4"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from_step": 1,
+      "from_output": "pockets.json",
+      "to_step": 4,
+      "to_input": "box_center",
+      "transform": {
+        "name": "pocket_json_to_box_center",
+        "args": {}
+      },
+      "evidence": "pocket_detection_druggability publishes <PDBID>_pockets.json (emit pocket_json, main.nf:75; written main.nf:193-203) with pockets[].center_x/center_y/center_z, volume_A3, druggability_score sorted best-first. docking_autodock_vina declares box_center as an inline JSON '[x,y,z]' (main.nf:10,43,111,270) and box_size likewise (main.nf:11). The file path cannot be parsed as '[x,y,z]', so the registered transform extracts the top pocket; it also returns box_size, which the executor must apply to the declared box_size param. The substring 'pockets.json' matches only the pockets report (not _top_pocket.pdb, not the QC json)."
+    },
+    {
+      "from_step": 2,
+      "from_output": "filtered_compounds.smi",
+      "to_step": 3,
+      "to_input": "smiles_list",
+      "transform": {
+        "name": "smiles_file_to_json_list",
+        "args": {}
+      },
+      "evidence": "pharmacophore_filtering publishes filtered_compounds.smi (emit filtered_smiles, main.nf:388; lines '<smiles>  <compound_id>', main.nf:407-409). predict_admet_properties declares smiles_list as an inline JSON array (main.nf:21; JsonSlurper main.nf:844-845; json.loads of PARAM_SMILES_LIST main.nf:48), so the file needs the transform."
+    },
+    {
+      "from_step": 2,
+      "from_output": "filtered_compounds.smi",
+      "to_step": 4,
+      "to_input": "smiles_list",
+      "transform": {
+        "name": "smiles_file_to_json_list",
+        "args": {}
+      },
+      "evidence": "Same artifact feeds docking_autodock_vina.smiles_list (inline JSON array, main.nf:8,41,84). Docking takes the pharmacophore-filtered list directly because predict_admet_properties publishes only predict_admet_properties_results.json, _output.txt, toxicity_report.json, pk_summary.json and qc_metrics.json (main.nf:108-112): no compound list, so an ADMET-passed list cannot be handed on."
+    }
+  ],
+  "required_inputs": [
+    {
+      "name": "reference_actives",
+      "type": "smiles",
+      "description": "Known EGFR actives (SMILES file path or inline SMILES, one per line) that define the pharmacophore; required by pharmacophore_filtering (main.nf:55,533)"
+    },
+    {
+      "name": "compound_library",
+      "type": "smiles|sdf",
+      "description": "Library to screen: actives plus property-matched decoys (SMILES or SDF); required by pharmacophore_filtering (main.nf:56,536)"
+    }
+  ],
+  "expected_outputs": [
+    {
+      "name": "docking_autodock_vina_results",
+      "type": "json",
+      "description": "Per-ligand best Vina affinity (kcal/mol) and poses count; the ranking input for enrichment (AUROC, EF1%)"
+    },
+    {
+      "name": "docking_poses",
+      "type": "pdbqt",
+      "description": "Top docked pose per ligand (docking_poses/*.pdbqt)"
+    },
+    {
+      "name": "pockets_report",
+      "type": "json",
+      "description": "Detected pockets with druggability score, volume and centre; the top pocket defines the docking box"
+    },
+    {
+      "name": "admet_report",
+      "type": "json",
+      "description": "ADMET predictions, toxicity report and PK summary for the pharmacophore-filtered compounds"
+    }
+  ],
+  "example_queries": [
+    "Virtual screening of an EGFR compound library with Vina docking into the detected pocket",
+    "Detect the druggable pocket in PDB 1M17, pharmacophore-filter my library, profile ADMET, then dock with AutoDock Vina",
+    "Structure-based hit finding on EGFR: pocket detection, pharmacophore pre-screen, ADMET, Vina docking",
+    "Benchmark Vina enrichment on EGFR 1M17 with known actives and decoys"
+  ],
+  "tags": [
+    "drug_discovery",
+    "virtual_screening",
+    "docking",
+    "autodock_vina",
+    "pocket_detection",
+    "pharmacophore",
+    "ADMET",
+    "EGFR",
+    "1M17",
+    "bench_scenario"
+  ]
+}

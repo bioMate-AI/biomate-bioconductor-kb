@@ -66,7 +66,7 @@ with open("simulate_demographic_history_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("simulate_demographic_history_output.txt", "w") as f:
-    f.write("Biomni: Simulate Demographic History Results" + NL)
+    f.write("BioMate: Simulate Demographic History Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

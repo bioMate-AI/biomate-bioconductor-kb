@@ -1079,6 +1079,35 @@ _NF_SKIP_PARAMS = {
 _NF_PARSE_CACHE: Dict[str, Any] = {}
 
 
+def _reconcile_required_levels(nf_filename: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
+    """Required-ness, declared params and defaults from the executed pipeline (galaxy.ai.executed_schema).
+
+    A stub param is "required" only if the pipeline that runs requires it; params the
+    executed pipeline does not declare are dropped; defaults are the pipeline's own;
+    schema-required params the stub lacks are added. Unchanged when no executed schema is found.
+    """
+    from galaxy.ai.executed_schema import executed_pipeline_params  # noqa: PLC0415
+    got = executed_pipeline_params(nf_filename)
+    if got is None:
+        return parsed
+    req_names, props, known, defaults = got["required"], got["props"], got["known"], got["defaults"]
+    meta = {k: dict(v) for k, v in (parsed.get("parameter_metadata") or {}).items() if k in known}
+    params = {k: v for k, v in (parsed.get("parameters") or {}).items() if k in known}
+    for name, m in meta.items():
+        if name in req_names:
+            m["level"] = "required"
+        elif m.get("level") == "required":
+            m["level"] = "optional"
+        if name in defaults:
+            params[name] = defaults[name]
+    for name in sorted(req_names - set(meta)):
+        d = props.get(name, {})
+        meta[name] = {"type": "file" if d.get("format") in ("file-path", "path") else (d.get("type") or "string"),
+                      "label": name.replace("_", " ").title(), "level": "required"}
+        params.setdefault(name, defaults.get(name, d.get("default")))
+    return {**parsed, "parameters": params, "parameter_metadata": meta}
+
+
 def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
     """Cached wrapper over :func:`_parse_nextflow_params_impl`.
 
@@ -1094,7 +1123,7 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
     _cached = _NF_PARSE_CACHE.get(nf_filename)
     if _cached is not None:
         return _cached
-    _res = _parse_nextflow_params_impl(nf_filename)
+    _res = _reconcile_required_levels(nf_filename, _parse_nextflow_params_impl(nf_filename))
     if len(_NF_PARSE_CACHE) < 4096:
         _NF_PARSE_CACHE[nf_filename] = _res
     return _res
@@ -1279,6 +1308,54 @@ def _parse_nextflow_params_impl(nf_filename: str) -> Dict[str, Any]:
             if ann_max is not None:
                 meta["maximum"] = ann_max
             parameter_metadata[name] = meta
+
+        # ── Style-A declared data inputs ────────────────────────────────────
+        # Bioconductor-style subworkflows declare their data file via a code
+        # header (`// Input: patient_clinical_data.csv`) rather than a config
+        # file-param, so the loop above produced NO file-type param and the
+        # panel showed "no data inputs to bind" even though the workflow needs
+        # a data file. Surface each declared token as an OPTIONAL file-type
+        # param so the viewer's existing file-picker logic (type == 'file')
+        # renders a picker. It is OPTIONAL (not required) so one-click/no-input
+        # demo workflows — which fall back to a placeholder in the executor —
+        # are NOT newly blocked. The param is named by the declared base token
+        # so the executor's Style-A staging (_build_bioc_entry_wrapper →
+        # params.get(name) / base-name fallback) binds the uploaded file.
+        # Dedup: skip a token already covered by a real config file-param
+        # (<base>, <base>_path, <base>_ref) so the panel shows no double rows.
+        _input_decl = re.search(r'(?m)^\s*//\s*Input:\s*(.+?)\s*$', content)
+        if _input_decl:
+            _decl_tokens = [
+                re.split(r'\s*\(', _t)[0].strip()
+                for _t in re.split(r'[,\s]+', _input_decl.group(1))
+                if _t.strip()
+            ]
+            for _tok in _decl_tokens:
+                # `input_files` is the vestigial stageAs:'?/*' slot, not a
+                # user-facing data file — never surface it as a picker.
+                if not _tok or _tok == "input_files":
+                    continue
+                # Base token: drop a trailing short extension (.csv/.rds/.txt…)
+                # so the name matches the executor's base-name resolution
+                # (`_no_ext`). Dotless tokens (e.g. `sce2`) are used verbatim.
+                _base = _tok
+                _mext = re.search(r'\.([A-Za-z0-9]{1,6})$', _tok)
+                if _mext:
+                    _base = _tok[: _mext.start()]
+                if not _base:
+                    continue
+                if any(_k in parameter_metadata
+                       for _k in (_base, _tok, _base + "_path", _base + "_ref")):
+                    continue
+                # Metadata-only (no entry in `parameters`): keeps a spurious
+                # None out of workflow_ga.parameters / CLI flags, while the
+                # generate path still lists it in optional_params.
+                parameter_metadata[_base] = {
+                    "type": "file",
+                    "label": _base.replace("_", " ").title(),
+                    "level": "optional",
+                    "data_input": True,
+                }
 
     except Exception as exc:
         log.warning(f"[NextflowParams] Failed to parse params from {nf_filename}: {exc}")
@@ -1491,10 +1568,29 @@ def _validate_extracted_params(
     """
     # Build lookup: param_name → allowed_values list from schema
     allowed_map: Dict[str, List[str]] = {}
+    # And numeric metadata: param_name → declared type / min / max. Used to
+    # coerce+bounds-check numeric params so a garbage value (e.g. an LLM that
+    # copied "500000)" out of a param description) can't reach Nextflow, where
+    # `params.x as int` would throw NumberFormatException and abort the run.
+    type_map: Dict[str, str] = {}
+    min_map: Dict[str, Any] = {}
+    max_map: Dict[str, Any] = {}
     for p in all_params:
+        name_p = p.get("name")
+        if not name_p:
+            continue
         av = p.get("allowed_values", [])
         if av:
-            allowed_map[p["name"]] = av
+            allowed_map[name_p] = av
+        if p.get("type") is not None:
+            type_map[name_p] = p["type"]
+        # Accept either schema spelling (minimum/maximum) or short form (min/max)
+        _lo = p.get("minimum", p.get("min"))
+        _hi = p.get("maximum", p.get("max"))
+        if _lo is not None:
+            min_map[name_p] = _lo
+        if _hi is not None:
+            max_map[name_p] = _hi
 
     # Always apply genome and strandedness canonical maps regardless of schema
     # (these are so common that hallucinations are very likely without them)
@@ -1522,6 +1618,20 @@ def _validate_extracted_params(
         "auto": "auto",
     }
 
+    # Data-plane / IO params come from the user's uploaded data (or a dedicated SRA/GEO accession
+    # extractor), NEVER from free-text inference. An LLM routinely hallucinates a prose assay
+    # description into these (observed on param_prefill: input='RNA-seq' / 'FFPE tissue' /
+    # 'tumor-only' / 'WES'), which is never a valid file input and would break the run. We keep such
+    # a value ONLY when it is shaped like a real path / URL / glob / archive accession; otherwise drop.
+    _IO_DATAPLANE_PARAMS = {
+        "input", "input_dir", "outdir", "output_dir", "reads", "fasta", "fastq",
+        "bam", "cram", "vcf", "gtf", "gff", "gff3", "bed", "samplesheet", "sample_sheet",
+    }
+    _IO_SHAPE_RE = re.compile(
+        r"[\\/]|\*|://|\.\w{1,6}(\.(gz|bz2|zip|tar))?$|^(GSE|GSM|PRJ[A-Z]+|SAMN|SRR|ERR|DRR|SRP|ERP)\w+$",
+        re.I,
+    )
+
     validated: Dict[str, Any] = {}
     for name, value in extracted.items():
         v_str = str(value).strip()
@@ -1545,6 +1655,17 @@ def _validate_extracted_params(
                 log.warning("[ParamGuardrail] strandedness=%r not recognized — dropping", v_str)
             continue
 
+        # Data-plane / IO params: keep only path/URL/glob/accession-shaped values; drop prose
+        if name in _IO_DATAPLANE_PARAMS:
+            if _IO_SHAPE_RE.search(v_str):
+                validated[name] = value
+            else:
+                log.warning(
+                    "[ParamGuardrail] %s=%r is not a path/URL/accession/glob — dropping hallucinated IO value",
+                    name, v_str,
+                )
+            continue
+
         # Schema-declared allowed values
         allowed = allowed_map.get(name, [])
         if allowed:
@@ -1556,6 +1677,76 @@ def _validate_extracted_params(
                     "[ParamGuardrail] %s=%r not in allowed values %s — dropping",
                     name, v_str, allowed,
                 )
+            continue
+
+        # Numeric params: coerce to a real number and bounds-check against the
+        # schema. LLMs routinely emit numbers as strings and occasionally with
+        # stray characters copied from the param description (the observed
+        # 2026-10-07 WGS-germline failure launched with --max_spots '500000)',
+        # which made the .nf's `params.max_spots as int` throw
+        # NumberFormatException and abort FASTERQ_DUMP before any task ran).
+        # Normalize the value, or drop it (→ workflow falls back to the schema
+        # default) when it cannot be parsed or is out of range. This closes the
+        # class for every numeric param (max_spots, scatter_count, ploidy, …).
+        ptype = str(type_map.get(name, "")).lower()
+        is_numeric_param = (
+            ptype in ("integer", "int", "float", "number", "numeric")
+            or name in min_map
+            or name in max_map
+            # Defensive: coerce a value that is a clean number followed ONLY by
+            # trailing punctuation (e.g. "500000)" mis-extracted from prose) even
+            # when the schema mistypes the param as "string" — the .nf may still do
+            # `params.X as int` (observed on WGS max_spots, default 0 in the .nf but
+            # surfaced as type "string"). Safe: requires leading digits then only
+            # non-word, non-space chars, so it never matches SMILES ("CC(=O)"),
+            # gene names ("53BP1"), or unit-bearing values ("500mg").
+            or (isinstance(value, str)
+                and re.match(r'^\s*[-+]?\d+(?:\.\d+)?\s*[^\w\s]+\s*$', value) is not None)
+        )
+        if is_numeric_param:
+            want_float = ptype in ("float", "number", "numeric")
+            coerced: Any = None
+            if isinstance(value, bool):
+                coerced = None  # bool is not a valid numeric value
+            elif isinstance(value, (int, float)):
+                coerced = value
+            else:
+                mnum = re.match(r"\s*[-+]?\d+(?:\.\d+)?", v_str)
+                if mnum:
+                    tok = mnum.group(0).strip()
+                    try:
+                        coerced = float(tok) if ("." in tok or want_float) else int(tok)
+                    except ValueError:
+                        coerced = None
+            if coerced is None:
+                log.warning(
+                    "[ParamGuardrail] %s=%r is not a valid %s — dropping",
+                    name, value, ptype or "number",
+                )
+                continue
+            # Integer-typed params must be whole numbers.
+            if ptype in ("integer", "int") and isinstance(coerced, float):
+                if coerced.is_integer():
+                    coerced = int(coerced)
+                else:
+                    log.warning(
+                        "[ParamGuardrail] %s=%r is not an integer — dropping", name, value,
+                    )
+                    continue
+            lo = min_map.get(name)
+            hi = max_map.get(name)
+            try:
+                if (lo is not None and coerced < lo) or (hi is not None and coerced > hi):
+                    log.warning(
+                        "[ParamGuardrail] %s=%r out of range [%s, %s] — dropping",
+                        name, coerced, lo, hi,
+                    )
+                    continue
+            except TypeError:
+                pass  # non-comparable bound metadata — skip the bounds check
+            if str(coerced) != v_str:
+                log.info("[ParamGuardrail] normalized %s %r → %r", name, value, coerced)
+            validated[name] = coerced
             continue
 
         # No schema constraint — keep as-is
@@ -1965,6 +2156,18 @@ def _infer_params_from_intent_llm(
             _LLM_PARAM_CACHE.move_to_end(_key)
             return _hit
     _res = _infer_params_from_intent_llm_impl(user_intent, workflow_name, all_params, llm_client=llm_client)
+    # Validation guardrail (CLAUDE.md extraction = rules + LLM + validation): the LLM
+    # sometimes copies a whole uploaded-dataset context entry ("<id>, s3_uri=<uri>" /
+    # "<id>, galaxy_dataset_id=<gid>") into a dataset/id param, which then renders as a
+    # raw serialized object in the field (e.g. cryo "Dataset Id"). Keep only the leading
+    # id/uri token, dropping any trailing ", key=..." metadata. This is the single
+    # chokepoint for BOTH the sync generation prefill and the async extract_params path.
+    if isinstance(_res, dict):
+        for _pk, _pv in list(_res.items()):
+            if isinstance(_pv, str):
+                _pm = re.match(r'^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=', _pv)
+                if _pm:
+                    _res[_pk] = _pm.group(1)
     if _key is not None and isinstance(_res, dict):
         _LLM_PARAM_CACHE[_key] = _res
         _LLM_PARAM_CACHE.move_to_end(_key)
@@ -2132,6 +2335,7 @@ def search_ranked(
                 "name": r.name,
                 "display_name": getattr(r, "display_name", None) or r.name,
                 "description": (getattr(r, "description", None) or "")[:200],
+                "domain": getattr(r, "domain", None) or "",
                 "source": getattr(r, "source", ""),
                 "format": getattr(r, "format", ""),
                 "score": round(r.score, 3),
@@ -2152,6 +2356,7 @@ def search_ranked(
                 "name": c.name,
                 "display_name": c.display_name or c.name,
                 "description": (c.description or "")[:200],
+                "domain": getattr(c, "domain", None) or "",
                 "source": "chain",
                 "format": "chain",
                 "score": None,  # chains use cosine similarity, not raw score
@@ -2340,6 +2545,12 @@ def search_nextflow_workflow(
             return {
                 "success": True,
                 "workflow_type": "chain",
+                # Top-level `name` so every consumer (panel title, run record,
+                # SSE label) has a human label — a chain omits `workflow_ga`,
+                # and the panel reads `workflowDefinition.name` directly, so
+                # without this a chain card renders "Untitled". See
+                # nextflow-workflow-viewer.tsx panel-name fallback (defense).
+                "name": best_chain.display_name,
                 "chain_name": best_chain.name,
                 "chain_display_name": best_chain.display_name,
                 "chain_domain": best_chain.domain,
@@ -2417,6 +2628,16 @@ def search_nextflow_workflow(
             # a correctly-ranked #1 match (e.g. ADMET) and fell back to an irrelevant but
             # whitelisted bioconductor workflow. Exclude bioconductor (still gated below).
             if filename.startswith("nextflow_nfcore/subworkflows/") and "/bioconductor/" not in filename:
+                return True
+            # BioMate AI-native tool workflows (biomate-ai-tools/<name>/main.nf, or stored
+            # as nf-core-workflows/modules/biomate-ai-tools/<name>/main.nf) are standalone
+            # Batch-runnable entry points — same as the nextflow_nfcore/subworkflows tools
+            # above. Without this bypass they fall to the runnable_keys whitelist, aren't in
+            # it, and are judged not-runnable → a correctly-ranked #1 match is dropped and the
+            # selector falls to a lower-scored sibling (observed 2026-10-29: cyclic_peptide_design
+            # score 111 dropped → cyclic_peptide_cofold 41 chosen). Mirrors the documented fix
+            # above for the subworkflow-layout biomate tools.
+            if "biomate-ai-tools/" in filename and "/bioconductor/" not in filename:
                 return True
             key = _nextflow_workflow_key(filename)
             return bool(key and key in runnable_keys)
@@ -2685,9 +2906,36 @@ def search_nextflow_workflow(
             "hardware_requirements": hardware_requirements,
             "datasets_assigned": False,
             "generated_parameters": _req_params + _opt_params,
-            "validation": {"is_valid": True, "issues": [], "warnings": [], "suggestions": []},
-            "tool_installation": {"success": True, "message": "Nextflow workflow", "failed_tools": []}
         }
+        # Detect file/path params with no filled value — workflow will fail at runtime without them.
+        # Covers optional params that are functionally required (e.g. samplesheet, matrix in
+        # nf-core/differentialabundance which are schema-optional but have no sensible default).
+        _missing_file_inputs = [
+            p for p in (_req_params + _opt_params)
+            if p.get('type') in ('file', 'path', 'directory')
+            and not p.get('value')
+            and not p.get('default')
+            and not p.get('autoFilled')
+        ]
+        _return_dict.update({
+            "missing_file_inputs": [p["name"] for p in _missing_file_inputs],
+            "validation": {
+                "is_valid": len(_missing_file_inputs) == 0,
+                "issues": [
+                    {
+                        "severity": "blocking",
+                        "type": "missing_file_input",
+                        "param": p["name"],
+                        "label": p.get("label", p["name"]),
+                        "message": f"Required input '{p.get('label', p['name'])}' is not provided.",
+                    }
+                    for p in _missing_file_inputs
+                ],
+                "warnings": [],
+                "suggestions": [],
+            },
+            "tool_installation": {"success": True, "message": "Nextflow workflow", "failed_tools": []}
+        })
         if _prereq_validation:
             _return_dict["prerequisitesValidation"] = _prereq_validation
         return _return_dict
@@ -2704,6 +2952,72 @@ class ExtractParamsRequest(BaseModel):
     # Optional: the param dicts from the search response. If omitted, the .nf at
     # nextflow_path is parsed to derive the param set.
     params: Optional[List[Dict[str, Any]]] = None
+
+
+class WorkflowCitationsRequest(BaseModel):
+    name: str = ""
+
+
+@router.post(
+    "/api/ai_assistant/workflow_citations",
+    summary="Curated citations for a workflow by name (no LLM; DB + domain landmarks).",
+)
+def workflow_citations(
+    request: WorkflowCitationsRequest,
+    trans: ProvidesUserContext = DependsOnTrans,
+) -> List[Dict[str, Any]]:
+    """Return APA-style citations for a workflow, resolved by name.
+
+    Backs the frontend ``useFetchCitations`` -> the Reproducibility-record
+    Citations section (GET /api/workflows/:name/citations is proxied here by
+    the Node server). Citations come from curated sources only (tool_knowledge
+    DB + domain landmark papers via ``_build_workflow_citations``) — never the
+    confabulation-prone research/literature path. Empty list when the workflow
+    is unknown or has no resolvable citations (the UI then hides the section).
+    """
+    name = (request.name or "").strip()
+    if not name:
+        return []
+    # The UI passes the DISPLAY name (e.g. "Predict ADMET Properties (AI)"),
+    # which differs from the DB `name` ("Predict Admet Properties") by casing
+    # and a trailing " (AI)"/" (BYOL)" tag. Match tolerantly: exact →
+    # case-insensitive → case-insensitive with the trailing tag stripped.
+    import re as _re
+    cleaned = _re.sub(r"\s*\((?:AI|BYOL|beta)\)\s*$", "", name, flags=_re.I).strip()
+    import sqlite3 as _sq, json as _json
+    from pathlib import Path as _P
+    db_path = _P(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+    try:
+        conn = _sq.connect(str(db_path))
+        row = conn.execute(
+            "SELECT domain, tags, tools_used FROM workflows "
+            "WHERE name=? OR lower(name)=lower(?) OR lower(name)=lower(?) LIMIT 1",
+            (name, name, cleaned),
+        ).fetchone()
+        conn.close()
+    except Exception:
+        return []
+    if not row:
+        return []
+    domain, tags_json, tools_json = row
+
+    def _loads(s):
+        try:
+            return _json.loads(s) if s else []
+        except Exception:
+            return []
+
+    sa = get_ai_assistant(trans)
+    if not sa or not hasattr(sa, "_build_workflow_citations"):
+        return []
+    try:
+        cites = sa._build_workflow_citations(_loads(tools_json), domain or "", _loads(tags_json)) or []
+    except Exception:
+        return []
+    for c in cites:
+        if isinstance(c, dict) and c.get("doi") and not c.get("url"):
+            c["url"] = f"https://doi.org/{c['doi']}"
+    return cites
 
 
 @router.post(
@@ -2849,6 +3163,7 @@ class AIRequestModel(BaseModel):
     preferred_domains: Optional[List[str]] = Field(None, description="LLM-inferred domain preferences for search ranking")
     penalized_domains: Optional[List[str]] = Field(None, description="LLM-inferred domains to penalize in search ranking")
     key_terms: Optional[List[str]] = Field(None, description="LLM-extracted technical terms to boost FTS recall")
+    user_input_kinds: Optional[List[str]] = Field(None, description="Kinds of data the user has (closed vocabulary), from the intent classifier; None = detect from the text")
     credential_map: Optional[Dict[str, bool]] = Field(None, description="Per-tool credential availability (True=available, False=not). When provided, takes precedence over server-side vault lookup.")
     inline_parameters: Optional[Dict[str, Any]] = Field(None, description="Inline parameters extracted from the user message (file paths, accessions, etc.) by the Node.js layer.")
 
@@ -3014,6 +3329,9 @@ class DatabaseQueryRequest(BaseModel):
     )
 
 
+_FEDERATED_ONLY_SOURCES = frozenset({"clinicaltrials", "biorxiv"})
+
+
 @router.post(
     "/api/databases/query",
     summary="Query biological databases — single source or federated fan-out"
@@ -3028,9 +3346,24 @@ def query_biological_database(
     Pass a specific database name for single-source queries.
     Supported single sources: ncbi_gene, uniprot, pdb, alphafold, kegg, reactome,
     go, hpo, chebi, chembl, pubchem, bindingdb, pharos, pdbe, interpro, string,
-    ensembl, gnomad, dbsnp, clinvar, pubmed, europepmc, semantic_scholar, openalex.
+    ensembl, gnomad, dbsnp, clinvar, pubmed, europepmc, semantic_scholar, openalex,
+    clinicaltrials, biorxiv (the last two are served through the federated fan-out restricted to that source).
     """
     db = request.database.lower().strip()
+
+    # Private DB path (userdb:<conn_id>) — read-only query against a user-registered
+    # database. Ownership is enforced through trans.user's own Vault namespace inside
+    # private_db.run_query; the LLM never receives another user's connection.
+    if db.startswith("userdb:"):
+        if not getattr(trans, "user", None):
+            return {"success": False, "error": "Authentication required for private DB query"}
+        conn_id = request.database.split(":", 1)[1].strip()
+        try:
+            from galaxy.ai import private_db
+            return private_db.run_query(trans, conn_id, request.query, user_id=trans.user.id)
+        except Exception as e:
+            log.warning(f"[databases/query] userdb query failed: {e}")
+            return {"success": False, "error": "Private DB query failed"}
 
     # Direct federated path — bypass AIAssistant for speed
     if db in ("federated", "auto"):
@@ -3046,6 +3379,16 @@ def query_biological_database(
             }
         except Exception as e:
             log.warning(f"[databases/query] federated({request.query}): {e}")
+            return {"success": False, "error": str(e)}
+
+    # Sources that exist only as federated fetchers (no per-source handler in ai.query_database):
+    # route a named request through the fan-out restricted to that one source.
+    if db in _FEDERATED_ONLY_SOURCES:
+        try:
+            from galaxy.ai.federated_query import federated_query
+            return {"success": True, **federated_query(request.query, entity_type=request.entity_type, sources=[db])}
+        except Exception as e:
+            log.warning(f"[databases/query] {db}({request.query}): {e}")
             return {"success": False, "error": str(e)}
 
     ai = get_ai_assistant(trans)
@@ -3114,6 +3457,210 @@ def data_sources_catalog(
     except Exception as e:
         log.warning(f"[data_sources] catalog failed: {e}")
         return {"success": False, "error": str(e)}
+
+
+class RouteClassifyRequest(BaseModel):
+    text: str = Field(..., description="Composer text to classify into a routing lane")
+
+
+# Intent → two-lane map (spec 00 §0.3, §2.2). The front door only needs to
+# answer "seconds or minutes?": evidence / ad-hoc-compute intents are INSTANT
+# (a cited answer / a quick calculation), anything that produces a validated
+# artifact (a named method, a consequence verb, a batch of inputs) is CLOUD.
+# This mirrors the client heuristic in lane-preview.tsx and reuses the REAL
+# UnifiedIntentRouter decision — it does not re-implement classification.
+_CLOUD_INTENTS = {"workflow_generation"}
+
+
+def _lane_from_classification(intent: str, requires_workflow: bool) -> str:
+    """Map a UnifiedIntentRouter intent to the Instant/Cloud lane.
+
+    Honest: derived purely from the classifier's own decision. A query is Cloud
+    iff the router routes it to workflow generation (the only intent that runs a
+    validated pipeline); every other intent (research, tool search, benchmark,
+    comparison, conclusion, literature, parameter help, general) is Instant.
+    """
+    if requires_workflow or intent in _CLOUD_INTENTS:
+        return "cloud"
+    return "instant"
+
+
+def _domain_from_entities(entities: Dict[str, Any]) -> str:
+    """Coarse domain read from extracted entities (analysis type first)."""
+    if not isinstance(entities, dict):
+        return "general"
+    for key in ("analysis_types", "tools", "data_types"):
+        vals = entities.get(key) or []
+        if vals:
+            return str(vals[0])
+    return "general"
+
+
+# A query that reads as a "what is known" question stays Instant even when it
+# resonates with the workflow catalog (e.g. "what is hERG?" matches hERG
+# workflows but wants an answer, not a run). Interrogative lead-ins + a trailing
+# "?" are the honest signal; deliberately conservative so real task phrasings
+# ("screen these SMILES …", "run ADMET …") are NOT swallowed.
+_QUESTION_LEAD_RE = re.compile(
+    r"^\s*(what|why|how|when|where|which|who|whom|is|are|was|were|does|do|did|can|could|"
+    r"should|would|will|explain|describe|define|summari[sz]e|tell me|give me an overview|"
+    r"compare|difference between|pros and cons)\b",
+    re.IGNORECASE,
+)
+
+# Cosine floor above which a dense workflow-catalog match is treated as "this is
+# a runnable task" for the Instant/Cloud lane decision. The catalog prefilter's
+# own floor is 0.55 (_WF_DENSE_MIN_SIM); we sit a little above it so only a
+# confident resonance upgrades the lane. Advisory only — never blocks send.
+_CLOUD_RESONANCE_MIN: float = 0.60
+
+
+def _looks_like_question(text: str) -> bool:
+    """True when the text reads as a knowledge question, not a task request."""
+    t = (text or "").strip()
+    if not t:
+        return False
+    return bool(_QUESTION_LEAD_RE.match(t)) or t.endswith("?")
+
+
+# An ad-hoc calculation on a file the user already has is the spec's
+# Instant·compute lane, not a validated pipeline — even though "plot / summarise
+# this table" resonates with plotting/QC workflows. Requires a file/table/data
+# object so it doesn't swallow a real pipeline request ("summarise expression
+# across the cohort"). Mirrors lane-preview.tsx's INSTANT_RULES compute rule.
+_ADHOC_COMPUTE_RE = re.compile(
+    # NB: "correlat*" is deliberately NOT an ad-hoc trigger — it collides with
+    # real spatial-correlation pipelines ("spatially correlated genes across
+    # Visium spots"), which measured as a net cloud-recall loss.
+    r"\b(plot|show me|first\s+\d+\s+rows|head of|value counts|reshape|pivot|"
+    r"convert this\s+(file|csv|tsv|table)|"
+    r"summari[sz]e\s+(this|the)\s+(table|file|csv|data|readout)|"
+    r"(mean|median)\s+(of|per)\s+(each|the)|quick look)\b",
+    re.IGNORECASE,
+)
+
+# Intents that are ALWAYS a request for an answer, never "run a pipeline":
+# recommending/finding a tool, or surveying the literature. When the keyword
+# router lands one of these confidently, catalog resonance must not override it.
+_ANSWER_ONLY_INTENTS = frozenset({"tool_recommendation", "tool_search", "literature_survey"})
+
+
+def _looks_like_adhoc_compute(text: str) -> bool:
+    return bool(_ADHOC_COMPUTE_RE.search(text or ""))
+
+
+def _catalog_resonance(text: str) -> "tuple[float, Optional[str]]":
+    """Domain-agnostic 'is this a runnable task?' signal.
+
+    Instead of hand-curating per-domain keyword lists in the intent router (which
+    left whole domains — e.g. drug-discovery/ADMET — mis-routed to Instant), the
+    lane arbiter asks the *workflow catalog itself*: the dense BGE-cosine
+    prefilter over all indexed workflows (every domain, self-updating as
+    workflows are added). Returns (best_cosine, matched_domain). (0.0, None) when
+    the embedding index is unavailable, so the caller keeps the keyword verdict.
+    """
+    if not (WORKFLOW_SEARCH_AVAILABLE and _workflow_search is not None):
+        return 0.0, None
+    try:
+        sim_map = _workflow_search._dense_workflow_prefilter(text, top_n=1)
+        if not sim_map:
+            return 0.0, None
+        top_id, top_sim = max(sim_map.items(), key=lambda kv: kv[1])
+        domain: Optional[str] = None
+        try:
+            conn = _workflow_search._get_connection()
+            row = conn.execute("SELECT domain FROM workflows WHERE id = ?", (top_id,)).fetchone()
+            if row and row[0]:
+                domain = str(row[0])
+        except Exception:
+            domain = None
+        return float(top_sim), domain
+    except Exception as exc:
+        log.debug("[route/classify] catalog resonance error: %s", exc)
+        return 0.0, None
+
+
+@router.post(
+    "/api/route/classify",
+    summary="Server-side lane arbiter — classify composer text into Instant/Cloud"
+)
+def route_classify(
+    request: RouteClassifyRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Return the routing lane the front door will actually take for `text`.
+
+    Wraps the existing UnifiedIntentRouter (keyword classifier — deterministic
+    and cheap, safe for a per-keystroke/debounced call; no LLM fallback) and
+    maps its real intent decision to the two-lane Instant/Cloud model
+    (spec 00 §0.3, §2.2). Backs the composer's LanePreview so the advisory lane
+    it shows matches how the query will route. Returns the classifier's honest
+    verdict; never fabricates a lane.
+
+    Response: {lane: "instant"|"cloud", domain, why, intent, confidence}.
+    """
+    text = (request.text or "").strip()
+    if not text:
+        return {"success": False, "error": "empty text"}
+
+    try:
+        from galaxy.ai.agents.unified_intent_router import create_intent_router
+    except Exception as e:  # classifier package unavailable in this deploy
+        log.warning(f"[route/classify] intent router unavailable: {e}")
+        return {"success": False, "error": f"intent router unavailable: {e}"}
+
+    try:
+        # No llm_client → keyword-only classification (fast, deterministic).
+        router_impl = create_intent_router(llm_client=None)
+        cls = router_impl.classify(text, use_llm_fallback=False)
+        intent = cls.primary_intent.value
+        lane = _lane_from_classification(intent, cls.requires_workflow)
+        domain = _domain_from_entities(cls.extracted_entities)
+        confidence = round(float(cls.confidence), 3)
+        resonance: Optional[float] = None
+
+        # Domain-agnostic upgrade. The keyword router only knows a fixed
+        # (genomics-heavy) vocabulary, so a runnable request in a domain it
+        # doesn't have words for (drug-discovery/ADMET, proteomics, cryo-EM …)
+        # would fall through to Instant. Rather than growing the keyword lists
+        # per domain forever, we ask the workflow catalog: if the text isn't a
+        # question and it strongly resonates with an indexed workflow, it's a
+        # Cloud task. This generalizes to every domain and self-updates as the
+        # catalog grows. Advisory only — the composer always offers the other lane.
+        _answer_locked = intent in _ANSWER_ONLY_INTENTS and cls.confidence >= 0.6
+        if (lane != "cloud"
+                and not _looks_like_question(text)
+                and not _looks_like_adhoc_compute(text)
+                and not _answer_locked):
+            sim, wf_domain = _catalog_resonance(text)
+            if sim >= _CLOUD_RESONANCE_MIN:
+                lane = "cloud"
+                resonance = round(sim, 3)
+                if wf_domain:
+                    domain = wf_domain
+                confidence = max(confidence, resonance)
+
+        if lane == "cloud":
+            if resonance is not None:
+                dom_txt = domain if domain and domain != "general" else "validated"
+                why = f"reads as a {dom_txt} workflow request"
+            else:
+                why = f"reads as a validated workflow request ({intent.replace('_', ' ')})"
+        else:
+            why = f"reads as {intent.replace('_', ' ')} — a cited answer, no pipeline"
+        return {
+            "success": True,
+            "lane": lane,
+            "domain": domain,
+            "why": why,
+            "intent": intent,
+            "confidence": confidence,
+            "resonance": resonance,
+        }
+    except Exception as e:
+        import traceback
+        log.warning(f"[route/classify] {text[:80]!r}: {e}")
+        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
 
 @router.get(
@@ -3196,6 +3743,38 @@ def get_ai_status(
             "ready": False,
             "error": f"Configuration error: {str(e)}"
         }
+
+
+@router.get(
+    "/api/ai_assistant/geo_platform",
+    summary="Data-first GEO modality detection (microarray | scrna | bulk_rnaseq | unknown)."
+)
+def geo_platform(
+    accession: str,
+    trans: ProvidesUserContext = DependsOnTrans,
+) -> Dict[str, Any]:
+    """Return the GEO series data modality so callers can route data-type-awarely.
+
+    This is the DATA-FIRST signal (read from GEO's own Series metadata) used by the
+    execute-gate to pick the correct ingest + DE method for a bare GEO accession:
+      - microarray → geo_data_connector → differentialabundance(study_type=affy, limma)
+      - bulk_rnaseq → geo_data_connector → differentialabundance(deseq2)
+      - scrna      → geo_scrna_pseudobulk → differentialabundance(deseq2)
+      - unknown    → fall back to bulk default with a warning
+    Shares one implementation with the chat path (AIAssistant._detect_geo_platform).
+    See docs/20261102_UNIFIED_PUBLIC_ID_ROUTING_DESIGN.md.
+    """
+    acc = (accession or "").strip().upper()
+    import re as _re
+    if not _re.match(r'^(GSE|GSM|GDS)\d+$', acc):
+        return {"accession": acc, "platform": None, "error": "not a GEO accession"}
+    try:
+        from galaxy.ai.ai_assistant import detect_geo_platform as _dgp
+        platform = _dgp(acc)
+    except Exception as e:  # never raise into routing — caller falls back to bulk default
+        log.info("[geo_platform] lookup for %s failed (%s) — returning unknown", acc, e)
+        platform = None
+    return {"accession": acc, "platform": platform or "unknown"}
 
 
 @router.get(
@@ -3598,6 +4177,7 @@ def generate_workflow_unified(
                 preferred_domains=request.preferred_domains or None,
                 penalized_domains=request.penalized_domains or None,
                 credential_map=credential_map or None,
+                user_input_kinds=request.user_input_kinds,
             )
 
         # Clarification requests from chain verifier — pass through with a clear error key
@@ -3682,10 +4262,23 @@ def generate_workflow_unified(
                 )
 
             # Process parameter recommendations
+            # Guardrail (CLAUDE.md extraction: rules + LLM + validation): the LLM
+            # sometimes copies a whole uploaded-dataset context entry
+            # ("<id>, s3_uri=<uri>" / "<id>, galaxy_dataset_id=<gid>") into a
+            # dataset/id param instead of just the value, which then renders as a
+            # raw serialized object in the field (e.g. cryo "Dataset Id"). Keep
+            # only the leading id/uri token, dropping the trailing ", key=..." metadata.
+            def _normalize_param_value(v):
+                if isinstance(v, str):
+                    m = re.match(r'^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=', v)
+                    if m:
+                        return m.group(1)
+                return v
             param_recommendations = {}
             for param_data in result.get('generated_parameters', []):
                 if param_data.get('parameters'):
                     for param_name, param_value in param_data['parameters'].items():
+                        param_value = _normalize_param_value(param_value)
                         param_recommendations[f"{param_data['tool_id']}:{param_name}"] = ParameterRecommendationModel(
                             parameter_name=param_name,
                             recommended_value=param_value,
@@ -3804,13 +4397,13 @@ def generate_workflow_unified(
                 'nextflow_path': result.get('nextflow_path'),
                 'execution_engine': result.get('execution_engine'),
                 'hardware_requirements': result.get('hardware_requirements'),
-                'source': result['source'],
+                'source': result.get('source', 'unknown'),
                 'confidence': confidence,
                 'template_match_score': result.get('template_match_score', 0.0),
                 'datasets_assigned': result.get('datasets_assigned', False),
                 'generated_parameters': result.get('generated_parameters', []),
                 'message': result.get('message', 'Workflow generated successfully'),
-                'note': f"Generated using {result['source']} strategy",
+                'note': f"Generated using {result.get('source', 'unknown')} strategy",
                 # Citation fields
                 'citations': [c.model_dump() for c in citations],
                 'methods_section': methods_section.model_dump() if methods_section else None,
@@ -5066,19 +5659,29 @@ def answer_research_query(
             paper_content=request.paper_content or None
         )
 
-        # Format citations for JSON
+        # Format citations for JSON. abstract + relevance_score ARE populated by
+        # the research agent (research_agent.py) — surface them so the client can
+        # show why a source was cited and how relevant it is. Optional fields are
+        # emitted only when present (never fabricated).
         citations_json = []
         for citation in response.citations:
-            citations_json.append({
+            entry = {
                 "title": citation.title,
                 "authors": citation.authors,
                 "year": citation.year,
                 "journal": citation.journal,
                 "doi": citation.doi,
                 "pmid": citation.pmid
-            })
+            }
+            abstract = getattr(citation, "abstract", None)
+            if abstract:
+                entry["abstract"] = abstract
+            relevance = getattr(citation, "relevance_score", None)
+            if relevance is not None:
+                entry["relevance_score"] = relevance
+            citations_json.append(entry)
 
-        return {
+        result = {
             "success": True,
             "query": request.query,
             "answer": response.answer,
@@ -5087,8 +5690,23 @@ def answer_research_query(
             "confidence": response.confidence,
             "follow_up_questions": response.follow_up_questions,
             "methods_used": response.methods_used,
-            "source": "research_agent"
+            "source": "research_agent",
+            "evidence_answers_question": getattr(response, "evidence_answers_question", None),
         }
+
+        # Retrieval transparency + source conflicts. These come from REAL
+        # retrieval/synthesis state (per-source found/kept computed from the
+        # source-tagged pool; conflicts parsed from the synthesis output). Emit
+        # ONLY when non-empty so the client renders honest-empty (never a
+        # fabricated "How this was searched" or "Sources disagree" section).
+        retrieval = getattr(response, "retrieval", None)
+        if retrieval:
+            result["retrieval"] = retrieval
+        conflicts = getattr(response, "conflicts", None)
+        if conflicts:
+            result["conflicts"] = conflicts
+
+        return result
 
     except Exception as e:
         log.error(f"Error answering research query: {e}")
@@ -5646,9 +6264,11 @@ def extract_workflow_edits(
     if not isinstance(workflow, dict):
         return {"edits": []}
 
-    # Compact the workflow shape for the prompt. We only feed step ids,
-    # workflow_path, and current params — the LLM doesn't need the full
-    # parameter schema for the simplest cases.
+    # Build a compact schema for the prompt. Include:
+    # 1. Pipeline/chain step ids + their declared param names (for multi-step workflows)
+    # 2. required_params + optional_params from workflow_ga (the DB schema) — this is
+    #    the critical addition: without it the LLM can't map "GRCh38" → genome,
+    #    "paired-end" → single_end=false, etc. for single-step Nextflow workflows.
     steps = workflow.get("pipeline_steps") or workflow.get("chain_steps") or []
     step_summary = []
     for s in steps[:32]:  # cap to keep the prompt small
@@ -5661,25 +6281,65 @@ def extract_workflow_edits(
             "params": list((s.get("params") or s.get("parameters") or {}).keys())[:24],
         })
 
-    prompt = f"""You translate the user's natural-language request into structured workflow-edit ops.
+    # Extract the parameter schema from workflow_ga (populated by generate_workflow).
+    wf_ga = workflow.get("workflow_ga") or {}
+    required_params = wf_ga.get("required_params") or workflow.get("required_params") or []
+    optional_params = wf_ga.get("optional_params") or workflow.get("optional_params") or []
 
-Workflow steps (id, workflow_path, declared param names):
-{step_summary if step_summary else "(single-workflow artifact, no chain)"}
+    def _fmt_params(params: list) -> str:
+        out = []
+        for p in params[:40]:
+            if not isinstance(p, dict):
+                continue
+            name = p.get("name") or p.get("param_name") or ""
+            ptype = p.get("type") or p.get("param_type") or "string"
+            desc = p.get("description") or p.get("desc") or ""
+            allowed = p.get("allowed_values") or p.get("choices") or []
+            line = f"  {name} ({ptype})"
+            if allowed:
+                line += f" — allowed: {allowed[:8]}"
+            elif desc:
+                line += f" — {desc[:80]}"
+            out.append(line)
+        return "\n".join(out) if out else "  (none)"
 
-Top-level inline_parameters (if any): {list((workflow.get("inline_parameters") or {}).keys())[:24]}
+    schema_block = ""
+    if required_params or optional_params:
+        schema_block = f"""
+Workflow parameter schema (use param names EXACTLY as listed):
+Required params:
+{_fmt_params(required_params)}
+Optional params:
+{_fmt_params(optional_params)}
+"""
+
+    current_values_keys = list((workflow.get("inline_parameters") or {}).keys())[:24]
+
+    prompt = f"""You translate the user's natural-language message into structured workflow-edit ops for the currently open workflow panel.
+
+Workflow: {workflow.get("name") or workflow.get("workflow_name") or "(unnamed)"}
+{schema_block}
+Pipeline steps (if multi-step chain):
+{step_summary if step_summary else "(single Nextflow workflow, no chain)"}
+
+Currently filled params: {current_values_keys if current_values_keys else "(empty)"}
 
 User message: {message!r}
 
-Return a JSON object with a single key "edits", whose value is a list of ops. Each op MUST match one of these exact shapes (TypeScript-style):
-  {{ "op": "set_param", "stepId": "<step id>", "paramName": "<param>", "value": <number|string|boolean> }}
+Your task: identify any parameter values the user is providing (explicitly or implicitly) and emit set_param ops using the EXACT param names from the schema above.
+
+Return a JSON object with a single key "edits", whose value is a list of ops. Each op MUST match one of these exact shapes:
+  {{ "op": "set_param", "stepId": "root", "paramName": "<exact param name from schema>", "value": <number|string|boolean> }}
   {{ "op": "add_step", "afterStepId": "<step id>" | null, "workflowPath": "<path>", "params": {{...}} }}
   {{ "op": "remove_step", "stepId": "<step id>" }}
   {{ "op": "reorder", "stepId": "<step id>", "beforeStepId": "<step id>" }}
 
 Rules:
-- Only emit ops the user clearly asked for. When in doubt, return [].
-- For set_param, the stepId MUST be one of the listed ids unless there is no chain (then use any string).
-- For add_step, the workflowPath should be a known workflow path; if uncertain, return [].
+- For single Nextflow workflows (no chain), always use stepId "root".
+- For chain steps, use the step id from the pipeline steps list.
+- Only emit ops the user clearly provided data for. When ambiguous, return [].
+- Map natural language to param values: e.g. "human" → genome="GRCh38", "paired-end" → single_end=false, "stranded dUTP" → strandedness="reverse".
+- S3 paths, SRA accessions, file names → map to the matching file/reads param.
 - Return ONLY the JSON object, no prose, no markdown.
 """
 
@@ -6061,6 +6721,24 @@ async def paperqa_synthesize(
 
 # ── Skills API ────────────────────────────────────────────────────────────────
 
+def _private_skill_root(trans):
+    import os
+    from pathlib import Path
+    configured = os.environ.get("BIOMATE_USER_SKILLS_DIR")
+    files = getattr(trans.app.config, "file_path", None)
+    if not configured and not files:
+        raise HTTPException(status_code=503, detail="Persistent skill storage is not configured")
+    return Path(configured) if configured else Path(files) / ".biomate-skills"
+
+
+def _skills_for_request(trans, include_private=False):
+    from galaxy.ai.skill_manager import scoped_skill_manager
+    if not include_private:
+        return scoped_skill_manager()
+    if not trans.user:
+        raise HTTPException(status_code=401, detail="Sign in to access private skills")
+    return scoped_skill_manager(trans.user.id, _private_skill_root(trans))
+
 @router.get(
     "/api/skills",
     summary="List all available skills (expert + Bioconductor)"
@@ -6068,13 +6746,13 @@ async def paperqa_synthesize(
 def list_skills(
     source: Optional[str] = Query(default=None, description="Filter by source: 'expert' or 'bioconductor'"),
     domain: Optional[str] = Query(default=None, description="Filter Bioconductor skills by domain"),
+    include_private: bool = Query(default=False),
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
     """Return metadata for all available Skills. Use ?source=expert for expert roles only,
     ?source=bioconductor&domain=transcriptomics for Bioconductor skills by domain."""
     try:
-        from galaxy.ai.skill_manager import get_skill_manager
-        mgr = get_skill_manager()
+        mgr = _skills_for_request(trans, include_private)
         if source == "expert":
             skills = mgr.list_expert_skills()
         elif source == "bioconductor":
@@ -6087,6 +6765,8 @@ def list_skills(
             "bioc_domains": mgr.list_bioc_domains(),
             "total": len(skills),
         }
+    except HTTPException:
+        raise
     except Exception as e:
         log.warning("[skills] list failed: %s", e)
         return {"success": False, "error": str(e), "skills": [], "bioc_domains": []}
@@ -6095,6 +6775,7 @@ def list_skills(
 class SkillDetectRequest(BaseModel):
     query: str = Field(..., description="User message to auto-detect skills from")
     preferred_domains: Optional[List[str]] = Field(default=None)
+    include_private: bool = False
 
 
 @router.post(
@@ -6107,13 +6788,14 @@ def detect_skills(
 ) -> Dict[str, Any]:
     """Returns up to 3 skills auto-detected from the query text and domain signals."""
     try:
-        from galaxy.ai.skill_manager import get_skill_manager
-        mgr = get_skill_manager()
+        mgr = _skills_for_request(trans, request.include_private)
         detected = mgr.detect_skills(request.query, request.preferred_domains)
         return {
             "success": True,
             "detected": [s.to_dict() for s in detected],
         }
+    except HTTPException:
+        raise
     except Exception as e:
         log.warning("[skills] detect failed: %s", e)
         return {"success": False, "error": str(e), "detected": []}
@@ -6132,24 +6814,17 @@ def upload_skill(
     request: SkillUploadRequest,
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
-    """Validate a user-supplied .md skill (must have `name` + `triggers` in frontmatter),
-    write it to the skills dir, and hot-reload the manager so /api/skills reflects it."""
-    import re as _re
+    """Import instruction-only Markdown into the authenticated owner's namespace."""
+    if not trans.user:
+        raise HTTPException(status_code=401, detail="Sign in to import a private skill")
     try:
-        from galaxy.ai.skill_manager import _parse_frontmatter, SKILLS_DIR, reload_skill_manager
-        meta, _body = _parse_frontmatter(request.content or "")
-        if not meta.get("name") or not meta.get("triggers"):
-            raise HTTPException(
-                status_code=400,
-                detail="Skill .md must have YAML frontmatter with `name` and `triggers`.",
-            )
-        # slug from name (safe filename)
-        slug = _re.sub(r"[^a-z0-9_-]+", "-", str(meta["name"]).strip().lower()).strip("-") or "skill"
-        SKILLS_DIR.mkdir(parents=True, exist_ok=True)
-        dest = SKILLS_DIR / f"{slug}.md"
-        dest.write_text(request.content, encoding="utf-8")
-        mgr = reload_skill_manager()
-        return {"success": True, "skill_id": slug, "total": len(mgr.list_expert_skills())}
+        from galaxy.ai.skill_manager import store_private_skill
+        result = store_private_skill(_private_skill_root(trans), trans.user.id, request.content)
+        return {"success": True, **result}
+    except FileExistsError:
+        raise HTTPException(status_code=409, detail="Skill already exists; existing content was not changed")
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except HTTPException:
         raise
     except Exception as e:
@@ -6159,6 +6834,62 @@ def upload_skill(
 
 class SkillBlockRequest(BaseModel):
     skill_ids: List[str] = Field(..., description="Skill IDs to build system block for")
+    include_private: bool = False
+
+
+@router.delete("/api/skills/{skill_id}", summary="Delete an owned custom instruction skill")
+def delete_skill(skill_id: str, trans: ProvidesUserContext = DependsOnTrans) -> Dict[str, Any]:
+    if not trans.user:
+        raise HTTPException(status_code=401, detail="Sign in to delete a private skill")
+    try:
+        from galaxy.ai.skill_manager import delete_private_skill
+        delete_private_skill(_private_skill_root(trans), trans.user.id, skill_id)
+        return {"success": True}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Private skill not found")
+
+
+class PlanDagTask(BaseModel):
+    id: str = ""
+    description: str
+    # 1-based indices of earlier tasks this one consumes; [] = an independent branch (root).
+    depends_on: List[int] = Field(default_factory=list)
+    # The workflow the chat's own per-intent routing chose for this task (preferred over a bare
+    # catalog search, which resolved an RNA-seq DE task to a CLIP-seq workflow on 2026-11-04).
+    nextflow_path: Optional[str] = None
+
+
+class PlanDagRequest(BaseModel):
+    tasks: List[PlanDagTask]
+    name: Optional[str] = None
+    max_parallel: Optional[int] = None
+
+
+@router.post(
+    "/api/ai_assistant/plan_dag",
+    summary="Assemble decomposed sub-tasks into one executable DAG pipeline card (or say why not).",
+)
+def plan_dag(request: PlanDagRequest, trans: ProvidesUserContext = DependsOnTrans) -> Dict[str, Any]:
+    """Live caller for decomposed_dag.build_dag_plan (built 2026-10-11, never wired).
+
+    The chat sends the classifier's sub-tasks with their dependency edges (independent branches
+    + fan-in). Each task resolves to a catalog workflow (confidence-gated top match); dependent
+    steps are wired only by type-compatible outputs → inputs. Any unresolvable task or untypeable
+    handoff → no plan, with the reason, and the chat keeps its existing behaviour (never a
+    half-built or guessed DAG). Returns the frontend pipeline-card shape (workflow_type
+    'pipeline', execution_mode 'dag', depends_on, connections, max_parallel)."""
+    try:
+        sa = get_ai_assistant(trans)
+        if sa is None:
+            return {"success": False, "reason": "assistant_unavailable"}
+        from galaxy.ai.decomposed_dag import plan_dag_from_tasks
+        return plan_dag_from_tasks(sa, [t.dict() for t in request.tasks], request.name, request.max_parallel)
+    except Exception as exc:  # noqa: BLE001 — planning is best-effort; the chat falls back
+        log.warning("[plan_dag] failed: %s", exc)
+        log.warning("[plan_dag] failed: %s", exc)
+        return {"success": False, "reason": f"error: {type(exc).__name__}"}
+
+
 
 
 @router.get(
@@ -6167,11 +6898,15 @@ class SkillBlockRequest(BaseModel):
 )
 def workflow_by_name(
     name: str,
+    query: Optional[str] = None,
+    input_kinds: Optional[List[str]] = None,
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
     """Return full workflow object for a given workflow name.
     Used by the Node.js layer after LLM reselection to fetch the canonical
-    workflow record without running FTS search again."""
+    workflow record without running FTS search again. With `query` (the user's request), also returns
+    `input_compatible` (False = the request's explicit data kind cannot feed this workflow; None = unknown)
+    so a text-driven card swap never moves to a workflow that cannot run on the user's data."""
     try:
         _engine = _get_workflow_search_engine()
         if _engine is None:
@@ -6199,10 +6934,31 @@ def workflow_by_name(
             finally:
                 conn2.close()
         if not row:
+            # Identifier forms the exact-name lookup misses: a snake_case slug
+            # ("perform_chipseq_peak_calling_with_macs2" for "Perform Chipseq Peak Calling
+            # With Macs2"), a directory slug or a file stem.
+            m = _engine.resolve_named_workflow(name)
+            if m:
+                row = (m.id, m.name, m.description, m.domain, m.source, m.format,
+                       m.step_count, ",".join(m.tools or []), ",".join(m.tags or []), m.filename)
+        if not row:
             return {"success": False, "error": f"workflow_not_found: {name}"}
         wf_id, wf_name, wf_desc, wf_domain, wf_source, wf_format, wf_steps, wf_tools, wf_tags, wf_filename = row
+        # A disabled (executable=0) workflow is never a card target, whichever path asked for it.
+        try:
+            if _engine._executable_or_none(type("M", (), {"id": wf_id})()) is None:
+                return {"success": False, "error": f"workflow_not_executable: {wf_name}"}
+        except Exception as _ex_exc:  # noqa: BLE001 — unknown → do not block
+            log.debug("[workflow_by_name] executable check failed: %s", _ex_exc)
+        input_compatible = None
+        if query:
+            try:
+                input_compatible = _engine.input_compatible(query, wf_id, user_input_kinds=input_kinds)
+            except Exception as _ic_exc:  # unknown, not incompatible
+                log.debug("[workflow_by_name] input_compatible failed: %s", _ic_exc)
         return {
             "success": True,
+            "input_compatible": input_compatible,
             "workflow_name": wf_name,
             "workflow_type": wf_format,
             "nextflow_path": wf_filename if wf_format == "nextflow" else None,
@@ -6226,6 +6982,22 @@ def workflow_by_name(
         return {"success": False, "error": str(exc)}
 
 
+class WorkflowByNameRequest(BaseModel):
+    name: str
+    query: Optional[str] = None
+    input_kinds: Optional[List[str]] = None
+
+
+@router.post(
+    "/api/ai_assistant/workflow_by_name",
+    summary="Workflow lookup by exact name, with the request text in the body (input-compatibility check)"
+)
+def workflow_by_name_post(request: WorkflowByNameRequest, trans: ProvidesUserContext = DependsOnTrans) -> Dict[str, Any]:
+    """POST form of workflow_by_name: the user's request text goes in the body, not the URL (long or CJK
+    messages exceed request-line limits when percent-encoded, and URLs are access-logged)."""
+    return workflow_by_name(name=request.name, query=request.query, input_kinds=request.input_kinds, trans=trans)
+
+
 def _get_workflow_search_engine():
     """Return the singleton UnifiedWorkflowSearch instance."""
     try:
@@ -6245,10 +7017,14 @@ def build_skill_block(
 ) -> Dict[str, Any]:
     """Returns the <active_skills> XML block ready for injection into a system prompt."""
     try:
-        from galaxy.ai.skill_manager import get_skill_manager
-        mgr = get_skill_manager()
+        mgr = _skills_for_request(trans, request.include_private)
+        missing = [sid for sid in request.skill_ids if mgr.get_skill(sid) is None]
+        if missing:
+            raise HTTPException(status_code=404, detail="Selected skills are unavailable")
         block = mgr.build_system_block_by_ids(request.skill_ids)
         return {"success": True, "block": block, "skill_ids": request.skill_ids}
+    except HTTPException:
+        raise
     except Exception as e:
         log.warning("[skills] block failed: %s", e)
         return {"success": False, "error": str(e), "block": ""}

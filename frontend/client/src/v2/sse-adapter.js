@@ -49,6 +49,16 @@
   function humanizeMetric(m) {
     return METRIC_LABELS[m] || m.replace(/_/g, ' ');
   }
+  // A bare process exit code ("exit 1", "exit 127", "rc=1", "127") means nothing
+  // to a user — it belongs in the logs/technical payload, not the friendly line.
+  // Returns the reason only when it is human-informative, else null.
+  function cleanReason(r) {
+    if (!r) return null;
+    const s = String(r).trim();
+    if (!s) return null;
+    if (/^(exit(\s?code)?|return\s?code|returncode|rc|status|code|signal)?\s*[:=]?\s*-?\d+$/i.test(s)) return null;
+    return s;
+  }
 
   // ── Friendly text renderer (matches backend narrator's _TEMPLATES) ──
   function renderFriendly(kind, t) {
@@ -69,8 +79,9 @@
       }
       case 'workflow.phase_failed': {
         const name = t.phase_name || t.name || 'Step';
-        if (t.reason) return `${name} failed — ${t.reason}.`;
-        return `${name} failed. Looking into why…`;
+        const r = cleanReason(t.reason);
+        if (r) return `${name} failed — ${r}.`;
+        return `${name} failed — auto-fixing…`;
       }
       case 'workflow.qc_gate_warning': {
         const m = humanizeMetric(t.metric || 'metric');
@@ -93,8 +104,14 @@
           return `Workflow finished. ${t.steps_succeeded}/${t.steps_total} steps succeeded.`;
         }
         return 'Workflow finished.';
-      case 'workflow.failed':
-        return t.reason ? `Workflow stopped — ${t.reason}. Looking into why…` : 'Workflow stopped. Looking into why…';
+      case 'workflow.failed': {
+        // Not necessarily terminal: a non-zero attempt triggers auto-fix (see
+        // deepagent.start). Neutral wording so a run that auto-recovers and
+        // COMPLETES doesn't read "stopped"; the status badge is the terminal truth.
+        // Bare exit codes are dropped — "exit 127" means nothing to a user.
+        const r = cleanReason(t.reason);
+        return r ? `Workflow hit an error — ${r}.` : 'Workflow hit an error.';
+      }
       case 'workflow.cancelled': return 'Workflow cancelled by you.';
       case 'workflow.paused':    return 'Workflow paused. Tap Resume when you\'re ready to continue.';
       case 'workflow.resumed':   return 'Resuming your workflow.';
@@ -102,7 +119,7 @@
       case 'workflow.pilot_completed':     return t.qc_pass ? 'Pilot done. All QC gates passed.' : 'Pilot done — see the promotion card.';
       case 'workflow.pilot_failed_qc':     return 'Pilot stopped — QC gates triggered.';
       case 'workflow.pilot_promoted':      return 'Promoted to full run.';
-      case 'deepagent.start':              return 'Looking into why your workflow failed…';
+      case 'deepagent.start':              return 'Auto-diagnosing and fixing the error…';
       case 'plan.shown':                   return 'Decomposed into sub-tasks.';
       case 'findings.generated':           return 'Findings are ready in the After-run report.';
       default:                             return `Workflow update: ${kind}.`;

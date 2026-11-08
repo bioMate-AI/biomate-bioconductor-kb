@@ -1,0 +1,588 @@
+{
+  "_embedded": {
+    "associations": [
+      {
+        "association_id": 226258966,
+        "risk_frequency": "0.6344",
+        "pvalue_description": "",
+        "pvalue_mantissa": 1,
+        "pvalue_exponent": -43,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[0.085-0.11]",
+        "beta": "0.09795 unit decrease",
+        "p_value": 1e-43,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          }
+        ],
+        "reported_trait": [
+          "Asthma"
+        ],
+        "accession_id": "GCST90480249",
+        "locations": [
+          "2:102344025"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "39024449",
+        "first_author": "Verma A",
+        "ci_lower": 0.085,
+        "ci_upper": 0.11,
+        "snp_effect_allele": [
+          "rs13001714-A"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs13001714",
+            "effect_allele": "A"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226258966"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226258966/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs13001714"
+          }
+        }
+      },
+      {
+        "association_id": 226114205,
+        "risk_frequency": "0.6357",
+        "pvalue_description": "",
+        "pvalue_mantissa": 6,
+        "pvalue_exponent": -18,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[0.12-0.18]",
+        "beta": "0.1537 unit decrease",
+        "p_value": 6.0000000000000004e-18,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          }
+        ],
+        "reported_trait": [
+          "Asthma with exacerbation (PheCode 495.2)"
+        ],
+        "accession_id": "GCST90480248",
+        "locations": [
+          "2:102344025"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "39024449",
+        "first_author": "Verma A",
+        "ci_lower": 0.12,
+        "ci_upper": 0.18,
+        "snp_effect_allele": [
+          "rs13001714-A"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs13001714",
+            "effect_allele": "A"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226114205"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226114205/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs13001714"
+          }
+        }
+      },
+      {
+        "association_id": 226107706,
+        "risk_frequency": "0.6284",
+        "pvalue_description": "",
+        "pvalue_mantissa": 2,
+        "pvalue_exponent": -29,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[0.082-0.113]",
+        "beta": "0.09742 unit decrease",
+        "p_value": 2e-29,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          }
+        ],
+        "reported_trait": [
+          "Asthma"
+        ],
+        "accession_id": "GCST90479585",
+        "locations": [
+          "2:102344025"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "39024449",
+        "first_author": "Verma A",
+        "ci_lower": 0.082,
+        "ci_upper": 0.113,
+        "snp_effect_allele": [
+          "rs13001714-A"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs13001714",
+            "effect_allele": "A"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226107706"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226107706/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs13001714"
+          }
+        }
+      },
+      {
+        "association_id": 226107383,
+        "risk_frequency": "0.6353",
+        "pvalue_description": "",
+        "pvalue_mantissa": 6,
+        "pvalue_exponent": -23,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[0.08-0.115]",
+        "beta": "0.09794 unit decrease",
+        "p_value": 6e-23,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          },
+          {
+            "efo_id": "EFO_0007010",
+            "efo_trait": "drug use measurement"
+          }
+        ],
+        "reported_trait": [
+          "Takes medication for asthma?"
+        ],
+        "accession_id": "GCST90479584",
+        "locations": [
+          "2:102341256"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "39024449",
+        "first_author": "Verma A",
+        "ci_lower": 0.08,
+        "ci_upper": 0.115,
+        "snp_effect_allele": [
+          "rs1420101-C"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs1420101",
+            "effect_allele": "C"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226107383"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/226107383/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs1420101"
+          }
+        }
+      },
+      {
+        "association_id": 225996115,
+        "risk_frequency": "0.6226",
+        "pvalue_description": "",
+        "pvalue_mantissa": 9,
+        "pvalue_exponent": -22,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[0.082-0.126]",
+        "beta": "0.1041 unit decrease",
+        "p_value": 9e-22,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          },
+          {
+            "efo_id": "EFO_0007010",
+            "efo_trait": "drug use measurement"
+          }
+        ],
+        "reported_trait": [
+          "Takes medication for asthma?"
+        ],
+        "accession_id": "GCST90475260",
+        "locations": [
+          "2:102332010"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "39024449",
+        "first_author": "Verma A",
+        "ci_lower": 0.082,
+        "ci_upper": 0.126,
+        "snp_effect_allele": [
+          "rs1420104-G"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs1420104",
+            "effect_allele": "G"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/225996115"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/225996115/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs1420104"
+          }
+        }
+      },
+      {
+        "association_id": 214490960,
+        "risk_frequency": "NR",
+        "pvalue_description": "",
+        "pvalue_mantissa": 2,
+        "pvalue_exponent": -32,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[0.88-0.91]",
+        "or_per_copy_num": 0.89,
+        "or_value": "0.89",
+        "beta": "-",
+        "p_value": 2e-32,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          }
+        ],
+        "reported_trait": [
+          "Asthma"
+        ],
+        "accession_id": "GCST90693198",
+        "locations": [
+          "2:102351902"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "37560908",
+        "first_author": "Li H",
+        "ci_lower": 0.88,
+        "ci_upper": 0.91,
+        "snp_effect_allele": [
+          "rs10206753-?"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs10206753",
+            "effect_allele": "?"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214490960"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214490960/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs10206753"
+          }
+        }
+      },
+      {
+        "association_id": 214490954,
+        "risk_frequency": "NR",
+        "pvalue_description": "",
+        "pvalue_mantissa": 5,
+        "pvalue_exponent": -32,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[1.1-1.14]",
+        "or_per_copy_num": 1.12,
+        "or_value": "1.12",
+        "beta": "-",
+        "p_value": 5e-32,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          }
+        ],
+        "reported_trait": [
+          "Asthma"
+        ],
+        "accession_id": "GCST90693198",
+        "locations": [
+          "2:102341256"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "37560908",
+        "first_author": "Li H",
+        "ci_lower": 1.1,
+        "ci_upper": 1.14,
+        "snp_effect_allele": [
+          "rs1420101-?"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs1420101",
+            "effect_allele": "?"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214490954"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214490954/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs1420101"
+          }
+        }
+      },
+      {
+        "association_id": 214490950,
+        "risk_frequency": "NR",
+        "pvalue_description": "",
+        "pvalue_mantissa": 3,
+        "pvalue_exponent": -52,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[0.79-0.83]",
+        "or_per_copy_num": 0.81,
+        "or_value": "0.81",
+        "beta": "-",
+        "p_value": 3e-52,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          }
+        ],
+        "reported_trait": [
+          "Asthma"
+        ],
+        "accession_id": "GCST90693198",
+        "locations": [
+          "2:102337753"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "37560908",
+        "first_author": "Li H",
+        "ci_lower": 0.79,
+        "ci_upper": 0.83,
+        "snp_effect_allele": [
+          "rs72823646-?"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs72823646",
+            "effect_allele": "?"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214490950"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214490950/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs72823646"
+          }
+        }
+      },
+      {
+        "association_id": 214289279,
+        "risk_frequency": "NR",
+        "pvalue_description": "",
+        "pvalue_mantissa": 4,
+        "pvalue_exponent": -52,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[0.871-0.899]",
+        "or_per_copy_num": 0.884971,
+        "or_value": "0.884971",
+        "beta": "-",
+        "p_value": 4e-52,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          }
+        ],
+        "reported_trait": [
+          "Asthma"
+        ],
+        "accession_id": "GCST90652530",
+        "locations": [
+          "2:102337753"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "41213931",
+        "first_author": "Saarentaus EC",
+        "ci_lower": 0.871,
+        "ci_upper": 0.899,
+        "snp_effect_allele": [
+          "rs72823646-?"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs72823646",
+            "effect_allele": "?"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214289279"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214289279/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs72823646"
+          }
+        }
+      },
+      {
+        "association_id": 214288739,
+        "risk_frequency": "NR",
+        "pvalue_description": "",
+        "pvalue_mantissa": 1,
+        "pvalue_exponent": -58,
+        "multi_snp_haplotype": false,
+        "snp_interaction": false,
+        "range": "[0.875-0.902]",
+        "or_per_copy_num": 0.888518,
+        "or_value": "0.888518",
+        "beta": "-",
+        "p_value": 1e-58,
+        "efo_traits": [
+          {
+            "efo_id": "MONDO_0004979",
+            "efo_trait": "asthma"
+          },
+          {
+            "efo_id": "MONDO_0006031",
+            "efo_trait": "chronic rhinosinusitis"
+          }
+        ],
+        "reported_trait": [
+          "Asthma or chronic rhinosinusitis"
+        ],
+        "accession_id": "GCST90652529",
+        "locations": [
+          "2:102319699"
+        ],
+        "mapped_genes": [
+          "IL18R1",
+          "IL1RL1"
+        ],
+        "bg_efo_traits": [],
+        "pubmed_id": "41213931",
+        "first_author": "Saarentaus EC",
+        "ci_lower": 0.875,
+        "ci_upper": 0.902,
+        "snp_effect_allele": [
+          "rs72823641-?"
+        ],
+        "snp_allele": [
+          {
+            "rs_id": "rs72823641",
+            "effect_allele": "?"
+          }
+        ],
+        "_links": {
+          "self": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214288739"
+          },
+          "loci": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations/214288739/loci"
+          },
+          "snp": {
+            "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/single-nucleotide-polymorphisms/rs72823641"
+          }
+        }
+      }
+    ]
+  },
+  "_links": {
+    "first": {
+      "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations?mapped_gene=IL1RL1&efo_trait=asthma&page=0&size=10"
+    },
+    "self": {
+      "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations?mapped_gene=IL1RL1&efo_trait=asthma&page=0&size=10"
+    },
+    "next": {
+      "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations?mapped_gene=IL1RL1&efo_trait=asthma&page=1&size=10"
+    },
+    "last": {
+      "href": "https://www.ebi.ac.uk/gwas/rest/api/v2/associations?mapped_gene=IL1RL1&efo_trait=asthma&page=5&size=10"
+    }
+  },
+  "page": {
+    "size": 10,
+    "totalElements": 56,
+    "totalPages": 6,
+    "number": 0
+  }
+}

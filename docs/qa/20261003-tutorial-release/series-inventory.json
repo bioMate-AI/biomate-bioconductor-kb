@@ -1,0 +1,1131 @@
+{
+  "action": "inventory",
+  "silentPreview": false,
+  "status": "IN_PRODUCTION_NOT_RELEASED",
+  "summary": {
+    "BLOCKED": 134,
+    "READY_FOR_INTERNAL_RENDER": 6
+  },
+  "editions": [
+    {
+      "episode": "m1-search-and-evidence",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "BLOCKED",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "m1-search-and-evidence",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "BLOCKED",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "m2-data-analysis",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "BLOCKED",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "m2-data-analysis",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "BLOCKED",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "s1-sidebar-navigation",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "s1-sidebar-navigation",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t0-getting-started",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "BLOCKED",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t0-getting-started",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "BLOCKED",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t1-design-and-generate",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t1-design-and-generate",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t10-exploring-your-datasets",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t10-exploring-your-datasets",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t11-drug-development-end-to-end",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t11-drug-development-end-to-end",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t2-models-and-the-closed-loop",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t2-models-and-the-closed-loop",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t3-running-a-workflow-and-reading-the-report",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t3-running-a-workflow-and-reading-the-report",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t4-bringing-your-own-data",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t4-bringing-your-own-data",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t5-viewing-your-results",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t5-viewing-your-results",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t6-connecting-instruments",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t6-connecting-instruments",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t7-projects-and-collaboration",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t7-projects-and-collaboration",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t8-reports-edit-and-export",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t8-reports-edit-and-export",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t9-connecting-data-and-tools",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "t9-connecting-data-and-tools",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "w1-workflow-panel-tabs",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "w1-workflow-panel-tabs",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "w2-after-run-panel",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "w2-after-run-panel",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "w3-full-step-view",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "w3-full-step-view",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "basespace-sequencing",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "basespace-sequencing",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "benchling-eln-lims",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "benchling-eln-lims",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "cryoem-reconstruction",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "cryoem-reconstruction",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "flow-cytometry-gating",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "flow-cytometry-gating",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "lcms-proteomics-metabolomics",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "lcms-proteomics-metabolomics",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "nanopore-minknow",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "nanopore-minknow",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "opentrons-liquid-handling",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "opentrons-liquid-handling",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "plate-reader-assays",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "plate-reader-assays",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "qpcr-quantification",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "qpcr-quantification",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "sila2-devices",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "sila2-devices",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "composer",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "composer",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "molecule-generation",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "molecule-generation",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "multi-objective-ranking",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "multi-objective-ranking",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "pretrained-models",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "pretrained-models",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "model-training",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "model-training",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "model-adaptation",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "model-adaptation",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "model-optimization",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "model-optimization",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "wet-lab-loop",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "wet-lab-loop",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "table-viewer",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "table-viewer",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "sequence-viewer",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "sequence-viewer",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "variant-viewer",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "variant-viewer",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "structure-viewer",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "structure-viewer",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "interactive-analysis",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "interactive-analysis",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "project-instructions",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "project-instructions",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "project-sharing",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "project-sharing",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "report-editing",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "report-editing",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "report-export",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "report-export",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "database-connectors",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "database-connectors",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "mcp-connectors",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "mcp-connectors",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "dataset-lineage",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "dataset-lineage",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "dataset-versions",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "dataset-versions",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "admet-evidence",
+      "language": "en",
+      "status": "READY_FOR_INTERNAL_RENDER",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "admet-evidence",
+      "language": "zh",
+      "status": "READY_FOR_INTERNAL_RENDER",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "physicochemical-properties",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "physicochemical-properties",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "qsar-prediction",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "qsar-prediction",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "molecular-docking",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "molecular-docking",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "rbfe",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "rbfe",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "pk-pbpk",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "pk-pbpk",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "literature-evidence",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "literature-evidence",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "database-evidence",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "database-evidence",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "patent-evidence",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "patent-evidence",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "internal-evidence",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "internal-evidence",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "instant-analysis",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "instant-analysis",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "cloud-analysis",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "cloud-analysis",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "wgs-analysis",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "wgs-analysis",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "rnaseq-analysis",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "rnaseq-analysis",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "proteomics-dda",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "proteomics-dda",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "proteomics-dia",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "proteomics-dia",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "metabolomics",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "metabolomics",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "dose-response",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "dose-response",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "hts-hit-calling",
+      "language": "en",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "hts-hit-calling",
+      "language": "zh",
+      "status": "BLOCKED",
+      "reason": "Missing storyboard, frames",
+      "productVerification": "PENDING",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "result-downloads",
+      "language": "en",
+      "status": "READY_FOR_INTERNAL_RENDER",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "result-downloads",
+      "language": "zh",
+      "status": "READY_FOR_INTERNAL_RENDER",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "reproducibility-record",
+      "language": "en",
+      "status": "READY_FOR_INTERNAL_RENDER",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "reproducibility-record",
+      "language": "zh",
+      "status": "READY_FOR_INTERNAL_RENDER",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    }
+  ]
+}

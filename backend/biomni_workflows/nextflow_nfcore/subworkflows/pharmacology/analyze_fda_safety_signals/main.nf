@@ -89,6 +89,35 @@ def _standardize_drug_name_fda(drug_name: str) -> str:
 
     return name
 
+
+class OpenFDAClient:
+    '''Minimal openFDA (api.fda.gov) client — the biomni->nextflow generator
+    referenced it but never inlined it (NameError before any HTTP call). Returns
+    openFDA-native JSON; a 404 ("no match") becomes {"results": []}; real
+    network/HTTP errors raise (honest failure).'''
+    BASE = "https://api.fda.gov/drug"
+
+    def _get(self, endpoint, search, limit):
+        import requests
+        resp = requests.get("%s/%s.json" % (self.BASE, endpoint),
+                            params={"search": search, "limit": limit}, timeout=30)
+        if resp.status_code == 404:
+            return {"results": []}
+        resp.raise_for_status()
+        return resp.json()
+
+    def query_drug_labels(self, name, sections=None):
+        return self._get("label", 'openfda.generic_name:"%s"' % name, 1)
+
+    def query_drug_recalls(self, name, classification=None):
+        search = 'product_description:"%s"' % name
+        if classification:
+            search += ' AND classification:"%s"' % classification
+        return self._get("enforcement", search, 10)
+
+    def query_adverse_events(self, name, limit=200):
+        return self._get("event", 'patient.drug.medicinalproduct:"%s"' % name, limit)
+
 def _extract_fda_safety_signals(response_list: list[dict]) -> dict:
     '''Extract safety signals from adverse event data.'''
     drug_signals = {}
@@ -257,15 +286,15 @@ def analyze_fda_safety_signals(
     try:
         # Validate input parameters
         if not drug_list:
-            return "Error: At least one drug must be provided for analysis"
+            raise ValueError("At least one drug must be provided for analysis")
 
         if len(drug_list) < 2:
-            return "Error: At least 2 drugs required for comparative safety signal analysis"
+            raise ValueError("At least 2 drugs required for comparative safety signal analysis")
 
         # Validate drug names
         valid_drugs = [drug.strip() for drug in drug_list if drug and drug.strip()]
         if not valid_drugs:
-            return "Error: No valid drug names provided"
+            raise ValueError("No valid drug names provided")
 
         client = OpenFDAClient()
 
@@ -282,7 +311,7 @@ def analyze_fda_safety_signals(
 
         # Check if we got any data
         if not all_responses:
-            return "Error: No adverse event data found for any of the provided drugs"
+            raise RuntimeError("No adverse event data found for any of the provided drugs; cannot compute comparative safety signals")
 
         # Extract safety signals
         signals = _extract_fda_safety_signals(all_responses)
@@ -291,7 +320,7 @@ def analyze_fda_safety_signals(
         return _format_safety_signal_summary(signals, valid_drugs, comparison_period, signal_threshold)
 
     except Exception as e:
-        return f"Error analyzing FDA safety signals: {str(e)}"
+        raise RuntimeError(f"Error analyzing FDA safety signals: {str(e)}")
 
 # Execute the function
 try:
@@ -328,7 +357,7 @@ with open("analyze_fda_safety_signals_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_fda_safety_signals_output.txt", "w") as f:
-    f.write("Biomni: Analyze Fda Safety Signals" + NL)
+    f.write("BioMate: Analyze Fda Safety Signals" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

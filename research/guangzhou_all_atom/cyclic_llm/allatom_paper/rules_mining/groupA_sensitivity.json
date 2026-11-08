@@ -1,0 +1,175 @@
+{
+ "sources_all_A": [
+  "2020_Townsend",
+  "2021_Kelly"
+ ],
+ "rule_support_n_sources": {
+  "tpsa": 2,
+  "hbd": 2,
+  "logp": 2,
+  "veber_pass": 1,
+  "N-Me added (with minus without)": 2,
+  "D flip (D minus L)": 2
+ },
+ "rule_status": {
+  "tpsa": "inconclusive",
+  "hbd": "inconclusive",
+  "logp": "inconclusive",
+  "veber_pass": "inconclusive",
+  "N-Me added (with minus without)": "inconclusive",
+  "D flip (D minus L)": "no_consistent_direction"
+ },
+ "per_source_descriptive": {
+  "2020_Townsend": {
+   "n_peptides": 2881,
+   "tpsa": {
+    "spearman_with_y": -0.4704763245564915,
+    "kb_claimed_sign": -1
+   },
+   "hbd": {
+    "spearman_with_y": -0.43877146630944336,
+    "kb_claimed_sign": -1
+   },
+   "logp": {
+    "spearman_with_y": 0.28720588047234735,
+    "kb_claimed_sign": 1
+   },
+   "veber_pass": {
+    "spearman_with_y": 0.3752785522979479,
+    "kb_claimed_sign": 1
+   },
+   "N-Me added (with minus without)": {
+    "n_pairs": 2851,
+    "mean_dz": 0.6232456481743015,
+    "sd_dz": 1.0006549788271932
+   },
+   "D flip (D minus L)": {
+    "n_pairs": 4390,
+    "mean_dz": -0.037661247327274765,
+    "sd_dz": 0.9055763980320504
+   }
+  },
+  "2021_Kelly": {
+   "n_peptides": 1518,
+   "tpsa": {
+    "spearman_with_y": -0.48512316377161685,
+    "kb_claimed_sign": -1
+   },
+   "hbd": {
+    "spearman_with_y": -0.52743282385953,
+    "kb_claimed_sign": -1
+   },
+   "logp": {
+    "spearman_with_y": 0.4877013402620513,
+    "kb_claimed_sign": 1
+   },
+   "veber_pass": {
+    "spearman_with_y": null,
+    "kb_claimed_sign": 1
+   },
+   "N-Me added (with minus without)": {
+    "n_pairs": 1107,
+    "mean_dz": 0.4829756750429274,
+    "sd_dz": 0.8377269098373327
+   },
+   "D flip (D minus L)": {
+    "n_pairs": 2220,
+    "mean_dz": 0.02037064126713994,
+    "sd_dz": 0.7854584899106056
+   }
+  }
+ },
+ "note": "single-source rows are descriptive only; the unmodified mining code needs >= 3 sources for physchem rules and for rule status",
+ "sensitivity": {
+  "all_A": {
+   "tpsa": {
+    "status": "inconclusive"
+   },
+   "hbd": {
+    "status": "inconclusive"
+   },
+   "logp": {
+    "status": "inconclusive"
+   },
+   "veber_pass": {
+    "status": "inconclusive"
+   },
+   "N-Me added (with minus without)": {
+    "status": "inconclusive",
+    "effect_z": 0.55411850246785,
+    "ci_z": [
+     0.37346943174114,
+     0.73476757319456
+    ]
+   },
+   "D flip (D minus L)": {
+    "status": "no_consistent_direction",
+    "effect_z": -0.009430211025371251,
+    "ci_z": [
+     -0.08414793109139655,
+     0.06528750904065404
+    ]
+   }
+  },
+  "without_2020_Townsend": {
+   "tpsa": {
+    "status": "inconclusive"
+   },
+   "hbd": {
+    "status": "inconclusive"
+   },
+   "logp": {
+    "status": "inconclusive"
+   },
+   "veber_pass": {
+    "status": "inconclusive"
+   },
+   "N-Me added (with minus without)": {
+    "status": "inconclusive",
+    "effect_z": 0.4829756750429274,
+    "ci_z": [
+     NaN,
+     NaN
+    ]
+   },
+   "D flip (D minus L)": {
+    "status": "inconclusive",
+    "effect_z": 0.02037064126713994,
+    "ci_z": [
+     NaN,
+     NaN
+    ]
+   }
+  },
+  "without_2021_Kelly": {
+   "tpsa": {
+    "status": "inconclusive"
+   },
+   "hbd": {
+    "status": "inconclusive"
+   },
+   "logp": {
+    "status": "inconclusive"
+   },
+   "veber_pass": {
+    "status": "inconclusive"
+   },
+   "N-Me added (with minus without)": {
+    "status": "inconclusive",
+    "effect_z": 0.6232456481743015,
+    "ci_z": [
+     NaN,
+     NaN
+    ]
+   },
+   "D flip (D minus L)": {
+    "status": "inconclusive",
+    "effect_z": -0.037661247327274765,
+    "ci_z": [
+     NaN,
+     NaN
+    ]
+   }
+  }
+ }
+}

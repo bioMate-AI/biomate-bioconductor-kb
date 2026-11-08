@@ -1,0 +1,41 @@
+{
+  "mechanisms": [
+    {
+      "action_type": "INHIBITOR",
+      "binding_site_comment": null,
+      "direct_interaction": 1,
+      "disease_efficacy": 1,
+      "max_phase": 3,
+      "mec_id": 8325,
+      "mechanism_comment": null,
+      "mechanism_of_action": "Interleukin-33 inhibitor",
+      "mechanism_refs": [
+        {
+          "ref_id": "https://newsroom.regeneron.com/news-releases/news-release-details/regeneron-and-sanofi-announce-positive-topline-phase-2-results",
+          "ref_type": "Other",
+          "ref_url": "https://newsroom.regeneron.com/news-releases/news-release-details/regeneron-and-sanofi-announce-positive-topline-phase-2-results"
+        },
+        {
+          "ref_id": "31562870",
+          "ref_type": "PubMed",
+          "ref_url": "http://europepmc.org/abstract/MED/31562870"
+        }
+      ],
+      "molecular_mechanism": 1,
+      "molecule_chembl_id": "CHEMBL4594594",
+      "parent_molecule_chembl_id": "CHEMBL4594594",
+      "record_id": 3461265,
+      "selectivity_comment": null,
+      "site_id": null,
+      "target_chembl_id": "CHEMBL4630890",
+      "variant_sequence": null
+    }
+  ],
+  "page_meta": {
+    "limit": 10,
+    "next": null,
+    "offset": 0,
+    "previous": null,
+    "total_count": 1
+  }
+}

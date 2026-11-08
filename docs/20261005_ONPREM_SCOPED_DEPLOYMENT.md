@@ -83,10 +83,94 @@ the scope is "what's shipped," not enforced.
 ## Recommendation (to make scoped on-prem a first-class, quick capability)
 Build a thin **deployment-scope layer** (small — it reuses the catalog DB + the deployment-profile pattern):
 - a **manifest** (`deployment_scope.yml`: domains, workflow allow-list/deny, instruments, add-on packs);
-- a **`build_scoped_catalog.py`** that emits the subset DB + embeddings + `.nf` set + image pull-list;
+- a **`build_scope_manifest.py`** that emits `manifest.json` (allow-list) + the in-scope **image** mirror-list.
+  **Decision 2026-10-05: do NOT subset the DB** — it ships whole (~324 MB, tiny vs the GB-scale images, and
+  FTS/`.npz`-alignment surgery isn't worth it). The only thing trimmed is the container-image set.
 - **launch enforcement**: router shows only in-scope; executor refuses out-of-scope `.nf` with a clear error
-  (closes the audit's "refuse workflows/tools not in the manifest" item).
+  (closes the audit's "refuse workflows/tools not in the manifest" item). This is what makes scoping real,
+  since the full DB is still present. See `docs/20261005_ONPREM_SCOPE_LAYER_PLAN.md`.
 
 **Net:** on-prem *deployment* is ready and quick; on-prem *scoping* (choose domains/tasks/instruments) is a
 documented, recommended, **not-yet-built** capability — achievable manually today, and a small layer away
 from being a one-command build.
+
+---
+
+## VERIFIED 2026-10-05 (code-grounded, cross-branch) + COMPUTE-RESOURCE CONFIG
+
+Follow-up to answer two user questions precisely: (1) how convenient is *scoped* on-prem delivery, and
+(2) is there convenient configuration of **local/remote compute** on-prem. Verified against actual code on
+both `cursor/tutorial-live-recording-and-report-editing-4ea7` (this worktree) and `integration/next-phase`.
+
+### Branch location (correction to the first pass)
+The on-prem *stack* is on **`integration/next-phase`**, NOT this feature branch. Confirmed present on
+next-phase: `docker-compose.onprem.yml`, `.env.onprem.example`, `backend/docker/biomni-tools/Dockerfile.onprem`,
+`.github/workflows/build-biomni-tools-onprem-image.yml`, `docs/ONPREM_SETUP.md` (full bilingual setup guide:
+quick-start, LLM-provider config, admin panel, storage, DB updates, Ollama offline, HTTPS, backup/restore),
+`docs/ONPREM_IP_PROTECTION.md`, `docs/20260926_ONPREM_SIM_TEST_RESULTS.md`, and a single-node admin UI. So the
+on-prem footprint is **more complete than this doc's first pass implied** — a full-catalog on-prem appliance
+is genuinely deployable+documented today. (On *this* branch those files are absent; only `infra/local-trial/`
++ the `BIOMATE_LOCAL_ONLY` local-LLM hook exist here.)
+
+### Q2 — Compute-resource configuration on-prem: local-only appliance, no cluster/sizing knobs
+Executor selection (`backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py`): if `NEXTFLOW_USE_AWS=true`
+OR `executor=awsbatch` OR any S3 path → **AWS Batch**; else → **local subprocess**. `.env.onprem.example`
+exposes exactly this surface: `NEXTFLOW_USE_AWS=false` (local Docker on the node), `NEXTFLOW_WORK_DIR`
+(default `/app/nf-work`, host bind-mount), `BIOMATE_LOCAL_REGISTRY` (`localhost:5050`), `BIOMATE_NFCORE_URL`
+(air-gap workflow bundle), `BIOMATE_BIOC_CONTAINER` (point at local-registry images), Ollama/vLLM for the LLM.
+
+**Gaps (the real answer to "convenient local/remote compute config"):**
+1. **No remote-cluster option.** Only `awsbatch` and `local` get a generated executor config
+   (`_generate_executor_config` returns `None` for anything else → plain local). **Slurm is half-wired**:
+   there is a config-gen branch (`executor='slurm'` + `slurm_partition`/`slurm_qos` → `clusterOptions`) and
+   per-workflow `slurm` profiles ship in many `nextflow.config` files, but it is **not env-selectable, injects
+   no resource tiers, and is undocumented**. **PBS/SGE/LSF/Kubernetes/GCP/Azure: unsupported.** An on-prem
+   customer cannot conveniently point BioMate at an existing HPC/Slurm/K8s cluster.
+2. **No central compute sizing on local.** The per-job CPU/mem/GPU tiers (`resource_resolver.py` `RESOURCE_TIERS`:
+   process_single 1c/6G … process_high_memory 12c/200G; GPU via a GPU queue) are injected **only in the AWS
+   Batch branch** of `nextflow_executor.py`. For **local** (and slurm) they are NOT injected — job sizing comes
+   from each workflow's own `.nf` directives, and there is **no BioMate knob** to cap/size jobs or request GPU
+   on a local on-prem install. GPU routing is Batch-queue-only.
+
+**Verdict (THIS feature branch):** on-prem is a single-node local-Docker appliance; no cluster executor, no
+local resource tiering. **⚠️ But see the next section — this is ALREADY BUILT on `integration/next-phase`.**
+
+### ⚠️ CORRECTION 2026-10-05 — the compute layer is ALREADY BUILT on `integration/next-phase`
+The "not built" verdict above is true only for THIS feature branch (`cursor/tutorial-...`), which is behind
+next-phase on the executor code. Verified on `origin/integration/next-phase`
+(`backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py`): a colleague has implemented cluster execution
++ resource tiering. Lesson repeated: verify on the authoritative branch before claiming a capability absent.
+
+- **Env-selectable executor** (`:5440-5511`): `NEXTFLOW_EXECUTOR = local | slurm | k8s | awsbatch` (default
+  `local` on-prem; `NEXTFLOW_EXECUTOR=local` hard-overrides `NEXTFLOW_USE_AWS` + the frontend default + request
+  S3 outdirs; a per-job `compute_config.executor` still wins over the env var).
+- **Slurm** (`:3074`): `clusterOptions` from `SLURM_PARTITION`/`SLURM_QOS`/`SLURM_ACCOUNT` (or per-job keys);
+  **resource tiers injected** — `withLabel process_low {4c/12G} / process_medium {16c/72G} / process_high
+  {32c/200G}` — **plus GPU** (`process_gpu → --partition=gpu --gres=gpu:1`); auto outdir `SLURM_WORK_DIR`
+  (default `/scratch/biomate`).
+- **Kubernetes** (`:3096`): full `k8s{}` scope — `namespace` (`NXF_K8S_NAMESPACE`), `storageClaimName`
+  (`NXF_K8S_STORAGE_CLAIM`, a PVC), `storageMountPath`, `pullPolicy`, `serviceAccount`, the `nf-k8s` plugin;
+  resource tiers + GPU (`resourceLabels ['nvidia.com/gpu':'1']`); auto outdir.
+- **Config-gen gate** (`:2606`): `if executor not in ("awsbatch","slurm","k8s")` → the three cluster/cloud
+  executors all get a generated override; anything else falls back to plain local.
+
+So on next-phase, **pointing on-prem BioMate at an existing Slurm or Kubernetes cluster, with central
+CPU/mem/GPU sizing, is supported.** Residual gaps (small): PBS/SGE/LSF are still unsupported (Slurm+K8s cover
+most on-prem HPC/cloud-native), and `NEXTFLOW_EXECUTOR`/`SLURM_*`/`NXF_K8S_*` are **not yet documented in
+`.env.onprem.example`** — i.e. a docs/exposure gap, not a code gap. Fix: add these to the on-prem env template
+and `ONPREM_SETUP.md` so customers can actually find them.
+
+### Scope layer — NOT built anywhere (re-verified on next-phase)
+Checked `origin/integration/next-phase`: **no** `build_scoped_catalog`, **no** `deployment_scope.yml`, **no**
+domain-scoping env knob (`ENABLED_DOMAINS`/etc.), **no** launch-time enforcement, **no** per-deployment
+instrument manifest. The offline manifest generator `export_deployment_manifest.py` exists **only on this
+feature branch** (ABSENT on next-phase). The on-prem docs (`ONPREM_SETUP.md`, `ONPREM_IP_PROTECTION.md`) do
+not mention domain/task/instrument scoping. So scoped delivery remains the genuinely unbuilt capability — the
+recommendation block above still stands as the plan to build it.
+
+### Q1 — Scoped delivery: re-confirmed state
+`export_deployment_manifest.py` (offline): `--domains`/`--workflows` → `tool_allowlist` + `container_mirror_resolved`
+(mostly empty — `container_info.image` is blank in the DB today) + `license_gated_tools` + workflow list. Verified
+there is **no** other subsetting tool, **no** consumer of the manifest, and **no** launch-time enforcement
+(the direct-execute path runs any `.nf` on disk). Still missing: scoped DB emission, `.nf`/image bundling,
+per-deployment instrument manifest, add-on packs — i.e. the recommendation block above stands unbuilt.

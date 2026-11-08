@@ -1,0 +1,20 @@
+{
+  "all_previous_metadata_arrays_equal_current_bound_cache": [
+    "_index",
+    "donor_id",
+    "culture_condition",
+    "guide_type",
+    "guide_id",
+    "keep_for_DE",
+    "n_cells",
+    "total_counts",
+    "source_rows",
+    "indptr",
+    "source_gene_symbols"
+  ],
+  "current_source_etag_matches_recorded_count_extraction": true,
+  "source_uri": "knowledge-datasets-1759951976/immunology_sc_corpus_broad/perturbation/czi_tcell_genomewide/GWCD4i.pseudobulk_merged.h5ad",
+  "source_etag": "\"757ccc082f2a0ca99868bee4604c962c-84\"",
+  "source_size": 44566657140,
+  "limits": "Current metadata and recorded object identity agreement, not independent historical whole-object hashing"
+}

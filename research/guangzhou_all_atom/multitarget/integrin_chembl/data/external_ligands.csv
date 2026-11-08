@@ -1,0 +1,35 @@
+ligand_id,smiles,tier,flat_key,full_key,rule
+Echistatin,,,,,UNRESOLVED: no unambiguous structure available
+RGD,N=C(N)NCCC[C@H](N)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)O,B,IYMAXBFPHPZYIK,IYMAXBFPHPZYIK-BQBZGAKWSA-N,"built from sequence RGD by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+RGDS,N=C(N)NCCC[C@H](N)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CO)C(=O)O,B,NNRFRJQMBSBXGO,NNRFRJQMBSBXGO-CIUDSAMLSA-N,"built from sequence RGDS by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGD,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)O,B,SEFVRKXJJPMVHQ,SEFVRKXJJPMVHQ-YUMQZZPRSA-N,"built from sequence GRGD by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDS,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CO)C(=O)O,B,RGNVSYKVCGAEHK,RGNVSYKVCGAEHK-GUBZILKMSA-N,"built from sequence GRGDS by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDSP,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CO)C(=O)N1CCC[C@H]1C(=O)O,B,NTEDOEBWPRVVSG,NTEDOEBWPRVVSG-XUXIUFHCSA-N,"built from sequence GRGDSP by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDSPK,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CO)C(=O)N1CCC[C@H]1C(=O)N[C@@H](CCCCN)C(=O)O,B,ZRVZOBGMZWVJOS,ZRVZOBGMZWVJOS-VMXHOPILSA-N,"built from sequence GRGDSPK by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDNP,N=C(N)NCCC[C@H](NC(=O)CN)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CC(N)=O)C(=O)N1CCC[C@H]1C(=O)O,B,CWAHAVYVGPRZJU,CWAHAVYVGPRZJU-XUXIUFHCSA-N,"built from sequence GRGDNP by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+GRGDTP,C[C@@H](O)[C@H](NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CN)C(=O)N1CCC[C@H]1C(=O)O,B,UMZVBZDHGKJFGQ,UMZVBZDHGKJFGQ-LLLAAFKUSA-N,"built from sequence GRGDTP by RDKit MolFromSequence (L-aa, free termini; termini/stereo not stated in the paper = assumption)"
+c(RGDfV),CC(C)[C@@H]1NC(=O)[C@@H](Cc2ccccc2)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCN=C(N)N)NC1=O,B,YYQUWEHEBOMRPH,YYQUWEHEBOMRPH-NYUBLWNDSA-N,"derived from PubChem cyclo(RGDfK) SMILES (CID 10196873) by substituting Lys side chain with Val (cyclo(Arg-Gly-Asp-D-Phe-Val)); stereo inherited, not independently verified"
+Cilengitide,CC(C)[C@H]1C(=O)N[C@@H](CCCN=C(N)N)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@H](Cc2ccccc2)C(=O)N1C,A,AMLYAMJWYAIXIA,AMLYAMJWYAIXIA-VWNVYAMZSA-N,PubChem PUG REST name query 'cilengitide' -> CID 176873 (InChIKey AMLYAMJWYAIXIA-VWNVYAMZSA-N)
+c(RGDfK),NCCCC[C@@H]1NC(=O)[C@@H](Cc2ccccc2)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCN=C(N)N)NC1=O,A,NVHPXYIRNJFKTE,NVHPXYIRNJFKTE-HAGHYFMRSA-N,PubChem PUG REST name query 'cyclo(RGDfK)' -> CID 10196873 (InChIKey NVHPXYIRNJFKTE-HAGHYFMRSA-N)
+c(RGDyK),NCCCC[C@@H]1NC(=O)[C@@H](Cc2ccc(O)cc2)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCN=C(N)N)NC1=O,A,LAROZEWEPNAWMD,LAROZEWEPNAWMD-HAGHYFMRSA-N,PubChem PUG REST name query 'cyclo(Arg-Gly-Asp-D-Tyr-Lys)' -> CID 11157853 (InChIKey LAROZEWEPNAWMD-HAGHYFMRSA-N)
+c(RGDfC),N=C(N)NCCC[C@@H]1NC(=O)[C@H](CS)NC(=O)[C@@H](Cc2ccccc2)NC(=O)[C@H](CC(=O)O)NC(=O)CNC1=O,B,WNYJVAMZRBTOPE,WNYJVAMZRBTOPE-YVSFHVDLSA-N,"head-to-tail cyclic pentapeptide Arg-Gly-Asp-D-Phe-Cys, free Cys thiol; same convention as the registry c(RGDfK)"
+sn243,,,,,UNRESOLVED: no unambiguous structure available
+RGD-4C,,,,,UNRESOLVED: no unambiguous structure available
+RGD10 (RGD-2C),,,,,UNRESOLVED: no unambiguous structure available
+NC100717,,,,,UNRESOLVED: no unambiguous structure available
+c(phgisoDGRk),,,,,UNRESOLVED: no unambiguous structure available
+44b,,,,,UNRESOLVED: no unambiguous structure available
+ATN161,CC(=O)N1CCC[C@H]1C(=O)N[C@@H](Cc1cnc[nH]1)C(=O)N[C@@H](CO)C(=O)N[C@@H](CS)C(=O)N[C@@H](CC(N)=O)C(N)=O,A,MMHDBUJXLOFTLC,MMHDBUJXLOFTLC-WOYTXXSLSA-N,PubChem PUG REST name query 'ATN161' -> CID 9960285 (InChIKey MMHDBUJXLOFTLC-WOYTXXSLSA-N)
+JSM6427,,,,,UNRESOLVED: no unambiguous structure available
+RTDLDSLRT,CC(C)C[C@H](NC(=O)[C@H](CO)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(=O)O)NC(=O)[C@@H](NC(=O)[C@@H](N)CCCNC(=N)N)[C@@H](C)O)C(=O)N[C@@H](CCCNC(=N)N)C(=O)N[C@H](C(=O)O)[C@@H](C)O,B,OVWLEYOBFMGNDC,OVWLEYOBFMGNDC-KTTVMVHHSA-N,"linear 9-mer from sequence, L-aa, free termini; flat InChIKey identical to ChEMBL CHEMBL2332369"
+A20FMDV2,CC(C)C[C@H](NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(N)=O)NC(=O)[C@@H]1CCCN1C(=O)[C@@H](NC(=O)[C@H](C)NC(=O)[C@@H](N)CC(N)=O)C(C)C)C(=O)N[C@@H](CCC(N)=O)C(=O)N[C@H](C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](CCC(N)=O)C(=O)N[C@@H](CCCCN)C(=O)N[C@H](C(=O)N[C@@H](C)C(=O)N[C@@H](CCCNC(=N)N)C(=O)N[C@H](C(=O)O)[C@@H](C)O)C(C)C)C(C)C,B,BIPRZBFRCFOBDQ,BIPRZBFRCFOBDQ-KAGUSELOSA-N,"linear 20-mer from sequence, L-amino acids, free termini (RDKit MolFromSequence); termini/modifications of the Kapp sample not stated"
+Mol11,,,,,UNRESOLVED: no unambiguous structure available
+c(FRGDLAFp(NMe)K),CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCCCN)N(C)C(=O)[C@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC1=O,B,FLTIMXZSLYRKOV,FLTIMXZSLYRKOV-QPFBIXMUSA-N,"head-to-tail cyclic nonapeptide Phe-Arg-Gly-Asp-Leu-Ala-Phe-D-Pro-(N-Me)Lys; lowercase p = D-Pro, (NMe)K = N-methyl-L-Lys as in the name; Lys side-chain free"
+Eptifibatide,NC(=O)[C@@H]1CSSCCC(=O)N[C@@H](CCCCN=C(N)N)C(=O)NCC(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](Cc2c[nH]c3ccccc23)C(=O)N2CCC[C@H]2C(=O)N1,A,CZKPOZZJODAYPZ,CZKPOZZJODAYPZ-LROMGURASA-N,PubChem PUG REST name query 'eptifibatide' -> CID 448812 (InChIKey CZKPOZZJODAYPZ-LROMGURASA-N)
+Tirofiban,CCCCS(=O)(=O)N[C@@H](Cc1ccc(OCCCCC2CCNCC2)cc1)C(=O)O,A,COKMIXFXJJXBQG,COKMIXFXJJXBQG-NRFANRHFSA-N,PubChem PUG REST name query 'tirofiban' -> CID 60947 (InChIKey COKMIXFXJJXBQG-NRFANRHFSA-N)
+GR144053,N=C(N)c1ccc(N2CCN(C3CCN(CC(=O)O)CC3)CC2)cc1,A,QGEGSJUSWLLZLH,QGEGSJUSWLLZLH-UHFFFAOYSA-N,PubChem PUG REST name query 'GR144053' -> CID 173614 (InChIKey QGEGSJUSWLLZLH-UHFFFAOYSA-N)
+F-Galacto-c(RGDfK),,,,,UNRESOLVED: no unambiguous structure available
+(Ga)NOPO*-c(RGDfK),,,,,UNRESOLVED: no unambiguous structure available
+c(RGDfK)-Peg-MPA,,,,,UNRESOLVED: no unambiguous structure available
+Flucilatide,,,,,UNRESOLVED: no unambiguous structure available
+c(phgisoDGRk)-Peg-MPA,,,,,UNRESOLVED: no unambiguous structure available

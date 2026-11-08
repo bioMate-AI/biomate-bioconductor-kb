@@ -91,6 +91,21 @@ describe("llmGenerate", () => {
     expect(body.json_mode).toBeUndefined();
   });
 
+  it("forwards task tag only when provided (sft_gold per-task routing)", async () => {
+    let body: any;
+    global.fetch = (async (_u: any, init?: any) => {
+      body = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ text: "x", model_used: "m", fallback_depth: 0 }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }) as any;
+    await llmGenerate({ prompt: "hi", task: "findings" });
+    expect(body.task).toBe("findings");
+
+    await llmGenerate({ prompt: "hi" });
+    expect(body.task).toBeUndefined();
+  });
+
   it("rejects on empty prompt before the network call", async () => {
     let called = false;
     global.fetch = (async () => { called = true; return new Response("", { status: 200 }); }) as any;

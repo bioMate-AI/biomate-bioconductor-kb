@@ -1,0 +1,61 @@
+{
+  "mechanisms": [
+    {
+      "action_type": "INHIBITOR",
+      "binding_site_comment": null,
+      "direct_interaction": 1,
+      "disease_efficacy": 1,
+      "max_phase": 4,
+      "mec_id": 6432,
+      "mechanism_comment": null,
+      "mechanism_of_action": "Thymic stromal lymphopoietin inhibitor",
+      "mechanism_refs": [
+        {
+          "ref_id": "28583618",
+          "ref_type": "PubMed",
+          "ref_url": "http://europepmc.org/abstract/MED/28583618"
+        }
+      ],
+      "molecular_mechanism": 1,
+      "molecule_chembl_id": "CHEMBL3707229",
+      "parent_molecule_chembl_id": "CHEMBL3707229",
+      "record_id": 2583010,
+      "selectivity_comment": null,
+      "site_id": null,
+      "target_chembl_id": "CHEMBL3712931",
+      "variant_sequence": null
+    },
+    {
+      "action_type": "INHIBITOR",
+      "binding_site_comment": null,
+      "direct_interaction": 1,
+      "disease_efficacy": 1,
+      "max_phase": 4,
+      "mec_id": 6433,
+      "mechanism_comment": null,
+      "mechanism_of_action": "Thymic stromal lymphopoietin inhibitor",
+      "mechanism_refs": [
+        {
+          "ref_id": "24846652",
+          "ref_type": "PubMed",
+          "ref_url": "http://europepmc.org/abstract/MED/24846652"
+        }
+      ],
+      "molecular_mechanism": 1,
+      "molecule_chembl_id": "CHEMBL3707229",
+      "parent_molecule_chembl_id": "CHEMBL3707229",
+      "record_id": 2583010,
+      "selectivity_comment": null,
+      "site_id": null,
+      "target_chembl_id": "CHEMBL3712931",
+      "variant_sequence": null
+    }
+  ],
+  "page_meta": {
+    "limit": 10,
+    "next": null,
+    "offset": 0,
+    "previous": null,
+    "total_count": 2
+  }
+}

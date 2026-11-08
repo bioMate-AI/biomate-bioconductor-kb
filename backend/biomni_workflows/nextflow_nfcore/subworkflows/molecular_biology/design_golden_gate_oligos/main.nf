@@ -263,7 +263,7 @@ with open("design_golden_gate_oligos_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("design_golden_gate_oligos_output.txt", "w") as f:
-    f.write("Biomni: Design Golden Gate Oligos" + NL)
+    f.write("BioMate: Design Golden Gate Oligos" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

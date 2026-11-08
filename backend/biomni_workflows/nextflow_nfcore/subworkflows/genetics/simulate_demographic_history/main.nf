@@ -331,7 +331,7 @@ with open("simulate_demographic_history_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("simulate_demographic_history_output.txt", "w") as f:
-    f.write("Biomni: Simulate Demographic History" + NL)
+    f.write("BioMate: Simulate Demographic History" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):
