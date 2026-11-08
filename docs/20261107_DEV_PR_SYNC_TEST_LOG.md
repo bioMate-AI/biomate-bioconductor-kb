@@ -20,4 +20,12 @@ Before syncing, verify exact frontend source tests and backend import compatibil
 
 ## Execution record
 
-PR, artifact identifiers, deployment commands, test evidence and remaining issues will be appended as each operation completes. Initial status: not deployed; not ready for teammate acceptance.
+PR: https://github.com/bioMate-AI/biomate/pull/335. Initial code commit: `97528d44ca33afe767c3472599c665283cd404f2`, based on the deployed PR 328 head. Creating the branch through an isolated Git index preserved the shared index and active branch.
+
+The exact local release was exported to `/private/tmp/biomate-dev-release.ukBtS0`. Its TypeScript check passed; 31 focused frontend tests passed, including preserved response-language behavior; 26 routing/resolver tests passed; and all 12 target-handler regression tests passed. The handler suite's optional validation-plan path reports that this export has no runtime catalogue; these unit tests are not a validation-plan scientific qualification.
+
+The dev host preflight showed 18 GiB available disk and approximately 10 GiB available memory, with the existing frontend, Galaxy, remote connector and PostgreSQL healthy. The three deployed backend fingerprints matched the intended baseline. No old container or global build cache is pruned for this sync.
+
+The one-shot audited sync script is `docs/qa/20261107-dev-online-readiness/sync_reviewed_release.py`. It verifies a release manifest and baseline, builds before changing services, retains the previous frontend container, backs up exactly three Python modules and one workflow, preserves the effective frontend environment without logging credentials, restarts the preloaded Galaxy master and verifies health plus build identity. It uses the supported sync script's lock and rolls back its own changes if the gate fails. It deliberately does not replace either database, modify credentials, run migrations, change queues or deploy the unrelated on-prem work.
+
+Current status: PR open; exact-release pre-sync tests passed; deployment and live retests pending. Not ready for teammate acceptance.
