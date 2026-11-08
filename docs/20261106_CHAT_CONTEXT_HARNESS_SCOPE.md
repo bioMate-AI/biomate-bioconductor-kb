@@ -157,12 +157,29 @@ arrives when the live assembly is migrated onto the builder. (dimensions 1,2,3,9
   "searched, found nothing" channel (the harness's `failureSignalled`). Cheap, high trust — stops the
   model answering from nothing. (dimension 8)
 
-**P2 — Cross-history search tool.** A `search_chat_history` / findings search over
-`chat_sessions.messages` + run findings, user/project-scoped, with an explicit empty result. Answers
-"what did we conclude about hERG last week?". (channels + tool reach)
+**P2 — Cross-history search tool — ✅ DONE (PR #338).** `search_chat_history` tool over
+`chat_sessions.messages`, scoped to the authenticated user, EXCLUDING the current session, AND-matched
+case-insensitive `ILIKE`, `ORDER BY last_activity DESC` (indexed), `LIMIT 8`, returning `{session_id,
+title, status, last_activity, snippet}` per hit. An empty result is returned honestly ("nothing found
+— do not invent a recollection"). Pure `extractChatSnippet()` helper is unit-tested (6 tests). The
+`biomate-universe` skill's "you cannot search past conversations" boundary was flipped to describe the
+new scoped keyword search and its real limits (own chats only, literal word match, no semantic recall).
+Findings-text search was NOT added (findings live per-run in `_findingsCache`/outputs, not a single
+searchable column) — `list_history` + `search_my_data` already cover run lookup. (channels + tool reach)
 
-**P3 — Chat → report edit.** `edit_report(runId, instruction)` → propose diff → on accept call the
-existing `reportVersionStore.append` (v0-fork protection already there) + a ChatEdit accept UI.
+**P3 — Chat → report edit — NOT backend-only; needs the client (deferred).** The store side is
+already done: `reportVersionStore.append` (v0-fork protection) + `POST /api/runs/:anyId/report/versions`
++ the report-editor save flow. The blocker for a chat `edit_report(runId, instruction)` tool is that
+**the authoritative "current report" is composed client-side** (`buildFullReportMarkdown` in the
+after-run Results view) and POSTed as `currentMarkdown` on save — the server cannot reconstruct exactly
+what the user is looking at (`GET …/findings/report` only renders from the disk file or
+`_findingsCache`, an approximation; routes.ts:13887 confirms v0 is seeded "from the report markdown the
+client currently shows"). So a correct P3 requires the CLIENT to (a) pass the current composed markdown
+into the chat turn, (b) host the propose-diff / accept UI, and (c) call the existing append route on
+accept. A server-only `edit_report` that edits a server-reconstructed approximation would silently
+diverge from the real report — a workaround we do not ship. P3 stays deferred until it can be built
+AND verified through the UI. The `biomate-universe` skill's "you cannot edit a saved report through
+chat" boundary therefore remains accurate and is left unchanged.
 
 **P4 — Defer until P0 data says they're worth it.** Semantic retrieval (11), global-budget eviction
 (10), multi-turn entity persistence (15), provenance (13), token-accurate budgeting (14).
