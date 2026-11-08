@@ -646,22 +646,34 @@ docker exec biomate-frontend grep -c "googleapis" /app/dist/public/index.html
 
 ---
 
-### 11.3 CORS 拒绝 IP 访问（P7）
+### 11.3 CORS 拒绝 IP 访问 / 白屏（P7）
 
-**现象：** 浏览器控制台报 `CORS error`，API 调用返回 403。常见于使用 IP 直接访问（无域名）的场景。
+**现象：** 浏览器打开后白屏，或控制台报 `CORS error`、API 调用返回 403。常见于以下场景：
+- IP 直接访问（无域名）
+- 服务器重启后公网 IP 变化，`.env` 里的 `CORS_ORIGINS` 未更新
+- 通过反向代理（如 Nginx 中转节点）访问，代理 IP 未加入白名单
 
-**修复（`.env` + 重启前端）：**
+**修复步骤：**
 
 ```bash
-# 获取机器 IP
-PUBLIC_IP=$(curl -s --max-time 5 http://100.100.100.200/latest/meta-data/eip/public-ip 2>/dev/null \
-         || ip route get 1 | awk '{print $7; exit}')
+cd /app/biomate
 
-# 写入 CORS 配置（多个 Origin 用逗号分隔）
-sed -i "s|^CORS_ORIGINS=.*|CORS_ORIGINS=http://${PUBLIC_IP}:5000|" .env
+# 1. 更新 CORS_ORIGINS（多个来源用逗号分隔，不加末尾斜杠）
+#    示例：IP 直接访问
+sed -i "s|^CORS_ORIGINS=.*|CORS_ORIGINS=http://<服务器IP>:5000|" .env
 
-docker restart biomate-frontend
+#    示例：同时允许反向代理节点和直接访问
+sed -i "s|^CORS_ORIGINS=.*|CORS_ORIGINS=http://<代理IP>,http://<服务器IP>:5000|" .env
+
+#    示例：域名访问
+sed -i "s|^CORS_ORIGINS=.*|CORS_ORIGINS=https://biomate.example.com|" .env
+
+# 2. 重建前端容器（必须用 up -d，不能用 restart）
+#    docker restart / docker compose restart 不会重新读取 .env，新配置不生效
+docker compose -f docker-compose.onprem.yml up -d frontend
 ```
+
+> **注意：** `docker compose restart frontend` 和 `docker restart biomate-frontend` **不会**重新加载环境变量，白屏问题不会消失。必须用 `up -d` 重建容器。
 
 ---
 
