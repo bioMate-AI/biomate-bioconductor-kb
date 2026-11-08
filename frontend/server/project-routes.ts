@@ -202,6 +202,16 @@ async function _findProjectFileByName(projectId: string, name: string): Promise<
  *  row (design §4.4 — nothing a finished run read can change underneath it). The
  *  current bytes stay at their existing s3_key; this just records them as a past
  *  version so the new content can take over the project_files row. */
+/** Parse tabular text into headers + rows (capped). Delimiter from the extension,
+ *  else sniffed. Used by the version Compare/diff (design §4.4). */
+function _parseTabular(text: string, ext: string): { headers: string[]; rows: string[][] } {
+  const e = (ext || "").toLowerCase();
+  const delim = (e === "tsv" || e === "tab") ? "\t" : (e === "csv") ? "," : (text.indexOf("\t") >= 0 ? "\t" : ",");
+  const lines = text.split(/\r?\n/).filter((l) => l.length > 0).slice(0, 500);
+  const rows = lines.map((l) => l.split(delim));
+  return { headers: rows[0] || [], rows: rows.slice(1) };
+}
+
 async function _archiveCurrentAsVersion(cur: any, projectId: string, note: string, author: string): Promise<void> {
   await pool.query(
     `INSERT INTO project_file_versions
@@ -884,6 +894,70 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_files] restore failed:", e?.message ?? e);
       res.status(500).json({ error: "Restore failed" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/files/:fileId/versions/:versionNo/diff ─────
+  // Compare a past version against the CURRENT one (design §4.4 — "cell-level and
+  // column-level diff against the current version, side by side"). Reads both
+  // versions' bytes (readTextPrefix, capped), parses tabular, and returns the
+  // column set diff + position-aligned changed cells (capped). Non-tabular files
+  // report a metadata-only diff (size/hash differ) honestly.
+  app.get("/api/projects/:id/files/:fileId/versions/:versionNo/diff", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const { id, fileId, versionNo } = req.params;
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      const cur = await pool.query(
+        `SELECT name, s3_key, size, content_type, content_hash, version_no FROM project_files WHERE id = $1 AND project_id = $2`,
+        [fileId, id]
+      );
+      if (!cur.rows[0]) return res.status(404).json({ error: "File not found" });
+      const tgt = await pool.query(
+        `SELECT s3_key, size, content_hash FROM project_file_versions WHERE file_id = $1 AND version_no = $2`,
+        [fileId, Number(versionNo)]
+      );
+      if (!tgt.rows[0]) return res.status(404).json({ error: "Version not found" });
+      const c = cur.rows[0], t = tgt.rows[0];
+      const identical = Boolean(c.content_hash && t.content_hash && c.content_hash === t.content_hash);
+      const ext = (String(c.name).split(".").pop() || "").toLowerCase();
+      const tabular = ["csv", "tsv", "tab", "txt"].includes(ext);
+      const base = {
+        current: { version: c.version_no, size: Number(c.size) },
+        target: { version: Number(versionNo), size: Number(t.size) },
+        identical,
+        tabular,
+      };
+      if (identical || !tabular) return res.json(base);
+      const CAP = 256 * 1024;
+      const [curText, tgtText] = await Promise.all([
+        s3Service.readTextPrefix(c.s3_key, CAP).catch(() => ""),
+        s3Service.readTextPrefix(t.s3_key, CAP).catch(() => ""),
+      ]);
+      const A = _parseTabular(curText, ext);  // current
+      const B = _parseTabular(tgtText, ext);  // target (older)
+      const added = A.headers.filter((h) => !B.headers.includes(h));
+      const removed = B.headers.filter((h) => !A.headers.includes(h));
+      const changedCells: Array<{ row: number; col: string; from: string; to: string }> = [];
+      const nRows = Math.min(A.rows.length, B.rows.length);
+      const nCols = Math.min(A.headers.length, B.headers.length);
+      for (let i = 0; i < nRows && changedCells.length < 100; i++) {
+        for (let j = 0; j < nCols; j++) {
+          const av = A.rows[i]?.[j] ?? "", bv = B.rows[i]?.[j] ?? "";
+          if (av !== bv) changedCells.push({ row: i, col: A.headers[j] ?? String(j), from: bv, to: av });
+        }
+      }
+      res.json({
+        ...base,
+        columns: { added, removed },
+        rowsCompared: nRows,
+        changedCells,
+        truncated: (A.rows.length >= 500 || B.rows.length >= 500),
+      });
+    } catch (e: any) {
+      console.error("[project_files] diff failed:", e?.message ?? e);
+      res.status(500).json({ error: "Diff failed" });
     }
   });
 

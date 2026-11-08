@@ -270,6 +270,25 @@ export function DatasetObject({
   }
   const effectiveVersions = versionable ? (projectVersions ?? []) : versions
 
+  // Compare a past version against current (design §4.4 — column + cell diff).
+  const [diffFor, setDiffFor] = useState<string | null>(null)
+  const [diffData, setDiffData] = useState<any | null>(null)
+  const [diffLoading, setDiffLoading] = useState(false)
+  const handleCompare = async (versionNo: string) => {
+    if (!projectId) return
+    if (diffFor === versionNo) { setDiffFor(null); setDiffData(null); return }  // toggle off
+    setDiffFor(versionNo); setDiffData(null); setDiffLoading(true); setVersionError(null)
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/versions/${encodeURIComponent(versionNo)}/diff`, { credentials: "include" })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `Compare failed (${r.status})`)
+      setDiffData(await r.json())
+    } catch (e: any) {
+      setVersionError(e?.message ?? t('dataset_obj.compare_failed')); setDiffFor(null)
+    } finally {
+      setDiffLoading(false)
+    }
+  }
+
   // Current version label for the header chip + stat grid. Falls back to the
   // caller's list, else v1 (every file has at least an implicit v1).
   const currentVersionLabel =
@@ -622,6 +641,15 @@ export function DatasetObject({
                         {t('dataset_obj.used_by_runs', { n: consumers.length })}
                       </span>
                     )}
+                    {/* Compare this version against current (column + cell diff). */}
+                    {versionable && !v.current && (
+                      <button
+                        className="text-xs text-primary hover:underline disabled:opacity-50"
+                        data-testid={`dataset-version-compare-${v.version}`}
+                        disabled={diffLoading && diffFor === v.version}
+                        onClick={() => handleCompare(v.version)}
+                      >{diffFor === v.version ? t('dataset_obj.compare_hide') : t('dataset_obj.compare')}</button>
+                    )}
                     {/* Restore a past version (append-only — writes a new version). */}
                     {versionable && !v.current && (
                       <button
@@ -644,6 +672,38 @@ export function DatasetObject({
                       {v.note}
                       {v.author && <span className="text-muted-foreground"> — {v.author}</span>}
                     </p>
+                  )}
+                  {diffFor === v.version && (
+                    <div className="mt-1.5 rounded border bg-muted/20 p-2 text-xs space-y-1" data-testid={`dataset-version-diff-${v.version}`}>
+                      {diffLoading ? (
+                        <p className="text-muted-foreground">{t('dataset_obj.comparing')}</p>
+                      ) : diffData?.identical ? (
+                        <p className="text-muted-foreground">{t('dataset_obj.diff_identical')}</p>
+                      ) : diffData?.tabular === false ? (
+                        <p className="text-muted-foreground">{t('dataset_obj.diff_nontabular', { a: diffData?.target?.size ?? "?", b: diffData?.current?.size ?? "?" })}</p>
+                      ) : diffData ? (
+                        <>
+                          {(diffData.columns?.added?.length || diffData.columns?.removed?.length) ? (
+                            <p>
+                              {diffData.columns.added?.length ? <span className="text-emerald-600 dark:text-emerald-400">+{diffData.columns.added.join(", ")} </span> : null}
+                              {diffData.columns.removed?.length ? <span className="text-red-600 dark:text-red-400 line-through">−{diffData.columns.removed.join(", ")}</span> : null}
+                            </p>
+                          ) : null}
+                          <p className="text-muted-foreground" data-testid="dataset-diff-cellcount">
+                            {t('dataset_obj.diff_changed_cells', { n: diffData.changedCells?.length ?? 0 })}
+                            {diffData.truncated ? ` ${t('dataset_obj.diff_sampled')}` : ""}
+                          </p>
+                          {(diffData.changedCells ?? []).slice(0, 5).map((c: any, ci: number) => (
+                            <p key={ci} className="font-mono text-[11px]">
+                              <span className="text-muted-foreground">r{c.row} · {c.col}: </span>
+                              <span className="text-red-600 dark:text-red-400 line-through">{String(c.from) || "∅"}</span>
+                              {" → "}
+                              <span className="text-emerald-600 dark:text-emerald-400">{String(c.to) || "∅"}</span>
+                            </p>
+                          ))}
+                        </>
+                      ) : null}
+                    </div>
                   )}
                 </div>
               ))}

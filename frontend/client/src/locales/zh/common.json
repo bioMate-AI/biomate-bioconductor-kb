@@ -343,7 +343,15 @@
     "open_in_failed": "无法打开交互工具",
     "restore": "恢复",
     "restoring": "正在恢复…",
-    "restore_failed": "无法恢复该版本"
+    "restore_failed": "无法恢复该版本",
+    "compare": "对比",
+    "compare_hide": "隐藏差异",
+    "comparing": "正在对比…",
+    "compare_failed": "无法对比版本",
+    "diff_identical": "内容相同（字节一致）。",
+    "diff_nontabular": "非表格文件——当前 {{b}} 字节，此版本 {{a}} 字节。",
+    "diff_changed_cells": "{{n}} 处单元格变化",
+    "diff_sampled": "（前 500 行）"
   },
   "data_hub": {
     "choose_project": "选择一个项目",

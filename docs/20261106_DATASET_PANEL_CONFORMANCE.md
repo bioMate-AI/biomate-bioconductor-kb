@@ -118,8 +118,11 @@ stubs shipped, per CLAUDE.md):
    …/files/:fileId/versions` lists them; `POST …/versions/:v/restore` is append-only (archives
    current, points at the chosen version's retained bytes as a new version). The dataset object's
    Versions tab reads this Node store for project files (not the Galaxy note-log) and offers Restore.
-   REMAINING refinements: cell/column **Compare/diff** between versions, and **edit-in-place** of the
-   tabular preview as a version-creating action (both build on this store).
+   **Compare/diff SHIPPED** — `GET …/files/:fileId/versions/:versionNo/diff` reads both versions
+   (readTextPrefix, capped), returns the column set diff (added/removed) + position-aligned changed
+   cells (capped); the Versions tab has a "Compare" toggle per past version showing columns + changed
+   cells vs current. REMAINING refinement: **edit-in-place** of the tabular preview as a
+   version-creating action (builds on this store).
 6. **Recursive `results/<run>` folders:** the tree renderer is one level deep; nested run sub-folders
    under a `results/` parent need a recursive `TreeNodeView`.
 

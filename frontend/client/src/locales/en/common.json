@@ -337,7 +337,15 @@
     "open_in_failed": "Could not open the interactive tool",
     "restore": "Restore",
     "restoring": "Restoring…",
-    "restore_failed": "Could not restore this version"
+    "restore_failed": "Could not restore this version",
+    "compare": "Compare",
+    "compare_hide": "Hide diff",
+    "comparing": "Comparing…",
+    "compare_failed": "Could not compare versions",
+    "diff_identical": "Identical content (same bytes).",
+    "diff_nontabular": "Non-tabular file — current {{b}} B vs this version {{a}} B.",
+    "diff_changed_cells": "{{n}} changed cells",
+    "diff_sampled": "(first 500 rows)"
   },
   "data_hub": {
     "choose_project": "Choose a project",
