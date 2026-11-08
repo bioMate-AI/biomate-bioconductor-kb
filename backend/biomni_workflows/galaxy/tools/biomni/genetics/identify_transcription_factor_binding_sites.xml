@@ -2,7 +2,7 @@
 <tool id="biomni_genetics_identify_transcription_factor_binding_sites" name="Biomni: Identify Transcription Factor Binding Sites" version="1.0.0">
     <description>Identifies binding sites for a specific transcription factor in a genomic sequence.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/identify_transcription_factor_binding_sites_wrapper.py' --output '$output'

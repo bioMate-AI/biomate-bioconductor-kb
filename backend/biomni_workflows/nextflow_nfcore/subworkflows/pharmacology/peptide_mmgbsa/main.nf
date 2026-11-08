@@ -28,7 +28,7 @@
  *   params.charmm_toppar_s3   S3 prefix holding CHARMM36 toppar
  *   params.outdir             output directory (default: 'results')
  *
- * Container: CPU. Reuses the biomni-tools ECR image. HONEST GAP: that image
+ * Container: CPU. Reuses the workflow-tools ECR image. HONEST GAP: that image
  * must carry the conda-forge stack openmm + psfgen + parmed + gemmi; if it does
  * not, a dedicated MM-GBSA image must be built + pushed to ECR before this runs
  * (peptide_mmgbsa_run.sh provisions it via `conda create -c conda-forge
@@ -48,7 +48,7 @@ process MMGBSA {
 
     // CPU image. Must contain conda-forge openmm + psfgen + parmed + gemmi
     // (see module header — may need a dedicated image built + pushed to ECR).
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(pep_id), path(complex_cif)

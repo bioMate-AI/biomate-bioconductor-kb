@@ -69,7 +69,7 @@ execution:
       docker_run_extra_arguments: -e MPLCONFIGDIR=/tmp -e HOME=/tmp -e DISABLE_AUTH=true
 
     # Biomni tools environment
-    docker_biomni:
+    docker_workflow:
       runner: local
       docker_enabled: true
       docker_auto_rm: true
@@ -82,7 +82,7 @@ execution:
 # Tool-to-destination mapping
 tools:
   - id: biomni_.*
-    environment: docker_biomni
+    environment: docker_workflow
   # Built-in data-ingestion tools need no container — run them in the plain local
   # runner so uploads and URL/S3 fetch actually materialize. The default
   # docker_local destination requires a docker binary that the Galaxy container

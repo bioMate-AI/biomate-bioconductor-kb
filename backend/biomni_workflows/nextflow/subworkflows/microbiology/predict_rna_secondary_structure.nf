@@ -3,7 +3,7 @@
  * biomni_microbiology_predict_rna_secondary_structure
  * Predict the secondary structure of an RNA molecule using ViennaRNA.
  * Generated from Galaxy tool definition
- * Docker: biomate/biomni-tools:latest
+ * Docker: biomate/workflow-tools:latest
  */
 
 nextflow.enable.dsl = 2
@@ -19,7 +19,7 @@ process PREDICT_RNA_SECONDARY_STRUCTURE {
     label 'process_medium'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     // No file inputs

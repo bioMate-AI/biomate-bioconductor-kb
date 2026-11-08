@@ -3,8 +3,8 @@
 #
 # Usage:
 #   ./backend/docker/build-pharma-images.sh               # build all three
-#   ./backend/docker/build-pharma-images.sh biomni-admet
-#   ./backend/docker/build-pharma-images.sh biomni-pharma
+#   ./backend/docker/build-pharma-images.sh admet
+#   ./backend/docker/build-pharma-images.sh pharmacology-tools
 #   ./backend/docker/build-pharma-images.sh r-pharma
 #
 # Prerequisites:
@@ -16,29 +16,29 @@ set -euo pipefail
 ECR="399683337364.dkr.ecr.us-west-2.amazonaws.com"
 
 build_biomni_admet() {
-    echo "=== Building biomni-admet:x86 ==="
-    # From biomate/nextflow-base (NOT biomni-tools) — lean ADMET-specific image
+    echo "=== Building admet:x86 ==="
+    # From biomate/nextflow-base (NOT workflow-tools) — lean ADMET-specific image
     docker buildx build \
         --platform linux/amd64 \
         --progress=plain \
-        -t "$ECR/biomate/biomni-admet:x86" \
+        -t "$ECR/biomate/admet:x86" \
         --push \
-        -f backend/docker/biomni-admet/Dockerfile \
+        -f backend/docker/admet/Dockerfile \
         .
-    echo "biomni-admet pushed to $ECR/biomate/biomni-admet:x86"
+    echo "admet pushed to $ECR/biomate/admet:x86"
 }
 
 build_biomni_pharma() {
-    echo "=== Building biomni-pharma:x86 ==="
-    # From biomni-tools — adds py2opsin, molfeat, chembl client
+    echo "=== Building pharmacology-tools:x86 ==="
+    # From workflow-tools — adds py2opsin, molfeat, chembl client
     docker buildx build \
         --platform linux/amd64 \
         --progress=plain \
-        -t "$ECR/biomate/biomni-pharma:x86" \
+        -t "$ECR/biomate/pharmacology-tools:x86" \
         --push \
-        -f backend/docker/biomni-pharma/Dockerfile \
+        -f backend/docker/pharmacology-tools/Dockerfile \
         .
-    echo "biomni-pharma pushed to $ECR/biomate/biomni-pharma:x86"
+    echo "pharmacology-tools pushed to $ECR/biomate/pharmacology-tools:x86"
 }
 
 build_r_pharma() {
@@ -56,8 +56,8 @@ build_r_pharma() {
 TARGET="${1:-all}"
 
 case "$TARGET" in
-    biomni-admet)  build_biomni_admet ;;
-    biomni-pharma) build_biomni_pharma ;;
+    admet)  build_biomni_admet ;;
+    pharmacology-tools) build_biomni_pharma ;;
     r-pharma)      build_r_pharma ;;
     all)
         build_biomni_admet
@@ -65,9 +65,9 @@ case "$TARGET" in
         build_r_pharma
         echo ""
         echo "=== All pharmacology images built and pushed ==="
-        echo "  $ECR/biomate/biomni-admet:x86   (ADMET-AI/Chemprop — from base)"
-        echo "  $ECR/biomate/biomni-pharma:x86  (py2opsin/molfeat — from biomni-tools)"
+        echo "  $ECR/biomate/admet:x86   (ADMET-AI/Chemprop — from base)"
+        echo "  $ECR/biomate/pharmacology-tools:x86  (py2opsin/molfeat — from workflow-tools)"
         echo "  $ECR/biomate/r-pharma:x86       (nlmixr2/PKNCA — from rocker)"
         ;;
-    *) echo "Unknown target: $TARGET. Use: biomni-admet | biomni-pharma | r-pharma | all" ; exit 1 ;;
+    *) echo "Unknown target: $TARGET. Use: admet | pharmacology-tools | r-pharma | all" ; exit 1 ;;
 esac

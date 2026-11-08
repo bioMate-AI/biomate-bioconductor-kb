@@ -2,7 +2,7 @@
 <tool id="biomni_molecular_biology_golden_gate_assembly" name="Biomni: Golden Gate Assembly" version="1.0.0">
     <description>Simulate Golden Gate assembly to predict final construct sequences.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/golden_gate_assembly_wrapper.py' --output '$output'

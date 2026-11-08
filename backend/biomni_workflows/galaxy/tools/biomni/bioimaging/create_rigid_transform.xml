@@ -2,7 +2,7 @@
 <tool id="biomni_bioimaging_create_rigid_transform" name="Biomni: Create Rigid Transform" version="1.0.0">
     <description>Create a rigid transform for image registration.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/create_rigid_transform_wrapper.py' --output '$output'

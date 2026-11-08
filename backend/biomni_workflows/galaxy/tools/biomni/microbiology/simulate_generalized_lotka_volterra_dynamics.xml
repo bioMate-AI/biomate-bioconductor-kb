@@ -2,7 +2,7 @@
 <tool id="biomni_microbiology_simulate_generalized_lotka_volterra_dynamics" name="Biomni: Simulate Generalized Lotka Volterra Dynamics" version="1.0.0">
     <description>Simulate microbial community dynamics using the Generalized Lotka-Volterra (gLV) model.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/simulate_generalized_lotka_volterra_dynamics_wrapper.py' --output '$output'

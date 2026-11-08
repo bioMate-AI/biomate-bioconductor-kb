@@ -138,7 +138,7 @@ docker {
 }
 
 process {
-    container = 'biomate/biomni-tools:latest'
+    container = 'biomate/workflow-tools:latest'
 }
 """
     with open(tests_dir / 'nextflow.config', 'w') as f:

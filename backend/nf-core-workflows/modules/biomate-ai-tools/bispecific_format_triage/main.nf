@@ -30,8 +30,8 @@ process BISPEC_MECHANISM_INFERENCE {
     label 'process_low'
     publishDir "${params.outdir}/phaseA_mechanism", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)
@@ -153,8 +153,8 @@ process BISPEC_FORMAT_SCORING {
     label 'process_low'
     publishDir "${params.outdir}/phaseB_scoring", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(mechanism_json)
@@ -222,8 +222,8 @@ process BISPEC_COMPOSITE_RANKING {
     label 'process_low'
     publishDir "${params.outdir}/phaseC_ranking", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(scores_json), path(mechanism_json)
@@ -303,8 +303,8 @@ process BISPEC_REPORT_SYNTHESIS {
     label 'process_low'
     publishDir "${params.outdir}", mode: 'copy'
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(ranking_json), path(ranking_csv)

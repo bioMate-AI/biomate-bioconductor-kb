@@ -273,7 +273,7 @@ services:
       # amd64 hosts: leave as linux/amd64 (default).
       # arm64 hosts (Graviton2/3, Apple Silicon): install.sh automatically sets
       #   DOCKER_DEFAULT_PLATFORM=linux/arm64 in .env so that locally-available
-      #   native arm64 workflow images (biomni-admet:arm64, biomni-tools:arm64)
+      #   native arm64 workflow images (admet:arm64, workflow-tools:arm64)
       #   are used. amd64-only images fall back to QEMU (binfmt installed by install.sh).
       DOCKER_DEFAULT_PLATFORM: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
       # local: 用本机 Docker 跑 Nextflow（需要挂载 docker.sock，见下方 volumes）
@@ -345,10 +345,10 @@ services:
       BIOMATE_BIOC_CONTAINER: ${BIOMATE_BIOC_CONTAINER:-}
 
       # ── ADMET container override ───────────────────────────────────────────
-      # biomni-admet (the ML ADMET image) lives only on private AWS ECR and is
+      # admet (the ML ADMET image) lives only on private AWS ECR and is
       # not accessible from China or air-gapped hosts. Set to a locally-available
       # image with the biomni package (RDKit-based ADMET fallback):
-      #   BIOMATE_ADMET_CONTAINER=biomate/biomni-tools:latest
+      #   BIOMATE_ADMET_CONTAINER=biomate/workflow-tools:latest
       # nextflow_executor.py generates a withName: ~/.*ADMET.*/ process override.
       BIOMATE_ADMET_CONTAINER: ${BIOMATE_ADMET_CONTAINER:-}
 
@@ -487,7 +487,7 @@ services:
       BILLING_INTERNAL_KEY:  ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
 
       # ── Nextflow 执行模式 ─────────────────────────────────────────────────
-      # On-prem 使用 docker profile (biomate/biomni-tools 容器本地运行).
+      # On-prem 使用 docker profile (biomate/workflow-tools 容器本地运行).
       # false → routes.ts 选择 'docker' profile; true → 'aws' (Batch).
       NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
       # Must match NEXTFLOW_WORK_DIR in biomate-engine so the step-file allowed-roots

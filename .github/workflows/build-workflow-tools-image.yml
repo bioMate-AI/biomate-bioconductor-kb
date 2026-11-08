@@ -1,0 +1,22 @@
+name: Build workflow-tools image
+
+# Dispatch-only (this image is large and not currently broken). Applies the reusable
+# build+smoke+push template: build → run backend/docker/workflow-tools/smoke.py inside
+# the image → push :x86 only if the smoke passes.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  tools:
+    uses: ./.github/workflows/build-workflow-image.yml
+    with:
+      image_repo: biomate/workflow-tools
+      dockerfile: backend/docker/workflow-tools/Dockerfile
+      smoke_script: backend/docker/workflow-tools/smoke.py
+      smoke_workflow: backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf
+      build_arm64: true

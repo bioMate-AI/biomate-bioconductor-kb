@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_estimate_alpha_particle_radiotherapy_dosimetry" name="Biomni: Estimate Alpha Particle Radiotherapy Dosimetry" version="1.0.0">
     <description>Estimate radiation absorbed doses to tumor and normal organs for alpha-particle radiotherapeutics.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/estimate_alpha_particle_radiotherapy_dosimetry_wrapper.py' --output '$output'

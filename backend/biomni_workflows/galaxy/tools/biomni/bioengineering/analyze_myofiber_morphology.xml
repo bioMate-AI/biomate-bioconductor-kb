@@ -2,7 +2,7 @@
 <tool id="biomni_bioengineering_analyze_myofiber_morphology" name="Biomni: Analyze Myofiber Morphology" version="1.0.0">
     <description>Quantifies morphological properties of myofibers in microscopy images of tissue sections.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_myofiber_morphology_wrapper.py' --output '$output'

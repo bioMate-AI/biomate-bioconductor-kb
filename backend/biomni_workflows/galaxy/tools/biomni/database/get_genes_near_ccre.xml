@@ -2,7 +2,7 @@
 <tool id="biomni_database_get_genes_near_ccre" name="Biomni: Get Genes Near Ccre" version="1.0.0">
     <description>Given a cCRE (Candidate cis-Regulatory Element), this function returns a string containing the</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/get_genes_near_ccre_wrapper.py' --output '$output'

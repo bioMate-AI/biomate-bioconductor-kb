@@ -165,7 +165,7 @@ process SCVI_PERTURBATION {
     label 'process_high'
     publishDir { "${params.outdir}/${meta.id}/scvi_perturbation" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     tuple val(meta), path(anndata_h5ad)  // AnnData with guide assignments stored in obs

@@ -2,7 +2,7 @@
 <tool id="biomni_microbiology_optimize_anaerobic_digestion_process" name="Biomni: Optimize Anaerobic Digestion Process" version="1.0.0">
     <description>Optimize anaerobic digestion process conditions to maximize VFA production or methane yield.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/optimize_anaerobic_digestion_process_wrapper.py' --output '$output'

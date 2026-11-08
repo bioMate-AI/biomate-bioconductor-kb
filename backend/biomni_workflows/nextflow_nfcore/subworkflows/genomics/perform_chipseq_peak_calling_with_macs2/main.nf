@@ -28,7 +28,7 @@ process PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2 {
 
     // Use biomate/biotools for ARM64
     // Peak-calling engine = MACS3 (the maintained, CLI-compatible successor to MACS2).
-    // Why not macs2: biomni-tools:x86 ships no macs2 (real Batch probe: `which macs2` empty),
+    // Why not macs2: workflow-tools:x86 ships no macs2 (real Batch probe: `which macs2` empty),
     // AND every available bioconda macs2 biocontainer (2.2.9.1 py39/py310 _5) fails at runtime
     // with `undefined symbol: __log_finite` — their compiled .so links a glibc math alias that
     // modern glibc dropped (verified broken on 2 builds in isolation, 2026-10-04). MACS3 is built

@@ -1,4 +1,4 @@
-"""CI smoke test for the biomni-admet image — run INSIDE the built image before push.
+"""CI smoke test for the admet image — run INSIDE the built image before push.
 
 Exercises the exact path the workflow uses (ADMETModel.predict + the post-predict
 processing main.nf does), so a dependency drift that breaks inference fails CI here
@@ -41,6 +41,12 @@ df = model.predict(smiles=smiles)
 assert df is not None and len(df) == 1, f"expected 1 row, got {None if df is None else len(df)}"
 cols = list(df.columns)
 assert len(cols) > 10, f"too few ADMET endpoints predicted: {cols}"
+required = ("hERG", "BBB_Martins", "Solubility_AqSolDB", "DILI")
+for endpoint in required:
+    assert endpoint in cols, f"required endpoint missing: {endpoint}"
+    assert _np.isfinite(df[endpoint].to_numpy()).all(), f"non-finite prediction: {endpoint}"
+for endpoint in ("hERG", "BBB_Martins", "DILI"):
+    assert df[endpoint].between(0, 1).all(), f"probability outside [0, 1]: {endpoint}"
 
 # 3) replicate main.nf's post-predict processing (itertuples + getattr) so the smoke
 #    fails here too if a shape/indexing regression is live in the consume path.
@@ -50,7 +56,7 @@ for _smiles_val, row in zip(smiles, df.itertuples(index=False)):
         val = getattr(row, admet_col, None)
         if val is not None and not (isinstance(val, float) and math.isnan(val)):
             mapped += 1
-assert mapped > 0, "no ADMET values could be mapped from the prediction frame"
+assert mapped == len(smiles) * len(required), f"incomplete endpoint mapping: {mapped} values"
 
 have = [c for c in ("hERG", "BBB_Martins", "Solubility_AqSolDB") if c in cols]
 print(f"SMOKE PASS: predicted {len(cols)} endpoints; mapped {mapped} values; sample cols={have}", flush=True)

@@ -25,7 +25,7 @@ This document provides a detailed inventory of all tools included in the BioMate
 | **Overlapping libraries** | - | **15** | Core bioinformatics tools |
 
 **Docker Installations:**
-- `biomate/biomni-tools:latest` (6.51GB): **344 Python packages** + R packages + CLI tools
+- `biomate/workflow-tools:latest` (6.51GB): **344 Python packages** + R packages + CLI tools
 - Biomni workflows: **122 workflows** using the 241 tool-functions
 
 ### Tools Present in All Three Sources

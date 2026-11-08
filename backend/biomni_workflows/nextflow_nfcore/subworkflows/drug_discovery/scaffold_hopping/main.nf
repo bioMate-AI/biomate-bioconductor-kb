@@ -64,9 +64,9 @@ process SCAFFOLD_INPUT_VALIDATION {
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}/01_validation" }, mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(smiles_file)
@@ -195,9 +195,9 @@ process RECAP_FRAGMENTATION {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}/02_recap" }, mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(validated_csv)
@@ -340,9 +340,9 @@ process MMP_ANALYSIS {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}/03_mmp" }, mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(validated_csv), path(fragments_csv)
@@ -469,9 +469,9 @@ process SCAFFOLD_HOPPING_CANDIDATES {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}/04_candidates" }, mode: params.publish_dir_mode
 
-    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86' : 'biomate/drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(fragments_csv), path(mmp_pairs_csv)

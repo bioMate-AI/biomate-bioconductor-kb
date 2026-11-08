@@ -2,7 +2,7 @@
 <tool id="biomni_systems_biology_simulate_renin_angiotensin_system_dynamics" name="Biomni: Simulate Renin Angiotensin System Dynamics" version="1.0.0">
     <description>Simulate the time-dependent concentrations of renin-angiotensin system (RAS) components.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/simulate_renin_angiotensin_system_dynamics_wrapper.py' --output '$output'

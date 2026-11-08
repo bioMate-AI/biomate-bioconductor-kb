@@ -1,6 +1,6 @@
-name: Build biomni image (reusable)
+name: Build workflow image (reusable)
 
-# Reusable build+verify+push for the biomni-* Batch containers.
+# Reusable build+verify+push for the workflow-task Batch containers.
 #
 # Strategy: two independent native-runner jobs, no manifest merge.
 #   amd64: ubuntu-latest → :x86 tag   (stable AWS Batch path, always runs)
@@ -20,7 +20,7 @@ on:
   workflow_call:
     inputs:
       image_repo:
-        description: "ECR repo, e.g. biomate/biomni-admet"
+        description: "ECR repo, e.g. biomate/admet"
         required: true
         type: string
       dockerfile:
@@ -30,6 +30,11 @@ on:
       smoke_script:
         description: "Path to a python smoke script run inside the image"
         required: true
+        type: string
+      smoke_workflow:
+        description: "Optional canonical workflow mounted read-only for the smoke contract"
+        required: false
+        default: ""
         type: string
       emit_lockfile:
         description: "Print `pip freeze` (to derive/update a lockfile)"
@@ -90,6 +95,8 @@ jobs:
             .
 
       - name: Smoke test (inside the built image; gates the push)
+        env:
+          SMOKE_WORKFLOW: ${{ inputs.smoke_workflow }}
         run: |
           test -f "${{ inputs.smoke_script }}" || { echo "::error::smoke script not found: ${{ inputs.smoke_script }}"; exit 1; }
           CPUFLAG=""
@@ -98,7 +105,12 @@ jobs:
             CPUFLAG="--cpus=${N} --cpuset-cpus=0-$((N-1))"
             echo "smoke pinned to ${N} cpu(s): $CPUFLAG"
           fi
-          docker run --rm $CPUFLAG \
+          SMOKE_MOUNTS=()
+          if [[ -n "$SMOKE_WORKFLOW" ]]; then
+            test -f "$GITHUB_WORKSPACE/$SMOKE_WORKFLOW"
+            SMOKE_MOUNTS=(--mount "type=bind,source=$GITHUB_WORKSPACE/$SMOKE_WORKFLOW,target=/canonical-workflow.nf,readonly")
+          fi
+          docker run --rm $CPUFLAG "${SMOKE_MOUNTS[@]}" \
             -v "${{ github.workspace }}/${{ inputs.smoke_script }}:/smoke.py:ro" \
             "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
             python3 /smoke.py
@@ -163,6 +175,8 @@ jobs:
             .
 
       - name: Smoke test (native arm64 — no emulation)
+        env:
+          SMOKE_WORKFLOW: ${{ inputs.smoke_workflow }}
         run: |
           test -f "${{ inputs.smoke_script }}" || { echo "::error::smoke script not found: ${{ inputs.smoke_script }}"; exit 1; }
           CPUFLAG=""
@@ -171,7 +185,12 @@ jobs:
             CPUFLAG="--cpus=${N} --cpuset-cpus=0-$((N-1))"
             echo "smoke pinned to ${N} cpu(s): $CPUFLAG"
           fi
-          docker run --rm $CPUFLAG \
+          SMOKE_MOUNTS=()
+          if [[ -n "$SMOKE_WORKFLOW" ]]; then
+            test -f "$GITHUB_WORKSPACE/$SMOKE_WORKFLOW"
+            SMOKE_MOUNTS=(--mount "type=bind,source=$GITHUB_WORKSPACE/$SMOKE_WORKFLOW,target=/canonical-workflow.nf,readonly")
+          fi
+          docker run --rm $CPUFLAG "${SMOKE_MOUNTS[@]}" \
             -v "${{ github.workspace }}/${{ inputs.smoke_script }}:/smoke.py:ro" \
             "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
             python3 /smoke.py

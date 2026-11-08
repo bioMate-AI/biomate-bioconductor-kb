@@ -2,7 +2,7 @@
 <tool id="biomni_microbiology_segment_cells_with_deep_learning" name="Biomni: Segment Cells With Deep Learning" version="1.0.0">
     <description>Perform cell segmentation on fluorescence microscopy images using deep learning.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/segment_cells_with_deep_learning_wrapper.py' --output '$output'

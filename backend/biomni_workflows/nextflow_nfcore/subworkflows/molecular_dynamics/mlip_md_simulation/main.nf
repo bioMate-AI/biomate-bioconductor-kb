@@ -45,7 +45,7 @@ params.mock            = false       // true => deterministic, dependency-free d
 // No clean public biocontainer bundles OpenMM 8 + openmm-ml + a CUDA build +
 // the AIMNet2/MACE-OFF model weights, so this is a purpose-built image
 // (conda-forge env pinned in tests/README-style header below). On AWS it must
-// be mirrored to ECR, mirroring the biomni-admet pattern.
+// be mirrored to ECR, mirroring the admet pattern.
 //   conda create -n mlip -c conda-forge python=3.10 \
 //       "openmm>=8.1" openmm-ml openmm-torch nnpops \
 //       pytorch pytorch-cuda=12.1 aimnet2 mace-torch rdkit mdtraj

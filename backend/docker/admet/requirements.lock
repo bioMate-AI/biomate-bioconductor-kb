@@ -1,4 +1,4 @@
-# Reproducible dependency lock for biomni-admet (amd64 / linux/amd64).
+# Reproducible dependency lock for admet (amd64 / linux/amd64).
 # Generated from a VERIFIED image build (GHA build-admet-image run 29193519887,
 # smoke: ADMET-AI predict() → 98 endpoints, no cat-NoneType / no numpy 'too many indices').
 # Used as a pip CONSTRAINTS file (-c) so the FULL transitive resolution is pinned;

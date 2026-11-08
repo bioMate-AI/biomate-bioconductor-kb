@@ -19,7 +19,7 @@
  *   PDB: 7KI0  (TT-OAD2 bound to GLP-1R in complex with Gs)
  *   Expected: AUC-ROC >= 0.75 (pharmacophore enrichment)
  *
- * Container: biomate/biomni-tools:latest  (or ECR :x86 on AWS Batch)
+ * Container: biomate/workflow-tools:latest  (or ECR :x86 on AWS Batch)
  */
 
 nextflow.enable.dsl = 2
@@ -34,8 +34,8 @@ process P0_PHARMACOPHORE_VALIDATION {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' \
+        : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)

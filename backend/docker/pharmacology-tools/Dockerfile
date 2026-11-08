@@ -1,9 +1,9 @@
-# BioMate Pharmacology Cheminformatics Container (biomni-pharma)
+# BioMate Pharmacology Cheminformatics Container (pharmacology-tools)
 #
-# Extends biomni-tools with pharma-specific cheminformatics tools.
-# ADMET prediction (admet-ai, Chemprop) lives in biomni-admet — not here.
+# Extends workflow-tools with pharma-specific cheminformatics tools.
+# ADMET prediction (admet-ai, Chemprop) lives in admet — not here.
 #
-# Base (biomni-tools) provides: RDKit, numpy/scipy/pandas, scikit-learn,
+# Base (workflow-tools) provides: RDKit, numpy/scipy/pandas, scikit-learn,
 #   statsmodels, scikit-image, vina, meeko, ViennaRNA, openbabel, AWS CLI v2
 #
 # Adds:
@@ -14,18 +14,18 @@
 #
 # Build (x86 for AWS Batch):
 #   docker buildx build --platform linux/amd64 \
-#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-pharma:x86 \
-#     --push -f backend/docker/biomni-pharma/Dockerfile .
+#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/pharmacology-tools:x86 \
+#     --push -f backend/docker/pharmacology-tools/Dockerfile .
 #
 # Local:
-#   docker build -t biomate/biomni-pharma:latest \
-#     -f backend/docker/biomni-pharma/Dockerfile .
+#   docker build -t biomate/pharmacology-tools:latest \
+#     -f backend/docker/pharmacology-tools/Dockerfile .
 
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86
 
 LABEL maintainer="BioMate Team"
 LABEL version="1.1.0"
-LABEL description="biomni-pharma: py2opsin, molfeat, chembl-webresource-client — pharma cheminformatics on top of biomni-tools"
+LABEL description="pharmacology-tools: py2opsin, molfeat, chembl-webresource-client — pharma cheminformatics on top of workflow-tools"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
@@ -51,7 +51,7 @@ RUN pip install --no-cache-dir aizynthfinder || \
 RUN python3 -c "import molfeat; print('molfeat OK')" && \
     python3 -c "from chembl_webresource_client.new_client import new_client; print('chembl_webresource_client OK')" && \
     python3 -c "from rdkit import Chem; print('RDKit OK (from base)')" && \
-    echo "All biomni-pharma smoke tests passed."
+    echo "All pharmacology-tools smoke tests passed."
 
 WORKDIR /data
 CMD ["python3", "-c", "print('BioMate Pharmacology Container Ready')"]

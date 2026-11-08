@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_retrieve_topk_repurposing_drugs_from_disease_txgnn" name="Biomni: Retrieve Topk Repurposing Drugs From Disease Txgnn" version="1.0.0">
     <description>This function computes TxGNN model predictions for drug repurposing. It takes in the paths to the data,</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/retrieve_topk_repurposing_drugs_from_disease_txgnn_wrapper.py' --output '$output'

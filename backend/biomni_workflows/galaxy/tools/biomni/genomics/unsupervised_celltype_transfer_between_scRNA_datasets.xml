@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_unsupervised_celltype_transfer_between_scRNA_datasets" name="Biomni: Unsupervised Celltype Transfer Between Scrna Datasets" version="1.0.0">
     <description></description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/unsupervised_celltype_transfer_between_scRNA_datasets_wrapper.py' --output '$output'

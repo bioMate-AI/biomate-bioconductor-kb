@@ -81,7 +81,7 @@ test('Demo T01 — Bispecific format: PD-1 × VEGF (Ivonescimab)', async ({ page
 
   await tip(
     page,
-    'Phase 1 launched. AWS Batch worker spinning up, pulling the biomni-tools container from ECR.',
+    'Phase 1 launched. AWS Batch worker spinning up, pulling the workflow-tools container from ECR.',
     5000
   );
   await pause(page, 30_000);

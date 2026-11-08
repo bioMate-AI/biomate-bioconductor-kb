@@ -1,4 +1,4 @@
-"""CI smoke for biomni-pharma — run INSIDE the built image before push.
+"""CI smoke for pharmacology-tools — run INSIDE the built image before push.
 
 Basic import/sanity for the pharma stack (RDKit + molfeat + ChEMBL client). Extend
 with a real end-to-end call for the tool you rely on most (e.g. molfeat featurizer or

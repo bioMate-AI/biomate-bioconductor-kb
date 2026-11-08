@@ -1,4 +1,4 @@
-# BioMate General-Purpose Tools Container (biomni-tools)
+# BioMate General-Purpose Tools Container (workflow-tools)
 #
 # Used by 400+ BioMate workflows for:
 #   - ViennaRNA     : RNA secondary structure prediction (RNAfold, MFE)
@@ -17,12 +17,12 @@
 #
 # Build (x86 for AWS Batch):
 #   docker buildx build --platform linux/amd64 \
-#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86 \
-#     --push -f backend/docker/biomni-tools/Dockerfile .
+#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86 \
+#     --push -f backend/docker/workflow-tools/Dockerfile .
 #
 # Local (ARM dev):
-#   docker build -t biomate/biomni-tools:latest \
-#     -f backend/docker/biomni-tools/Dockerfile .
+#   docker build -t biomate/workflow-tools:latest \
+#     -f backend/docker/workflow-tools/Dockerfile .
 
 # All BioMate Nextflow/Batch containers MUST start from this base so that
 # nxf_s3_upload / nxf_s3_download shell functions have 'aws' on PATH.
@@ -32,7 +32,7 @@ FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:${BASE_T
 ARG TARGETARCH=amd64
 
 LABEL maintainer="BioMate Team"
-LABEL description="biomni-tools: ViennaRNA, AutoDock Vina, RDKit, Biopython, openbabel + pharmacology (statsmodels, scikit-image, DeepPurpose)"
+LABEL description="workflow-tools: ViennaRNA, AutoDock Vina, RDKit, Biopython, openbabel + pharmacology (statsmodels, scikit-image, DeepPurpose)"
 LABEL version="2.1.0"
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -101,19 +101,20 @@ RUN pip install --no-cache-dir \
     scikit-image \
     opencv-python-headless \
     PyPDF2
-# opencv (cv2, headless — no GUI libs): several biomni image-analysis workflows
+# opencv (cv2, headless — no GUI libs): several image-analysis workflows
 # (aortic geometry, mitochondrial morphology, cell morphology/cytoskeleton) import
 # cv2. It was MISSING, so those workflows failed at `import cv2` — previously hidden
 # by their dishonest-success bug, now an honest failure. Adding it makes them
-# runnable. Rebuild + push biomni-tools:x86 for this to take effect on Batch.
+# runnable. Rebuild + push workflow-tools:x86 for this to take effect on Batch.
 
 # descriptastorus must be installed from GitHub — the PyPI package is stale.
-# biomni.tool.pharmacology.predict_admet_properties checks for the git version
+# Canonical pharmacology functions require this dependency through DeepPurpose.
 # at import time and returns an error dict if absent. No `|| echo` fallback: a swallowed failure
 # ships an image whose ADMET tools no-op at runtime, so the build must fail loudly.
 RUN pip install --no-cache-dir \
     "git+https://github.com/bp-kelley/descriptastorus" \
-    pandas-flavor
+    pandas-flavor \
+    six
 
 # DeepPurpose needs a (CPU) torch — install it explicitly so the resolve is deterministic.
 # The old `|| echo` swallowed build failures and shipped an image whose affinity/ADMET tools
@@ -122,14 +123,8 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
 RUN pip install --no-cache-dir DeepPurpose
 RUN python3 -c "from DeepPurpose import DTI, utils; print('DeepPurpose OK')"
 
-# ── Layer 8: BioMate Python SDK (biomni) ──────────────────────────────────
-# biomni is BioMate's Python tool library used by all biomni_* Nextflow
-# workflows (pharmacology, structural_biology, etc.). Without this package
-# the container cannot run any workflow that contains:
-#   from biomni.tool.<domain> import <function>
-# It also pulls in langchain-core, langchain, and other runtime dependencies.
-RUN pip install --no-cache-dir "biomni>=0.0.8" || \
-    echo "WARNING: biomni install failed — biomni_* workflows will fail"
+# Canonical workflows embed their implementations and use the scientific
+# dependencies above directly. Do not install an obsolete wrapper SDK here.
 
 # ── Smoke tests ────────────────────────────────────────────────────────────
 RUN python3 -c "\
@@ -149,7 +144,7 @@ import meeko; print('Meeko OK')" && \
     python3 -c "import cv2; print('OpenCV OK  version={}'.format(cv2.__version__))" && \
     python3 -c "import PyPDF2; print('PyPDF2 OK')" && \
     aws --version && \
-    echo "All biomni-tools checks passed."
+    echo "All workflow-tools checks passed."
 
 WORKDIR /data
 CMD ["python3", "-c", "print('BioMate Tools Container Ready')"]

@@ -2,7 +2,7 @@
 <tool id="biomni_database_get_hpo_names" name="Biomni: Get Hpo Names" version="1.0.0">
     <description>Retrieve the names of given HPO terms.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/get_hpo_names_wrapper.py' --output '$output'

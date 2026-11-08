@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_perform_chipseq_peak_calling_with_macs2" name="Biomni: Perform Chipseq Peak Calling With Macs2" version="1.0.0">
     <description>Perform ChIP-seq peak calling using MACS2 to identify genomic regions with significant binding.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/perform_chipseq_peak_calling_with_macs2_wrapper.py' --output '$output'

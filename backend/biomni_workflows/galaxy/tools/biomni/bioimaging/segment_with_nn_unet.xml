@@ -2,7 +2,7 @@
 <tool id="biomni_bioimaging_segment_with_nn_unet" name="Biomni: Segment With Nn Unet" version="1.0.0">
     <description>Segment images using nnUNet with proper environment setup and automatic model downloading</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/segment_with_nn_unet_wrapper.py' --output '$output'

@@ -183,7 +183,7 @@ profiles {
 
 ```bash
 # Verify files are accessible inside container
-docker run --rm -v /tmp:/tmp biomate/biomni-tools:latest \
+docker run --rm -v /tmp:/tmp biomate/workflow-tools:latest \
     python3 -c "import os; print(os.path.exists('/tmp/myfile.nii.gz'))"
 ```
 
@@ -437,7 +437,7 @@ def create_mock_nifti(path, shape=(64, 64, 32)):
 
 ```bash
 # 1. Generate test data (if needed)
-docker run --rm -v $(pwd)/test_data:/data biomate/biomni-tools:latest \
+docker run --rm -v $(pwd)/test_data:/data biomate/workflow-tools:latest \
     python3 /data/create_mock_nifti.py
 
 # 2. Copy test files to accessible location
@@ -538,7 +538,7 @@ process WORKFLOW_NAME {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
-    container 'biomate/biomni-tools:latest'
+    container 'biomate/workflow-tools:latest'
 
     input:
     val(meta)

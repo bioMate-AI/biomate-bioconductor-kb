@@ -3704,11 +3704,11 @@ process {{
   }}
 }}
 """
-        # On-prem container override for ADMET workflows: biomni-admet is a private
+        # On-prem container override for ADMET workflows: admet is a private
         # ECR image (not accessible without AWS credentials). BIOMATE_ADMET_CONTAINER
-        # lets operators substitute a pre-pulled image, e.g. biomni-tools which has
+        # lets operators substitute a pre-pulled image, e.g. workflow-tools which has
         # the biomni package with RDKit-based ADMET fallback when admet_ai is absent.
-        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest
+        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/workflow-tools:latest
         admet_container = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
         admet_container_override = ""
         if admet_container:
@@ -4375,11 +4375,11 @@ def _extract_nf_process_containers(nf_path: Path) -> list[str]:
 
 def _resolve_local_image_alias(image: str) -> Optional[str]:
     """
-    Given a short image name (e.g. 'biomate/biomni-tools:latest'), return the
+    Given a short image name (e.g. 'biomate/workflow-tools:latest'), return the
     locally-available tag that satisfies it.
 
     On on-prem deployments the same image may be present under its full ECR path
-    (399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:latest).
+    (399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:latest).
     We match by the image name+tag ignoring the registry prefix.
     """
     if _is_local_docker_image(image):
@@ -4412,8 +4412,8 @@ def _resolve_local_image_alias(image: str) -> Optional[str]:
 # excluded — they require AWS credentials unavailable on bare metal / China ECS.
 _ONPREM_PULLABLE_IMAGES: Dict[str, str] = {
     # biomate images: pulled from GHCR
-    "biomate/biomni-tools:latest": "ghcr.io/biomate-ai/biomni-tools:latest",
-    "biomate/biomni-drug-discovery-nf:latest": "ghcr.io/biomate-ai/biomni-drug-discovery-nf:latest",
+    "biomate/workflow-tools:latest": "ghcr.io/biomate-ai/workflow-tools:latest",
+    "biomate/drug-discovery-nf:latest": "ghcr.io/biomate-ai/drug-discovery-nf:latest",
     # Standard public images: use DaoCloud mirror (accessible from China Aliyun ECS)
     "condaforge/miniforge3:latest": "docker.m.daocloud.io/condaforge/miniforge3:latest",
     "python:3.11-slim": "docker.m.daocloud.io/python:3.11-slim",
@@ -4527,7 +4527,7 @@ def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[st
     # Domain-aware preference order
     image_preferences: list[str] = []
     if raw_nextflow_path.startswith("biomni_nf/"):
-        image_preferences.extend(["biomate/biomni-tools:latest", "biomate/biotools:arm64"])
+        image_preferences.extend(["biomate/workflow-tools:latest", "biomate/biotools:arm64"])
     elif raw_nextflow_path.startswith("nfcore/"):
         image_preferences.extend(["biomate/rnaseq:x86", "biomate/biotools:arm64"])
 

@@ -1,7 +1,7 @@
 # BioMate ode_signaling_simulation container (CPU)
 #
 # Powers: backend/biomni_workflows/nextflow_nfcore/subworkflows/virtual_cell/ode_signaling_simulation
-# Replaces previous reliance on the heavyweight biomni-tools image.
+# Replaces previous reliance on the heavyweight workflow-tools image.
 #
 # Base (biomate-nextflow-base) already provides: python3.11, awscli v2,
 # numpy<2 (RDKit ABI), scipy, pandas, biopython, rdkit, procps, gget.

@@ -2,7 +2,7 @@
 <tool id="biomni_microbiology_model_bacterial_growth_dynamics" name="Biomni: Model Bacterial Growth Dynamics" version="1.0.0">
     <description>Model bacterial population dynamics over time using ordinary differential equations.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/model_bacterial_growth_dynamics_wrapper.py' --output '$output'

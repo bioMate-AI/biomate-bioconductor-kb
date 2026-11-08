@@ -2,7 +2,7 @@
 <tool id="biomni_pharmacology_run_3d_chondrogenic_aggregate_assay" name="Biomni: Run 3D Chondrogenic Aggregate Assay" version="1.0.0">
     <description>Generates a detailed protocol for performing a 3D chondrogenic aggregate culture assay to evaluate compounds' effects on chondrogenesis.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/run_3d_chondrogenic_aggregate_assay_wrapper.py' --output '$output'

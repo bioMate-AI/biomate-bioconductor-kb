@@ -51,7 +51,7 @@ process POLYMORPH_STABILITY_SCREENING {
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     val(meta)
@@ -73,7 +73,7 @@ process POLYMORPH_STABILITY_SCREENING {
 import json, os, sys, math, re
 
 # ---------------------------------------------------------------------------
-# RDKit imports -- available in biomni-tools image
+# RDKit imports -- available in workflow-tools image
 # ---------------------------------------------------------------------------
 try:
     from rdkit import Chem

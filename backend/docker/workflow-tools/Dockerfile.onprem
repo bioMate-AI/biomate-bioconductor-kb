@@ -1,11 +1,11 @@
 # BioMate Tools Container — On-Premises Edition
 #
-# Uses a PUBLIC base image (python:3.10-slim) so on-prem customers can pull
+# Uses a PUBLIC base image (python:3.11-slim-bookworm) so on-prem customers can pull
 # without AWS ECR credentials.  The SaaS Dockerfile uses the private ECR base
 # biomate-nextflow-base:latest; that base is NOT available to on-prem customers.
 #
 # Key differences from the SaaS Dockerfile:
-#   - Base: python:3.10-slim  (public DockerHub)
+#   - Base: python:3.11-slim-bookworm (runtime package requires Python >=3.11)
 #   - NO ENTRYPOINT — Nextflow's local executor runs tasks as:
 #       docker run ... /bin/bash .command.run
 #     If an ENTRYPOINT is set (e.g. ["/bin/sh"]), that becomes:
@@ -17,16 +17,18 @@
 #
 # Build (once per on-prem release):
 #   docker buildx build --platform linux/amd64 \
-#     -t ghcr.io/biomate-ai/biomni-tools:latest \
-#     --push -f backend/docker/biomni-tools/Dockerfile.onprem .
+#     -t ghcr.io/biomate-ai/workflow-tools:latest \
+#     --push -f backend/docker/workflow-tools/Dockerfile.onprem .
 #
-# After pushing, on-prem install.sh retags it as biomate/biomni-tools:latest
+# After pushing, on-prem install.sh retags it as biomate/workflow-tools:latest
 # so the Nextflow .nf files (which reference that local name) find it.
 
-FROM python:3.10-slim
+FROM python:3.11-slim-bookworm
+
+ARG TARGETARCH
 
 LABEL maintainer="BioMate Team"
-LABEL description="biomni-tools (on-prem): ViennaRNA, AutoDock Vina, RDKit, Biopython, openbabel + pharmacology"
+LABEL description="workflow-tools (on-prem): ViennaRNA, AutoDock Vina, RDKit, Biopython, openbabel + pharmacology"
 LABEL version="2.1.0-onprem"
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -40,6 +42,7 @@ ENV PYTHONUNBUFFERED=1
 # libxrender1 + libxext6: X11 stubs for RDKit 2D rendering
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
+    git \
     procps \
     curl \
     libgomp1 \
@@ -47,6 +50,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     libxext6 \
     && rm -rf /var/lib/apt/lists/*
+
+# Vina needs a source build on ARM64; missing build tools must not be hidden.
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+        build-essential libboost-all-dev \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # ── Layer 2: Core scientific Python stack ──────────────────────────────────
 # The SaaS base image (biomate-nextflow-base) ships these; we install them here.
@@ -86,19 +96,20 @@ RUN pip install --no-cache-dir \
 # ── Layer 7: Pharmacology-specific packages ────────────────────────────────
 RUN pip install --no-cache-dir \
     statsmodels \
-    scikit-image
+    scikit-image \
+    opencv-python-headless \
+    PyPDF2
 
 RUN pip install --no-cache-dir \
     "git+https://github.com/bp-kelley/descriptastorus" \
-    pandas-flavor || \
-    echo "WARNING: descriptastorus install failed — DeepPurpose will be degraded"
+    pandas-flavor \
+    six
 
-RUN pip install --no-cache-dir DeepPurpose || \
-    echo "WARNING: DeepPurpose install failed — ADMET will use RDKit fallback"
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir DeepPurpose
+RUN python3 -c "from DeepPurpose import DTI, utils; print('DeepPurpose OK')"
 
-# ── Layer 8: BioMate Python SDK (biomni) ──────────────────────────────────
-RUN pip install --no-cache-dir "biomni>=0.0.8" || \
-    echo "WARNING: biomni install failed — biomni_* workflows will fail"
+# Canonical workflows are self-contained; no separate wrapper SDK is required.
 
 # ── Smoke tests ────────────────────────────────────────────────────────────
 RUN python3 -c "\
@@ -115,7 +126,9 @@ import Bio; print('Biopython OK  version={}'.format(Bio.__version__))" && \
 import meeko; print('Meeko OK')" && \
     python3 -c "import statsmodels; print('statsmodels OK')" && \
     python3 -c "import skimage; print('scikit-image OK')" && \
-    echo "All biomni-tools (on-prem) checks passed."
+    python3 -c "import cv2; print('OpenCV OK')" && \
+    python3 -c "import PyPDF2; print('PyPDF2 OK')" && \
+    echo "All workflow-tools (on-prem) checks passed."
 
 WORKDIR /data
 # No CMD and no ENTRYPOINT — Nextflow manages container execution directly.

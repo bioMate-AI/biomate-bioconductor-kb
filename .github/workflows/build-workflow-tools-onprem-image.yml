@@ -1,12 +1,12 @@
-name: Build biomni-tools (on-prem, GHCR)
+name: Build workflow-tools (on-prem, GHCR)
 
-# Builds the on-prem edition of the biomni-tools container and pushes it to
-# GHCR as ghcr.io/biomate-ai/biomni-tools:latest.
+# Builds the on-prem edition of the workflow-tools container and pushes it to
+# GHCR as ghcr.io/biomate-ai/workflow-tools:latest.
 #
-# This image uses python:3.10-slim as its base (public, no ECR auth required),
+# This image uses python:3.11-slim-bookworm (public, no ECR auth required),
 # making it suitable for customer on-prem deployments.
 #
-# install.sh pulls this image and retags it as biomate/biomni-tools:latest,
+# install.sh pulls this image and retags it as biomate/workflow-tools:latest,
 # which is the name referenced in all Nextflow .nf workflow files for local
 # (non-Batch) execution.
 #
@@ -19,15 +19,16 @@ on:
     branches:
       - integration/next-phase
     paths:
-      - backend/docker/biomni-tools/Dockerfile.onprem
-      - backend/docker/biomni-tools/smoke.py
+      - backend/docker/workflow-tools/Dockerfile.onprem
+      - backend/docker/workflow-tools/smoke.py
+      - backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf
 
 permissions:
   packages: write
   contents: read
 
 env:
-  GHCR_IMAGE: ghcr.io/biomate-ai/biomni-tools
+  GHCR_IMAGE: ghcr.io/biomate-ai/workflow-tools
 
 jobs:
   build-verify-push:
@@ -63,7 +64,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/docker/biomni-tools/Dockerfile.onprem
+          file: backend/docker/workflow-tools/Dockerfile.onprem
           platforms: linux/amd64
           push: false
           load: true
@@ -72,15 +73,17 @@ jobs:
       - name: Smoke test on amd64 (gates the push)
         run: |
           docker run --rm \
-            -v "${{ github.workspace }}/backend/docker/biomni-tools/smoke.py:/smoke.py:ro" \
+            --mount "type=bind,source=${{ github.workspace }}/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf,target=/canonical-workflow.nf,readonly" \
+            -v "${{ github.workspace }}/backend/docker/workflow-tools/smoke.py:/smoke.py:ro" \
             "${{ steps.tags.outputs.full_sha_tag }}" \
             python3 /smoke.py
 
       - name: Build and push multi-arch image (amd64 + arm64)
+        id: publish
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/docker/biomni-tools/Dockerfile.onprem
+          file: backend/docker/workflow-tools/Dockerfile.onprem
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
@@ -90,7 +93,13 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "### biomni-tools (on-prem, multi-arch)" >> "$GITHUB_STEP_SUMMARY"
+          echo "### workflow-tools (on-prem, multi-arch)" >> "$GITHUB_STEP_SUMMARY"
           echo "- sha tag: \`${{ steps.tags.outputs.sha_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- pushed as: \`${GHCR_IMAGE}:latest\` (linux/amd64 + linux/arm64)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- base: python:3.10-slim (public)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- publication outcome: ${{ steps.publish.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.publish.outcome }}" == "success" ]]; then
+            echo "- pushed as: \`${GHCR_IMAGE}:latest\` (linux/amd64 + linux/arm64)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- image publication was not successful; do not use this run as release evidence" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- runtime smoke: amd64 only; ARM64 still requires native qualification" >> "$GITHUB_STEP_SUMMARY"
+          echo "- base: python:3.11-slim-bookworm (public)" >> "$GITHUB_STEP_SUMMARY"

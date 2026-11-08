@@ -3,7 +3,7 @@
  * biomni_genomics_get_uce_embeddings_scRNA
  * The UCE embeddings are usually our default tools to get cell embeddings, we map UCE embeddings to IMA referece dataset and get the cell types for a better understanding.
  * Generated from Galaxy tool definition
- * Docker: biomate/biomni-tools:latest
+ * Docker: biomate/workflow-tools:latest
  */
 
 nextflow.enable.dsl = 2
@@ -21,7 +21,7 @@ process GET_UCE_EMBEDDINGS_SCRNA {
     label 'process_medium'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     // No file inputs

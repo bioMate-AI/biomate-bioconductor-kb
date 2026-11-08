@@ -2,7 +2,7 @@
 <tool id="biomni_molecular_biology_design_primer" name="Biomni: Design Primer" version="1.0.0">
     <description>Design a single primer within the given sequence window.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/design_primer_wrapper.py' --output '$output'

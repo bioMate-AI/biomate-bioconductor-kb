@@ -2,7 +2,7 @@
 <tool id="biomni_physiology_reconstruct_3d_face_from_mri" name="Biomni: Reconstruct 3D Face From Mri" version="1.0.0">
     <description>Generate a 3D model of facial anatomy from MRI scans of the head and neck.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/reconstruct_3d_face_from_mri_wrapper.py' --output '$output'

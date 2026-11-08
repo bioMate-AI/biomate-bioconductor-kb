@@ -2,7 +2,7 @@
 <tool id="biomni_bioimaging_prepare_input_for_nnunet" name="Biomni: Prepare Input For Nnunet" version="1.0.0">
     <description>Prepare input data for nnUNet by handling both 4D and pre-split modality files</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/prepare_input_for_nnunet_wrapper.py' --output '$output'

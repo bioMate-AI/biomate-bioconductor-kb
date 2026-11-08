@@ -1,4 +1,4 @@
-"""CI smoke for biomni-structure-to-drug, run INSIDE the built image before push.
+"""CI smoke for structure-to-drug, run INSIDE the built image before push.
 
 The 2026-04-07 image shipped without fpocket although the Dockerfile builds it (the image predated the fpocket
 lines, and the Dockerfile's own check, `fpocket --help | head -1`, passes even when fpocket is absent because a
@@ -31,6 +31,7 @@ info = os.path.join(work, "slab_out", "slab_info.txt")
 assert r.returncode == 0, "fpocket exited %s: %s" % (r.returncode, (r.stderr or r.stdout)[-500:])
 assert os.path.exists(info), "fpocket wrote no info file (stdout tail: %s)" % r.stdout[-300:]
 n_pockets = sum(1 for ln in open(info) if ln.strip().startswith("Pocket") and ln.strip().endswith(":"))
+assert n_pockets > 0, "fpocket produced an info file but found no pocket in the cavity fixture"
 
 from rdkit import Chem  # noqa: E402
 assert Chem.MolFromSmiles("C#Cc1cccc(Nc2ncnc3cc(OCCOC)c(OCCOC)cc23)c1") is not None, "RDKit failed on erlotinib"

@@ -2,7 +2,7 @@
 <tool id="biomni_bioimaging_load_image" name="Biomni: Load Image" version="1.0.0">
     <description>Load a medical image using SimpleITK.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/load_image_wrapper.py' --output '$output'

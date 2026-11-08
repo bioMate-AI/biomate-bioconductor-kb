@@ -3,7 +3,7 @@
  * biomni_genomics_get_rna_seq_archs4
  * Given a gene name, this function returns the steps it performs and the max K transcripts-per-million (TPM)
  * Generated from Galaxy tool definition
- * Docker: biomate/biomni-tools:latest
+ * Docker: biomate/workflow-tools:latest
  */
 
 nextflow.enable.dsl = 2
@@ -19,7 +19,7 @@ process GET_RNA_SEQ_ARCHS4 {
     label 'process_medium'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     // No file inputs

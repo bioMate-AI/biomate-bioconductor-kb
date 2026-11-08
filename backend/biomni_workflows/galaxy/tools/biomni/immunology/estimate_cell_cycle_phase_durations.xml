@@ -2,7 +2,7 @@
 <tool id="biomni_immunology_estimate_cell_cycle_phase_durations" name="Biomni: Estimate Cell Cycle Phase Durations" version="1.0.0">
     <description>Estimate cell cycle phase durations using dual-nucleoside pulse labeling data and mathematical modeling.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/estimate_cell_cycle_phase_durations_wrapper.py' --output '$output'

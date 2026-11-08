@@ -25,7 +25,7 @@ process SIMULATE_MICROBIAL_POPULATION_DYNAMICS {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-microbiology:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/microbiology-tools:latest'
 
     input:
     val(meta)  // Meta information for this run

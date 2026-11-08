@@ -2,7 +2,7 @@
 <tool id="biomni_systems_biology_compare_protein_structures" name="Biomni: Compare Protein Structures" version="1.0.0">
     <description>Compares two protein structures to identify structural differences and conformational changes.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/compare_protein_structures_wrapper.py' --output '$output'

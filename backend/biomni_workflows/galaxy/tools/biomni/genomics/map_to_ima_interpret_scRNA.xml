@@ -2,7 +2,7 @@
 <tool id="biomni_genomics_map_to_ima_interpret_scRNA" name="Biomni: Map To Ima Interpret Scrna" version="1.0.0">
     <description>Map cell embeddings from the input dataset to the Integrated Megascale Atlas reference dataset using UCE embeddings.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/map_to_ima_interpret_scRNA_wrapper.py' --output '$output'

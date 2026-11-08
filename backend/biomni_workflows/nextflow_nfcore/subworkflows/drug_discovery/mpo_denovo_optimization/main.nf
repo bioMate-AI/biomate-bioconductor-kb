@@ -69,12 +69,12 @@ params.campaign_id       = 'mpo_denovo_campaign'
 // Container — same image family as reinvent4_lead_design (baked-in package)
 // ============================================================================
 
-// local (ARM dev): biomate/biomni-drug-discovery-nf:latest
-// aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+// local (ARM dev): biomate/drug-discovery-nf:latest
+// aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86
 def _useAws = System.getenv('NEXTFLOW_USE_AWS') == 'true'
 def MPO_CONTAINER = _useAws
-    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86'
-    : 'biomate/biomni-drug-discovery-nf:latest'
+    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/drug-discovery-nf:x86'
+    : 'biomate/drug-discovery-nf:latest'
 
 // ============================================================================
 // Processes

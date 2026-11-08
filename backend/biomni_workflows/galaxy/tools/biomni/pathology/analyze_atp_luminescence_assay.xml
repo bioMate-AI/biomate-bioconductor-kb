@@ -2,7 +2,7 @@
 <tool id="biomni_pathology_analyze_atp_luminescence_assay" name="Biomni: Analyze Atp Luminescence Assay" version="1.0.0">
     <description>Analyze luminescence-based ATP assay data to determine intracellular ATP concentration.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/analyze_atp_luminescence_assay_wrapper.py' --output '$output'

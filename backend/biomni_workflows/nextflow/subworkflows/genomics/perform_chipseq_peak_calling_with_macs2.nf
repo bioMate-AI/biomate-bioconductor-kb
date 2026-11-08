@@ -3,7 +3,7 @@
  * biomni_genomics_perform_chipseq_peak_calling_with_macs2
  * Perform ChIP-seq peak calling using MACS2 to identify genomic regions with significant binding.
  * Generated from Galaxy tool definition
- * Docker: biomate/biomni-tools:latest
+ * Docker: biomate/workflow-tools:latest
  */
 
 nextflow.enable.dsl = 2
@@ -22,7 +22,7 @@ process PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2 {
     label 'process_medium'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
     // No file inputs

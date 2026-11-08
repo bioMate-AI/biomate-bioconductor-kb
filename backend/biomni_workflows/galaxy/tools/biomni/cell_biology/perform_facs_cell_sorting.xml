@@ -2,7 +2,7 @@
 <tool id="biomni_cell_biology_perform_facs_cell_sorting" name="Biomni: Perform Facs Cell Sorting" version="1.0.0">
     <description>Performs Fluorescence-Activated Cell Sorting (FACS) to enrich cell populations based on fluorescence characteristics.</description>
     <requirements>
-        <container type="docker">biomate/biomni-tools:latest</container>
+        <container type="docker">biomate/workflow-tools:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
 python '$__tool_directory__/perform_facs_cell_sorting_wrapper.py' --output '$output'

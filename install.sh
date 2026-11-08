@@ -358,10 +358,10 @@ for _img in "$GALAXY_IMAGE" "$FRONTEND_IMAGE"; do
 done
 
 # ── 拉取并标记工作流任务容器镜像 ─────────────────────────────────────────────
-# BioMate 工作流的 .nf 文件引用本地镜像名 "biomate/biomni-tools:latest"。
+# BioMate 工作流的 .nf 文件引用本地镜像名 "biomate/workflow-tools:latest"。
 # install.sh 负责从 GHCR 拉取并重新标记；离线部署通过 docker load 预置后直接标记。
-_BIOMNI_REMOTE="${BIOMATE_BIOMNI_TOOLS_IMAGE:-ghcr.io/biomate-ai/biomni-tools:latest}"
-_BIOMNI_LOCAL="biomate/biomni-tools:latest"
+_BIOMNI_REMOTE="${BIOMATE_BIOMNI_TOOLS_IMAGE:-ghcr.io/biomate-ai/workflow-tools:latest}"
+_BIOMNI_LOCAL="biomate/workflow-tools:latest"
 _BIOMATE_TOOLS="biomate/biomate-tools:latest"
 
 # Check if local tag already correct
@@ -458,7 +458,7 @@ fi
 # manifests (amd64 + arm64) to GHCR. Docker auto-selects the ARM64 variant on
 # Graviton2/3 hosts — no QEMU and no platform override are needed.
 #
-# Workflow task images (biomni-admet, biomni-tools, etc.) also publish ARM64
+# Workflow task images (admet, workflow-tools, etc.) also publish ARM64
 # variants. The Nextflow executor runs natively on ARM64 with the host JDK,
 # giving normal startup times instead of the 40-60 min QEMU overhead.
 if [[ "$HOST_ARCH_NORM" != "amd64" ]]; then
