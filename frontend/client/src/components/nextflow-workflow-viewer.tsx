@@ -1428,6 +1428,12 @@ export function NextflowWorkflowViewer({
   const [containerPullStatus, setContainerPullStatus] = useState<{
     image: string; status: 'pulling' | 'ready' | 'failed'; message: string;
   } | null>(null);
+  // Auto-resume countdown state: triggered by backend `auto_resuming` SSE for infra_transient failures.
+  // autoResumeDelay is set once per SSE event (triggers the useEffect); autoResumeCountdown is the
+  // display value, ticked down by the interval inside the effect.
+  const [autoResumeDelay, setAutoResumeDelay] = useState<number | null>(null);
+  const [autoResumeCountdown, setAutoResumeCountdown] = useState<number | null>(null);
+  const autoResumeCancelledRef = React.useRef(false);
   // Per-phase auto-loop toggle. An ABSENT key = follow the QC profile's own default
   // (autoloop:true profiles close the loop by default); an explicit true/false is a
   // user override that always wins. See profileAutoloopDefault below.
@@ -1941,6 +1947,30 @@ export function NextflowWorkflowViewer({
       setRerunInProgress(false);
     }
   };
+
+  // Countdown effect: keyed on autoResumeDelay (set once per SSE event) so the interval
+  // starts exactly once per auto-resuming signal, regardless of countdown tick updates.
+  const handleResumeFromFailedRef = React.useRef(handleResumeFromFailed);
+  handleResumeFromFailedRef.current = handleResumeFromFailed;
+  React.useEffect(() => {
+    if (autoResumeDelay === null) return;
+    let remaining = autoResumeDelay;
+    const timer = setInterval(() => {
+      remaining -= 1;
+      setAutoResumeCountdown(remaining);
+      if (remaining <= 0) {
+        clearInterval(timer);
+        setAutoResumeCountdown(null);
+        setAutoResumeDelay(null);
+        if (!autoResumeCancelledRef.current) {
+          handleResumeFromFailedRef.current();
+        }
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  // autoResumeDelay is set to a fresh value each time the SSE event fires.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoResumeDelay]);
 
   const dismissQcGate = React.useCallback((reason: 'user' | 'timeout') => {
     if (qcGateTimerRef.current) { clearInterval(qcGateTimerRef.current); qcGateTimerRef.current = null; }
@@ -2628,6 +2658,18 @@ export function NextflowWorkflowViewer({
       }
     });
 
+    es.addEventListener("auto_resuming", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        const delay = typeof data.delay_s === 'number' ? data.delay_s : 30;
+        autoResumeCancelledRef.current = false;
+        setAutoResumeDelay(delay);
+        setAutoResumeCountdown(delay);
+      } catch (err) {
+        console.error("[auto_resuming] parse error:", err);
+      }
+    });
+
     es.addEventListener("container_pull_progress", (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data as string);
@@ -3133,6 +3175,42 @@ export function NextflowWorkflowViewer({
             </div>
           )}
 
+          {/* Auto-resume countdown banner — shown when backend pushes auto_resuming SSE */}
+          {autoResumeCountdown !== null && (
+            <div style={{
+              margin: '12px 16px 0',
+              padding: '10px 14px',
+              background: 'oklch(0.96 0.015 230)',
+              border: '1px solid oklch(0.80 0.06 230)',
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>⚡</span>
+                <span style={{ fontSize: 13, color: 'oklch(0.35 0.03 230)', fontWeight: 500 }}>
+                  检测到后台重启，{autoResumeCountdown}秒后自动恢复运行…
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  autoResumeCancelledRef.current = true;
+                  setAutoResumeCountdown(null);
+                  setAutoResumeDelay(null);
+                }}
+                style={{
+                  fontSize: 12, padding: '3px 10px', borderRadius: 5, cursor: 'pointer',
+                  background: 'transparent', border: '1px solid oklch(0.72 0.05 230)',
+                  color: 'oklch(0.42 0.04 230)', whiteSpace: 'nowrap', flexShrink: 0,
+                }}
+              >
+                取消
+              </button>
+            </div>
+          )}
+
           {/* AI diagnosis card — merges real-time SSE (aiDiagnosis) with API-backed failure (survives refresh) */}
           {(() => {
             // Prefer SSE-pushed diagnosis (has task_error_snippet); fall back to API-polled failure.
@@ -3175,8 +3253,8 @@ export function NextflowWorkflowViewer({
                     💡 Check your input files for format issues, then retry.
                   </p>
                 )}
-                {snippet && (
-                  <details style={{ marginTop: 4 }}>
+                {snippet ? (
+                  <details open style={{ marginTop: 4 }}>
                     <summary style={{ fontSize: 12, color: 'oklch(0.5 0.01 260)', cursor: 'pointer', userSelect: 'none' }}>
                       Error details
                     </summary>
@@ -3190,7 +3268,11 @@ export function NextflowWorkflowViewer({
                       {snippet}
                     </pre>
                   </details>
-                )}
+                ) : (diag.suggested_action === 'resume') ? (
+                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                    ℹ️ No error log captured — the process was killed before it could write output. If Resume keeps failing, check server logs: <code>docker logs biomate-galaxy --tail 100</code>
+                  </p>
+                ) : null}
               </div>
             );
           })()}
