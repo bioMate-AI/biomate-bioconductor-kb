@@ -32,6 +32,10 @@ vi.mock("./interactive-launcher", () => ({
     open ? <div data-testid="mock-interactive-launcher" /> : null,
 }));
 
+vi.mock("./pdf-canvas-viewer", () => ({
+  PdfCanvasViewer: ({ data, name }: {data: Uint8Array; name: string}) => <div data-testid="safe-pdf-canvas" data-bytes={Array.from(data).join(',')}>{name}</div>,
+}));
+
 const runId = "run-1";
 const onClose = vi.fn();
 
@@ -45,6 +49,7 @@ function mockFetch(body: string | object, contentType = "text/plain", ok = true,
     text: async () => text,
     json: async () => (typeof body === "string" ? JSON.parse(text) : body),
     blob: async () => blob,
+    arrayBuffer: async () => new TextEncoder().encode(text).buffer,
   } as unknown as Response);
 }
 
@@ -307,4 +312,12 @@ it.each([
   await waitFor(()=>expect(global.fetch).toHaveBeenCalled());
   expect(screen.queryByText(name)).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:/close/i})).not.toBeInTheDocument();
+});
+
+
+it("routes PDF bytes, including octet-stream responses, into the canvas renderer without an iframe", async () => {
+  mockFetch('%PDF-1.4 synthetic', 'application/octet-stream');
+  render(<StepOutputPreview expanded embedded runId={runId} file={{name:'report.pdf',path:'/owned/report.pdf',extension:'pdf'}} onClose={onClose}/>);
+  expect(await screen.findByTestId('safe-pdf-canvas')).toHaveAttribute('data-bytes', Array.from(new TextEncoder().encode('%PDF-1.4 synthetic')).join(','));
+  expect(document.querySelector('iframe')).toBeNull();
 });

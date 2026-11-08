@@ -1,3 +1,4 @@
+import { integrationFindings, integrationFindingsMarkdown } from "./integration-findings";
 import { stepFileDisposition } from "./step-file-disposition";
 import { waitForInteractiveSession } from "./interactive-session-readiness";
 import { createLegacyRunGuard, legacyRunUpdateSchema } from "./legacy-run-access";
@@ -16032,6 +16033,54 @@ Rules:
   // fast attempt count that can exhaust before publishDir/Galaxy-status catches up.
   const _findingsFirstAttempt = new Map<string, number>();
 
+  // Integration benchmark tables have typed column identities. Validate those
+  // source bytes before consulting old model-generated sidecars. Shared by the
+  // UI and findings download; existing sidecars remain intact for audit.
+  const verifiedIntegrationCache = new Map<string, { until: number; value: any }>();
+  const verifiedIntegrationInflight = new Map<string, Promise<any>>();
+  async function readVerifiedIntegrationFindings(run: any, runId: string): Promise<any | null> {
+    if (run.execution?.status !== 'completed' || !/scdownstream/i.test(run.workflowName || run.name || '')) return null;
+    const cached = verifiedIntegrationCache.get(runId);
+    if (cached && cached.until > Date.now()) return cached.value;
+    if (verifiedIntegrationInflight.has(runId)) return verifiedIntegrationInflight.get(runId);
+    const work = (async () => {
+      try {
+        const { runsOutputsService } = await import('./services/runs-outputs-service');
+        const outputs = await runsOutputsService.list(runId);
+        const metrics = outputs.filter(o => /_metrics\.tsv$/i.test(o.name) || /^sizes\.tsv$/i.test(o.name));
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const files = await Promise.all(metrics.slice(0, 32).map(async o => {
+          const match = o.s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+          if (!match) return null;
+          try {
+            const client = await _s3ClientForBucket(match[1]);
+            const object = await client.send(new GetObjectCommand({ Bucket: match[1], Key: match[2], Range: 'bytes=0-262144' }), { abortSignal: AbortSignal.timeout(10_000) });
+            const content = await object.Body?.transformToString();
+            if (!content || Buffer.byteLength(content) >= 262144) return null;
+            return { name: o.name, content };
+          } catch { return null; }
+        }));
+        const readable = files.filter((f): f is { name: string; content: string } => !!f);
+        const findings = integrationFindings(readable);
+        if (!findings || readable.length !== metrics.length || metrics.length > 32) {
+          return { status: 'unavailable', runId,
+            message: 'Integration findings are unavailable until the saved metric tables can be read and validated.',
+            caveats: ['Unverified cached scores are withheld. Open the output tables to inspect the source data.'] };
+        }
+        return { ...findings, runId, reportUrl: `/api/workflows/runs/${runId}/findings/report` };
+      } catch {
+        return { status: 'unavailable', runId, message: 'Saved integration metric tables could not be verified. Please retry.' };
+      }
+    })();
+    verifiedIntegrationInflight.set(runId, work);
+    try {
+      const value = await work;
+      if (verifiedIntegrationCache.size >= 128) verifiedIntegrationCache.delete(verifiedIntegrationCache.keys().next().value!);
+      verifiedIntegrationCache.set(runId, { until: Date.now() + (value.status === 'ready' ? 60_000 : 5_000), value });
+      return value;
+    } finally { verifiedIntegrationInflight.delete(runId); }
+  }
+
   // ── Output Intelligence — Findings endpoint ────────────────────────────────
   //
   // GET  /api/workflows/runs/:id/findings
@@ -16052,7 +16101,7 @@ Rules:
       const run = await resolveAuthorizedRun(req, res, runId);
       if (!run) return;
 
-      // Failed runs have no meaningful outputs — return static error immediately
+      // Failed runs may retain partial outputs; do not claim they produced none.
       // so the UI shows a clear message instead of an infinite "Analysis in progress…" spinner.
       // Status is stored at run.execution.status (not run.status — see storage._dbRowToExecutionRun).
       const runStatus: string = (run as any).execution?.status || '';
@@ -16060,12 +16109,15 @@ Rules:
         return res.json({
           status: 'error',
           message: 'Analysis not available — workflow did not complete successfully.',
-          summary: 'The workflow run failed before producing output files. Check the error message in the workflow panel for details.',
+          summary: 'The workflow did not complete. Any recorded partial outputs remain available in Outputs; review the execution error before restarting.',
           key_results: [],
           next_steps: ['Review the error message and fix the workflow parameters, then re-run.'],
           caveats: [],
         });
       }
+
+      const verifiedIntegration = await readVerifiedIntegrationFindings(run, runId);
+      if (verifiedIntegration) return res.json(verifiedIntegration);
 
       // A persisted sidecar / cached object is only trustworthy as findings when
       // it actually carries the findings schema. Some runs have a findings_data.json
@@ -16852,6 +16904,14 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
     try {
       const run = await resolveAuthorizedRun(req, res, runId);
       if (!run) return;
+      const verified = (run as any).execution?.status === 'completed'
+        ? await readVerifiedIntegrationFindings(run, runId) : null;
+      if (verified) {
+        if (verified.status !== 'ready') return res.status(409).json({ error: verified.message });
+        res.type('text/markdown; charset=utf-8');
+        res.attachment('findings.md');
+        return res.send(integrationFindingsMarkdown(verified, (run as any).workflowName || 'Integration'));
+      }
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
       const reportPath = `/tmp/nextflow_runs/${nextflowRunId}/output/findings_report.md`;
       const { readFile } = await import('fs/promises');

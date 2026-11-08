@@ -576,7 +576,8 @@
       "summary_title": "Findings · generated from outputs"
     },
     "ai_findings_analysis": "Findings analysis",
-    "inputs_linked_review": "Input references are set. Review the mapping below."
+    "inputs_linked_review": "Input references are set. Review the mapping below.",
+    "run_stopped": "The run stopped before completing."
   },
   "preview": {
     "loading": "Loading preview…",
@@ -600,7 +601,12 @@
     "opens_preloaded": "Opens with this file pre-loaded",
     "download_file": "Download {{name}}",
     "previous_rows": "Previous rows",
-    "next_rows": "Next rows"
+    "next_rows": "Next rows",
+    "pdf_failed": "Could not render this PDF.",
+    "previous_page": "Previous page",
+    "next_page": "Next page",
+    "pdf_page_count": "Page {{page}} of {{pages}}",
+    "pdf_page_label": "{{name}} — page {{page}}"
   },
   "step_view": {
     "title": "Full step view",
@@ -635,7 +641,8 @@
     "raw_unreadable": "Raw bytes could not be read as text ({{error}}).",
     "origin_not_reported": "origin not reported by the run — shown honestly rather than guessed",
     "job_id": "Job ID",
-    "work_directory": "Work directory"
+    "work_directory": "Work directory",
+    "output_links_unavailable": "No output-file links were recorded for this task. Check Outputs for any run-level files."
   },
   "domains": {
     "drug_discovery": "Drug discovery",
@@ -840,6 +847,8 @@
     "findings_loading": "Loading recorded findings…",
     "findings_load_failed": "Findings could not be loaded. The recorded outputs remain available.",
     "findings_pending": "Findings analysis is still pending. This report updates when the analysis is available.",
-    "findings_empty": "No structured findings summary was recorded."
+    "findings_empty": "No structured findings summary was recorded.",
+    "incomplete_record_available": "Run incomplete — partial outputs and the run record remain available.",
+    "source_unavailable": "The cited output could not be uniquely located in this run: {{file}}"
   }
 }

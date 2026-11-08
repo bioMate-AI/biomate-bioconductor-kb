@@ -28,6 +28,23 @@ function display(value: unknown): string | number | undefined {
   return typeof value === 'number' || typeof value === 'string' ? value : JSON.stringify(value);
 }
 
+
+/** Legacy broad JSON scans mislabeled unrelated output metadata as FASTP.
+ * Keep the original attribution for audit and keep the non-evaluation visible;
+ * never relabel a real pass/fail or infer a scientific verdict from metadata.
+ */
+function sourceAttribution(event: QcAssessment): QcAssessment {
+  if (event.status !== 'not_evaluated' || !/^fastp$/i.test(event.gate || '') || typeof event.source !== 'string') return event;
+  const name = event.source.split('/').pop() || '';
+  const metadata = /(?:_benchmark_info|multiqc_data|^params(?:_.*)?)\.json$/i.test(name);
+  if (!metadata) return event;
+  return { ...event, reported_gate: event.gate, gate: 'Output metadata',
+    message: `No quality check was performed on ${name}. The recorded FASTP attribution is unsupported by this source.` };
+}
+export function qcSourceName(event: QcAssessment): string {
+  return typeof event.source === 'string' ? event.source.split('/').pop() || event.source : 'Source not recorded';
+}
+
 /** Accept both durable flat rows and the original live process/event envelopes. */
 export function normalizeQcEvents(payload: unknown): QcAssessment[] {
   const events = Array.isArray(payload) ? payload : (payload as any)?.events;
@@ -61,7 +78,7 @@ export function normalizeQcEvents(payload: unknown): QcAssessment[] {
       measured: display(event.measured ?? event.value),
       threshold: display(event.threshold),
     }];
-  });
+  }).map(sourceAttribution);
 }
 
 export function qcResultLabel(status: unknown): string {

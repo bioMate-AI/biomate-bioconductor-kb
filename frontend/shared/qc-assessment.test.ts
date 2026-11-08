@@ -39,3 +39,18 @@ describe('QC execution boundaries', () => {
     expect(canControlExecutionFromQc(hold, 'running')).toBe(true);
   });
 });
+
+describe('legacy QC source attribution', () => {
+  it('keeps unsupported metadata observations visible without asserting FASTP ran', () => {
+    const [event] = normalizeQcEvents([{gate:'FASTP', status:'not_evaluated', source:'s3://bucket/combat_benchmark_info.json', metrics:{process:'FASTP'}}]);
+    expect(event.gate).toBe('Output metadata');
+    expect(event.reported_gate).toBe('FASTP');
+    expect(event.status).toBe('not_evaluated');
+    expect(event.message).toContain('No quality check was performed');
+  });
+  it('never erases a real failure or genuine FASTP source', () => {
+    const failure = {gate:'FASTP',status:'fail',source:'s3://bucket/params_1.json',measured:2};
+    expect(normalizeQcEvents([failure])[0]).toMatchObject(failure);
+    expect(normalizeQcEvents([{gate:'FASTP',status:'not_evaluated',source:'s3://bucket/sample.fastp.json'}])[0].gate).toBe('FASTP');
+  });
+});

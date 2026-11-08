@@ -1,5 +1,5 @@
 import { RunFileDownload, runFileUrl } from "@/components/run-file-download";
-import { normalizeQcEvents, qcActionTaken, qcResultLabel, type QcAssessment } from "@shared/qc-assessment";
+import { normalizeQcEvents, qcActionTaken, qcResultLabel, qcSourceName, type QcAssessment } from "@shared/qc-assessment";
 /**
  * AfterRunReport — 7-tab inline after-run panel for the v2 workflow surface.
  *
@@ -208,20 +208,11 @@ export function AfterRunReport({
   // Re-open the deep-linked tab when the panel is asked to (targetTab changes).
   useEffect(() => { if (targetTab) setTab(targetTab); }, [targetTab]);
 
-  // §7.8 — a findings number links to the output it was read from: jump to the
-  // Outputs tab and scroll that file's card into view (best-effort DOM match on
-  // the file path/name; if unmatched the user still lands on the file list).
+  const [sourceRequest, setSourceRequest] = useState<{ ref: string; sequence: number } | null>(null);
+  useEffect(() => { setSourceRequest(null); }, [runId]);
   const handleOpenOutput = useCallback((ref: string) => {
+    setSourceRequest(previous => ({ ref, sequence: (previous?.sequence ?? 0) + 1 }));
     setTab("outputs");
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      try {
-        const esc = (window as any).CSS?.escape ? (window as any).CSS.escape(ref) : ref.replace(/["\\]/g, '\\$&');
-        const el = document.querySelector(`[data-output-ref-card="${esc}"]`)
-          || Array.from(document.querySelectorAll('[data-output-ref-card]'))
-               .find(n => (n.getAttribute('data-output-ref-card') || '').endsWith(ref));
-        (el as HTMLElement | undefined)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } catch { /* landing on the Outputs tab is enough */ }
-    }));
   }, []);
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
@@ -242,8 +233,7 @@ export function AfterRunReport({
   // comprehensive download report can inline real findings prose (PM must-fix #2).
   const findings = useFetchFindings(canShowFindings ? runId : "");
 
-  // The in-panel Report document (§2.2) — the same comprehensive report the
-  // Download menu produces, rendered as a scrolling 8-section doc in the Report tab.
+  // The in-panel report foregrounds results and figures; exports retain the full inventory.
   const reportMarkdown = useMemo(() => buildFullReportMarkdown({
     runId,
     workflowName,
@@ -254,6 +244,7 @@ export function AfterRunReport({
     findings,
     software,
     citations,
+    includeFileInventory: false,
   }), [runId, workflowName, parameters, outputs, methods.text, qcEvents, findings, software, citations]);
 
   // Lightweight download-UX state — keeps users from double-clicking and
@@ -381,16 +372,14 @@ export function AfterRunReport({
         {downloadToast && (
           <span style={styles.toast} role="status">{downloadToast}</span>
         )}
-        {/* FIX #9.2 — a failed/cancelled run has no scientific report to stitch,
-            so offering a report download produces a misleading, findings-free
-            document. Show a no-report note; the download menu only on a run that
-            completed. */}
+        {/* Incomplete runs retain their record and partial artifacts, but do not
+            offer the completed scientific-report export menu. */}
         {isFailed ? (
           <span
             style={{ ...styles.linkish, opacity: 0.6, cursor: 'default' }}
             data-testid="afterrun-no-report"
           >
-            No report — the run did not complete
+            {tOr('afterrun.incomplete_record_available', 'Run incomplete — partial outputs and the run record remain available.')}
           </span>
         ) : (
         <div style={{ position: 'relative' }} data-testid="afterrun-download">
@@ -509,7 +498,7 @@ export function AfterRunReport({
                     <thead><tr><th align="left">Check</th><th align="left">Observed</th><th align="left">Flag condition</th><th align="left">Result</th></tr></thead>
                     <tbody>{qcEvents.filter(e => /^(fail|advisory|unavailable|unknown|not_evaluated)$/i.test(e.status || '')).map((e, i) => (
                       <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td>{e.gate ?? '—'}</td><td>{e.measured ?? '—'}</td>
+                        <td>{e.gate ?? '—'}<div style={{ color: 'var(--text-muted)', fontSize: 11, overflowWrap: 'anywhere' }}>{qcSourceName(e)}</div>{e.message && <div style={{ fontSize: 11 }}>{e.message}</div>}</td><td>{e.measured ?? '—'}</td>
                         <td>{e.operator ? `${e.operator} ` : ''}{e.threshold ?? '—'}</td><td>{qcResultLabel(e.status)}</td>
                       </tr>
                     ))}</tbody>
@@ -533,6 +522,7 @@ export function AfterRunReport({
               invocationId={invocationId}
               executionStatus={executionStatus}
               projectId={projectId}
+              sourceRequest={sourceRequest}
             />
           </div>
         )}
@@ -1188,12 +1178,14 @@ function OutputsTab({
   invocationId,
   executionStatus,
   projectId: initialProjectId,
+  sourceRequest,
 }: {
   outputs: OutputFile[];
   runId: string;
   invocationId?: string;
   executionStatus?: string;
   projectId?: string;
+  sourceRequest?: { ref: string; sequence: number } | null;
 }) {
   // Audit 2026-06-17: the parent's outputs prop is derived from the DB-stored
   // nextflowStatus.s3_output_files snapshot. That snapshot is often empty
@@ -1271,6 +1263,23 @@ function OutputsTab({
   // Search box + render cap ("Show more") for long output lists.
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!sourceRequest) return;
+    const ref = sourceRequest.ref;
+    const exact = effectiveOutputs.filter(file => file.path === ref || file.name === ref);
+    const matches = exact.length ? exact : effectiveOutputs.filter(file =>
+      (file.path || '').endsWith('/' + ref));
+    if (matches.length !== 1) {
+      setSourceError(tOr('afterrun.source_unavailable', 'The cited output could not be uniquely located in this run: {{file}}', { file: ref }));
+      return;
+    }
+    setQuery('');
+    setShowAll(true);
+    setSourceError(null);
+    setPreviewFile(matches[0]);
+  }, [sourceRequest, effectiveOutputs]);
+
 
   // Save-to-Project state — declared before any early return (Rules of Hooks).
   const [savedProjectId, setSavedProjectId] = useState<string | undefined>(initialProjectId);
@@ -1439,11 +1448,56 @@ function OutputsTab({
     </details>
   ) : null;
 
+  const previewDialog = previewFile && (
+        <div
+          onClick={() => setPreviewFile(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }}
+        >
+          {/* The output-file detail view is a PANE, not a centered pop-up
+              (design spec 08/12): a right-anchored side panel. Height fits its
+              CONTENT up to the viewport (maxHeight 100vh) — a non-previewable
+              artefact (.rds etc.) shows a compact card (spec 14.2) instead of a
+              near-empty full-height void; a big table/image still fills the pane. */}
+          <div
+            role="dialog" aria-modal="true" aria-label={previewFile.name} tabIndex={-1}
+            ref={node => node?.focus()}
+            onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setPreviewFile(null); } }}
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg, #fff)', padding: 20, width: 'min(1080px, 96vw)', maxWidth: 'none', height: 'auto', maxHeight: '100vh', overflow: 'auto', borderLeft: '1px solid var(--border, #e5e7eb)', boxShadow: '-8px 0 32px rgba(0,0,0,0.18)' }}
+          >
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <h3 className="text-sm font-semibold break-all">{previewFile.name}</h3>
+              <button type="button" className="text-sm shrink-0" onClick={() => setPreviewFile(null)}>{tOr('actions.close', 'Close')}</button>
+            </div>
+            {stepLabel(previewFile.step) && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{stepLabel(previewFile.step)}</div>
+            )}
+            {/* Rich evidence viewer — StepOutputPreview resolves the right viewer
+                by file type (image/pdf/html/text plus structure pLDDT·PAE,
+                sequence tracks, hit grids, density maps, cryo charts, single-cell
+                / R-object launchers). Fetches the same step-file endpoint the
+                Outputs table already uses, so no new backend surface. */}
+            <StepOutputPreview
+              runId={runId}
+              file={{ name: previewFile.name, path: previewFile.path || previewFile.name, extension: previewFile.ext }}
+              onClose={() => setPreviewFile(null)}
+              projectId={savedProjectId}
+              maxHClass="max-h-[70vh]"
+              expanded
+              embedded
+            />
+
+          </div>
+        </div>
+      );
+
   // No scientific outputs at all. Show the empty state, but still surface any
   // Nextflow run metadata below it (common on a failed/partial run).
   if (totalCount === 0) {
     return (
       <div style={styles.tabContent}>
+        {sourceError && <p role="status">{sourceError}</p>}
+        {previewDialog}
         <p style={styles.empty}>
           {executionStatus === 'failed'
             ? 'No outputs — run did not complete successfully.'
@@ -1458,6 +1512,7 @@ function OutputsTab({
 
   return (
     <div style={styles.tabContent}>
+      {sourceError && <p role="status">{sourceError}</p>}
       {/* Bulk-download actions */}
       <div style={styles.bulkActions}>
         {invocationId && (
@@ -1651,49 +1706,7 @@ function OutputsTab({
 
       {metadataSection}
 
-      {/* Inline preview overlay */}
-      {previewFile && (
-        <div
-          onClick={() => setPreviewFile(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }}
-        >
-          {/* The output-file detail view is a PANE, not a centered pop-up
-              (design spec 08/12): a right-anchored side panel. Height fits its
-              CONTENT up to the viewport (maxHeight 100vh) — a non-previewable
-              artefact (.rds etc.) shows a compact card (spec 14.2) instead of a
-              near-empty full-height void; a big table/image still fills the pane. */}
-          <div
-            role="dialog" aria-modal="true" aria-label={previewFile.name} tabIndex={-1}
-            ref={node => node?.focus()}
-            onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setPreviewFile(null); } }}
-            onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg, #fff)', padding: 20, width: 'min(1080px, 96vw)', maxWidth: 'none', height: 'auto', maxHeight: '100vh', overflow: 'auto', borderLeft: '1px solid var(--border, #e5e7eb)', boxShadow: '-8px 0 32px rgba(0,0,0,0.18)' }}
-          >
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <h3 className="text-sm font-semibold break-all">{previewFile.name}</h3>
-              <button type="button" className="text-sm shrink-0" onClick={() => setPreviewFile(null)}>{tOr('actions.close', 'Close')}</button>
-            </div>
-            {stepLabel(previewFile.step) && (
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{stepLabel(previewFile.step)}</div>
-            )}
-            {/* Rich evidence viewer — StepOutputPreview resolves the right viewer
-                by file type (image/pdf/html/text plus structure pLDDT·PAE,
-                sequence tracks, hit grids, density maps, cryo charts, single-cell
-                / R-object launchers). Fetches the same step-file endpoint the
-                Outputs table already uses, so no new backend surface. */}
-            <StepOutputPreview
-              runId={runId}
-              file={{ name: previewFile.name, path: previewFile.path || previewFile.name, extension: previewFile.ext }}
-              onClose={() => setPreviewFile(null)}
-              projectId={savedProjectId}
-              maxHClass="max-h-[70vh]"
-              expanded
-              embedded
-            />
-
-          </div>
-        </div>
-      )}
+      {previewDialog}
     </div>
   );
 }
@@ -2598,7 +2611,7 @@ function CitationsTab({ citations }: { citations: Citation[] }) {
  * Future: add a server-side DOCX/PDF generator and switch the download
  * button to call it.
  */
-function buildFullReportMarkdown(args: {
+export function buildFullReportMarkdown(args: {
   runId: string;
   workflowName?: string;
   parameters?: Record<string, unknown>;
@@ -2608,6 +2621,7 @@ function buildFullReportMarkdown(args: {
   findings?: FindingsData | null;
   software?: Record<string, string>;
   citations?: Citation[];
+  includeFileInventory?: boolean;
 }): string {
   const { runId, workflowName, parameters, outputs, methods, qcEvents: rawQcEvents, findings, software, citations } = args;
   const qcEvents = normalizeQcEvents(rawQcEvents);
@@ -2618,12 +2632,6 @@ function buildFullReportMarkdown(args: {
   lines.push("");
   lines.push(`- **Generated**: ${new Date().toISOString()}`);
   lines.push("");
-  lines.push(`_This report is a research summary. Input and output file bytes_`);
-  lines.push(`_live in your BioMate workspace and are reachable via the per-file_`);
-  lines.push(`_download endpoints linked below. Bytes are intentionally not_`);
-  lines.push(`_inlined to keep the report portable and reviewable._`);
-  lines.push("");
-
   // ── Dataset description (NEW — research-doc style) ───────────────────────
   // Pulled from parameters: anything looking like a path or sample identifier
   // is summarised as "input dataset" rather than inlined.
@@ -2631,7 +2639,7 @@ function buildFullReportMarkdown(args: {
   lines.push("");
   const datasetFields = parameters
     ? Object.entries(parameters).filter(([k, v]) =>
-        /(path|file|sample|input|sumstats|matrix|bam|fastq|vcf|h5ad|sample_sheet|samplesheet)/i.test(k) &&
+        /(?:^|_)(?:path|file|files|samples?|input|sumstats|matrix|bam|fastq|vcf|h5ad|sample_sheet|samplesheet)(?:$|_)/i.test(k) &&
         typeof v === "string" && v.length > 0
       )
     : [];
@@ -2680,20 +2688,13 @@ function buildFullReportMarkdown(args: {
       lines.push("");
     }
     if (findings.key_results?.length) {
-      lines.push(`### Key results`);
-      lines.push("");
+      const cell = (v: unknown) => String(v ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+      lines.push('### Key results', '', '| Measurement | Value | Source |', '| --- | --- | --- |');
       for (const k of findings.key_results) {
-        if (typeof k === "string") {
-          lines.push(`- ${k}`);
-        } else {
-          // Backend uses `metric`; older payloads used `label`. Fall back gracefully.
-          const name = k.metric ?? k.label ?? "(unnamed)";
-          const val = k.value ?? "";
-          const interp = k.interpretation ? `  \n    _${k.interpretation}_` : "";
-          lines.push(`- **${name}**: ${val}${interp}`);
-        }
+        if (typeof k === 'string') lines.push(`| ${cell(k)} | | |`);
+        else lines.push(`| ${cell(k.metric ?? k.label ?? '(unnamed)')} | ${cell(k.value)} | ${cell(k.source_file)} |`);
       }
-      lines.push("");
+      lines.push('');
     }
     if (findings.caveats?.length) {
       lines.push(`### Caveats`);
@@ -2709,11 +2710,24 @@ function buildFullReportMarkdown(args: {
     }
   }
 
+  // Render actual scientific image bytes, never a generated placeholder.
+  const scientific = outputs.filter(o => !isRunMetadataFile(o));
+  const images = scientific.filter(o => /^(png|jpe?g|webp)$/i.test(o.ext || ''));
+  const priority = (o: OutputFile) => /umap|tsne|volcano|pca|heatmap/i.test(o.name) ? 0 : 1;
+  const figures = [...images].sort((a, b) => priority(a) - priority(b)).slice(0, 3);
+  if (figures.length) {
+    lines.push('## Selected figures', '');
+    for (const figure of figures) {
+      const name = figure.name.replace(/[\[\]\r\n]/g, ' ');
+      lines.push(`![${name}](${runFileUrl(runId, figure, false)})`, '', `_${name}_`, '');
+    }
+  }
+  if (args.includeFileInventory !== false) {
   // ── Outputs ──────────────────────────────────────────────────────────────
   // Research-doc style: per-step subsection with file metadata (name, type,
   // size) and a BioMate-endpoint download link. NO S3 URIs leaked. NO bytes
   // inlined. The report is a navigable summary; bytes live in the workspace.
-  lines.push(`## Outputs`);
+  lines.push(`## Output files`);
   lines.push("");
   if (outputs.length === 0) {
     lines.push(`_No output files registered for this run._`);
@@ -2744,6 +2758,10 @@ function buildFullReportMarkdown(args: {
       }
       lines.push("");
     }
+  }
+
+  } else {
+    lines.push(`${scientific.length} scientific output files are available in the Outputs tab.`, '');
   }
 
   // Methods

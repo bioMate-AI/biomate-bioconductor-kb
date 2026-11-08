@@ -774,7 +774,7 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
     expect(link).toHaveAttribute("href", "/files?file=ds-1");
   });
 
-  it("shows a 'No report' note instead of the Download-report button on a failed run", async () => {
+  it("explains that partial outputs and run record remain available on a failed run", async () => {
     render(
       <AfterRunReport
         {...baseProps}
@@ -783,7 +783,7 @@ describe("v2/AfterRunReport — Outputs tab metadata split + failed-run report (
       />,
     );
     expect(await screen.findByTestId("afterrun-no-report")).toHaveTextContent(
-      /No report — the run did not complete/,
+      /Run incomplete — partial outputs and the run record remain available/,
     );
     expect(screen.queryByTestId("afterrun-download-report")).toBeNull();
   });

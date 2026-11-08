@@ -788,7 +788,8 @@
     "workflow_failed": "工作流失败",
     "workflow_parameters": "工作流参数",
     "styleA_attach_hint": "此工作流需要一个数据文件。请用下方消息框中的回形针（📎）附加文件 — BioMate 会自动将您上传的文件接入工作流。",
-    "inputs_linked_review": "已设置输入文件引用，请核对下方映射。"
+    "inputs_linked_review": "已设置输入文件引用，请核对下方映射。",
+    "run_stopped": "运行在完成前停止。"
   },
   "preview": {
     "loading": "正在加载预览…",
@@ -812,7 +813,12 @@
     "opens_preloaded": "打开时会预先载入此文件",
     "download_file": "下载 {{name}}",
     "previous_rows": "上一页",
-    "next_rows": "下一页"
+    "next_rows": "下一页",
+    "pdf_failed": "无法渲染此 PDF。",
+    "previous_page": "上一页",
+    "next_page": "下一页",
+    "pdf_page_count": "第 {{page}} 页，共 {{pages}} 页",
+    "pdf_page_label": "{{name}} — 第 {{page}} 页"
   },
   "step_view": {
     "title": "完整步骤视图",
@@ -847,7 +853,8 @@
     "raw_unreadable": "无法将原始字节读取为文本 ({{error}})。",
     "origin_not_reported": "运行未报告来源 — 如实标注，而不是凭空猜测",
     "job_id": "任务 ID",
-    "work_directory": "工作目录"
+    "work_directory": "工作目录",
+    "output_links_unavailable": "此任务未记录输出文件链接。请在“输出”中查看运行级别的文件。"
   },
   "domains": {
     "drug_discovery": "药物发现",
@@ -1029,7 +1036,9 @@
     "findings_loading": "正在加载已保存的分析发现…",
     "findings_load_failed": "无法加载分析发现，仍可查看已保存的输出文件。",
     "findings_pending": "分析发现仍在生成，完成后报告会自动更新。",
-    "findings_empty": "未记录结构化的分析发现摘要。"
+    "findings_empty": "未记录结构化的分析发现摘要。",
+    "incomplete_record_available": "运行未完成，仍可查看已生成的部分输出和运行记录。",
+    "source_unavailable": "无法在本次运行中唯一确定引用的输出文件：{{file}}"
   },
   "design": {
     "axis_x": "横轴",

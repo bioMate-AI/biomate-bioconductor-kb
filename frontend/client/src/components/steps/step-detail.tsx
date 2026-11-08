@@ -372,7 +372,7 @@ export function StepDetail({
         <div>
           <div className="flex items-center gap-1.5 flex-wrap mb-2">
             {outputs.length === 0 && (
-              <p className="text-xs text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.outputs_running') : t('step_view.outputs_none')}</p>
+              <p className="text-xs text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.outputs_running') : tOr('step_view.output_links_unavailable', 'No output-file links were recorded for this task. Check Outputs for any run-level files.')}</p>
             )}
             {outputs.map(o => (
               <button

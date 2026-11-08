@@ -51,3 +51,5 @@
 .bmx-report-doc th,
 .bmx-report-doc td { padding: 8px 10px; border: 1px solid var(--border); vertical-align: top; }
 .bmx-report-doc hr { margin: 16px 0; border: 0; border-top: 1px solid var(--border); }
+
+.bmx-report-doc img { display: block; max-width: 100%; height: auto; margin: 16px auto 6px; border-radius: var(--r-sm, 6px); background: white; }

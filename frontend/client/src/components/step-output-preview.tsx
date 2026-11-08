@@ -1,3 +1,4 @@
+import { PdfCanvasViewer } from "./pdf-canvas-viewer";
 import { RunFileDownload } from "./run-file-download";
 /**
  * StepOutputPreview — inline viewer for a single Nextflow step output file.
@@ -76,6 +77,7 @@ export interface StepOutputPreviewProps {
 }
 
 interface FetchedContent {
+  pdfData?: Uint8Array;
   url: string;
   contentType: string;
   text?: string;
@@ -624,6 +626,9 @@ function FetchingPreview({
           const text = await res.text();
           if (cancelled) return;
           setContent({ url: stepFileUrl, contentType: ct, text });
+        } else if (viewer === 'pdf') {
+          const pdfData = new Uint8Array(await res.arrayBuffer());
+          if (!cancelled) setContent({url: stepFileUrl, contentType: ct, pdfData});
         } else if (viewer === 'html') {
           // Keep the server's CSP sandbox on navigation. A new blob URL would
           // discard those headers and execute the report with the app's origin.
@@ -631,12 +636,6 @@ function FetchingPreview({
         } else {
           let blob = await res.blob();
           if (cancelled) return;
-          // The step-file endpoint sometimes serves binaries as
-          // application/octet-stream; an <iframe> only renders a PDF blob whose
-          // type is application/pdf. Force it so the inline viewer always works.
-          if (viewer === 'pdf' && blob.type !== 'application/pdf') {
-            blob = new Blob([blob], { type: 'application/pdf' });
-          }
           objectUrl = URL.createObjectURL(blob);
           setContent({ url: objectUrl, contentType: ct });
         }
@@ -726,16 +725,7 @@ function ViewerContent({
       return expanded ? <img src={content.url} alt={file.name} className="w-full max-h-[80vh] object-contain" data-testid="expanded-output-image" /> : <InlineImageViewer src={content.url} name={file.name} />;
 
     case 'pdf':
-      // PDFs render natively in an iframe (vector figures stay sharp). Taller than
-      // the html box since figures are usually full-page. A download link is offered
-      // by the surrounding chrome for browsers without an inline PDF plugin.
-      return (
-        <iframe
-          src={content.url}
-          className={expanded ? "w-full h-[80vh] border rounded" : "w-full h-96 border rounded"}
-          title={file.name}
-        />
-      );
+      return content.pdfData ? <PdfCanvasViewer data={content.pdfData} name={file.name} /> : null;
 
     case 'html':
       // FIX #9.3 — a 256px iframe sandboxed with ONLY `allow-scripts` renders
