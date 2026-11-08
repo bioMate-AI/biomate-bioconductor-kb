@@ -1,0 +1,151 @@
+{
+  "testedAt": "2026-11-08T04:00:04.942Z",
+  "target": "https://dev-public.biomate.ai",
+  "scope": "HTTP drafts, direct target evidence and authenticated workbench; not Nextflow execution or scientific accuracy",
+  "checks": [
+    {
+      "name": "service health",
+      "passed": true,
+      "detail": {
+        "status": "ok",
+        "timestamp": "2026-11-08T03:59:02.609Z",
+        "services": {
+          "api": "ok",
+          "galaxy": {
+            "connected": true,
+            "url": "http://biomate-galaxy-dev:8080"
+          },
+          "ai": "ok"
+        }
+      }
+    },
+    {
+      "name": "Galaxy API available",
+      "passed": true,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "name": "anonymous project access denied",
+      "passed": true,
+      "detail": {
+        "status": 401
+      }
+    },
+    {
+      "name": "nonexistent project concealed",
+      "passed": true,
+      "detail": {
+        "status": 404
+      }
+    },
+    {
+      "name": "authenticated workbench visible",
+      "passed": true,
+      "detail": {
+        "screenshot": "authenticated-workbench.png"
+      }
+    },
+    {
+      "name": "oncology target evidence",
+      "passed": false,
+      "detail": {
+        "state": "chat_only",
+        "route": null,
+        "autoDispatched": false,
+        "targetEvidence": {
+          "status": "ok",
+          "targets": [
+            {
+              "rank": 1,
+              "target": "EGFR",
+              "score": 0.5,
+              "tier": "nominated",
+              "n_fired": 1,
+              "fired_channels": [
+                "llm_reasoned"
+              ],
+              "conflict": false,
+              "note": "",
+              "per_channel_z": {
+                "llm_reasoned": 1
+              },
+              "evidence_links": {
+                "llm_reasoned": {
+                  "kind": "model_judgment",
+                  "url": null,
+                  "label": "model judgment, no citation"
+                }
+              }
+            }
+          ],
+          "channels": [
+            "llm_reasoned"
+          ],
+          "failedChannels": [
+            "genetics_ot",
+            "ppi_string"
+          ],
+          "sourceErrors": {
+            "genetics_ot": "OT: disease EFO_0003838 did not resolve",
+            "ppi_string": "no seed_genes in context"
+          },
+          "failureKinds": {
+            "genetics_ot": "source error",
+            "ppi_string": "source error"
+          },
+          "ranking": {
+            "mode": "weighted_harmonic_sum",
+            "primary_channel": null,
+            "requested_primary_channel": "genetics_ot",
+            "evidence_value_type": "normalized_score",
+            "requested_candidates": [
+              "EGFR"
+            ],
+            "unscored_candidates": [],
+            "seed_source": null,
+            "n_seed_genes": 0
+          }
+        },
+        "targetRequest": {
+          "query": "EGFR non-small-cell lung carcinoma NSCLC drug targets",
+          "candidate_targets": [
+            "EGFR"
+          ],
+          "disease_id": "EFO_0003838",
+          "ranking_mode": "auto",
+          "suggest_modality": true,
+          "validate": true,
+          "top_k": 1
+        },
+        "responseExcerpt": "Target identification completed successfully.\n\n| Rank | Target | Score | Evidence tier | Channel conflict |\n| --- | --- | --- | --- | --- |\n| 1 | EGFR | 0.5 | nominated | No |\n\nRanking: combined available channels; Open Targets-primary ordering was not established. Successful channels: AI-generated reasoning. Failed channels: Open Targets disease-association evidence, ppi_string.\n\nScores are associations, not clinical probabilities. Evidence tiers describe channel agreement, not independent experimental validation; AI-generated reasoning is not a retrieved publication. A conflict means the channels disagree. No improvement over Open Targets alone has been established.",
+        "clarification": {
+          "workflowGenerationDiagnostics": null
+        }
+      }
+    },
+    {
+      "name": "draft generation launches no runs",
+      "passed": true,
+      "detail": {
+        "status": 200,
+        "runCount": 0
+      }
+    },
+    {
+      "name": "cleanup session dev-acceptance-5fdf7904-2915-47ed-b4c2-e3bfffc68d38",
+      "passed": true,
+      "detail": {
+        "status": 204
+      }
+    },
+    {
+      "name": "cleanup acceptance project",
+      "passed": true,
+      "detail": {
+        "status": 200
+      }
+    }
+  ]
+}
