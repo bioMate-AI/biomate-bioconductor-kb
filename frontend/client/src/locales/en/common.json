@@ -345,7 +345,14 @@
     "diff_identical": "Identical content (same bytes).",
     "diff_nontabular": "Non-tabular file — current {{b}} B vs this version {{a}} B.",
     "diff_changed_cells": "{{n}} changed cells",
-    "diff_sampled": "(first 500 rows)"
+    "diff_sampled": "(first 500 rows)",
+    "view_edit": "Edit",
+    "edit_hint": "Edit the first {{n}} sampled rows; saving applies your changes to the full file as a new version.",
+    "edit_save": "Save {{n}} edits as new version",
+    "edit_saving": "Saving…",
+    "edit_saved": "Saved as v{{v}}.",
+    "edit_failed": "Could not save edits",
+    "edit_appendonly": "Append-only — earlier versions are kept."
   },
   "data_hub": {
     "choose_project": "Choose a project",

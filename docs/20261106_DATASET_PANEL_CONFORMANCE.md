@@ -121,8 +121,10 @@ stubs shipped, per CLAUDE.md):
    **Compare/diff SHIPPED** — `GET …/files/:fileId/versions/:versionNo/diff` reads both versions
    (readTextPrefix, capped), returns the column set diff (added/removed) + position-aligned changed
    cells (capped); the Versions tab has a "Compare" toggle per past version showing columns + changed
-   cells vs current. REMAINING refinement: **edit-in-place** of the tabular preview as a
-   version-creating action (builds on this store).
+   cells vs current. **Edit-in-place SHIPPED** — the Preview tab's "Edit" view makes the sampled table
+   editable; saving sends the cell edits `{row,col,value}` to `POST …/files/:fileId/edit`, which
+   applies them to the FULL file server-side (readTextPrefix, 10 MiB cap, tabular-only, no truncation)
+   and writes a new version. The §4.4 **Edit / Compare / Restore** trio is now complete.
 6. **Recursive `results/<run>` folders:** the tree renderer is one level deep; nested run sub-folders
    under a `results/` parent need a recursive `TreeNodeView`.
 

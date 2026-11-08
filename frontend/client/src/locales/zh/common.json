@@ -351,7 +351,14 @@
     "diff_identical": "内容相同（字节一致）。",
     "diff_nontabular": "非表格文件——当前 {{b}} 字节，此版本 {{a}} 字节。",
     "diff_changed_cells": "{{n}} 处单元格变化",
-    "diff_sampled": "（前 500 行）"
+    "diff_sampled": "（前 500 行）",
+    "view_edit": "编辑",
+    "edit_hint": "编辑前 {{n}} 行样本；保存时会将修改应用到完整文件并生成新版本。",
+    "edit_save": "将 {{n}} 处修改保存为新版本",
+    "edit_saving": "正在保存…",
+    "edit_saved": "已保存为 v{{v}}。",
+    "edit_failed": "无法保存修改",
+    "edit_appendonly": "追加式——保留历史版本。"
   },
   "data_hub": {
     "choose_project": "选择一个项目",

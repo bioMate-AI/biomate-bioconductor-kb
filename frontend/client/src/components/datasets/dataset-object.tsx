@@ -41,6 +41,7 @@ import {
   Columns3,
   BarChart3,
   SquareTerminal,
+  Pencil,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
 import { t } from "@/lib/i18n"
@@ -127,7 +128,7 @@ const HEADER_QUALITY: Record<PerceptionQuality, { dot: string; label: string }> 
   blocked: { dot: "bg-red-500", label: "Blocked" },
 }
 
-type PreviewView = "table" | "columns" | "plot"
+type PreviewView = "table" | "columns" | "plot" | "edit"
 
 export function DatasetObject({
   dataset,
@@ -154,7 +155,7 @@ export function DatasetObject({
 
   // Preview is the default tab and needs the profile (columns + sample rows), so
   // profiling runs when the object opens.
-  const { data: profile, isLoading, isError } = usePerceptionProfile(
+  const { data: profile, isLoading, isError, refetch: refetchProfile } = usePerceptionProfile(
     dataset.ref,
     dataset.name,
   )
@@ -286,6 +287,40 @@ export function DatasetObject({
       setVersionError(e?.message ?? t('dataset_obj.compare_failed')); setDiffFor(null)
     } finally {
       setDiffLoading(false)
+    }
+  }
+
+  // Edit-in-place → save as a new version (design §4.3/§4.4). Only tabular files in
+  // a project. The sample table is editable; edits are applied to the FULL file
+  // server-side (no truncation) and written as a new version.
+  const editable = versionable && ["csv", "tsv", "tab", "txt"].includes(fileExt)
+  const [cellEdits, setCellEdits] = useState<Record<string, string>>({})  // key `${row}:${colName}`
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editSaved, setEditSaved] = useState<number | null>(null)
+  const handleSaveEdit = async () => {
+    if (!projectId) return
+    const edits = Object.entries(cellEdits).map(([k, value]) => {
+      const i = k.indexOf(":")
+      return { row: Number(k.slice(0, i)), col: k.slice(i + 1), value }
+    })
+    if (edits.length === 0) return
+    setSavingEdit(true); setEditError(null); setEditSaved(null)
+    try {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(dataset.id)}/edit`, {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ edits }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error((j as any)?.error || `Save failed (${r.status})`)
+      setCellEdits({}); setEditSaved((j as any)?.file?.version_no ?? null)
+      await loadProjectVersions()
+      refetchProfile?.()
+    } catch (e: any) {
+      setEditError(e?.message ?? t('dataset_obj.edit_failed'))
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -469,6 +504,20 @@ export function DatasetObject({
                   <Icon className="h-3 w-3" />{label}
                 </button>
               ))}
+              {editable && (
+                <button
+                  type="button"
+                  onClick={() => setPreviewView("edit")}
+                  data-testid="dataset-preview-toggle-edit"
+                  aria-pressed={previewView === "edit"}
+                  className={
+                    "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm " +
+                    (previewView === "edit" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted/50")
+                  }
+                >
+                  <Pencil className="h-3 w-3" />{t('dataset_obj.view_edit')}
+                </button>
+              )}
             </div>
 
             {previewView === "table" && (
@@ -600,6 +649,69 @@ export function DatasetObject({
                     </Button>
                   )}
                 </div>
+              )
+            )}
+
+            {previewView === "edit" && (
+              profile?.columns?.length && profile.sampleRows?.length ? (
+                <div className="space-y-2" data-testid="dataset-preview-edit">
+                  <p className="text-xs text-muted-foreground">
+                    {t('dataset_obj.edit_hint', { n: profile.sampleRows.length })}
+                  </p>
+                  <div className="overflow-x-auto rounded border">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr style={{ background: 'var(--bm-accent-soft)' }}>
+                          {profile.columns.map((c, i) => (
+                            <th key={i} className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b" style={{ color: 'var(--bm-accent-ink)' }}>{c}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {profile.sampleRows.map((r, ri) => (
+                          <tr key={ri} className="odd:bg-muted/20">
+                            {profile.columns!.map((c, ci) => {
+                              const key = `${ri}:${c}`
+                              const edited = key in cellEdits
+                              return (
+                                <td key={ci} className="px-1 py-0.5 border-b">
+                                  <input
+                                    className={`w-full min-w-[6rem] rounded px-1 py-0.5 font-mono text-xs bg-transparent border ${edited ? "border-amber-500/60 bg-amber-500/5" : "border-transparent hover:border-border"}`}
+                                    value={edited ? cellEdits[key] : (r[ci] ?? "")}
+                                    data-testid={`dataset-edit-cell-${ri}-${ci}`}
+                                    onChange={(e) => {
+                                      const val = e.target.value
+                                      setCellEdits((prev) => {
+                                        const next = { ...prev }
+                                        if (val === (r[ci] ?? "")) delete next[key]
+                                        else next[key] = val
+                                        return next
+                                      })
+                                    }}
+                                  />
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {editError && <p className="text-xs text-destructive" data-testid="dataset-edit-error">{editError}</p>}
+                  {editSaved != null && <p className="text-xs text-emerald-600 dark:text-emerald-400" data-testid="dataset-edit-saved">{t('dataset_obj.edit_saved', { v: editSaved })}</p>}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={handleSaveEdit}
+                      disabled={savingEdit || Object.keys(cellEdits).length === 0}
+                      data-testid="dataset-edit-save"
+                    >{savingEdit ? t('dataset_obj.edit_saving') : t('dataset_obj.edit_save', { n: Object.keys(cellEdits).length })}</Button>
+                    <span className="text-xs text-muted-foreground">{t('dataset_obj.edit_appendonly')}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground" data-testid="dataset-preview-edit-none">{t('dataset_obj.no_preview')}</p>
               )
             )}
 
