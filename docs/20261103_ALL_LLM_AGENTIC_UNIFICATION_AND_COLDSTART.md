@@ -691,6 +691,54 @@ Two BioMate mechanisms were added. Both are reproducible, versioned, and cite th
 **Result:** all test profiles pass except moleculardynamics (unreleased dev code, kept executable=0).
 
 ### 16.7 Open
-- **Batch root volume:** raise it (new launch-template version; the CE audit in sync pins CEs to the latest version), then re-run validation for the disk-failed set. This needs owner approval because it changes shared AWS infra and EBS cost.
+- **Batch root volume:** done. The owner applied launch-template v17 (200 GB gp3 plus ECS image/task cleanup) to ce-v2, hpc-v1 and ce-spot (§16.6, run 8).
+- **One workflow per machine:** the owner's decision ("previously AWS Batch put multiple workflows on the same machine without thinking, always mistakes"). Not yet implemented.
 - **executable=0 with evidence:** moleculardynamics (broken upstream code) and dualrnaseq (absolute-path bin calls). Re-enable spatialxe and genephylo, then turn on `BIOMATE_ENFORCE_EXECUTABLE`.
 - **Not started yet:** nf-core/quantms for raw proteomics.
+
+## 17. Molecular dynamics workflows: making them run (2026-11-08)
+
+**Why.** The owner's group uses MD routinely, yet no MD workflow had ever completed through the product. nf-core/moleculardynamics does not fill the gap. It runs apo-protein GROMACS only and strips HETATM records, so it has no ligand, no drug modality and no binding energy. BioMate's own MD workflows (GROMACS protein–ligand + MM-GBSA, AMBER pmemd + MM-GBSA, AMBER peptide MM-GBSA, pmx FEP, MLIP MD) were each audited by running them.
+
+**Test system.** T4 lysozyme L99A with benzene (PDB 181L): the receptor PDB, plus the ligand with hydrogens added and its crystal pose kept (12 atoms). The inputs are in `s3://biomate-nextflow-work/test-inputs/md/181l/`. Runs used 5,000 steps (10 ps), a smoke test only.
+
+### 17.1 Defects and fixes
+
+| Commit | Workflow | Defect | Fix |
+|---|---|---|---|
+| (earlier, §16) | amber_pmemd_md, moe_covalent_docking, schrodinger_glide_docking, alphagenome_track_prediction, polymorph_stability_screening | Groovy parse errors: script delimiters not restored, nested triple quotes, unescaped `$'` / `\(` | Delimiters and escapes repaired. MOE's body is still truncated (from `c6fceb828`); MOE and Schrödinger are licensed tools. |
+| `5e812ef429` | all (launch gate); GROMACS, pmx FEP | A null-default param was treated as required even when the code handles its absence (`?:`, `!= null`, `if (params.X)`). GROMACS and pmx FEP were refused at launch. | `galaxy/ai/nf_param_requirement.py`: a null param is required only when the code enforces it. |
+| `5e812ef429` | gromacs_protein_md, amber_pmemd_md | An SDF/MOL ligand without hydrogens fails parameterisation | RDKit `AddHs(addCoords=True)`; the pose is kept |
+| `2e20a2b7a8` | mlip_md_simulation | Its image `biomate/mlip-md` had never been built, so every run failed `CannotPullImageManifestError` | `infra/docker/mlip-md/Dockerfile` (OpenMM 8 + openmm-ml + openmm-torch + mace-torch + AIMNet2). The final build step is an energy smoke test for both potentials. |
+| `ff3be8e3c3`, `a1e643ba5e` | mlip_md_simulation | Labelled `process_high` (CPU hpc queue) although the script prefers OpenMM's CUDA platform; the image was a CPU-only PyTorch build | Label `process_gpu` → `biomate-gpu-spot-queue`, accelerator 1. PyTorch is the CUDA 12.4 build (`CONDA_OVERRIDE_CUDA`, because the build host has no GPU; it runs on any driver ≥ 525). The image is pinned as `cuda12.4-x86` (sha256:5cbb9949…, 7.9 GB). |
+| `0b1ac50d0a` | gromacs_protein_md | **False success.** The run reported COMPLETED, but MM_GBSA had failed: `start frame (10) > total frames (2)`. The window was fixed at 10..100 every 5 regardless of trajectory length; gmx_MMPBSA ran under `|| true`; the parser wrote "calculation failed" with ΔG = None and exited 0. | Frames are counted with `gmx check`. When the requested start is past the end, the first ~20% are skipped, the end is capped at the last frame, and the interval shrinks to keep ≥ ~10 frames. The window used and the requested one are both recorded in `binding_summary.json`. No DELTA TOTAL means the step fails with the gmx_MMPBSA log tail. `is None` replaces truthiness (a ΔG of 0.0 read as failed). |
+
+### 17.2 Results (wave 2, dev, 2026-11-08)
+
+| Workflow | Status shown | Actual |
+|---|---|---|
+| GROMACS Protein-Ligand MD + MM-GBSA | completed (48.8 min) | LIGAND_PREP → RECEPTOR_TRIM → SYSTEM_SETUP → EM → NVT → NPT on the CPU queue, then PRODUCTION_MD on the GPU queue at **48.5 ns/day**, then trajectory analysis (162 residues, 2 frames): all succeeded. **MM-GBSA failed silently** (the defect above, fixed in `0b1ac50d0a`, not yet deployed). |
+| AMBER pmemd GPU MD | failed | EQUILIBRATION: `/opt/amber24/amber.sh: No such file` and `pmemd.cuda: command not found`. See §17.3. |
+
+### 17.3 AMBER cannot run as written: a licence decision
+
+`amber_pmemd_md` (EQUILIBRATION and PRODUCTION_MD) calls `pmemd.cuda`. `amber_peptide_mmgbsa` sources `/opt/amber24`. On AWS both use `biomate/ambertools-gromacs-nf` (conda AmberTools 23 + GROMACS 2024). The local-only `amber24-cuda` image does not exist in ECR. `pmemd` and `pmemd.cuda` are not part of free AmberTools, including AmberTools25; they need an AMBER licence. Also, no AMBER process carries a GPU label, so the "GPU" steps went to the CPU queue.
+
+Options for the owner:
+1. Buy an AMBER24 licence, then build `amber24-cuda` and label EQUILIBRATION/PRODUCTION_MD `process_gpu`.
+2. Keep AMBER force fields and preparation (tleap, ff19SB, GAFF2) and run the dynamics in OpenMM on the GPU. This is free; OpenMM reads prmtop/inpcrd natively.
+
+Both AMBER MM-GBSA steps also share the GROMACS defects: a fixed start frame (500), and an "N/A" ΔG exits 0. The fix pattern of §17.1 applies, but it cannot be validated until the engine question is settled.
+
+### 17.4 Build infrastructure
+
+The deploy-test host (t3.medium, 4 GB RAM) became unreachable while building the MLIP CPU image (SSM ConnectionLost; history of OOM kills and full disk). `scripts/build_mlip_md_image.sh` now defaults to a one-shot **c6i.2xlarge spot builder** (100 GB gp3, about $0.13/h; terminates itself; hard stop at 120 min). Success requires a receipt tag `build-<instance-id>` whose digest equals the target tag's. The serial console proved unreliable as a log channel. `BUILD_MODE=host` keeps the old path. The CUDA build took about 20 min, for an estimated cost of about $0.05.
+
+Residual risk: the stale CPU build on deploy-test can push `biomate/mlip-md:x86` if the host recovers. The workflow pins `cuda12.4-x86`, so it is unaffected.
+
+### 17.5 Open
+- Deploy `0b1ac50d0a` / `a1e643ba5e` / `5e812ef429` to dev. Then re-run GROMACS (MM-GBSA must report a ΔG), run MLIP MD on the GPU queue (the summary must report `platform: CUDA`), and run the pmx FEP smoke.
+- GPU sizing (catalog-wide): `process_gpu` asks for 8 vCPU / 32 GB, more than a g4dn/g6.2xlarge offers once ECS takes its share, so jobs land on 4xlarge (about 2× the cost).
+- AMBER engine decision (§17.3).
+- Fixture password committed in three tracked e2e/recording files (pre-existing). Move it to `E2E_FIXTURE_PASSWORD` and rotate it.
+
