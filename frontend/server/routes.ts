@@ -17102,7 +17102,7 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
         const data = await response.json() as any;
         return res.json({ run_id: id, source: 'nextflow', status: data.status,
           logs: Array.isArray(data.log_tail) ? data.log_tail : [],
-          error: run.execution.errorMessage || run.execution.error || null });
+          error: run.execution.errorMessage || (run.execution as any).error || null });
       }
 
       const galaxyInvocationId = run.execution.galaxyInvocationId;
